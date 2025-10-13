@@ -1,525 +1,366 @@
 <!doctype html>
 <html lang="en">
 <head>
- <meta charset="utf-8"/>
- <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
- <meta name="viewport" content="width=device-width, initial-scale=1"/>
- <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
- <meta http-equiv="Pragma" content="no-cache" />
- <meta http-equiv="Expires" content="0" />
- <meta name="version" content="5.7-intro-sequence-faithful" />
- <title>Tri-Trail Evolved three.js [v4.2 THE.OS]</title>
- 
- <!-- Google Fonts -->
- <link rel="preconnect" href="https://fonts.googleapis.com">
- <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
- <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto+Mono:wght@100;300&family=VT323&display=swap" rel="stylesheet">
- 
- <!-- Twemoji for consistent emoji rendering -->
- <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
- 
- <!-- Styles -->
- <link rel="stylesheet" href="src/styles/main.css">
- <link rel="stylesheet" href="src/styles/sequence.css">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Cell.real - Full Voxel Editor v2</title>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #000;
+      color: #fff;
+      overflow: hidden;
+    }
+    
+    #app {
+      position: fixed;
+      inset: 0;
+      background: #000;
+    }
+    
+    /* Loading */
+    #loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #0a0a1a;
+      z-index: 9999;
+      transition: opacity 0.5s;
+    }
+    
+    #loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    #loading h1 {
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      margin-bottom: 20px;
+      background: linear-gradient(45deg, #4a7cff, #ff4a7c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #222;
+      border-top-color: #4a7cff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* HUD */
+    .hud {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    
+    .hud-item {
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+    
+    .hud-item strong {
+      color: #4a7cff;
+      margin-right: 8px;
+    }
+    
+    /* Instructions */
+    #instructions {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px 25px;
+      border-radius: 12px;
+      font-size: 13px;
+      color: #ccc;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      max-width: 90%;
+      text-align: center;
+    }
+    
+    #instructions kbd {
+      background: #222;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      font-family: monospace;
+      font-size: 12px;
+      color: #4a7cff;
+      margin: 0 2px;
+    }
+    
+    #instructions.hidden {
+      display: none;
+    }
+    
+    /* Version badge */
+    .version {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #888;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+    }
+  </style>
 </head>
 <body>
- <div id="app" class="scanlines"></div>
- <div class="hud">
-  <div id="quote" class="quote">
-   <span id="quoteBefore" class="quote__text">...if you gaze for long into an abyss, the abyss gazes also into you.</span>
-   <span id="quoteAfter" class="quote__text" style="display:none;"></span>
+  <!-- Loading -->
+  <div id="loading">
+    <h1>CELL.REAL v2</h1>
+    <div class="spinner"></div>
+    <p style="color: #888; margin-top: 10px;">Loading full editor with scene integration...</p>
   </div>
-  <div id="loomworks" class="loomworks" aria-live="polite">
-   <span id="loomPre" class="loomworks-chunk">L</span><span id="loomCore" class="loomworks-chunk">OO</span><span id="loomPost" class="loomworks-chunk">K</span><span id="loomTail" class="loomworks-chunk"></span>
-  </div>
-  <span id="floatingK" class="floatingK" aria-hidden="true">K</span>
-  <div class="vignette"></div>
- </div>
- <div id="screenGlitch" class="screenGlitch"></div>
- 
- <!-- Doorway portal -->
- <div id="doorway" class="doorway">
-  <div class="prompt-container">
-   <div class="prompt" data-text="=STAR_"><span id="promptText">=STAR</span><span id="promptCursor" class="cursor">_</span></div>
-  </div>
- </div>
- 
- <!-- Play Overlay -->
- <div id="play" class="play">
-  <button id="playBtn">Play</button>
-  <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; justify-content:center; max-width:550px;">
-   <button id="sceneSelectBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">Scene Select</button>
-   <button id="testAudioBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">TEST Audio</button>
-  </div>
-  <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap; justify-content:center; max-width:550px;">
-   <button id="sequenceBuilderBtn" style="font-size:11px; padding:8px 16px; opacity:0.7; background:#ff6b6b;">🎬 Sequence Builder</button>
-   <button id="singleBuilderBtn" style="font-size:11px; padding:8px 16px; opacity:0.7; background:#ffa500;">🛠️ Single Builder</button>
-   <button id="testRunnerBtn" style="font-size:11px; padding:8px 16px; opacity:0.7; background:#4ec9b0;">🧪 Test Runner</button>
-  </div>
- </div>
- 
- <!-- Scene Select Menu -->
- <div id="sceneSelect">
-  <div class="scene-menu">
-   <h2>Scene Select</h2>
-   <p>Jump to previously experienced sequences</p>
-   
-   <div id="sceneOptions">
-    <div class="scene-option locked" data-scene="visicell">
-     <div>END(?) → VisiCell</div>
-     <div class="scene-option-desc">The terminal awakens - spreadsheet reality unfolds</div>
-    </div>
-    
-    <div class="scene-option locked" data-scene="leave">
-     <div>LEAVE → Initialize</div>
-     <div class="scene-option-desc">The house of leaves - GIR.mp3 transformation</div>
-    </div>
-    
-    <div class="scene-option locked" data-scene="theos">
-     <div>THE.OS → Cell Lattice</div>
-     <div class="scene-option-desc">Cell address grid formation - witness the architecture</div>
-    </div>
-    
-    <div class="scene-option locked" data-scene="blackhole">
-     <div>THE.OS → Black Hole</div>
-     <div class="scene-option-desc">The void manifests - singularity achieved</div>
-    </div>
-    
-    <div class="scene-option locked" data-scene="end3">
-     <div>HARD.CORE → End3</div>
-     <div class="scene-option-desc">Terminal environment - crawl sequence</div>
-    </div>
-    
-    <div class="scene-option locked" data-scene="fullhand">
-     <div>EXEC.ENV → Execution Environment</div>
-     <div class="scene-option-desc">Integrated scene - voxel hand, keyboard, character & glowing head</div>
-    </div>
-    
-    <div class="scene-option locked" data-scene="cellireal">
-     <div>CELLI.REAL → Spreadsheet Reality</div>
-     <div class="scene-option-desc">The awakened terminal - interactive spreadsheet environment</div>
-    </div>
-    
-    <div class="scene-option" data-scene="sequence-builder" style="border-left: 3px solid #ff6b6b;">
-     <div>🎬 DEV.TOOLS → Sequence Builder</div>
-     <div class="scene-option-desc">Visual node-based sequence composer (Press \ in any scene)</div>
-    </div>
-    
-    <div class="scene-option" data-scene="test-runner" style="border-left: 3px solid #4ec9b0;">
-     <div>🧪 DEV.TOOLS → Test Runner</div>
-     <div class="scene-option-desc">Automated unit & regression tests for Celli subsystems</div>
-    </div>
-   </div>
-   
-   <div class="scene-controls">
-    <button id="debugToggle">Debug: Show All</button>
-    <button id="clearProgress">Clear Progress</button>
-    <button class="close-btn" id="closeSceneSelect">Close</button>
-   </div>
-  </div>
- </div>
- 
- <!-- Skip Button -->
- <div id="skipBtn" class="skip-btn hidden" role="button" aria-label="Skip intro" tabindex="0">
-  <div class="skip-triangle skip-triangle--left" id="skipTriangle1">
-   <div class="skip-triangle__inner">
-    <svg viewBox="0 0 100 86.6025403784" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-     <polygon points="0,0 0,86.6025403784 100,43.3012701892"></polygon>
-     <path d="M0,12 L0,74.6025403784 Q0,86.6025403784 11.012,81.8342402525 L88.988,48.0696001263 Q100,43.3012701892 88.988,38.5329402521 L11.012,4.7679001263 Q0,0 0,12 Z"></path>
-    </svg>
-   </div>
-  </div>
-  <div class="skip-connector" id="skipConnector" aria-hidden="true"></div>
-  <div class="skip-triangle skip-triangle--right" id="skipTriangle2">
-   <div class="skip-triangle__inner">
-    <svg viewBox="0 0 100 86.6025403784" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-     <polygon points="100,0 100,86.6025403784 0,43.3012701892"></polygon>
-     <path d="M100,12 L100,74.6025403784 Q100,86.6025403784 88.988,81.8342402525 L11.012,48.0696001263 Q0,43.3012701892 11.012,38.5329402521 L88.988,4.7679001263 Q100,0 100,12 Z"></path>
-    </svg>
-   </div>
-  </div>
- </div>
- 
- <!-- Toast Notification -->
- <div id="toast" class="toast" style="display:none"></div>
- 
- <div id="introOverlay"><div id="introBrand">celli.os<div class="brand-ver">v.0.0.1</div></div></div>
- <div id="world"></div>
- <canvas id="view"></canvas>
- 
- <!-- UI Elements Container -->
- <div id="uiContainer"></div>
- 
- <!-- Sequence Builder Overlay Container -->
- <div id="sequence-overlay" style="display: none;"></div>
- 
- <!-- Import map for ES modules -->
- <script type="importmap">
- {
-  "imports": {
-   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-   "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-  }
- }
- </script>
-
- <!-- Main Application -->
- <script type="module">
-  import { IntroSceneComplete } from './src/scripts/scenes/IntroSceneComplete.js?v=5.7';
-  import { VisiCalcScene } from './src/scripts/scenes/VisiCalcScene.js';
-  import { CelliRealScene } from './src/scripts/scenes/CelliRealScene.js';
-  import { End3Scene } from './src/scripts/scenes/End3Scene.js';
-  import { FullhandScene } from './src/scripts/scenes/FullhandScene.js';
-  import { CityScene } from './src/scripts/scenes/CityScene.js';
-  import { LeaveScene } from './src/scripts/scenes/LeaveScene.js';
-
-  console.log('🎬 Celli Application Starting v5.7 - Faithful Intro Sequence');
-  console.log('%c🔥 INTRO SEQUENCE FULLY UPDATED 🔥', 'background:#ff4400; color:#fff; font-size:18px; padding:8px; font-weight:bold;');
-  console.log('%c✅ All phases implemented - Roll/Bounce/Triangle/Venn/Collapse/Glitch/CELLI', 'background:#0f0; color:#000; font-size:14px; padding:6px;');
-
-  let introScene = null;
-  let currentScene = null;
-  let animationFrameId = null;
-  let debugMode = false;
   
-  // Scene registry
-  const scenes = {
-    intro: IntroSceneComplete,
-    visicell: VisiCalcScene,
-    cellireal: CelliRealScene,
-    end3: End3Scene,
-    fullhand: FullhandScene,
-    theos: CityScene,
-    blackhole: CityScene,
-    leave: LeaveScene
-  };
-
-  // Helper: toast notification
-  function toast(message) {
-   const toastEl = document.getElementById('toast');
-   if (toastEl) {
-    toastEl.textContent = message;
-    toastEl.style.display = 'block';
-    setTimeout(() => { toastEl.style.display = 'none'; }, 3000);
-   }
+  <!-- App -->
+  <div id="app"></div>
+  
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-item">
+      <strong>Mode:</strong> <span id="hud-mode">2D Spreadsheet</span>
+    </div>
+    <div class="hud-item">
+      <strong>Execution:</strong> <span id="hud-execution">Disabled</span>
+    </div>
+    <div class="hud-item">
+      <strong>Scene:</strong> <span id="hud-scene">FullEditor</span>
+    </div>
+  </div>
+  
+  <!-- Version -->
+  <div class="version">
+    v2.0 - Scene Integration
+  </div>
+  
+  <!-- Instructions -->
+  <div id="instructions">
+    <kbd>Ctrl+E</kbd> Execution Mode •
+    <kbd>Ctrl+V</kbd> Toggle View •
+    <kbd>Arrow Keys</kbd> Navigate •
+    <kbd>Enter</kbd> Edit •
+    <kbd>F1</kbd> Hide
+  </div>
+  
+  <!-- Import map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
   }
-
-  // Scene transition function
-  async function transitionToScene(sceneName) {
-   console.log(`🎬 Transitioning to scene: ${sceneName}`);
-   
-   // Stop current scene
-   if (currentScene) {
-    await currentScene.destroy();
-    currentScene = null;
-   }
-   
-   // Stop intro if running
-   if (introScene && sceneName !== 'intro') {
-    await introScene.destroy();
-    introScene = null;
-   }
-   
-   // Cancel animation loop
-   if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-   }
-   
-   // Get scene class
-   const SceneClass = scenes[sceneName];
-   if (!SceneClass) {
-    toast(`Scene ${sceneName} not yet implemented`);
-    return;
-   }
-   
-   // Create and start new scene
-   try {
-    currentScene = new SceneClass();
-    await currentScene.init();
-    await currentScene.start({}, {});
+  </script>
+  
+  <!-- Main application -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+    import { FullEditorScene } from './src/scripts/scenes/FullEditorScene.js';
     
-    // Start animation loop for new scene
-    let lastTime = performance.now();
-    function animate(currentTime) {
-     if (!currentScene || !currentScene.state.running) return;
-     
-     const deltaTime = (currentTime - lastTime) / 1000;
-     lastTime = currentTime;
-     
-     currentScene.update({}, deltaTime, currentScene.state.totalTime || 0);
-     
-     animationFrameId = requestAnimationFrame(animate);
+    // App state
+    const app = {
+      renderer: null,
+      scene: null,
+      camera: null,
+      controls: null,
+      editorScene: null,
+      clock: new THREE.Clock(),
+      running: false
+    };
+    
+    // Initialize
+    async function init() {
+      try {
+        console.log('🚀 Cell.real v2 - Initializing with scene integration...');
+        
+        // Create renderer
+        const appEl = document.getElementById('app');
+        app.renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: false
+        });
+        app.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        app.renderer.setSize(window.innerWidth, window.innerHeight);
+        app.renderer.outputColorSpace = THREE.SRGBColorSpace;
+        app.renderer.setClearColor(0x000000, 1);
+        appEl.appendChild(app.renderer.domElement);
+        
+        // Create camera
+        app.camera = new THREE.PerspectiveCamera(
+          75,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+        app.camera.position.set(10, 10, 10);
+        
+        // Create controls
+        app.controls = new OrbitControls(app.camera, app.renderer.domElement);
+        app.controls.enableDamping = true;
+        app.controls.dampingFactor = 0.05;
+        
+        // Create editor scene
+        app.editorScene = new FullEditorScene();
+        app.editorScene.state.camera = app.camera; // Share camera
+        await app.editorScene.init();
+        app.scene = app.editorScene.getScene();
+        
+        // Set callbacks
+        app.editorScene.setCallbacks({
+          onFormulaExecute: (data, result) => {
+            console.log('✅ Formula executed:', data, result);
+          },
+          onCellChange: (data) => {
+            console.log('📝 Cell changed:', data);
+          }
+        });
+        
+        // Start scene
+        await app.editorScene.start();
+        
+        // Setup event handlers
+        setupEvents();
+        
+        // Start animation loop
+        app.running = true;
+        animate();
+        
+        // Hide loading
+        hideLoading();
+        
+        // Update HUD
+        updateHUD();
+        
+        console.log('✅ Cell.real v2 initialized successfully!');
+        
+        // Expose to window
+        window.cellRealApp = app;
+        window.editorScene = app.editorScene;
+        
+      } catch (error) {
+        console.error('❌ Initialization failed:', error);
+        document.getElementById('loading').innerHTML = 
+          `<h2 style="color: #ff4444;">Error</h2><p>${error.message}</p>`;
+      }
     }
     
-    animationFrameId = requestAnimationFrame(animate);
+    // Animation loop
+    function animate() {
+      if (!app.running) return;
+      requestAnimationFrame(animate);
+      
+      const delta = app.clock.getDelta();
+      const total = app.clock.getElapsedTime();
+      
+      // Update controls
+      app.controls.update();
+      
+      // Update scene
+      app.editorScene?.update(delta, total);
+      
+      // Render
+      if (app.renderer && app.scene && app.camera) {
+        app.renderer.render(app.scene, app.camera);
+      }
+    }
     
-    console.log(`✅ Scene ${sceneName} loaded successfully`);
-    toast(`Scene ${sceneName} loaded`);
+    // Setup events
+    function setupEvents() {
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        // Ctrl+E - Toggle execution mode
+        if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+          e.preventDefault();
+          app.editorScene?.toggleExecutionMode();
+          updateHUD();
+        }
+        
+        // Ctrl+V - Toggle view mode
+        if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+          e.preventDefault();
+          app.editorScene?.toggleViewMode();
+          updateHUD();
+        }
+        
+        // F1 - Toggle instructions
+        if (e.key === 'F1') {
+          e.preventDefault();
+          document.getElementById('instructions').classList.toggle('hidden');
+        }
+      });
+      
+      // Resize
+      window.addEventListener('resize', () => {
+        if (!app.camera || !app.renderer) return;
+        app.camera.aspect = window.innerWidth / window.innerHeight;
+        app.camera.updateProjectionMatrix();
+        app.renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
     
-   } catch (error) {
-    console.error(`❌ Error loading scene ${sceneName}:`, error);
-    toast(`Error loading scene: ${error.message}`);
-   }
-  }
-
-  // Play button handler
-  document.getElementById('playBtn').addEventListener('click', async () => {
-   console.log('▶️ Play button clicked');
-   
-   const playEl = document.getElementById('play');
-   if (playEl) playEl.classList.add('hidden');
-   
-   // Initialize intro scene
-   introScene = new IntroSceneComplete();
-   await introScene.init();
-   
-   // Start intro scene
-   await introScene.start({}, {});
-   
-   // Animation loop
-   let lastTime = performance.now();
-   function animate(currentTime) {
-    if (!introScene || !introScene.state.running) return;
+    // Update HUD
+    function updateHUD() {
+      const mode = app.editorScene?.state.mode || '2d';
+      const execution = app.editorScene?.state.executionMode || false;
+      
+      document.getElementById('hud-mode').textContent = 
+        mode === '2d' ? '2D Spreadsheet' : '3D Voxel View';
+      document.getElementById('hud-execution').textContent = 
+        execution ? 'Enabled (Hand & Keyboard)' : 'Disabled';
+    }
     
-    const deltaTime = (currentTime - lastTime) / 1000;
-    lastTime = currentTime;
+    // Hide loading
+    function hideLoading() {
+      const loading = document.getElementById('loading');
+      loading.classList.add('hidden');
+      setTimeout(() => loading.style.display = 'none', 500);
+    }
     
-    introScene.update({}, deltaTime, introScene.state.totalTime);
-    
-    animationFrameId = requestAnimationFrame(animate);
-   }
-   
-   animationFrameId = requestAnimationFrame(animate);
-   
-   console.log('✅ Intro scene started');
-   toast('Intro sequence started');
-  });
-
-  // Scene Select button handler
-  document.getElementById('sceneSelectBtn').addEventListener('click', () => {
-   console.log('🎭 Scene Select clicked');
-   const sceneSelectEl = document.getElementById('sceneSelect');
-   if (sceneSelectEl) {
-    sceneSelectEl.classList.toggle('visible');
-   }
-  });
-
-  // Sequence Builder button handler
-  document.getElementById('sequenceBuilderBtn').addEventListener('click', () => {
-   console.log('🎬 Sequence Builder clicked');
-   window.open('./sequence-builder.html', '_blank');
-   toast('Opening Sequence Builder in new window...');
-  });
-
-  // Single Builder button handler
-  document.getElementById('singleBuilderBtn').addEventListener('click', () => {
-   console.log('🛠️ Single Builder clicked');
-   window.open('./builder.html', '_blank');
-   toast('Opening Single Builder in new window...');
-  });
-
-  // Test Runner button handler
-  document.getElementById('testRunnerBtn').addEventListener('click', () => {
-   console.log('🧪 Test Runner clicked');
-   window.open('./tests/test-runner.html', '_blank');
-   toast('Opening Test Runner in new window...');
-  });
-
-  // Close Scene Select
-  document.getElementById('closeSceneSelect').addEventListener('click', () => {
-   const sceneSelectEl = document.getElementById('sceneSelect');
-   if (sceneSelectEl) {
-    sceneSelectEl.classList.remove('visible');
-   }
-  });
-
-  // Debug Toggle
-  document.getElementById('debugToggle').addEventListener('click', function() {
-   debugMode = !debugMode;
-   this.textContent = debugMode ? 'Debug: Hide' : 'Debug: Show All';
-   
-   // Toggle all scene options to unlocked
-   const sceneOptions = document.querySelectorAll('.scene-option');
-   sceneOptions.forEach(opt => {
-    if (debugMode) {
-     opt.classList.remove('locked');
+    // Start
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
     } else {
-     opt.classList.add('locked');
+      init();
     }
-   });
-   
-   toast(debugMode ? 'Debug mode: All scenes unlocked' : 'Debug mode: Scenes locked');
-  });
-
-  // Clear Progress
-  document.getElementById('clearProgress').addEventListener('click', () => {
-   if (confirm('Clear all progress? This will reset all unlocked scenes.')) {
-    localStorage.clear();
-    toast('Progress cleared');
-    location.reload();
-   }
-  });
-
-  // Test Audio button - plays credits.mp3
-  document.getElementById('testAudioBtn').addEventListener('click', async () => {
-   console.log('🔊 Playing credits.mp3');
-   
-   try {
-    const audio = new Audio('./credits.mp3');
-    audio.volume = 0.7;
-    
-    audio.addEventListener('canplaythrough', () => {
-     console.log('✅ Credits audio loaded, playing...');
-     toast('Playing credits.mp3');
-    }, { once: true });
-    
-    audio.addEventListener('error', (e) => {
-     console.error('❌ Error loading credits.mp3:', e);
-     toast('Error: credits.mp3 not found or failed to load');
-    }, { once: true });
-    
-    audio.addEventListener('ended', () => {
-     console.log('✅ Credits audio ended');
-     toast('Credits playback complete');
-    }, { once: true });
-    
-    await audio.play();
-    
-   } catch (error) {
-    console.error('❌ Error playing audio:', error);
-    toast(`Audio error: ${error.message}`);
-   }
-  });
-
-  // Scene option click handlers
-  document.querySelectorAll('.scene-option').forEach(option => {
-   option.addEventListener('click', async function() {
-    if (this.classList.contains('locked') && !debugMode) {
-     toast('Scene locked - experience the intro first');
-     return;
-    }
-    
-    const scene = this.dataset.scene;
-    console.log(`🎬 Loading scene: ${scene}`);
-    
-    // Close scene select menu
-    const sceneSelectEl = document.getElementById('sceneSelect');
-    if (sceneSelectEl) sceneSelectEl.classList.remove('visible');
-    
-    // Transition to the scene
-    await transitionToScene(scene);
-   });
-  });
-
-  // Skip button handler
-  const skipBtn = document.getElementById('skipBtn');
-  if (skipBtn) {
-   skipBtn.addEventListener('click', () => {
-    console.log('⏩ Skip button clicked');
-    toast('Skip functionality not yet implemented');
-   });
-  }
-
-  // Listen for scene transition events from intro
-  window.addEventListener('celli:sceneTransition', async (e) => {
-   const sceneName = e.detail.scene;
-   console.log(`📡 Scene transition event received: ${sceneName}`);
-   await transitionToScene(sceneName);
-  });
-
-  // Cleanup on page unload
-  window.addEventListener('beforeunload', () => {
-   if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-   }
-   if (introScene) {
-    introScene.destroy();
-   }
-   if (currentScene) {
-    currentScene.destroy();
-   }
-  });
-
-  // Global keyboard shortcut for Sequence Builder overlay
-  let sequenceOverlayActive = false;
-  let sequenceUI = null;
-
-  async function toggleSequenceOverlay() {
-   const overlay = document.getElementById('sequence-overlay');
-   
-   if (sequenceOverlayActive) {
-    // Hide overlay
-    overlay.style.display = 'none';
-    sequenceOverlayActive = false;
-    console.log('🎬 Sequence Builder overlay hidden');
-    toast('Sequence Builder closed (Press \\ to reopen)');
-   } else {
-    // Show overlay
-    overlay.style.display = 'block';
-    sequenceOverlayActive = true;
-    
-    // Initialize sequence UI if not already done
-    if (!sequenceUI) {
-     try {
-      // Create container for sequence builder
-      overlay.innerHTML = `
-       <div id="sequence-composer-container" class="active">
-        <div class="sequence-close-btn" id="sequenceOverlayClose" style="position: absolute; top: 15px; left: 15px; z-index: 10001; background: #f44336; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600;">
-         ✕ Close (or press \\ )
-        </div>
-        <div class="keyboard-hint" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10001; color: #999; font-size: 12px; background: rgba(0,0,0,0.7); padding: 8px 16px; border-radius: 4px; pointer-events: none;">
-         Press <kbd style="background: #333; padding: 2px 6px; border-radius: 3px; font-family: 'Consolas', monospace; border: 1px solid #555;">\\</kbd> to toggle sequence builder
-        </div>
-       </div>
-      `;
-      
-      // Add close button handler
-      document.getElementById('sequenceOverlayClose').addEventListener('click', toggleSequenceOverlay);
-      
-      // Import and initialize SequenceUI
-      const { SequenceUI } = await import('./src/scripts/sequence/SequenceUI.js');
-      
-      // Mock scene registry for now
-      const mockSceneRegistry = {
-       scenes: new Map(),
-       entities: new Map()
-      };
-      
-      sequenceUI = new SequenceUI('sequence-composer-container', mockSceneRegistry);
-      sequenceUI.init();
-      
-      console.log('✅ Sequence Builder overlay initialized');
-     } catch (error) {
-      console.error('❌ Failed to load Sequence Builder:', error);
-      toast('Error loading Sequence Builder');
-      overlay.style.display = 'none';
-      sequenceOverlayActive = false;
-      return;
-     }
-    }
-    
-    console.log('🎬 Sequence Builder overlay shown');
-    toast('Sequence Builder opened (Press \\ to close)');
-   }
-  }
-
-  // Listen for backslash key globally
-  document.addEventListener('keydown', (e) => {
-   // Check for backslash key
-   if (e.key === '\\' || e.key === '|' || e.code === 'Backslash') {
-    e.preventDefault();
-    toggleSequenceOverlay();
-   }
-   
-   // Allow Escape to close overlay if open
-   if (e.key === 'Escape' && sequenceOverlayActive) {
-    toggleSequenceOverlay();
-   }
-  });
-
-  console.log('✅ Application initialized - Click Play to begin');
-  console.log('💡 Tip: Press \\ anytime to open Sequence Builder overlay');
- </script>
+  </script>
 </body>
 </html>
+
