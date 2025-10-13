@@ -93,6 +93,7 @@ export class IntroSceneComplete {
       blackoutStarted: false,
       chimePlayed: false,
       skipShown: false,
+      skipBowAnimated: false,
       musicStarted: false,
       inputAttempted: false,
       inputText: '=STAR',
@@ -303,15 +304,13 @@ export class IntroSceneComplete {
     const triMat = new THREE.ShaderMaterial({
       uniforms: {
         points: { value: [new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2()] },
-        colors: { value: colors },
-        aspect: { value: 1.0 }
+        colors: { value: colors }
       },
       vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position, 1.0); }`,
       fragmentShader: `
         varying vec2 vUv;
         uniform vec2 points[3];
         uniform vec3 colors[3];
-        uniform float aspect;
 
         vec3 barycentric(vec2 p, vec2 a, vec2 b, vec2 c) {
           vec2 v0 = b - a, v1 = c - a, v2 = p - a;
@@ -329,7 +328,6 @@ export class IntroSceneComplete {
 
         void main() {
           vec2 p = (vUv - 0.5) * 2.0;
-          p.x *= aspect;
 
           vec3 b = barycentric(p, points[0], points[1], points[2]);
 
@@ -366,18 +364,7 @@ export class IntroSceneComplete {
   _createVoxels(scene) {
     const voxelSize = 0.05;
     const voxelGeo = new THREE.BoxGeometry(voxelSize * 0.95, voxelSize * 0.95, voxelSize * 0.15);
-    const voxelMat = new THREE.MeshBasicMaterial({ 
-      color: 0x444444, 
-      transparent: true, 
-      opacity: 0, 
-      blending: THREE.NormalBlending 
-    });
     const edgesGeo = new THREE.EdgesGeometry(voxelGeo);
-    const edgeMat = new THREE.LineBasicMaterial({ 
-      color: 0x888888, 
-      transparent: true, 
-      opacity: 0 
-    });
 
     const celliPatterns = {
       C: [[0,1,1,1,0], [1,0,0,0,0], [1,0,0,0,0], [1,0,0,0,0], [0,1,1,1,0]],
@@ -400,8 +387,23 @@ export class IntroSceneComplete {
       pattern.forEach((row, rowIdx) => {
         row.forEach((cell, colIdx) => {
           if (cell === 1) {
-            const voxel = new THREE.Mesh(voxelGeo, voxelMat.clone());
-            const edges = new THREE.LineSegments(edgesGeo, edgeMat.clone());
+            // Create individual materials for each voxel
+            const voxelMat = new THREE.MeshBasicMaterial({ 
+              color: 0x444444, 
+              transparent: true, 
+              opacity: 0, 
+              blending: THREE.NormalBlending,
+              side: THREE.FrontSide
+            });
+            const edgeMat = new THREE.LineBasicMaterial({ 
+              color: 0x888888, 
+              transparent: true, 
+              opacity: 0,
+              linewidth: 1
+            });
+            
+            const voxel = new THREE.Mesh(voxelGeo, voxelMat);
+            const edges = new THREE.LineSegments(edgesGeo, edgeMat);
             voxel.add(edges);
             
             const x = letterX + (colIdx - 2) * voxelSize * 1.2 * celliScale;
@@ -512,7 +514,7 @@ export class IntroSceneComplete {
    */
   _setupEventListeners() {
     // Click handler for text particles
-    document.addEventListener('click', (e) => {
+    this._clickHandler = (e) => {
       if (!this.state.running) return;
       
       // Convert screen to world coordinates
@@ -521,14 +523,29 @@ export class IntroSceneComplete {
       
       // Create text particles at click position
       this._createTextParticlesAtPosition(x, y);
-    });
+    };
+    document.addEventListener('click', this._clickHandler);
 
     // Keyboard handler for doorway input
-    document.addEventListener('keydown', (e) => {
-      if (this.state.doorwayOpened && !this.state.inputAttempted) {
+    this._keydownHandler = (e) => {
+      if (!this.state.running) return;
+      
+      if (this.state.doorwayOpened) {
         this._handleDoorwayInput(e);
       }
-    });
+    };
+    document.addEventListener('keydown', this._keydownHandler);
+    
+    // Skip button handler
+    const skipBtn = document.getElementById('skipBtn');
+    if (skipBtn) {
+      this._skipClickHandler = () => {
+        console.log('⏩ Skip button clicked');
+        // Skip to doorway phase
+        this.state.totalTime = this.state.introCfg.celliEnd;
+      };
+      skipBtn.addEventListener('click', this._skipClickHandler);
+    }
   }
 
   /**
@@ -568,30 +585,65 @@ export class IntroSceneComplete {
    * Handle doorway input
    */
   _handleDoorwayInput(e) {
+    console.log('⌨️ Doorway input:', e.key);
+    
+    const promptText = document.getElementById('promptText');
+    const promptCursor = document.getElementById('promptCursor');
+    
     if (e.key === 't' || e.key === 'T') {
+      e.preventDefault();
       this.state.tEntered = true;
       this.state.inputText += 'T';
+      
       // Update display
-      const promptText = document.getElementById('promptText');
       if (promptText) promptText.textContent = this.state.inputText;
+      
+      console.log('✨ T entered - triggering burst animation');
       
       // Trigger burst animation
       if (!this.state.burstAnimStarted) {
         this.state.burstAnimStarted = true;
         this._startBurstAnimation();
       }
+      
     } else if (e.key === 'Backspace') {
-      // Handle backspace sequence
-      if (!this.state.celliBackspaceSequenceStarted) {
-        this.state.celliBackspaceSequenceStarted = true;
-        this.state.celliBackspaceSequenceTime = 0;
+      e.preventDefault();
+      
+      if (this.state.inputText.length > 5) {
+        // Remove last character
+        this.state.inputText = this.state.inputText.slice(0, -1);
+        if (promptText) promptText.textContent = this.state.inputText;
+      } else {
+        // Start backspace sequence when =STAR is cleared
+        console.log('🔙 Backspace sequence starting');
+        if (!this.state.celliBackspaceSequenceStarted) {
+          this.state.celliBackspaceSequenceStarted = true;
+          this.state.celliBackspaceSequenceTime = 0;
+        }
       }
+      
     } else if (e.key.length === 1 && /[EDNend]/.test(e.key)) {
+      e.preventDefault();
+      
       // Handle END sequence
       this.state.endSequence += e.key.toUpperCase();
+      this.state.inputText += e.key.toUpperCase();
+      
+      if (promptText) promptText.textContent = this.state.inputText;
+      
+      console.log('📝 END sequence:', this.state.endSequence);
+      
       if (this.state.endSequence.includes('END')) {
+        console.log('🎬 END sequence complete - starting transition');
         this._startEndSequence();
       }
+      
+    } else if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+      e.preventDefault();
+      
+      // Add any alphanumeric character
+      this.state.inputText += e.key.toUpperCase();
+      if (promptText) promptText.textContent = this.state.inputText;
     }
   }
 
@@ -647,6 +699,15 @@ export class IntroSceneComplete {
     console.log('🎬 Starting END sequence');
     this.state.celliMoveToCornerStarted = true;
     this.state.celliMoveToCornerTime = 0;
+    
+    // Trigger transition to VisiCalc after animation
+    setTimeout(() => {
+      console.log('📊 Transitioning to VisiCalc scene...');
+      // Dispatch custom event for scene transition
+      window.dispatchEvent(new CustomEvent('celli:sceneTransition', {
+        detail: { scene: 'visicell' }
+      }));
+    }, 2500); // After END animation completes
   }
 
   /**
@@ -688,6 +749,13 @@ export class IntroSceneComplete {
       doorwayEl.classList.remove('visible', 'open');
     }
     
+    // Show skip button from start (will animate to bow later)
+    const skipBtn = document.getElementById('skipBtn');
+    if (skipBtn) {
+      skipBtn.classList.remove('hidden');
+      skipBtn.classList.remove('bow-shape', 'rounded-bow', 'illuminating');
+    }
+    
     console.log('✅ UI elements initialized for intro sequence');
     
     // Start animation
@@ -724,10 +792,8 @@ export class IntroSceneComplete {
     // Update spheres based on phase
     this._updateSpheresPhase(t, cfg, phase);
 
-    // Update color triangle (only when visible)
-    if (this.state.triMesh && this.state.triMesh.visible) {
-      const aspect = window.innerWidth / window.innerHeight;
-      this.state.triMesh.material.uniforms.aspect.value = aspect;
+    // Update color triangle points (always update, visibility controlled separately)
+    if (this.state.triMesh) {
       this.state.triMesh.material.uniforms.points.value[0].set(
         this.state.spheres[0].position.x,
         this.state.spheres[0].position.y
@@ -991,11 +1057,15 @@ export class IntroSceneComplete {
         this.state.celliStartTime = t;
       }
       
-      // Show skip button when CELLI starts
-      if (!this.state.skipShown) {
+      // Animate skip button to bow when voxels settle
+      if (celliAge > 3.0 && !this.state.skipBowAnimated) {
         const skipBtn = document.getElementById('skipBtn');
-        if (skipBtn) skipBtn.classList.remove('hidden');
-        this.state.skipShown = true;
+        if (skipBtn) {
+          skipBtn.classList.add('bow-shape');
+          setTimeout(() => skipBtn.classList.add('rounded-bow'), 400);
+          setTimeout(() => skipBtn.classList.add('illuminating'), 800);
+        }
+        this.state.skipBowAnimated = true;
       }
       
     } else if (phase === 'doorway') {
@@ -1850,9 +1920,6 @@ export class IntroSceneComplete {
       this.state.camera.updateProjectionMatrix();
     }
     
-    if (this.state.triMesh) {
-      this.state.triMesh.material.uniforms.aspect.value = aspect;
-    }
   }
 
   /**
@@ -1868,6 +1935,18 @@ export class IntroSceneComplete {
    */
   async destroy() {
     await this.stop();
+    
+    // Remove event listeners
+    if (this._clickHandler) {
+      document.removeEventListener('click', this._clickHandler);
+    }
+    if (this._keydownHandler) {
+      document.removeEventListener('keydown', this._keydownHandler);
+    }
+    if (this._skipClickHandler) {
+      const skipBtn = document.getElementById('skipBtn');
+      if (skipBtn) skipBtn.removeEventListener('click', this._skipClickHandler);
+    }
     
     // Cleanup resources
     if (this.state.scene) {
