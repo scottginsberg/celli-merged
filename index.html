@@ -148,7 +148,7 @@
  <div id="world"></div>
  <canvas id="view"></canvas>
  
- <!-- UI Elements Container -->
+ <!-- UI Elements Container for Scene-Injected HTML -->
  <div id="uiContainer"></div>
  
  <!-- Sequence Builder Overlay Container -->
@@ -208,16 +208,27 @@
   // Scene transition function
   async function transitionToScene(sceneName) {
    console.log(`🎬 Transitioning to scene: ${sceneName}`);
+   console.log(`Available scenes:`, Object.keys(scenes));
    
    // Stop current scene
    if (currentScene) {
-    await currentScene.destroy();
+    console.log('Destroying current scene...');
+    try {
+      await currentScene.destroy();
+    } catch (e) {
+      console.warn('Error destroying current scene:', e);
+    }
     currentScene = null;
    }
    
    // Stop intro if running
    if (introScene && sceneName !== 'intro') {
-    await introScene.destroy();
+    console.log('Destroying intro scene...');
+    try {
+      await introScene.destroy();
+    } catch (e) {
+      console.warn('Error destroying intro:', e);
+    }
     introScene = null;
    }
    
@@ -230,15 +241,23 @@
    // Get scene class
    const SceneClass = scenes[sceneName];
    if (!SceneClass) {
+    console.error(`Scene "${sceneName}" not found in registry!`);
     toast(`Scene ${sceneName} not yet implemented`);
     return;
    }
    
+   console.log(`Creating scene: ${sceneName}...`);
+   
    // Create and start new scene
    try {
     currentScene = new SceneClass();
+    console.log('Scene instance created, initializing...');
+    
     await currentScene.init();
+    console.log('Scene initialized, starting...');
+    
     await currentScene.start({}, {});
+    console.log('Scene started, beginning animation loop...');
     
     // Start animation loop for new scene
     let lastTime = performance.now();
@@ -256,10 +275,11 @@
     animationFrameId = requestAnimationFrame(animate);
     
     console.log(`✅ Scene ${sceneName} loaded successfully`);
-    toast(`Scene ${sceneName} loaded`);
+    toast(`${sceneName} scene loaded`);
     
    } catch (error) {
     console.error(`❌ Error loading scene ${sceneName}:`, error);
+    console.error('Full error:', error.stack);
     toast(`Error loading scene: ${error.message}`);
    }
   }
@@ -408,8 +428,17 @@
     const sceneSelectEl = document.getElementById('sceneSelect');
     if (sceneSelectEl) sceneSelectEl.classList.remove('visible');
     
+    // Hide play overlay if visible
+    const playEl = document.getElementById('play');
+    if (playEl) playEl.classList.add('hidden');
+    
     // Transition to the scene
-    await transitionToScene(scene);
+    try {
+      await transitionToScene(scene);
+    } catch (error) {
+      console.error('Scene transition error:', error);
+      toast(`Error loading scene: ${error.message}`);
+    }
    });
   });
 
