@@ -1,0 +1,323 @@
+/**
+ * Skip Button
+ * Animated triangular skip button with multiple phases
+ */
+
+.skip-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 70;
+  opacity: 0.75;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  transition: opacity 0.45s ease;
+  --skip-triangle-size: 28px;
+  --skip-triangle-height: calc(var(--skip-triangle-size) * 0.8660254038);
+}
+
+.skip-btn:hover {
+  opacity: 1;
+}
+
+.skip-btn.hidden {
+  display: none;
+}
+
+.skip-btn.bow-lock {
+  pointer-events: none;
+}
+
+.skip-btn.voxel-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease, filter 0.35s ease;
+  filter: brightness(0.65);
+}
+
+/* Phase colors */
+.skip-btn.golden-phase {
+  color: #fff48a;
+}
+
+/* Triangle elements */
+.skip-triangle {
+  position: relative;
+  width: var(--skip-triangle-size);
+  height: var(--skip-triangle-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.85s cubic-bezier(0.19, 1, 0.22, 1), filter 0.6s ease;
+  z-index: 1;
+}
+
+.skip-triangle__inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.25)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.15));
+  transform-origin: center;
+  transition: filter 0.6s ease, transform 0.6s ease;
+}
+
+.skip-triangle--right .skip-triangle__inner {
+  transform: scaleX(-1);
+}
+
+.skip-triangle svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.skip-triangle polygon,
+.skip-triangle path {
+  fill: #fff;
+  stroke: rgba(255, 255, 255, 0.45);
+  stroke-width: 5;
+  stroke-linejoin: round;
+  transition: stroke 0.6s ease, fill 0.6s ease, opacity 0.5s ease;
+  animation: skipFillShimmer 2s ease-in-out infinite, skipOutlinePulse 2.8s ease-in-out infinite;
+}
+
+.skip-triangle path {
+  opacity: 0;
+}
+
+/* Initial position - closer together */
+.skip-btn:not(.bow-shape) .skip-triangle--left {
+  transform: translateX(calc(var(--skip-triangle-size) * -0.25));
+}
+
+.skip-btn:not(.bow-shape) .skip-triangle--right {
+  transform: translateX(calc(var(--skip-triangle-size) * 0.25));
+}
+
+/* Bow shape configuration */
+.skip-btn.bow-shape {
+  gap: 0;
+  opacity: 1;
+  --skip-triangle-size: 32px;
+}
+
+.skip-btn.bow-shape .skip-triangle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+}
+
+.skip-btn.bow-shape .skip-triangle__inner {
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.25)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.15));
+}
+
+.skip-btn.bow-shape .skip-triangle--left {
+  transform: translate(-50%, -50%) translateX(calc(var(--skip-triangle-size) * -0.5));
+}
+
+.skip-btn.bow-shape .skip-triangle--right {
+  transform: translate(-50%, -50%) translateX(calc(var(--skip-triangle-size) * 0.5));
+}
+
+.skip-btn.bow-shape .skip-triangle--right .skip-triangle__inner {
+  transform: scaleX(1);
+}
+
+/* Connector element */
+.skip-connector {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  opacity: 0;
+  transition: all 0.6s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.skip-btn.rounded-bow .skip-triangle polygon {
+  opacity: 0;
+}
+
+.skip-btn.rounded-bow .skip-triangle path {
+  opacity: 1;
+}
+
+.skip-btn.rounded-bow .skip-connector {
+  width: calc(var(--skip-triangle-size) * 0.48);
+  height: calc(var(--skip-triangle-size) * 0.48);
+  border-radius: calc(var(--skip-triangle-size) * 0.12);
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.25), 0 0 6px rgba(255, 255, 255, 0.15);
+  opacity: 1;
+  animation: skipCenterPulse 2.2s ease-in-out infinite;
+}
+
+/* Illuminating state */
+.skip-btn.illuminating .skip-triangle__inner {
+  animation: skipGlowPulse 2.4s ease-in-out infinite;
+}
+
+.skip-btn.illuminating.bow-shape .skip-triangle--left .skip-triangle__inner {
+  animation: skipGlowPulse 2.4s ease-in-out infinite, skipJiggleLeft 1.6s ease-in-out infinite;
+}
+
+.skip-btn.illuminating.bow-shape .skip-triangle--right .skip-triangle__inner {
+  animation: skipGlowPulse 2.4s ease-in-out infinite, skipJiggleRight 1.6s ease-in-out infinite;
+}
+
+/* Golden phase styling */
+.skip-btn.golden-phase .skip-triangle polygon,
+.skip-btn.golden-phase .skip-triangle path {
+  fill: #fff48a;
+  stroke: rgba(255, 214, 120, 0.65);
+}
+
+.skip-btn.golden-phase .skip-triangle__inner {
+  filter: drop-shadow(0 0.5px 1px rgba(255, 215, 96, 0.08)) drop-shadow(0 0 2px rgba(255, 238, 160, 0.05));
+}
+
+.skip-btn.golden-phase.rounded-bow .skip-connector {
+  background: radial-gradient(circle at 50% 45%, rgba(255, 248, 170, 1) 0%, rgba(255, 219, 92, 1) 45%, rgba(255, 199, 60, 0.98) 100%);
+  box-shadow: 0 0 2px rgba(255, 215, 96, 0.08), 0 0 3px rgba(255, 239, 168, 0.05);
+}
+
+.skip-btn.golden-phase.illuminating .skip-triangle polygon,
+.skip-btn.golden-phase.illuminating .skip-triangle path {
+  animation: skipFillShimmer 2s ease-in-out infinite, skipOutlinePulse 2.8s ease-in-out infinite;
+}
+
+/* Magenta phase styling */
+.skip-btn.magenta-phase .skip-triangle polygon,
+.skip-btn.magenta-phase .skip-triangle path {
+  fill: #ff1e6e;
+  stroke: rgba(255, 100, 140, 0.65);
+}
+
+.skip-btn.magenta-phase .skip-triangle__inner {
+  filter: drop-shadow(0 0.5px 1px rgba(255, 30, 110, 0.08)) drop-shadow(0 0 2px rgba(255, 100, 160, 0.05));
+}
+
+.skip-btn.magenta-phase.rounded-bow .skip-connector {
+  background: radial-gradient(circle at 50% 45%, rgba(255, 80, 140, 1) 0%, rgba(255, 30, 110, 1) 45%, rgba(220, 20, 90, 0.98) 100%);
+  box-shadow: 0 0 2px rgba(255, 30, 110, 0.08), 0 0 3px rgba(255, 100, 160, 0.05);
+}
+
+.skip-btn.magenta-phase.illuminating .skip-triangle polygon,
+.skip-btn.magenta-phase.illuminating .skip-triangle path {
+  animation: skipFillShimmer 2s ease-in-out infinite, skipOutlinePulse 2.8s ease-in-out infinite;
+}
+
+/* Cyan phase styling */
+.skip-btn.cyan-phase .skip-triangle polygon,
+.skip-btn.cyan-phase .skip-triangle path {
+  fill: #00a8ff;
+  stroke: rgba(100, 180, 255, 0.65);
+}
+
+.skip-btn.cyan-phase .skip-triangle__inner {
+  filter: drop-shadow(0 0.5px 1px rgba(0, 168, 255, 0.08)) drop-shadow(0 0 2px rgba(100, 200, 255, 0.05));
+}
+
+.skip-btn.cyan-phase.rounded-bow .skip-connector {
+  background: radial-gradient(circle at 50% 45%, rgba(100, 200, 255, 1) 0%, rgba(0, 168, 255, 1) 45%, rgba(0, 140, 220, 0.98) 100%);
+  box-shadow: 0 0 2px rgba(0, 168, 255, 0.08), 0 0 3px rgba(100, 200, 255, 0.05);
+}
+
+.skip-btn.cyan-phase.illuminating .skip-triangle polygon,
+.skip-btn.cyan-phase.illuminating .skip-triangle path {
+  animation: skipFillShimmer 2s ease-in-out infinite, skipOutlinePulse 2.8s ease-in-out infinite;
+}
+
+/* Idle states */
+.skip-btn.idle-bloom-increase .skip-triangle__inner {
+  animation: skipGlowPulse 2.4s ease-in-out infinite, idleBloomIncrease 3s ease-out forwards;
+}
+
+.skip-btn.idle-bloom-increase.rounded-bow .skip-connector {
+  animation: skipCenterPulse 2.2s ease-in-out infinite, idleBloomIncrease 3s ease-out forwards;
+}
+
+.skip-btn.idle-glitching {
+  animation: staticGlitchDistortion 0.15s steps(4) infinite;
+}
+
+/* Skip button animations */
+@keyframes skipGlowPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.25)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.15));
+  }
+  45% {
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.30)) drop-shadow(0 0 8px rgba(138, 180, 255, 0.20));
+  }
+  55% {
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.28)) drop-shadow(0 0 8px rgba(255, 182, 46, 0.18));
+  }
+}
+
+@keyframes skipFillShimmer {
+  0%, 100% { fill: #ffffff; }
+  25% { fill: #f5f9ff; }
+  50% { fill: #ffffff; }
+  75% { fill: #eef3ff; }
+}
+
+@keyframes skipOutlinePulse {
+  0%, 100% { stroke: rgba(138, 180, 255, 0.45); stroke-width: 5; }
+  40% { stroke: rgba(255, 255, 255, 0.85); stroke-width: 6.5; }
+  60% { stroke: rgba(255, 182, 46, 0.7); stroke-width: 6; }
+}
+
+@keyframes skipJiggleLeft {
+  0%, 100% { transform: translate(0, 0); }
+  40% { transform: translate(-6%, -6%); }
+  70% { transform: translate(4%, 4%); }
+}
+
+@keyframes skipJiggleRight {
+  0%, 100% { transform: translate(0, 0); }
+  40% { transform: translate(6%, -5%); }
+  70% { transform: translate(-4%, 4%); }
+}
+
+@keyframes skipCenterPulse {
+  0%, 100% {
+    box-shadow: 0 0 3px rgba(255, 255, 255, 0.25), 0 0 6px rgba(255, 255, 255, 0.15);
+  }
+  45% {
+    box-shadow: 0 0 4px rgba(138, 180, 255, 0.30), 0 0 8px rgba(255, 255, 255, 0.20);
+  }
+  65% {
+    box-shadow: 0 0 4px rgba(255, 182, 46, 0.28), 0 0 8px rgba(255, 255, 255, 0.18);
+  }
+}
+
+@keyframes idleBloomIncrease {
+  0% {
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.25)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.15));
+  }
+  100% {
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.50)) drop-shadow(0 0 24px rgba(255, 255, 255, 0.30)) drop-shadow(0 0 36px rgba(255, 255, 255, 0.15));
+  }
+}
+
+@keyframes staticGlitchDistortion {
+  0% { transform: translate(-50%, 0) translateX(0px); }
+  25% { transform: translate(-50%, 0) translateX(-3px); }
+  50% { transform: translate(-50%, 0) translateX(2px); }
+  75% { transform: translate(-50%, 0) translateX(-2px); }
+  100% { transform: translate(-50%, 0) translateX(1px); }
+}
+
+

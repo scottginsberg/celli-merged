@@ -1,0 +1,135 @@
+/**
+ * HUD Components
+ * Heads-up display elements: quotes, brand, loomworks
+ */
+
+.hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+               "Segoe UI", "Segoe UI Symbol", "Segoe UI Emoji", "Apple Color Emoji",
+               "Noto Color Emoji", Roboto, Inter, "Helvetica Neue", Arial, sans-serif;
+  z-index: 65;
+}
+
+/* Brand */
+.brand {
+  position: absolute;
+  left: 2rem;
+  bottom: 2rem;
+  color: var(--fg);
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  font-size: 12px;
+  opacity: 0.65;
+  text-transform: uppercase;
+}
+
+/* Quote System */
+.quote {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--fg);
+  font-weight: 300;
+  font-size: 16px;
+  letter-spacing: 0.03em;
+  line-height: 1.6;
+  max-width: 560px;
+  width: 90%;
+  text-align: center;
+  font-style: italic;
+  margin: 0;
+  padding: 0 20px;
+  box-sizing: border-box;
+  z-index: 10;
+  visibility: hidden;
+  opacity: 0;
+  transition: color 0.45s ease, text-shadow 0.45s ease;
+}
+
+.quote__text {
+  display: block;
+  max-width: 100%;
+}
+
+.quote.quote--loom {
+  font-family: 'Roboto Mono', ui-monospace, monospace;
+  font-style: normal;
+  letter-spacing: 0.12em;
+}
+
+.quote.visible {
+  animation: fadeInQuote 3s ease-out forwards;
+  display: block !important;
+  visibility: visible;
+}
+
+.quote.glitch {
+  animation: glitchText 0.5s ease-in-out infinite;
+}
+
+.quote.scrambling {
+  text-shadow: 0 0 18px rgba(138, 180, 255, 0.4);
+  color: #f5f5f5;
+}
+
+.quote.glitchMedium {
+  animation: glitchMedium 0.3s ease-in-out infinite;
+}
+
+.quote.glitchIntense {
+  animation: glitchIntense 0.12s ease-in-out infinite;
+}
+
+/* Loomworks */
+.loomworks {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(calc(-50% + var(--loomOffsetX, 0px)), calc(-50% + var(--loomOffsetY, 0px)));
+  color: #fff;
+  font-weight: 300;
+  font-size: 20px;
+  letter-spacing: 0.15em;
+  opacity: 0;
+  text-align: center;
+  pointer-events: none;
+  font-family: 'Roboto Mono', ui-monospace, monospace;
+  white-space: nowrap;
+}
+
+.loomworks.visible {
+  animation: fadeInLoom 2s ease-out forwards;
+}
+
+.loomworks-chunk {
+  display: inline-block;
+  padding: 0 0.08em;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.45s ease, transform 0.45s ease, background 0.25s ease, color 0.25s ease;
+}
+
+.loomworks.visible .loomworks-chunk {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.loomworks-chunk.selected {
+  background: #fff;
+  color: #000;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+}
+
+.loomworks-chunk.shift-right {
+  transform: translateX(0.35em);
+}
+
+#loomTail {
+  white-space: pre;
+}
+
+

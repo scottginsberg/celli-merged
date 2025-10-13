@@ -1,0 +1,139 @@
+/**
+ * Scene Select Menu
+ * Navigation menu for jumping to different sequences
+ */
+
+#sceneSelect {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  pointer-events: auto;
+}
+
+#sceneSelect.visible {
+  display: flex;
+}
+
+.scene-menu {
+  max-width: 600px;
+  width: 90%;
+  padding: 40px;
+  background: rgba(0, 20, 10, 0.9);
+  border: 2px solid #0f0;
+  border-radius: 20px;
+  box-shadow: 0 0 30px rgba(0, 255, 160, 0.3), inset 0 0 20px rgba(0, 255, 160, 0.1);
+  font-family: 'Courier New', 'Segoe UI Symbol', 'Segoe UI Emoji',
+               'Apple Color Emoji', monospace;
+  backdrop-filter: blur(10px);
+}
+
+.scene-menu h2 {
+  margin: 0 0 10px;
+  color: #0f0;
+  font-size: 24px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 10px rgba(0, 255, 160, 0.6);
+}
+
+.scene-menu p {
+  margin: 0 0 25px;
+  color: #0a8;
+  font-size: 13px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.scene-option {
+  margin: 12px 0;
+  padding: 16px 20px;
+  background: rgba(0, 30, 20, 0.6);
+  border: 1px solid #0a6;
+  border-radius: 8px;
+  color: #0f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 14px;
+  pointer-events: auto;
+}
+
+.scene-option:hover {
+  background: rgba(0, 50, 30, 0.9);
+  border-color: #0f0;
+  box-shadow: 0 0 15px rgba(0, 255, 160, 0.4);
+  transform: translateX(5px);
+}
+
+.scene-option.locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: rgba(20, 20, 20, 0.6);
+  border-color: #444;
+  color: #666;
+}
+
+.scene-option.locked:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.scene-option-desc {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-top: 6px;
+  letter-spacing: 0.05em;
+  text-transform: none;
+}
+
+.scene-controls {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #0a6;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.scene-controls button {
+  flex: 1;
+  min-width: 140px;
+  padding: 12px;
+  background: rgba(0, 40, 20, 0.8);
+  border: 1px solid #0a8;
+  border-radius: 6px;
+  color: #0f0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: all 0.2s;
+  pointer-events: auto;
+}
+
+.scene-controls button:hover {
+  background: rgba(0, 60, 30, 0.9);
+  border-color: #0f0;
+  box-shadow: 0 0 12px rgba(0, 255, 160, 0.3);
+}
+
+.scene-controls .close-btn {
+  background: rgba(40, 0, 0, 0.8);
+  border-color: #a00;
+  color: #f66;
+}
+
+.scene-controls .close-btn:hover {
+  background: rgba(60, 0, 0, 0.9);
+  border-color: #f00;
+  box-shadow: 0 0 12px rgba(255, 100, 100, 0.3);
+}
+
+

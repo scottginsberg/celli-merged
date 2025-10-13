@@ -1,0 +1,153 @@
+/**
+ * Doorway Portal
+ * The central portal that opens and displays the input prompt
+ */
+
+.doorway {
+  position: fixed;
+  left: 50%;
+  bottom: 20%;
+  transform: translate(-50%, 0);
+  width: 4px;
+  height: 60px;
+  background: #fff;
+  pointer-events: none;
+  z-index: 68;
+  opacity: 0;
+  box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.8),
+              0 0 30px 10px rgba(255, 255, 255, 0.5);
+  transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+              height 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 1.5s ease-out,
+              opacity 0.5s ease-out;
+  overflow: hidden;
+}
+
+.doorway.visible {
+  opacity: 1;
+}
+
+.doorway.open {
+  width: min(280px, 85vw);
+  height: 80px;
+  box-shadow: 0 0 40px 20px rgba(255, 255, 255, 0.7),
+              0 0 80px 35px rgba(255, 255, 255, 0.4),
+              inset 0 0 60px rgba(255, 255, 255, 0.6);
+}
+
+/* Light rays emanating from doorway */
+.doorway::before {
+  content: "";
+  position: absolute;
+  left: -150%;
+  right: -150%;
+  top: 0%;
+  bottom: -200%;
+  background: radial-gradient(
+    ellipse 120% 80% at center top,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.15) 40%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 1.5s ease-out;
+  pointer-events: none;
+  clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+}
+
+.doorway.open::before {
+  opacity: 1;
+}
+
+/* Input prompt container */
+.prompt-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 1s ease-in 1.5s;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.doorway.open .prompt-container {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: text;
+}
+
+/* Prompt text */
+.prompt {
+  position: relative;
+  font-family: 'VT323', 'Press Start 2P', 'Roboto Mono', ui-monospace, monospace;
+  font-size: clamp(13px, 3.1vw, 34px);
+  font-weight: 400;
+  color: #000;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  z-index: 2;
+  white-space: nowrap;
+  display: inline-flex;
+}
+
+/* Per-character shadow effect */
+.prompt .char {
+  position: relative;
+  display: inline-block;
+}
+
+.prompt .char::after {
+  content: attr(data-char);
+  position: absolute;
+  left: 0;
+  top: 100%;
+  font-family: 'VT323', 'Press Start 2P', 'Roboto Mono', ui-monospace, monospace;
+  font-size: clamp(13px, 3.1vw, 34px);
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.92);
+  transform-origin: top left;
+  transform: translate(3px, 0) scaleY(-1.08) skewX(-20deg) scaleX(1.15);
+  opacity: 0.4;
+  filter: blur(1.2px);
+  z-index: -1;
+  pointer-events: none;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.65) 40%, rgba(0, 0, 0, 0) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.65) 40%, rgba(0, 0, 0, 0) 100%);
+}
+
+.cursor {
+  animation: blink 1s step-end infinite;
+}
+
+/* CELLI Glitch Effects */
+.celli-glitch .char {
+  display: inline-block;
+  transition: opacity 0.1s;
+}
+
+.celli-glitch .char.flicker {
+  animation: celliFlicker 0.15s infinite;
+}
+
+.celli-glitch .char.hidden {
+  opacity: 0;
+}
+
+.screenGlitch {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: #000;
+  opacity: 0;
+  z-index: 5;
+  mix-blend-mode: normal;
+}
+
+.screenGlitch.active {
+  animation: screenFlicker 0.2s infinite;
+}
+
+

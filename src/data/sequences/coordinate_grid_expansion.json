@@ -1,0 +1,191 @@
+{
+  "name": "Coordinate Grid Expansion",
+  "description": "Animated coordinate grid expansion sequence for THE.OS",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": 1,
+      "type": "dialogue",
+      "params": {
+        "speaker": "THE.OS",
+        "text": "Initializing coordinate system...",
+        "duration": 2.0
+      }
+    },
+    {
+      "id": 2,
+      "type": "delay",
+      "params": {
+        "duration": 0.5
+      }
+    },
+    {
+      "id": 3,
+      "type": "animation",
+      "params": {
+        "target": "coordinateGrid",
+        "property": "opacity",
+        "from": 0,
+        "to": 1,
+        "duration": 1.5,
+        "easing": "easeIn"
+      }
+    },
+    {
+      "id": 4,
+      "type": "animation",
+      "params": {
+        "target": "coordinateGrid",
+        "property": "scale",
+        "from": 0.1,
+        "to": 1.0,
+        "duration": 2.0,
+        "easing": "easeOutCubic"
+      }
+    },
+    {
+      "id": 5,
+      "type": "dialogue",
+      "params": {
+        "speaker": "THE.OS",
+        "text": "Grid stabilized. X, Y, Z axes online.",
+        "duration": 2.5
+      }
+    },
+    {
+      "id": 6,
+      "type": "animation",
+      "params": {
+        "target": "coordinateGrid.xAxis",
+        "property": "color",
+        "from": "#ffffff",
+        "to": "#ff0000",
+        "duration": 0.8,
+        "easing": "easeInOut"
+      }
+    },
+    {
+      "id": 7,
+      "type": "animation",
+      "params": {
+        "target": "coordinateGrid.yAxis",
+        "property": "color",
+        "from": "#ffffff",
+        "to": "#00ff00",
+        "duration": 0.8,
+        "easing": "easeInOut"
+      }
+    },
+    {
+      "id": 8,
+      "type": "animation",
+      "params": {
+        "target": "coordinateGrid.zAxis",
+        "property": "color",
+        "from": "#ffffff",
+        "to": "#0000ff",
+        "duration": 0.8,
+        "easing": "easeInOut"
+      }
+    },
+    {
+      "id": 9,
+      "type": "delay",
+      "params": {
+        "duration": 1.0
+      }
+    },
+    {
+      "id": 10,
+      "type": "event",
+      "params": {
+        "eventName": "grid_expansion_complete",
+        "eventData": {
+          "gridReady": true,
+          "timestamp": "{{now}}"
+        }
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": 1,
+      "fromNode": 1,
+      "fromSocket": "output",
+      "toNode": 2,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 2,
+      "fromNode": 2,
+      "fromSocket": "output",
+      "toNode": 3,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 3,
+      "fromNode": 3,
+      "fromSocket": "output",
+      "toNode": 4,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 4,
+      "fromNode": 4,
+      "fromSocket": "output",
+      "toNode": 5,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 5,
+      "fromNode": 5,
+      "fromSocket": "output",
+      "toNode": 6,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 6,
+      "fromNode": 6,
+      "fromSocket": "output",
+      "toNode": 7,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 7,
+      "fromNode": 7,
+      "fromSocket": "output",
+      "toNode": 8,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 8,
+      "fromNode": 8,
+      "fromSocket": "output",
+      "toNode": 9,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 9,
+      "fromNode": 9,
+      "fromSocket": "output",
+      "toNode": 10,
+      "toSocket": "input",
+      "type": "flow"
+    }
+  ],
+  "metadata": {
+    "author": "Celli Dev Team",
+    "created": "2025-01-13",
+    "tags": ["THE.OS", "coordinate", "grid", "expansion", "intro"]
+  }
+}
+
+

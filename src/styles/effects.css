@@ -1,0 +1,212 @@
+/**
+ * Visual Effects
+ * Barrel distortion, screen shatter, and other effects
+ */
+
+/* Barrel distortion stages */
+@keyframes barrelStage1 {
+  0% {
+    transform: perspective(1400px) translateZ(0) scale(1) rotateX(0deg);
+    filter: saturate(1) contrast(1);
+    border-radius: 0;
+    box-shadow: none;
+  }
+  35% {
+    transform: perspective(700px) translateZ(85px) scale(1.08) rotateX(2deg);
+    filter: saturate(1.15) contrast(1.1) brightness(1.05);
+    border-radius: 16px;
+    box-shadow: 0 0 30px rgba(0, 255, 0, 0.3), inset 0 0 20px rgba(0, 255, 0, 0.1);
+  }
+  70% {
+    transform: perspective(900px) translateZ(35px) scale(1.04) rotateX(1deg);
+    filter: saturate(1.08) contrast(1.06) brightness(1.02);
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2), inset 0 0 15px rgba(0, 255, 0, 0.05);
+  }
+  100% {
+    transform: perspective(1100px) translateZ(24px) scale(1.025) rotateX(0.5deg);
+    filter: saturate(1.05) contrast(1.03);
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.15), inset 0 0 10px rgba(0, 255, 0, 0.03);
+  }
+}
+
+@keyframes barrelStage2 {
+  0% {
+    transform: perspective(1100px) translateZ(24px) scale(1.025) rotateX(0.5deg);
+    filter: saturate(1.05) contrast(1.04);
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.15), inset 0 0 10px rgba(0, 255, 0, 0.03);
+  }
+  38% {
+    transform: perspective(600px) translateZ(140px) scale(1.15) rotateX(4deg);
+    filter: saturate(1.35) contrast(1.25) brightness(1.08);
+    border-radius: 24px;
+    box-shadow: 0 0 50px rgba(0, 255, 0, 0.5), inset 0 0 30px rgba(0, 255, 0, 0.2);
+  }
+  72% {
+    transform: perspective(750px) translateZ(65px) scale(1.08) rotateX(2deg);
+    filter: saturate(1.20) contrast(1.15) brightness(1.04);
+    border-radius: 18px;
+    box-shadow: 0 0 35px rgba(0, 255, 0, 0.35), inset 0 0 20px rgba(0, 255, 0, 0.12);
+  }
+  100% {
+    transform: perspective(900px) translateZ(40px) scale(1.05) rotateX(1deg);
+    filter: saturate(1.14) contrast(1.1);
+    border-radius: 14px;
+    box-shadow: 0 0 25px rgba(0, 255, 0, 0.25), inset 0 0 15px rgba(0, 255, 0, 0.08);
+  }
+}
+
+@keyframes barrelStage3 {
+  0% {
+    transform: perspective(900px) translateZ(40px) scale(1.05) rotateX(1deg);
+    filter: saturate(1.14) contrast(1.1);
+    border-radius: 14px;
+    box-shadow: 0 0 25px rgba(0, 255, 0, 0.25), inset 0 0 15px rgba(0, 255, 0, 0.08);
+  }
+  32% {
+    transform: perspective(500px) translateZ(210px) scale(1.22) rotateX(6deg);
+    filter: saturate(1.65) contrast(1.45) brightness(1.12);
+    border-radius: 32px;
+    box-shadow: 0 0 70px rgba(0, 255, 0, 0.7), inset 0 0 40px rgba(0, 255, 0, 0.3);
+  }
+  62% {
+    transform: perspective(600px) translateZ(120px) scale(1.14) rotateX(4deg);
+    filter: saturate(1.45) contrast(1.32) brightness(1.08);
+    border-radius: 26px;
+    box-shadow: 0 0 55px rgba(0, 255, 0, 0.55), inset 0 0 30px rgba(0, 255, 0, 0.22);
+  }
+  88% {
+    transform: perspective(700px) translateZ(75px) scale(1.10) rotateX(2.5deg);
+    filter: saturate(1.32) contrast(1.22) brightness(1.05);
+    border-radius: 20px;
+    box-shadow: 0 0 40px rgba(0, 255, 0, 0.4), inset 0 0 22px rgba(0, 255, 0, 0.15);
+  }
+  100% {
+    transform: perspective(800px) translateZ(55px) scale(1.07) rotateX(1.5deg);
+    filter: saturate(1.24) contrast(1.16);
+    border-radius: 16px;
+    box-shadow: 0 0 30px rgba(0, 255, 0, 0.3), inset 0 0 18px rgba(0, 255, 0, 0.12);
+  }
+}
+
+#visicalc.barrel-stage-1,
+#visicalc.barrel-stage-1 #visicalc-frame {
+  animation: barrelStage1 1.2s ease forwards;
+}
+
+#visicalc.barrel-stage-2,
+#visicalc.barrel-stage-2 #visicalc-frame {
+  animation: barrelStage2 1.35s ease forwards;
+}
+
+#visicalc.barrel-stage-3,
+#visicalc.barrel-stage-3 #visicalc-frame {
+  animation: barrelStage3 1.6s ease forwards;
+}
+
+/* Screen shatter effects */
+#visicalc.screen-shatter,
+#visicalc.screen-shatter #visicalc-frame {
+  animation: shakeScreen 0.8s ease forwards;
+}
+
+@keyframes shakeScreen {
+  0%, 100% { transform: perspective(900px) translateZ(12px) rotate(0deg); }
+  20% { transform: perspective(760px) translateZ(36px) rotate(1.4deg); }
+  40% { transform: perspective(820px) translateZ(28px) rotate(-1.2deg); }
+  60% { transform: perspective(780px) translateZ(44px) rotate(1deg); }
+  80% { transform: perspective(860px) translateZ(24px) rotate(-0.8deg); }
+}
+
+.shatter-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 180;
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+
+.shatter-overlay.active {
+  animation: screenShatterFlash 0.9s ease forwards;
+}
+
+.shatter-overlay.fade {
+  animation: screenShatterFade 1.3s ease forwards;
+}
+
+@keyframes screenShatterFlash {
+  0% { opacity: 0; filter: brightness(1); }
+  10% { opacity: 1; filter: brightness(1.35); }
+  40% { opacity: 0.85; filter: brightness(1.12); }
+  100% { opacity: 0.72; filter: brightness(1.05); }
+}
+
+@keyframes screenShatterFade {
+  0% { opacity: 0.7; }
+  60% { opacity: 0.4; }
+  100% { opacity: 0; }
+}
+
+.shatter-overlay .shatter-cracks {
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, #0ff 0px, #0ff 2px, transparent 2px, transparent 18px),
+    repeating-linear-gradient(90deg, #0ff 0px, #0ff 2px, transparent 2px, transparent 18px);
+  background-size: 100% 100%;
+  opacity: 0;
+  filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8)) drop-shadow(0 0 20px rgba(0, 255, 255, 0.4));
+  animation: shatterGridGlow 1.8s ease forwards;
+}
+
+@keyframes shatterGridGlow {
+  0% { opacity: 0; filter: drop-shadow(0 0 2px rgba(0, 255, 255, 0.3)); }
+  20% { opacity: 0.8; filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.9)) drop-shadow(0 0 24px rgba(0, 255, 255, 0.5)); }
+  45% { opacity: 1; filter: drop-shadow(0 0 18px rgba(0, 255, 255, 1)) drop-shadow(0 0 32px rgba(0, 255, 255, 0.7)); }
+  70% { opacity: 0.6; filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.4)); transform: scale(1.1); }
+  100% { opacity: 0; filter: drop-shadow(0 0 2px rgba(0, 255, 255, 0.1)); transform: scale(1.5); }
+}
+
+.shatter-overlay .shatter-pixels {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-image:
+    radial-gradient(circle, #0ff 1px, transparent 1px),
+    radial-gradient(circle, #00ffaa 1px, transparent 1px);
+  background-size: 8px 8px, 10px 10px;
+  background-position: 0 0, 5px 5px;
+  filter: blur(0.5px);
+  animation: shatterPixelBurst 2.2s ease forwards;
+  animation-delay: 0.4s;
+}
+
+@keyframes shatterPixelBurst {
+  0% { opacity: 0; transform: scale(1); filter: blur(0px); }
+  25% { opacity: 0.9; transform: scale(1); filter: blur(0px); }
+  55% { opacity: 1; transform: scale(1.15); filter: blur(1px); }
+  75% { opacity: 0.5; transform: scale(1.4); filter: blur(3px); }
+  100% { opacity: 0; transform: scale(2); filter: blur(8px); }
+}
+
+/* VisiCell note animation */
+.visicell-note-line {
+  display: inline-block;
+  min-width: 1ch;
+  opacity: 0;
+  transform: translateY(6px);
+  animation: visicellNoteSlide 0.6s ease forwards;
+}
+
+.visicell-note-line--1 {
+  animation-delay: 0.2s;
+}
+
+.visicell-note-line--2 {
+  animation-delay: 0.45s;
+}
+
+

@@ -1,0 +1,90 @@
+/**
+ * Animation Keyframes
+ * Core animations used throughout the application
+ */
+
+/* Basic Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+  20%, 40%, 60%, 80% { transform: translateX(10px); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+/* Quote Animations */
+@keyframes fadeInQuote {
+  0% { opacity: 0; transform: translate(-50%, -50%) translateY(20px); }
+  100% { opacity: 0.85; transform: translate(-50%, -50%) translateY(0); }
+}
+
+@keyframes glitchText {
+  0%, 100% { opacity: 0.85; transform: translate(-50%, -50%) translateX(0); text-shadow: 0 0 0 transparent; }
+  10% { opacity: 0.8; transform: translate(-50%, -50%) translateX(-1px); text-shadow: 1px 0 #ff1e6e, -1px 0 #00a8ff; }
+  20% { opacity: 0.9; transform: translate(-50%, -50%) translateX(1px); text-shadow: -1px 0 #ffb62e, 1px 0 #00a8ff; }
+  30% { opacity: 0.85; transform: translate(-50%, -50%) translateX(0); text-shadow: 0 0 0 transparent; }
+}
+
+@keyframes glitchMedium {
+  0%, 100% { opacity: 0.82; transform: translate(-50%, -50%) translateX(0) translateY(0); text-shadow: 0 0 0 transparent; }
+  15% { opacity: 0.7; transform: translate(-50%, -50%) translateX(-3px) translateY(1px); text-shadow: 2px 0 #ff1e6e, -2px 0 #00a8ff; }
+  35% { opacity: 0.8; transform: translate(-50%, -50%) translateX(3px) translateY(-2px); text-shadow: -3px 0 #ffb62e, 3px 0 #00a8ff; }
+  55% { opacity: 0.75; transform: translate(-50%, -50%) translateX(-2px) translateY(2px); text-shadow: 2px 0 #00a8ff, -2px 0 #ff1e6e; }
+  75% { opacity: 0.78; transform: translate(-50%, -50%) translateX(2px) translateY(-1px); text-shadow: -2px 0 #ffb62e, 2px 0 #ff1e6e; }
+}
+
+@keyframes glitchIntense {
+  0% { opacity: 0.75; transform: translate(-50%, -50%) translateX(0) translateY(0); text-shadow: 0 0 0 transparent; }
+  12% { opacity: 0.5; transform: translate(-50%, -50%) translateX(-8px) translateY(4px); text-shadow: 4px 0 #ff1e6e, -4px 0 #00a8ff, 0 4px #ffb62e; }
+  25% { opacity: 0.7; transform: translate(-50%, -50%) translateX(6px) translateY(-6px); text-shadow: -6px 0 #ffb62e, 6px 0 #00a8ff, 0 -6px #ff1e6e; }
+  40% { opacity: 0.45; transform: translate(-50%, -50%) translateX(-10px) translateY(8px); text-shadow: 8px 0 #00a8ff, -8px 0 #ff1e6e; }
+  55% { opacity: 0.65; transform: translate(-50%, -50%) translateX(5px) translateY(-3px); text-shadow: -5px 0 #ffb62e, 5px 0 #ff1e6e; }
+  70% { opacity: 0.55; transform: translate(-50%, -50%) translateX(-7px) translateY(5px); text-shadow: 6px 0 #00a8ff, -5px 0 #ffb62e; }
+  85% { opacity: 0.6; transform: translate(-50%, -50%) translateX(8px) translateY(-4px); text-shadow: -7px 0 #ff1e6e, 6px 0 #00a8ff; }
+  100% { opacity: 0.5; transform: translate(-50%, -50%) translateX(0) translateY(0); text-shadow: 0 0 0 transparent; }
+}
+
+/* Loomworks Animations */
+@keyframes fadeInLoom {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* CELLI Glitch Effects */
+@keyframes celliFlicker {
+  0%, 100% { opacity: 1; text-shadow: 0 0 8px currentColor; }
+  25% { opacity: 0.3; transform: translateX(-2px); }
+  50% { opacity: 0.6; transform: translateX(2px); }
+  75% { opacity: 0.2; transform: translateY(-1px); }
+}
+
+@keyframes screenFlicker {
+  0%, 100% { opacity: 0; background: #000; }
+  15% { opacity: 0.08; background: #fff; }
+  30% { opacity: 0; background: #000; }
+  45% { opacity: 0.12; background: #00a8ff; }
+  60% { opacity: 0; background: #000; }
+  80% { opacity: 0.1; background: #ff1e6e; }
+}
+
+/* Cursor Blink */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* VisiCell Note Slide */
+@keyframes visicellNoteSlide {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
