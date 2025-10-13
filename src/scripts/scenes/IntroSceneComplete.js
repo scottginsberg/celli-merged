@@ -154,7 +154,18 @@ export class IntroSceneComplete {
 
     // Create scene
     const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 10);
+    
+    // Create orthographic camera with proper aspect ratio
+    const aspect = window.innerWidth / window.innerHeight;
+    const frustumSize = 2;
+    const camera = new THREE.OrthographicCamera(
+      frustumSize * aspect / -2,
+      frustumSize * aspect / 2,
+      frustumSize / 2,
+      frustumSize / -2,
+      0.01,
+      10
+    );
     camera.position.set(0, 0, 2);
     camera.lookAt(0, 0, 0);
 
@@ -196,6 +207,9 @@ export class IntroSceneComplete {
 
     // Setup resize handler
     window.addEventListener('resize', () => this._handleResize());
+    
+    // Call resize immediately to set correct aspect ratio on init
+    this._handleResize();
 
     console.log('✅ Complete Intro Scene initialized');
   }

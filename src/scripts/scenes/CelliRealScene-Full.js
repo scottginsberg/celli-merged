@@ -5,24 +5,24 @@
  * This recreates the full celli-real.html experience using modular architecture.
  * 
  * Components Used (from existing extractions):
- * - Store.js - State management
- * - FormulaParser.js - Formula execution  
- * - VoxelRenderer.js - 3D voxel rendering
- * - KeyboardInput.js - Keyboard controls
- * - Raycasting.js - Mouse interaction
- * - CameraControls.js - Camera system
- * - MaterialSystem.js - Materials
- * - LightingSystem.js - Lights
+ * - SpreadsheetGrid-Complete.js - Full 2D grid system
+ * - NarrativeWindows.js - Terminal & Notepad
+ * - DPadController.js - D-Pad navigation
+ * - AvatarFactory.js - Character creation
+ * - Store.js - State management (future integration)
+ * - FormulaParser.js - Formula execution (future integration)
+ * - VoxelRenderer.js - 3D voxel rendering (future integration)
  * 
  * HTML Elements Created:
  * - #sheet (spreadsheet grid)
  * - #dpad (D-Pad controls)
  * - #terminal (terminal window)
  * - #pad (ty.txt notepad)
- * - #hud (debug console)
  */
 
 import * as THREE from 'three';
+import { UIManager } from '../ui/UIManager.js';
+import { AvatarFactory } from '../systems/AvatarFactory.js';
 
 export class CelliRealScene {
   constructor() {
@@ -36,17 +36,12 @@ export class CelliRealScene {
       running: false,
       totalTime: 0,
       
+      // UI Manager (orchestrates all UI components)
+      uiManager: null,
+      
       // Spreadsheet state
       arrays: new Map(),
-      cells: new Map(),
       focusedCell: { x: 0, y: 0, z: 0, arrId: 0 },
-      
-      // UI elements
-      sheet: null,
-      terminal: null,
-      notepad: null,
-      dpad: null,
-      hud: null,
       
       // Modes
       viewMode: 'standard', // 'standard' | 'present'
@@ -214,74 +209,33 @@ export class CelliRealScene {
   }
 
   /**
-   * Initialize spreadsheet
+   * Initialize spreadsheet and UI
    */
   async _initSpreadsheet() {
-    // Build cell grid
-    this._buildCellGrid();
+    console.log('[CelliRealScene-Full] Initializing UI with UIManager...');
     
-    // Focus first cell
-    this._selectCell(0, 0, 0);
+    // Create UI Manager (orchestrates all UI components)
+    this.state.uiManager = new UIManager({
+      onCellSelect: (data) => this._handleCellSelect(data),
+      onFormulaExecute: (data) => this._handleFormulaApply(data),
+      onNavigate: (data) => this._handleDPadNavigate(data),
+      onPresentToggle: (enabled) => this._handlePresentToggle(enabled)
+    });
     
-    console.log('[CelliRealScene-Full] ✅ Spreadsheet initialized');
-  }
-
-  /**
-   * Build cell grid
-   */
-  _buildCellGrid() {
-    const colsRow = document.getElementById('cols');
-    const rowsBody = document.getElementById('rows');
-    
-    if (!colsRow || !rowsBody) return;
-    
-    const cols = 26;
-    const rows = 26;
-    
-    // Build column headers
-    colsRow.innerHTML = '<th></th>';
-    for (let x = 0; x < cols; x++) {
-      const th = document.createElement('th');
-      th.textContent = String.fromCharCode(65 + x);
-      colsRow.appendChild(th);
+    // Initialize all UI components
+    const success = await this.state.uiManager.init();
+    if (!success) {
+      console.error('[CelliRealScene-Full] Failed to initialize UI!');
+      return;
     }
     
-    // Build rows
-    rowsBody.innerHTML = '';
-    for (let y = 0; y < rows; y++) {
-      const tr = document.createElement('tr');
-      
-      // Row header
-      const th = document.createElement('th');
-      th.textContent = y + 1;
-      tr.appendChild(th);
-      
-      // Cells
-      for (let x = 0; x < cols; x++) {
-        const td = document.createElement('td');
-        td.className = 'cell';
-        td.dataset.x = x;
-        td.dataset.y = y;
-        td.dataset.z = 0;
-        
-        const key = `0:${x},${y},0`; // arrId:x,y,z
-        this.state.cells.set(key, {
-          element: td,
-          value: '',
-          formula: '',
-          x, y, z: 0
-        });
-        
-        // Click handler
-        td.addEventListener('click', () => this._selectCell(x, y, 0));
-        
-        tr.appendChild(td);
-      }
-      
-      rowsBody.appendChild(tr);
+    // Select first cell
+    const spreadsheet = this.state.uiManager.getSpreadsheet();
+    if (spreadsheet) {
+      spreadsheet.selectCell(0, 0, 0);
     }
     
-    console.log('[CelliRealScene-Full] ✅ Built cell grid');
+    console.log('[CelliRealScene-Full] ✅ UI system initialized via UIManager');
   }
 
   /**
@@ -326,32 +280,30 @@ export class CelliRealScene {
    * Setup event handlers
    */
   _setupEvents() {
-    // D-Pad navigation
-    document.querySelectorAll('#dpad .dp[data-dir]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const dir = btn.dataset.dir;
-        this._handleDPadClick(dir);
-      });
-    });
-    
-    // Keyboard navigation
+    // Keyboard navigation (in addition to D-Pad)
+    // Note: The UIManager's SpreadsheetGrid already handles formula bar Enter
+    // We just need to handle arrow keys for cell navigation
     document.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       
-      const { x, y, z } = this.state.focusedCell;
+      const focused = this.state.focusedCell;
+      if (!focused) return;
+      
+      const spreadsheet = this.state.uiManager?.getSpreadsheet();
+      if (!spreadsheet) return;
       
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        this._selectCell(x, Math.max(0, y - 1), z);
+        spreadsheet.selectCell(focused.x, Math.max(0, focused.y - 1), focused.z);
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        this._selectCell(x, Math.min(25, y + 1), z);
+        spreadsheet.selectCell(focused.x, Math.min(25, focused.y + 1), focused.z);
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        this._selectCell(Math.max(0, x - 1), y, z);
+        spreadsheet.selectCell(Math.max(0, focused.x - 1), focused.y, focused.z);
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        this._selectCell(Math.min(25, x + 1), y, z);
+        spreadsheet.selectCell(Math.min(25, focused.x + 1), focused.y, focused.z);
       } else if (e.key === 'Enter') {
         e.preventDefault();
         const fxInput = document.getElementById('fx');
@@ -359,138 +311,80 @@ export class CelliRealScene {
       }
     });
     
-    // Formula apply
-    const applyBtn = document.getElementById('applyFx');
-    if (applyBtn) {
-      applyBtn.addEventListener('click', () => {
-        this._applyFormula();
-      });
-    }
-    
-    // Terminal icon
-    const termIcon = document.getElementById('terminal-icon');
-    if (termIcon) {
-      termIcon.addEventListener('click', () => {
-        if (this.state.terminal) {
-          this.state.terminal.style.display = 
-            this.state.terminal.style.display === 'flex' ? 'none' : 'flex';
-        }
-      });
-    }
-    
-    // Notepad icon  
-    const noteIcon = document.getElementById('notepad-icon');
-    if (noteIcon) {
-      noteIcon.addEventListener('click', () => {
-        if (this.state.notepad) {
-          this.state.notepad.style.display = 
-            this.state.notepad.style.display === 'flex' ? 'none' : 'flex';
-        }
-      });
-    }
-    
-    // Close buttons
-    const termClose = document.getElementById('term-close');
-    if (termClose) {
-      termClose.addEventListener('click', () => {
-        if (this.state.terminal) this.state.terminal.style.display = 'none';
-      });
-    }
-    
-    const padClose = document.getElementById('pad-close');
-    if (padClose) {
-      padClose.addEventListener('click', () => {
-        if (this.state.notepad) this.state.notepad.style.display = 'none';
-      });
-    }
-    
     console.log('[CelliRealScene-Full] ✅ Events setup');
   }
 
   /**
-   * Select cell
+   * Handle cell selection
    */
-  _selectCell(x, y, z) {
-    // Clear previous
-    document.querySelectorAll('td.sel').forEach(el => el.classList.remove('sel'));
-    
-    // Select new
-    const key = `0:${x},${y},${z}`;
-    const cell = this.state.cells.get(key);
-    
-    if (cell) {
-      cell.element.classList.add('sel');
-      this.state.focusedCell = { x, y, z, arrId: 0 };
-      
-      // Update formula bar
-      const fxInput = document.getElementById('fx');
-      if (fxInput) {
-        fxInput.value = cell.formula || cell.value || '';
-      }
-      
-      console.log(`[CelliRealScene-Full] Selected: ${String.fromCharCode(65 + x)}${y + 1}`);
-    }
+  _handleCellSelect(data) {
+    this.state.focusedCell = data;
+    console.log(`[CelliRealScene-Full] Cell selected:`, data);
   }
 
   /**
-   * Handle D-Pad click
+   * Handle formula apply
    */
-  _handleDPadClick(dir) {
-    const { x, y, z } = this.state.focusedCell;
-    let newX = x, newY = y, newZ = z;
-    
-    if (dir === 'up') newY = Math.max(0, y - 1);
-    else if (dir === 'down') newY = Math.min(25, y + 1);
-    else if (dir === 'left') newX = Math.max(0, x - 1);
-    else if (dir === 'right') newX = Math.min(25, x + 1);
-    else if (dir === 'depthUp') newZ = Math.min(11, z + 1);
-    else if (dir === 'depthDown') newZ = Math.max(0, z - 1);
-    
-    this._selectCell(newX, newY, newZ);
+  _handleFormulaApply(data) {
+    console.log(`[CelliRealScene-Full] Formula applied:`, data);
+    // TODO: Integrate with FormulaParser
   }
 
   /**
-   * Apply formula
+   * Handle cell hover
    */
-  _applyFormula() {
-    const fxInput = document.getElementById('fx');
-    if (!fxInput) return;
-    
-    const formula = fxInput.value;
-    const { x, y, z } = this.state.focusedCell;
-    const key = `0:${x},${y},${z}`;
-    const cell = this.state.cells.get(key);
-    
-    if (cell) {
-      cell.formula = formula;
-      cell.value = formula; // Simplified - real implementation would evaluate
-      cell.element.textContent = formula;
-      
-      console.log(`[CelliRealScene-Full] ✅ Applied formula: ${formula}`);
-    }
+  _handleCellHover(data) {
+    // Optional hover effects
   }
+
+  /**
+   * Handle D-Pad navigation
+   */
+  _handleDPadNavigate(data) {
+    const { dx, dy, dz } = data;
+    const focused = this.state.focusedCell;
+    if (!focused) return;
+    
+    const newX = Math.max(0, Math.min(25, focused.x + dx));
+    const newY = Math.max(0, Math.min(25, focused.y + dy));
+    const newZ = Math.max(0, Math.min(11, focused.z + dz));
+    
+    const spreadsheet = this.state.uiManager?.getSpreadsheet();
+    spreadsheet?.selectCell(newX, newY, newZ);
+  }
+
+  /**
+   * Handle present mode toggle
+   */
+  _handlePresentToggle(enabled) {
+    this.state.viewMode = enabled ? 'present' : 'standard';
+    console.log(`[CelliRealScene-Full] Present mode: ${enabled}`);
+  }
+
+  /**
+   * Handle depth mode toggle
+   */
+  _handleDepthModeToggle(mode) {
+    console.log(`[CelliRealScene-Full] Depth mode: ${mode ? 'DEPTH' : 'HEIGHT'}`);
+  }
+
+  // Note: Cell selection, D-Pad handling, and formula application
+  // are now handled by SpreadsheetGrid-Complete and DPadController components
 
   /**
    * Load initial state
    */
   _loadInitialState() {
+    const spreadsheet = this.state.uiManager?.getSpreadsheet();
+    if (!spreadsheet) return;
+    
     // Add welcome message
-    const welcomeCell = this.state.cells.get('0:0,0,0');
-    if (welcomeCell) {
-      welcomeCell.value = 'Cell.real';
-      welcomeCell.element.textContent = 'Cell.real';
-      welcomeCell.element.style.fontWeight = 'bold';
-      welcomeCell.element.style.background = '#eef2ff';
-    }
+    spreadsheet.updateCell(0, 0, 0, 'Cell.real', null, '#eef2ff');
     
     // Add example formula
-    const exampleCell = this.state.cells.get('0:0,2,0');
-    if (exampleCell) {
-      exampleCell.formula = '=ARRAY("fill",3,3,1,"🟦")';
-      exampleCell.value = '[Array]';
-      exampleCell.element.textContent = '[Array]';
-      exampleCell.element.style.background = '#dcfce7';
-    }
+    spreadsheet.updateCell(0, 2, 0, '[Array]', '=ARRAY("fill",3,3,1,"🟦")', '#dcfce7');
+    
+    console.log('[CelliRealScene-Full] ✅ Initial state loaded');
   }
 
   /**
@@ -567,16 +461,9 @@ export class CelliRealScene {
    * Enable full interaction
    */
   _enableFullInteraction() {
-    // Show D-Pad
-    if (this.state.dpad) {
-      this.state.dpad.style.display = 'grid';
-    }
-    
-    // Show terminal/notepad icons
-    const termIcon = document.getElementById('terminal-icon');
-    const noteIcon = document.getElementById('notepad-icon');
-    if (termIcon) termIcon.style.display = 'flex';
-    if (noteIcon) noteIcon.style.display = 'flex';
+    // Show all UI controls via UIManager
+    this.state.uiManager?.showDPad();
+    this.state.uiManager?.showWindows();
     
     console.log('[CelliRealScene-Full] ✅ Full interaction enabled');
   }
@@ -609,6 +496,9 @@ export class CelliRealScene {
     console.log('[CelliRealScene-Full] 🗑️ Destroying...');
     
     this.stop();
+    
+    // Destroy UI Manager (handles all UI components)
+    this.state.uiManager?.destroy();
     
     // Remove injected HTML
     const uiContainer = document.getElementById('uiContainer');
