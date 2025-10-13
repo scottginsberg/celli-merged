@@ -166,14 +166,33 @@
  <!-- Main Application -->
  <script type="module">
   import { IntroSceneComplete } from './src/scripts/scenes/IntroSceneComplete.js?v=5.7';
+  import { VisiCalcScene } from './src/scripts/scenes/VisiCalcScene.js';
+  import { CelliRealScene } from './src/scripts/scenes/CelliRealScene.js';
+  import { End3Scene } from './src/scripts/scenes/End3Scene.js';
+  import { FullhandScene } from './src/scripts/scenes/FullhandScene.js';
+  import { CityScene } from './src/scripts/scenes/CityScene.js';
+  import { LeaveScene } from './src/scripts/scenes/LeaveScene.js';
 
   console.log('🎬 Celli Application Starting v5.7 - Faithful Intro Sequence');
   console.log('%c🔥 INTRO SEQUENCE FULLY UPDATED 🔥', 'background:#ff4400; color:#fff; font-size:18px; padding:8px; font-weight:bold;');
   console.log('%c✅ All phases implemented - Roll/Bounce/Triangle/Venn/Collapse/Glitch/CELLI', 'background:#0f0; color:#000; font-size:14px; padding:6px;');
 
   let introScene = null;
+  let currentScene = null;
   let animationFrameId = null;
   let debugMode = false;
+  
+  // Scene registry
+  const scenes = {
+    intro: IntroSceneComplete,
+    visicell: VisiCalcScene,
+    cellireal: CelliRealScene,
+    end3: End3Scene,
+    fullhand: FullhandScene,
+    theos: CityScene,
+    blackhole: CityScene,
+    leave: LeaveScene
+  };
 
   // Helper: toast notification
   function toast(message) {
@@ -182,6 +201,65 @@
     toastEl.textContent = message;
     toastEl.style.display = 'block';
     setTimeout(() => { toastEl.style.display = 'none'; }, 3000);
+   }
+  }
+
+  // Scene transition function
+  async function transitionToScene(sceneName) {
+   console.log(`🎬 Transitioning to scene: ${sceneName}`);
+   
+   // Stop current scene
+   if (currentScene) {
+    await currentScene.destroy();
+    currentScene = null;
+   }
+   
+   // Stop intro if running
+   if (introScene && sceneName !== 'intro') {
+    await introScene.destroy();
+    introScene = null;
+   }
+   
+   // Cancel animation loop
+   if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+   }
+   
+   // Get scene class
+   const SceneClass = scenes[sceneName];
+   if (!SceneClass) {
+    toast(`Scene ${sceneName} not yet implemented`);
+    return;
+   }
+   
+   // Create and start new scene
+   try {
+    currentScene = new SceneClass();
+    await currentScene.init();
+    await currentScene.start({}, {});
+    
+    // Start animation loop for new scene
+    let lastTime = performance.now();
+    function animate(currentTime) {
+     if (!currentScene || !currentScene.state.running) return;
+     
+     const deltaTime = (currentTime - lastTime) / 1000;
+     lastTime = currentTime;
+     
+     currentScene.update({}, deltaTime, currentScene.state.totalTime || 0);
+     
+     animationFrameId = requestAnimationFrame(animate);
+    }
+    
+    animationFrameId = requestAnimationFrame(animate);
+    
+    console.log(`✅ Scene ${sceneName} loaded successfully`);
+    toast(`Scene ${sceneName} loaded`);
+    
+   } catch (error) {
+    console.error(`❌ Error loading scene ${sceneName}:`, error);
+    toast(`Error loading scene: ${error.message}`);
    }
   }
 
@@ -283,29 +361,40 @@
    }
   });
 
-  // Test Audio button
-  document.getElementById('testAudioBtn').addEventListener('click', () => {
-   console.log('🔊 Testing audio');
-   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-   const osc = audioCtx.createOscillator();
-   const gain = audioCtx.createGain();
+  // Test Audio button - plays credits.mp3
+  document.getElementById('testAudioBtn').addEventListener('click', async () => {
+   console.log('🔊 Playing credits.mp3');
    
-   osc.type = 'sine';
-   osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-   gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-   gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-   
-   osc.connect(gain);
-   gain.connect(audioCtx.destination);
-   osc.start();
-   osc.stop(audioCtx.currentTime + 0.5);
-   
-   toast('Audio test: 440Hz tone');
+   try {
+    const audio = new Audio('./credits.mp3');
+    audio.volume = 0.7;
+    
+    audio.addEventListener('canplaythrough', () => {
+     console.log('✅ Credits audio loaded, playing...');
+     toast('Playing credits.mp3');
+    }, { once: true });
+    
+    audio.addEventListener('error', (e) => {
+     console.error('❌ Error loading credits.mp3:', e);
+     toast('Error: credits.mp3 not found or failed to load');
+    }, { once: true });
+    
+    audio.addEventListener('ended', () => {
+     console.log('✅ Credits audio ended');
+     toast('Credits playback complete');
+    }, { once: true });
+    
+    await audio.play();
+    
+   } catch (error) {
+    console.error('❌ Error playing audio:', error);
+    toast(`Audio error: ${error.message}`);
+   }
   });
 
   // Scene option click handlers
   document.querySelectorAll('.scene-option').forEach(option => {
-   option.addEventListener('click', function() {
+   option.addEventListener('click', async function() {
     if (this.classList.contains('locked') && !debugMode) {
      toast('Scene locked - experience the intro first');
      return;
@@ -314,21 +403,12 @@
     const scene = this.dataset.scene;
     console.log(`🎬 Loading scene: ${scene}`);
     
-    // Handle sequence builder
-    if (scene === 'sequence-builder') {
-     window.open('./sequence-builder.html', '_blank');
-     toast('Opening Sequence Builder...');
-     return;
-    }
+    // Close scene select menu
+    const sceneSelectEl = document.getElementById('sceneSelect');
+    if (sceneSelectEl) sceneSelectEl.classList.remove('visible');
     
-    // Handle test runner
-    if (scene === 'test-runner') {
-     window.open('./tests/test-runner.html', '_blank');
-     toast('Opening Test Runner...');
-     return;
-    }
-    
-    toast(`Scene ${scene} not yet implemented`);
+    // Transition to the scene
+    await transitionToScene(scene);
    });
   });
 
@@ -341,6 +421,13 @@
    });
   }
 
+  // Listen for scene transition events from intro
+  window.addEventListener('celli:sceneTransition', async (e) => {
+   const sceneName = e.detail.scene;
+   console.log(`📡 Scene transition event received: ${sceneName}`);
+   await transitionToScene(sceneName);
+  });
+
   // Cleanup on page unload
   window.addEventListener('beforeunload', () => {
    if (animationFrameId) {
@@ -348,6 +435,9 @@
    }
    if (introScene) {
     introScene.destroy();
+   }
+   if (currentScene) {
+    currentScene.destroy();
    }
   });
 
