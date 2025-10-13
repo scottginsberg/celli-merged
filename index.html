@@ -1,216 +1,124 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-  <meta name="version" content="6.0-refactored" />
-  
-  <!-- Enhanced Celli avatar - modular architecture -->
-  <title>Tri-Trail Evolved three.js [v6.0 Refactored]</title>
-  
-  <!-- Font preload -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto+Mono:wght@100;300&family=VT323&display=swap" rel="stylesheet">
-  
-  <!-- Twemoji for consistent emoji rendering -->
-  <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
-  
-  <!-- Modular stylesheets -->
-  <link rel="stylesheet" href="./src/styles/main.css">
-  <link rel="stylesheet" href="./src/styles/sequence.css">
+ <meta charset="utf-8"/>
+ <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+ <meta name="viewport" content="width=device-width, initial-scale=1"/>
+ <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+ <meta http-equiv="Pragma" content="no-cache" />
+ <meta http-equiv="Expires" content="0" />
+ <meta name="version" content="5.6-celli-avatar-enhanced" />
+ <title>Tri-Trail Evolved three.js [v4.2 THE.OS]</title>
+ 
+ <!-- Google Fonts -->
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto+Mono:wght@100;300&family=VT323&display=swap" rel="stylesheet">
+ 
+ <!-- Twemoji for consistent emoji rendering -->
+ <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
+ 
+ <!-- Styles -->
+ <link rel="stylesheet" href="css/main.css">
+ <link rel="stylesheet" href="css/animations.css">
+ <link rel="stylesheet" href="css/ui.css">
+ <link rel="stylesheet" href="css/sheet.css">
 </head>
 <body>
-  <!-- Main app container -->
-  <div id="app" class="scanlines"></div>
-  
-  <!-- HUD Overlay - see src/templates/partials/hud.html -->
-  <div class="hud">
-    <div id="quote" class="quote">
-      <span id="quoteBefore" class="quote__text">...if you gaze for long into an abyss, the abyss gazes also into you.</span>
-      <span id="quoteAfter" class="quote__text" style="display:none;"></span>
-    </div>
-    <div id="loomworks" class="loomworks" aria-live="polite">
-      <span id="loomPre" class="loomworks-chunk">L</span><span id="loomCore" class="loomworks-chunk">OO</span><span id="loomPost" class="loomworks-chunk">K</span><span id="loomTail" class="loomworks-chunk"></span>
-    </div>
-    <span id="floatingK" class="floatingK" aria-hidden="true">K</span>
-    <div class="vignette"></div>
+ <div id="app" class="scanlines"></div>
+ <div class="hud">
+  <div id="quote" class="quote">
+   <span id="quoteBefore" class="quote__text">...if you gaze for long into an abyss, the abyss gazes also into you.</span>
+   <span id="quoteAfter" class="quote__text" style="display:none;"></span>
   </div>
-  <div id="screenGlitch" class="screenGlitch"></div>
-  
-  <!-- Doorway portal -->
-  <div id="doorway" class="doorway">
-    <div class="prompt-container">
-      <div class="prompt" data-text="=STAR_">
-        <span id="promptText">=STAR</span>
-        <span id="promptCursor" class="cursor">_</span>
-      </div>
-    </div>
+  <div id="loomworks" class="loomworks" aria-live="polite">
+   <span id="loomPre" class="loomworks-chunk">L</span><span id="loomCore" class="loomworks-chunk">OO</span><span id="loomPost" class="loomworks-chunk">K</span><span id="loomTail" class="loomworks-chunk"></span>
   </div>
-  
-  <!-- Hidden input for mobile keyboard -->
-  <input id="hiddenInput" type="text" style="position:absolute; left:-9999px; opacity:0;" 
-         autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" 
-         inputmode="text" enterkeyhint="done" />
-  
-  <!-- Audio placeholder -->
-  <audio id="chime" preload="auto">
-    <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
-  </audio>
-  
-  <!-- Fallback message -->
-  <div id="fallback" class="fallback" style="display:none">
-    ⚠️ WebGL unavailable or ES Modules not supported. Try a newer browser/GPU.
+  <span id="floatingK" class="floatingK" aria-hidden="true">K</span>
+  <div class="vignette"></div>
+ </div>
+ <div id="screenGlitch" class="screenGlitch"></div>
+ 
+ <!-- Doorway portal -->
+ <div id="doorway" class="doorway">
+  <div class="prompt-container">
+   <div class="prompt" data-text="=STAR_"><span id="promptText">=STAR</span><span id="promptCursor" class="cursor">_</span></div>
   </div>
-  
-  <!-- Play overlay -->
-  <div id="play" class="play">
-    <button id="playBtn">Play</button>
-    <button id="sceneSelectBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">Scene Select</button>
-    <button id="sequenceBtn" style="font-size:12px; padding:10px 20px; opacity:0.7; margin-top: 10px; background: #2ecc71;">Sequence Composer</button>
-    <button id="testAudioBtn" style="font-size:12px; padding:10px 20px; opacity:0.7; margin-top: 10px;">TEST</button>
+ </div>
+ 
+ <!-- Scene Select Menu -->
+ <div id="sceneSelect">
+  <div class="scene-menu">
+   <h2>SELECT SCENE</h2>
+   <p>Choose your reality...</p>
+   <div id="sceneOptions"></div>
+   <div class="scene-controls">
+    <button id="closeSceneSelect" class="close-btn">Close</button>
+   </div>
   </div>
-  
-  <!-- Scene Select Menu -->
-  <div id="sceneSelect">
-    <div class="scene-menu">
-      <h2>Scene Select</h2>
-      <p>Jump to previously experienced sequences</p>
-      
-      <div id="sceneOptions">
-        <div class="scene-option locked" data-scene="visicell">
-          <div>END(?) → VisiCell</div>
-          <div class="scene-option-desc">The terminal awakens - spreadsheet reality unfolds</div>
-        </div>
-        
-        <div class="scene-option locked" data-scene="leave">
-          <div>LEAVE → Initialize</div>
-          <div class="scene-option-desc">The house of leaves - GIR.mp3 transformation</div>
-        </div>
-        
-        <div class="scene-option locked" data-scene="theos">
-          <div>THE.OS → Cell Lattice</div>
-          <div class="scene-option-desc">Cell address grid formation - witness the architecture</div>
-        </div>
-        
-        <div class="scene-option locked" data-scene="blackhole">
-          <div>THE.OS → Black Hole</div>
-          <div class="scene-option-desc">The void manifests - singularity achieved</div>
-        </div>
-        
-        <div class="scene-option locked" data-scene="end3">
-          <div>HARD.CORE → End3</div>
-          <div class="scene-option-desc">Terminal environment - crawl sequence</div>
-        </div>
-        
-        <div class="scene-option locked" data-scene="fullhand">
-          <div>EXEC.ENV → Execution Environment</div>
-          <div class="scene-option-desc">Integrated scene - voxel hand, keyboard, character & glowing head</div>
-        </div>
-        
-        <div class="scene-option locked" data-scene="cellireal">
-          <div>CELLI.REAL → Spreadsheet Reality</div>
-          <div class="scene-option-desc">The awakened terminal - interactive spreadsheet environment</div>
-        </div>
-      </div>
-      
-      <div class="scene-controls">
-        <button id="debugToggle">Debug: Show All</button>
-        <button id="clearProgress">Clear Progress</button>
-        <button class="close-btn" id="closeSceneSelect">Close</button>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Skip button -->
-  <div id="skipBtn" class="skip-btn hidden" role="button" aria-label="Skip intro" tabindex="0">
-    <div class="skip-triangle skip-triangle--left" id="skipTriangle1">
-      <div class="skip-triangle__inner">
-        <svg viewBox="0 0 100 86.6025403784" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-          <polygon points="0,0 0,86.6025403784 100,43.3012701892"></polygon>
-          <path d="M0,12 L0,74.6025403784 Q0,86.6025403784 11.012,81.8342402525 L88.988,48.0696001263 Q100,43.3012701892 88.988,38.5329402521 L11.012,4.7679001263 Q0,0 0,12 Z"></path>
-        </svg>
-      </div>
-    </div>
-    <div class="skip-connector" id="skipConnector" aria-hidden="true"></div>
-    <div class="skip-triangle skip-triangle--right" id="skipTriangle2">
-      <div class="skip-triangle__inner">
-        <svg viewBox="0 0 100 86.6025403784" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-          <polygon points="100,0 100,86.6025403784 0,43.3012701892"></polygon>
-          <path d="M100,12 L100,74.6025403784 Q100,86.6025403784 88.988,81.8342402525 L11.012,48.0696001263 Q0,43.3012701892 11.012,38.5329402521 L88.988,4.7679001263 Q100,0 100,12 Z"></path>
-        </svg>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Debug toast -->
-  <div id="toast" class="toast" style="display:none"></div>
-
-  <!-- Sequence Composer Container -->
-  <div id="sequence-composer-container"></div>
-  
-  <!-- Import map for three.js -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
-  
-  <!-- Main application entry point -->
-  <script type="module" src="./src/scripts/main.js"></script>
-  
-  <!-- TEMPORARY DEBUG: Test if buttons are physically clickable -->
-  <script>
-    console.log('%c🔍 DEBUG: Inline script loaded', 'background: #ff0; color: #000; padding: 4px;');
-    
-    // Wait for DOM
-    setTimeout(() => {
-      const playBtn = document.getElementById('playBtn');
-      const sceneBtn = document.getElementById('sceneSelectBtn');
-      const testBtn = document.getElementById('testAudioBtn');
-      
-      console.log('🔍 DEBUG: playBtn =', playBtn);
-      console.log('🔍 DEBUG: sceneBtn =', sceneBtn);
-      console.log('🔍 DEBUG: testBtn =', testBtn);
-      
-      if (playBtn) {
-        // Add a test click handler
-        playBtn.addEventListener('click', () => {
-          console.log('%c✅ PLAY BUTTON CLICKED! (from debug script)', 
-            'background: #0f0; color: #000; font-size: 16px; padding: 8px;');
-          alert('✅ Play button IS clickable!\n\nThe button works. If the app doesn\'t start, it\'s a JavaScript loading issue, not a CSS issue.');
-        });
-        console.log('✅ DEBUG: Test listener attached to Play button');
-      } else {
-        console.error('❌ DEBUG: playBtn not found in DOM!');
-      }
-      
-      // Check what element is on top
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-      const topElement = document.elementFromPoint(centerX, centerY);
-      console.log('🔍 DEBUG: Element at center of screen:', topElement);
-      console.log('🔍 DEBUG: Element class:', topElement?.className);
-      console.log('🔍 DEBUG: Element z-index:', topElement ? getComputedStyle(topElement).zIndex : 'N/A');
-      
-      // Check play overlay
-      const play = document.getElementById('play');
-      if (play) {
-        console.log('🔍 DEBUG: Play overlay styles:');
-        console.log('  - display:', getComputedStyle(play).display);
-        console.log('  - z-index:', getComputedStyle(play).zIndex);
-        console.log('  - pointer-events:', getComputedStyle(play).pointerEvents);
-        console.log('  - opacity:', getComputedStyle(play).opacity);
-      }
-    }, 500);
-  </script>
+ </div>
+ 
+ <div id="introOverlay"><div id="introBrand">celli.os<div class="brand-ver">v.0.0.1</div></div></div>
+ <div id="world"></div>
+ <canvas id="view"></canvas>
+ 
+ <!-- UI Elements Container -->
+ <div id="uiContainer"></div>
+ 
+ <!-- THREE.js CDN -->
+ <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/EffectComposer.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/RenderPass.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/ShaderPass.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/postprocessing/AfterimagePass.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/examples/js/shaders/CopyShader.js"></script>
+ 
+ <!-- Core Scripts -->
+ <script src="js/config.js"></script>
+ <script src="js/utils.js"></script>
+ <script src="js/store.js"></script>
+ 
+ <!-- Physics & Collision -->
+ <script src="js/physics/collision.js"></script>
+ <script src="js/physics/player.js"></script>
+ <script src="js/physics/interactions.js"></script>
+ 
+ <!-- Rendering -->
+ <script src="js/rendering/scene.js"></script>
+ <script src="js/rendering/camera.js"></script>
+ <script src="js/rendering/materials.js"></script>
+ <script src="js/rendering/post-processing.js"></script>
+ <script src="js/rendering/ocean.js"></script>
+ <script src="js/rendering/sprites.js"></script>
+ 
+ <!-- Formula Engine -->
+ <script src="js/formula/parser.js"></script>
+ <script src="js/formula/functions.js"></script>
+ <script src="js/formula/evaluator.js"></script>
+ <script src="js/formula/registry.js"></script>
+ 
+ <!-- Array Management -->
+ <script src="js/array/manager.js"></script>
+ <script src="js/array/operations.js"></script>
+ <script src="js/array/rendering.js"></script>
+ <script src="js/array/connections.js"></script>
+ 
+ <!-- UI Components -->
+ <script src="js/ui/sheet.js"></script>
+ <script src="js/ui/controls.js"></script>
+ <script src="js/ui/panels.js"></script>
+ <script src="js/ui/dialogs.js"></script>
+ 
+ <!-- Game/Scene Logic -->
+ <script src="js/scenes/intro.js"></script>
+ <script src="js/scenes/transitions.js"></script>
+ <script src="js/scenes/games.js"></script>
+ 
+ <!-- Main Application -->
+ <script src="js/app.js"></script>
+ 
+ <!-- Twemoji Initialization -->
+ <script src="js/init-twemoji.js"></script>
 </body>
 </html>
-

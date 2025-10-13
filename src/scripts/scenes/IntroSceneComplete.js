@@ -673,20 +673,20 @@ export class IntroSceneComplete {
     // Determine current phase and update spheres
     this._updateSpheresPhase(t, cfg);
 
-    // Update color triangle
-    if (this.state.triMesh) {
+    // Update color triangle (only when visible)
+    if (this.state.triMesh && this.state.triMesh.visible) {
       const aspect = window.innerWidth / window.innerHeight;
       this.state.triMesh.material.uniforms.aspect.value = aspect;
       this.state.triMesh.material.uniforms.points.value[0].set(
-        this.state.spheres[0].position.x / aspect,
+        this.state.spheres[0].position.x,
         this.state.spheres[0].position.y
       );
       this.state.triMesh.material.uniforms.points.value[1].set(
-        this.state.spheres[1].position.x / aspect,
+        this.state.spheres[1].position.x,
         this.state.spheres[1].position.y
       );
       this.state.triMesh.material.uniforms.points.value[2].set(
-        this.state.spheres[2].position.x / aspect,
+        this.state.spheres[2].position.x,
         this.state.spheres[2].position.y
       );
     }
@@ -740,66 +740,173 @@ export class IntroSceneComplete {
     const speed = this.state.motionCfg.speed;
     const maxDist = this.state.motionCfg.maxDist;
     const rotSpeed = this.state.motionCfg.rotationSpeed;
+    const R = 0.16;
 
     if (t < cfg.rollEnd) {
-      // Phase: Roll into place
-      const progress = t / cfg.rollEnd;
-      const eased = progress * progress * (3 - 2 * progress);
+      // Phase: Roll into place - shapes roll from off-screen left
+      const rollProgress = t / cfg.rollEnd;
+      const eased = rollProgress < 0.5 ? 
+        2 * rollProgress * rollProgress : 
+        1 - Math.pow(-2 * rollProgress + 2, 2) / 2;
       
-      this.state.spheres.forEach((sphere, i) => {
-        const offset = i * Math.PI * 2 / 3;
-        const targetX = Math.cos(offset) * 0.25;
-        const targetY = Math.sin(offset) * 0.25;
-        sphere.position.x = THREE.MathUtils.lerp(-2 - i * 0.5, targetX, eased);
-        sphere.position.y = THREE.MathUtils.lerp(0, targetY, eased);
-        sphere.rotation.z = eased * Math.PI * 4;
-        this.state.finalRollRotations[i] = sphere.rotation.z;
-      });
-    } else if (t < cfg.bounceEnd) {
-      // Phase: Sequential bounces
-      this.state.spheres.forEach((sphere, i) => {
-        const offset = i * Math.PI * 2 / 3;
-        const baseX = Math.cos(offset) * 0.25;
-        const baseY = Math.sin(offset) * 0.25;
+      // Hide triangle gradient and black hole during roll
+      if (this.state.triMesh) this.state.triMesh.visible = false;
+      if (this.state.blackHole) this.state.blackHole.visible = false;
+      
+      for (let i = 0; i < 3; i++) {
+        const targetX = (i - 1) * 0.35;
+        const startX = targetX - 2.0; // Start off-screen left
+        const x = THREE.MathUtils.lerp(startX, targetX, eased);
+        const y = -0.3;
         
-        const bounceStart = cfg.rollEnd + i * 0.3;
-        const bounceTime = t - bounceStart;
+        // Calculate rolling rotation based on distance traveled
+        const distance = x - startX;
+        let rotation = 0;
         
-        if (bounceTime > 0 && bounceTime < cfg.bounceDuration) {
-          const bounceProgress = bounceTime / cfg.bounceDuration;
-          const bounceHeight = Math.sin(bounceProgress * Math.PI) * cfg.bounceHeight;
-          sphere.position.x = baseX;
-          sphere.position.y = baseY - bounceHeight;
-          
-          // Play thunk sound on landing
-          if (!this.state.landingSounds[i] && bounceProgress > 0.95) {
-            this.state.landingSounds[i] = true;
-            this._playThunkSound(i);
-          }
-        } else if (bounceTime >= cfg.bounceDuration) {
-          sphere.position.x = baseX;
-          sphere.position.y = baseY;
+        if (i === 0) {
+          // Square: snap to flat (multiple of π/2)
+          const squarePerimeter = R * 2 * 4;
+          const naturalRotation = -(distance / squarePerimeter) * (Math.PI * 2);
+          rotation = rollProgress > 0.95 ? Math.round(naturalRotation / (Math.PI / 2)) * (Math.PI / 2) : naturalRotation;
+        } else if (i === 1) {
+          // Triangle: snap to flat (multiple of 2π/3)
+          const trianglePerimeter = R * 2 * 3;
+          const naturalRotation = -(distance / trianglePerimeter) * (Math.PI * 2);
+          rotation = rollProgress > 0.95 ? Math.round(naturalRotation / (Math.PI * 2 / 3)) * (Math.PI * 2 / 3) : naturalRotation;
+        } else {
+          // Circle: any rotation is flat
+          rotation = -(distance / (2 * Math.PI * R)) * (Math.PI * 2);
         }
-      });
-    } else if (t < cfg.triangleEnd) {
-      // Phase: Triangle formation
-      const triangleTime = t - cfg.bounceEnd;
-      const triangleProgress = triangleTime / (cfg.triangleEnd - cfg.bounceEnd);
-      const eased = triangleProgress * triangleProgress * (3 - 2 * triangleProgress);
-      
-      this.state.spheres.forEach((sphere, i) => {
-        const offset = i * Math.PI * 2 / 3;
-        const startX = Math.cos(offset) * 0.25;
-        const startY = Math.sin(offset) * 0.25;
-        const targetDist = 0.35;
-        const targetX = Math.cos(offset) * targetDist;
-        const targetY = Math.sin(offset) * targetDist;
         
-        sphere.position.x = THREE.MathUtils.lerp(startX, targetX, eased);
-        sphere.position.y = THREE.MathUtils.lerp(startY, targetY, eased);
-      });
+        if (rollProgress > 0.98) {
+          this.state.finalRollRotations[i] = rotation;
+        }
+        
+        // Play rolling thunks
+        const rollDist = Math.abs(x - startX);
+        const expectedThunks = Math.floor(rollDist / 0.15);
+        if (expectedThunks > this.state.lastThunkTime[i]) {
+          this._playRollingThunk(0.06);
+          this.state.lastThunkTime[i] = expectedThunks;
+        }
+        
+        this.state.spheres[i].position.set(x, y, -i * 0.002);
+        this.state.spheres[i].rotation.z = rotation;
+        this.state.spheres[i].scale.set(cfg.ballSize, cfg.ballSize, cfg.ballSize);
+        
+        // Play final landing thunk
+        if (!this.state.landingSounds[i] && Math.abs(x - targetX) < 0.02) {
+          this._playRollingThunk(0.12);
+          this.state.landingSounds[i] = true;
+        }
+      }
+      
+    } else if (t < cfg.bounceEnd) {
+      // Phase: Sequential bounces (left, right, middle)
+      const bounceT = t - cfg.rollEnd;
+      const baseY = -0.3;
+      
+      if (this.state.triMesh) this.state.triMesh.visible = false;
+      if (this.state.blackHole) this.state.blackHole.visible = false;
+      
+      const bounceOrder = [0, 2, 1]; // left, right, middle
+      
+      for (let i = 0; i < 3; i++) {
+        const x = (i - 1) * 0.35;
+        let y = baseY;
+        
+        const bounceIndex = bounceOrder.indexOf(i);
+        const bounceStart = bounceIndex * cfg.bounceDuration;
+        const bounceEnd = bounceStart + cfg.bounceDuration;
+        
+        if (bounceT >= bounceStart && bounceT <= bounceEnd) {
+          const localT = (bounceT - bounceStart) / cfg.bounceDuration;
+          const bounce = Math.sin(localT * Math.PI) * cfg.bounceHeight;
+          y = baseY + bounce;
+          
+          // Play bounce sounds
+          if (!window['bounceJump_' + i] && localT < 0.05) {
+            this._playBounceThud(0.12);
+            window['bounceJump_' + i] = true;
+          }
+          if (!window['bounceLand_' + i] && localT > 0.95) {
+            this._playBounceThud(0.15);
+            window['bounceLand_' + i] = true;
+          }
+        }
+        
+        this.state.spheres[i].position.set(x, y, -i * 0.002);
+        this.state.spheres[i].rotation.z = this.state.finalRollRotations[i];
+        this.state.spheres[i].scale.set(cfg.ballSize, cfg.ballSize, cfg.ballSize);
+      }
+      
+    } else if (t < cfg.triangleEnd) {
+      // Phase: Triangle formation + grow
+      const triangleProgress = (t - cfg.bounceEnd) / (cfg.triangleEnd - cfg.bounceEnd);
+      const smoothEase = (p) => p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+      
+      const formProgress = Math.min(triangleProgress / 0.35, 1.0);
+      const formEased = smoothEase(formProgress);
+      
+      const convergeStart = 0.35;
+      const convergeProgress = triangleProgress > convergeStart ? Math.min((triangleProgress - convergeStart) / 0.25, 1.0) : 0;
+      const convergeEased = smoothEase(convergeProgress);
+      
+      const growStart = 0.6;
+      const growProgress = triangleProgress > growStart ? (triangleProgress - growStart) / 0.4 : 0;
+      const growEased = smoothEase(growProgress);
+      
+      const centerY = 0;
+      const triangleRadius = 0.42;
+      const triangleAngles = [
+        Math.PI / 2 + (2 * Math.PI / 3) * 0,
+        Math.PI / 2 + (2 * Math.PI / 3) * 1,
+        Math.PI / 2 + (2 * Math.PI / 3) * 2
+      ];
+      
+      const rotationAmount = growEased * 0.2;
+      const pulseSpeed = 2.0;
+      const pulsePhase = (t - cfg.bounceEnd - growStart * (cfg.triangleEnd - cfg.bounceEnd)) * pulseSpeed;
+      const pulseFactor = growProgress > 0 ? 1 + Math.sin(pulsePhase) * 0.08 : 1;
+      const convergeFactor = convergeEased * 0.12;
+      
+      const triangleMapping = [1, 0, 2];
+      
+      for (let i = 0; i < 3; i++) {
+        const startX = (i - 1) * 0.35;
+        const startY = -0.3;
+        
+        const angleIndex = triangleMapping[i];
+        const angle = triangleAngles[angleIndex] + rotationAmount;
+        const targetRadius = triangleRadius * (1 - convergeFactor) * pulseFactor;
+        const targetX = Math.cos(angle) * targetRadius;
+        const targetY = Math.sin(angle) * targetRadius + centerY;
+        
+        const x = THREE.MathUtils.lerp(startX, targetX, formEased);
+        const y = THREE.MathUtils.lerp(startY, targetY, formEased);
+        
+        this.state.spheres[i].position.set(x, y, -i * 0.002);
+        this.state.spheres[i].rotation.z = 0;
+        
+        let scale = cfg.ballSize;
+        if (formEased < 1) {
+          scale = THREE.MathUtils.lerp(cfg.ballSize, cfg.ballSize * 1.0, formEased);
+        } else {
+          const overshoot = Math.sin(growEased * Math.PI) * 0.08;
+          scale = THREE.MathUtils.lerp(cfg.ballSize * 1.0, cfg.ballSize * 2.2, growEased) + overshoot;
+        }
+        
+        this.state.spheres[i].scale.set(scale, scale, scale);
+      }
+      
+      if (this.state.blackHole) {
+        this.state.blackHole.visible = true;
+        this.state.blackHole.material.uniforms.pulseFactor.value = formEased * 0.4;
+      }
+      if (this.state.triMesh) this.state.triMesh.visible = true;
+      
     } else {
-      // Phase: Orbital motion (eclipse/radiate)
+      // Phase: Orbital motion
       const orbitalTime = t - cfg.triangleEnd;
       
       this.state.spheres.forEach((sphere, i) => {
@@ -811,6 +918,9 @@ export class IntroSceneComplete {
         sphere.position.y = Math.sin(angle) * dist;
         sphere.rotation.z = angle * rotSpeed;
       });
+      
+      if (this.state.blackHole) this.state.blackHole.visible = true;
+      if (this.state.triMesh) this.state.triMesh.visible = true;
     }
   }
 
@@ -969,9 +1079,9 @@ export class IntroSceneComplete {
   }
 
   /**
-   * Play thunk sound
+   * Play rolling thunk sound (gentle, for rolling motion)
    */
-  _playThunkSound(index) {
+  _playRollingThunk(volume = 0.08) {
     if (!this.state.audioCtx) return;
     
     try {
@@ -980,20 +1090,55 @@ export class IntroSceneComplete {
       const gain = this.state.audioCtx.createGain();
       
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(150 - index * 20, now);
-      osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
+      osc.frequency.setValueAtTime(120, now);
+      osc.frequency.exponentialRampToValueAtTime(60, now + 0.08);
       
       gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.3, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      gain.gain.linearRampToValueAtTime(volume, now + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
       
       osc.connect(gain);
       gain.connect(this.state.audioCtx.destination);
       osc.start(now);
-      osc.stop(now + 0.3);
+      osc.stop(now + 0.12);
     } catch (e) {
-      console.warn('Thunk sound failed:', e);
+      console.warn('Rolling thunk sound failed:', e);
     }
+  }
+
+  /**
+   * Play bounce thud sound (deeper, for bouncing)
+   */
+  _playBounceThud(volume = 0.12) {
+    if (!this.state.audioCtx) return;
+    
+    try {
+      const now = this.state.audioCtx.currentTime;
+      const osc = this.state.audioCtx.createOscillator();
+      const gain = this.state.audioCtx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(100, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+      
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      
+      osc.connect(gain);
+      gain.connect(this.state.audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    } catch (e) {
+      console.warn('Bounce thud sound failed:', e);
+    }
+  }
+
+  /**
+   * Play thunk sound (legacy method for backward compatibility)
+   */
+  _playThunkSound(index) {
+    this._playBounceThud(0.15);
   }
 
   /**
