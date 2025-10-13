@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Celli Sequence Builder - Unified</title>
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      overflow: hidden;
+    }
+
+    /* Overlay Mode */
+    .builder-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 10000;
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .builder-overlay.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Main Container - Resizable Grid */
+    .builder-container {
+      display: grid;
+      grid-template-columns: 280px 1fr 360px 400px;
+      grid-template-rows: 60px 1fr 180px;
+      height: 100vh;
+      width: 100vw;
+      gap: 0;
+      position: relative;
+    }
+
+    /* Resizer Handles */
+    .resize-handle {
+      position: absolute;
+      background: #3498db;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 1000;
+      cursor: col-resize;
+    }
+
+    .resize-handle:hover,
+    .resize-handle.active {
+      opacity: 0.5;
+    }
+
+    .resize-handle-1 {
+      left: 280px;
+      top: 60px;
+      bottom: 180px;
+      width: 4px;
+      margin-left: -2px;
+    }
+
+    .resize-handle-2 {
+      right: 760px;
+      top: 60px;
+      bottom: 180px;
+      width: 4px;
+      margin-right: -2px;
+    }
+
+    .resize-handle-3 {
+      right: 400px;
+      top: 60px;
+      bottom: 180px;
+      width: 4px;
+      margin-right: -2px;
+    }
+
+    .resize-handle-vertical {
+      left: 0;
+      right: 0;
+      height: 4px;
+      cursor: row-resize;
+    }
+
+    .resize-handle-bottom {
+      bottom: 180px;
+      margin-bottom: -2px;
+    }
+
+    /* ===== HEADER ===== */
+    .builder-header {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+      border-bottom: 2px solid #34495e;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .builder-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #ecf0f1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .scene-badge {
+      background: #3498db;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .builder-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary { background: #3498db; color: white; }
+    .btn-primary:hover { background: #2980b9; transform: translateY(-1px); }
+    .btn-success { background: #27ae60; color: white; }
+    .btn-success:hover { background: #229954; }
+    .btn-danger { background: #e74c3c; color: white; }
+    .btn-danger:hover { background: #c0392b; }
+    .btn-secondary { background: #7f8c8d; color: white; }
+    .btn-secondary:hover { background: #5d6d6e; }
+
+    /* ===== LEFT PANEL - ASSET MANAGER ===== */
+    .panel-left {
+      background: #2c2c2c;
+      border-right: 1px solid #444;
+      overflow-y: auto;
+      padding: 15px;
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .asset-manager-header {
+      background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #445566;
+    }
+
+    .asset-manager-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #3498db;
+      margin-bottom: 8px;
+    }
+
+    .asset-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 10px;
+      color: #bdc3c7;
+    }
+
+    .stat-item {
+      background: rgba(52, 152, 219, 0.1);
+      padding: 6px;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #3498db;
+      display: block;
+    }
+
+    /* Expandable Asset Groups */
+    .asset-group {
+      margin-bottom: 12px;
+      background: #353535;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #444;
+    }
+
+    .asset-group-header {
+      padding: 10px 12px;
+      background: #2a2a2a;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.2s;
+      user-select: none;
+    }
+
+    .asset-group-header:hover {
+      background: #333;
+    }
+
+    .asset-group-header.active {
+      background: #2c3e50;
+    }
+
+    .asset-group-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #e0e0e0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .asset-count {
+      background: #3498db;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .expand-icon {
+      font-size: 12px;
+      transition: transform 0.2s;
+      color: #999;
+    }
+
+    .asset-group-header.active .expand-icon {
+      transform: rotate(90deg);
+    }
+
+    .asset-group-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .asset-group-content.expanded {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .asset-item {
+      padding: 8px 12px;
+      margin: 4px 8px;
+      background: #2a2a2a;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 11px;
+      border-left: 3px solid transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .asset-item:hover {
+      background: #404040;
+      border-left-color: #3498db;
+      transform: translateX(4px);
+    }
+
+    .asset-item.selected {
+      background: #2c3e50;
+      border-left-color: #3498db;
+    }
+
+    .asset-name {
+      font-weight: 600;
+      color: #e0e0e0;
+    }
+
+    .asset-type {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .type-component { background: #9b59b6; color: white; }
+    .type-style { background: #e74c3c; color: white; }
+    .type-function { background: #f39c12; color: white; }
+    .type-variable { background: #16a085; color: white; }
+    .type-import { background: #34495e; color: white; }
+
+    /* ===== CENTER LEFT - SCENE VIEWPORT ===== */
+    .panel-viewport {
+      background: #1e1e1e;
+      display: flex;
+      flex-direction: column;
+      grid-column: 2;
+      grid-row: 2;
+      border-right: 1px solid #444;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .viewport-header {
+      background: #252525;
+      padding: 10px 15px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .viewport-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #3498db;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .viewport-controls {
+      display: flex;
+      gap: 6px;
+    }
+
+    .viewport-btn {
+      padding: 4px 10px;
+      background: #353535;
+      border: 1px solid #555;
+      border-radius: 4px;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+
+    .viewport-btn:hover {
+      background: #404040;
+      border-color: #3498db;
+    }
+
+    .viewport-btn.active {
+      background: #3498db;
+      border-color: #5dade2;
+      color: white;
+    }
+
+    #sceneViewport {
+      flex: 1;
+      position: relative;
+      background: #0a0a0a;
+    }
+
+    #sceneCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .viewport-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: 'Consolas', monospace;
+      color: #3498db;
+      pointer-events: none;
+    }
+
+    /* ===== CENTER RIGHT - TIMELINE/DIALOGUE ===== */
+    .panel-center {
+      background: #1e1e1e;
+      display: flex;
+      flex-direction: column;
+      grid-column: 3;
+      grid-row: 2;
+      border-right: 1px solid #444;
+    }
+
+    .center-tabs {
+      background: #252525;
+      border-bottom: 1px solid #333;
+      display: flex;
+      gap: 2px;
+      padding: 0 10px;
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      background: transparent;
+      border: none;
+      color: #999;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      color: #e0e0e0;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .tab-btn.active {
+      color: #3498db;
+      border-bottom-color: #3498db;
+    }
+
+    .tab-content {
+      flex: 1;
+      overflow: hidden;
+      display: none;
+    }
+
+    .tab-content.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Timeline */
+    .timeline-container {
+      flex: 1;
+      position: relative;
+      overflow: auto;
+      padding: 20px;
+    }
+
+    .timeline-grid {
+      position: absolute;
+      inset: 0;
+      background: 
+        repeating-linear-gradient(90deg, #2a2a2a 0, #2a2a2a 1px, transparent 1px, transparent 50px),
+        repeating-linear-gradient(0deg, #2a2a2a 0, #2a2a2a 1px, transparent 1px, transparent 40px);
+    }
+
+    /* Dialogue System */
+    .dialogue-workspace {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+    }
+
+    .dialogue-controls {
+      background: #252525;
+      padding: 12px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .dialogue-cards-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .dialogue-card {
+      background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+      border: 1px solid #445566;
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .dialogue-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+      border-color: #3498db;
+    }
+
+    .dialogue-card.selected {
+      border-color: #3498db;
+      box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.4);
+    }
+
+    .dialogue-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .dialogue-speaker {
+      font-size: 12px;
+      font-weight: 700;
+      color: #3498db;
+    }
+
+    .dialogue-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .icon-btn {
+      padding: 3px 6px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .dialogue-text {
+      font-size: 11px;
+      line-height: 1.5;
+      color: #e0e0e0;
+      min-height: 50px;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+
+    .dialogue-meta {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 9px;
+      color: #999;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .display-target {
+      padding: 2px 6px;
+      background: #27ae60;
+      color: white;
+      border-radius: 10px;
+      font-size: 8px;
+      font-weight: 700;
+    }
+
+    /* ===== RIGHT PANEL - INSPECTOR ===== */
+    .panel-right {
+      background: #2c2c2c;
+      border-right: 1px solid #444;
+      overflow-y: auto;
+      padding: 15px;
+      grid-column: 4;
+      grid-row: 2;
+    }
+
+    .inspector-section {
+      background: #353535;
+      padding: 12px;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      border: 1px solid #444;
+    }
+
+    .inspector-section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #3498db;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #444;
+    }
+
+    .property-group {
+      margin-bottom: 12px;
+    }
+
+    .property-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .property-input {
+      width: 100%;
+      padding: 8px 10px;
+      background: #2a2a2a;
+      border: 1px solid #555;
+      border-radius: 4px;
+      color: #e0e0e0;
+      font-size: 12px;
+      font-family: 'Consolas', 'Monaco', monospace;
+    }
+
+    .property-input:focus {
+      outline: none;
+      border-color: #3498db;
+      background: #333;
+    }
+
+    textarea.property-input {
+      resize: vertical;
+      min-height: 80px;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    /* ===== BOTTOM PANEL - CODE PREVIEW ===== */
+    .panel-bottom {
+      grid-column: 1 / -1;
+      background: #1a1a1a;
+      border-top: 2px solid #444;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .code-preview-header {
+      background: #252525;
+      padding: 8px 15px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .code-preview-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #999;
+    }
+
+    .code-preview-content {
+      flex: 1;
+      overflow: auto;
+      padding: 15px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      background: #1a1a1a;
+      color: #d4d4d4;
+    }
+
+    .code-keyword { color: #569cd6; }
+    .code-string { color: #ce9178; }
+    .code-number { color: #b5cea8; }
+    .code-comment { color: #6a9955; font-style: italic; }
+    .code-function { color: #dcdcaa; }
+
+    /* Loading Overlay */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+
+    .loading-content {
+      text-align: center;
+      color: #3498db;
+    }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #444;
+      border-top-color: #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .loading-detail {
+      font-size: 12px;
+      color: #999;
+      margin-top: 8px;
+    }
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #555;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #666;
+    }
+  </style>
+</head>
+<body>
+  <!-- Overlay Mode Container -->
+  <div class="builder-overlay" id="builderOverlay">
+    <div class="builder-container" id="builderContainer">
+      
+      <!-- Resize Handles -->
+      <div class="resize-handle resize-handle-1" data-handle="1"></div>
+      <div class="resize-handle resize-handle-2" data-handle="2"></div>
+      <div class="resize-handle resize-handle-3" data-handle="3"></div>
+      <div class="resize-handle resize-handle-vertical resize-handle-bottom" data-handle="bottom"></div>
+      
+      <!-- Header -->
+      <div class="builder-header">
+        <div class="builder-title">
+          <span>🎬</span>
+          <span>Sequence Builder</span>
+          <span class="scene-badge" id="sceneName">Loading...</span>
+        </div>
+        <div class="builder-controls">
+          <button class="btn btn-primary" id="analyzeBtn">🔍 Analyze</button>
+          <button class="btn btn-success" id="exportBtn">💾 Export</button>
+          <button class="btn btn-secondary" id="importBtn">📂 Import</button>
+          <button class="btn btn-danger" id="closeBtn">✕ Close</button>
+        </div>
+      </div>
+
+      <!-- Left Panel - Asset Manager -->
+      <div class="panel-left">
+        <div class="asset-manager-header">
+          <div class="asset-manager-title">📦 Scene Assets</div>
+          <div class="asset-stats">
+            <div class="stat-item">
+              <span class="stat-value" id="totalAssets">0</span>
+              <span>Assets</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="totalGroups">0</span>
+              <span>Groups</span>
+            </div>
+          </div>
+        </div>
+        <div id="assetGroupsContainer"></div>
+      </div>
+
+      <!-- Center Left - Scene Viewport -->
+      <div class="panel-viewport">
+        <div class="viewport-header">
+          <div class="viewport-title">
+            <span>🎥</span>
+            <span>Scene Viewport</span>
+          </div>
+          <div class="viewport-controls">
+            <button class="viewport-btn active" id="viewRenderBtn">Render</button>
+            <button class="viewport-btn" id="viewWireframeBtn">Wireframe</button>
+            <button class="viewport-btn" id="viewResetBtn">Reset</button>
+          </div>
+        </div>
+        <div id="sceneViewport">
+          <canvas id="sceneCanvas"></canvas>
+          <div class="viewport-overlay" id="viewportOverlay">
+            <div>FPS: <span id="fpsCounter">60</span></div>
+            <div>Objects: <span id="objectCount">0</span></div>
+            <div>Tris: <span id="triCount">0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Right - Timeline & Dialogue -->
+      <div class="panel-center">
+        <div class="center-tabs">
+          <button class="tab-btn active" data-tab="timeline">⏱️ Timeline</button>
+          <button class="tab-btn" data-tab="dialogue">💬 Dialogue</button>
+        </div>
+
+        <!-- Timeline Tab -->
+        <div class="tab-content active" id="timeline-tab">
+          <div class="timeline-container">
+            <div class="timeline-grid"></div>
+            <div style="color: #666; text-align: center; padding: 40px;">
+              Timeline view ready for sequence nodes
+            </div>
+          </div>
+        </div>
+
+        <!-- Dialogue Tab -->
+        <div class="tab-content" id="dialogue-tab">
+          <div class="dialogue-controls">
+            <button class="btn btn-primary" id="addDialogueBtn" style="padding: 6px 12px; font-size: 11px;">➕ Add</button>
+            <button class="btn btn-secondary" id="castToDisplayBtn" style="padding: 6px 12px; font-size: 11px;">📺 Cast</button>
+            <select class="property-input" id="displaySelect" style="width: auto; padding: 4px 8px; font-size: 11px;">
+              <option value="terminal">Terminal</option>
+              <option value="notepad">Notepad</option>
+              <option value="subtitle">Subtitle</option>
+              <option value="popup">Popup</option>
+            </select>
+          </div>
+          <div class="dialogue-workspace">
+            <div class="dialogue-cards-container" id="dialogueCardsContainer">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel - Inspector -->
+      <div class="panel-right">
+        <div class="inspector-section">
+          <div class="inspector-section-title">🔍 Inspector</div>
+          <div id="inspector">
+            <div style="text-align: center; color: #666; padding: 40px 20px; font-size: 12px;">
+              Select an asset or dialogue to inspect
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Panel - Code Preview -->
+      <div class="panel-bottom">
+        <div class="code-preview-header">
+          <div class="code-preview-title">📄 Generated Code / Analysis</div>
+          <button class="btn btn-secondary" id="copyCodeBtn" style="padding: 4px 10px; font-size: 11px;">📋 Copy</button>
+        </div>
+        <div class="code-preview-content" id="codePreview">
+          <span class="code-comment">// Scene analysis and generated code will appear here...</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading Sequence Builder</div>
+      <div class="loading-detail" id="loadingDetail">Initializing...</div>
+    </div>
+  </div>
+
+  <!-- Import Map for THREE.js -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    console.log('🎬 Unified Sequence Builder Starting...');
+
+    // ===== SCENE VIEWPORT MANAGER =====
+    class SceneViewportManager {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.controls = null;
+        this.animationId = null;
+        this.stats = { fps: 0, objects: 0, tris: 0 };
+      }
+
+      init() {
+        // Scene
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x0a0a0a);
+
+        // Camera
+        const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
+        this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+        this.camera.position.set(5, 3, 5);
+
+        // Renderer
+        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+        this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+
+        // Controls
+        this.controls = new OrbitControls(this.camera, this.canvas);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.05;
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0x404040, 2);
+        this.scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 10, 5);
+        this.scene.add(directionalLight);
+
+        // Grid
+        const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
+        this.scene.add(gridHelper);
+
+        // Sample object
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshStandardMaterial({ color: 0x3498db });
+        const cube = new THREE.Mesh(geometry, material);
+        cube.position.y = 0.5;
+        this.scene.add(cube);
+
+        // Start animation
+        this.animate();
+
+        // Handle resize
+        window.addEventListener('resize', () => this.handleResize());
+        
+        console.log('✅ Scene viewport initialized');
+      }
+
+      animate() {
+        this.animationId = requestAnimationFrame(() => this.animate());
+        
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+        
+        // Update stats
+        this.updateStats();
+      }
+
+      updateStats() {
+        this.stats.objects = this.scene.children.length;
+        this.stats.tris = this.renderer.info.render.triangles;
+      }
+
+      handleResize() {
+        const width = this.canvas.clientWidth;
+        const height = this.canvas.clientHeight;
+        
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(width, height);
+      }
+
+      setWireframe(enabled) {
+        this.scene.traverse((object) => {
+          if (object.isMesh) {
+            object.material.wireframe = enabled;
+          }
+        });
+      }
+
+      resetCamera() {
+        this.camera.position.set(5, 3, 5);
+        this.controls.target.set(0, 0, 0);
+        this.controls.update();
+      }
+
+      dispose() {
+        if (this.animationId) {
+          cancelAnimationFrame(this.animationId);
+        }
+        this.renderer.dispose();
+        this.controls.dispose();
+      }
+    }
+
+    // ===== RESIZABLE PANELS MANAGER =====
+    class ResizableManager {
+      constructor(container) {
+        this.container = container;
+        this.handles = document.querySelectorAll('.resize-handle');
+        this.isResizing = false;
+        this.currentHandle = null;
+        this.startX = 0;
+        this.startY = 0;
+        this.startWidths = [];
+      }
+
+      init() {
+        this.handles.forEach(handle => {
+          handle.addEventListener('mousedown', (e) => this.startResize(e, handle));
+        });
+
+        document.addEventListener('mousemove', (e) => this.resize(e));
+        document.addEventListener('mouseup', () => this.stopResize());
+      }
+
+      startResize(e, handle) {
+        this.isResizing = true;
+        this.currentHandle = handle;
+        this.startX = e.clientX;
+        this.startY = e.clientY;
+        
+        const style = window.getComputedStyle(this.container);
+        const columns = style.gridTemplateColumns.split(' ');
+        this.startWidths = columns.map(c => parseFloat(c));
+        
+        handle.classList.add('active');
+        e.preventDefault();
+      }
+
+      resize(e) {
+        if (!this.isResizing) return;
+
+        const handleNum = this.currentHandle.dataset.handle;
+        
+        if (handleNum === 'bottom') {
+          // Vertical resize
+          const deltaY = e.clientY - this.startY;
+          const containerHeight = this.container.clientHeight;
+          const bottomHeight = this.startWidths[2] || 180;
+          const newHeight = Math.max(100, Math.min(400, bottomHeight - deltaY));
+          
+          this.container.style.gridTemplateRows = `60px 1fr ${newHeight}px`;
+        } else {
+          // Horizontal resize
+          const deltaX = e.clientX - this.startX;
+          const handleIndex = parseInt(handleNum) - 1;
+          
+          const newWidths = [...this.startWidths];
+          newWidths[handleIndex] = Math.max(200, newWidths[handleIndex] + deltaX);
+          
+          this.container.style.gridTemplateColumns = newWidths.map(w => `${w}px`).join(' ');
+        }
+      }
+
+      stopResize() {
+        if (!this.isResizing) return;
+        
+        this.isResizing = false;
+        if (this.currentHandle) {
+          this.currentHandle.classList.remove('active');
+        }
+        this.currentHandle = null;
+        
+        // Notify viewport to resize
+        if (window.viewportManager) {
+          setTimeout(() => window.viewportManager.handleResize(), 100);
+        }
+      }
+    }
+
+    // ===== DIALOGUE MANAGER =====
+    class DialogueManager {
+      constructor() {
+        this.dialogues = [];
+        this.selectedDialogue = null;
+      }
+
+      createDialogue(data = {}) {
+        const dialogue = {
+          id: Date.now(),
+          speaker: data.speaker || 'Unknown',
+          text: data.text || '',
+          display: data.display || 'subtitle',
+          timestamp: data.timestamp || 0,
+          duration: data.duration || 3.0,
+          ...data
+        };
+        this.dialogues.push(dialogue);
+        return dialogue;
+      }
+
+      updateDialogue(id, updates) {
+        const dialogue = this.dialogues.find(d => d.id === id);
+        if (dialogue) {
+          Object.assign(dialogue, updates);
+        }
+        return dialogue;
+      }
+
+      deleteDialogue(id) {
+        const index = this.dialogues.findIndex(d => d.id === id);
+        if (index > -1) {
+          this.dialogues.splice(index, 1);
+        }
+      }
+
+      exportDialogues() {
+        return {
+          dialogues: this.dialogues,
+          count: this.dialogues.length
+        };
+      }
+
+      importDialogues(data) {
+        if (data.dialogues) {
+          this.dialogues = data.dialogues;
+        }
+      }
+    }
+
+    // ===== MAIN APPLICATION =====
+    class UnifiedSequenceBuilder {
+      constructor() {
+        this.dialogueManager = new DialogueManager();
+        this.viewportManager = null;
+        this.resizableManager = null;
+        this.isOverlayMode = false;
+        this.state = {
+          currentScene: null,
+          assets: null,
+          selectedAsset: null,
+          currentTab: 'timeline'
+        };
+        
+        this.ui = {
+          overlay: document.getElementById('builderOverlay'),
+          container: document.getElementById('builderContainer'),
+          sceneName: document.getElementById('sceneName'),
+          assetGroupsContainer: document.getElementById('assetGroupsContainer'),
+          totalAssets: document.getElementById('totalAssets'),
+          totalGroups: document.getElementById('totalGroups'),
+          inspector: document.getElementById('inspector'),
+          codePreview: document.getElementById('codePreview'),
+          dialogueCardsContainer: document.getElementById('dialogueCardsContainer'),
+          loadingOverlay: document.getElementById('loadingOverlay'),
+          loadingDetail: document.getElementById('loadingDetail'),
+          fpsCounter: document.getElementById('fpsCounter'),
+          objectCount: document.getElementById('objectCount'),
+          triCount: document.getElementById('triCount')
+        };
+      }
+
+      async init(overlayMode = false) {
+        console.log('🎬 Initializing Unified Sequence Builder...');
+        
+        this.isOverlayMode = overlayMode;
+        
+        if (overlayMode) {
+          this.ui.overlay.classList.add('active');
+        } else {
+          // Standalone mode - show container directly
+          document.body.appendChild(this.ui.container);
+        }
+        
+        this.ui.loadingDetail.textContent = 'Initializing scene viewport...';
+        
+        // Initialize scene viewport
+        const canvas = document.getElementById('sceneCanvas');
+        this.viewportManager = new SceneViewportManager(canvas);
+        this.viewportManager.init();
+        window.viewportManager = this.viewportManager;
+        
+        // Initialize resizable panels
+        this.resizableManager = new ResizableManager(this.ui.container);
+        this.resizableManager.init();
+        
+        this.ui.loadingDetail.textContent = 'Detecting scene...';
+        
+        const sceneName = this._detectCurrentScene();
+        this.state.currentScene = sceneName;
+        this.ui.sceneName.textContent = sceneName;
+        
+        this._generateMockAssets();
+        this._renderAssetGroups();
+        this._setupEventListeners();
+        this._renderInitialDialogues();
+        this._updateCodePreview();
+        this._startStatsUpdate();
+        
+        setTimeout(() => {
+          this.ui.loadingOverlay.style.display = 'none';
+          console.log('✅ Unified Sequence Builder Ready');
+        }, 500);
+      }
+
+      _detectCurrentScene() {
+        if (window.opener && window.opener.introScene) {
+          return 'IntroSceneComplete';
+        }
+        if (window.opener && window.opener.currentScene) {
+          return window.opener.currentScene.constructor.name;
+        }
+        return 'IntroSceneComplete';
+      }
+
+      _generateMockAssets() {
+        this.state.assets = {
+          components: [
+            { name: 'Scene', line: 1, namespace: 'THREE' },
+            { name: 'PerspectiveCamera', line: 5, namespace: 'THREE' },
+            { name: 'WebGLRenderer', line: 10, namespace: 'THREE' },
+            { name: 'Mesh', line: 15, namespace: 'THREE' },
+            { name: 'BoxGeometry', line: 20, namespace: 'THREE' }
+          ],
+          functions: [
+            { name: 'init', line: 30, async: true },
+            { name: 'animate', line: 50, async: false },
+            { name: 'update', line: 70, async: false }
+          ],
+          variables: [
+            { name: 'scene', line: 12, type: 'const' },
+            { name: 'camera', line: 13, type: 'const' },
+            { name: 'renderer', line: 14, type: 'const' }
+          ],
+          styles: [
+            { name: 'main.css', line: 1 },
+            { name: 'animations.css', line: 2 }
+          ],
+          imports: [
+            { name: 'THREE', from: 'three', line: 1 },
+            { name: 'Store', from: './engine/Store.js', line: 2 }
+          ],
+          classes: [
+            { name: this.state.currentScene, line: 40, type: 'extended' }
+          ]
+        };
+      }
+
+      _renderAssetGroups() {
+        const assets = this.state.assets;
+        const groups = [
+          { key: 'components', icon: '🧩', title: 'Components' },
+          { key: 'functions', icon: '⚡', title: 'Functions' },
+          { key: 'variables', icon: '📊', title: 'Variables' },
+          { key: 'styles', icon: '🎨', title: 'Styles' },
+          { key: 'imports', icon: '📦', title: 'Imports' }
+        ];
+
+        let totalAssets = 0;
+        this.ui.assetGroupsContainer.innerHTML = '';
+
+        groups.forEach(group => {
+          const items = assets[group.key] || [];
+          totalAssets += items.length;
+
+          const groupEl = document.createElement('div');
+          groupEl.className = 'asset-group';
+          
+          groupEl.innerHTML = `
+            <div class="asset-group-header">
+              <div class="asset-group-title">
+                <span>${group.icon}</span>
+                <span>${group.title}</span>
+                <span class="asset-count">${items.length}</span>
+              </div>
+              <span class="expand-icon">▶</span>
+            </div>
+            <div class="asset-group-content">
+              ${items.map((item, idx) => `
+                <div class="asset-item" data-group="${group.key}" data-index="${idx}">
+                  <span class="asset-name">${item.name}</span>
+                  <span class="asset-type type-${group.key.slice(0, -1)}">${group.key.slice(0, 3).toUpperCase()}</span>
+                </div>
+              `).join('')}
+            </div>
+          `;
+
+          this.ui.assetGroupsContainer.appendChild(groupEl);
+
+          const header = groupEl.querySelector('.asset-group-header');
+          const content = groupEl.querySelector('.asset-group-content');
+          
+          header.addEventListener('click', () => {
+            const isExpanded = content.classList.contains('expanded');
+            if (isExpanded) {
+              content.classList.remove('expanded');
+              header.classList.remove('active');
+            } else {
+              content.classList.add('expanded');
+              header.classList.add('active');
+            }
+          });
+
+          groupEl.querySelectorAll('.asset-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+              e.stopPropagation();
+              this._selectAsset(group.key, parseInt(item.dataset.index));
+            });
+          });
+        });
+
+        this.ui.totalAssets.textContent = totalAssets;
+        this.ui.totalGroups.textContent = groups.length;
+      }
+
+      _selectAsset(groupKey, index) {
+        document.querySelectorAll('.asset-item').forEach(el => el.classList.remove('selected'));
+        
+        const asset = this.state.assets[groupKey][index];
+        this.state.selectedAsset = { ...asset, group: groupKey };
+        
+        const assetEl = document.querySelector(`.asset-item[data-group="${groupKey}"][data-index="${index}"]`);
+        if (assetEl) assetEl.classList.add('selected');
+        
+        this._updateInspector();
+      }
+
+      _updateInspector() {
+        if (!this.state.selectedAsset) {
+          this.ui.inspector.innerHTML = `
+            <div style="text-align: center; color: #666; padding: 40px 20px; font-size: 12px;">
+              Select an asset or dialogue to inspect
+            </div>
+          `;
+          return;
+        }
+
+        const asset = this.state.selectedAsset;
+        
+        this.ui.inspector.innerHTML = `
+          <div class="property-group">
+            <div class="property-label">Asset Name</div>
+            <input type="text" class="property-input" value="${asset.name}" readonly>
+          </div>
+          
+          <div class="property-group">
+            <div class="property-label">Type</div>
+            <input type="text" class="property-input" value="${asset.group}" readonly>
+          </div>
+          
+          ${asset.line ? `
+            <div class="property-group">
+              <div class="property-label">Line Number</div>
+              <input type="number" class="property-input" value="${asset.line}" readonly>
+            </div>
+          ` : ''}
+        `;
+      }
+
+      _renderInitialDialogues() {
+        this.dialogueManager.createDialogue({
+          speaker: 'System',
+          text: 'Welcome to the unified sequence builder with scene viewport.',
+          display: 'terminal',
+          timestamp: 0
+        });
+
+        this._renderDialogueCards();
+      }
+
+      _renderDialogueCards() {
+        this.ui.dialogueCardsContainer.innerHTML = this.dialogueManager.dialogues.map(dialogue => `
+          <div class="dialogue-card" data-id="${dialogue.id}">
+            <div class="dialogue-header">
+              <div class="dialogue-speaker">${dialogue.speaker}</div>
+              <div class="dialogue-actions">
+                <button class="icon-btn" onclick="window.builderApp._editDialogue(${dialogue.id})">✏️</button>
+                <button class="icon-btn" onclick="window.builderApp._deleteDialogue(${dialogue.id})">🗑️</button>
+              </div>
+            </div>
+            <div class="dialogue-text">${dialogue.text}</div>
+            <div class="dialogue-meta">
+              <span>@${dialogue.timestamp.toFixed(1)}s</span>
+              <span class="display-target">${dialogue.display}</span>
+            </div>
+          </div>
+        `).join('');
+
+        document.querySelectorAll('.dialogue-card').forEach(card => {
+          card.addEventListener('click', (e) => {
+            if (!e.target.closest('.icon-btn')) {
+              this._selectDialogue(parseInt(card.dataset.id));
+            }
+          });
+        });
+      }
+
+      _selectDialogue(id) {
+        document.querySelectorAll('.dialogue-card').forEach(el => el.classList.remove('selected'));
+        const card = document.querySelector(`.dialogue-card[data-id="${id}"]`);
+        if (card) card.classList.add('selected');
+        
+        const dialogue = this.dialogueManager.dialogues.find(d => d.id === id);
+        if (dialogue) {
+          this._showDialogueInspector(dialogue);
+        }
+      }
+
+      _showDialogueInspector(dialogue) {
+        this.ui.inspector.innerHTML = `
+          <div class="property-group">
+            <div class="property-label">Speaker</div>
+            <input type="text" class="property-input" id="dialogueSpeaker" value="${dialogue.speaker}">
+          </div>
+          
+          <div class="property-group">
+            <div class="property-label">Text</div>
+            <textarea class="property-input" id="dialogueText">${dialogue.text}</textarea>
+          </div>
+          
+          <div class="property-group">
+            <div class="property-label">Display Target</div>
+            <select class="property-input" id="dialogueDisplay">
+              <option value="terminal" ${dialogue.display === 'terminal' ? 'selected' : ''}>Terminal</option>
+              <option value="notepad" ${dialogue.display === 'notepad' ? 'selected' : ''}>Notepad</option>
+              <option value="subtitle" ${dialogue.display === 'subtitle' ? 'selected' : ''}>Subtitle</option>
+              <option value="popup" ${dialogue.display === 'popup' ? 'selected' : ''}>Popup</option>
+            </select>
+          </div>
+          
+          <div class="property-group">
+            <div class="property-label">Timestamp (s)</div>
+            <input type="number" class="property-input" id="dialogueTimestamp" value="${dialogue.timestamp}" step="0.1" min="0">
+          </div>
+          
+          <button class="btn btn-primary" onclick="window.builderApp._saveDialogueChanges(${dialogue.id})" style="width: 100%; margin-top: 10px; padding: 8px;">
+            💾 Save Changes
+          </button>
+        `;
+      }
+
+      _saveDialogueChanges(id) {
+        const updates = {
+          speaker: document.getElementById('dialogueSpeaker').value,
+          text: document.getElementById('dialogueText').value,
+          display: document.getElementById('dialogueDisplay').value,
+          timestamp: parseFloat(document.getElementById('dialogueTimestamp').value)
+        };
+        
+        this.dialogueManager.updateDialogue(id, updates);
+        this._renderDialogueCards();
+        this._updateCodePreview();
+      }
+
+      _editDialogue(id) {
+        this._selectDialogue(id);
+      }
+
+      _deleteDialogue(id) {
+        if (confirm('Delete this dialogue?')) {
+          this.dialogueManager.deleteDialogue(id);
+          this._renderDialogueCards();
+          this._updateCodePreview();
+        }
+      }
+
+      _updateCodePreview() {
+        const dialogues = this.dialogueManager.exportDialogues();
+        
+        let code = `<span class="code-comment">// Scene: ${this.state.currentScene}</span>\n`;
+        code += `<span class="code-keyword">const</span> sequence = {\n`;
+        code += `  <span class="code-string">dialogues</span>: [\n`;
+        
+        dialogues.dialogues.forEach((d, i) => {
+          code += `    {\n`;
+          code += `      <span class="code-string">speaker</span>: <span class="code-string">"${d.speaker}"</span>,\n`;
+          code += `      <span class="code-string">text</span>: <span class="code-string">"${d.text}"</span>,\n`;
+          code += `      <span class="code-string">display</span>: <span class="code-string">"${d.display}"</span>,\n`;
+          code += `      <span class="code-string">timestamp</span>: <span class="code-number">${d.timestamp}</span>\n`;
+          code += `    }${i < dialogues.count - 1 ? ',' : ''}\n`;
+        });
+        
+        code += `  ]\n`;
+        code += `};\n\n`;
+        code += `<span class="code-keyword">export</span> <span class="code-keyword">default</span> sequence;`;
+        
+        this.ui.codePreview.innerHTML = code;
+      }
+
+      _startStatsUpdate() {
+        setInterval(() => {
+          if (this.viewportManager) {
+            this.ui.objectCount.textContent = this.viewportManager.stats.objects;
+            this.ui.triCount.textContent = this.viewportManager.stats.tris;
+          }
+        }, 100);
+      }
+
+      _setupEventListeners() {
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            btn.classList.add('active');
+            document.getElementById(`${tab}-tab`).classList.add('active');
+            
+            this.state.currentTab = tab;
+          });
+        });
+
+        // Viewport controls
+        document.getElementById('viewRenderBtn').addEventListener('click', (e) => {
+          document.querySelectorAll('.viewport-btn').forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          this.viewportManager.setWireframe(false);
+        });
+
+        document.getElementById('viewWireframeBtn').addEventListener('click', (e) => {
+          document.querySelectorAll('.viewport-btn').forEach(b => b.classList.remove('active'));
+          e.target.classList.add('active');
+          this.viewportManager.setWireframe(true);
+        });
+
+        document.getElementById('viewResetBtn').addEventListener('click', () => {
+          this.viewportManager.resetCamera();
+        });
+
+        // Add dialogue
+        document.getElementById('addDialogueBtn').addEventListener('click', () => {
+          const dialogue = this.dialogueManager.createDialogue({
+            speaker: 'New Speaker',
+            text: 'Enter dialogue text here...',
+            display: 'subtitle',
+            timestamp: 0
+          });
+          this._renderDialogueCards();
+          this._selectDialogue(dialogue.id);
+        });
+
+        // Cast to display
+        document.getElementById('castToDisplayBtn').addEventListener('click', () => {
+          const selected = document.querySelector('.dialogue-card.selected');
+          if (!selected) {
+            alert('Please select a dialogue first');
+            return;
+          }
+          
+          const display = document.getElementById('displaySelect').value;
+          const id = parseInt(selected.dataset.id);
+          this.dialogueManager.updateDialogue(id, { display });
+          this._renderDialogueCards();
+        });
+
+        // Export
+        document.getElementById('exportBtn').addEventListener('click', () => {
+          const data = {
+            scene: this.state.currentScene,
+            dialogues: this.dialogueManager.exportDialogues(),
+            timestamp: Date.now()
+          };
+          
+          const json = JSON.stringify(data, null, 2);
+          const blob = new Blob([json], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `sequence_${this.state.currentScene}_${Date.now()}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          
+          navigator.clipboard.writeText(json);
+          alert('✅ Exported and copied to clipboard!');
+        });
+
+        // Copy code
+        document.getElementById('copyCodeBtn').addEventListener('click', () => {
+          const code = this.ui.codePreview.innerText;
+          navigator.clipboard.writeText(code);
+          alert('✅ Copied to clipboard!');
+        });
+
+        // Close
+        document.getElementById('closeBtn').addEventListener('click', () => {
+          if (this.isOverlayMode) {
+            this.close();
+          } else {
+            if (confirm('Close Sequence Builder?')) {
+              window.close();
+            }
+          }
+        });
+      }
+
+      open() {
+        if (this.isOverlayMode) {
+          this.ui.overlay.classList.add('active');
+        }
+      }
+
+      close() {
+        if (this.isOverlayMode) {
+          this.ui.overlay.classList.remove('active');
+        }
+      }
+
+      toggle() {
+        if (this.ui.overlay.classList.contains('active')) {
+          this.close();
+        } else {
+          this.open();
+        }
+      }
+    }
+
+    // Detect mode and initialize
+    const isStandalone = !window.opener || window.location.search.includes('standalone');
+    const app = new UnifiedSequenceBuilder();
+    app.init(!isStandalone);
+    
+    window.builderApp = app;
+    window.openSequenceBuilder = () => app.open();
+    window.closeSequenceBuilder = () => app.close();
+    window.toggleSequenceBuilder = () => app.toggle();
+    
+    console.log('✅ Unified Sequence Builder Ready');
+    console.log(`Mode: ${isStandalone ? 'Standalone' : 'Overlay'}`);
+  </script>
+</body>
+</html>
+
