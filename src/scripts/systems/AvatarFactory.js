@@ -11,6 +11,8 @@
  * - Proper materials and outlines
  */
 
+const ARRAYA_BASE_SCALE = 0.28;
+
 export const AvatarFactory = {
   /**
    * Create Celli avatar

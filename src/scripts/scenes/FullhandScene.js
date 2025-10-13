@@ -1,16 +1,17 @@
 /**
- * Fullhand Scene - Ported from merged2.html
+ * Fullhand Scene - Complete Execution Environment
  * 
- * Features:
- * - Voxel hand with articulated fingers
- * - Keyboard with keys
- * - Character voxel person
- * - Glowing head/halo effect
- * - Interactive animations
- * - Typing simulation
+ * Full fidelity implementation with all details:
+ * - Bust (upper body character model)
+ * - Boss Celli (large voxel head with glowing features)
+ * - Deforming Finger Tube (tracks keyboard)
+ * - Detailed Keyboard (full QWERTY with labels)
+ * - Advanced Lighting (per-key, spotlights)
+ * - Dust Particles (floating, illuminated)
  */
 
 import * as THREE from 'three';
+import { ExecutionEnvironment } from './components/ExecutionEnvironment.js';
 
 export class FullhandScene {
   constructor() {
@@ -21,24 +22,19 @@ export class FullhandScene {
       camera: null,
       renderer: null,
       
-      // Objects
-      hand: null,
-      keyboard: null,
-      character: null,
-      halo: null,
+      // Execution environment (complete system)
+      execEnv: null,
       
-      // Voxels
-      handVoxels: [],
-      keyboardKeys: [],
-      characterVoxels: [],
+      // Mouse tracking
+      mouse: { x: 0.5, y: 0.5 },
       
       // Animation
-      fingerPositions: [],
       typing: false,
       typingInterval: null,
       
       // State
       running: false,
+      totalTime: 0,
       
       // Callbacks
       onComplete: null
@@ -49,7 +45,7 @@ export class FullhandScene {
    * Initialize scene
    */
   async init() {
-    console.log('✋ Initializing Fullhand Scene...');
+    console.log('[FullhandScene] 🎬 Initializing Complete Execution Environment...');
     
     const app = document.getElementById('app');
     if (!app) return;
@@ -57,15 +53,19 @@ export class FullhandScene {
     // Create renderer
     this.state.renderer = new THREE.WebGLRenderer({ 
       antialias: true,
-      alpha: true
+      alpha: true,
+      powerPreference: 'high-performance'
     });
     this.state.renderer.setSize(window.innerWidth, window.innerHeight);
     this.state.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.state.renderer.shadowMap.enabled = true;
+    this.state.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     app.appendChild(this.state.renderer.domElement);
     
     // Create scene
     this.state.scene = new THREE.Scene();
     this.state.scene.background = new THREE.Color(0x0a0a0a);
+    this.state.scene.fog = new THREE.Fog(0x0a0a0a, 5, 15);
     
     // Create camera
     this.state.camera = new THREE.PerspectiveCamera(
@@ -74,197 +74,42 @@ export class FullhandScene {
       0.1,
       1000
     );
-    this.state.camera.position.set(0, 5, 10);
-    this.state.camera.lookAt(0, 0, 0);
+    this.state.camera.position.set(0, 3, 8);
+    this.state.camera.lookAt(0, 1, 0);
     
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    // Base ambient lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
     this.state.scene.add(ambientLight);
     
-    const pointLight = new THREE.PointLight(0x00ff88, 1, 50);
-    pointLight.position.set(5, 5, 5);
-    this.state.scene.add(pointLight);
+    // Create complete execution environment
+    this.state.execEnv = new ExecutionEnvironment(this.state.scene, this.state.camera);
+    await this.state.execEnv.init();
+    this.state.execEnv.show();
     
-    // Create objects
-    this._createHand();
-    this._createKeyboard();
-    this._createCharacter();
-    this._createHalo();
+    // Setup mouse tracking
+    this._setupMouseTracking();
     
     // Handle resize
     window.addEventListener('resize', () => this._handleResize());
     
-    console.log('✅ Fullhand Scene initialized');
+    console.log('[FullhandScene] ✅ Complete Execution Environment initialized');
   }
 
   /**
-   * Create voxel hand
+   * Setup mouse tracking for finger
    */
-  _createHand() {
-    this.state.hand = new THREE.Group();
-    
-    const voxelSize = 0.2;
-    const voxelGeo = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
-    const voxelMat = new THREE.MeshPhongMaterial({ 
-      color: 0xffffff,
-      emissive: 0x222222
+  _setupMouseTracking() {
+    window.addEventListener('mousemove', (e) => {
+      this.state.mouse.x = e.clientX / window.innerWidth;
+      this.state.mouse.y = e.clientY / window.innerHeight;
     });
     
-    // Hand data (simplified): palm + 5 fingers
-    const handStructure = {
-      palm: [
-        [0, 0, 0], [0, 0, 1], [0, 0, 2],
-        [1, 0, 0], [1, 0, 1], [1, 0, 2],
-        [2, 0, 0], [2, 0, 1], [2, 0, 2]
-      ],
-      fingers: [
-        // Thumb
-        { base: [0, 1, 1], segments: [[0, 2, 1], [0, 3, 1]] },
-        // Index
-        { base: [0, 1, 0], segments: [[0, 2, 0], [0, 3, 0], [0, 4, 0]] },
-        // Middle
-        { base: [1, 1, 0], segments: [[1, 2, 0], [1, 3, 0], [1, 4, 0], [1, 5, 0]] },
-        // Ring
-        { base: [2, 1, 0], segments: [[2, 2, 0], [2, 3, 0], [2, 4, 0]] },
-        // Pinky
-        { base: [2, 1, 1], segments: [[2, 2, 1], [2, 3, 1]] }
-      ]
-    };
-    
-    // Create palm voxels
-    handStructure.palm.forEach(([x, y, z]) => {
-      const voxel = new THREE.Mesh(voxelGeo, voxelMat.clone());
-      voxel.position.set(x * voxelSize, y * voxelSize, z * voxelSize);
-      this.state.hand.add(voxel);
-      this.state.handVoxels.push(voxel);
-    });
-    
-    // Create finger voxels
-    handStructure.fingers.forEach((finger) => {
-      // Base
-      const [x, y, z] = finger.base;
-      const baseVoxel = new THREE.Mesh(voxelGeo, voxelMat.clone());
-      baseVoxel.position.set(x * voxelSize, y * voxelSize, z * voxelSize);
-      this.state.hand.add(baseVoxel);
-      this.state.handVoxels.push(baseVoxel);
-      
-      // Segments
-      finger.segments.forEach(([sx, sy, sz]) => {
-        const segmentVoxel = new THREE.Mesh(voxelGeo, voxelMat.clone());
-        segmentVoxel.position.set(sx * voxelSize, sy * voxelSize, sz * voxelSize);
-        this.state.hand.add(segmentVoxel);
-        this.state.handVoxels.push(segmentVoxel);
-      });
-    });
-    
-    this.state.hand.position.set(-3, 1, 0);
-    this.state.scene.add(this.state.hand);
-    
-    console.log(`✋ Created hand with ${this.state.handVoxels.length} voxels`);
-  }
-
-  /**
-   * Create keyboard
-   */
-  _createKeyboard() {
-    this.state.keyboard = new THREE.Group();
-    
-    const keySize = 0.15;
-    const keyGeo = new THREE.BoxGeometry(keySize, 0.05, keySize);
-    const keyMat = new THREE.MeshPhongMaterial({ 
-      color: 0x333333,
-      emissive: 0x111111
-    });
-    
-    // Simplified keyboard layout (4 rows)
-    const rows = 4;
-    const keysPerRow = 10;
-    
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < keysPerRow; col++) {
-        const key = new THREE.Mesh(keyGeo, keyMat.clone());
-        key.position.set(
-          (col - keysPerRow / 2) * (keySize + 0.02),
-          0,
-          (row - rows / 2) * (keySize + 0.02)
-        );
-        this.state.keyboard.add(key);
-        this.state.keyboardKeys.push(key);
+    // Track keyboard presses
+    window.addEventListener('keydown', (e) => {
+      if (this.state.execEnv) {
+        this.state.execEnv.pressKey(e.key.toUpperCase());
       }
-    }
-    
-    this.state.keyboard.position.set(0, 0, 0);
-    this.state.scene.add(this.state.keyboard);
-    
-    console.log(`⌨️ Created keyboard with ${this.state.keyboardKeys.length} keys`);
-  }
-
-  /**
-   * Create character (voxel person)
-   */
-  _createCharacter() {
-    this.state.character = new THREE.Group();
-    
-    const voxelSize = 0.2;
-    const voxelGeo = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
-    const voxelMat = new THREE.MeshPhongMaterial({ 
-      color: 0xffffff,
-      emissive: 0x222222
     });
-    
-    // Character structure: head, body, arms, legs
-    const characterStructure = {
-      head: [
-        [0, 5, 0], [1, 5, 0],
-        [0, 6, 0], [1, 6, 0]
-      ],
-      body: [
-        [0, 3, 0], [1, 3, 0],
-        [0, 4, 0], [1, 4, 0]
-      ],
-      arms: [
-        [-1, 4, 0], [2, 4, 0],
-        [-1, 3, 0], [2, 3, 0]
-      ],
-      legs: [
-        [0, 2, 0], [1, 2, 0],
-        [0, 1, 0], [1, 1, 0],
-        [0, 0, 0], [1, 0, 0]
-      ]
-    };
-    
-    // Create all body parts
-    Object.values(characterStructure).flat().forEach(([x, y, z]) => {
-      const voxel = new THREE.Mesh(voxelGeo, voxelMat.clone());
-      voxel.position.set(x * voxelSize, y * voxelSize, z * voxelSize);
-      this.state.character.add(voxel);
-      this.state.characterVoxels.push(voxel);
-    });
-    
-    this.state.character.position.set(3, 0, 0);
-    this.state.scene.add(this.state.character);
-    
-    console.log(`🧍 Created character with ${this.state.characterVoxels.length} voxels`);
-  }
-
-  /**
-   * Create glowing halo
-   */
-  _createHalo() {
-    const haloGeo = new THREE.TorusGeometry(0.5, 0.05, 16, 32);
-    const haloMat = new THREE.MeshBasicMaterial({ 
-      color: 0xffff00,
-      transparent: true,
-      opacity: 0.8
-    });
-    
-    this.state.halo = new THREE.Mesh(haloGeo, haloMat);
-    this.state.halo.position.set(3.1, 1.6, 0);
-    this.state.halo.rotation.x = Math.PI / 2;
-    
-    this.state.scene.add(this.state.halo);
-    
-    console.log('😇 Created halo');
   }
 
   /**
@@ -275,30 +120,23 @@ export class FullhandScene {
     
     this.state.typing = true;
     
-    // Animate random keys being pressed
+    // Simulate random key presses
     this.state.typingInterval = setInterval(() => {
       if (!this.state.running) {
         this._stopTyping();
         return;
       }
       
-      const randomKey = this.state.keyboardKeys[
-        Math.floor(Math.random() * this.state.keyboardKeys.length)
-      ];
+      // Press random key
+      const keys = ['A', 'S', 'D', 'F', 'J', 'K', 'L'];
+      const randomKey = keys[Math.floor(Math.random() * keys.length)];
       
-      // Press animation
-      randomKey.position.y = -0.02;
-      setTimeout(() => {
-        randomKey.position.y = 0;
-      }, 100);
-      
-      // Move finger (simulate typing)
-      if (this.state.hand) {
-        this.state.hand.rotation.z = (Math.random() - 0.5) * 0.1;
+      if (this.state.execEnv) {
+        this.state.execEnv.pressKey(randomKey);
       }
-    }, 200);
+    }, 300 + Math.random() * 200);
     
-    console.log('⌨️ Started typing animation');
+    console.log('[FullhandScene] ⌨️ Started typing animation');
   }
 
   /**
@@ -316,7 +154,7 @@ export class FullhandScene {
    * Start scene
    */
   async start() {
-    console.log('▶️ Starting Fullhand Scene');
+    console.log('[FullhandScene] ▶️ Starting Complete Execution Environment');
     this.state.running = true;
     
     // Start typing animation
@@ -329,22 +167,21 @@ export class FullhandScene {
   update(deltaTime, totalTime) {
     if (!this.state.running) return;
     
-    // Animate halo rotation
-    if (this.state.halo) {
-      this.state.halo.rotation.z += 0.01;
+    this.state.totalTime = totalTime;
+    
+    // Update execution environment (finger tracking, dust, animations)
+    if (this.state.execEnv) {
+      this.state.execEnv.update(deltaTime || 0.016, this.state.mouse);
     }
     
-    // Gentle camera movement
+    // Gentle camera orbit
     if (this.state.camera) {
-      this.state.camera.position.x = Math.sin(totalTime * 0.0005) * 2;
-      this.state.camera.lookAt(0, 2, 0);
+      const radius = 8;
+      const speed = 0.0003;
+      this.state.camera.position.x = Math.sin(totalTime * speed) * radius * 0.3;
+      this.state.camera.position.y = 3 + Math.sin(totalTime * speed * 0.5) * 0.5;
+      this.state.camera.lookAt(0, 1.5, 0);
     }
-    
-    // Pulse hand voxels
-    this.state.handVoxels.forEach((voxel, i) => {
-      const scale = 1 + Math.sin(totalTime * 0.003 + i * 0.2) * 0.05;
-      voxel.scale.set(scale, scale, scale);
-    });
     
     // Render
     if (this.state.renderer && this.state.scene && this.state.camera) {
@@ -377,27 +214,13 @@ export class FullhandScene {
    * Destroy scene
    */
   destroy() {
+    console.log('[FullhandScene] 🗑️ Destroying...');
+    
     this.stop();
     
-    // Dispose geometries and materials
-    this.state.handVoxels.forEach(voxel => {
-      voxel.geometry.dispose();
-      voxel.material.dispose();
-    });
-    
-    this.state.keyboardKeys.forEach(key => {
-      key.geometry.dispose();
-      key.material.dispose();
-    });
-    
-    this.state.characterVoxels.forEach(voxel => {
-      voxel.geometry.dispose();
-      voxel.material.dispose();
-    });
-    
-    if (this.state.halo) {
-      this.state.halo.geometry.dispose();
-      this.state.halo.material.dispose();
+    // Destroy execution environment
+    if (this.state.execEnv) {
+      this.state.execEnv.destroy();
     }
     
     // Dispose renderer
@@ -408,7 +231,7 @@ export class FullhandScene {
       }
     }
     
-    console.log('🗑️ Fullhand Scene destroyed');
+    console.log('[FullhandScene] ✅ Destroyed');
   }
 }
 

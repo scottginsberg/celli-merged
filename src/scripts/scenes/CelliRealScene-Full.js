@@ -23,6 +23,8 @@
 import * as THREE from 'three';
 import { UIManager } from '../ui/UIManager.js';
 import { AvatarFactory } from '../systems/AvatarFactory.js';
+import { MainframeSpawn } from './components/MainframeSpawn.js';
+import { TerminalSequence } from './components/TerminalSequence.js';
 
 export class CelliRealScene {
   constructor() {
@@ -39,6 +41,10 @@ export class CelliRealScene {
       // UI Manager (orchestrates all UI components)
       uiManager: null,
       
+      // Mainframe and terminal
+      mainframeSpawn: null,
+      terminalSequence: null,
+      
       // Spreadsheet state
       arrays: new Map(),
       focusedCell: { x: 0, y: 0, z: 0, arrId: 0 },
@@ -49,7 +55,7 @@ export class CelliRealScene {
       physics: false,
       
       // Intro sequence
-      introPhase: 'celli-os', // 'celli-os' | '2d-to-3d' | '3d-world'
+      introPhase: 'celli-os', // 'celli-os' | 'terminal' | '2d-to-3d' | '3d-world'
       transitionProgress: 0
     };
     
@@ -242,6 +248,19 @@ export class CelliRealScene {
    * Initialize 3D systems
    */
   async _init3DSystems() {
+    console.log('[CelliRealScene-Full] Initializing 3D systems...');
+    
+    // Create mainframe and Celli's home (behind gradient)
+    this.state.mainframeSpawn = new MainframeSpawn(this.state.scene);
+    await this.state.mainframeSpawn.init();
+    
+    // Create terminal sequence system
+    this.state.terminalSequence = new TerminalSequence();
+    const terminalEl = document.getElementById('term');
+    if (terminalEl) {
+      await this.state.terminalSequence.init(terminalEl);
+    }
+    
     // Create example voxel array
     this._createExampleArray();
     
@@ -412,25 +431,49 @@ export class CelliRealScene {
   async _playIntroSequence() {
     console.log('[CelliRealScene-Full] 🎬 Playing intro sequence...');
     
-    // Phase 1: Celli.OS - show centered sheet
-    this.state.introPhase = 'celli-os';
-    if (this.state.sheet) {
-      this.state.sheet.classList.add('intro-centered');
-      this.state.sheet.style.display = 'flex';
+    // Phase 0: Spawn mainframe and home (behind gradient)
+    console.log('[CelliRealScene-Full] Phase 0: Spawning mainframe...');
+    if (this.state.mainframeSpawn) {
+      await this.state.mainframeSpawn.playSpawnAnimation();
     }
     
-    // Wait a moment
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Phase 1: Celli.OS - show centered sheet
+    console.log('[CelliRealScene-Full] Phase 1: Celli.OS screen...');
+    this.state.introPhase = 'celli-os';
+    const sheet = document.getElementById('sheet');
+    if (sheet) {
+      sheet.classList.add('intro-centered');
+      sheet.style.display = 'flex';
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Phase 1.5: Terminal sequence with pacing, glitch, catharsis
+    console.log('[CelliRealScene-Full] Phase 1.5: Terminal sequence...');
+    this.state.introPhase = 'terminal';
+    
+    // Open terminal window
+    const terminal = document.getElementById('terminal');
+    if (terminal && this.state.terminalSequence) {
+      terminal.style.display = 'flex';
+      await this.state.terminalSequence.play();
+      
+      // Close terminal after sequence
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      terminal.style.display = 'none';
+    }
     
     // Phase 2: Transition to 3D
+    console.log('[CelliRealScene-Full] Phase 2: Transition 2D → 3D...');
     this.state.introPhase = '2d-to-3d';
     await this._transition2Dto3D();
     
     // Phase 3: Full interaction
+    console.log('[CelliRealScene-Full] Phase 3: Full interaction enabled...');
     this.state.introPhase = '3d-world';
     this._enableFullInteraction();
     
-    console.log('[CelliRealScene-Full] ✅ Intro sequence complete');
+    console.log('[CelliRealScene-Full] ✅ Complete intro sequence finished');
   }
 
   /**
@@ -476,6 +519,11 @@ export class CelliRealScene {
     
     this.state.totalTime = totalTime;
     
+    // Update mainframe
+    if (this.state.mainframeSpawn) {
+      this.state.mainframeSpawn.update(deltaTime);
+    }
+    
     // Render
     if (this.state.renderer && this.state.scene && this.state.camera) {
       this.state.renderer.render(this.state.scene, this.state.camera);
@@ -499,6 +547,10 @@ export class CelliRealScene {
     
     // Destroy UI Manager (handles all UI components)
     this.state.uiManager?.destroy();
+    
+    // Destroy mainframe and terminal
+    this.state.mainframeSpawn?.destroy();
+    this.state.terminalSequence?.destroy();
     
     // Remove injected HTML
     const uiContainer = document.getElementById('uiContainer');
