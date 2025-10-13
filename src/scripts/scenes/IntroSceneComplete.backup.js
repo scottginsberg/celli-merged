@@ -36,16 +36,12 @@ export class IntroSceneComplete {
       camera: null,
       renderer: null,
       composer: null,
-      bloomPass: null, // Bloom post-processing
-      afterimagePass: null, // Afterimage post-processing
       blackHole: null,
       spheres: [],
       voxels: [],
       letterVoxels: { C: [], E: [], L1: [], L2: [], I: [] },
       filmPass: null,
       triMesh: null, // Color triangle between spheres
-      circleGeoTarget: null, // Target circle geometry for morphing
-      morphedToCircles: false, // Track if shapes morphed
       textParticles: [], // Click particle system
       starParticles: [], // Burst particles
       derezParticles: [], // Derez particles
@@ -85,15 +81,6 @@ export class IntroSceneComplete {
       loomworksShown: false,
       loomworksRevealStarted: false,
       quoteShown: false,
-      glitchStarted: false,
-      mediumGlitchStarted: false,
-      intenseGlitchStarted: false,
-      screenGlitchStarted: false,
-      quoteDespairShown: false,
-      blackoutStarted: false,
-      chimePlayed: false,
-      skipShown: false,
-      musicStarted: false,
       inputAttempted: false,
       inputText: '=STAR',
       tEntered: false,
@@ -167,10 +154,7 @@ export class IntroSceneComplete {
     const { voxels, letterVoxels } = this._createVoxels(scene);
     
     // Post-processing
-    const { composer, bloomPass, afterimagePass, filmPass } = this._createPostProcessing(renderer, scene, camera);
-    
-    // Store circle geometry for morphing
-    const circleGeoTarget = new THREE.CircleGeometry(0.16, 64);
+    const { composer, filmPass } = this._createPostProcessing(renderer, scene, camera);
     
     // Initialize audio
     this._initAudio();
@@ -180,15 +164,12 @@ export class IntroSceneComplete {
     this.state.camera = camera;
     this.state.renderer = renderer;
     this.state.composer = composer;
-    this.state.bloomPass = bloomPass;
-    this.state.afterimagePass = afterimagePass;
     this.state.blackHole = blackHole;
     this.state.spheres = spheres;
     this.state.voxels = voxels;
     this.state.letterVoxels = letterVoxels;
     this.state.filmPass = filmPass;
     this.state.triMesh = triMesh;
-    this.state.circleGeoTarget = circleGeoTarget;
 
     // Setup event listeners
     this._setupEventListeners();
@@ -454,21 +435,19 @@ export class IntroSceneComplete {
 
     const bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.4, // Start at 0.4 for roll phase
-      0.9, 
-      0.2
+      0.7, 0.9, 0.2
     );
     composer.addPass(bloomPass);
 
-    const afterimagePass = new AfterimagePass(0.75); // Start at 0.75 for roll
+    const afterimagePass = new AfterimagePass(0.96);
     composer.addPass(afterimagePass);
 
     const filmPass = new ShaderPass({
       uniforms: { 
         tDiffuse: { value: null }, 
         time: { value: 0 }, 
-        noise: { value: 0.005 }, // Start minimal
-        scanAmp: { value: 0.003 } // Start minimal
+        noise: { value: 0.03 }, 
+        scanAmp: { value: 0.03 } 
       },
       vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
       fragmentShader: `
@@ -491,7 +470,7 @@ export class IntroSceneComplete {
     });
     composer.addPass(filmPass);
 
-    return { composer, bloomPass, afterimagePass, filmPass };
+    return { composer, filmPass };
   }
 
   /**
@@ -659,36 +638,12 @@ export class IntroSceneComplete {
     const playEl = document.getElementById('play');
     if (playEl) playEl.classList.add('hidden');
     
-    // Ensure quote starts hidden (will appear during collapse phase)
+    // Show quote
     const quoteEl = document.getElementById('quote');
     if (quoteEl) {
-      quoteEl.classList.add('visible'); // Add visible class for CSS
-      quoteEl.style.visibility = 'hidden'; // But hide initially
-      quoteEl.style.opacity = '0';
-      quoteEl.classList.remove('glitch', 'glitchMedium', 'glitchIntense', 'scrambling', 'quote--loom');
-      
-      // Reset to initial text
-      const quoteBefore = document.getElementById('quoteBefore');
-      if (quoteBefore) {
-        quoteBefore.textContent = '...if you gaze for long into an abyss, the abyss gazes also into you.';
-      }
+      quoteEl.classList.add('visible');
+      this.state.quoteShown = true;
     }
-    
-    // Hide loomworks initially
-    const loomEl = document.getElementById('loomworks');
-    if (loomEl) {
-      loomEl.style.display = 'block';
-      loomEl.classList.remove('visible');
-      loomEl.style.opacity = '1';
-    }
-    
-    // Ensure doorway starts hidden
-    const doorwayEl = document.getElementById('doorway');
-    if (doorwayEl) {
-      doorwayEl.classList.remove('visible', 'open');
-    }
-    
-    console.log('✅ UI elements initialized for intro sequence');
     
     // Start animation
     this.state.running = true;
@@ -710,19 +665,13 @@ export class IntroSceneComplete {
     const t = this.state.totalTime;
     const cfg = this.state.introCfg;
 
-    // Determine current phase
-    const phase = this._getCurrentPhase(t, cfg);
-
-    // Update post-processing effects based on phase
-    this._updateEffectsForPhase(t, phase, cfg);
-
     // Update black hole
     if (this.state.blackHole) {
       this.state.blackHole.material.uniforms.time.value = t;
     }
 
-    // Update spheres based on phase
-    this._updateSpheresPhase(t, cfg, phase);
+    // Determine current phase and update spheres
+    this._updateSpheresPhase(t, cfg);
 
     // Update color triangle (only when visible)
     if (this.state.triMesh && this.state.triMesh.visible) {
@@ -742,28 +691,19 @@ export class IntroSceneComplete {
       );
     }
 
-    // Update CELLI voxels (starts at loomworksEnd)
-    if (t >= cfg.loomworksEnd) {
-      const celliTime = t - cfg.loomworksEnd;
-      this._updateVoxels(celliTime);
+    // Update CELLI voxels
+    if (t >= cfg.loomworksEnd && !this.state.celliStarted) {
+      this.state.celliStarted = true;
+      this.state.celliStartTime = t;
     }
 
-    // Update doorway (wait for voxels to settle)
-    const celliAge = t - cfg.loomworksEnd;
-    const allVoxelsSettled = celliAge > 5.0;
-    
-    if (phase === 'doorway' && !this.state.doorwayShown && allVoxelsSettled) {
-      const doorwayProgress = (t - cfg.celliEnd) / (cfg.doorwayEnd - cfg.celliEnd);
-      if (doorwayProgress > 0.05) {
-      this._showDoorway();
-      }
+    if (this.state.celliStarted) {
+      this._updateVoxels(t - this.state.celliStartTime);
     }
-    
-    if (this.state.doorwayShown && !this.state.doorwayOpened) {
-      const doorwayProgress = (t - cfg.celliEnd) / (cfg.doorwayEnd - cfg.celliEnd);
-      if (doorwayProgress > 0.15) {
-        this._openDoorway();
-      }
+
+    // Update doorway
+    if (t >= cfg.celliEnd && !this.state.doorwayShown) {
+      this._showDoorway();
     }
 
     // Update text particles
@@ -794,352 +734,9 @@ export class IntroSceneComplete {
   }
 
   /**
-   * Determine current animation phase
-   */
-  _getCurrentPhase(t, cfg) {
-    if (t < cfg.rollEnd) return 'roll';
-    if (t < cfg.bounceEnd) return 'bounce';
-    if (t < cfg.triangleEnd) return 'triangle';
-    if (t < cfg.transitionEnd) return 'transition';
-    if (t < cfg.normalEnd) return 'normal';
-    if (t < cfg.vennEnd) return 'venn';
-    if (t < cfg.collapseEnd) return 'collapse';
-    if (t < cfg.glitchEnd) return 'glitch';
-    if (t < cfg.blackoutEnd) return 'blackout';
-    if (t < cfg.loomworksEnd) return 'loomworks';
-    if (t < cfg.celliEnd) return 'celli';
-    return 'doorway';
-  }
-
-  /**
-   * Update post-processing effects based on phase
-   */
-  _updateEffectsForPhase(t, phase, cfg) {
-    const bloom = this.state.bloomPass;
-    const afterimage = this.state.afterimagePass;
-    const film = this.state.filmPass;
-    const tri = this.state.triMesh;
-
-    if (phase === 'roll') {
-      bloom.strength = 0.4;
-      afterimage.uniforms.damp.value = 0.75;
-      film.uniforms.noise.value = 0.005;
-      film.uniforms.scanAmp.value = 0.003;
-      if (tri) tri.visible = false;
-      
-    } else if (phase === 'bounce') {
-      bloom.strength = 0.25; // Reduced glow
-      afterimage.uniforms.damp.value = 0.75;
-      film.uniforms.noise.value = 0.005;
-      film.uniforms.scanAmp.value = 0.003;
-      if (tri) tri.visible = false;
-      
-    } else if (phase === 'triangle') {
-      const triangleProgress = (t - cfg.bounceEnd) / (cfg.triangleEnd - cfg.bounceEnd);
-      bloom.strength = THREE.MathUtils.lerp(0.25, 0.7, triangleProgress);
-      afterimage.uniforms.damp.value = THREE.MathUtils.lerp(0.75, 0.92, triangleProgress);
-      film.uniforms.noise.value = THREE.MathUtils.lerp(0.005, 0.015, triangleProgress);
-      film.uniforms.scanAmp.value = THREE.MathUtils.lerp(0.003, 0.015, triangleProgress);
-      if (tri) tri.visible = false; // Hidden during triangle phase
-      
-    } else if (phase === 'transition') {
-      const transProgress = (t - cfg.triangleEnd) / (cfg.transitionEnd - cfg.triangleEnd);
-      bloom.strength = 0.7;
-      afterimage.uniforms.damp.value = THREE.MathUtils.lerp(0.92, 0.96, transProgress);
-      film.uniforms.noise.value = THREE.MathUtils.lerp(0.015, 0.03, transProgress);
-      film.uniforms.scanAmp.value = THREE.MathUtils.lerp(0.015, 0.03, transProgress);
-      if (tri) {
-        tri.visible = false;
-        tri.material.opacity = 0;
-      }
-      
-    } else if (phase === 'normal') {
-      const normalT = t - cfg.transitionEnd;
-      const convergeDuration = 2.2;
-      const pulseDuration = 3.0;
-      const totalAnimDuration = convergeDuration + pulseDuration;
-      
-      if (normalT < convergeDuration) {
-        // Converge phase
-        const convergeProgress = THREE.MathUtils.clamp(normalT / convergeDuration, 0, 1);
-        const convergeEased = convergeProgress * convergeProgress * (3 - 2 * convergeProgress);
-        bloom.strength = THREE.MathUtils.lerp(0.7, 0.9, convergeEased);
-        if (tri) tri.visible = false;
-        
-      } else if (normalT < totalAnimDuration) {
-        // Pulse phase - triangle appears during expansion
-        const pulseT = normalT - convergeDuration;
-        const pulseProgress = pulseT / pulseDuration;
-        const pulseCycle = Math.sin(pulseProgress * Math.PI);
-        
-        bloom.strength = THREE.MathUtils.lerp(0.9, 0.72, pulseCycle);
-        if (tri) {
-          tri.visible = pulseCycle > 0.3; // Show during expansion
-          tri.material.opacity = THREE.MathUtils.clamp(pulseCycle * 1.5, 0, 0.7);
-        }
-        
-      } else {
-        // Hold phase
-        const holdT = normalT - totalAnimDuration;
-        const holdDuration = (cfg.normalEnd - cfg.transitionEnd) - totalAnimDuration;
-        const holdProgress = holdT / holdDuration;
-        bloom.strength = THREE.MathUtils.lerp(0.9, 0.85, holdProgress);
-        if (tri) tri.visible = false;
-      }
-      
-      afterimage.uniforms.damp.value = 0.96;
-      film.uniforms.noise.value = 0.03;
-      film.uniforms.scanAmp.value = 0.03;
-      
-    } else if (phase === 'venn') {
-      const vennProgress = (t - cfg.normalEnd) / (cfg.vennEnd - cfg.normalEnd);
-      bloom.strength = THREE.MathUtils.lerp(0.7, 0.8, vennProgress);
-      afterimage.uniforms.damp.value = THREE.MathUtils.lerp(0.96, 0.7, vennProgress);
-      film.uniforms.noise.value = THREE.MathUtils.lerp(0.03, 0.02, vennProgress);
-      film.uniforms.scanAmp.value = THREE.MathUtils.lerp(0.03, 0.02, vennProgress);
-      if (tri) {
-        tri.visible = true;
-        tri.material.opacity = THREE.MathUtils.lerp(0.7, 0.85, vennProgress);
-      }
-      
-    } else if (phase === 'collapse') {
-      const collapseProgress = (t - cfg.vennEnd) / (cfg.collapseEnd - cfg.vennEnd);
-      bloom.strength = THREE.MathUtils.lerp(0.8, 1.2, collapseProgress);
-      afterimage.uniforms.damp.value = THREE.MathUtils.lerp(0.7, 0.6, collapseProgress);
-      film.uniforms.noise.value = THREE.MathUtils.lerp(0.02, 0.015, collapseProgress);
-      film.uniforms.scanAmp.value = THREE.MathUtils.lerp(0.02, 0.015, collapseProgress);
-      if (tri) {
-        tri.visible = true;
-        tri.material.opacity = THREE.MathUtils.lerp(0.85, 0.3, collapseProgress);
-      }
-      
-      // Quote glitch progression
-      this._updateQuoteGlitch(collapseProgress, 'collapse');
-      
-    } else if (phase === 'glitch') {
-      const glitchProgress = (t - cfg.collapseEnd) / (cfg.glitchEnd - cfg.collapseEnd);
-      bloom.strength = THREE.MathUtils.lerp(1.2, 0.5, glitchProgress);
-      afterimage.uniforms.damp.value = 0.3;
-      film.uniforms.noise.value = THREE.MathUtils.lerp(0.015, 0.5, glitchProgress);
-      film.uniforms.scanAmp.value = THREE.MathUtils.lerp(0.015, 0.3, glitchProgress);
-      if (tri) {
-        tri.visible = true;
-        tri.material.opacity = THREE.MathUtils.lerp(0.3, 0, glitchProgress);
-      }
-      
-      // Quote glitch progression
-      this._updateQuoteGlitch(glitchProgress, 'glitch');
-      
-    } else if (phase === 'blackout') {
-      const blackoutProgress = (t - cfg.glitchEnd) / (cfg.blackoutEnd - cfg.glitchEnd);
-      bloom.strength = THREE.MathUtils.lerp(0.5, 0, blackoutProgress);
-      afterimage.uniforms.damp.value = 0.1;
-      film.uniforms.noise.value = 0;
-      film.uniforms.scanAmp.value = 0;
-      if (tri) tri.visible = false;
-      
-      if (!this.state.blackoutStarted) {
-        const quoteEl = document.getElementById('quote');
-        if (quoteEl) {
-          quoteEl.classList.remove('glitch', 'glitchMedium', 'glitchIntense', 'scrambling');
-          quoteEl.style.visibility = 'hidden';
-          quoteEl.style.opacity = '0';
-          quoteEl.classList.remove('quote--loom');
-        }
-        const screenGlitch = document.getElementById('screenGlitch');
-        if (screenGlitch) screenGlitch.classList.remove('active');
-        this.state.blackoutStarted = true;
-      }
-      
-    } else if (phase === 'loomworks') {
-      bloom.strength = 0;
-      afterimage.uniforms.damp.value = 0;
-      film.uniforms.noise.value = 0;
-      film.uniforms.scanAmp.value = 0;
-      if (tri) tri.visible = false;
-      
-      if (!this.state.loomworksShown) {
-        this._startLoomworksReveal();
-        this.state.loomworksShown = true;
-      }
-      
-      if (!this.state.chimePlayed) {
-        this._playStartupChime();
-        this.state.chimePlayed = true;
-      }
-      
-      // Fade out loomworks near end
-      const loomProgress = (t - cfg.blackoutEnd) / (cfg.loomworksEnd - cfg.blackoutEnd);
-      if (loomProgress > 0.85) {
-        const loomEl = document.getElementById('loomworks');
-        if (loomEl) {
-          loomEl.style.opacity = THREE.MathUtils.lerp(1, 0, (loomProgress - 0.85) / 0.15);
-        }
-      }
-      
-    } else if (phase === 'celli') {
-      bloom.strength = 0.35;
-      afterimage.uniforms.damp.value = 0.85;
-      film.uniforms.noise.value = 0.008;
-      film.uniforms.scanAmp.value = 0.003;
-      if (tri) tri.visible = false;
-      
-      if (!this.state.celliStarted) {
-        const loomEl = document.getElementById('loomworks');
-        if (loomEl) loomEl.style.display = 'none';
-        this.state.celliStarted = true;
-        this.state.celliStartTime = t;
-      }
-      
-      // Show skip button when CELLI starts
-      if (!this.state.skipShown) {
-        const skipBtn = document.getElementById('skipBtn');
-        if (skipBtn) skipBtn.classList.remove('hidden');
-        this.state.skipShown = true;
-      }
-      
-    } else if (phase === 'doorway') {
-      const doorwayProgress = (t - cfg.celliEnd) / (cfg.doorwayEnd - cfg.celliEnd);
-      bloom.strength = THREE.MathUtils.lerp(0.35, 0.55, Math.min(doorwayProgress * 2, 1));
-      afterimage.uniforms.damp.value = 0.8;
-      film.uniforms.noise.value = 0.005;
-      film.uniforms.scanAmp.value = 0.002;
-      if (tri) tri.visible = false;
-    }
-  }
-
-  /**
-   * Get current phase name
-   */
-  _getCurrentPhase(t, cfg) {
-    if (t < cfg.rollEnd) return 'roll';
-    if (t < cfg.bounceEnd) return 'bounce';
-    if (t < cfg.triangleEnd) return 'triangle';
-    if (t < cfg.transitionEnd) return 'transition';
-    if (t < cfg.normalEnd) return 'normal';
-    if (t < cfg.vennEnd) return 'venn';
-    if (t < cfg.collapseEnd) return 'collapse';
-    if (t < cfg.glitchEnd) return 'glitch';
-    if (t < cfg.blackoutEnd) return 'blackout';
-    if (t < cfg.loomworksEnd) return 'loomworks';
-    if (t < cfg.celliEnd) return 'celli';
-    return 'doorway';
-  }
-
-  /**
-   * Update quote glitch effects
-   */
-  _updateQuoteGlitch(progress, phase) {
-    const quoteEl = document.getElementById('quote');
-    if (!quoteEl) return;
-    
-    if (phase === 'collapse') {
-      if (progress > 0.15 && !this.state.glitchStarted) {
-        quoteEl.style.visibility = 'visible';
-        quoteEl.style.opacity = '0.85';
-        quoteEl.classList.add('glitch');
-        this.state.glitchStarted = true;
-        this.state.quoteShown = true;
-      }
-      
-      if (progress > 0.6 && !this.state.mediumGlitchStarted) {
-        quoteEl.classList.remove('glitch');
-        quoteEl.classList.add('glitchMedium');
-        this.state.mediumGlitchStarted = true;
-      }
-      
-    } else if (phase === 'glitch') {
-      if (progress > 0.05 && !this.state.intenseGlitchStarted) {
-        quoteEl.classList.remove('glitch', 'glitchMedium');
-        quoteEl.classList.add('glitchIntense');
-        this.state.intenseGlitchStarted = true;
-      }
-      
-      if (progress > 0.25 && !this.state.quoteDespairShown) {
-        this._swapQuoteToDespair();
-        this.state.quoteDespairShown = true;
-      }
-      
-      if (progress > 0.4 && !this.state.screenGlitchStarted) {
-        const screenGlitch = document.getElementById('screenGlitch');
-        if (screenGlitch) screenGlitch.classList.add('active');
-        this.state.screenGlitchStarted = true;
-      }
-    }
-  }
-
-  /**
-   * Swap quote text to despair message
-   */
-  _swapQuoteToDespair() {
-    const quoteEl = document.getElementById('quote');
-    if (!quoteEl) return;
-    
-    const quoteBefore = document.getElementById('quoteBefore');
-    if (quoteBefore) {
-      quoteBefore.textContent = 'LOOK on my works, ye Mighty, and despair!';
-    }
-    quoteEl.classList.add('quote--loom');
-  }
-
-  /**
-   * Start Loomworks text reveal
-   */
-  _startLoomworksReveal() {
-    const quoteEl = document.getElementById('quote');
-    if (quoteEl) {
-      quoteEl.style.visibility = 'hidden';
-      quoteEl.style.opacity = '0';
-      quoteEl.classList.remove('glitch', 'glitchMedium', 'glitchIntense', 'scrambling');
-    }
-    
-    const loomEl = document.getElementById('loomworks');
-    if (loomEl) {
-      loomEl.classList.add('visible');
-    }
-  }
-
-  /**
-   * Play startup chime jingle
-   */
-  _playStartupChime() {
-    if (!this.state.audioCtx) return;
-    
-    try {
-      const now = this.state.audioCtx.currentTime;
-      const melody = [
-        { freq: 261.63, time: 0.0, duration: 0.25 },
-        { freq: 329.63, time: 0.15, duration: 0.25 },
-        { freq: 392.00, time: 0.30, duration: 0.25 },
-        { freq: 523.25, time: 0.45, duration: 0.5 }
-      ];
-      
-      melody.forEach((note) => {
-        const osc = this.state.audioCtx.createOscillator();
-        const gain = this.state.audioCtx.createGain();
-        
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(note.freq, now + note.time);
-        
-        gain.gain.setValueAtTime(0, now + note.time);
-        gain.gain.linearRampToValueAtTime(0.12, now + note.time + 0.02);
-        gain.gain.linearRampToValueAtTime(0.08, now + note.time + 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + note.time + note.duration);
-        
-        osc.connect(gain);
-        gain.connect(this.state.audioCtx.destination);
-        osc.start(now + note.time);
-        osc.stop(now + note.time + note.duration);
-      });
-    } catch (e) {
-      console.warn('Chime sound failed:', e);
-    }
-  }
-
-  /**
    * Update spheres based on animation phase
    */
-  _updateSpheresPhase(t, cfg, phase) {
+  _updateSpheresPhase(t, cfg) {
     const speed = this.state.motionCfg.speed;
     const maxDist = this.state.motionCfg.maxDist;
     const rotSpeed = this.state.motionCfg.rotationSpeed;
@@ -1200,7 +797,7 @@ export class IntroSceneComplete {
         // Play final landing thunk
         if (!this.state.landingSounds[i] && Math.abs(x - targetX) < 0.02) {
           this._playRollingThunk(0.12);
-            this.state.landingSounds[i] = true;
+          this.state.landingSounds[i] = true;
         }
       }
       
@@ -1294,7 +891,7 @@ export class IntroSceneComplete {
         let scale = cfg.ballSize;
         if (formEased < 1) {
           scale = THREE.MathUtils.lerp(cfg.ballSize, cfg.ballSize * 1.0, formEased);
-    } else {
+        } else {
           const overshoot = Math.sin(growEased * Math.PI) * 0.08;
           scale = THREE.MathUtils.lerp(cfg.ballSize * 1.0, cfg.ballSize * 2.2, growEased) + overshoot;
         }
@@ -1306,196 +903,10 @@ export class IntroSceneComplete {
         this.state.blackHole.visible = true;
         this.state.blackHole.material.uniforms.pulseFactor.value = formEased * 0.4;
       }
-      
-    } else if (phase === 'transition') {
-      // Phase: Transition to orbit - morph shapes to circles
-      const transProgress = (t - cfg.triangleEnd) / (cfg.transitionEnd - cfg.triangleEnd);
-      const eased = transProgress < 0.5 ? 
-        4 * transProgress * transProgress * transProgress : 
-        1 - Math.pow(-2 * transProgress + 2, 3) / 2;
-      
-      // Morph shapes to circles at 50% progress
-      if (transProgress > 0.5 && !this.state.morphedToCircles) {
-        const mat0 = this.state.spheres[0].material;
-        const mat1 = this.state.spheres[1].material;
-        
-        this.state.spheres[0].geometry.dispose();
-        this.state.spheres[0].geometry = this.state.circleGeoTarget;
-        this.state.spheres[0].material = mat0;
-        
-        this.state.spheres[1].geometry.dispose();
-        this.state.spheres[1].geometry = this.state.circleGeoTarget.clone();
-        this.state.spheres[1].material = mat1;
-        
-        this.state.morphedToCircles = true;
-      }
-      
-      const centerY = 0;
-      const triangleRadius = 0.42;
-      const triangleAngles = [
-        Math.PI / 2 + (2 * Math.PI / 3) * 0,
-        Math.PI / 2 + (2 * Math.PI / 3) * 1,
-        Math.PI / 2 + (2 * Math.PI / 3) * 2
-      ];
-      
-      const startRadius = triangleRadius * (1 - 0.12);
-      const triangleEndRotation = 0.2;
-      const rotation = triangleEndRotation + (eased * Math.PI * 2);
-      const targetDist = maxDist * 0.5;
-      const currentDist = THREE.MathUtils.lerp(startRadius, targetDist, eased);
-      const triangleMapping = [1, 0, 2];
-      
-      for (let i = 0; i < 3; i++) {
-        const angleIndex = triangleMapping[i];
-        const angle = triangleAngles[angleIndex] + rotation;
-        const x = Math.cos(angle) * currentDist;
-        const y = Math.sin(angle) * currentDist + centerY;
-        
-        this.state.spheres[i].position.set(x, y, -i * 0.002);
-        this.state.spheres[i].rotation.z = 0;
-        const scale = THREE.MathUtils.lerp(cfg.ballSize * 2.2, 1.0, eased);
-        this.state.spheres[i].scale.set(scale, scale, scale);
-      }
-      
-      if (this.state.blackHole) {
-        this.state.blackHole.visible = true;
-        this.state.blackHole.material.uniforms.pulseFactor.value = THREE.MathUtils.lerp(0.4, 0.5, eased);
-      }
-      
-    } else if (phase === 'normal' || phase === 'venn') {
-      // Phase: Normal orbit with converge/pulse, then venn
-      const isVenn = phase === 'venn';
-      const normalT = isVenn ? (cfg.vennEnd - cfg.transitionEnd) : (t - cfg.transitionEnd);
-      
-      const convergeDuration = 2.2;
-      const pulseDuration = 3.0;
-      const totalAnimDuration = convergeDuration + pulseDuration;
-      const transitionEndDist = maxDist * 0.5;
-      const closeConvergeDist = 0.02;
-      const triangleExpandDist = maxDist * 0.65;
-      
-      const centerY = 0;
-      const triangleAngles = [
-        Math.PI / 2 + (2 * Math.PI / 3) * 0,
-        Math.PI / 2 + (2 * Math.PI / 3) * 1,
-        Math.PI / 2 + (2 * Math.PI / 3) * 2
-      ];
-      const transitionEndRotation = 0.2 + Math.PI * 2;
-      const rotation = transitionEndRotation + (normalT * this.state.motionCfg.rotationSpeed * (isVenn ? 0.3 : 1.0));
-      const triangleMapping = [1, 0, 2];
-      
-      let currentDist = transitionEndDist;
-      let scale = 1.0;
-      let pulseFactorValue = 0.5;
-      
-      if (!isVenn && normalT < convergeDuration) {
-        const convergeProgress = THREE.MathUtils.clamp(normalT / convergeDuration, 0, 1);
-        const convergeEased = convergeProgress * convergeProgress * (3 - 2 * convergeProgress);
-        currentDist = THREE.MathUtils.lerp(transitionEndDist, closeConvergeDist, convergeEased);
-        scale = THREE.MathUtils.lerp(1.0, 0.82, convergeEased);
-        pulseFactorValue = THREE.MathUtils.lerp(0.5, 0.95, convergeEased);
-      } else if (!isVenn && normalT < totalAnimDuration) {
-        const pulseT = normalT - convergeDuration;
-        const pulseProgress = pulseT / pulseDuration;
-        const pulseCycle = Math.sin(pulseProgress * Math.PI);
-        currentDist = THREE.MathUtils.lerp(closeConvergeDist, triangleExpandDist, pulseCycle);
-        scale = THREE.MathUtils.lerp(0.82, 1.0, pulseCycle);
-        pulseFactorValue = THREE.MathUtils.lerp(0.95, 0.6, pulseCycle);
-      } else if (!isVenn) {
-        currentDist = closeConvergeDist;
-        scale = 0.82;
-        pulseFactorValue = 0.95;
-      } else {
-        // Venn phase - expand to clean triangle
-        const vennT = t - cfg.normalEnd;
-        const vennProgress = vennT / (cfg.vennEnd - cfg.normalEnd);
-        const vennEased = vennProgress * vennProgress * (3 - 2 * vennProgress);
-        currentDist = THREE.MathUtils.lerp(closeConvergeDist, 0.08, vennEased);
-        scale = THREE.MathUtils.lerp(0.82, 0.7, vennEased);
-        pulseFactorValue = THREE.MathUtils.lerp(0.95, 0.65, vennEased);
-      }
-      
-      for (let i = 0; i < 3; i++) {
-        const angleIndex = triangleMapping[i];
-        const angle = triangleAngles[angleIndex] + rotation;
-        const x = Math.cos(angle) * currentDist;
-        const y = Math.sin(angle) * currentDist + centerY;
-        
-        this.state.spheres[i].position.set(x, y, -i * 0.002);
-        this.state.spheres[i].rotation.z = 0;
-        this.state.spheres[i].scale.set(scale, scale, scale);
-      }
-      
-      if (this.state.blackHole) {
-        this.state.blackHole.visible = true;
-        this.state.blackHole.material.uniforms.pulseFactor.value = pulseFactorValue;
-      }
-      
-    } else if (phase === 'collapse' || phase === 'glitch' || phase === 'blackout' || phase === 'loomworks' || phase === 'celli' || phase === 'doorway') {
-      // Collapse to white circle, then fade during later phases
-      const baseT = phase === 'collapse' ? (t - cfg.vennEnd) : 
-                    phase === 'glitch' ? (cfg.collapseEnd - cfg.vennEnd) :
-                    (cfg.collapseEnd - cfg.vennEnd);
-      const baseDuration = cfg.collapseEnd - cfg.vennEnd;
-      let collapseProgress = baseT / baseDuration;
-      if (phase !== 'collapse') collapseProgress = 1.0;
-      
-      const eased = collapseProgress * collapseProgress * (3 - 2 * collapseProgress);
-      
-      const centerY = 0;
-      const triangleAngles = [
-        Math.PI / 2 + (2 * Math.PI / 3) * 0,
-        Math.PI / 2 + (2 * Math.PI / 3) * 1,
-        Math.PI / 2 + (2 * Math.PI / 3) * 2
-      ];
-      
-      const normalDuration = cfg.normalEnd - cfg.transitionEnd;
-      const vennDuration = cfg.vennEnd - cfg.normalEnd;
-      const baseRotation = 0.2 + Math.PI * 2 + 
-                          (normalDuration * this.state.motionCfg.rotationSpeed) + 
-                          (vennDuration * this.state.motionCfg.rotationSpeed * 0.3);
-      const collapseT = phase === 'collapse' ? (t - cfg.vennEnd) : baseDuration;
-      const rotation = baseRotation + (collapseT * this.state.motionCfg.rotationSpeed * 0.15);
-      
-      const startDist = 0.08;
-      const targetDist = 0.005;
-      const currentDist = THREE.MathUtils.lerp(startDist, targetDist, eased);
-      const scale = THREE.MathUtils.lerp(0.7, 0.85, eased);
-      const triangleMapping = [1, 0, 2];
-      
-      // Fade out spheres during glitch
-      let sphereOpacity = 1.0;
-      if (phase === 'glitch') {
-        const glitchProgress = (t - cfg.collapseEnd) / (cfg.glitchEnd - cfg.collapseEnd);
-        sphereOpacity = THREE.MathUtils.lerp(1.0, 0, glitchProgress);
-      } else if (phase === 'blackout' || phase === 'loomworks' || phase === 'celli' || phase === 'doorway') {
-        sphereOpacity = 0;
-      }
-      
-      for (let i = 0; i < 3; i++) {
-        const angleIndex = triangleMapping[i];
-        const angle = triangleAngles[angleIndex] + rotation;
-        const x = Math.cos(angle) * currentDist;
-        const y = Math.sin(angle) * currentDist + centerY;
-        
-        this.state.spheres[i].position.set(x, y, -i * 0.002);
-        this.state.spheres[i].rotation.z = 0;
-        this.state.spheres[i].scale.set(scale, scale, scale);
-        this.state.spheres[i].material.opacity = sphereOpacity;
-      }
-      
-      if (this.state.blackHole) {
-        this.state.blackHole.visible = phase === 'collapse' || phase === 'glitch';
-        if (phase === 'collapse') {
-          this.state.blackHole.material.uniforms.pulseFactor.value = THREE.MathUtils.lerp(0.65, 0.85, eased);
-        } else if (phase === 'glitch') {
-          const glitchProgress = (t - cfg.collapseEnd) / (cfg.glitchEnd - cfg.collapseEnd);
-          this.state.blackHole.material.uniforms.pulseFactor.value = THREE.MathUtils.lerp(0.85, 0, glitchProgress);
-        }
-      }
+      if (this.state.triMesh) this.state.triMesh.visible = true;
       
     } else {
-      // Fallback: Orbital motion
+      // Phase: Orbital motion
       const orbitalTime = t - cfg.triangleEnd;
       
       this.state.spheres.forEach((sphere, i) => {
@@ -1525,30 +936,15 @@ export class IntroSceneComplete {
         voxel.visible = true;
         
         if (!data.settled && voxel.position.y > data.targetY) {
-          // Dropping
           voxel.position.y -= data.dropSpeed;
-          
-          // Gradually increase opacity
-          const newOpacity = Math.min(0.8, voxel.material.opacity + 0.05);
-          voxel.material.opacity = newOpacity;
-          voxel.material.needsUpdate = true;
-          
-          const newEdgeOpacity = Math.min(0.6, data.edges.material.opacity + 0.04);
-          data.edges.material.opacity = newEdgeOpacity;
-          data.edges.material.needsUpdate = true;
-          
+          voxel.material.opacity = Math.min(0.8, voxel.material.opacity + 0.05);
+          data.edges.material.opacity = Math.min(0.6, data.edges.material.opacity + 0.04);
         } else if (!data.settled) {
-          // Just landed
           voxel.position.y = data.targetY;
-          voxel.material.opacity = 0.8;
-          data.edges.material.opacity = 0.6;
           data.settled = true;
-          
-          // Play chime sound on landing
-          this._playVoxelChime();
         }
         
-        // Subtle jiggle animation when settled
+        // Subtle jiggle animation
         if (data.settled) {
           data.jigglePhase += 0.02;
           const jiggle = Math.sin(data.jigglePhase) * 0.002;
@@ -1559,61 +955,19 @@ export class IntroSceneComplete {
   }
 
   /**
-   * Play voxel landing chime
-   */
-  _playVoxelChime() {
-    if (!this.state.audioCtx) return;
-    
-    try {
-      const now = this.state.audioCtx.currentTime;
-      const pentatonicNotes = [523.25, 587.33, 659.25, 783.99, 880];
-      const freq = pentatonicNotes[Math.floor(Math.random() * pentatonicNotes.length)];
-      
-      const osc1 = this.state.audioCtx.createOscillator();
-      const osc2 = this.state.audioCtx.createOscillator();
-      const gain = this.state.audioCtx.createGain();
-      
-      osc1.type = 'triangle';
-      osc1.frequency.setValueAtTime(freq, now);
-      
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(freq * 3, now);
-      
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.03, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-      
-      osc1.connect(gain);
-      osc2.connect(gain);
-      gain.connect(this.state.audioCtx.destination);
-      osc1.start(now);
-      osc2.start(now);
-      osc1.stop(now + 1.2);
-      osc2.stop(now + 1.2);
-    } catch (e) {
-      console.warn('Voxel chime failed:', e);
-    }
-  }
-
-  /**
-   * Show doorway portal (just make visible)
+   * Show doorway portal
    */
   _showDoorway() {
     this.state.doorwayShown = true;
+    
     const doorway = document.getElementById('doorway');
     if (doorway) {
       doorway.classList.add('visible');
-    }
-  }
-
-  /**
-   * Open doorway portal (expand it)
-   */
-  _openDoorway() {
+      
+      setTimeout(() => {
+        doorway.classList.add('open');
         this.state.doorwayOpened = true;
-    const doorway = document.getElementById('doorway');
-    if (doorway) {
-      doorway.classList.add('open');
+      }, 500);
     }
   }
 
@@ -1821,37 +1175,20 @@ export class IntroSceneComplete {
   _handleResize() {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    const aspect = w / h;
     
     if (this.state.renderer) {
       this.state.renderer.setSize(w, h);
     }
     
-    if (this.state.composer) {
-      this.state.composer.setSize(w, h);
-    }
-    
     if (this.state.camera) {
-      if (aspect > 1) {
-        // Landscape
-        this.state.camera.left = -aspect;
-        this.state.camera.right = aspect;
-        this.state.camera.top = 1;
-        this.state.camera.bottom = -1;
-        if (this.state.blackHole) this.state.blackHole.scale.set(1, 1, 1);
-      } else {
-        // Portrait
-        this.state.camera.left = -1;
-        this.state.camera.right = 1;
-        this.state.camera.top = 1 / aspect;
-        this.state.camera.bottom = -1 / aspect;
-        if (this.state.blackHole) this.state.blackHole.scale.set(aspect, aspect, 1);
-      }
+      const aspect = w / h;
+      this.state.camera.left = -aspect;
+      this.state.camera.right = aspect;
       this.state.camera.updateProjectionMatrix();
     }
     
-    if (this.state.triMesh) {
-      this.state.triMesh.material.uniforms.aspect.value = aspect;
+    if (this.state.composer) {
+      this.state.composer.setSize(w, h);
     }
   }
 
