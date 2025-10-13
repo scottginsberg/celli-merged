@@ -1,0 +1,361 @@
+/**
+ * Celli-Real Scene Styles
+ * 
+ * Styles for the full Cell.real spreadsheet experience
+ * Extracted from celli-real.html
+ */
+
+/* Variables */
+:root {
+  --bg: #f0f2f5;
+  --ink: #1f2937;
+  --muted: #5b6170;
+  --panel: #ffffff;
+  --line: #e5e7eb;
+  --accent: #3b82f6;
+  --accent-2: #22c55e;
+  --accent-3: #f59e0b;
+  --chip: #eef2ff;
+  --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Background world */
+#world {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(1200px 800px at 20% 10%, #93c5fd 0, transparent 70%),
+              linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #93c5fd 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Panel base */
+.panel {
+  position: fixed;
+  z-index: 10;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 12px;
+}
+
+/* Buttons */
+.btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.btn.primary:hover {
+  background: #2563eb;
+}
+
+/* Spreadsheet */
+#sheet {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  width: 760px;
+  height: 440px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  padding: 12px;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(20px);
+  transition: all 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#sheet.intro-centered {
+  width: 860px !important;
+  height: 520px !important;
+  left: 50% !important;
+  top: 50% !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.sheet-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sheet-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sheet-title {
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.sheet-ctrls {
+  display: flex;
+  gap: 6px;
+}
+
+.sheet-fx {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.fx-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.sheet-body {
+  flex: 1;
+  overflow: auto;
+  margin-top: 8px;
+}
+
+/* Table */
+table.sheet {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+}
+
+table.sheet td,
+table.sheet th {
+  border: 1px solid #e5e7eb;
+  padding: 8px;
+  min-width: 80px;
+  text-align: left;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+}
+
+table.sheet th {
+  background: #f9fafb;
+  font-weight: 600;
+  text-align: center;
+}
+
+td.cell {
+  background: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+td.cell:hover {
+  background: #eff6ff;
+}
+
+td.sel {
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+  background: #eef5ff !important;
+}
+
+/* D-Pad */
+#dpad {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 56px 56px 56px;
+  grid-template-rows: 56px 56px 56px;
+  grid-template-areas:
+    ". up depthUp"
+    "left center right"
+    ". down depthDown";
+}
+
+.dp {
+  width: 56px;
+  height: 56px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.9);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 18px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+  backdrop-filter: blur(10px);
+}
+
+.dp:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+.dp:active {
+  transform: scale(0.95);
+}
+
+.dp.up { grid-area: up; }
+.dp.left { grid-area: left; }
+.dp.right { grid-area: right; }
+.dp.down { grid-area: down; }
+.dp.depthUp { grid-area: depthUp; }
+.dp.depthDown { grid-area: depthDown; }
+.dp.center { 
+  grid-area: center;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1f2937;
+}
+
+/* UI Icons */
+.ui-icon {
+  position: fixed;
+  width: 50px;
+  height: 50px;
+  background: #1f2937;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10002;
+  transition: transform 0.2s ease;
+  color: #e5e7eb;
+}
+
+.ui-icon:hover {
+  transform: scale(1.1);
+}
+
+#terminal-icon {
+  bottom: 24px;
+  right: 24px;
+}
+
+#notepad-icon {
+  bottom: 108px;
+  right: 24px;
+}
+
+/* Terminal */
+#terminal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90vw;
+  max-width: 700px;
+  height: 460px;
+  background: rgba(17, 24, 39, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
+  z-index: 10002;
+  display: none;
+  flex-direction: column;
+  color: #e5e7eb;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.win-header {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+
+.close {
+  width: 20px;
+  height: 20px;
+  background: #ef4444;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+#term {
+  flex-grow: 1;
+  padding: 12px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  line-height: 1.35;
+}
+
+/* Notepad */
+#pad {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 480px;
+  height: 360px;
+  background: rgba(17, 24, 39, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
+  z-index: 10002;
+  display: none;
+  color: #e5e7eb;
+  overflow: hidden;
+  flex-direction: column;
+  backdrop-filter: blur(14px);
+}
+
+#pad textarea {
+  width: 100%;
+  flex: 1;
+  background: inherit;
+  color: inherit;
+  border: none;
+  padding: 18px 18px 36px;
+  font-family: 'Roboto Mono', monospace;
+  outline: none;
+  resize: none;
+  border-radius: 16px;
+}
+
+/* Toast */
+#toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 16px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #111827;
+  color: #fff;
+  font-size: 12px;
+  display: none;
+  z-index: 50;
+}
+

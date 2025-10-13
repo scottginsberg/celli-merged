@@ -1,0 +1,1066 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Camera → Outline + Depth → Voxels</title>
+  <style>
+    :root{--bg:#0b0c10; --fg:#e6f0ff; --muted:#90a4b8; --accent:#6cc0ff}
+    html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 70% 30%,#0f1219,var(--bg));color:var(--fg);font:14px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
+    #app{position:fixed;inset:0}
+    #hud{position:fixed;left:12px;top:12px;display:flex;gap:10px;flex-wrap:wrap;z-index:10;pointer-events:none}
+    .card{pointer-events:auto;background:rgba(10,12,18,.72);backdrop-filter: blur(8px);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:10px 12px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+    .row{display:flex;align-items:center;gap:8px;margin:6px 0}
+    .row input[type=range]{width:160px}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid rgba(255,255,255,.1);border-radius:999px}
+    .btn{cursor:pointer;user-select:none}
+    .btn:active{transform:translateY(1px)}
+    #status{position:fixed;right:12px;bottom:12px;color:var(--muted);opacity:.8;max-width:min(460px,92vw)}
+    #video{position:fixed;right:12px;top:12px;width:180px;aspect-ratio:16/9;object-fit:cover;border-radius:12px;border:1px solid rgba(255,255,255,.12);opacity:.35}
+    @media (max-width:700px){ #video{display:none} }
+    .ok{color:#8ef59f}.warn{color:#ffd27a}.err{color:#ff8080}
+  </style>
+
+  <!-- Import map fixes the "Failed to resolve module specifier 'three'" error
+       by telling the browser where the 'three' package lives. Must appear
+       BEFORE any <script type="module"> that imports modules depending on it. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+  
+  <!-- TensorFlow.js and BodyPix for person segmentation -->
+  <script src="https://unpkg.com/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+  <script src="https://unpkg.com/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>
+</head>
+<body>
+  <div id="app"></div>
+  <video id="video" playsinline autoplay muted></video>
+  <canvas id="segmentCanvas" style="display:none"></canvas>
+  <div id="hud">
+    <div class="card">
+      <div class="row"><strong>Voxels from Camera</strong></div>
+      <div class="row"><span>Grid:</span>
+        <label class="pill"><input id="gridX" type="range" min="24" max="192" value="96" step="8"><span id="gridXv">96</span>×<span id="gridYv">54</span></label>
+      </div>
+      <div class="row"><span>Depth Layers:</span>
+        <label class="pill"><input id="depthLayers" type="range" min="8" max="64" value="32" step="4"><span id="depthLayersv">32</span></label>
+      </div>
+      <div class="row"><span>Voxel Size:</span>
+        <label class="pill"><input id="voxelSize" type="range" min="0.01" max="0.08" step="0.005" value="0.035"><span id="voxelSizev">0.035</span></label>
+      </div>
+      <div class="row"><span>Voxel Spacing:</span>
+        <label class="pill"><input id="voxelSpacing" type="range" min="0.01" max="0.1" step="0.005" value="0.036"><span id="voxelSpacingv">0.036</span></label>
+      </div>
+      <div class="row"><span>Outline:</span>
+        <label class="pill"><input id="edge" type="range" min="0" max="2.5" step="0.01" value="1.2"><span id="edgev">1.20</span></label>
+      </div>
+      <div class="row"><span>Smooth:</span>
+        <label class="pill"><input id="blur" type="range" min="0" max="1" step="0.01" value="0.35"><span id="blurv">0.35</span></label>
+      </div>
+      <div class="row"><span>BG Threshold:</span>
+        <label class="pill"><input id="bgThreshold" type="range" min="0" max="1" step="0.01" value="0.65"><span id="bgThresholdv">0.65</span></label>
+      </div>
+      <div class="row"><span>BG Smoothness:</span>
+        <label class="pill"><input id="bgSmooth" type="range" min="0" max="0.5" step="0.01" value="0.15"><span id="bgSmoothv">0.15</span></label>
+      </div>
+      <div class="row"><span>Depth mode:</span>
+        <label class="pill btn" id="modeBtn">Luma+Edges</label>
+      </div>
+      <div class="row" style="gap:12px">
+        <label class="pill btn" id="bgToggle">Hide BG</label>
+        <label class="pill btn" id="camBtn">Switch Cam</label>
+      </div>
+      <div class="row" style="gap:12px">
+        <label class="pill btn" id="pauseBtn">Pause</label>
+        <label class="pill btn" id="resetBtn">Reset</label>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row"><strong>Pose Capture</strong></div>
+      <div class="row"><span>Corners Hit:</span>
+        <span id="cornersHit" style="color:var(--accent);font-weight:bold">0/4</span>
+      </div>
+      <div class="row" style="gap:12px">
+        <label class="pill btn" id="captureBtn">Start Capture</label>
+        <label class="pill btn" id="playAnimBtn" style="opacity:0.5">Play Animation</label>
+      </div>
+      <div class="row" style="gap:12px">
+        <label class="pill btn" id="clearPosesBtn">Clear Poses</label>
+      </div>
+    </div>
+  </div>
+  <div id="status">initializing…</div>
+  <canvas id="cornerCanvas" style="position:fixed;inset:0;pointer-events:none;z-index:5;opacity:0.3"></canvas>
+
+  <script type="module">
+    import * as THREE from "three"; // resolved via import map above
+    import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+
+    // ------- Self-tests (runtime diagnostics)
+    const statusEl = document.getElementById('status');
+    function logOK(msg){ statusEl.innerHTML += `<div class="ok">✔ ${msg}</div>`; }
+    function logWarn(msg){ statusEl.innerHTML += `<div class="warn">⚠ ${msg}</div>`; }
+    function logErr(msg){ statusEl.innerHTML += `<div class="err">✖ ${msg}</div>`; }
+
+    if (!('importmap' in document.createElement('script'))) {
+      logWarn('This browser may not support Import Maps. If modules fail to load, try Chrome/Edge/Firefox recent versions or iOS 16.4+ Safari.');
+    } else {
+      logOK('Import Maps supported.');
+    }
+
+    // ------- DOM helpers
+    const byId = (id)=>{
+      const el = document.getElementById(id);
+      if(!el) console.error('Missing element:', id);
+      return el;
+    };
+    const video = byId('video');
+
+    const ui = {
+      gridX: byId('gridX'), gridXv: byId('gridXv'), gridYv: byId('gridYv'),
+      depthLayers: byId('depthLayers'), depthLayersv: byId('depthLayersv'),
+      voxelSize: byId('voxelSize'), voxelSizev: byId('voxelSizev'),
+      voxelSpacing: byId('voxelSpacing'), voxelSpacingv: byId('voxelSpacingv'),
+      edge: byId('edge'), edgev: byId('edgev'),
+      blur: byId('blur'), blurv: byId('blurv'),
+      bgThreshold: byId('bgThreshold'), bgThresholdv: byId('bgThresholdv'),
+      bgSmooth: byId('bgSmooth'), bgSmoothv: byId('bgSmoothv'),
+      modeBtn: byId('modeBtn'), camBtn: byId('camBtn'), pauseBtn: byId('pauseBtn'), resetBtn: byId('resetBtn'),
+      bgToggle: byId('bgToggle'),
+      captureBtn: byId('captureBtn'), playAnimBtn: byId('playAnimBtn'), clearPosesBtn: byId('clearPosesBtn'),
+      cornersHit: byId('cornersHit')
+    };
+
+    // ------- Three.js setup
+    let renderer;
+    try{
+      renderer = new THREE.WebGLRenderer({ antialias:false, alpha:false });
+    }catch(e){
+      logErr('WebGLRenderer failed: '+e.message);
+      throw e;
+    }
+
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.getElementById('app').appendChild(renderer.domElement);
+    logOK('Three.js imported and WebGLRenderer initialized.');
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b0c10);
+
+    const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.01, 100);
+    camera.position.set(0.0, 0.6, 2.2);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    const hemi = new THREE.HemisphereLight(0xddeeff, 0x101015, 1.0);
+    scene.add(hemi);
+
+    const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+    dir.position.set(1,2,1);
+    scene.add(dir);
+
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(8,8,1,1),
+      new THREE.MeshStandardMaterial({ color:0x0f1118, metalness:.1, roughness:.9 })
+    );
+    floor.rotation.x = -Math.PI/2;
+    floor.position.y = -0.01;
+    floor.receiveShadow = false;
+    scene.add(floor);
+
+    // ------- BodyPix Segmentation
+    let bodyPixNet = null;
+    let segmentCanvas = document.getElementById('segmentCanvas');
+    let segmentCtx = segmentCanvas.getContext('2d');
+    let segmentTexture = null;
+    let lastSegmentTime = 0;
+    let isProcessing = false;
+    
+    async function initBodyPix() {
+      if(typeof bodyPix === 'undefined') {
+        logWarn('BodyPix not loaded, using fallback depth estimation');
+        return;
+      }
+      try {
+        statusEl.innerHTML = 'Loading body segmentation model...';
+        bodyPixNet = await bodyPix.load({
+          architecture: 'MobileNetV1',
+          outputStride: 16,
+          multiplier: 0.75, // trade-off between speed and accuracy
+          quantBytes: 2
+        });
+        logOK('BodyPix person segmentation initialized');
+        statusEl.innerHTML = 'Body segmentation ready';
+      } catch(e) {
+        logWarn('BodyPix init failed: ' + e.message);
+        statusEl.innerHTML = 'Segmentation unavailable, using fallback';
+      }
+    }
+    
+    async function processSegmentation() {
+      if(!bodyPixNet || isProcessing || !video.readyState || video.readyState < 2 || !playing) return;
+      
+      const now = performance.now();
+      if(now - lastSegmentTime < 50) return; // ~20fps max for segmentation
+      
+      isProcessing = true;
+      lastSegmentTime = now;
+      
+      try {
+        const segmentation = await bodyPixNet.segmentPerson(video, {
+          flipHorizontal: false,
+          internalResolution: 'medium',
+          segmentationThreshold: 0.7
+        });
+        
+        const w = segmentation.width;
+        const h = segmentation.height;
+        
+        if(segmentCanvas.width !== w || segmentCanvas.height !== h) {
+          segmentCanvas.width = w;
+          segmentCanvas.height = h;
+        }
+        
+        // Convert mask to ImageData
+        const imageData = segmentCtx.createImageData(w, h);
+        for(let i = 0; i < segmentation.data.length; i++) {
+          const val = segmentation.data[i] * 255;
+          imageData.data[i * 4] = val;
+          imageData.data[i * 4 + 1] = val;
+          imageData.data[i * 4 + 2] = val;
+          imageData.data[i * 4 + 3] = 255;
+        }
+        segmentCtx.putImageData(imageData, 0, 0);
+        
+        // Update texture for GPU
+        if(!segmentTexture) {
+          segmentTexture = new THREE.CanvasTexture(segmentCanvas);
+          segmentTexture.minFilter = THREE.LinearFilter;
+          segmentTexture.magFilter = THREE.LinearFilter;
+        }
+        segmentTexture.needsUpdate = true;
+      } catch(e) {
+        console.warn('Segmentation frame failed:', e);
+      } finally {
+        isProcessing = false;
+      }
+    }
+
+    // ------- Pose Capture & Animation System
+    const cornerCanvas = document.getElementById('cornerCanvas');
+    const cornerCtx = cornerCanvas.getContext('2d');
+    let captureMode = false;
+    let capturedPoses = [];
+    let cornersTouched = new Set();
+    let isAnimating = false;
+    let animationTime = 0;
+    let personBounds = {minX: 0, maxX: 1, minY: 0, maxY: 1}; // normalized 0-1
+    let lockedPersonBounds = null; // Locked bounds when capture starts
+    
+    // Corner zones (4 corners relative to person)
+    const corners = [
+      {id: 0, x: 0, y: 0, name: 'Top-Left'},
+      {id: 1, x: 1, y: 0, name: 'Top-Right'},
+      {id: 2, x: 0, y: 1, name: 'Bottom-Left'},
+      {id: 3, x: 1, y: 1, name: 'Bottom-Right'}
+    ];
+    
+    function detectPersonBounds() {
+      if(!segmentCanvas || !segmentTexture) return false;
+      
+      const w = segmentCanvas.width;
+      const h = segmentCanvas.height;
+      const imageData = segmentCtx.getImageData(0, 0, w, h);
+      
+      let minX = w, maxX = 0, minY = h, maxY = 0;
+      let foundPerson = false;
+      
+      for(let y = 0; y < h; y++) {
+        for(let x = 0; x < w; x++) {
+          const idx = (y * w + x) * 4;
+          if(imageData.data[idx] > 128) { // person pixel
+            foundPerson = true;
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+          }
+        }
+      }
+      
+      if(foundPerson) {
+        // Normalize to 0-1 and add smaller offset for better reach
+        const offsetX = (maxX - minX) * 0.08; // 8% offset
+        const offsetY = (maxY - minY) * 0.08;
+        
+        personBounds = {
+          minX: Math.max(0, (minX - offsetX) / w),
+          maxX: Math.min(1, (maxX + offsetX) / w),
+          minY: Math.max(0, (minY - offsetY) / h),
+          maxY: Math.min(1, (maxY + offsetY) / h)
+        };
+        return true;
+      }
+      return false;
+    }
+    
+    function setupCornerCanvas() {
+      cornerCanvas.width = innerWidth;
+      cornerCanvas.height = innerHeight;
+    }
+    
+    function drawCornerZones() {
+      if(!captureMode) {
+        cornerCtx.clearRect(0, 0, cornerCanvas.width, cornerCanvas.height);
+        return;
+      }
+      
+      cornerCtx.clearRect(0, 0, cornerCanvas.width, cornerCanvas.height);
+      
+      if(!video.videoWidth || !video.videoHeight || !lockedPersonBounds) return;
+      
+      // Use locked bounds for static corner positions
+      const bounds = lockedPersonBounds;
+      
+      // Calculate person bounding box in screen coordinates
+      const videoAspect = video.videoWidth / video.videoHeight;
+      const canvasAspect = cornerCanvas.width / cornerCanvas.height;
+      
+      let videoW, videoH, videoX, videoY;
+      if(canvasAspect > videoAspect) {
+        videoH = cornerCanvas.height;
+        videoW = videoH * videoAspect;
+        videoX = (cornerCanvas.width - videoW) / 2;
+        videoY = 0;
+      } else {
+        videoW = cornerCanvas.width;
+        videoH = videoW / videoAspect;
+        videoX = 0;
+        videoY = (cornerCanvas.height - videoH) / 2;
+      }
+      
+      const personX = videoX + bounds.minX * videoW;
+      const personY = videoY + bounds.minY * videoH;
+      const personWidth = (bounds.maxX - bounds.minX) * videoW;
+      const personHeight = (bounds.maxY - bounds.minY) * videoH;
+      
+      // Draw person bounding box for reference (faint)
+      cornerCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      cornerCtx.lineWidth = 1;
+      cornerCtx.strokeRect(personX, personY, personWidth, personHeight);
+      
+      const zoneSize = Math.min(personWidth, personHeight) * 0.25;
+      
+      corners.forEach(corner => {
+        const x = corner.x === 0 ? personX : (personX + personWidth - zoneSize);
+        const y = corner.y === 0 ? personY : (personY + personHeight - zoneSize);
+        const touched = cornersTouched.has(corner.id);
+        
+        cornerCtx.fillStyle = touched ? 'rgba(108, 192, 255, 0.5)' : 'rgba(255, 255, 255, 0.3)';
+        cornerCtx.fillRect(x, y, zoneSize, zoneSize);
+        
+        cornerCtx.strokeStyle = touched ? '#6cc0ff' : '#ffffff';
+        cornerCtx.lineWidth = 3;
+        cornerCtx.strokeRect(x, y, zoneSize, zoneSize);
+        
+        cornerCtx.fillStyle = touched ? '#6cc0ff' : '#ffffff';
+        cornerCtx.font = 'bold 16px monospace';
+        cornerCtx.fillText(touched ? '✓' : (corner.id + 1), x + 10, y + 28);
+      });
+    }
+    
+    function captureVoxelPose() {
+      if(!procRT || !segmentTexture) return null;
+      
+      // Read pixels from processed texture
+      const pixels = new Uint8Array(procRT.width * procRT.height * 4);
+      renderer.readRenderTargetPixels(procRT, 0, 0, procRT.width, procRT.height, pixels);
+      
+      // Extract voxel data (positions and colors)
+      const voxels = [];
+      const nx = countX, ny = countY, nz = countZ;
+      
+      for(let y = 0; y < procRT.height; y++) {
+        for(let x = 0; x < procRT.width; x++) {
+          const idx = (y * procRT.width + x) * 4;
+          const r = pixels[idx];
+          const g = pixels[idx + 1];
+          const b = pixels[idx + 2];
+          const depth = pixels[idx + 3] / 255.0; // normalized depth
+          
+          if(depth > 0.01) {
+            const u = x / procRT.width;
+            const v = y / procRT.height;
+            
+            // Calculate how many Z layers this pixel should have
+            const numLayers = Math.floor(depth * nz);
+            
+            for(let z = 0; z < numLayers; z++) {
+              voxels.push({
+                u: u,
+                v: v,
+                layer: z / nz,
+                color: [r/255, g/255, b/255]
+              });
+            }
+          }
+        }
+      }
+      
+      return voxels;
+    }
+    
+    function checkCornerTouch() {
+      if(!captureMode || !segmentTexture || !lockedPersonBounds) return;
+      
+      // Check segmentation mask for person presence in each corner
+      const w = segmentCanvas.width;
+      const h = segmentCanvas.height;
+      const imageData = segmentCtx.getImageData(0, 0, w, h);
+      
+      // Use locked bounds for static detection
+      const bounds = lockedPersonBounds;
+      
+      // Calculate corner zones in segmentation space
+      const personW = (bounds.maxX - bounds.minX) * w;
+      const personH = (bounds.maxY - bounds.minY) * h;
+      const zoneSize = Math.min(personW, personH) * 0.25;
+      
+      corners.forEach(corner => {
+        if(cornersTouched.has(corner.id)) return;
+        
+        // Calculate corner position in segmentation space
+        const baseX = bounds.minX * w;
+        const baseY = bounds.minY * h;
+        const cornerX = corner.x === 0 ? baseX : (baseX + personW - zoneSize);
+        const cornerY = corner.y === 0 ? baseY : (baseY + personH - zoneSize);
+        
+        let personPixels = 0;
+        let totalPixels = 0;
+        
+        for(let dy = 0; dy < zoneSize; dy++) {
+          for(let dx = 0; dx < zoneSize; dx++) {
+            const sx = Math.floor(cornerX + dx);
+            const sy = Math.floor(cornerY + dy);
+            if(sx >= 0 && sx < w && sy >= 0 && sy < h) {
+              const idx = (sy * w + sx) * 4;
+              if(imageData.data[idx] > 128) personPixels++;
+              totalPixels++;
+            }
+          }
+        }
+        
+        const coverage = personPixels / totalPixels;
+        // Lower threshold for top corners (harder to reach)
+        const threshold = corner.y === 0 ? 0.25 : 0.35;
+        
+        if(coverage > threshold) {
+          cornersTouched.add(corner.id);
+          const pose = captureVoxelPose();
+          if(pose) {
+            capturedPoses.push({
+              cornerId: corner.id,
+              voxels: pose,
+              timestamp: Date.now()
+            });
+            logOK(`Captured pose at ${corner.name}`);
+          }
+          
+          if(ui.cornersHit) ui.cornersHit.textContent = `${cornersTouched.size}/4`;
+          
+          if(cornersTouched.size === 4) {
+            logOK('All 4 corners captured! Animation ready.');
+            if(ui.playAnimBtn) ui.playAnimBtn.style.opacity = '1.0';
+          }
+        }
+      });
+    }
+    
+    function lerpVoxels(pose1, pose2, t) {
+      // Simple interpolation between two poses
+      // Match voxels by proximity and interpolate colors
+      const result = [];
+      const blended = [];
+      
+      // For simplicity, blend based on ratio
+      pose1.voxels.forEach((voxel, i) => {
+        if(i < pose2.voxels.length) {
+          const v2 = pose2.voxels[i];
+          result.push({
+            u: voxel.u * (1 - t) + v2.u * t,
+            v: voxel.v * (1 - t) + v2.v * t,
+            layer: voxel.layer * (1 - t) + v2.layer * t,
+            color: [
+              voxel.color[0] * (1 - t) + v2.color[0] * t,
+              voxel.color[1] * (1 - t) + v2.color[1] * t,
+              voxel.color[2] * (1 - t) + v2.color[2] * t,
+            ]
+          });
+        }
+      });
+      
+      return result;
+    }
+
+    // ------- Video / Camera
+    let currentFacing = 'environment';
+    let stream; let playing = true;
+    async function startStream() {
+      if (stream) stream.getTracks().forEach(t=>t.stop());
+      try{
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: currentFacing }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio:false });
+      }catch(e){
+        // fallback without facingMode
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio:false });
+      }
+      video.srcObject = stream;
+      await video.play();
+      statusEl.innerHTML = 'camera streaming';
+      await initBodyPix();
+      buildAfterVideoReady();
+      logOK('Camera stream started.');
+    }
+
+    // ------- GPGPU: video → outline + pseudo depth
+    let videoTex, procRT, procScene, procCam, procMat;
+    const procUniforms = {
+      uTex: { value: null },
+      uSegmentMask: { value: null },
+      uUseSegmentation: { value: 0.0 },
+      uRes: { value: new THREE.Vector2(1,1) },
+      uTime: { value: 0 },
+      uEdge: { value: parseFloat(ui.edge.value) },
+      uBlur: { value: parseFloat(ui.blur.value) },
+      uMode: { value: 0 }, // 0 luma+edges, 1 edges only, 2 luma only
+      uFlipY: { value: 1.0 },
+      uBgThreshold: { value: parseFloat(ui.bgThreshold.value) },
+      uBgSmooth: { value: parseFloat(ui.bgSmooth.value) },
+      uHideBg: { value: 1.0 },
+    };
+
+    function setupProcessing(width, height){
+      videoTex = new THREE.VideoTexture(video);
+      videoTex.colorSpace = THREE.SRGBColorSpace;
+      videoTex.minFilter = THREE.LinearFilter;
+      videoTex.magFilter = THREE.LinearFilter;
+      videoTex.wrapS = videoTex.wrapT = THREE.ClampToEdgeWrapping;
+
+      procUniforms.uTex.value = videoTex;
+      procUniforms.uRes.value.set(width, height);
+
+      procRT = new THREE.WebGLRenderTarget(width, height, { minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter, depthBuffer:false, stencilBuffer:false });
+
+      procMat = new THREE.ShaderMaterial({
+        uniforms: procUniforms,
+        vertexShader: /* glsl */`
+          varying vec2 vUv;
+          void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }
+        `,
+        fragmentShader: /* glsl */`
+          precision highp float;
+          uniform sampler2D uTex; 
+          uniform sampler2D uSegmentMask;
+          uniform float uUseSegmentation;
+          uniform vec2 uRes; 
+          uniform float uTime; 
+          uniform float uEdge; 
+          uniform float uBlur; 
+          uniform float uFlipY; 
+          uniform int uMode; 
+          uniform float uBgThreshold; 
+          uniform float uBgSmooth; 
+          uniform float uHideBg;
+          varying vec2 vUv;
+          
+          float luma(vec3 c){ return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+          
+          vec3 fetch(vec2 uv){ return texture2D(uTex, vec2(uv.x, (uFlipY>0.5?1.0-uv.y:uv.y))).rgb; }
+          
+          void main(){
+            vec2 uvFlip = vec2(vUv.x, (uFlipY>0.5?1.0-vUv.y:vUv.y));
+            
+            // Get MediaPipe segmentation mask (if available)
+            float personMask = 1.0;
+            if(uUseSegmentation > 0.5) {
+              personMask = texture2D(uSegmentMask, uvFlip).r;
+            }
+            
+            // Gaussian-ish blur (two taps each axis)
+            vec2 px = 1.0 / uRes;
+            vec3 c = fetch(vUv);
+            vec3 bx = mix(fetch(vUv + vec2(px.x,0.0)), fetch(vUv - vec2(px.x,0.0)), 0.5);
+            vec3 by = mix(fetch(vUv + vec2(0.0,px.y)), fetch(vUv - vec2(0.0,px.y)), 0.5);
+            float Y = luma(mix(c, (bx+by)*0.5, uBlur));
+            
+            // Sobel edge on blurred luma
+            float tl = luma(fetch(vUv + px*vec2(-1.0,-1.0)));
+            float tc = luma(fetch(vUv + px*vec2( 0.0,-1.0)));
+            float tr = luma(fetch(vUv + px*vec2( 1.0,-1.0)));
+            float ml = luma(fetch(vUv + px*vec2(-1.0, 0.0)));
+            float mc = Y;
+            float mr = luma(fetch(vUv + px*vec2( 1.0, 0.0)));
+            float bl = luma(fetch(vUv + px*vec2(-1.0, 1.0)));
+            float bc = luma(fetch(vUv + px*vec2( 0.0, 1.0)));
+            float br = luma(fetch(vUv + px*vec2( 1.0, 1.0)));
+
+            float gx = -tl - 2.0*ml - bl + tr + 2.0*mr + br;
+            float gy = -tl - 2.0*tc - tr + bl + 2.0*bc + br;
+            float edge = clamp(length(vec2(gx,gy))*uEdge, 0.0, 1.0);
+
+            // Background detection combining both methods
+            float bgScore = Y * (1.0 - edge);
+            float bgMask = smoothstep(uBgThreshold, uBgThreshold + uBgSmooth, bgScore);
+            
+            // Use MediaPipe mask if available, otherwise use heuristic
+            if(uUseSegmentation > 0.5) {
+              bgMask = 1.0 - personMask;
+            }
+
+            // Enhanced depth: combine brightness, edges, and distance from center
+            // Dark areas = close, bright areas = far
+            float depth = (1.0 - Y) * (1.0 - 0.7*edge);
+            
+            // Add depth gradient from edges (person is usually centered)
+            vec2 centerDist = abs(vUv - 0.5) * 2.0;
+            float distFromCenter = length(centerDist);
+            depth = mix(depth, depth * 0.7, distFromCenter * 0.3);
+            
+            // Apply person mask for accurate foreground/background separation
+            depth *= personMask;
+            
+            depth = pow(depth, 1.2);
+            
+            // FULLY hide background if enabled - set depth to exactly 0
+            if(uHideBg > 0.5) {
+              // With segmentation: hard cutoff based on person mask
+              if(uUseSegmentation > 0.5) {
+                if(personMask < 0.5) {
+                  depth = 0.0;
+                }
+              } else {
+                // Without segmentation: use heuristic background mask
+                if(bgMask > 0.5) {
+                  depth = 0.0;
+                }
+              }
+            }
+
+            if(uMode==1){ 
+              depth = edge * personMask; 
+              if(uHideBg > 0.5 && personMask < 0.5) depth = 0.0;
+            }
+            else if(uMode==2){ 
+              depth = Y * personMask; 
+              if(uHideBg > 0.5 && personMask < 0.5) depth = 0.0;
+            }
+
+            // Pack: rgb = color, a = depth, and pre-mix outlines
+            vec3 col = c;
+            col += edge*0.35; // subtle outline bloom
+            gl_FragColor = vec4(col, depth);
+          }
+        `,
+        depthTest:false, depthWrite:false
+      });
+
+      procScene = new THREE.Scene();
+      const fsq = new THREE.Mesh(new THREE.PlaneGeometry(2,2), procMat);
+      procScene.add(fsq);
+      procCam = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+    }
+
+    // ------- Voxel instancing (3D grid, not extrusion)
+    let instanced, countX=96, countY=54, countZ=32;
+
+    const voxUniforms = {
+      uTex: { value: null },
+      uRes: { value: new THREE.Vector2(1,1) },
+      uGrid: { value: new THREE.Vector3(1,1,1) },
+      uTime: { value: 0 },
+      uVoxelSize: { value: parseFloat(ui.voxelSize.value) },
+      uVoxelSpacing: { value: parseFloat(ui.voxelSpacing.value) },
+      uFlipY: { value: 1.0 },
+    };
+
+    function buildVoxels(){
+      // remove old
+      if(instanced){ scene.remove(instanced); instanced.geometry.dispose(); instanced.material.dispose(); instanced = null; }
+
+      const nx = countX, ny = countY, nz = countZ;
+      const N = nx * ny * nz;
+      const vSize = parseFloat(ui.voxelSize.value);
+      const geo = new THREE.BoxGeometry(vSize, vSize, vSize);
+
+      // per-instance attributes: UV (XY position in texture) and Z layer
+      const uvs = new Float32Array(N * 2);
+      const layers = new Float32Array(N);
+      let i = 0, iLayer = 0;
+      
+      for(let z=0; z<nz; z++){
+        for(let y=0; y<ny; y++){
+          for(let x=0; x<nx; x++){
+            const u = (x + 0.5) / nx;
+            const v = (y + 0.5) / ny;
+            uvs[i++] = u; 
+            uvs[i++] = v;
+            layers[iLayer++] = z / nz; // normalized Z position 0..1
+          }
+        }
+      }
+
+      const mat = new THREE.ShaderMaterial({
+        uniforms: voxUniforms,
+        vertexShader: /* glsl */`
+          precision highp float;
+          attribute vec2 iUv;
+          attribute float iLayer;
+          uniform sampler2D uTex;
+          uniform vec2 uRes;
+          uniform vec3 uGrid;
+          uniform float uTime;
+          uniform float uVoxelSize;
+          uniform float uVoxelSpacing;
+          uniform float uFlipY;
+          varying vec3 vCol;
+          varying float vVisible;
+          
+          void main(){
+            // Sample processed texture: rgb ~ color, a ~ depth
+            vec2 tuv = vec2(iUv.x, (uFlipY>0.5?1.0-iUv.y:iUv.y));
+            vec4 tex = texture2D(uTex, tuv);
+            float depth = tex.a;
+            
+            // Determine if this voxel should be visible
+            // iLayer is 0..1, depth is 0..1
+            // Show voxels where iLayer < depth AND depth > threshold
+            // This ensures depth=0 means NO voxels at all (not even first layer)
+            float depthThreshold = 0.01;
+            vVisible = step(depthThreshold, depth) * step(iLayer, depth - 0.001);
+            
+            // Position in 3D grid
+            float gx = (iUv.x - 0.5) * uGrid.x * uVoxelSpacing;
+            float gy = (iUv.y - 0.5) * uGrid.y * uVoxelSpacing;
+            float gz = iLayer * uGrid.z * uVoxelSpacing;
+            vec3 instanceOffset = vec3(gx, gy, gz);
+            
+            // Color from texture
+            vCol = tex.rgb;
+            
+            // Hide invisible voxels by scaling to zero
+            vec3 pos = position * vVisible;
+            
+            vec4 mvPosition = modelViewMatrix * vec4(instanceOffset, 1.0);
+            mvPosition.xyz += (modelViewMatrix * vec4(pos, 0.0)).xyz;
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: /* glsl */`
+          precision highp float;
+          varying vec3 vCol;
+          varying float vVisible;
+          void main(){
+            if(vVisible < 0.5) discard;
+            gl_FragColor = vec4(vCol, 1.0);
+          }
+        `,
+        transparent:false,
+        depthWrite:true,
+        depthTest:true,
+      });
+
+      const mesh = new THREE.InstancedMesh(geo, mat, N);
+      const dummy = new THREE.Object3D();
+      let idx = 0;
+      
+      for(let z=0; z<nz; z++){
+        for(let y=0; y<ny; y++){
+          for(let x=0; x<nx; x++){
+            dummy.position.set(0, 0, 0);
+            dummy.updateMatrix();
+            mesh.setMatrixAt(idx, dummy.matrix);
+            idx++;
+          }
+        }
+      }
+
+      // attach per-instance attributes
+      mesh.geometry.setAttribute('iUv', new THREE.InstancedBufferAttribute(uvs, 2));
+      mesh.geometry.setAttribute('iLayer', new THREE.InstancedBufferAttribute(layers, 1));
+
+      voxUniforms.uGrid.value.set(nx, ny, nz);
+      instanced = mesh;
+      scene.add(instanced);
+    }
+
+    // ------- Build once video is ready
+    let built = false;
+    async function buildAfterVideoReady(){
+      if(built) return;
+      // Wait until we have video frame size
+      await new Promise(r=>{
+        if(video.videoWidth>0) return r();
+        video.onloadedmetadata = ()=>r();
+      });
+      const vw = video.videoWidth || 1280;
+      const vh = video.videoHeight || 720;
+
+      setupProcessing(vw, vh);
+
+      // grid aspect to match video
+      const aspect = vw / vh;
+      countX = parseInt(ui.gridX.value,10);
+      countY = Math.max(8, Math.round(countX / aspect));
+      countZ = parseInt(ui.depthLayers.value,10);
+      ui.gridXv.textContent = countX;
+      ui.gridYv.textContent = countY;
+      ui.depthLayersv.textContent = countZ;
+
+      buildVoxels();
+      built = true;
+    }
+
+    // ------- Resize
+    addEventListener('resize', ()=>{
+      camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+      setupCornerCanvas();
+    });
+    
+    // Initialize corner canvas
+    setupCornerCanvas();
+
+    // ------- UI handlers
+    if(ui.gridX) ui.gridX.addEventListener('input', ()=>{
+      countX = parseInt(ui.gridX.value, 10);
+      const vw = video.videoWidth || 16, vh = video.videoHeight || 9;
+      countY = Math.max(8, Math.round(countX / (vw/vh)));
+      if(ui.gridXv) ui.gridXv.textContent = countX; 
+      if(ui.gridYv) ui.gridYv.textContent = countY;
+      buildVoxels();
+    });
+    if(ui.depthLayers) ui.depthLayers.addEventListener('input', ()=>{
+      countZ = parseInt(ui.depthLayers.value, 10);
+      if(ui.depthLayersv) ui.depthLayersv.textContent = countZ;
+      buildVoxels();
+    });
+    if(ui.voxelSize) ui.voxelSize.addEventListener('input', ()=>{
+      voxUniforms.uVoxelSize.value = parseFloat(ui.voxelSize.value);
+      if(ui.voxelSizev) ui.voxelSizev.textContent = (+ui.voxelSize.value).toFixed(3);
+      buildVoxels();
+    });
+    if(ui.voxelSpacing) ui.voxelSpacing.addEventListener('input', ()=>{
+      voxUniforms.uVoxelSpacing.value = parseFloat(ui.voxelSpacing.value);
+      if(ui.voxelSpacingv) ui.voxelSpacingv.textContent = (+ui.voxelSpacing.value).toFixed(3);
+    });
+    if(ui.edge) ui.edge.addEventListener('input', ()=>{ 
+      procUniforms.uEdge.value = parseFloat(ui.edge.value); 
+      if(ui.edgev) ui.edgev.textContent = (+ui.edge.value).toFixed(2); 
+    });
+    if(ui.blur) ui.blur.addEventListener('input', ()=>{ 
+      procUniforms.uBlur.value = parseFloat(ui.blur.value); 
+      if(ui.blurv) ui.blurv.textContent = (+ui.blur.value).toFixed(2); 
+    });
+    if(ui.bgThreshold) ui.bgThreshold.addEventListener('input', ()=>{ 
+      procUniforms.uBgThreshold.value = parseFloat(ui.bgThreshold.value); 
+      if(ui.bgThresholdv) ui.bgThresholdv.textContent = (+ui.bgThreshold.value).toFixed(2); 
+    });
+    if(ui.bgSmooth) ui.bgSmooth.addEventListener('input', ()=>{ 
+      procUniforms.uBgSmooth.value = parseFloat(ui.bgSmooth.value); 
+      if(ui.bgSmoothv) ui.bgSmoothv.textContent = (+ui.bgSmooth.value).toFixed(2); 
+    });
+
+    if(ui.modeBtn) ui.modeBtn.addEventListener('click', ()=>{
+      procUniforms.uMode.value = (procUniforms.uMode.value+1)%3;
+      const names=['Luma+Edges','Edges Only','Luma Only'];
+      ui.modeBtn.textContent = names[procUniforms.uMode.value];
+    });
+
+    if(ui.bgToggle) ui.bgToggle.addEventListener('click', ()=>{
+      procUniforms.uHideBg.value = procUniforms.uHideBg.value > 0.5 ? 0.0 : 1.0;
+      ui.bgToggle.textContent = procUniforms.uHideBg.value > 0.5 ? 'Hide BG' : 'Show BG';
+    });
+
+    if(ui.camBtn) ui.camBtn.addEventListener('click', async ()=>{
+      currentFacing = (currentFacing==='environment') ? 'user' : 'environment';
+      await startStream();
+      // flip Y for selfie view so voxels aren't upside down
+      const flip = currentFacing==='user' ? 0.0 : 1.0;
+      procUniforms.uFlipY.value = flip;
+      const val = flip; // same flip informs vertex sampler path
+      voxUniforms.uFlipY.value = val;
+    });
+
+    if(ui.pauseBtn) ui.pauseBtn.addEventListener('click', ()=>{
+      playing = !playing;
+      ui.pauseBtn.textContent = playing? 'Pause' : 'Play';
+      if(playing) video.play(); else video.pause();
+    });
+
+    if(ui.resetBtn) ui.resetBtn.addEventListener('click', ()=>{
+      if(ui.gridX) { ui.gridX.value = 96; ui.gridX.dispatchEvent(new Event('input')); }
+      if(ui.depthLayers) { ui.depthLayers.value = 32; ui.depthLayers.dispatchEvent(new Event('input')); }
+      if(ui.voxelSize) { ui.voxelSize.value = 0.035; ui.voxelSize.dispatchEvent(new Event('input')); }
+      if(ui.voxelSpacing) { ui.voxelSpacing.value = 0.036; ui.voxelSpacing.dispatchEvent(new Event('input')); }
+      if(ui.edge) { ui.edge.value = 1.2; ui.edge.dispatchEvent(new Event('input')); }
+      if(ui.blur) { ui.blur.value = 0.35; ui.blur.dispatchEvent(new Event('input')); }
+      if(ui.bgThreshold) { ui.bgThreshold.value = 0.65; ui.bgThreshold.dispatchEvent(new Event('input')); }
+      if(ui.bgSmooth) { ui.bgSmooth.value = 0.15; ui.bgSmooth.dispatchEvent(new Event('input')); }
+      procUniforms.uMode.value = 0; 
+      if(ui.modeBtn) ui.modeBtn.textContent = 'Luma+Edges';
+      procUniforms.uHideBg.value = 1.0; 
+      if(ui.bgToggle) ui.bgToggle.textContent = 'Hide BG';
+      controls.reset();
+    });
+
+    // ------- Pose Capture Event Handlers
+    if(ui.captureBtn) ui.captureBtn.addEventListener('click', ()=>{
+      captureMode = !captureMode;
+      if(captureMode) {
+        ui.captureBtn.textContent = 'Stop Capture';
+        cornersTouched.clear();
+        capturedPoses = [];
+        if(ui.cornersHit) ui.cornersHit.textContent = '0/4';
+        if(ui.playAnimBtn) ui.playAnimBtn.style.opacity = '0.5';
+        setupCornerCanvas();
+        
+        // Lock person bounds at start of capture
+        if(detectPersonBounds()) {
+          lockedPersonBounds = {...personBounds};
+          logOK('Capture mode started - corner zones locked to your position!');
+        } else {
+          logWarn('Person not detected - stand in frame and try again');
+          captureMode = false;
+          ui.captureBtn.textContent = 'Start Capture';
+        }
+      } else {
+        ui.captureBtn.textContent = 'Start Capture';
+        lockedPersonBounds = null;
+        logOK('Capture mode stopped');
+      }
+    });
+
+    if(ui.playAnimBtn) ui.playAnimBtn.addEventListener('click', ()=>{
+      if(capturedPoses.length < 4) {
+        logWarn('Need all 4 corner poses to play animation');
+        return;
+      }
+      isAnimating = !isAnimating;
+      if(isAnimating) {
+        ui.playAnimBtn.textContent = 'Stop Animation';
+        animationTime = 0;
+        playing = false; // pause live video
+        if(ui.pauseBtn) ui.pauseBtn.textContent = 'Play';
+        logOK('Playing captured animation sequence');
+      } else {
+        ui.playAnimBtn.textContent = 'Play Animation';
+        playing = true; // resume live video
+        if(ui.pauseBtn) ui.pauseBtn.textContent = 'Pause';
+        logOK('Animation stopped, resuming live view');
+      }
+    });
+
+    if(ui.clearPosesBtn) ui.clearPosesBtn.addEventListener('click', ()=>{
+      capturedPoses = [];
+      cornersTouched.clear();
+      if(ui.cornersHit) ui.cornersHit.textContent = '0/4';
+      if(ui.playAnimBtn) ui.playAnimBtn.style.opacity = '0.5';
+      isAnimating = false;
+      if(ui.playAnimBtn) ui.playAnimBtn.textContent = 'Play Animation';
+      logOK('Cleared all captured poses');
+    });
+
+    // ------- Animate
+    const clock = new THREE.Clock();
+    function tick(){
+      const t = clock.getElapsedTime();
+      if(procUniforms) procUniforms.uTime.value = t;
+      if(voxUniforms) voxUniforms.uTime.value = t;
+
+      if(built) {
+        if(playing) {
+          // Live video mode
+          // 0) Process BodyPix segmentation
+          processSegmentation();
+          
+          // Update segmentation uniforms
+          if(segmentTexture) {
+            procUniforms.uSegmentMask.value = segmentTexture;
+            procUniforms.uUseSegmentation.value = 1.0;
+          }
+          
+          // 1) process video → procRT (rgba with outline-boosted color, alpha=depth)
+          renderer.setRenderTarget(procRT);
+          renderer.render(procScene, procCam);
+          renderer.setRenderTarget(null);
+
+          // 2) feed processed texture into voxels
+          voxUniforms.uTex.value = procRT.texture;
+          voxUniforms.uRes.value.copy(procUniforms.uRes.value);
+          
+          // 3) Check for corner touches in capture mode
+          if(captureMode) {
+            checkCornerTouch();
+          }
+        } else if(isAnimating) {
+          // Animation playback mode
+          animationTime += clock.getDelta();
+          const cycleDuration = 8.0; // 8 seconds for full cycle
+          const t = (animationTime % cycleDuration) / cycleDuration;
+          
+          // Cycle through all 4 poses with tweens
+          const segmentDuration = 0.25; // 25% of cycle per segment
+          const poseIndex = Math.floor(t / segmentDuration);
+          const segmentT = (t % segmentDuration) / segmentDuration;
+          
+          if(capturedPoses.length === 4) {
+            const pose1 = capturedPoses[poseIndex % 4];
+            const pose2 = capturedPoses[(poseIndex + 1) % 4];
+            const blended = lerpVoxels(pose1, pose2, segmentT);
+            
+            // Render blended pose (implementation would require custom rendering)
+            // For now, just alternate between captured poses
+            // TODO: Implement custom voxel rendering from stored data
+          }
+        }
+      }
+      
+      // Draw corner zones overlay
+      drawCornerZones();
+
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+
+    // ------- Smoke tests (basic run-time checks)
+    (function runSmokeTests(){
+      // Test 1: THREE present
+      if(THREE && typeof THREE.WebGLRenderer === 'function') logOK('Test 1 ✓ THREE present'); else logErr('Test 1 ✖ THREE not present');
+      // Test 2: WebGL context
+      try{ const gl = renderer.getContext(); if(gl) logOK('Test 2 ✓ WebGL context ok'); else logErr('Test 2 ✖ WebGL context missing'); }catch(e){ logErr('Test 2 ✖ '+e.message); }
+      // Test 3: Shader compile quick check by rendering the processing pass once after build
+      // (the main loop will surface errors in console if any shader fails)
+    })();
+
+    // kick off
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      statusEl.innerHTML = 'getUserMedia not supported in this browser.';
+      logWarn('Consider trying a modern Chromium/Firefox/Safari.');
+    }else{
+      startStream().catch(err=>{
+        console.error(err);
+        statusEl.innerHTML = 'Camera error: '+err.message;
+        logErr('Camera failed: '+err.message);
+      });
+    }
+    tick();
+
+  </script>
+</body>
+</html>
