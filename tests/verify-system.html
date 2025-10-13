@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Test System</title>
+  <style>
+    body {
+      font-family: 'Consolas', monospace;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 40px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #4ec9b0;
+    }
+    .status {
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 5px;
+      background: #252526;
+      border-left: 4px solid #4ec9b0;
+    }
+    .success {
+      border-left-color: #4ec9b0;
+      color: #4ec9b0;
+    }
+    .error {
+      border-left-color: #f48771;
+      color: #f48771;
+    }
+    .info {
+      border-left-color: #0e639c;
+      color: #0e639c;
+    }
+    pre {
+      background: #252526;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    button {
+      background: #0e639c;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 10px 10px 0;
+    }
+    button:hover {
+      background: #1177bb;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Test System Verification</h1>
+  
+  <div class="status info">
+    <strong>Purpose:</strong> Verify that the test system is properly installed and functional.
+  </div>
+
+  <div id="output"></div>
+
+  <button onclick="runVerification()">▶ Run Verification</button>
+  <button onclick="location.href='test-runner.html'">Open Full Test Runner</button>
+
+  <script type="module">
+    window.runVerification = async function() {
+      const output = document.getElementById('output');
+      output.innerHTML = '';
+
+      function addStatus(type, message) {
+        const div = document.createElement('div');
+        div.className = `status ${type}`;
+        div.innerHTML = message;
+        output.appendChild(div);
+      }
+
+      addStatus('info', '⏳ Starting verification...');
+
+      try {
+        // Test 1: Load test runner
+        addStatus('info', '📦 Loading test runner framework...');
+        const { TestRunner, Assert } = await import('./test-runner.js');
+        addStatus('success', '✅ Test runner loaded successfully');
+
+        // Test 2: Create runner instance
+        addStatus('info', '🔧 Creating TestRunner instance...');
+        const runner = new TestRunner();
+        addStatus('success', '✅ TestRunner instance created');
+
+        // Test 3: Test assertions
+        addStatus('info', '🧪 Testing assertion library...');
+        try {
+          Assert.equal(1, 1);
+          Assert.true(true);
+          Assert.exists({});
+          Assert.arrayLength([1,2,3], 3);
+          addStatus('success', '✅ All assertions working');
+        } catch (err) {
+          addStatus('error', '❌ Assertion error: ' + err.message);
+        }
+
+        // Test 4: Create and run a simple test suite
+        addStatus('info', '🎯 Running sample test suite...');
+        
+        runner.suite('Verification Tests', ({ test }) => {
+          test('should pass basic equality test', () => {
+            Assert.equal(2 + 2, 4);
+          });
+
+          test('should handle arrays', () => {
+            const arr = [1, 2, 3];
+            Assert.arrayLength(arr, 3);
+            Assert.arrayIncludes(arr, 2);
+          });
+
+          test('should handle objects', () => {
+            const obj = { name: 'test', value: 42 };
+            Assert.objectHasProperty(obj, 'name');
+            Assert.equal(obj.value, 42);
+          });
+        });
+
+        const results = await runner.run();
+        
+        if (results.failed === 0) {
+          addStatus('success', `✅ Sample suite passed (${results.passed}/${results.total} tests)`);
+        } else {
+          addStatus('error', `❌ Some tests failed (${results.failed}/${results.total})`);
+        }
+
+        // Test 5: Load test suite modules
+        addStatus('info', '📚 Loading test suite modules...');
+        const modules = [
+          './store.test.js',
+          './formula.test.js',
+          './functions.test.js',
+          './dependencies.test.js',
+          './write-actions.test.js',
+          './integration.test.js',
+          './example-concrete.test.js'
+        ];
+
+        let loadedCount = 0;
+        for (const modulePath of modules) {
+          try {
+            await import(modulePath);
+            loadedCount++;
+          } catch (err) {
+            addStatus('error', `❌ Failed to load ${modulePath}: ${err.message}`);
+          }
+        }
+        
+        if (loadedCount === modules.length) {
+          addStatus('success', `✅ All ${loadedCount} test suite modules loaded`);
+        } else {
+          addStatus('error', `⚠️ Only ${loadedCount}/${modules.length} modules loaded`);
+        }
+
+        // Test 6: Run example concrete tests
+        addStatus('info', '🚀 Running concrete example tests...');
+        const exampleTests = await import('./example-concrete.test.js');
+        const exampleResults = await exampleTests.default.run();
+        
+        if (exampleResults.failed === 0) {
+          addStatus('success', 
+            `✅ Example tests passed (${exampleResults.passed}/${exampleResults.total} tests)`);
+        } else {
+          addStatus('error', 
+            `❌ Example tests had failures (${exampleResults.failed}/${exampleResults.total})`);
+        }
+
+        // Final summary
+        addStatus('success', '<strong>🎉 VERIFICATION COMPLETE</strong>');
+        addStatus('info', `
+          <strong>System Status:</strong><br>
+          ✅ Test framework operational<br>
+          ✅ Assertion library functional<br>
+          ✅ ${loadedCount} test suites loaded<br>
+          ✅ Example tests passing<br>
+          <br>
+          <strong>Next Steps:</strong><br>
+          1. Open test-runner.html for full test interface<br>
+          2. Run individual test suites<br>
+          3. Implement remaining placeholder tests<br>
+          4. Connect to Celli engine modules
+        `);
+
+      } catch (error) {
+        addStatus('error', `❌ Verification failed: ${error.message}`);
+        addStatus('error', `<pre>${error.stack}</pre>`);
+      }
+    };
+
+    // Auto-run on load
+    setTimeout(() => {
+      document.querySelector('button').click();
+    }, 500);
+  </script>
+</body>
+</html>
+

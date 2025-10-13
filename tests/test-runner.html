@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Celli Test Runner</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: #4ec9b0;
+      margin-bottom: 10px;
+      font-size: 2em;
+    }
+
+    .subtitle {
+      color: #808080;
+      margin-bottom: 30px;
+      font-size: 0.9em;
+    }
+
+    .controls {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: #0e639c;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #1177bb;
+    }
+
+    button:active {
+      background: #0d5689;
+    }
+
+    button.secondary {
+      background: #3c3c3c;
+    }
+
+    button.secondary:hover {
+      background: #505050;
+    }
+
+    #output {
+      background: #252526;
+      border: 1px solid #3c3c3c;
+      border-radius: 4px;
+      padding: 20px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      max-height: 70vh;
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+
+    .test-suite {
+      margin-bottom: 20px;
+      border-left: 3px solid #4ec9b0;
+      padding-left: 15px;
+    }
+
+    .test-suite-name {
+      font-size: 1.1em;
+      color: #4ec9b0;
+      margin-bottom: 5px;
+    }
+
+    .test-pass {
+      color: #4ec9b0;
+    }
+
+    .test-fail {
+      color: #f48771;
+    }
+
+    .test-skip {
+      color: #808080;
+    }
+
+    .summary {
+      background: #2d2d30;
+      border: 2px solid #4ec9b0;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 20px;
+    }
+
+    .summary-title {
+      font-size: 1.2em;
+      color: #4ec9b0;
+      margin-bottom: 10px;
+    }
+
+    .summary-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .stat {
+      background: #1e1e1e;
+      padding: 10px;
+      border-radius: 4px;
+    }
+
+    .stat-label {
+      color: #808080;
+      font-size: 0.85em;
+    }
+
+    .stat-value {
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+
+    .pass-rate {
+      font-size: 1.3em;
+      text-align: center;
+      padding: 10px;
+      background: #1e1e1e;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+
+    .error-details {
+      background: #3c1f1e;
+      border-left: 3px solid #f48771;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+
+    .error-title {
+      color: #f48771;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .test-filter {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .test-filter label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: #d4d4d4;
+    }
+
+    .test-filter input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #808080;
+      font-style: italic;
+    }
+
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #1e1e1e;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #3c3c3c;
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #505050;
+    }
+
+    .info-box {
+      background: #2d2d30;
+      border-left: 3px solid #0e639c;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+
+    .info-box h3 {
+      color: #0e639c;
+      margin-bottom: 10px;
+    }
+
+    .info-box ul {
+      margin-left: 20px;
+    }
+
+    .info-box li {
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Celli Test Runner</h1>
+    <p class="subtitle">Automated unit and regression testing for Celli subsystems</p>
+
+    <div class="info-box">
+      <h3>Test Suites Available</h3>
+      <ul>
+        <li><strong>Store Tests:</strong> State management, arrays, selections, globals</li>
+        <li><strong>Formula Tests:</strong> Parser, evaluator, cell references, ranges</li>
+        <li><strong>Function Tests:</strong> TRANSPOSE, ARRAY, DELETE, SET_GLOBAL, etc.</li>
+        <li><strong>Dependency Tests:</strong> Dependency tracking, circular detection, recalculation</li>
+        <li><strong>Write/Actions Tests:</strong> Transactions, batching, history</li>
+        <li><strong>Integration Tests:</strong> End-to-end scenarios, complex formulas</li>
+      </ul>
+    </div>
+
+    <div class="controls">
+      <button id="runAllBtn" onclick="runAllTests()">▶ Run All Tests</button>
+      <button class="secondary" id="runStoreBtn" onclick="runStoreTests()">Store Tests</button>
+      <button class="secondary" id="runFormulaBtn" onclick="runFormulaTests()">Formula Tests</button>
+      <button class="secondary" id="runFunctionBtn" onclick="runFunctionTests()">Function Tests</button>
+      <button class="secondary" id="runDepsBtn" onclick="runDependencyTests()">Dependency Tests</button>
+      <button class="secondary" id="runWriteBtn" onclick="runWriteTests()">Write Tests</button>
+      <button class="secondary" id="runIntegrationBtn" onclick="runIntegrationTests()">Integration Tests</button>
+      <button class="secondary" onclick="clearOutput()">Clear</button>
+    </div>
+
+    <div id="output" class="loading">
+      Click "Run All Tests" to begin testing...
+    </div>
+  </div>
+
+  <script type="module">
+    import { TestRunner, Assert } from './test-runner.js';
+    
+    // Global reference for inline onclick handlers
+    window.TestRunner = TestRunner;
+    window.Assert = Assert;
+
+    let currentOutput = '';
+
+    // Override console.log to capture output
+    const originalLog = console.log;
+    const originalError = console.error;
+
+    function captureConsole() {
+      console.log = function(...args) {
+        const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+        currentOutput += msg + '\n';
+        updateOutput();
+        originalLog.apply(console, args);
+      };
+
+      console.error = function(...args) {
+        const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+        currentOutput += msg + '\n';
+        updateOutput();
+        originalError.apply(console, args);
+      };
+    }
+
+    function updateOutput() {
+      const outputEl = document.getElementById('output');
+      outputEl.textContent = currentOutput;
+      outputEl.scrollTop = outputEl.scrollHeight;
+    }
+
+    window.clearOutput = function() {
+      currentOutput = '';
+      updateOutput();
+    };
+
+    window.runAllTests = async function() {
+      clearOutput();
+      captureConsole();
+      
+      try {
+        // Import all test modules
+        const storeTests = await import('./store.test.js');
+        const formulaTests = await import('./formula.test.js');
+        const functionTests = await import('./functions.test.js');
+        const dependencyTests = await import('./dependencies.test.js');
+        const writeTests = await import('./write-actions.test.js');
+        const integrationTests = await import('./integration.test.js');
+
+        // Create master runner
+        const masterRunner = new TestRunner();
+
+        // Copy all suites from imported runners
+        if (storeTests.default) {
+          masterRunner.suites.push(...storeTests.default.suites);
+        }
+        if (formulaTests.default) {
+          masterRunner.suites.push(...formulaTests.default.suites);
+        }
+        if (functionTests.default) {
+          masterRunner.suites.push(...functionTests.default.suites);
+        }
+        if (dependencyTests.default) {
+          masterRunner.suites.push(...dependencyTests.default.suites);
+        }
+        if (writeTests.default) {
+          masterRunner.suites.push(...writeTests.default.suites);
+        }
+        if (integrationTests.default) {
+          masterRunner.suites.push(...integrationTests.default.suites);
+        }
+
+        await masterRunner.run();
+      } catch (error) {
+        console.error('Error running tests:', error);
+      }
+    };
+
+    window.runStoreTests = async function() {
+      clearOutput();
+      captureConsole();
+      
+      try {
+        const tests = await import('./store.test.js');
+        if (tests.default) {
+          await tests.default.run();
+        }
+      } catch (error) {
+        console.error('Error running store tests:', error);
+      }
+    };
+
+    window.runFormulaTests = async function() {
+      clearOutput();
+      captureConsole();
+      
+      try {
+        const tests = await import('./formula.test.js');
+        if (tests.default) {
+          await tests.default.run();
+        }
+      } catch (error) {
+        console.error('Error running formula tests:', error);
+      }
+    };
+
+    window.runFunctionTests = async function() {
+      clearOutput();
+      captureConsole();
+      
+      try {
+        const tests = await import('./functions.test.js');
+        if (tests.default) {
+          await tests.default.run();
+        }
+      } catch (error) {
+        console.error('Error running function tests:', error);
+      }
+    };
+
+    window.runDependencyTests = async function() {
+      clearOutput();
+      captureConsole();
+      
+      try {
+        const tests = await import('./dependencies.test.js');
+        if (tests.default) {
+          await tests.default.run();
+        }
+      } catch (error) {
+        console.error('Error running dependency tests:', error);
+      }
+    };
+
+    window.runWriteTests = async function() {
+      clearOutput();
+      captureConsole();
+      
+      try {
+        const tests = await import('./write-actions.test.js');
+        if (tests.default) {
+          await tests.default.run();
+        }
+      } catch (error) {
+        console.error('Error running write tests:', error);
+      }
+    };
+
+    window.runIntegrationTests = async function() {
+      clearOutput();
+      captureConsole();
+      
+      try {
+        const tests = await import('./integration.test.js');
+        if (tests.default) {
+          await tests.default.run();
+        }
+      } catch (error) {
+        console.error('Error running integration tests:', error);
+      }
+    };
+
+    // Show ready message
+    setTimeout(() => {
+      console.log('✅ Test runner loaded and ready!');
+      console.log('');
+      console.log('Available test suites:');
+      console.log('  • Store Tests');
+      console.log('  • Formula Tests');
+      console.log('  • Function Tests');
+      console.log('  • Dependency Tests');
+      console.log('  • Write/Actions Tests');
+      console.log('  • Integration Tests');
+      console.log('');
+      console.log('Click "Run All Tests" to begin...');
+    }, 100);
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Celli Sequence Builder</title>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="src/styles/sequence.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .sequence-close-btn {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      z-index: 10001;
+      background: #f44336;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .sequence-close-btn:hover {
+      background: #d32f2f;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    .sequence-title {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10001;
+      color: #cccccc;
+      font-size: 20px;
+      font-weight: 600;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+
+    .keyboard-hint {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10001;
+      color: #999;
+      font-size: 12px;
+      background: rgba(0,0,0,0.7);
+      padding: 8px 16px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    .keyboard-hint kbd {
+      background: #333;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Consolas', monospace;
+      border: 1px solid #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="sequence-title">🎬 Sequence Builder</div>
+  <button class="sequence-close-btn" onclick="window.close()">✕ Close</button>
+  <div class="keyboard-hint">Press <kbd>\</kbd> to toggle sequence builder in main app</div>
+  
+  <div id="sequence-composer-container" class="active"></div>
+
+  <script type="module">
+    import { SequenceUI } from './src/scripts/sequence/SequenceUI.js';
+
+    console.log('🎬 Sequence Builder Loading...');
+
+    // Mock scene registry for standalone mode
+    const mockSceneRegistry = {
+      scenes: new Map(),
+      entities: new Map()
+    };
+
+    // Initialize Sequence UI
+    const sequenceUI = new SequenceUI('sequence-composer-container', mockSceneRegistry);
+    sequenceUI.init();
+
+    console.log('✅ Sequence Builder Ready');
+
+    // Keyboard shortcut: Escape to close
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (confirm('Close Sequence Builder?')) {
+          window.close();
+        }
+      }
+    });
+
+    // Prevent accidental page close
+    window.addEventListener('beforeunload', (e) => {
+      const hasNodes = sequenceUI.composer?.state?.nodes?.length > 0;
+      if (hasNodes) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved work. Are you sure you want to close?';
+        return e.returnValue;
+      }
+    });
+  </script>
+</body>
+</html>
+
