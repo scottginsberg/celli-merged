@@ -73,34 +73,49 @@ export class CelliRealScene {
    */
   async init() {
     console.log('[CelliRealScene-Full] 🚀 Initializing FULL Cell.real scene...');
+    console.log('[CelliRealScene-Full] Step 1: Inject HTML...');
     
     try {
       // Inject HTML structure
       this._injectHTML();
+      console.log('[CelliRealScene-Full] ✅ HTML injected');
       
       // Initialize renderer (reuse existing canvas)
+      console.log('[CelliRealScene-Full] Step 2: Initialize renderer...');
       this._initRenderer();
+      console.log('[CelliRealScene-Full] ✅ Renderer ready');
       
       // Initialize scene
+      console.log('[CelliRealScene-Full] Step 3: Initialize THREE.js scene...');
       this._initScene();
+      console.log('[CelliRealScene-Full] ✅ Scene ready');
       
       // Initialize spreadsheet
+      console.log('[CelliRealScene-Full] Step 4: Initialize spreadsheet...');
       await this._initSpreadsheet();
+      console.log('[CelliRealScene-Full] ✅ Spreadsheet ready');
       
       // Initialize 3D systems
+      console.log('[CelliRealScene-Full] Step 5: Initialize 3D systems...');
       await this._init3DSystems();
+      console.log('[CelliRealScene-Full] ✅ 3D systems ready');
       
       // Setup event handlers
+      console.log('[CelliRealScene-Full] Step 6: Setup events...');
       this._setupEvents();
+      console.log('[CelliRealScene-Full] ✅ Events ready');
       
       // Load initial state
+      console.log('[CelliRealScene-Full] Step 7: Load initial state...');
       this._loadInitialState();
+      console.log('[CelliRealScene-Full] ✅ Initial state loaded');
       
-      console.log('[CelliRealScene-Full] ✅ Initialization complete');
+      console.log('[CelliRealScene-Full] ✅ ✅ ✅ INITIALIZATION COMPLETE ✅ ✅ ✅');
       return true;
     } catch (error) {
       console.error('[CelliRealScene-Full] ❌ Initialization failed:', error);
-      return false;
+      console.error('[CelliRealScene-Full] Error stack:', error.stack);
+      throw error; // Re-throw so caller can see it
     }
   }
 
@@ -483,6 +498,7 @@ export class CelliRealScene {
    */
   async start(params, callbacks) {
     console.log('[CelliRealScene-Full] ▶️ Starting with intro sequence');
+    console.log('[CelliRealScene-Full] Params:', params, 'Callbacks:', callbacks);
     
     this.state.running = true;
     
@@ -491,7 +507,9 @@ export class CelliRealScene {
     // 2. Transition to 3D world
     // 3. Full interaction mode
     
+    console.log('[CelliRealScene-Full] Beginning intro sequence playback...');
     await this._playIntroSequence();
+    console.log('[CelliRealScene-Full] ✅ Start complete, scene is running');
   }
 
   /**
