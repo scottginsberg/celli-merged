@@ -7,7 +7,7 @@
  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
  <meta http-equiv="Pragma" content="no-cache" />
  <meta http-equiv="Expires" content="0" />
- <meta name="version" content="5.6-celli-avatar-enhanced" />
+ <meta name="version" content="5.7-intro-sequence-faithful" />
  <title>Tri-Trail Evolved three.js [v4.2 THE.OS]</title>
  
  <!-- Google Fonts -->
@@ -20,6 +20,7 @@
  
  <!-- Styles -->
  <link rel="stylesheet" href="src/styles/main.css">
+ <link rel="stylesheet" href="src/styles/sequence.css">
 </head>
 <body>
  <div id="app" class="scanlines"></div>
@@ -46,8 +47,15 @@
  <!-- Play Overlay -->
  <div id="play" class="play">
   <button id="playBtn">Play</button>
-  <button id="sceneSelectBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">Scene Select</button>
-  <button id="testAudioBtn" style="font-size:12px; padding:10px 20px; opacity:0.7; margin-top: 10px;">TEST</button>
+  <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; justify-content:center; max-width:550px;">
+   <button id="sceneSelectBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">Scene Select</button>
+   <button id="testAudioBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">TEST Audio</button>
+  </div>
+  <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap; justify-content:center; max-width:550px;">
+   <button id="sequenceBuilderBtn" style="font-size:11px; padding:8px 16px; opacity:0.7; background:#ff6b6b;">🎬 Sequence Builder</button>
+   <button id="singleBuilderBtn" style="font-size:11px; padding:8px 16px; opacity:0.7; background:#ffa500;">🛠️ Single Builder</button>
+   <button id="testRunnerBtn" style="font-size:11px; padding:8px 16px; opacity:0.7; background:#4ec9b0;">🧪 Test Runner</button>
+  </div>
  </div>
  
  <!-- Scene Select Menu -->
@@ -91,6 +99,16 @@
      <div>CELLI.REAL → Spreadsheet Reality</div>
      <div class="scene-option-desc">The awakened terminal - interactive spreadsheet environment</div>
     </div>
+    
+    <div class="scene-option" data-scene="sequence-builder" style="border-left: 3px solid #ff6b6b;">
+     <div>🎬 DEV.TOOLS → Sequence Builder</div>
+     <div class="scene-option-desc">Visual node-based sequence composer (Press \ in any scene)</div>
+    </div>
+    
+    <div class="scene-option" data-scene="test-runner" style="border-left: 3px solid #4ec9b0;">
+     <div>🧪 DEV.TOOLS → Test Runner</div>
+     <div class="scene-option-desc">Automated unit & regression tests for Celli subsystems</div>
+    </div>
    </div>
    
    <div class="scene-controls">
@@ -132,6 +150,9 @@
  <!-- UI Elements Container -->
  <div id="uiContainer"></div>
  
+ <!-- Sequence Builder Overlay Container -->
+ <div id="sequence-overlay" style="display: none;"></div>
+ 
  <!-- Import map for ES modules -->
  <script type="importmap">
  {
@@ -144,9 +165,11 @@
 
  <!-- Main Application -->
  <script type="module">
-  import { IntroSceneComplete } from './src/scripts/scenes/IntroSceneComplete.js';
+  import { IntroSceneComplete } from './src/scripts/scenes/IntroSceneComplete.js?v=5.7';
 
-  console.log('🎬 Celli Application Starting');
+  console.log('🎬 Celli Application Starting v5.7 - Faithful Intro Sequence');
+  console.log('%c🔥 INTRO SEQUENCE FULLY UPDATED 🔥', 'background:#ff4400; color:#fff; font-size:18px; padding:8px; font-weight:bold;');
+  console.log('%c✅ All phases implemented - Roll/Bounce/Triangle/Venn/Collapse/Glitch/CELLI', 'background:#0f0; color:#000; font-size:14px; padding:6px;');
 
   let introScene = null;
   let animationFrameId = null;
@@ -202,6 +225,27 @@
    if (sceneSelectEl) {
     sceneSelectEl.classList.toggle('visible');
    }
+  });
+
+  // Sequence Builder button handler
+  document.getElementById('sequenceBuilderBtn').addEventListener('click', () => {
+   console.log('🎬 Sequence Builder clicked');
+   window.open('./sequence-builder.html', '_blank');
+   toast('Opening Sequence Builder in new window...');
+  });
+
+  // Single Builder button handler
+  document.getElementById('singleBuilderBtn').addEventListener('click', () => {
+   console.log('🛠️ Single Builder clicked');
+   window.open('./builder.html', '_blank');
+   toast('Opening Single Builder in new window...');
+  });
+
+  // Test Runner button handler
+  document.getElementById('testRunnerBtn').addEventListener('click', () => {
+   console.log('🧪 Test Runner clicked');
+   window.open('./tests/test-runner.html', '_blank');
+   toast('Opening Test Runner in new window...');
   });
 
   // Close Scene Select
@@ -269,6 +313,21 @@
     
     const scene = this.dataset.scene;
     console.log(`🎬 Loading scene: ${scene}`);
+    
+    // Handle sequence builder
+    if (scene === 'sequence-builder') {
+     window.open('./sequence-builder.html', '_blank');
+     toast('Opening Sequence Builder...');
+     return;
+    }
+    
+    // Handle test runner
+    if (scene === 'test-runner') {
+     window.open('./tests/test-runner.html', '_blank');
+     toast('Opening Test Runner...');
+     return;
+    }
+    
     toast(`Scene ${scene} not yet implemented`);
    });
   });
@@ -292,7 +351,85 @@
    }
   });
 
+  // Global keyboard shortcut for Sequence Builder overlay
+  let sequenceOverlayActive = false;
+  let sequenceUI = null;
+
+  async function toggleSequenceOverlay() {
+   const overlay = document.getElementById('sequence-overlay');
+   
+   if (sequenceOverlayActive) {
+    // Hide overlay
+    overlay.style.display = 'none';
+    sequenceOverlayActive = false;
+    console.log('🎬 Sequence Builder overlay hidden');
+    toast('Sequence Builder closed (Press \\ to reopen)');
+   } else {
+    // Show overlay
+    overlay.style.display = 'block';
+    sequenceOverlayActive = true;
+    
+    // Initialize sequence UI if not already done
+    if (!sequenceUI) {
+     try {
+      // Create container for sequence builder
+      overlay.innerHTML = `
+       <div id="sequence-composer-container" class="active">
+        <div class="sequence-close-btn" id="sequenceOverlayClose" style="position: absolute; top: 15px; left: 15px; z-index: 10001; background: #f44336; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600;">
+         ✕ Close (or press \\ )
+        </div>
+        <div class="keyboard-hint" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10001; color: #999; font-size: 12px; background: rgba(0,0,0,0.7); padding: 8px 16px; border-radius: 4px; pointer-events: none;">
+         Press <kbd style="background: #333; padding: 2px 6px; border-radius: 3px; font-family: 'Consolas', monospace; border: 1px solid #555;">\\</kbd> to toggle sequence builder
+        </div>
+       </div>
+      `;
+      
+      // Add close button handler
+      document.getElementById('sequenceOverlayClose').addEventListener('click', toggleSequenceOverlay);
+      
+      // Import and initialize SequenceUI
+      const { SequenceUI } = await import('./src/scripts/sequence/SequenceUI.js');
+      
+      // Mock scene registry for now
+      const mockSceneRegistry = {
+       scenes: new Map(),
+       entities: new Map()
+      };
+      
+      sequenceUI = new SequenceUI('sequence-composer-container', mockSceneRegistry);
+      sequenceUI.init();
+      
+      console.log('✅ Sequence Builder overlay initialized');
+     } catch (error) {
+      console.error('❌ Failed to load Sequence Builder:', error);
+      toast('Error loading Sequence Builder');
+      overlay.style.display = 'none';
+      sequenceOverlayActive = false;
+      return;
+     }
+    }
+    
+    console.log('🎬 Sequence Builder overlay shown');
+    toast('Sequence Builder opened (Press \\ to close)');
+   }
+  }
+
+  // Listen for backslash key globally
+  document.addEventListener('keydown', (e) => {
+   // Check for backslash key
+   if (e.key === '\\' || e.key === '|' || e.code === 'Backslash') {
+    e.preventDefault();
+    toggleSequenceOverlay();
+   }
+   
+   // Allow Escape to close overlay if open
+   if (e.key === 'Escape' && sequenceOverlayActive) {
+    toggleSequenceOverlay();
+   }
+  });
+
   console.log('✅ Application initialized - Click Play to begin');
+  console.log('💡 Tip: Press \\ anytime to open Sequence Builder overlay');
  </script>
 </body>
 </html>
