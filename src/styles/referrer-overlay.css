@@ -300,12 +300,11 @@
 }
 
 .reddit-post.has-celli-ad {
-  background: linear-gradient(90deg, 
-    rgba(102, 126, 234, 0.03), 
-    rgba(118, 75, 162, 0.06), 
+  background: linear-gradient(90deg,
+    rgba(102, 126, 234, 0.03),
+    rgba(118, 75, 162, 0.06),
     rgba(102, 126, 234, 0.03));
-  background-size: 200% 100%;
-  animation: celliGlow 4s ease-in-out infinite;
+  background-size: 120% 100%;
   border-left: 3px solid rgba(102, 126, 234, 0.4);
 }
 
@@ -412,11 +411,11 @@
   color: #667eea;
   font-weight: bold;
   background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #667eea 100%);
-  background-size: 200% 100%;
+  background-size: 150% 100%;
+  background-position: center;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: celliShimmer 3s linear infinite;
 }
 
 .reddit-domain {
@@ -616,11 +615,11 @@
 }
 
 .twitter-tweet.has-celli-ad {
-  background: linear-gradient(90deg, 
-    rgba(102, 126, 234, 0.03), 
-    rgba(118, 75, 162, 0.06), 
+  background: linear-gradient(90deg,
+    rgba(102, 126, 234, 0.03),
+    rgba(118, 75, 162, 0.06),
     rgba(102, 126, 234, 0.03));
-  animation: celliGlow 4s ease-in-out infinite;
+  background-size: 120% 100%;
   border-left: 3px solid rgba(102, 126, 234, 0.4);
 }
 
@@ -661,11 +660,11 @@
 
 .twitter-text.celli-ad {
   background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #667eea 100%);
-  background-size: 200% 100%;
+  background-size: 150% 100%;
+  background-position: center;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: celliShimmer 3s linear infinite;
   font-weight: 700;
 }
 
@@ -812,10 +811,10 @@
 }
 
 .facebook-post.has-celli-ad {
-  background: linear-gradient(135deg, 
-    rgba(102, 126, 234, 0.05), 
+  background: linear-gradient(135deg,
+    rgba(102, 126, 234, 0.05),
     rgba(118, 75, 162, 0.08));
-  animation: celliGlow 4s ease-in-out infinite;
+  background-size: 120% 100%;
   border-left: 4px solid rgba(102, 126, 234, 0.5);
 }
 
@@ -859,11 +858,11 @@
 
 .facebook-post-text.celli-ad {
   background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #667eea 100%);
-  background-size: 200% 100%;
+  background-size: 150% 100%;
+  background-position: center;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: celliShimmer 3s linear infinite;
   font-weight: 700;
 }
 
@@ -1146,11 +1145,11 @@
   color: #667eea;
   font-weight: bold;
   background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #667eea 100%);
-  background-size: 200% 100%;
+  background-size: 150% 100%;
+  background-position: center;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: celliShimmer 3s linear infinite;
 }
 
 @keyframes celliShimmer {
@@ -1163,12 +1162,11 @@
 }
 
 .hn-item.has-celli-ad {
-  background: linear-gradient(90deg, 
-    rgba(102, 126, 234, 0.05), 
-    rgba(118, 75, 162, 0.08), 
+  background: linear-gradient(90deg,
+    rgba(102, 126, 234, 0.05),
+    rgba(118, 75, 162, 0.08),
     rgba(102, 126, 234, 0.05));
-  background-size: 200% 100%;
-  animation: celliGlow 4s ease-in-out infinite;
+  background-size: 120% 100%;
   border-left: 2px solid rgba(102, 126, 234, 0.3);
 }
 
@@ -1729,6 +1727,102 @@
   }
   .celli-ref-panel {
     height: 88vh;
+  }
+}
+
+@media (max-width: 640px) {
+  .celli-ref-panel {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .ref-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 14px;
+  }
+
+  .ref-meta {
+    width: 100%;
+  }
+
+  .ref-close {
+    margin-left: 0;
+    align-self: stretch;
+  }
+
+  .ref-list {
+    padding: 12px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .ref-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .ref-footer .btn {
+    width: 100%;
+  }
+
+  .reddit-post {
+    flex-direction: column;
+    margin: 0;
+    padding: 12px;
+  }
+
+  .reddit-vote {
+    flex-direction: row;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 12px;
+  }
+
+  .reddit-main {
+    width: 100%;
+  }
+
+  .twitter-sidebar,
+  .twitter-right-panel {
+    display: none;
+  }
+
+  .ref-list.twitter-style {
+    display: block;
+  }
+
+  .twitter-feed {
+    border-right: none;
+  }
+
+  .twitter-tweet {
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .twitter-actions {
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .facebook-feed {
+    padding: 0 8px;
+  }
+
+  .facebook-post {
+    padding: 12px;
+  }
+
+  .facebook-actions {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .facebook-messenger {
+    display: none;
   }
 }
 
