@@ -115,10 +115,128 @@
   .ref-sidebar.mythic-entrance.stage-expand .ref-sidebar-btn {
    animation: none;
   }
-  
+
+  .ref-sidebar.mythic-entrance.note-seed {
+   width: clamp(210px, 65vw, 260px);
+   padding: 20px 24px;
+   border-radius: 22px;
+   background: linear-gradient(145deg, rgba(25, 32, 58, 0.92), rgba(18, 26, 48, 0.88)) !important;
+   box-shadow: 0 18px 46px rgba(14, 18, 40, 0.58), 0 0 42px rgba(102, 126, 234, 0.45);
+   backdrop-filter: blur(24px) saturate(185%);
+   -webkit-backdrop-filter: blur(24px) saturate(185%);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+  }
+
+  .ref-sidebar.mythic-entrance.note-seed .ref-sidebar-btn {
+   width: 100%;
+   padding: 0;
+   background: transparent;
+   border: none;
+  }
+
+  .ref-sidebar.mythic-entrance.note-hover {
+   box-shadow: 0 28px 70px rgba(9, 12, 28, 0.75), 0 0 80px rgba(123, 150, 255, 0.55);
+   background: linear-gradient(150deg, rgba(24, 32, 60, 0.95), rgba(16, 24, 50, 0.92)) !important;
+  }
+
+  .ref-note-crystal {
+   position: relative;
+   display: grid;
+   gap: 6px;
+   padding: 18px 22px;
+   border-radius: 18px;
+   background: linear-gradient(135deg, rgba(146, 172, 255, 0.25), rgba(90, 116, 230, 0.16));
+   border: 1px solid rgba(164, 190, 255, 0.35);
+   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 14px 30px rgba(18, 28, 62, 0.6);
+   overflow: hidden;
+   color: #f5f7ff;
+   text-align: center;
+   font-family: "Inter", -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+   letter-spacing: 0.12em;
+   text-transform: uppercase;
+   transition: transform 0.6s ease, box-shadow 0.6s ease;
+  }
+
+  .ref-note-crystal::before {
+   content: "";
+   position: absolute;
+   inset: -20%;
+   background: radial-gradient(circle at 30% 30%, rgba(184, 204, 255, 0.35), transparent 60%);
+   opacity: 0.8;
+   animation: ref-note-glow 4s ease-in-out infinite;
+  }
+
+  .ref-note-crystal::after {
+   content: "";
+   position: absolute;
+   inset: 12%;
+   border-radius: 16px;
+   border: 1px solid rgba(255, 255, 255, 0.25);
+   opacity: 0.5;
+   mix-blend-mode: screen;
+  }
+
+  .ref-note-title {
+   position: relative;
+   font-size: 12px;
+   font-weight: 600;
+   color: #e0e6ff;
+   text-shadow: 0 0 18px rgba(149, 170, 255, 0.6);
+   letter-spacing: 0.24em;
+  }
+
+  .ref-note-sub {
+   position: relative;
+   font-size: 11px;
+   font-weight: 500;
+   opacity: 0.7;
+   letter-spacing: 0.16em;
+  }
+
+  .ref-note-crystal--hover,
+  .ref-sidebar.mythic-entrance.note-hover .ref-note-crystal {
+   transform: translateY(-6px) scale(1.04);
+   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 24px 46px rgba(12, 18, 42, 0.68), 0 0 55px rgba(138, 160, 255, 0.75);
+  }
+
+  @keyframes ref-note-glow {
+   0%, 100% {
+    opacity: 0.8;
+    transform: translate(-4%, -2%) scale(1);
+   }
+   50% {
+    opacity: 1;
+    transform: translate(6%, 4%) scale(1.06);
+   }
+  }
+
+  @media (max-width: 768px) {
+   .ref-sidebar.mythic-entrance.note-seed {
+    width: clamp(180px, 60vw, 230px);
+    padding: 18px 20px;
+   }
+
+   .ref-note-crystal {
+    padding: 16px 18px;
+    border-radius: 16px;
+    letter-spacing: 0.1em;
+   }
+
+   .ref-note-title {
+    font-size: 11px;
+   }
+
+   .ref-note-sub {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+   }
+  }
+
   /* AI Twinkle effect */
   @keyframes ai-twinkle {
-   0%, 100% { 
+   0%, 100% {
     opacity: 1;
     transform: scale(1);
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
@@ -1619,6 +1737,9 @@
   const edgeImpact = document.getElementById('edgeImpact');
   const darkeningOverlay = document.getElementById('darkeningOverlay');
   const lightBeam = document.getElementById('lightBeam');
+  const chantAudio = new Audio('./chant.mp3');
+  chantAudio.preload = 'auto';
+  chantAudio.volume = 0.7;
 
   // Track impact hits for progressive darkening
   let impactCount = 0;
@@ -1638,6 +1759,8 @@
   let goldenHoldCleanup = null;
   let goldenHoldTimer = null;
   let goldenDustAnimationId = null;
+  let noteAwaitingActivation = false;
+  let noteStageTimeouts = [];
 
   // Parody headlines
   const parodyHeadlines = [
@@ -1843,6 +1966,12 @@
   let tosPhaseActive = false;
   
   refSidebarAck.addEventListener('click', () => {
+    if (noteAwaitingActivation) {
+      console.log('🔔 Note activation tapped - beginning hover sequence');
+      startNoteHoverSequence();
+      return;
+    }
+
     // If ToS phase is active, trigger final submission
     if (tosPhaseActive) {
       console.log('📝 ToS CHECKBOX CLICKED - FINAL SUBMISSION');
@@ -1858,13 +1987,188 @@
       hideSidebar();
     }
   });
-  
+
+  function isMobileViewport() {
+    return window.matchMedia('(max-width: 768px)').matches;
+  }
+
+  function clearNoteStageTimeouts() {
+    noteStageTimeouts.forEach(id => clearTimeout(id));
+    noteStageTimeouts = [];
+    if (window.badBooleanTimeout) {
+      clearTimeout(window.badBooleanTimeout);
+      window.badBooleanTimeout = null;
+    }
+  }
+
+  function playChantAudio() {
+    try {
+      chantAudio.currentTime = 0;
+    } catch (err) {
+      console.warn('⚠️ Unable to reset chant audio time:', err);
+    }
+
+    const playPromise = chantAudio.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch(err => {
+        console.warn('⚠️ Chant playback blocked by browser:', err);
+      });
+    }
+  }
+
+  function stopChantAudio() {
+    chantAudio.pause();
+    chantAudio.currentTime = 0;
+  }
+
+  function startNoteHoverSequence() {
+    if (!noteAwaitingActivation) {
+      return;
+    }
+
+    const sidebar = refSidebar;
+    const ackBtn = refSidebarAck;
+
+    noteAwaitingActivation = false;
+    clearNoteStageTimeouts();
+
+    sidebar.classList.remove('stage-float');
+    sidebar.classList.add('stage-sweep', 'note-hover');
+
+    const noteCrystal = ackBtn.querySelector('.ref-note-crystal');
+    if (noteCrystal) {
+      noteCrystal.classList.add('ref-note-crystal--hover');
+    }
+
+    triggerNoteHoverEffects();
+
+    const rumbleTimeout = setTimeout(() => {
+      sidebar.classList.add('stage-rumble');
+    }, 1200);
+    noteStageTimeouts.push(rumbleTimeout);
+
+    const expandTimeout = setTimeout(() => {
+      sidebar.classList.remove('stage-rumble');
+      sidebar.classList.add('stage-expand');
+      revealAiMessage();
+    }, 2400);
+    noteStageTimeouts.push(expandTimeout);
+  }
+
+  function triggerNoteHoverEffects() {
+    console.log('  ✨ Activating crystalline note hover effects');
+    playChantAudio();
+
+    if (darkeningOverlay) {
+      darkeningOverlay.classList.add('flash-of-life');
+      const flashTimeout = setTimeout(() => {
+        darkeningOverlay.classList.remove('flash-of-life');
+      }, 1500);
+      noteStageTimeouts.push(flashTimeout);
+    }
+
+    const burstBeam = document.createElement('div');
+    burstBeam.className = 'burst-beam';
+    document.body.appendChild(burstBeam);
+
+    if (brickHoles.length > 0) {
+      const avgY = brickHoles.reduce((sum, h) => sum + h.y, 0) / brickHoles.length;
+      burstBeam.style.background = `radial-gradient(ellipse at right ${avgY}px, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.35) 30%, transparent 60%)`;
+    }
+
+    const cleanupTimeout = setTimeout(() => {
+      if (burstBeam.parentNode) {
+        burstBeam.style.opacity = '0';
+        setTimeout(() => burstBeam.remove(), 1000);
+      }
+    }, 3000);
+    noteStageTimeouts.push(cleanupTimeout);
+  }
+
+  function revealAiMessage() {
+    const sidebar = refSidebar;
+    const ackBtn = refSidebarAck;
+
+    sidebar.classList.remove('note-seed', 'note-hover');
+
+    ackBtn.innerHTML = `
+        <div class="ai-message" style="font-size: 15px; font-weight: 300; line-height: 1.8; color: #f8f9fa; text-align: center;padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">
+          <div style="font-size: 48px; margin-bottom: 16px;">✨</div>
+          <div style="font-weight: 500; margin-bottom: 14px; font-size: 18px; color: #8fb4ff; letter-spacing: 0.5px; text-shadow: 0 0 12px rgba(143, 180, 255, 0.4);">AI-Enhanced Content Discovery</div>
+          <div style="opacity: 0.9; font-size: 14px;">Analyzing your browsing patterns to deliver personalized recommendations with unprecedented accuracy.</div>
+          <div style="margin-top: 16px; font-size: 12px; opacity: 0.6; letter-spacing: 1px; color: #a0b0c0;">Powered by Cell.real Intelligence</div>
+        </div>
+      `;
+    ackBtn.style.background = 'linear-gradient(135deg, rgba(15, 25, 45, 0.7), rgba(25, 35, 55, 0.8))';
+    ackBtn.style.backdropFilter = 'blur(20px) saturate(180%)';
+    ackBtn.style.webkitBackdropFilter = 'blur(20px) saturate(180%)';
+    ackBtn.style.border = '1px solid rgba(143, 180, 255, 0.25)';
+    ackBtn.style.borderRadius = '16px';
+    ackBtn.style.padding = '0';
+    ackBtn.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(102, 126, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
+    ackBtn.style.cursor = 'pointer';
+    ackBtn.style.animation = '';
+    ackBtn.style.transition = 'all 0.3s ease-out';
+
+    console.log('  ✨ AI MESSAGE DISPLAYED WITH TWINKLE');
+
+    const gaudyTimeout = setTimeout(() => {
+      console.log('  💥💥💥 JARRING SWITCH TO BADBOOLEAN AD!');
+
+      ackBtn.style.transition = 'all 0.1s ease-out';
+
+      ackBtn.innerHTML = `
+          <div style="font-size: 20px; font-weight: 900; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 2px; color: #ff0080; animation: pulse 0.5s infinite;">
+            ARE YOU A TOTAL ZERO?
+          </div>
+          <div style="font-size: 16px; margin-bottom: 10px; color: #ffff00; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+            💋 SINGLES IN YOUR AREA 💋
+          </div>
+          <div style="font-size: 26px; font-weight: 900; color: #00ff00; text-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00; letter-spacing: 3px; animation: pulse 0.8s infinite;">
+            BADBOOLEAN.COM
+          </div>
+          <div style="font-size: 14px; margin-top: 10px; color: #ff69b4; font-style: italic; font-weight: 500; opacity: 0.9;">
+            True love never felt so false.
+          </div>
+          <div style="font-size: 12px; margin-top: 8px; color: #ff00ff; font-weight: 600;">🔥 CLICK HERE NOW!!! 🔥</div>
+        `;
+      ackBtn.style.background = 'linear-gradient(135deg, #ff0080 0%, #ff8c00 25%, #ffff00 50%, #00ff00 75%, #ff0080 100%)';
+      ackBtn.style.backgroundSize = '200% 200%';
+      ackBtn.style.border = '3px solid #ff00ff';
+      ackBtn.style.boxShadow = '0 0 20px #ff0080, 0 0 40px #00ff00, inset 0 0 20px rgba(255,255,255,0.3)';
+      ackBtn.style.animation = 'pulse 0.5s infinite, rainbow-shift 3s ease infinite';
+      ackBtn.style.padding = '30px 20px';
+
+      console.log('  🎪🎪🎪 BADBOOLEAN AD ACTIVE! 🎪🎪🎪');
+      console.log('  ⏰ Starting 5-second timeout for alt LOOMWORKS invite');
+
+      if (window.badBooleanTimeout) {
+        clearTimeout(window.badBooleanTimeout);
+      }
+
+      const adTimeout = setTimeout(() => {
+        console.log('  ⏱️ 5 seconds elapsed - transforming to alt LOOMWORKS invite');
+        transformToAltLoomworksInvite();
+      }, 5000);
+
+      window.badBooleanTimeout = adTimeout;
+      noteStageTimeouts.push(adTimeout);
+    }, 2500);
+
+    noteStageTimeouts.push(gaudyTimeout);
+  }
+
   function showLoomworksInvite(isAltVersion = false) {
     const sidebar = refSidebar;
     const ackBtn = refSidebarAck;
     const h3 = sidebar.querySelector('h3');
     const paragraphs = sidebar.querySelectorAll('p');
-    
+
+    sidebar.classList.remove('note-seed', 'note-hover');
+    noteAwaitingActivation = false;
+    clearNoteStageTimeouts();
+    stopChantAudio();
+
     // Clear any pending timeout
     if (window.badBooleanTimeout) {
       clearTimeout(window.badBooleanTimeout);
@@ -2738,15 +3042,21 @@
   }
   
   function hideSidebar() {
-    refSidebar.classList.remove('active', 'bouncing', 'impact', 'mythic-entrance', 'stage-float', 'stage-sweep', 'stage-rumble', 'stage-expand');
+    refSidebar.classList.remove('active', 'bouncing', 'impact', 'mythic-entrance', 'stage-float', 'stage-sweep', 'stage-rumble', 'stage-expand', 'note-hover', 'note-seed');
     refSidebarUrl.style.display = 'none';
     refSidebarUrl.textContent = '';
     refSidebarClose.style.display = 'block';
-    
+
+    clearNoteStageTimeouts();
+    stopChantAudio();
+    noteAwaitingActivation = false;
+
     // Reset button to original state
     const ackBtn = refSidebarAck;
     ackBtn.innerHTML = 'Acknowledge Glitch';
     ackBtn.style.background = '';
+    ackBtn.style.backdropFilter = '';
+    ackBtn.style.webkitBackdropFilter = '';
     ackBtn.style.padding = '';
     ackBtn.style.fontSize = '';
     ackBtn.style.animation = '';
@@ -2754,7 +3064,12 @@
     ackBtn.style.boxShadow = '';
     ackBtn.style.opacity = '1';
     ackBtn.style.transition = '';
-    
+    ackBtn.style.borderRadius = '';
+    ackBtn.style.transform = '';
+    ackBtn.style.cursor = '';
+    ackBtn.style.backgroundSize = '';
+    ackBtn.setAttribute('aria-label', 'Acknowledge glitch');
+
     // Reset sidebar content visibility
     const h3 = refSidebar.querySelector('h3');
     const paragraphs = refSidebar.querySelectorAll('p');
@@ -3386,149 +3701,58 @@
   
   function animateSidebarEntry() {
     console.log('🎪 🎭 MYTHIC SIDEBAR ENTRY SEQUENCE INITIATED 🎭 🎪');
-    console.log(`💥 BURSTING THROUGH ${brickHoles.length} HOLES IN THE WALL!`);
-    
-    // FLASH OF LIFE - Momentarily restore light
-    console.log('💡 FLASH OF LIFE - Restoring light momentarily!');
-    if (darkeningOverlay) {
-      // Flash bright white
-      darkeningOverlay.classList.add('flash-of-life');
-      
-      // After flash, return to darkness
-    setTimeout(() => {
-        darkeningOverlay.classList.remove('flash-of-life');
-      }, 1500);
-    }
-    
-    // Create GIANT burst beam through all holes
-    const burstBeam = document.createElement('div');
-    burstBeam.className = 'burst-beam';
-    document.body.appendChild(burstBeam);
-    
-    // Position burst beam to align with hole cluster
-    if (brickHoles.length > 0) {
-      const avgY = brickHoles.reduce((sum, h) => sum + h.y, 0) / brickHoles.length;
-      burstBeam.style.background = `radial-gradient(ellipse at right ${avgY}px, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.3) 30%, transparent 70%)`;
-    }
-    
-    // Clean up burst beam after animation
-    setTimeout(() => {
-      if (burstBeam.parentNode) {
-        burstBeam.style.opacity = '0';
-        setTimeout(() => burstBeam.remove(), 1000);
-      }
-    }, 3000);
-    
-    // Transform sidebar into dramatic fake ad card
+    console.log(`💎 Preparing crystalline note with ${brickHoles.length} breach points.`);
+
+    clearNoteStageTimeouts();
+    stopChantAudio();
+
     const sidebar = refSidebar;
     const ackBtn = refSidebarAck;
-    
+    const h3 = sidebar.querySelector('h3');
+    const paragraphs = sidebar.querySelectorAll('p');
+
     // Hide close button and url during dramatic entrance
     refSidebarClose.style.display = 'none';
     refSidebarUrl.style.display = 'none';
-    
-    // Reset sidebar classes
-    sidebar.classList.remove('active', 'bouncing', 'impact');
-    
-    // Add mythic entrance class
-    sidebar.classList.add('mythic-entrance');
-    
-    // Transform content for fake ad
-    const h3 = sidebar.querySelector('h3');
-    const paragraphs = sidebar.querySelectorAll('p');
-    h3.style.opacity = '0';
-    paragraphs.forEach(p => p.style.opacity = '0');
-    
-    // STAGE 1: Fly in from right (0.5s)
-    console.log('  ✈️  Stage 1: Flying in from right edge...');
-    setTimeout(() => {
+
+    // Reset sidebar classes and seed crystalline state
+    sidebar.classList.remove('active', 'bouncing', 'impact', 'stage-float', 'stage-sweep', 'stage-rumble', 'stage-expand', 'note-hover', 'note-seed');
+    sidebar.classList.add('mythic-entrance', 'note-seed');
+
+    if (h3) {
+      h3.style.display = 'none';
+    }
+    paragraphs.forEach(p => p.style.display = 'none');
+
+    noteAwaitingActivation = true;
+
+    ackBtn.setAttribute('aria-label', 'Open Loomworks invitation note');
+    ackBtn.innerHTML = `
+      <div class="ref-note-crystal">
+        <div class="ref-note-title">Loom Note</div>
+        <div class="ref-note-sub">tap to continue</div>
+      </div>
+    `;
+    ackBtn.style.background = 'transparent';
+    ackBtn.style.backdropFilter = 'none';
+    ackBtn.style.webkitBackdropFilter = 'none';
+    ackBtn.style.border = 'none';
+    ackBtn.style.borderRadius = '0';
+    ackBtn.style.padding = '0';
+    ackBtn.style.boxShadow = 'none';
+    ackBtn.style.animation = '';
+    ackBtn.style.cursor = 'pointer';
+    ackBtn.style.transition = 'transform 0.6s ease, opacity 0.6s ease';
+    ackBtn.style.opacity = '1';
+    ackBtn.style.transform = 'scale(1)';
+
+    requestAnimationFrame(() => {
       sidebar.classList.add('stage-float');
-      console.log('  🎈 Stage 2: Floating...');
-    }, 800);
-    
-    // STAGE 2: Sweep to center (1.5s)
-    setTimeout(() => {
-      sidebar.classList.add('stage-sweep');
-      console.log('  🌀 Stage 3: Sweeping to center...');
-    }, 2000);
-    
-    // STAGE 3: Rumble (2.5s)
-    setTimeout(() => {
-      sidebar.classList.add('stage-rumble');
-      console.log('  💥 Stage 4: Rumbling...');
-    }, 3200);
-    
-    // STAGE 4: Expand and reveal AI message (3.5s)
-    setTimeout(() => {
-      sidebar.classList.remove('stage-rumble');
-      sidebar.classList.add('stage-expand');
-      console.log('  ✨ Stage 5: EXPANDING TO REVEAL AI MESSAGE...');
-      
-      // Show sophisticated AI message with twinkle - modern glassmorphic design
-      ackBtn.innerHTML = `
-        <div class="ai-message" style="font-size: 15px; font-weight: 300; line-height: 1.8; color: #f8f9fa; text-align: center; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">
-          <div style="font-size: 48px; margin-bottom: 16px;">✨</div>
-          <div style="font-weight: 500; margin-bottom: 14px; font-size: 18px; color: #8fb4ff; letter-spacing: 0.5px; text-shadow: 0 0 12px rgba(143, 180, 255, 0.4);">AI-Enhanced Content Discovery</div>
-          <div style="opacity: 0.9; font-size: 14px;">Analyzing your browsing patterns to deliver personalized recommendations with unprecedented accuracy.</div>
-          <div style="margin-top: 16px; font-size: 12px; opacity: 0.6; letter-spacing: 1px; color: #a0b0c0;">Powered by Cell.real Intelligence</div>
-        </div>
-      `;
-      ackBtn.style.background = 'linear-gradient(135deg, rgba(15, 25, 45, 0.7), rgba(25, 35, 55, 0.8))';
-      ackBtn.style.backdropFilter = 'blur(20px) saturate(180%)';
-      ackBtn.style.webkitBackdropFilter = 'blur(20px) saturate(180%)';
-      ackBtn.style.border = '1px solid rgba(143, 180, 255, 0.25)';
-      ackBtn.style.borderRadius = '16px';
-      ackBtn.style.padding = '0';
-      ackBtn.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(102, 126, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
-      ackBtn.style.cursor = 'pointer';
-      ackBtn.style.animation = '';
-      
-      console.log('  ✨ AI MESSAGE DISPLAYED WITH TWINKLE');
-      
-      // JARRING SWITCH TO GAUDY AD (after 2.5s of AI message)
-      setTimeout(() => {
-        console.log('  💥💥💥 JARRING SWITCH TO BADBOOLEAN AD!');
-        
-        // Jarring transition effect
-        ackBtn.style.transition = 'all 0.1s ease-out';
-        
-        ackBtn.innerHTML = `
-          <div style="font-size: 20px; font-weight: 900; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 2px; color: #ff0080; animation: pulse 0.5s infinite;">
-            ARE YOU A TOTAL ZERO?
-          </div>
-          <div style="font-size: 16px; margin-bottom: 10px; color: #ffff00; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
-            💋 SINGLES IN YOUR AREA 💋
-          </div>
-          <div style="font-size: 26px; font-weight: 900; color: #00ff00; text-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00; letter-spacing: 3px; animation: pulse 0.8s infinite;">
-            BADBOOLEAN.COM
-          </div>
-          <div style="font-size: 14px; margin-top: 10px; color: #ff69b4; font-style: italic; font-weight: 500; opacity: 0.9;">
-            True love never felt so false.
-          </div>
-          <div style="font-size: 12px; margin-top: 8px; color: #ff00ff; font-weight: 600;">🔥 CLICK HERE NOW!!! 🔥</div>
-        `;
-        ackBtn.style.background = 'linear-gradient(135deg, #ff0080 0%, #ff8c00 25%, #ffff00 50%, #00ff00 75%, #ff0080 100%)';
-        ackBtn.style.backgroundSize = '200% 200%';
-        ackBtn.style.border = '3px solid #ff00ff';
-        ackBtn.style.boxShadow = '0 0 20px #ff0080, 0 0 40px #00ff00, inset 0 0 20px rgba(255,255,255,0.3)';
-        ackBtn.style.animation = 'pulse 0.5s infinite, rainbow-shift 3s ease infinite';
-        ackBtn.style.padding = '30px 20px';
-        
-        console.log('  🎪🎪🎪 BADBOOLEAN AD ACTIVE! 🎪🎪🎪');
-        console.log('  ⏰ Starting 5-second timeout for alt LOOMWORKS invite');
-        
-        // If user doesn't click within 5 seconds, show alt LOOMWORKS invite
-        const adTimeout = setTimeout(() => {
-          console.log('  ⏱️ 5 seconds elapsed - transforming to alt LOOMWORKS invite');
-          transformToAltLoomworksInvite();
-        }, 5000);
-        
-        // Store timeout ID for cleanup
-        window.badBooleanTimeout = adTimeout;
-      }, 2500);
-    }, 4000);
+    });
+
+    console.log('  💎 Crystalline note seeded - awaiting tap to awaken.');
   }
-  
+
   function transformToAltLoomworksInvite() {
     const sidebar = refSidebar;
     const ackBtn = refSidebarAck;
@@ -3556,7 +3780,10 @@
     console.log(`  ✓ Darkening to level: ${level}`);
     
     // Calculate target opacity
-    const targetOpacity = level * 0.2; // 0.2, 0.4, 0.6, 0.8, 1.0
+    const baseOpacity = level * 0.2; // 0.2, 0.4, 0.6, 0.8, 1.0
+    const targetOpacity = isMobileViewport()
+      ? Math.min(baseOpacity * 0.7, 0.7)
+      : baseOpacity;
     
     // Flicker effect - like power going out
     const flickerDuration = Math.max(800 - (impactCount * 100), 200);
@@ -3609,6 +3836,9 @@
     impactCount = 0;
     parodiesComplete = false;
     celliAdsComplete = false;
+    noteAwaitingActivation = false;
+    clearNoteStageTimeouts();
+    stopChantAudio();
     darkeningOverlay.classList.remove('level-1', 'level-2', 'level-3', 'level-4', 'level-5', 'flickering');
     
     // Reset darkening opacity to 0

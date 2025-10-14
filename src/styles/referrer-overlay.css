@@ -2206,3 +2206,100 @@ body.referrer-whiteout {
   }
 }
 
+@media (max-width: 768px) {
+  .edge-impact {
+    right: -25vw;
+    top: -15vh;
+    bottom: -15vh;
+    width: 80vw;
+  }
+
+  .darkening-overlay {
+    right: -35vw;
+    top: -12vh;
+    bottom: -12vh;
+    width: 105vw;
+    border-radius: 45%;
+    background: radial-gradient(
+      ellipse at right center,
+      rgba(0, 0, 0, 0.6),
+      rgba(0, 0, 0, 0.35) 65%,
+      transparent 100%
+    );
+  }
+
+  .darkening-overlay.level-4,
+  .darkening-overlay.level-5 {
+    background: radial-gradient(
+      ellipse at right center,
+      rgba(0, 0, 0, 0.5),
+      rgba(0, 0, 0, 0.32) 70%,
+      transparent 100%
+    );
+  }
+
+  .light-beam {
+    right: -48vw;
+    width: 135vw;
+    height: 320px;
+    filter: blur(24px);
+  }
+
+  .burst-beam {
+    right: -18vw;
+    top: -12vh;
+    width: 135vw;
+    height: 110vh;
+  }
+
+  .darkening-hole {
+    width: 220px;
+    height: 72px;
+  }
+
+  .light-ray {
+    width: 72vw;
+    filter: blur(18px);
+  }
+
+  .ref-sidebar.mythic-entrance {
+    right: calc(-1 * min(240px, 72vw));
+  }
+
+  .ref-sidebar.mythic-entrance.stage-float {
+    right: min(18px, 5vw);
+  }
+
+  .ref-sidebar.mythic-entrance.stage-expand {
+    width: min(90vw, 460px);
+    transform: translate(50%, -50%) scale(1.02);
+  }
+}
+
+@media (max-width: 480px) {
+  .edge-impact {
+    right: -32vw;
+    width: 90vw;
+  }
+
+  .darkening-overlay {
+    right: -42vw;
+    width: 120vw;
+  }
+
+  .light-beam {
+    right: -55vw;
+    width: 150vw;
+    height: 280px;
+  }
+
+  .burst-beam {
+    right: -24vw;
+    width: 150vw;
+  }
+
+  .ref-sidebar.mythic-entrance.stage-expand {
+    width: min(92vw, 420px);
+  }
+}
+
