@@ -244,7 +244,93 @@ export class SequenceBuilderCore {
     } else {
       console.log('⚠️ No sequence array found');
     }
-    
+
+    // NEW: Extract component registry (characters, props, etc.)
+    const componentEntries = this._normalizeComponentEntries(sceneObject.components);
+    if (componentEntries.length > 0) {
+      console.log('✅ Found components registry:', componentEntries.map(([name]) => name));
+
+      const baseComponentX = xPos + xSpacing * 2;
+      const baseComponentY = 100;
+      let componentNodeIndex = 0;
+      const maxComponentNodes = 200;
+
+      const createComponentNode = (name, data, depth = 0, parentNode = null) => {
+        if (componentNodeIndex >= maxComponentNodes) return null;
+
+        const safeData = (data && typeof data === 'object') ? data : { value: data };
+        const safeName = name || safeData.name || `component_${componentNodeIndex + 1}`;
+
+        const nodeX = baseComponentX + depth * (xSpacing * 0.7);
+        const nodeY = baseComponentY + componentNodeIndex * (ySpacing * 0.7);
+        componentNodeIndex++;
+
+        const componentNode = nodeGraphManager.createNode(
+          'object',
+          nodeX,
+          nodeY,
+          {
+            entityName: safeName,
+            category: safeData.category || safeData.type || (depth === 0 ? 'component' : 'sub-component')
+          }
+        );
+
+        componentNode.componentData = safeData;
+        nodes.push(componentNode);
+
+        if (parentNode) {
+          nodeGraphManager.connections.push({
+            from: parentNode.id,
+            to: componentNode.id,
+            fromSocket: 'output-0',
+            toSocket: 'input-0'
+          });
+        }
+
+        const animations = this._normalizeAnimationEntries(safeData.animations).slice(0, 12);
+        animations.forEach((anim, animIndex) => {
+          if (componentNodeIndex >= maxComponentNodes) return;
+
+          const animNode = nodeGraphManager.createNode(
+            'animation',
+            nodeX + xSpacing * 0.6,
+            nodeY + animIndex * (ySpacing * 0.5) + 40,
+            {
+              property: anim.property || anim.path || anim.target || 'value',
+              from: this._stringifyValue(anim.from ?? anim.start ?? ''),
+              to: this._stringifyValue(anim.to ?? anim.end ?? ''),
+              duration: Number(anim.duration ?? anim.time ?? anim.length ?? 1),
+              easing: anim.easing || anim.curve || 'easeInOut'
+            }
+          );
+
+          animNode.animationData = anim;
+          nodes.push(animNode);
+
+          nodeGraphManager.connections.push({
+            from: componentNode.id,
+            to: animNode.id,
+            fromSocket: 'output-0',
+            toSocket: 'input-0'
+          });
+        });
+
+        const childEntries = this._normalizeComponentEntries(safeData.children);
+        childEntries.forEach(([childName, childData]) => {
+          createComponentNode(childName, childData, depth + 1, componentNode);
+        });
+
+        return componentNode;
+      };
+
+      componentEntries.forEach(([name, data]) => {
+        createComponentNode(name, data, 0, null);
+      });
+
+      yPos = baseComponentY + componentNodeIndex * (ySpacing * 0.7);
+      xPos = baseComponentX + xSpacing;
+    }
+
     // If still no nodes, scan all properties
     if (nodes.length === 0) {
       console.log('⚠️ No standard properties found, scanning all properties...');
@@ -493,6 +579,83 @@ export class SequenceBuilderCore {
       console.error('❌ Could not transition to scene:', e);
       return false;
     }
+  }
+
+  /**
+   * Normalize component entries from various data structures
+   */
+  _normalizeComponentEntries(collection) {
+    if (!collection) return [];
+
+    if (collection instanceof Map) {
+      return Array.from(collection.entries());
+    }
+
+    if (Array.isArray(collection)) {
+      return collection.map((item, index) => {
+        if (Array.isArray(item) && item.length >= 2) {
+          return [item[0], item[1]];
+        }
+        if (item && typeof item === 'object') {
+          const key = item.name || item.id || `component_${index + 1}`;
+          return [key, item];
+        }
+        return [`component_${index + 1}`, item];
+      });
+    }
+
+    if (typeof collection === 'object') {
+      return Object.entries(collection);
+    }
+
+    return [];
+  }
+
+  /**
+   * Normalize animation collections
+   */
+  _normalizeAnimationEntries(collection) {
+    if (!collection) return [];
+
+    if (collection instanceof Map) {
+      return Array.from(collection.values());
+    }
+
+    if (Array.isArray(collection)) {
+      return collection;
+    }
+
+    if (typeof collection === 'object') {
+      return Object.values(collection);
+    }
+
+    return [];
+  }
+
+  /**
+   * Convert values into readable strings for nodes
+   */
+  _stringifyValue(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'number') return Number(value).toFixed(2);
+    if (typeof value === 'string') return value;
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
+
+    if (typeof value === 'object') {
+      if (typeof value.x === 'number' && typeof value.y === 'number' && typeof value.z === 'number') {
+        return `(${value.x.toFixed(2)}, ${value.y.toFixed(2)}, ${value.z.toFixed(2)})`;
+      }
+      if (typeof value.x === 'number' && typeof value.y === 'number') {
+        return `(${value.x.toFixed(2)}, ${value.y.toFixed(2)})`;
+      }
+      try {
+        return JSON.stringify(value);
+      } catch (err) {
+        return '[object]';
+      }
+    }
+
+    return String(value);
   }
 
   /**

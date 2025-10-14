@@ -34,11 +34,21 @@ export class SceneRegistry {
       type: config.type || 'object', // object, system, effect, audio, etc
       components: config.components || [],
       parts: config.parts || [],
-      reference: config.reference || null // Actual object reference
+      reference: config.reference || null, // Actual object reference
+      hierarchy: null
     };
 
+    if (!config.disableAutoHierarchy && entity.reference) {
+      entity.hierarchy = this._buildHierarchyFromReference(
+        entity.reference,
+        config.hierarchyOptions || {}
+      );
+    } else if (config.hierarchy) {
+      entity.hierarchy = config.hierarchy;
+    }
+
     this.entities.set(name, entity);
-    
+
     // Add to category
     if (this.categories.has(category)) {
       this.categories.get(category).entities.push(name);
@@ -137,7 +147,7 @@ export class SceneRegistry {
    */
   getSceneData() {
     const sceneData = {};
-    
+
     this.categories.forEach((category, categoryName) => {
       sceneData[categoryName] = category.entities.map(entityName => {
         const entity = this.entities.get(entityName);
@@ -145,7 +155,8 @@ export class SceneRegistry {
           name: entity.name,
           icon: entity.icon,
           components: entity.components,
-          parts: entity.parts
+          parts: entity.parts,
+          hierarchy: entity.hierarchy
         };
       });
     });
@@ -172,13 +183,58 @@ export class SceneRegistry {
         icon: entity.icon,
         type: entity.type,
         components: entity.components,
-        parts: entity.parts
+        parts: entity.parts,
+        hierarchy: entity.hierarchy
       })),
       guiComponents: Array.from(this.guiComponents.entries()).map(([name, gui]) => ({
         name,
         parameters: gui.parameters
       }))
     };
+  }
+
+  /**
+   * Build a lightweight hierarchy from a Three.js object reference
+   */
+  _buildHierarchyFromReference(reference, options = {}, depth = 0, visited = new Set()) {
+    if (!reference) return null;
+
+    const maxDepth = typeof options.maxDepth === 'number' ? options.maxDepth : 6;
+    const maxChildren = typeof options.maxChildren === 'number' ? options.maxChildren : 16;
+    const maxNodes = typeof options.maxNodes === 'number' ? options.maxNodes : 200;
+
+    if (depth > maxDepth) return null;
+
+    const nodeId = reference.uuid || reference.id || `${reference.name || reference.type || 'node'}-${depth}`;
+    if (visited.has(nodeId)) return null;
+    visited.add(nodeId);
+
+    const name = reference.userData?.displayName || reference.userData?.name || reference.name || reference.type || 'Object3D';
+    const type = reference.type || reference.constructor?.name || 'Object3D';
+
+    const node = {
+      name,
+      type,
+      children: []
+    };
+
+    if (Array.isArray(reference.children) && reference.children.length > 0 && visited.size < maxNodes) {
+      let count = 0;
+      for (const child of reference.children) {
+        if (count >= maxChildren || visited.size >= maxNodes) break;
+        const childNode = this._buildHierarchyFromReference(child, options, depth + 1, visited);
+        if (childNode) {
+          node.children.push(childNode);
+          count++;
+        }
+      }
+    }
+
+    if (node.children.length === 0) {
+      delete node.children;
+    }
+
+    return node;
   }
 }
 

@@ -148,6 +148,56 @@
   background: #27ae60;
 }
 
+.entity-hierarchy {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #3e3e42;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hierarchy-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: #8ecaff;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.hierarchy-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hierarchy-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(78, 172, 255, 0.08);
+  border-radius: 3px;
+  font-size: 10px;
+  color: #cfd8e3;
+  padding: 3px 6px;
+  padding-left: calc(10px + var(--hierarchy-depth, 0) * 12px);
+  border-left: 2px solid rgba(78, 172, 255, 0.4);
+}
+
+.hierarchy-node-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.hierarchy-node-type {
+  font-size: 9px;
+  color: #7aa8d8;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
 .section-divider {
   height: 1px;
   background: #3e3e42;

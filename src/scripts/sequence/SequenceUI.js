@@ -209,6 +209,8 @@ export class SequenceUI {
             this._ingestAllParameters(entity.name, category, entity);
           });
           
+          this._renderEntityHierarchy(entityDiv, entity);
+
           categoryDiv.appendChild(entityDiv);
         });
       }
@@ -312,6 +314,61 @@ export class SequenceUI {
 
     this._updateStats();
     this._renderCanvas();
+  }
+
+  /**
+   * Render hierarchy block for a scene entity
+   */
+  _renderEntityHierarchy(container, entity) {
+    const hierarchy = entity?.hierarchy;
+    if (!hierarchy) return;
+
+    const nodes = Array.isArray(hierarchy) ? hierarchy : [hierarchy];
+    if (nodes.length === 0) return;
+
+    const hierarchyContainer = document.createElement('div');
+    hierarchyContainer.className = 'entity-hierarchy';
+
+    const title = document.createElement('div');
+    title.className = 'hierarchy-title';
+    title.textContent = 'Hierarchy';
+    hierarchyContainer.appendChild(title);
+
+    const tree = document.createElement('div');
+    tree.className = 'hierarchy-tree';
+
+    let nodeCount = 0;
+    const maxNodes = 200;
+
+    const renderNode = (node, depth = 0) => {
+      if (!node || nodeCount >= maxNodes || depth > 10) return;
+      nodeCount++;
+
+      const row = document.createElement('div');
+      row.className = 'hierarchy-node';
+      row.style.setProperty('--hierarchy-depth', depth);
+
+      const label = document.createElement('span');
+      label.className = 'hierarchy-node-label';
+      label.textContent = node.name || node.type || 'Object';
+
+      const type = document.createElement('span');
+      type.className = 'hierarchy-node-type';
+      type.textContent = node.type || '';
+
+      row.appendChild(label);
+      row.appendChild(type);
+      tree.appendChild(row);
+
+      if (Array.isArray(node.children)) {
+        node.children.forEach(child => renderNode(child, depth + 1));
+      }
+    };
+
+    nodes.forEach(node => renderNode(node, 0));
+
+    hierarchyContainer.appendChild(tree);
+    container.appendChild(hierarchyContainer);
   }
 
   /**
