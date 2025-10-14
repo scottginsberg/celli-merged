@@ -498,6 +498,7 @@
     <button id="quickReddit" style="padding:6px 14px; background:#ff4500; border:0; color:#fff; border-radius:6px; cursor:pointer; font-size:10px; font-weight:700;">Reddit</button>
     <button id="quickTwitter" style="padding:6px 14px; background:#1da1f2; border:0; color:#fff; border-radius:6px; cursor:pointer; font-size:10px; font-weight:700;">Zeed</button>
     <button id="quickFacebook" style="padding:6px 14px; background:#1877f2; border:0; color:#fff; border-radius:6px; cursor:pointer; font-size:10px; font-weight:700;">Facebook</button>
+    <button id="quickLinkedIn" style="padding:6px 14px; background:#0a66c2; border:0; color:#fff; border-radius:6px; cursor:pointer; font-size:10px; font-weight:700;">LinkedIn</button>
    </div>
   </div>
  </div>
@@ -650,7 +651,10 @@
  </div>
  
  <!-- Tooltip -->
- <div id="refTooltip" class="ref-tooltip"></div>
+ <div id="refTooltip" class="ref-tooltip">
+  <span class="ref-tooltip-bullet" aria-hidden="true"></span>
+  <span class="ref-tooltip-text"></span>
+ </div>
  
 <!-- Edge Impact Effects -->
 <div id="edgeImpact" class="edge-impact" aria-hidden="true"></div>
@@ -1748,6 +1752,7 @@
   }
 
   const refTooltip = document.getElementById('refTooltip');
+  const refTooltipText = refTooltip ? refTooltip.querySelector('.ref-tooltip-text') : null;
   const customCursor = document.getElementById('customCursor');
   const refPanel = document.querySelector('.celli-ref-panel');
   const edgeImpact = document.getElementById('edgeImpact');
@@ -1774,12 +1779,29 @@
   let redditItems = [];
   let twitterItems = [];
   let facebookItems = [];
+  let linkedinItems = [];
   let currentView = 'none';
   let currentHNView = false;
   let parodiesComplete = false;
   let celliAdsComplete = false;
   let postTermsSequenceStarted = false;
   let goldenHoldOverlay = null;
+
+  const TOOLTIP_THEME_CLASSES = [
+    'ref-tooltip--hn',
+    'ref-tooltip--reddit',
+    'ref-tooltip--twitter',
+    'ref-tooltip--facebook',
+    'ref-tooltip--linkedin'
+  ];
+
+  const POST_PLATFORM_SELECTORS = {
+    hn: '.hn-item',
+    reddit: '.reddit-post',
+    twitter: '.twitter-tweet',
+    facebook: '.facebook-post',
+    linkedin: '.linkedin-post'
+  };
   let goldenHoldCleanup = null;
   let goldenHoldTimer = null;
   let goldenDustAnimationId = null;
@@ -1894,7 +1916,8 @@
       hn: createGlitchState(),
       reddit: createGlitchState(),
       twitter: createGlitchState(),
-      facebook: createGlitchState()
+      facebook: createGlitchState(),
+      linkedin: createGlitchState()
     };
   }
 
@@ -2045,6 +2068,14 @@
     "Fun fact: The word 'literally' has literally lost all meaning",
     "Celebrating 5 years at my job! (JK I'm just too tired to update my resume)"
   ];
+
+  const linkedinParodies = [
+    "Thrilled to announce my pomodoro breaks now include keynote presentations. Time is a construct.",
+    "Grateful to the algorithm for endorsing my skill: 'Logging In While Muted'.",
+    "Leadership isn't a title, it's the friends who send calendar invites for vibes.",
+    "Reminder: If your stand-up has sitting energy, rebrand it as a fireside chat.",
+    "Today I promoted my coffee mug to Chief Morale Officer and we're already scaling empathy."
+  ];
   
   // Verify all elements exist
   console.log('🔍 Checking referrer overlay elements:');
@@ -2058,6 +2089,7 @@
   console.log('  quickReddit:', document.getElementById('quickReddit') ? '✓' : '✗');
   console.log('  quickTwitter:', document.getElementById('quickTwitter') ? '✓' : '✗');
   console.log('  quickFacebook:', document.getElementById('quickFacebook') ? '✓' : '✗');
+  console.log('  quickLinkedIn:', document.getElementById('quickLinkedIn') ? '✓' : '✗');
   
   // Manual trigger
   const manualTriggerBtn = document.getElementById('manualTrigger');
@@ -2121,6 +2153,18 @@
     });
   } else {
     console.error('❌ quickFacebook button not found!');
+  }
+
+  const quickLinkedInBtn = document.getElementById('quickLinkedIn');
+  if (quickLinkedInBtn) {
+    quickLinkedInBtn.addEventListener('click', () => {
+      console.log('💼 LinkedIn button clicked');
+      triggerOverlay('linkedin').catch((err) => {
+        console.error('LinkedIn trigger error:', err);
+      });
+    });
+  } else {
+    console.error('❌ quickLinkedIn button not found!');
   }
   
   // Sidebar controls
@@ -3222,34 +3266,41 @@
     const isReddit = /(^|\/\/|\.)reddit\.com/.test(urlLower);
     const isTwitter = /(^|\/\/|\.)twitter\.com/.test(urlLower) || /(^|\/\/|\.)x\.com/.test(urlLower) || url === 'zeed';
     const isFacebook = /(^|\/\/|\.)facebook\.com/.test(urlLower) || url === 'facebook';
-    
+    const isLinkedIn = /(^|\/\/|\.)linkedin\.com/.test(urlLower) || url === 'linkedin';
+
     // Set header visuals
     if (isHN) {
-      refLogo.classList.remove('reddit', 'twitter', 'facebook');
+      refLogo.classList.remove('reddit', 'twitter', 'facebook', 'linkedin');
       refLogo.classList.add('hn');
       refLogo.textContent = 'HN';
       refTitle.textContent = 'Previously on Hacker News…';
       refSub.textContent = new URL(url || 'https://news.ycombinator.com').hostname;
     } else if (isReddit) {
-      refLogo.classList.remove('hn', 'twitter', 'facebook');
+      refLogo.classList.remove('hn', 'twitter', 'facebook', 'linkedin');
       refLogo.classList.add('reddit');
       refLogo.textContent = 'reddit';
       refTitle.textContent = 'Previously on Reddit…';
       refSub.textContent = hostOrPath(url || 'https://www.reddit.com');
     } else if (isTwitter) {
-      refLogo.classList.remove('hn', 'reddit', 'facebook');
+      refLogo.classList.remove('hn', 'reddit', 'facebook', 'linkedin');
       refLogo.classList.add('twitter');
       refLogo.textContent = 'Z';
       refTitle.textContent = 'Previously on Zeed…';
       refSub.textContent = 'timeline reconstructed';
     } else if (isFacebook) {
-      refLogo.classList.remove('hn', 'reddit', 'twitter');
+      refLogo.classList.remove('hn', 'reddit', 'twitter', 'linkedin');
       refLogo.classList.add('facebook');
       refLogo.textContent = 'f';
       refTitle.textContent = 'Previously on Facebook…';
       refSub.textContent = 'news feed + messenger';
-    } else {
+    } else if (isLinkedIn) {
       refLogo.classList.remove('hn', 'reddit', 'twitter', 'facebook');
+      refLogo.classList.add('linkedin');
+      refLogo.textContent = 'in';
+      refTitle.textContent = 'Previously on LinkedIn…';
+      refSub.textContent = 'everyone is "thrilled"';
+    } else {
+      refLogo.classList.remove('hn', 'reddit', 'twitter', 'facebook', 'linkedin');
       refLogo.textContent = 'SRC';
       refTitle.textContent = 'Reconstructing previous page…';
       refSub.textContent = hostOrPath(url);
@@ -3275,6 +3326,9 @@
       } else if (isFacebook) {
         platformType = 'facebook';
         items = await fetchFacebookSnapshot(url);
+      } else if (isLinkedIn) {
+        platformType = 'linkedin';
+        items = await fetchLinkedInSnapshot(url);
       } else {
         items = await fetchGenericFallback(url);
       }
@@ -3436,9 +3490,67 @@
     stopMagneticCursor();
   }
   
+  function detectPlatformFromElement(element) {
+    if (!element) return '';
+    for (const [platform, selector] of Object.entries(POST_PLATFORM_SELECTORS)) {
+      if (element.closest(selector)) {
+        return platform;
+      }
+    }
+    return '';
+  }
+
+  function applyTooltipTheme(tooltipElement, platform) {
+    if (!tooltipElement) return;
+    TOOLTIP_THEME_CLASSES.forEach(cls => tooltipElement.classList.remove(cls));
+    if (platform) {
+      tooltipElement.classList.add(`ref-tooltip--${platform}`);
+    }
+  }
+
+  function isPostLink(element) {
+    if (!element) return false;
+    return Object.values(POST_PLATFORM_SELECTORS).some(selector => element.closest(selector));
+  }
+
+  function createHeartsAndPrayersToast(platform) {
+    const toast = document.createElement('div');
+    toast.className = `hearts-prayers-toast${platform ? ` hearts-prayers-toast--${platform}` : ''}`;
+    toast.innerHTML = `
+      <span class="hearts-prayers-emoji" aria-hidden="true">💖🙏</span>
+      <span class="hearts-prayers-text">hearts and prayers</span>
+    `;
+    return toast;
+  }
+
+  function sendHeartsAndPrayers(linkElement, platform) {
+    const toast = createHeartsAndPrayersToast(platform);
+    const rect = linkElement.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const top = Math.max(12, rect.top - 24);
+    toast.style.left = `${rect.left + rect.width / 2}px`;
+    toast.style.top = `${Math.min(top, viewportHeight - 60)}px`;
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('visible'));
+    setTimeout(() => {
+      toast.classList.remove('visible');
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 200);
+    }, 900);
+  }
+
   function showTooltip(url, linkElement) {
     // Show the shared hover tooltip
-    refTooltip.textContent = url;
+    if (refTooltipText) {
+      refTooltipText.textContent = url;
+    } else if (refTooltip) {
+      refTooltip.textContent = url;
+    }
+
+    applyTooltipTheme(refTooltip, detectPlatformFromElement(linkElement));
 
     updateSharedTooltipWidth();
 
@@ -3467,7 +3579,17 @@
     // Create a NEW independent tooltip for animation
     const tooltip = document.createElement('div');
     tooltip.className = 'ref-tooltip active';
-    tooltip.textContent = url;
+    tooltip.innerHTML = `
+      <span class="ref-tooltip-bullet" aria-hidden="true"></span>
+      <span class="ref-tooltip-text"></span>
+    `;
+    const tooltipText = tooltip.querySelector('.ref-tooltip-text');
+    if (tooltipText) {
+      tooltipText.textContent = url;
+    } else {
+      tooltip.textContent = url;
+    }
+    applyTooltipTheme(tooltip, detectPlatformFromElement(linkElement));
     document.body.appendChild(tooltip);
 
     // Position above the link element
@@ -3744,6 +3866,9 @@
     } else if (currentView === 'facebook' && facebookItems.length > 0) {
       console.log(`  📘 Facebook view - processing impact ${impactCount}`);
       glitchAndReplaceFacebookPosts();
+    } else if (currentView === 'linkedin' && linkedinItems.length > 0) {
+      console.log(`  💼 LinkedIn view - processing impact ${impactCount}`);
+      glitchAndReplaceLinkedInPosts();
     } else {
       console.log(`  ⊘ No items to glitch (view: ${currentView})`);
     }
@@ -3956,6 +4081,30 @@
         setGlitchLink(target, buildGlitchUrl('facebook', 'celli', index));
       },
       logLabel: '📘 Facebook post'
+    });
+
+  }
+
+  function glitchAndReplaceLinkedInPosts() {
+    glitchNextItem('linkedin', linkedinItems, {
+      getTarget: (item) => item.querySelector('.linkedin-post-text'),
+      getContainer: (item) => item,
+      applyParody: (item, target, index) => {
+        const newText = linkedinParodies[index % linkedinParodies.length];
+        target.textContent = newText;
+        target.classList.add('parodied');
+        target.setAttribute('data-original-text', newText);
+        setGlitchLink(target, buildGlitchUrl('linkedin', 'parody', index));
+      },
+      applyCelli: (item, target, index) => {
+        const newText = celliAds[index % celliAds.length];
+        target.textContent = newText;
+        target.classList.add('celli-ad');
+        item.classList.add('has-celli-ad');
+        target.setAttribute('data-original-text', newText);
+        setGlitchLink(target, buildGlitchUrl('linkedin', 'celli', index));
+      },
+      logLabel: '💼 LinkedIn post'
     });
   }
   
@@ -4206,6 +4355,23 @@
       }
     });
 
+    // Reset LinkedIn posts
+    linkedinItems.forEach(item => {
+      item.classList.remove('glitching', 'has-celli-ad');
+      const textEl = item.querySelector('.linkedin-post-text');
+      if (textEl) {
+        if (textEl.classList.contains('parodied') || textEl.classList.contains('celli-ad')) {
+          const originalText = textEl.getAttribute('data-original-text');
+          if (originalText) {
+            textEl.textContent = originalText;
+            textEl.classList.remove('parodied', 'celli-ad');
+          }
+        }
+        const originalLink = textEl.dataset.originalLink || '#';
+        setGlitchLink(textEl, originalLink);
+      }
+    });
+
     cleanupGoldenSequence();
 
     console.log('🔄 Impact effects reset - all content restored');
@@ -4259,6 +4425,19 @@
     // Create a NEW independent flying tooltip for this link click
     const linkElement = e.currentTarget || e.target;
     const activeUrl = getCurrentLink(linkElement, url);
+    const platform = detectPlatformFromElement(linkElement);
+
+    if (isPostLink(linkElement)) {
+      sendHeartsAndPrayers(linkElement, platform);
+      runGlitchOnce();
+      jitterList(400);
+      triggerEdgeImpact();
+      if (impactCount > 0 && impactCount <= 3) {
+        setTimeout(() => showSidebar(activeUrl, true), 500);
+      }
+      return;
+    }
+
     const flyingTooltip = createFlyingTooltip(activeUrl, linkElement);
 
     // Animate this specific tooltip independently
@@ -4269,7 +4448,7 @@
     // Show sidebar with impact effect after tooltip splats into edge
     // (Only show after first few impacts - not on every link click)
     if (impactCount > 0 && impactCount <= 3) {
-    setTimeout(() => showSidebar(activeUrl, true), 500);
+      setTimeout(() => showSidebar(activeUrl, true), 500);
     }
   }
   
@@ -4285,6 +4464,7 @@
       redditItems = [];
       twitterItems = [];
       facebookItems = [];
+      linkedinItems = [];
       currentView = platformType;
       currentHNView = (platformType === 'hn');
       parodiesComplete = false;
@@ -4431,6 +4611,7 @@
         link.addEventListener('click', (e) => onLinkClick(e, getCurrentLink(link, originalLink)));
         
         content.appendChild(postDiv);
+        redditItems.push(postDiv);
       });
       
       refList.appendChild(content);
@@ -4551,7 +4732,7 @@
       // Facebook with Messenger
       console.log('  📘 Rendering Facebook view');
       refList.className = 'ref-list facebook-style';
-      
+
       const header = document.createElement('div');
       header.className = 'facebook-header';
       header.innerHTML = `
@@ -4631,10 +4812,96 @@
       `;
       refList.appendChild(messenger);
       console.log(`  ✓ Rendered ${items.length} posts + Messenger`);
+    } else if (platformType === 'linkedin') {
+      console.log('  💼 Rendering LinkedIn view');
+      refList.className = 'ref-list linkedin-style';
+
+      const sidebar = document.createElement('div');
+      sidebar.className = 'linkedin-sidebar';
+      sidebar.innerHTML = `
+        <div class="linkedin-card">
+          <h4>Quick Actions</h4>
+          <div class="linkedin-action">✨ Celebrate a teammate</div>
+          <div class="linkedin-action">📝 Draft a humblebrag</div>
+          <div class="linkedin-action">🤝 Endorse soft skills</div>
+        </div>
+        <div class="linkedin-card">
+          <h4>Who's viewed your vibe</h4>
+          <div>People managers · Curious optimists</div>
+        </div>
+      `;
+      refList.appendChild(sidebar);
+
+      const feed = document.createElement('div');
+      feed.className = 'linkedin-feed';
+
+      items.forEach((it) => {
+        const post = document.createElement('div');
+        post.className = 'linkedin-post';
+        post.style.opacity = '0';
+
+        const initials = (it.user || '?').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+
+        post.innerHTML = `
+          <div class="linkedin-post-header">
+            <div class="linkedin-avatar">${escapeHtml(initials)}</div>
+            <div class="linkedin-header-text">
+              <div class="linkedin-user">${escapeHtml(it.user || 'LinkedIn Member')}</div>
+              <div class="linkedin-headline">${escapeHtml(it.headline || '')}</div>
+              <div class="linkedin-time">${escapeHtml(it.time || '')}</div>
+            </div>
+            <button class="linkedin-follow">+ Follow</button>
+          </div>
+          <div class="linkedin-post-text" data-original-text="${escapeHtml(it.text)}">${escapeHtml(it.text)}</div>
+          <div class="linkedin-post-footer">
+            <span>👏 Celebrate</span>
+            <span>💬 Comment</span>
+            <span>🔁 Repost</span>
+            <span>✉️ Send</span>
+          </div>
+        `;
+
+        const textEl = post.querySelector('.linkedin-post-text');
+        if (textEl) {
+          const originalLink = it.link || '#';
+          setGlitchLink(textEl, originalLink);
+          textEl.dataset.originalLink = originalLink;
+          textEl.addEventListener('mouseenter', () => showTooltip(getCurrentLink(textEl, originalLink), textEl));
+          textEl.addEventListener('mouseleave', () => {
+            if (!refTooltip.classList.contains('morphing')) hideTooltip();
+          });
+          textEl.addEventListener('click', (e) => onLinkClick(e, getCurrentLink(textEl, originalLink)));
+        }
+
+        feed.appendChild(post);
+        linkedinItems.push(post);
+      });
+
+      refList.appendChild(feed);
+
+      const right = document.createElement('div');
+      right.className = 'linkedin-right';
+      right.innerHTML = `
+        <div class="linkedin-card">
+          <h4>Trending Courses</h4>
+          <div>• Authentic Synergy 101</div>
+          <div>• Async Gratitude Rituals</div>
+          <div>• KPI Karaoke: Find Your Metric</div>
+        </div>
+        <div class="linkedin-card">
+          <h4>People also viewed</h4>
+          <div>🧠 AI Whisperer · Hiring</div>
+          <div>🪴 Plant-Based Scrum Master</div>
+          <div>🚀 Fractional Vibes Consultant</div>
+        </div>
+      `;
+      refList.appendChild(right);
+
+      console.log(`  ✓ Rendered ${items.length} LinkedIn posts`);
     }
     
     console.log(`📝 ═══ renderItems COMPLETE ═══`);
-    console.log(`  currentView=${currentView}, hnItems=${hnItems.length}, redditItems=${redditItems.length}, twitterItems=${twitterItems.length}, facebookItems=${facebookItems.length}\n`);
+    console.log(`  currentView=${currentView}, hnItems=${hnItems.length}, redditItems=${redditItems.length}, twitterItems=${twitterItems.length}, facebookItems=${facebookItems.length}, linkedinItems=${linkedinItems.length}\n`);
     
     } catch (error) {
       console.error(`❌❌❌ ERROR in renderItems:`, error);
@@ -4687,6 +4954,16 @@
         }, 60 + idx * 35);
       });
       console.log(`  ✓ Staged ${posts.length} Facebook posts`);
+    } else if (platformType === 'linkedin') {
+      const posts = refList.querySelectorAll('.linkedin-post');
+      console.log(`  Found ${posts.length} .linkedin-post elements`);
+      posts.forEach((n, idx) => {
+        setTimeout(() => {
+          n.style.transition = 'opacity .3s ease';
+          n.style.opacity = '1';
+        }, 55 + idx * 30);
+      });
+      console.log(`  ✓ Staged ${posts.length} LinkedIn posts`);
     } else {
       console.warn(`  Unknown platform type: ${platformType}`);
     }
@@ -4892,7 +5169,8 @@
     const posts = [
       { user: 'Jane Developer', text: '🎉 Just got my first PR merged! Only took 47 revisions and 3 existential crises!', time: '2h', link: '#' },
       { user: 'Tech Dad', text: 'My son asked what I do for a living. I said "I copy code from Stack Overflow." He looked disappointed. I\'m raising him right. 😌', time: '4h', link: '#' },
-      { user: 'Sarah Coder', text: 'SHARING THIS because it changed my life: ctrl+shift+T reopens closed tabs. You\'re welcome. ❤️', time: '6h', link: '#' },
+      { user: 'Isa Asimov', text: 'My new robot only has three laws: Eat Pray Love! And Live Laugh Love! Okay so five laws.', time: '5h', link: '#' },
+      { user: 'Sarah Connor', text: 'I don\'t know how to feel about this whole AI thing', time: '6h', link: '#' },
       { user: 'Bob Programmer', text: 'Remember when we thought Zoom fatigue was temporary? *laughs in permanent work-from-home*', time: '8h', link: '#' },
       { user: 'DevLife Quotes', text: 'Live. Laugh. localhost:3000 💻✨', time: '10h', link: '#' },
       { user: 'Jenny Code', text: 'Some of you never had to debug IE6 and it shows. Stay blessed. 🙏', time: '12h', link: '#' },
@@ -4904,9 +5182,24 @@
       { user: 'Patricia Loop', text: 'Relationship status: for(;;) { hope; }', time: '1d', link: '#' },
       { user: 'Steve Async', text: 'They say the best time to plant a tree was 20 years ago. The second best time is now. The third best time is after your code review is approved.', time: '1d', link: '#' },
       { user: 'Rachel Frontend', text: 'normalize asking "is this a real email or did my regex break again" before replying to important messages', time: '2d', link: '#' },
-      { user: 'Dan Fullstack', text: 'My resume: Full-stack developer // What I actually do: Full-stack googler 🔍', time: '2d', link: '#' }
+      { user: 'Dan Fullstack', text: 'My resume: Full-stack developer // What I actually do: Full-stack googler 🔍', time: '2d', link: '#' },
+      { user: 'Community Potluck', text: 'Linking this 20-minute lasagna recipe because comfort food fixes morale. Chad is no longer with us. 🤪', time: '3d', link: 'https://www.allrecipes.com/recipe/23600/worlds-best-lasagna/' }
     ];
     console.log(`  ✓ Generated ${posts.length} mock Facebook posts`);
+    console.log(`  Sample: "${posts[0].text}"`);
+    return posts;
+  }
+
+  async function fetchLinkedInSnapshot(refUrl) {
+    console.log('💼 fetchLinkedInSnapshot - generating mock LinkedIn posts');
+    const posts = [
+      { user: 'Ari Metrics', headline: 'Head of Alignment @ OKRverse', text: 'Make sure your team is O-KPI.', time: '1h • Edited', link: '#' },
+      { user: 'Nia Futureproof', headline: 'Fractional Futurist | Keynote Optimist', text: 'Thrilled to announce my inner child just raised a Series B in imagination funding.', time: '3h', link: '#' },
+      { user: 'Eli Standup', headline: 'Staff Engineer (remote-ish)', text: 'Daily stand-up tip: if you say "to be transparent" before every sentence it sounds like a strategy.', time: '5h', link: '#' },
+      { user: 'Priya Async', headline: 'Director of Distributed Hugs @ SentimentOps', text: 'Rolling out a no-meeting Wednesday that stretches from Tuesday afternoon to Thursday brunch.', time: '8h', link: '#' },
+      { user: 'Mal Weekender', headline: 'Weekend Founder | Monday Mentor', text: 'Closing laptop at 5pm is my most disruptive innovation yet.', time: '1d', link: '#' }
+    ];
+    console.log(`  ✓ Generated ${posts.length} mock LinkedIn posts`);
     console.log(`  Sample: "${posts[0].text}"`);
     return posts;
   }

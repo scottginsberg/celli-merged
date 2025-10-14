@@ -84,6 +84,14 @@
   font-family: Arial, sans-serif;
 }
 
+.ref-logo.linkedin {
+  background: #0a66c2;
+  color: #fff;
+  font-size: 18px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-weight: 700;
+}
+
 .ref-meta {
   display: flex;
   flex-direction: column;
@@ -126,7 +134,7 @@
   box-sizing: border-box;
   background: rgba(0, 0, 0, .9);
   color: #fff;
-  padding: 6px 10px;
+  padding: 6px 12px;
   border-radius: 6px;
   font-size: 12px;
   pointer-events: none;
@@ -139,6 +147,92 @@
   overflow: hidden;
   text-overflow: ellipsis;
   box-shadow: 0 4px 12px rgba(0, 0, 0, .5);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ref-tooltip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ref-tooltip-bullet {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.ref-tooltip--hn .ref-tooltip-bullet {
+  background: #ff6600;
+  box-shadow: 0 0 10px rgba(255, 102, 0, 0.6);
+}
+
+.ref-tooltip--reddit .ref-tooltip-bullet {
+  background: #ff4500;
+  box-shadow: 0 0 10px rgba(255, 69, 0, 0.6);
+}
+
+.ref-tooltip--twitter .ref-tooltip-bullet {
+  background: #1da1f2;
+  box-shadow: 0 0 10px rgba(29, 161, 242, 0.6);
+}
+
+.ref-tooltip--facebook .ref-tooltip-bullet {
+  background: #1877f2;
+  box-shadow: 0 0 10px rgba(24, 119, 242, 0.6);
+}
+
+.ref-tooltip--linkedin .ref-tooltip-bullet {
+  background: #0a66c2;
+  box-shadow: 0 0 10px rgba(10, 102, 194, 0.6);
+}
+
+.hearts-prayers-toast {
+  position: fixed;
+  transform: translate(-50%, -10px) scale(0.92);
+  opacity: 0;
+  background: rgba(17, 17, 17, 0.92);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  z-index: 2147485000;
+  transition: opacity .18s ease, transform .18s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.hearts-prayers-toast.visible {
+  opacity: 1;
+  transform: translate(-50%, -44px) scale(1);
+}
+
+.hearts-prayers-toast--hn {
+  background: rgba(255, 102, 0, 0.95);
+}
+
+.hearts-prayers-toast--reddit {
+  background: rgba(255, 69, 0, 0.95);
+}
+
+.hearts-prayers-toast--twitter {
+  background: rgba(29, 161, 242, 0.92);
+}
+
+.hearts-prayers-toast--facebook {
+  background: rgba(24, 119, 242, 0.92);
+}
+
+.hearts-prayers-toast--linkedin {
+  background: rgba(10, 102, 194, 0.92);
 }
 
 .ref-tooltip.active {
@@ -878,6 +972,155 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-weight: 700;
+}
+
+/* === LinkedIn spoof === */
+.ref-list.linkedin-style {
+  display: grid;
+  grid-template-columns: 220px 1fr 280px;
+  background: #f3f2ef;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #1d1d1f;
+}
+
+.linkedin-sidebar,
+.linkedin-right {
+  padding: 16px;
+  background: transparent;
+}
+
+.linkedin-sidebar .linkedin-card,
+.linkedin-right .linkedin-card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.linkedin-sidebar .linkedin-card h4 {
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: #0a66c2;
+}
+
+.linkedin-action {
+  font-size: 13px;
+  color: #5f6368;
+  margin-bottom: 6px;
+}
+
+.linkedin-action:last-child {
+  margin-bottom: 0;
+}
+
+.linkedin-feed {
+  padding: 16px 24px;
+  background: transparent;
+}
+
+.linkedin-post {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  margin-bottom: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+.linkedin-post.glitching {
+  animation: hnGlitch 0.75s steps(7) 1;
+  background: rgba(10, 102, 194, 0.08);
+}
+
+.linkedin-post.has-celli-ad {
+  border-left: 4px solid rgba(118, 75, 162, 0.55);
+  background: linear-gradient(120deg, rgba(118, 75, 162, 0.06), rgba(102, 126, 234, 0.04));
+}
+
+.linkedin-post-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+.linkedin-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0a66c2, #60a5fa);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.linkedin-header-text {
+  flex: 1;
+}
+
+.linkedin-user {
+  font-weight: 600;
+  font-size: 15px;
+  color: #1d1d1f;
+}
+
+.linkedin-headline {
+  font-size: 13px;
+  color: #5f6368;
+}
+
+.linkedin-time {
+  font-size: 12px;
+  color: #7d7d7d;
+  margin-top: 2px;
+}
+
+.linkedin-follow {
+  border: 1px solid #0a66c2;
+  background: transparent;
+  color: #0a66c2;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.linkedin-post-text {
+  padding: 0 16px 16px 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #1d1d1f;
+}
+
+.linkedin-post-text.parodied {
+  color: #d97706;
+  font-weight: 600;
+}
+
+.linkedin-post-text.celli-ad {
+  background: linear-gradient(90deg, #764ba2 0%, #0a66c2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+.linkedin-post-footer {
+  border-top: 1px solid #eef0f2;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #5f6368;
+}
+
+.linkedin-post-footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .facebook-actions {
