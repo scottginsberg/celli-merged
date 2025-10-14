@@ -56,7 +56,10 @@ function init() {
   
   // Wire up buttons
   setupButtons();
-  
+
+  // Autostart experience if requested via query parameters
+  handleAutoStart();
+
   console.log('✨ Celli initialized - Click Play to start!');
   console.log('📋 Available scenes:', sceneManager.listScenes().join(', '));
 }
@@ -64,22 +67,25 @@ function init() {
 // Sequence UI instance
 let sequenceUI = null;
 
+async function startExperience() {
+  await startApp();
+
+  setTimeout(() => {
+    const appContext = getAppContext();
+    if (appContext) {
+      registerSceneComponents(appContext);
+      console.log('✅ Scene components registered with sequence system');
+    }
+  }, 100);
+}
+
 function setupButtons() {
   // Play button - starts the app and begins intro sequence
   const playBtn = document.getElementById('playBtn');
   if (playBtn) {
     playBtn.addEventListener('click', async () => {
       console.log('▶️ Play button clicked - Starting intro sequence!');
-      await startApp();
-      
-      // Register scene components after app starts
-      setTimeout(() => {
-        const appContext = getAppContext();
-        if (appContext) {
-          registerSceneComponents(appContext);
-          console.log('✅ Scene components registered with sequence system');
-        }
-      }, 100);
+      await startExperience();
     });
     console.log('✅ Play button initialized');
   }
@@ -168,6 +174,28 @@ function openSequenceComposer() {
   }
   
   console.log('🎬 Sequence Composer opened');
+}
+
+async function handleAutoStart() {
+  const params = new URLSearchParams(window.location.search);
+  const autostart = params.get('autostart');
+  const shouldAutostart = autostart === '' || autostart === '1' || autostart?.toLowerCase() === 'true';
+
+  if (!shouldAutostart) {
+    return;
+  }
+
+  if (window.celliApp?.initialized) {
+    return;
+  }
+
+  console.log('⚡ Autostart parameter detected - starting experience automatically.');
+
+  try {
+    await startExperience();
+  } catch (error) {
+    console.error('❌ Failed to autostart experience:', error);
+  }
 }
 
 // Start when DOM is ready
