@@ -9,7 +9,9 @@ export const INACTIVE_GREEDY_THRESHOLD = 4096; // switch non-focused large array
 export const WINDOW_CHUNK_RADIUS = 1; // detailed window radius (in chunk units) around selection
 
 // Greek characters for Z-axis naming
-export const greekChars = ['α',' ','γ','δ','ε','ζ','η','θ','ι','κ','λ',' ','ν','ξ','ο','π','ρ','σ','τ','υ','φ','χ','ψ','ω'];
+export const greekChars = [
+  'α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','τ','υ','φ','χ','ψ','ω'
+];
 export const greek = (i)=>greekChars[i%greekChars.length];
 
 // Column naming (A1 notation)
@@ -87,7 +89,7 @@ export const parseA1g = (s,defId)=>{
   for(let i=0;i<m[1].length;i++) x=x*26+(m[1].charCodeAt(i)-64); 
   x--; 
   const y=+m[2]-1; 
-  const G='α γδεζηθικλ νξοπρστυφχψω'; 
+  const G='αβγδεζηθικλμνξοπρστυφχψω';
   const z=m[3]?G.indexOf(m[3]):null; 
   const arrId=m[4]!==undefined?+m[4]:defId; 
   return {x,y,z,arrId};
