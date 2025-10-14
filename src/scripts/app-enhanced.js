@@ -13,10 +13,9 @@ import * as THREE from 'three';
 import { sceneManager } from './core/SceneManager.js';
 
 // Import scenes
-import IntroScene from './scenes/IntroScene.js';
-import IntroSceneComplete from './scenes/IntroSceneComplete.js';
-import VisiCalcScene from './scenes/VisiCalcScene.js';
-import CityScene from './scenes/CityScene.js';
+import { IntroSceneComplete } from './scenes/IntroSceneComplete.js';
+import { VisiCalcScene } from './scenes/VisiCalcScene.js';
+import { CityScene } from './scenes/CityScene.js';
 
 // Import GUI systems
 import { quoteSystem } from './gui/QuoteSystem.js';
