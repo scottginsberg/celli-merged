@@ -3,7 +3,7 @@
  * 
  * Loads the complete, exact intro sequence from merged2.html
  * 
- * This scene uses the extracted intro-complete.html which contains:
+ * This scene uses the extracted intro-faithful.html which contains:
  * - Doorway portal animation (bar → rectangle with light rays)
  * - Quote animations (6 stages: idle → visible → glitch → scramble)
  * - VisiCell terminal with green-on-black aesthetic
@@ -49,11 +49,11 @@ export class IntroScene {
   async start(params, callbacks) {
     console.log('[IntroScene-Faithful] ▶️ Redirecting to faithful intro...');
     
-    // Redirect to merged2.html which is now intro-only (cleaned up)
+    // Redirect to the faithful standalone intro template
     // Full faithful intro with HELL sequence, bow transform, light jiggle
-    window.location.href = './merged2.html?autostart=1';
-    
-    console.log('[IntroScene-Faithful] ✅ Redirecting to merged2.html (intro-only)');
+    window.location.href = './templates/componentized/intro-faithful.html?autostart=1';
+
+    console.log('[IntroScene-Faithful] ✅ Redirecting to intro-faithful template');
   }
 
   /**
