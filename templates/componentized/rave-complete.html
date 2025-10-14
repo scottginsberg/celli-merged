@@ -574,18 +574,18 @@
       const armRadius = .055;
       const handGeo = new THREE.SphereGeometry(armRadius, 16, 12);
       const shoulderX = BW * 0.38;
-      const shoulderY = BH * 0.52;
+      const armAttachY = BH * 0.28;
       const shoulderZ = BD * 0.5 - armRadius * 0.4;
-      const armTilt = THREE.MathUtils.degToRad(-8);
-      const armSweep = THREE.MathUtils.degToRad(26);
-      const armTuck = THREE.MathUtils.degToRad(-4);
+      const armTilt = THREE.MathUtils.degToRad(-16);
+      const armSweep = THREE.MathUtils.degToRad(18);
+      const armTuck = THREE.MathUtils.degToRad(-12);
       
       function makeArm(sign=1){
         const armRoot = new THREE.Group();
         const armCurve = new THREE.QuadraticBezierCurve3(
-          new THREE.Vector3(0, -0.015, 0.02),
-          new THREE.Vector3(0.12 * sign, -0.16, 0.05),
-          new THREE.Vector3(0.16 * sign, -0.28, 0.015)
+          new THREE.Vector3(0, -0.02, 0.02),
+          new THREE.Vector3(0.09 * sign, -0.08, 0.05),
+          new THREE.Vector3(0.14 * sign, -0.18, 0.015)
         );
         const armGeo = new THREE.TubeGeometry(armCurve, 28, armRadius, 12, false);
         const upper = new THREE.Mesh(armGeo, MAT_BODY); 
@@ -596,8 +596,10 @@
         hand.position.copy(armCurve.getPoint(1));
         handGroup.add(hand); // FIXED: Add hand directly to handGroup
         armRoot.add(upper, handGroup);
-        armRoot.position.set(sign * (shoulderX + armRadius * 0.6), shoulderY - 0.02, shoulderZ * 0.4);
+        armRoot.position.set(sign * (shoulderX + armRadius * 0.5), armAttachY, shoulderZ * 0.35);
         armRoot.rotation.set(armTilt, sign * armSweep, sign * armTuck);
+        armRoot.userData = armRoot.userData || {};
+        armRoot.userData.restRotation = armRoot.rotation.clone();
         return { armRoot, handGroup, hand };
       }
       const L = makeArm(-1), R = makeArm(+1);
@@ -654,7 +656,7 @@
     // FAITHFUL Arraya Avatar from arraya.html - PROPER BARREL DISTORTION
     function createRealArraya() {
       const group = new THREE.Group();
-      group.scale.setScalar(1.8);
+      group.scale.setScalar(0.9);
       
       const W=1.45, H=1.1, D=1.2;
       const greens = [
@@ -1105,14 +1107,20 @@
 
     // ============= CREATE MAIN AVATARS =============
     
-    // Create real Celli (center-left) - bottom at Y=0
+    // Create real Celli (center-left)
     const celliGroup = createRealCelli();
-    celliGroup.position.set(-5, 0, 0);
+    celliGroup.position.set(-5, 0.05, 0);
+    celliGroup.userData.baseX = celliGroup.position.x;
+    celliGroup.userData.baseY = celliGroup.position.y;
     scene.add(celliGroup);
 
-    // Create real Arraya (center-right) - raised to match Celli height
+    // Create real Arraya (center-right) - raise based on curved geometry bounds
     const arrayGroup = createRealArraya();
-    arrayGroup.position.set(5, 2.4, 0); // Raised significantly to align with Celli
+    const arrayBounds = new THREE.Box3().setFromObject(arrayGroup);
+    const arrayLift = -arrayBounds.min.y + 0.4;
+    arrayGroup.position.set(5, arrayLift, 0);
+    arrayGroup.userData.baseX = arrayGroup.position.x;
+    arrayGroup.userData.baseY = arrayGroup.position.y;
     scene.add(arrayGroup);
 
     // Create background dancers in a circle
@@ -1301,22 +1309,35 @@
       if (!celliGroup.userData.bodyGroup) return;
       
       // Bob to beat - WHOLE CHARACTER
-      const bobHeight = (raveState.bass / 255) * 0.8;
-      celliGroup.position.y = bobHeight;
-      
-      // Stretch body to music
-      const bassStretch = 1 + (raveState.bass / 255) * 0.2;
-      celliGroup.userData.bodyGroup.scale.set(bassStretch, 1 / Math.sqrt(bassStretch), bassStretch);
-      
-      // Wave arms at shoulders (hands follow arms now)
+      const baseY = celliGroup.userData.baseY ?? 0;
+      const rhythmicBob = Math.sin(raveState.time * 2) * 0.05;
+      const beatBob = beatIntensity * 0.6;
+      celliGroup.position.y = baseY + rhythmicBob + beatBob;
+
+      // Stretch body to music with squash on the beat
+      const stretch = 1 + beatIntensity * 0.25 + Math.sin(raveState.time * 2 + Math.PI / 2) * 0.05;
+      const squash = 1 / Math.sqrt(stretch);
+      celliGroup.userData.bodyGroup.scale.set(squash, stretch, squash);
+
+      // Wave arms from a lowered midsection anchor
       if (celliGroup.userData.leftArm && celliGroup.userData.rightArm) {
         const armWave = raveState.time * 3 + beatIntensity * 2;
-        celliGroup.userData.leftArm.armRoot.rotation.z = Math.sin(armWave) * 0.6;
-        celliGroup.userData.rightArm.armRoot.rotation.z = -Math.sin(armWave) * 0.6;
-        celliGroup.userData.leftArm.armRoot.rotation.x = Math.cos(raveState.time * 2) * 0.2;
-        celliGroup.userData.rightArm.armRoot.rotation.x = Math.cos(raveState.time * 2 + Math.PI) * 0.2;
+        const flapAmplitude = THREE.MathUtils.degToRad(8 + beatIntensity * 6);
+        const swayAmplitude = THREE.MathUtils.degToRad(3 + beatIntensity * 2);
+
+        const applyArmMotion = (armData, phase) => {
+          const armRoot = armData.armRoot;
+          const rest = armRoot.userData?.restRotation;
+          if (!rest) return;
+          armRoot.rotation.x = rest.x + Math.cos(raveState.time * 1.6 + phase) * swayAmplitude;
+          armRoot.rotation.y = rest.y;
+          armRoot.rotation.z = rest.z + Math.sin(armWave + phase) * flapAmplitude;
+        };
+
+        applyArmMotion(celliGroup.userData.leftArm, 0);
+        applyArmMotion(celliGroup.userData.rightArm, Math.PI);
       }
-      
+
       // Bounce legs at hip (legs stay attached to body)
       if (celliGroup.userData.leftLeg && celliGroup.userData.rightLeg) {
         const legBounce = Math.sin(raveState.time * 4) * 0.3 * beatIntensity;
@@ -1334,20 +1355,23 @@
         );
       }
       
-      // Rotate whole character
+      // Rotate whole character with subtle nod
       celliGroup.rotation.y = raveState.time * 0.3;
+      celliGroup.rotation.x = Math.sin(raveState.time * 1.2) * 0.05 * (0.3 + beatIntensity);
     }
 
     function animateArrayDance(beatIntensity) {
       if (!arrayGroup.userData.segments) return;
       
       // Bob to beat from raised position
-      const bobHeight = 2.4 + (raveState.bass / 255) * 0.8;
+      const baseY = arrayGroup.userData.baseY ?? arrayGroup.position.y;
+      const bobHeight = baseY + (raveState.bass / 255) * 0.8 + Math.sin(raveState.time * 1.4) * 0.1;
       arrayGroup.position.y = bobHeight;
       
       // CURVE SIDE TO SIDE with music
+      const baseX = arrayGroup.userData.baseX ?? arrayGroup.position.x;
       const sideCurve = Math.sin(raveState.time * 1.5) * (raveState.treble / 255) * 2;
-      arrayGroup.position.x = 5 + sideCurve; // Offset from center
+      arrayGroup.position.x = baseX + sideCurve; // Offset from center
       
       // Tilt/sway whole body
       arrayGroup.rotation.z = Math.sin(raveState.time * 1.2) * (raveState.volume / 255) * 0.4;
