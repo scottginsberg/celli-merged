@@ -388,7 +388,7 @@
    height: var(--ref-light-ray-height, 18px);
    mix-blend-mode: screen;
    pointer-events: none;
-   z-index: 9998;
+   z-index: 2147483600;
    animation: ray-shine 0.45s ease-out;
    transform-origin: right center;
    border-radius: calc(var(--ref-light-ray-height, 18px) / 2);
@@ -446,7 +446,7 @@
    background: radial-gradient(ellipse at right center, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.4) 30%, transparent 60%);
    mix-blend-mode: screen;
    pointer-events: none;
-   z-index: 10000;
+   z-index: 2147483650;
    opacity: 0;
    animation: burst-flash 2.5s ease-out forwards;
   }
@@ -1797,7 +1797,7 @@
   const chantAudio = new Audio('./chant.mp3');
   chantAudio.preload = 'auto';
   const CHANT_TARGET_VOLUME = 0.7;
-  const CHANT_FADE_DURATION = 400;
+  const CHANT_FADE_DURATION = 1200;
   chantAudio.volume = 0;
   chantAudio.addEventListener('ended', () => setLoomAudioStatus(false));
   chantAudio.addEventListener('pause', () => {
@@ -2315,17 +2315,6 @@
           console.log('  ✅ Note fully entered frame (ticks satisfied).');
           quickFadeInChant();
 
-          if (!noteHoverSequenceStarted && noteAwaitingActivation) {
-            const autoHoverTimeout = setTimeout(() => {
-              if (noteAwaitingActivation) {
-                console.log('  🌀 Auto-triggering hover sequence after entry.');
-                startNoteHoverSequence();
-              }
-            }, 450);
-
-            noteStageTimeouts.push(autoHoverTimeout);
-          }
-
           stopNoteEntryMonitor();
           return;
         }
@@ -2432,6 +2421,33 @@
     noteStageTimeouts.push(expandTimeout);
   }
 
+  function triggerBurstLight(onCleanupScheduled) {
+    document.querySelectorAll('.burst-beam').forEach(beam => beam.remove());
+
+    const burstBeam = document.createElement('div');
+    burstBeam.className = 'burst-beam';
+
+    if (brickHoles.length > 0) {
+      const avgY = brickHoles.reduce((sum, h) => sum + h.y, 0) / brickHoles.length;
+      burstBeam.style.background = `radial-gradient(ellipse at right ${avgY}px, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.35) 30%, transparent 60%)`;
+    }
+
+    document.body.appendChild(burstBeam);
+
+    const cleanupTimeout = setTimeout(() => {
+      if (burstBeam.parentNode) {
+        burstBeam.style.opacity = '0';
+        setTimeout(() => burstBeam.remove(), 1000);
+      }
+    }, 3000);
+
+    if (typeof onCleanupScheduled === 'function') {
+      onCleanupScheduled(cleanupTimeout);
+    }
+
+    return burstBeam;
+  }
+
   function triggerNoteHoverEffects() {
     console.log('  ✨ Activating crystalline note hover effects');
 
@@ -2443,22 +2459,7 @@
       noteStageTimeouts.push(flashTimeout);
     }
 
-    const burstBeam = document.createElement('div');
-    burstBeam.className = 'burst-beam';
-    document.body.appendChild(burstBeam);
-
-    if (brickHoles.length > 0) {
-      const avgY = brickHoles.reduce((sum, h) => sum + h.y, 0) / brickHoles.length;
-      burstBeam.style.background = `radial-gradient(ellipse at right ${avgY}px, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.35) 30%, transparent 60%)`;
-    }
-
-    const cleanupTimeout = setTimeout(() => {
-      if (burstBeam.parentNode) {
-        burstBeam.style.opacity = '0';
-        setTimeout(() => burstBeam.remove(), 1000);
-      }
-    }, 3000);
-    noteStageTimeouts.push(cleanupTimeout);
+    triggerBurstLight(timeoutId => noteStageTimeouts.push(timeoutId));
   }
 
   function revealAiMessage() {
@@ -3439,7 +3440,9 @@
       setTimeout(() => refSidebar.classList.add('bouncing'), 10);
       setTimeout(() => refSidebar.classList.remove('bouncing'), 600);
     }
-    
+
+    triggerBurstLight();
+
     setTimeout(() => startMagneticCursor(), 800);
   }
   
@@ -3919,7 +3922,7 @@
     ray.style.top = `${topOffset}px`;
     ray.style.width = `${rayWidth}px`;
     ray.style.height = `${rayHeight}px`;
-    ray.style.zIndex = '9999';
+    ray.style.zIndex = '2147483600';
     if (postId) {
       ray.dataset.refPostId = postId;
     }

@@ -39,6 +39,7 @@
   overflow: visible; /* Allow flash effects to extend beyond */
   display: flex;
   flex-direction: column;
+  z-index: 2147483200; /* Keep reconstructed layout beneath global shadow */
 }
 
 .ref-header {
@@ -1538,7 +1539,7 @@
   box-shadow: -8px 0 40px rgba(0, 0, 0, .4);
   padding: 20px;
   color: #fff;
-  z-index: 2147483700;
+  z-index: 2147483400; /* Allow darkening overlay to sit on top while remaining clickable */
   transition: right .4s cubic-bezier(.68, -.55, .265, 1.55);
 }
 
