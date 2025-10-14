@@ -112,6 +112,244 @@
       color: #bdc3c7;
     }
 
+    .panel-divider {
+      height: 1px;
+      background: #3a3a3a;
+      border: none;
+      margin: 18px 0;
+    }
+
+    .panel-section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      color: #d0d6d9;
+    }
+
+    .panel-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ecf0f1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-meta {
+      font-size: 11px;
+      color: #7f8c8d;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .section-search {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: 1px solid #3d3d3d;
+      background: #1f1f1f;
+      color: #e0e0e0;
+      font-size: 12px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .section-search:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 1px rgba(52, 152, 219, 0.3);
+    }
+
+    .scene-catalog {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .catalog-group {
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .catalog-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: rgba(52, 152, 219, 0.12);
+      font-size: 12px;
+      font-weight: 600;
+      color: #9bd4ff;
+    }
+
+    .catalog-count {
+      font-size: 11px;
+      color: #7f8c8d;
+    }
+
+    .catalog-items {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .catalog-group-description {
+      padding: 0 12px 10px;
+      font-size: 11px;
+      color: #8aa0b3;
+      background: #2a2a2a;
+    }
+
+    .catalog-item {
+      padding: 10px 12px;
+      border-top: 1px solid #3a3a3a;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .catalog-item:first-child {
+      border-top: none;
+    }
+
+    .catalog-item:hover {
+      background: rgba(52, 152, 219, 0.08);
+      transform: translateX(2px);
+    }
+
+    .catalog-item.active {
+      background: rgba(52, 152, 219, 0.18);
+      border-left: 3px solid #3498db;
+    }
+
+    .catalog-item-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #ecf0f1;
+      margin-bottom: 4px;
+    }
+
+    .catalog-item-summary {
+      font-size: 11px;
+      color: #a0a0a0;
+      line-height: 1.5;
+    }
+
+    .catalog-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .catalog-tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(52, 152, 219, 0.12);
+      color: #9bd4ff;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .prop-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .prop-card {
+      background: #242424;
+      border: 1px solid #3a3a3a;
+      border-radius: 6px;
+      padding: 10px 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .prop-card:hover {
+      border-color: #3498db;
+      box-shadow: 0 0 0 1px rgba(52, 152, 219, 0.2);
+    }
+
+    .prop-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .prop-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #ecf0f1;
+    }
+
+    .prop-description {
+      font-size: 11px;
+      color: #b0b0b0;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .prop-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .prop-tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(46, 204, 113, 0.12);
+      color: #6de4a4;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .prop-meta {
+      margin-top: 6px;
+      font-size: 10px;
+      color: #7f8c8d;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .prop-copy-btn {
+      background: transparent;
+      border: 1px solid #3a3a3a;
+      color: #9bd4ff;
+      font-size: 11px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .prop-copy-btn:hover {
+      background: rgba(52, 152, 219, 0.16);
+      border-color: #3498db;
+      color: #ecf6ff;
+    }
+
+    .empty-state {
+      font-size: 11px;
+      color: #777;
+      text-align: center;
+      padding: 20px 10px;
+      border: 1px dashed #3a3a3a;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.25);
+    }
+
     .stat-item {
       background: rgba(52, 152, 219, 0.1);
       padding: 6px;
@@ -680,6 +918,38 @@
       <div id="assetGroupsContainer">
         <!-- Asset groups will be populated here -->
       </div>
+
+      <div class="panel-divider"></div>
+
+      <div class="panel-section catalog-section">
+        <div class="panel-section-heading">
+          <span class="panel-section-title">🎞️ Scene Catalog</span>
+          <span class="section-meta" id="sceneCatalogCount">0 scenes</span>
+        </div>
+        <input
+          type="search"
+          id="sceneCatalogSearch"
+          class="section-search"
+          placeholder="Search scenes or tags..."
+        />
+        <div class="scene-catalog" id="sceneCatalogList"></div>
+      </div>
+
+      <div class="panel-divider"></div>
+
+      <div class="panel-section prop-section">
+        <div class="panel-section-heading">
+          <span class="panel-section-title">🎭 Prop Browser</span>
+          <span class="section-meta" id="propCount">0 props</span>
+        </div>
+        <input
+          type="search"
+          id="propSearch"
+          class="section-search"
+          placeholder="Filter props or tags..."
+        />
+        <div class="prop-grid" id="propList"></div>
+      </div>
     </div>
 
     <!-- Center Panel - Timeline & Dialogue -->
@@ -764,6 +1034,9 @@
   </div>
 
   <script type="module">
+    import { sceneCatalog } from './src/data/catalog/sceneCatalog.js';
+    import { PROP_CATALOG } from './src/assets/js/props/propCatalog.js';
+
     console.log('🎬 Enhanced Sequence Builder Starting...');
 
     // ===== SCENE ASSET ANALYZER =====
@@ -1044,13 +1317,21 @@
       constructor() {
         this.analyzer = new SceneAssetAnalyzer();
         this.dialogueManager = new DialogueManager();
+        this.sceneCatalog = sceneCatalog;
+        this.propCatalog = PROP_CATALOG;
+        this.totalSceneCount = this.sceneCatalog.reduce(
+          (total, category) => total + category.scenes.length,
+          0,
+        );
         this.state = {
           currentScene: null,
           assets: null,
           selectedAsset: null,
-          currentTab: 'timeline'
+          currentTab: 'timeline',
+          sceneSearchTerm: '',
+          propSearchTerm: '',
         };
-        
+
         this.ui = {
           sceneName: document.getElementById('sceneName'),
           assetGroupsContainer: document.getElementById('assetGroupsContainer'),
@@ -1061,7 +1342,13 @@
           dialogueCardsContainer: document.getElementById('dialogueCardsContainer'),
           hierarchyTree: document.getElementById('hierarchyTree'),
           loadingOverlay: document.getElementById('loadingOverlay'),
-          loadingDetail: document.getElementById('loadingDetail')
+          loadingDetail: document.getElementById('loadingDetail'),
+          sceneCatalogList: document.getElementById('sceneCatalogList'),
+          sceneCatalogSearch: document.getElementById('sceneCatalogSearch'),
+          sceneCatalogCount: document.getElementById('sceneCatalogCount'),
+          propList: document.getElementById('propList'),
+          propSearch: document.getElementById('propSearch'),
+          propCount: document.getElementById('propCount'),
         };
       }
 
@@ -1077,12 +1364,14 @@
         this.ui.loadingDetail.textContent = 'Analyzing scene assets...';
         const scenePath = `./src/scripts/scenes/${sceneName}.js`;
         this.state.assets = await this.analyzer.analyzeScene(scenePath);
-        
+
         this._renderAssetGroups();
+        this._renderSceneCatalog();
+        this._renderPropBrowser();
         this._setupEventListeners();
         this._renderInitialDialogues();
         this._updateCodePreview();
-        
+
         setTimeout(() => {
           this.ui.loadingOverlay.style.display = 'none';
           console.log('✅ Enhanced Sequence Builder Ready');
@@ -1176,10 +1465,228 @@
         this.ui.totalGroups.textContent = groups.length;
       }
 
+      _renderSceneCatalog() {
+        if (!this.ui.sceneCatalogList) return;
+
+        const term = (this.state.sceneSearchTerm || '').trim().toLowerCase();
+        let totalMatches = 0;
+        const fragments = [];
+
+        this.sceneCatalog.forEach(category => {
+          const matches = category.scenes.filter(scene => this._matchesScene(scene, category, term));
+
+          if (matches.length === 0) {
+            return;
+          }
+
+          totalMatches += matches.length;
+
+          const items = matches.map(scene => {
+            const tags = Array.isArray(scene.tags)
+              ? scene.tags.map(tag => `<span class="catalog-tag">${tag}</span>`).join('')
+              : '';
+            const isActive = scene.id === this.state.currentScene;
+
+            return `
+              <div class="catalog-item ${isActive ? 'active' : ''}" data-scene-id="${scene.id}">
+                <div class="catalog-item-title">
+                  <span>${scene.icon || category.icon || '🎬'}</span>
+                  <span>${scene.name}</span>
+                </div>
+                <div class="catalog-item-summary">${scene.summary}</div>
+                ${tags ? `<div class="catalog-tags">${tags}</div>` : ''}
+              </div>
+            `;
+          }).join('');
+
+          fragments.push(`
+            <div class="catalog-group">
+              <div class="catalog-group-header">
+                <span>${category.icon || '📁'} ${category.title}</span>
+                <span class="catalog-count">${matches.length}</span>
+              </div>
+              <div class="catalog-group-description">${category.description}</div>
+              <div class="catalog-items">${items}</div>
+            </div>
+          `);
+        });
+
+        this.ui.sceneCatalogList.innerHTML =
+          fragments.join('') ||
+          (term
+            ? `<div class="empty-state">No scenes match “${this.state.sceneSearchTerm}”.</div>`
+            : `<div class="empty-state">No scenes available.</div>`);
+
+        const countLabel = term
+          ? `${totalMatches}/${this.totalSceneCount} scenes`
+          : `${this.totalSceneCount} scenes`;
+        this.ui.sceneCatalogCount.textContent = countLabel;
+
+        this.ui.sceneCatalogList.querySelectorAll('.catalog-item').forEach(item => {
+          item.addEventListener('click', async () => {
+            const sceneId = item.dataset.sceneId;
+            await this._changeScene(sceneId);
+          });
+        });
+      }
+
+      _matchesScene(scene, category, term) {
+        if (!term) return true;
+
+        const haystack = [
+          scene.id,
+          scene.name,
+          scene.summary,
+          ...(scene.tags || []),
+          category.title,
+          category.description,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        return haystack.includes(term);
+      }
+
+      async _changeScene(sceneId) {
+        if (!sceneId || sceneId === this.state.currentScene) {
+          return;
+        }
+
+        this.ui.loadingOverlay.style.display = 'flex';
+        this.ui.loadingDetail.textContent = `Analyzing ${sceneId}...`;
+
+        this.state.currentScene = sceneId;
+        if (this.ui.sceneName) {
+          this.ui.sceneName.textContent = sceneId;
+        }
+
+        const scenePath = `./src/scripts/scenes/${sceneId}.js`;
+        this.state.assets = await this.analyzer.analyzeScene(scenePath);
+        this.state.selectedAsset = null;
+
+        this._renderAssetGroups();
+        this._renderSceneCatalog();
+        this._renderInitialDialogues();
+        this._updateCodePreview();
+
+        setTimeout(() => {
+          this.ui.loadingOverlay.style.display = 'none';
+        }, 300);
+      }
+
+      _renderPropBrowser() {
+        if (!this.ui.propList) return;
+
+        const term = (this.state.propSearchTerm || '').trim().toLowerCase();
+        const filtered = this.propCatalog.filter(prop => {
+          if (!term) return true;
+
+          const haystack = [
+            prop.id,
+            prop.name,
+            prop.description,
+            prop.category,
+            ...(prop.tags || []),
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+
+          return haystack.includes(term);
+        });
+
+        const cards = filtered
+          .map(prop => {
+            const tags = Array.isArray(prop.tags)
+              ? prop.tags.map(tag => `<span class="prop-tag">${tag}</span>`).join('')
+              : '';
+
+            const metaParts = [`id: <code>${prop.id}</code>`];
+            if (prop.category) {
+              metaParts.push(`category: ${prop.category}`);
+            }
+            if (prop.defaultOptions && Object.keys(prop.defaultOptions).length > 0) {
+              metaParts.push(`defaults: ${this._formatDefaultOptions(prop.defaultOptions)}`);
+            }
+
+            const meta = `<div class="prop-meta">${metaParts
+              .map(part => `<span>${part}</span>`)
+              .join('')}</div>`;
+
+            return `
+              <div class="prop-card" data-prop-id="${prop.id}">
+                <div class="prop-header">
+                  <div class="prop-title"><span>${prop.icon || '🎭'}</span><span>${prop.name}</span></div>
+                  <button class="prop-copy-btn" data-prop-id="${prop.id}">Copy ID</button>
+                </div>
+                <div class="prop-description">${prop.description}</div>
+                ${tags ? `<div class="prop-tags">${tags}</div>` : ''}
+                ${meta}
+              </div>
+            `;
+          })
+          .join('');
+
+        this.ui.propList.innerHTML =
+          cards ||
+          (term
+            ? `<div class="empty-state">No props match “${this.state.propSearchTerm}”.</div>`
+            : `<div class="empty-state">No props available.</div>`);
+
+        const total = this.propCatalog.length;
+        const label = term ? `${filtered.length}/${total} props` : `${total} props`;
+        this.ui.propCount.textContent = label;
+
+        this.ui.propList.querySelectorAll('.prop-copy-btn').forEach(btn => {
+          btn.addEventListener('click', async event => {
+            event.stopPropagation();
+            const propId = btn.dataset.propId;
+            await this._copyText(propId, btn);
+          });
+        });
+      }
+
+      _formatDefaultOptions(options) {
+        return Object.entries(options)
+          .map(([key, value]) => {
+            if (value && typeof value === 'object') {
+              return `${key}=${JSON.stringify(value)}`;
+            }
+            return `${key}=${value}`;
+          })
+          .join(', ');
+      }
+
+      async _copyText(value, button) {
+        try {
+          await navigator.clipboard.writeText(value);
+          if (button) {
+            const original = button.textContent;
+            button.textContent = 'Copied!';
+            button.disabled = true;
+            setTimeout(() => {
+              button.textContent = original;
+              button.disabled = false;
+            }, 1200);
+          }
+          console.log(`✅ Copied to clipboard: ${value}`);
+        } catch (error) {
+          console.warn('Clipboard copy failed, falling back to prompt.', error);
+          if (button) {
+            button.textContent = 'Copy failed';
+            setTimeout(() => {
+              button.textContent = 'Copy ID';
+            }, 1500);
+          }
+          window.prompt('Copy the prop id manually:', value);
+        }
+      }
+
       _selectAsset(groupKey, index) {
         // Deselect all
         document.querySelectorAll('.asset-item').forEach(el => el.classList.remove('selected'));
-        
+
         // Select this one
         const asset = this.state.assets[groupKey][index];
         this.state.selectedAsset = { ...asset, group: groupKey };
@@ -1243,7 +1750,9 @@
       }
 
       _renderInitialDialogues() {
-        // Create some sample dialogues
+        // Reset and create sample dialogues
+        this.dialogueManager.dialogues = [];
+
         this.dialogueManager.createDialogue({
           speaker: 'System',
           text: 'Welcome to the sequence builder. Use this interface to create dynamic dialogue sequences.',
@@ -1452,6 +1961,18 @@
               this._renderHierarchyTree();
             }
           });
+        });
+
+        // Scene catalog search
+        this.ui.sceneCatalogSearch?.addEventListener('input', (event) => {
+          this.state.sceneSearchTerm = event.target.value;
+          this._renderSceneCatalog();
+        });
+
+        // Prop browser search
+        this.ui.propSearch?.addEventListener('input', (event) => {
+          this.state.propSearchTerm = event.target.value;
+          this._renderPropBrowser();
         });
 
         // Analyze button
