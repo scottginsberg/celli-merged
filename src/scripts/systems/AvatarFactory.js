@@ -594,15 +594,80 @@ export const AvatarFactory = {
     eyeLightR.position.copy(eyeR.position);
     eyeLightR.position.z += 0.1 * voxelScale;
 
+    const eyes = [eyeL, eyeR];
+    const eyeLights = [eyeLightL, eyeLightR];
+    const blinkState = {
+      countdown: THREE.MathUtils.randFloat(2.5, 5.5),
+      minDelay: 2.5,
+      maxDelay: 5.5,
+      blinkDuration: 0.18,
+      minScale: 0.2,
+      baseScales: eyes.map(eye => eye.scale.y),
+      progress: 0,
+      blinking: false,
+      lightMin: 0.2,
+      lightMax: eyeLightMat.opacity
+    };
+
+    const applyBlinkAmount = (amount = 0) => {
+      eyes.forEach((eye, index) => {
+        const baseScale = blinkState.baseScales[index];
+        eye.scale.y = THREE.MathUtils.lerp(baseScale, baseScale * blinkState.minScale, amount);
+      });
+
+      eyeLights.forEach(light => {
+        if (light.material) {
+          light.material.opacity = THREE.MathUtils.lerp(blinkState.lightMax, blinkState.lightMin, amount);
+        }
+      });
+    };
+
+    const updateBlink = (delta = 0.016) => {
+      if (!blinkState.blinking) {
+        blinkState.countdown -= delta;
+        if (blinkState.countdown <= 0) {
+          blinkState.blinking = true;
+          blinkState.progress = 0;
+          blinkState.countdown = THREE.MathUtils.randFloat(blinkState.minDelay, blinkState.maxDelay);
+        } else {
+          applyBlinkAmount(0);
+          return;
+        }
+      }
+
+      blinkState.progress += delta / blinkState.blinkDuration;
+      const progress = Math.min(blinkState.progress, 1);
+      const amount = Math.sin(progress * Math.PI);
+      applyBlinkAmount(amount);
+
+      if (progress >= 1) {
+        blinkState.blinking = false;
+        blinkState.progress = 0;
+      }
+    };
+
+    const resetBlink = () => {
+      blinkState.countdown = THREE.MathUtils.randFloat(blinkState.minDelay, blinkState.maxDelay);
+      blinkState.progress = 0;
+      blinkState.blinking = false;
+      applyBlinkAmount(0);
+    };
+
+    applyBlinkAmount(0);
+
     // Assemble
     group.add(bodyFrame, head, eyeL, eyeR, cheekL, cheekR, eyeLightL, eyeLightR);
 
     // Store references
     group.userData.head = head;
     group.userData.bodyFrame = bodyFrame;
-    group.userData.eyes = [eyeL, eyeR];
-    group.userData.eyeLights = [eyeLightL, eyeLightR];
+    group.userData.eyes = eyes;
+    group.userData.eyeLights = eyeLights;
     group.userData.cheeks = [cheekL, cheekR];
+    group.userData.blinkState = blinkState;
+    group.userData.updateBlink = updateBlink;
+    group.userData.resetBlink = resetBlink;
+    group.userData.applyBlink = applyBlinkAmount;
 
     return group;
   },
