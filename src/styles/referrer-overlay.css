@@ -9,6 +9,7 @@
   --ref-light-ray-width: 800px;
   --ref-light-ray-height: 60px;
   --ref-light-ray-blur: 20px;
+  --chant-reactive: 0;
 }
 
 .celli-ref-overlay {
@@ -166,11 +167,34 @@
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
   flex-shrink: 0;
   transition: transform .2s ease, box-shadow .2s ease;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
 }
 
 .ref-tooltip--hn .ref-tooltip-bullet {
-  background: #ff6600;
-  box-shadow: 0 0 10px rgba(255, 102, 0, 0.6);
+  width: 16px;
+  height: 12px;
+  border-radius: 5px;
+  background: linear-gradient(140deg, #ffba70, #ff6600);
+  box-shadow: 0 0 14px rgba(255, 102, 0, 0.6);
+  transform: translateY(-1px);
+}
+
+.ref-tooltip--hn .ref-tooltip-bullet::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 9px;
+  height: 6px;
+  background: inherit;
+  clip-path: polygon(50% 100%, 0 0, 100% 0);
+  border-radius: 1px;
+  box-shadow: 0 0 10px rgba(255, 102, 0, 0.45);
 }
 
 .ref-tooltip--reddit .ref-tooltip-bullet {
@@ -179,13 +203,70 @@
 }
 
 .ref-tooltip--twitter .ref-tooltip-bullet {
-  background: #1da1f2;
-  box-shadow: 0 0 10px rgba(29, 161, 242, 0.6);
+  width: 28px;
+  height: 16px;
+  border-radius: 999px;
+  padding: 0 6px;
+  gap: 4px;
+  background: linear-gradient(135deg, #38c8ff, #1da1f2);
+  box-shadow: 0 0 16px rgba(29, 161, 242, 0.65);
+  color: #ecf9ff;
+  font-size: 11px;
+  letter-spacing: -0.5px;
+}
+
+.ref-tooltip--twitter .ref-tooltip-bullet::before,
+.ref-tooltip--twitter .ref-tooltip-bullet::after {
+  content: '';
+  position: relative;
+  display: inline-block;
+}
+
+.ref-tooltip--twitter .ref-tooltip-bullet::before {
+  content: '❤';
+  color: #ffd5ec;
+  font-size: 12px;
+  transform: translateY(-0.5px);
+}
+
+.ref-tooltip--twitter .ref-tooltip-bullet::after {
+  content: '🔁';
+  color: #dcf4ff;
+  font-size: 11px;
+  transform: translateY(0.5px);
 }
 
 .ref-tooltip--facebook .ref-tooltip-bullet {
-  background: #1877f2;
-  box-shadow: 0 0 10px rgba(24, 119, 242, 0.6);
+  width: 28px;
+  height: 16px;
+  border-radius: 10px;
+  padding: 0 6px;
+  gap: 4px;
+  background: linear-gradient(135deg, #5aa7ff, #1877f2);
+  box-shadow: 0 0 16px rgba(24, 119, 242, 0.65);
+  color: #f3f6ff;
+  font-size: 11px;
+}
+
+.ref-tooltip--facebook .ref-tooltip-bullet::before,
+.ref-tooltip--facebook .ref-tooltip-bullet::after {
+  content: '';
+  position: relative;
+  display: inline-block;
+}
+
+.ref-tooltip--facebook .ref-tooltip-bullet::before {
+  content: '👍';
+  font-size: 12px;
+  color: #ffffff;
+  transform: translateY(-0.5px);
+}
+
+.ref-tooltip--facebook .ref-tooltip-bullet::after {
+  content: '🙏';
+  font-size: 11px;
+  color: #ffe8a3;
+  transform: translateY(0.5px);
 }
 
 .ref-tooltip--linkedin .ref-tooltip-bullet {
@@ -1539,7 +1620,7 @@
   box-shadow: -8px 0 40px rgba(0, 0, 0, .4);
   padding: 20px;
   color: #fff;
-  z-index: 2147483400; /* Allow darkening overlay to sit on top while remaining clickable */
+  z-index: 2147483600; /* Keep crystalline invites above light effects */
   transition: right .4s cubic-bezier(.68, -.55, .265, 1.55);
 }
 
@@ -1603,6 +1684,76 @@
   color: rgba(255, 255, 255, 0.7);
   text-align: center;
   font-family: 'Roboto Mono', ui-monospace, monospace;
+}
+
+.ref-sidebar-btn.loom-invite-active {
+  overflow: visible;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.loom-invite-stack {
+  position: relative;
+  display: grid;
+  place-items: stretch;
+  isolation: isolate;
+  z-index: 10;
+}
+
+.loom-invite-stack::before,
+.loom-invite-stack::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(143, 180, 255, 0.18), rgba(102, 126, 234, 0.12));
+  box-shadow: 0 30px 48px rgba(9, 12, 34, 0.45);
+  pointer-events: none;
+  transition: transform 0.4s ease, opacity 0.4s ease;
+  z-index: -2;
+}
+
+.loom-invite-stack::before {
+  transform: translateY(18px) scale(0.94);
+  opacity: 0.42;
+}
+
+.loom-invite-stack::after {
+  transform: translateY(9px) scale(0.97);
+  opacity: 0.58;
+  z-index: -1;
+}
+
+.loom-invite-card {
+  position: relative;
+  border-radius: 22px;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.24), rgba(143, 180, 255, 0.16));
+  box-shadow: 0 24px 45px rgba(9, 12, 34, 0.55), 0 0 0 1px rgba(143, 180, 255, 0.28);
+  pointer-events: auto;
+  transition: transform 0.35s ease, box-shadow 0.35s ease, filter 0.35s ease;
+}
+
+.ref-sidebar-btn.loom-invite-active .loom-invite-card {
+  transform: translateY(0);
+}
+
+.ref-sidebar-btn.loom-invite-active.audio-reactive .loom-invite-card {
+  transform: translateY(calc(var(--chant-reactive, 0) * -4px)) scale(calc(1 + var(--chant-reactive, 0) * 0.05));
+  box-shadow: 0 28px 60px rgba(12, 18, 45, calc(0.45 + var(--chant-reactive, 0) * 0.4)),
+    0 0 0 1px rgba(143, 180, 255, calc(0.28 + var(--chant-reactive, 0) * 0.3));
+  filter: saturate(calc(1 + var(--chant-reactive, 0) * 0.35));
+}
+
+.ref-sidebar-btn.loom-invite-active.audio-reactive .loom-invite-stack::before {
+  transform: translateY(calc(18px + var(--chant-reactive, 0) * 6px)) scale(calc(0.94 + var(--chant-reactive, 0) * 0.025));
+  opacity: calc(0.42 + var(--chant-reactive, 0) * 0.2);
+}
+
+.ref-sidebar-btn.loom-invite-active.audio-reactive .loom-invite-stack::after {
+  transform: translateY(calc(9px + var(--chant-reactive, 0) * 4px)) scale(calc(0.97 + var(--chant-reactive, 0) * 0.02));
+  opacity: calc(0.58 + var(--chant-reactive, 0) * 0.18);
 }
 
 .ref-sidebar-btn:hover {
@@ -1903,10 +2054,18 @@
     rgba(118, 75, 162, 0.2) 70%,
     transparent);
   filter: blur(var(--ref-light-beam-blur, 15px));
+  transition: opacity 0.4s ease, transform 0.45s ease, filter 0.6s ease;
 }
 
 .light-beam.active {
   animation: beamPulse 3s ease-in-out infinite;
+}
+
+.light-beam.audio-reactive {
+  animation: none;
+  opacity: calc(0.35 + var(--chant-reactive, 0) * 0.65);
+  transform: translateY(-50%) scaleX(calc(1 + var(--chant-reactive, 0) * 0.45)) scaleY(calc(1 + var(--chant-reactive, 0) * 0.08));
+  filter: blur(calc(var(--ref-light-beam-blur, 15px) * (1 + var(--chant-reactive, 0) * 0.18)));
 }
 
 @keyframes beamPulse {
