@@ -144,6 +144,10 @@
       <button id="toggle-dance">START</button>
     </div>
     <div class="control-row">
+      <label>Sunglasses:</label>
+      <button id="toggle-sunglasses">ADD</button>
+    </div>
+    <div class="control-row">
       <button id="toggle-celli">Toggle Celli</button>
       <button id="toggle-array">Toggle Arraya</button>
     </div>
@@ -235,7 +239,8 @@
       dancing: false,
       time: 0,
       celliVisible: true,
-      arrayVisible: true
+      arrayVisible: true,
+      sunglasses: false
     };
 
     // Create floor
@@ -262,6 +267,216 @@
       }
       positions.needsUpdate = true;
       floorGeometry.computeVertexNormals();
+    }
+
+    function createAccessorySystem(target, anchors = {}) {
+      const accessories = new Map();
+      const anchorMap = new Map();
+      anchorMap.set('root', target);
+
+      if (anchors && typeof anchors === 'object') {
+        Object.entries(anchors).forEach(([key, value]) => {
+          if (value) anchorMap.set(key, value);
+        });
+      }
+
+      const resolveAnchor = (ref) => {
+        if (!ref) return anchorMap.get('root');
+        if (typeof ref === 'string') return anchorMap.get(ref) || null;
+        return ref;
+      };
+
+      const system = {
+        anchors: anchorMap,
+        addAnchor(name, object) {
+          if (name && object) anchorMap.set(name, object);
+        },
+        getAnchor(name) {
+          return anchorMap.get(name) || null;
+        },
+        addAccessory(name, object, options = {}) {
+          if (!name || !object) return null;
+          if (accessories.has(name)) this.removeAccessory(name);
+
+          const parent = resolveAnchor(options.parent) || target;
+          parent.add(object);
+
+          if (options.position) {
+            if (options.position.isVector3) {
+              object.position.copy(options.position);
+            } else {
+              const { x = 0, y = 0, z = 0 } = options.position;
+              object.position.set(x, y, z);
+            }
+          }
+
+          if (options.rotation) {
+            if (options.rotation.isEuler) {
+              object.rotation.copy(options.rotation);
+            } else {
+              const { x = 0, y = 0, z = 0 } = options.rotation;
+              object.rotation.set(x, y, z);
+            }
+          }
+
+          accessories.set(name, { object, parent, options });
+          object.userData.accessoryName = name;
+          return object;
+        },
+        removeAccessory(name) {
+          const entry = accessories.get(name);
+          if (!entry) return null;
+          if (entry.object.parent) entry.object.parent.remove(entry.object);
+          accessories.delete(name);
+          return entry.object;
+        },
+        getAccessory(name) {
+          return accessories.get(name)?.object || null;
+        },
+        toggleAccessory(name, factory, options = {}) {
+          if (accessories.has(name)) {
+            this.removeAccessory(name);
+            return null;
+          }
+          const created = typeof factory === 'function' ? factory() : factory;
+          return this.addAccessory(name, created, options);
+        },
+        measureWidth(anchorRef = 'root') {
+          const anchor = resolveAnchor(anchorRef);
+          if (!anchor) return 0;
+          const box = new THREE.Box3().setFromObject(anchor);
+          const size = new THREE.Vector3();
+          box.getSize(size);
+          return size.x;
+        },
+        measureBounds(anchorRef = 'root') {
+          const anchor = resolveAnchor(anchorRef);
+          if (!anchor) return null;
+          const box = new THREE.Box3().setFromObject(anchor);
+          const size = new THREE.Vector3();
+          const center = new THREE.Vector3();
+          box.getSize(size);
+          box.getCenter(center);
+          return { box, size, center, anchor };
+        },
+        fitAccessory(name, width) {
+          const entry = accessories.get(name);
+          if (!entry) return;
+          const handler = entry.object?.userData?.setWidth || entry.object?.userData?.fitWidth;
+          if (typeof handler === 'function') {
+            const targetWidth = (typeof width === 'number' && isFinite(width))
+              ? width
+              : this.measureWidth(entry.options?.widthAnchor || entry.parent);
+            handler.call(entry.object.userData, targetWidth);
+          }
+        },
+        list() {
+          return Array.from(accessories.keys());
+        }
+      };
+
+      target.userData = target.userData || {};
+      target.userData.accessorySystem = system;
+      return system;
+    }
+
+    function createSunglassesAccessory(options = {}) {
+      const group = new THREE.Group();
+      group.name = options.name || 'SunglassesAccessory';
+
+      const frameColor = options.frameColor ?? 0x111111;
+      const lensColor = options.lensColor ?? 0x1b1f30;
+      const lensOpacity = options.lensOpacity ?? 0.65;
+      const lensRadius = options.lensRadius ?? 0.45;
+      const lensThickness = options.lensThickness ?? 0.08;
+      const armLength = options.armLength ?? 1.2;
+      const minOffset = options.minCenterOffset ?? lensRadius * 0.8;
+      const noseDepth = options.noseDepth ?? 0.04;
+
+      const frameMaterial = new THREE.MeshStandardMaterial({
+        color: frameColor,
+        metalness: 0.75,
+        roughness: 0.28
+      });
+
+      const lensMaterial = new THREE.MeshStandardMaterial({
+        color: lensColor,
+        transparent: true,
+        opacity: lensOpacity,
+        metalness: 0.35,
+        roughness: 0.18
+      });
+
+      const torusGeo = new THREE.TorusGeometry(lensRadius, lensThickness, 24, 64, Math.PI);
+      torusGeo.rotateY(Math.PI / 2);
+
+      const fillRadius = Math.max(0.01, lensRadius - lensThickness * 0.35);
+      const fillGeo = new THREE.CircleGeometry(fillRadius, 32, Math.PI / 2, Math.PI);
+      fillGeo.rotateY(Math.PI / 2);
+
+      const makeLens = (sign) => {
+        const lensGroup = new THREE.Group();
+        lensGroup.name = sign < 0 ? 'SunglassesLensLeft' : 'SunglassesLensRight';
+
+        const frame = new THREE.Mesh(torusGeo, frameMaterial.clone());
+        if (sign < 0) frame.rotation.z = Math.PI;
+        lensGroup.add(frame);
+
+        const fill = new THREE.Mesh(fillGeo, lensMaterial.clone());
+        if (sign < 0) fill.rotation.z = Math.PI;
+        fill.position.z = noseDepth * 0.25;
+        lensGroup.add(fill);
+
+        return { lensGroup };
+      };
+
+      const left = makeLens(-1);
+      const right = makeLens(1);
+
+      const baseOffset = options.centerOffset ?? lensRadius * 1.1;
+      left.lensGroup.position.x = -baseOffset;
+      right.lensGroup.position.x = baseOffset;
+
+      const bridgeShape = new THREE.Shape();
+      const bridgeRadius = options.bridgeRadius ?? lensRadius * 0.65;
+      bridgeShape.absarc(0, 0, bridgeRadius, Math.PI, 0, false);
+      bridgeShape.lineTo(bridgeRadius, -bridgeRadius * 0.6);
+      bridgeShape.lineTo(-bridgeRadius, -bridgeRadius * 0.6);
+      bridgeShape.closePath();
+      const bridgeGeo = new THREE.ShapeGeometry(bridgeShape);
+      const bridge = new THREE.Mesh(bridgeGeo, frameMaterial.clone());
+      bridge.rotation.y = Math.PI / 2;
+      bridge.position.z = noseDepth * 0.5;
+      const bridgeBaseWidth = bridgeRadius * 2;
+
+      const armGeo = new THREE.BoxGeometry(lensThickness * 1.6, lensThickness * 1.2, armLength);
+      const leftArm = new THREE.Mesh(armGeo, frameMaterial.clone());
+      const rightArm = new THREE.Mesh(armGeo, frameMaterial.clone());
+      leftArm.position.set(-(baseOffset + lensRadius * 0.55), 0, -armLength * 0.35);
+      rightArm.position.set(baseOffset + lensRadius * 0.55, 0, -armLength * 0.35);
+
+      group.add(left.lensGroup, right.lensGroup, bridge, leftArm, rightArm);
+
+      const outerRadius = lensRadius + lensThickness;
+
+      const setWidth = (width) => {
+        if (!width || !isFinite(width)) return;
+        const halfWidth = width * 0.5;
+        const centerOffset = Math.max(minOffset, halfWidth - outerRadius * 0.1);
+        left.lensGroup.position.x = -centerOffset;
+        right.lensGroup.position.x = centerOffset;
+        bridge.scale.x = Math.max(0.5, (centerOffset * 2) / (bridgeBaseWidth || 1));
+        leftArm.position.x = -(centerOffset + outerRadius * 0.55);
+        rightArm.position.x = centerOffset + outerRadius * 0.55;
+      };
+
+      group.userData.type = 'sunglasses';
+      group.userData.setWidth = setWidth;
+      group.userData.fitWidth = setWidth;
+
+      setWidth(options.initialWidth ?? outerRadius * 4);
+
+      return group;
     }
 
     // ============= AVATAR FACTORIES =============
@@ -418,10 +633,20 @@
 
       root.userData.bodyGroup = bodyGroup;
       root.userData.bowGroup = bowGroup;
+      root.userData.faceGroup = faceGroup;
       root.userData.leftArm = L;
       root.userData.rightArm = R;
       root.userData.leftLeg = legL;
       root.userData.rightLeg = legR;
+
+      root.userData.bodyDimensions = { width: BW, height: BH, depth: BD };
+      root.userData.faceForward = faceZ;
+      const accessorySystem = createAccessorySystem(root, {
+        body: bodyGroup,
+        face: faceGroup,
+        bow: bowGroup
+      });
+      root.userData.accessorySystem = accessorySystem;
 
       return root;
     }
@@ -872,6 +1097,9 @@
       paletteGroup.userData.gridWidth = gridWidth;
       paletteGroup.userData.gridHeight = gridHeight;
       paletteGroup.userData.originalY = 0;
+      paletteGroup.userData.accessorySystem = createAccessorySystem(paletteGroup, {
+        grid: paletteGroup
+      });
       return paletteGroup;
     }
 
@@ -924,6 +1152,70 @@
     }
 
     console.log(`✅ Main avatars + ${bobCount} Bobs + ${paletteCount} Pal-ettes created`);
+
+    function updateSunglassesState() {
+      const targetOn = raveState.sunglasses;
+      scene.updateMatrixWorld(true);
+
+      const applyToAvatar = (avatar, anchorName, options = {}) => {
+        if (!avatar) return;
+        const system = avatar.userData.accessorySystem || createAccessorySystem(avatar, { root: avatar });
+        const parentAnchor = anchorName || 'root';
+        const parent = system.getAnchor(parentAnchor) || avatar;
+
+        if (targetOn) {
+          let shades = system.getAccessory('sunglasses');
+          if (!shades) {
+            shades = createSunglassesAccessory();
+            system.addAccessory('sunglasses', shades, {
+              parent,
+              widthAnchor: options.widthAnchor || parentAnchor
+            });
+          }
+
+          const widthTarget = options.width ?? system.measureWidth(options.widthAnchor || parentAnchor);
+          system.fitAccessory('sunglasses', widthTarget);
+
+          const boundsInfo = system.measureBounds(options.widthAnchor || parentAnchor);
+          if (boundsInfo) {
+            const { box, center } = boundsInfo;
+            const localParent = parent;
+            const worldCenter = center.clone();
+            const worldTop = new THREE.Vector3(center.x, box.max.y, center.z);
+            const worldFront = new THREE.Vector3(center.x, center.y, box.max.z);
+            const localCenter = localParent.worldToLocal(worldCenter);
+            const localTop = localParent.worldToLocal(worldTop);
+            const localFront = localParent.worldToLocal(worldFront);
+            const upOffset = localTop.y - localCenter.y;
+            shades.position.copy(localCenter);
+            shades.position.y += upOffset * (options.verticalBias ?? 0.25);
+            if (options.extraY) shades.position.y += options.extraY;
+            shades.position.z = localFront.z + (options.forwardOffset ?? 0.06);
+            if (options.tilt) shades.rotation.x = options.tilt;
+          }
+        } else {
+          system.removeAccessory('sunglasses');
+        }
+      };
+
+      applyToAvatar(celliGroup, 'body', {
+        widthAnchor: 'body',
+        verticalBias: 0.35,
+        forwardOffset: 0.08,
+        extraY: 0.02,
+        tilt: THREE.MathUtils.degToRad(-4)
+      });
+
+      backgroundDancers.forEach(entry => {
+        if (entry.type === 'palette') {
+          applyToAvatar(entry.avatar, 'grid', {
+            widthAnchor: 'grid',
+            verticalBias: 0.2,
+            forwardOffset: 0.12
+          });
+        }
+      });
+    }
 
     // Create rave lights
     const lights = [];
@@ -1251,6 +1543,13 @@
     document.getElementById('toggle-dance').addEventListener('click', (e) => {
       raveState.dancing = !raveState.dancing;
       e.target.textContent = raveState.dancing ? 'STOP' : 'START';
+    });
+
+    const sunglassesButton = document.getElementById('toggle-sunglasses');
+    sunglassesButton.addEventListener('click', () => {
+      raveState.sunglasses = !raveState.sunglasses;
+      sunglassesButton.textContent = raveState.sunglasses ? 'REMOVE' : 'ADD';
+      updateSunglassesState();
     });
 
     document.getElementById('toggle-celli').addEventListener('click', () => {
