@@ -5,14 +5,14 @@
  */
 
 import * as THREE from 'three';
-import { 
-  startApp, 
-  registerAllScenes, 
-  initializeGUI, 
+import {
+  startApp,
+  registerAllScenes,
+  initializeGUI,
   initializeAudio,
   sceneManager,
   transitionToCity,
-  getAppContext 
+  getAppContext
 } from './app-enhanced.js';
 import { checkWebGL } from './utils/webgl-check.js';
 import { SequenceUI } from './sequence/SequenceUI.js';
@@ -23,9 +23,32 @@ import { registerSceneComponents } from './sequence/registerComponents.js';
 import { permissionManager } from './systems/PermissionManager.js';
 import { inputSystem } from './systems/InputSystem.js';
 
-console.log('%c🎨 Celli v6.0 - Enhanced Scene System 🎨', 
+const DEFAULT_AUTOSTART = true;
+
+let toastTimeoutId = null;
+
+function showToast(message, duration = 3000) {
+  const toastEl = document.getElementById('toast');
+  if (!toastEl) {
+    console.warn('⚠️ Toast requested but toast element not found:', message);
+    return;
+  }
+
+  toastEl.textContent = message;
+  toastEl.style.display = 'block';
+
+  if (toastTimeoutId) {
+    clearTimeout(toastTimeoutId);
+  }
+
+  toastTimeoutId = window.setTimeout(() => {
+    toastEl.style.display = 'none';
+  }, duration);
+}
+
+console.log('%c🎨 Celli v6.0 - Enhanced Scene System 🎨',
             'background: #8ab4ff; color: #000; font-size: 20px; padding: 10px; font-weight: bold;');
-console.log('%c🔧 Dynamic scene loading & composition', 
+console.log('%c🔧 Dynamic scene loading & composition',
             'background: #0f0; color: #000; font-size: 14px; padding: 6px;');
 
 // Check WebGL support
@@ -36,7 +59,8 @@ if (!checkWebGL()) {
 
 // Initialize when DOM is ready
 function init() {
-  console.log('🚀 Initializing Celli...');
+  console.group('🚀 Initializing Celli bootstrap');
+  console.log('📋 Document ready state:', document.readyState);
   
   // Initialize core systems
   inputSystem.init();
@@ -60,23 +84,54 @@ function init() {
   // Autostart experience if requested via query parameters
   handleAutoStart();
 
-  console.log('✨ Celli initialized - Click Play to start!');
-  console.log('📋 Available scenes:', sceneManager.listScenes().join(', '));
+  console.log('✨ Celli initialized');
+  console.log('📋 Registered scenes:', sceneManager.listScenes().join(', '));
+  console.groupEnd();
 }
 
 // Sequence UI instance
 let sequenceUI = null;
+let experienceStarting = false;
+let experienceStarted = false;
 
-async function startExperience() {
-  await startApp();
+async function startExperience(options = {}) {
+  const { reason = 'manual' } = options;
 
-  setTimeout(() => {
-    const appContext = getAppContext();
-    if (appContext) {
-      registerSceneComponents(appContext);
-      console.log('✅ Scene components registered with sequence system');
-    }
-  }, 100);
+  if (experienceStarting) {
+    console.warn('⚠️ startExperience requested while another start is in progress. Reason:', reason);
+    return;
+  }
+
+  if (experienceStarted) {
+    console.warn('⚠️ startExperience requested but experience already running. Reason:', reason);
+    return;
+  }
+
+  experienceStarting = true;
+  console.group('🎬 Starting Celli experience');
+  console.log('🔁 Start reason:', reason);
+
+  try {
+    await startApp();
+    experienceStarted = true;
+    console.log('✅ Core app boot sequence completed');
+
+    setTimeout(() => {
+      const appContext = getAppContext();
+      if (appContext) {
+        registerSceneComponents(appContext);
+        console.log('✅ Scene components registered with sequence system');
+      }
+    }, 100);
+  } catch (error) {
+    console.error('❌ startExperience failed:', error);
+    experienceStarting = false;
+    console.groupEnd();
+    throw error;
+  }
+
+  experienceStarting = false;
+  console.groupEnd();
 }
 
 function setupButtons() {
@@ -85,7 +140,14 @@ function setupButtons() {
   if (playBtn) {
     playBtn.addEventListener('click', async () => {
       console.log('▶️ Play button clicked - Starting intro sequence!');
-      await startExperience();
+      playBtn.disabled = true;
+      try {
+        await startExperience({ reason: 'play-button' });
+      } catch (error) {
+        console.error('❌ Failed to start from play button:', error);
+        playBtn.disabled = false;
+        showToast(`Failed to start: ${error.message || error}`);
+      }
     });
     console.log('✅ Play button initialized');
   }
@@ -99,6 +161,7 @@ function setupButtons() {
       if (sceneSelect) {
         sceneSelect.classList.add('visible');
       }
+      showToast('Scene menu opened');
     });
     console.log('✅ Scene Select button initialized');
   }
@@ -109,10 +172,11 @@ function setupButtons() {
     sequenceComposerBtn.addEventListener('click', () => {
       console.log('🎬 Opening Sequence Composer in new window...');
       window.open('./sequence.html', 'SequenceComposer', 'width=1400,height=900');
+      showToast('Opening Sequence Composer…');
     });
     console.log('✅ Sequence Composer button initialized');
   }
-  
+
   // Test button - quick test transition to city
   const testBtn = document.getElementById('testBtn');
   if (testBtn) {
@@ -121,14 +185,100 @@ function setupButtons() {
       // Hide play overlay
       const play = document.getElementById('play');
       if (play) play.style.display = 'none';
-      // Initialize systems if needed
-      if (!window.celliApp.initialized) {
-        await startApp();
+      try {
+        if (!experienceStarted) {
+          await startExperience({ reason: 'test-button' });
+        }
+
+        // Transition to city
+        await transitionToCity();
+        showToast('Transitioning to City scene…');
+      } catch (error) {
+        console.error('❌ Failed to execute test transition:', error);
+        showToast(`Test transition failed: ${error.message || error}`);
       }
-      // Transition to city
-      transitionToCity();
     });
     console.log('✅ Test button initialized');
+  }
+
+  const testAudioBtn = document.getElementById('testAudioBtn');
+  if (testAudioBtn) {
+    testAudioBtn.addEventListener('click', async () => {
+      console.log('🔊 Test Audio button clicked - attempting to play credits.mp3');
+      try {
+        const audio = new Audio('./credits.mp3');
+        audio.volume = 0.7;
+
+        audio.addEventListener('canplaythrough', () => {
+          console.log('✅ credits.mp3 ready to play');
+          showToast('Playing credits.mp3');
+        }, { once: true });
+
+        audio.addEventListener('ended', () => {
+          console.log('✅ credits.mp3 playback complete');
+          showToast('Credits playback complete');
+        }, { once: true });
+
+        audio.addEventListener('error', (event) => {
+          console.error('❌ Error loading credits.mp3:', event);
+          showToast('Failed to load credits.mp3');
+        }, { once: true });
+
+        await audio.play();
+      } catch (error) {
+        console.error('❌ Test audio playback failed:', error);
+        showToast(`Audio failed: ${error.message || error}`);
+      }
+    });
+    console.log('✅ Test audio button initialized');
+  }
+
+  const sequenceBuilderBtn = document.getElementById('sequenceBuilderBtn');
+  if (sequenceBuilderBtn) {
+    sequenceBuilderBtn.addEventListener('click', () => {
+      console.log('🎬 Sequence Builder button clicked');
+      window.open('./tools/sequence-builder/index.html?standalone=true', 'SequenceBuilder', 'width=1800,height=1000');
+      showToast('Opening Sequence Builder…');
+    });
+    console.log('✅ Sequence Builder button initialized');
+  }
+
+  const singleBuilderBtn = document.getElementById('singleBuilderBtn');
+  if (singleBuilderBtn) {
+    singleBuilderBtn.addEventListener('click', () => {
+      console.log('🛠️ Single Builder button clicked');
+      window.open('./builder.html', '_blank');
+      showToast('Opening Single Builder…');
+    });
+    console.log('✅ Single Builder button initialized');
+  }
+
+  const testRunnerBtn = document.getElementById('testRunnerBtn');
+  if (testRunnerBtn) {
+    testRunnerBtn.addEventListener('click', () => {
+      console.log('🧪 Test Runner button clicked');
+      window.open('./tests/test-runner.html', '_blank');
+      showToast('Opening Test Runner…');
+    });
+    console.log('✅ Test Runner button initialized');
+  }
+
+  const playIntroVideoBtn = document.getElementById('playIntroVideoBtn');
+  if (playIntroVideoBtn) {
+    playIntroVideoBtn.addEventListener('click', () => {
+      console.warn('🎬 Intro video playback not yet implemented in modular bootstrap.');
+      showToast('Intro video playback coming soon');
+    });
+    console.log('⚠️ Intro video button hooked (stub)');
+  }
+
+  const playIntroVideoBtn2 = document.getElementById('playIntroVideoBtn2');
+  if (playIntroVideoBtn2) {
+    playIntroVideoBtn2.addEventListener('click', () => {
+      console.warn('🎬 Intro II video playback not yet implemented in modular bootstrap.');
+      showToast('Intro II video playback coming soon');
+    });
+    console.log('⚠️ Intro II video button hooked (stub)');
   }
   
   // Close scene select
@@ -137,6 +287,7 @@ function setupButtons() {
     closeSceneSelect.addEventListener('click', () => {
       const sceneSelect = document.getElementById('sceneSelect');
       if (sceneSelect) sceneSelect.classList.remove('visible');
+      showToast('Scene menu closed');
     });
     console.log('✅ Scene Select close button initialized');
   }
@@ -178,25 +329,41 @@ function openSequenceComposer() {
 
 async function handleAutoStart() {
   const params = new URLSearchParams(window.location.search);
-  const autostart = params.get('autostart');
-  const shouldAutostart = autostart === '' || autostart === '1' || autostart?.toLowerCase() === 'true';
+  const autostartParam = params.get('autostart');
+  const explicitDisable = autostartParam?.toLowerCase() === 'false' || autostartParam === '0';
+  const explicitEnable = autostartParam === '' || autostartParam === '1' || autostartParam?.toLowerCase() === 'true';
+  const shouldAutostart = explicitDisable ? false : (explicitEnable || DEFAULT_AUTOSTART);
 
   if (!shouldAutostart) {
+    console.log('⏸️ Autostart disabled via query parameter. Waiting for user interaction.');
     return;
   }
 
   if (window.celliApp?.initialized) {
+    console.log('ℹ️ Autostart skipped: application already initialized.');
     return;
   }
 
   console.log('⚡ Autostart parameter detected - starting experience automatically.');
 
   try {
-    await startExperience();
+    await startExperience({ reason: explicitEnable ? 'query-param' : 'default-autostart' });
   } catch (error) {
     console.error('❌ Failed to autostart experience:', error);
+    const playBtn = document.getElementById('playBtn');
+    if (playBtn) {
+      playBtn.disabled = false;
+    }
   }
 }
+
+window.addEventListener('error', (event) => {
+  console.error('💥 Global error captured:', event.message, event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('💥 Unhandled promise rejection:', event.reason);
+});
 
 // Start when DOM is ready
 if (document.readyState === 'loading') {
