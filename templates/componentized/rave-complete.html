@@ -1112,7 +1112,7 @@
 
     // Create real Arraya (center-right) - raised to match Celli height
     const arrayGroup = createRealArraya();
-    arrayGroup.position.set(5, 1.8, 0); // Raised significantly to align with Celli
+    arrayGroup.position.set(5, 2.4, 0); // Raised significantly to align with Celli
     scene.add(arrayGroup);
 
     // Create background dancers in a circle
@@ -1342,7 +1342,7 @@
       if (!arrayGroup.userData.segments) return;
       
       // Bob to beat from raised position
-      const bobHeight = 1.8 + (raveState.bass / 255) * 0.8;
+      const bobHeight = 2.4 + (raveState.bass / 255) * 0.8;
       arrayGroup.position.y = bobHeight;
       
       // CURVE SIDE TO SIDE with music
