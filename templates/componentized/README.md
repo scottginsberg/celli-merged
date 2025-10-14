@@ -38,7 +38,7 @@ End sequence scene with terminal crawl, floating voxels, and cinematic camera mo
 - Graphics settings panel
 - Skip functionality
 
-### 📦 intro-complete.html (126 KB) ⭐ NEW
+### 📦 intro-faithful.html (126 KB) ⭐ NEW
 Intro sequence with doorway portal, quote animations, and VisiCell terminal interface.
 
 **Features:**
@@ -59,7 +59,7 @@ Each file can be opened directly in a browser:
 start templates/componentized/end3-complete.html
 
 # Open intro scene
-start templates/componentized/intro-complete.html
+start templates/componentized/intro-faithful.html
 
 # Open celli real
 start templates/componentized/cellireal-complete.html

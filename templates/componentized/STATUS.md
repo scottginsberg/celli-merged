@@ -4,16 +4,16 @@
 
 | Template | Size | Auto-Start | Play/Scene Select | Status |
 |----------|------|------------|-------------------|--------|
-| **intro-complete.html** | 317 KB | ✅ Via redirect | ❌ Removed | ✅ WORKING |
+| **intro-faithful.html** | 317 KB | ✅ Via redirect | ❌ Removed | ✅ WORKING |
 | **end3-complete.html** | 189 KB | ✅ Yes | ❌ N/A | ✅ WORKING |
 | **fullhand-complete.html** | 271 KB | ✅ Yes | ❌ N/A | ✅ WORKING |
 | **cellireal-complete.html** | 983 KB | ✅ Yes | ❌ N/A | ✅ WORKING |
 
 ## 🎯 Template Mode Features
 
-### intro-complete.html
-- ✅ Redirects to `merged2.html?autostart=1`
-- ✅ Auto-hides play overlay in merged2
+### intro-faithful.html
+- ✅ Loads standalone template (`intro-faithful.html?autostart=1`)
+- ✅ Auto-hides play overlay within template
 - ✅ Starts immediately
 - ✅ Includes: HELL sequence, bow transform, light jiggle, doorway, VisiCell
 
@@ -44,7 +44,7 @@
 ## 🔧 index.html Integration
 
 **Template Mode (📄):**
-- IntroScene-Faithful → intro-complete.html
+- IntroScene-Faithful → intro-faithful.html
 - End3Scene-Faithful → end3-complete.html
 - FullhandScene-Faithful → fullhand-complete.html
 - CelliRealScene-Faithful → cellireal-complete.html

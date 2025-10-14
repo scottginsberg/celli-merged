@@ -6,14 +6,14 @@ All templates extracted from merged2.html and optimized for standalone use:
 
 | Template | Lines | Size | Features | Status |
 |----------|-------|------|----------|--------|
-| **intro-complete.html** | 8,587 | 316 KB | HELL sequence, bow transform, light jiggle, doorway, VisiCell, skip button | ✅ READY |
+| **intro-faithful.html** | 8,587 | 316 KB | HELL sequence, bow transform, light jiggle, doorway, VisiCell, skip button | ✅ READY |
 | **end3-complete.html** | 4,328 | 189 KB | Terminal crawl, voxels, cables, post-processing, WASD | ✅ READY |
 | **fullhand-complete.html** | 7,337 | 272 KB | Hand creation, keyboard, character, glowing head, auto-hide loading | ✅ READY |
 | **cellireal-complete.html** | 22,828 | 983 KB | Spreadsheet, formula engine, 3D rendering, physics | ✅ READY |
 
 ## ✨ Key Modifications
 
-### intro-complete.html
+### intro-faithful.html
 - ❌ Removed: Play overlay
 - ❌ Removed: Scene select menu
 - ❌ Removed: Test audio button
@@ -47,7 +47,7 @@ All templates extracted from merged2.html and optimized for standalone use:
 cd templates/componentized
 
 # Open in browser (requires local server)
-# intro-complete.html
+# intro-faithful.html
 # fullhand-complete.html
 # end3-complete.html
 # cellireal-complete.html
@@ -71,7 +71,7 @@ http://localhost:3000
 
 Open browser console (F12) and look for:
 
-**intro-complete.html:**
+**intro-faithful.html:**
 ```
 ✅ INTRO-COMPLETE.HTML TEMPLATE v1.0 LOADED
 No play overlay - Auto-starting immediately
@@ -86,7 +86,7 @@ No play overlay - Auto-starting immediately
 
 ### Visual Confirmation
 
-**intro-complete.html:**
+**intro-faithful.html:**
 - Green badge "TEMPLATE v1.0 LOADED ✅" appears top-left for 3 seconds
 - Shapes roll in and animate
 - No play overlay visible
@@ -120,13 +120,13 @@ No play overlay - Auto-starting immediately
 
 **Solutions:**
 - Use Component Mode (🧩) for refactored version
-- Or adjust camera in intro-complete.html (change frustumSize)
+- Or adjust camera in intro-faithful.html (change frustumSize)
 
 ### Template Not Loading
 
 **Check:**
 1. Local server running? (`npm run server` or `python -m http.server 3000`)
-2. Correct path? (Should be `./templates/componentized/intro-complete.html`)
+2. Correct path? (Should be `./templates/componentized/intro-faithful.html`)
 3. Browser console errors? (Check F12)
 4. Cache cleared? (Ctrl+Shift+R)
 
