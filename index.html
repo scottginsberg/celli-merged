@@ -1762,6 +1762,47 @@
   let noteAwaitingActivation = false;
   let noteStageTimeouts = [];
 
+  function createGlitchState() {
+    return { stage: 'parody', nextIndex: 0 };
+  }
+
+  function createGlitchProgressMap() {
+    return {
+      hn: createGlitchState(),
+      reddit: createGlitchState(),
+      twitter: createGlitchState(),
+      facebook: createGlitchState()
+    };
+  }
+
+  let glitchProgress = createGlitchProgressMap();
+
+  function resetGlitchProgress(platformType) {
+    if (platformType && glitchProgress[platformType]) {
+      glitchProgress[platformType] = createGlitchState();
+    } else {
+      glitchProgress = createGlitchProgressMap();
+    }
+  }
+
+  function getCurrentLink(element, fallback) {
+    if (!element) return fallback;
+    return element.dataset.glitchLink || element.getAttribute('href') || fallback;
+  }
+
+  function setGlitchLink(element, url) {
+    if (!element) return;
+    element.dataset.glitchLink = url;
+    if (element.tagName === 'A') {
+      element.setAttribute('href', url);
+    }
+  }
+
+  function buildGlitchUrl(platformKey, stage, index) {
+    const path = stage === 'celli' ? 'celli' : 'gags';
+    return `https://loomworks.xyz/${path}/${platformKey}-${index + 1}`;
+  }
+
   // Parody headlines
   const parodyHeadlines = [
     "Show HN: Dyson Sphere Made from Dyson Vacuum and Home-Built Particle Accelerator",
@@ -1788,26 +1829,26 @@
   
   // Celli ads (second pass glitch replacements)
   const celliAds = [
-    "Experience Cell.real - Where Spreadsheets Become Reality",
-    "Cell.real: Build Your World, One Cell at a Time",
-    "Now Available: Cell.real - The Revolutionary 3D Spreadsheet Engine",
-    "Cell.real: Because Your Ideas Deserve More Dimensions",
-    "Join the Cell.real Beta - Reshape How You Think About Data",
-    "Cell.real: From Formulas to Worlds in Seconds",
-    "Discover Cell.real - The Future of Creative Computing",
-    "Cell.real: Your Imagination, Rendered in Real-Time",
-    "Get Early Access to Cell.real - Limited Slots Available",
-    "Cell.real: Where Logic Meets Spatial Reasoning",
-    "Transform Your Workflow with Cell.real Today",
-    "Cell.real: The 3D Canvas for Programmers and Dreamers",
-    "Pre-Order Cell.real Now - Special Launch Pricing",
-    "Cell.real: Making the Impossible Computable",
-    "Experience Cell.real - No Downloads, Pure Browser Magic",
-    "Cell.real: Spreadsheets That Move, Think, and Create",
-    "Join 10,000+ Beta Testers Building with Cell.real",
-    "Cell.real: Your Next Favorite Development Environment",
-    "Unlock Cell.real Pro - Advanced Features for Power Users",
-    "Cell.real: Because Flat Data is So Last Decade"
+    "Celli: A Spatial Spreadsheet orchestrating galaxies of knowledge.",
+    "Celli: A Special Friendship for you and every dataset you adore.",
+    "Celli: A World in a Box — open it at loomworks.xyz.",
+    "Celli: Where Data Comes to Life and Life Comes to Data.",
+    "loomworks.xyz presents Celli: Your command center for living spreadsheets.",
+    "Celli: A Spatial Spreadsheet that loves your wildest what-ifs.",
+    "Celli: A Special Friendship, sealed at loomworks.xyz/hello.",
+    "Celli: A World in a Box — shake it and new workflows fall out.",
+    "Celli: Where Data Comes to Life, and the lights stay on for you.",
+    "Celli at loomworks.xyz: Because rows deserve horizons.",
+    "Celli: A Spatial Spreadsheet whispering 'build bigger'.",
+    "Celli: A Special Friendship between logic and imagination.",
+    "Celli: A World in a Box, curated by loomworks.xyz.",
+    "Celli: Where Data Comes to Life; RSVP at loomworks.xyz/invite.",
+    "Celli: A Spatial Spreadsheet crowned with impossible delight.",
+    "Celli: A Special Friendship that refactors reality.",
+    "Celli: A World in a Box with front-row seats at loomworks.xyz.",
+    "Celli: Where Data Comes to Life and Life Comes to Data — daily.",
+    "Celli: A Spatial Spreadsheet for people who outgrow flat files.",
+    "Celli: A World in a Box, glowing brighter at loomworks.xyz/celli."
   ];
   
   // Reddit parodies
@@ -2057,7 +2098,6 @@
 
   function triggerNoteHoverEffects() {
     console.log('  ✨ Activating crystalline note hover effects');
-    playChantAudio();
 
     if (darkeningOverlay) {
       darkeningOverlay.classList.add('flash-of-life');
@@ -2096,7 +2136,7 @@
           <div style="font-size: 48px; margin-bottom: 16px;">✨</div>
           <div style="font-weight: 500; margin-bottom: 14px; font-size: 18px; color: #8fb4ff; letter-spacing: 0.5px; text-shadow: 0 0 12px rgba(143, 180, 255, 0.4);">AI-Enhanced Content Discovery</div>
           <div style="opacity: 0.9; font-size: 14px;">Analyzing your browsing patterns to deliver personalized recommendations with unprecedented accuracy.</div>
-          <div style="margin-top: 16px; font-size: 12px; opacity: 0.6; letter-spacing: 1px; color: #a0b0c0;">Powered by Cell.real Intelligence</div>
+          <div style="margin-top: 16px; font-size: 12px; opacity: 0.6; letter-spacing: 1px; color: #a0b0c0;">Powered by Celli: Where Data Comes to Life</div>
         </div>
       `;
     ackBtn.style.background = 'linear-gradient(135deg, rgba(15, 25, 45, 0.7), rgba(25, 35, 55, 0.8))';
@@ -3391,16 +3431,16 @@
     // Glitch and replace content based on current view (all use same pattern)
     if (currentView === 'hn' && hnItems.length > 0) {
       console.log(`  🔶 HN view - processing impact ${impactCount}`);
-      glitchAndReplaceHNPosts(impactCount);
+      glitchAndReplaceHNPosts();
     } else if (currentView === 'reddit' && redditItems.length > 0) {
       console.log(`  🔴 Reddit view - processing impact ${impactCount}`);
-      glitchAndReplaceRedditPosts(impactCount);
+      glitchAndReplaceRedditPosts();
     } else if (currentView === 'twitter' && twitterItems.length > 0) {
       console.log(`  🐦 Twitter view - processing impact ${impactCount}`);
-      glitchAndReplaceTwitterPosts(impactCount);
+      glitchAndReplaceTwitterPosts();
     } else if (currentView === 'facebook' && facebookItems.length > 0) {
       console.log(`  📘 Facebook view - processing impact ${impactCount}`);
-      glitchAndReplaceFacebookPosts(impactCount);
+      glitchAndReplaceFacebookPosts();
     } else {
       console.log(`  ⊘ No items to glitch (view: ${currentView})`);
     }
@@ -3431,272 +3471,189 @@
     }
   }
   
-  function glitchAndReplaceHNPosts(impactNum) {
-    console.log(`🔶 glitchAndReplaceHNPosts called - Impact #${impactNum}`);
-    
-    if (hnItems.length === 0) {
-      console.error('  ✗ No HN items to glitch');
+  function findNextIndexForStage(items, getTarget, state) {
+    const total = items.length;
+    if (total === 0) return -1;
+
+    const order = [];
+    for (let i = state.nextIndex; i < total; i++) order.push(i);
+    for (let i = 0; i < state.nextIndex; i++) order.push(i);
+
+    for (const idx of order) {
+      const candidate = items[idx];
+      if (!candidate) continue;
+      const target = getTarget(candidate);
+      if (!target) continue;
+
+      if (state.stage === 'parody' && !target.classList.contains('parodied')) {
+        return idx;
+      }
+
+      if (state.stage === 'celli' && !target.classList.contains('celli-ad')) {
+        return idx;
+      }
+    }
+
+    return -1;
+  }
+
+  function glitchNextItem(platformKey, items, { getTarget, getContainer = (item) => item, applyParody, applyCelli, logLabel }) {
+    if (!items || items.length === 0) return;
+
+    if (!glitchProgress[platformKey]) {
+      glitchProgress[platformKey] = createGlitchState();
+    }
+
+    const state = glitchProgress[platformKey];
+
+    if (state.stage === 'done') {
+      console.log(`  ${logLabel} sequence already complete.`);
       return;
     }
-    
-    let indicesToGlitch = [];
-    
-    // First 3 clicks: individual posts
-    if (impactNum <= 3) {
-      indicesToGlitch = [impactNum - 1];
-      console.log(`  Individual mode: glitching post ${impactNum}`);
-    } else {
-      // After 3: clusters of 3-5 posts
-      const clusterSize = 3 + Math.floor(Math.random() * 3);
-      const startIdx = ((impactNum - 4) * clusterSize) % hnItems.length;
-      
-      for (let i = 0; i < clusterSize; i++) {
-        indicesToGlitch.push((startIdx + i) % hnItems.length);
+
+    const nextIndex = findNextIndexForStage(items, getTarget, state);
+
+    if (nextIndex === -1) {
+      if (state.stage === 'parody') {
+        if (!parodiesComplete) {
+          parodiesComplete = true;
+          console.log(`\n🎊🎊🎊 ALL PARODIES COMPLETE! 🎊🎊🎊`);
+          console.log(`✨ Next clicks will replace with CELLI INVOCATIONS ✨\n`);
+        }
+        state.stage = 'celli';
+        state.nextIndex = 0;
+        return glitchNextItem(platformKey, items, { getTarget, getContainer, applyParody, applyCelli, logLabel });
       }
-      
-      console.log(`  Cluster mode: glitching ${clusterSize} posts starting at ${startIdx}`);
+
+      if (state.stage === 'celli') {
+        if (!celliAdsComplete) {
+          celliAdsComplete = true;
+          console.log(`\n✨✨✨ ALL POSTS ARE NOW CELLI INVOCATIONS! ✨✨✨`);
+          console.log(`🎪 Animating sidebar from off-screen...\n`);
+          animateSidebarEntry();
+        }
+        state.stage = 'done';
+      }
+      return;
     }
-    
-    // Check completion status
-    checkCompletionStatus(hnItems, '.hn-story-title');
-    
-    // Glitch each post in the cluster
-    indicesToGlitch.forEach((idx, i) => {
-      setTimeout(() => glitchSingleHNPost(idx), i * 100);
+
+    const item = items[nextIndex];
+    const target = getTarget(item);
+    if (!target) {
+      state.nextIndex = (nextIndex + 1) % items.length;
+      return glitchNextItem(platformKey, items, { getTarget, getContainer, applyParody, applyCelli, logLabel });
+    }
+
+    const container = getContainer ? getContainer(item) : item;
+    if (container) {
+      container.classList.add('glitching');
+    }
+
+    setTimeout(() => {
+      if (state.stage === 'parody') {
+        applyParody(item, target, nextIndex);
+      } else if (state.stage === 'celli') {
+        applyCelli(item, target, nextIndex);
+      }
+
+      if (container) {
+        container.classList.remove('glitching');
+      }
+
+      console.log(`  ${logLabel} ${nextIndex + 1} → ${state.stage.toUpperCase()} update complete.`);
+    }, 800);
+
+    state.nextIndex = nextIndex + 1;
+  }
+
+  function glitchAndReplaceHNPosts() {
+    glitchNextItem('hn', hnItems, {
+      getTarget: (item) => item.querySelector('.hn-story-title'),
+      getContainer: (item) => item,
+      applyParody: (item, target, index) => {
+        const newTitle = parodyHeadlines[index % parodyHeadlines.length];
+        target.textContent = newTitle;
+        target.classList.add('parodied');
+        target.setAttribute('data-original-title', newTitle);
+        setGlitchLink(target, buildGlitchUrl('hn', 'parody', index));
+      },
+      applyCelli: (item, target, index) => {
+        const newTitle = celliAds[index % celliAds.length];
+        target.textContent = newTitle;
+        target.classList.add('celli-ad');
+        item.classList.add('has-celli-ad');
+        target.setAttribute('data-original-title', newTitle);
+        setGlitchLink(target, buildGlitchUrl('hn', 'celli', index));
+      },
+      logLabel: '🔶 HN post'
     });
   }
-  
-  function glitchSingleHNPost(index) {
-    if (index >= hnItems.length) return;
-    
-    const item = hnItems[index];
-    if (!item) return;
-    
-    const titleLink = item.querySelector('.hn-story-title');
-    if (!titleLink) return;
-    
-    const alreadyParodied = titleLink.classList.contains('parodied');
-    const alreadyCelliAd = titleLink.classList.contains('celli-ad');
-    
-    // Skip if already Celli ad (keep it persistent)
-    if (alreadyCelliAd) {
-      console.log(`  - Post ${index + 1} already Celli ad, keeping it`);
-      return;
-    }
-    
-    // Add glitch animation
-    item.classList.add('glitching');
-    
-    setTimeout(() => {
-      let newTitle;
-      
-      if (!alreadyParodied) {
-        // First pass: parody
-        newTitle = parodyHeadlines[index % parodyHeadlines.length];
-        titleLink.classList.add('parodied');
-      } else if (parodiesComplete) {
-        // Second pass: Celli ads (keep parody class for history)
-        newTitle = celliAds[index % celliAds.length];
-        titleLink.classList.add('celli-ad');
+
+  function glitchAndReplaceRedditPosts() {
+    glitchNextItem('reddit', redditItems, {
+      getTarget: (item) => item.querySelector('.reddit-title a'),
+      getContainer: (item) => item,
+      applyParody: (item, target, index) => {
+        const newTitle = redditParodies[index % redditParodies.length];
+        target.textContent = newTitle;
+        target.classList.add('parodied');
+        setGlitchLink(target, buildGlitchUrl('reddit', 'parody', index));
+      },
+      applyCelli: (item, target, index) => {
+        const newTitle = celliAds[index % celliAds.length];
+        target.textContent = newTitle;
+        target.classList.add('celli-ad');
         item.classList.add('has-celli-ad');
-      } else {
-        item.classList.remove('glitching');
-        return;
-      }
-      
-      titleLink.textContent = newTitle;
-      item.classList.remove('glitching');
-      
-      console.log(`  🔶 HN post ${index + 1}: "${newTitle.substring(0, 50)}..."`);
-    }, 800);
+        setGlitchLink(target, buildGlitchUrl('reddit', 'celli', index));
+      },
+      logLabel: '🔴 Reddit post'
+    });
   }
-  
-  function glitchAndReplaceRedditPosts(impactNum) {
-    console.log(`🔴 glitchAndReplaceRedditPosts called - Impact #${impactNum}`);
-    
-    if (redditItems.length === 0) return;
-    
-    let indicesToGlitch = [];
-    
-    // First 3 clicks: individual posts
-    if (impactNum <= 3) {
-      indicesToGlitch = [impactNum - 1];
-      console.log(`  Individual mode: glitching post ${impactNum}`);
-    } else {
-      // After 3: clusters
-      const clusterSize = 3 + Math.floor(Math.random() * 3);
-      const startIdx = ((impactNum - 4) * clusterSize) % redditItems.length;
-      for (let i = 0; i < clusterSize; i++) {
-        indicesToGlitch.push((startIdx + i) % redditItems.length);
-      }
-      console.log(`  Cluster mode: ${clusterSize} posts starting at ${startIdx}`);
-    }
-    
-    checkCompletionStatus(redditItems, '.reddit-title a');
-    indicesToGlitch.forEach((idx, i) => setTimeout(() => glitchSingleRedditPost(idx), i * 100));
+
+  function glitchAndReplaceTwitterPosts() {
+    glitchNextItem('twitter', twitterItems, {
+      getTarget: (item) => item.querySelector('.twitter-text'),
+      getContainer: (item) => item,
+      applyParody: (item, target, index) => {
+        const newText = twitterParodies[index % twitterParodies.length];
+        target.textContent = newText;
+        target.classList.add('parodied');
+        target.setAttribute('data-original-text', newText);
+        setGlitchLink(target, buildGlitchUrl('twitter', 'parody', index));
+      },
+      applyCelli: (item, target, index) => {
+        const newText = celliAds[index % celliAds.length];
+        target.textContent = newText;
+        target.classList.add('celli-ad');
+        item.classList.add('has-celli-ad');
+        target.setAttribute('data-original-text', newText);
+        setGlitchLink(target, buildGlitchUrl('twitter', 'celli', index));
+      },
+      logLabel: '🐦 Tweet'
+    });
   }
-  
-  function glitchSingleRedditPost(index) {
-    if (index >= redditItems.length) return;
-    const post = redditItems[index];
-    if (!post) return;
-    const titleLink = post.querySelector('.reddit-title a');
-    if (!titleLink) return;
-    
-    const alreadyCelliAd = titleLink.classList.contains('celli-ad');
-    if (alreadyCelliAd) return; // Keep persistent
-    
-    post.classList.add('glitching');
-    setTimeout(() => {
-      const alreadyParodied = titleLink.classList.contains('parodied');
-      let newTitle;
-      
-      if (!alreadyParodied) {
-        newTitle = redditParodies[index % redditParodies.length];
-        titleLink.classList.add('parodied');
-      } else if (parodiesComplete) {
-        newTitle = celliAds[index % celliAds.length];
-        titleLink.classList.add('celli-ad');
-        post.classList.add('has-celli-ad');
-      } else {
-        post.classList.remove('glitching');
-        return;
-      }
-      
-      titleLink.textContent = newTitle;
-      post.classList.remove('glitching');
-    }, 800);
-  }
-  
-  function glitchAndReplaceTwitterPosts(impactNum) {
-    console.log(`🐦 glitchAndReplaceTwitterPosts called - Impact #${impactNum}`);
-    
-    if (twitterItems.length === 0) return;
-    
-    let indicesToGlitch = [];
-    
-    if (impactNum <= 3) {
-      indicesToGlitch = [impactNum - 1];
-    } else {
-      const clusterSize = 3 + Math.floor(Math.random() * 3);
-      const startIdx = ((impactNum - 4) * clusterSize) % twitterItems.length;
-      for (let i = 0; i < clusterSize; i++) {
-        indicesToGlitch.push((startIdx + i) % twitterItems.length);
-      }
-    }
-    
-    checkCompletionStatus(twitterItems, '.twitter-text');
-    indicesToGlitch.forEach((idx, i) => setTimeout(() => glitchSingleTwitterTweet(idx), i * 100));
-  }
-  
-  function glitchSingleTwitterTweet(index) {
-    if (index >= twitterItems.length) return;
-    const tweet = twitterItems[index];
-    if (!tweet) return;
-    const textEl = tweet.querySelector('.twitter-text');
-    if (!textEl) return;
-    
-    const alreadyCelliAd = textEl.classList.contains('celli-ad');
-    if (alreadyCelliAd) return; // Keep persistent
-    
-    tweet.classList.add('glitching');
-    setTimeout(() => {
-      const alreadyParodied = textEl.classList.contains('parodied');
-      let newText;
-      
-      if (!alreadyParodied) {
-        newText = twitterParodies[index % twitterParodies.length];
-        textEl.classList.add('parodied');
-      } else if (parodiesComplete) {
-        newText = celliAds[index % celliAds.length];
-        textEl.classList.add('celli-ad');
-        tweet.classList.add('has-celli-ad');
-      } else {
-        tweet.classList.remove('glitching');
-        return;
-      }
-      
-      textEl.textContent = newText;
-      tweet.classList.remove('glitching');
-    }, 800);
-  }
-  
-  function glitchAndReplaceFacebookPosts(impactNum) {
-    console.log(`📘 glitchAndReplaceFacebookPosts called - Impact #${impactNum}`);
-    
-    if (facebookItems.length === 0) return;
-    
-    let indicesToGlitch = [];
-    
-    if (impactNum <= 3) {
-      indicesToGlitch = [impactNum - 1];
-    } else {
-      const clusterSize = 3 + Math.floor(Math.random() * 3);
-      const startIdx = ((impactNum - 4) * clusterSize) % facebookItems.length;
-      for (let i = 0; i < clusterSize; i++) {
-        indicesToGlitch.push((startIdx + i) % facebookItems.length);
-      }
-    }
-    
-    checkCompletionStatus(facebookItems, '.facebook-post-text');
-    indicesToGlitch.forEach((idx, i) => setTimeout(() => glitchSingleFacebookPost(idx), i * 100));
-  }
-  
-  function glitchSingleFacebookPost(index) {
-    if (index >= facebookItems.length) return;
-    const post = facebookItems[index];
-    if (!post) return;
-    const textEl = post.querySelector('.facebook-post-text');
-    if (!textEl) return;
-    
-    const alreadyCelliAd = textEl.classList.contains('celli-ad');
-    if (alreadyCelliAd) return; // Keep persistent
-    
-    post.classList.add('glitching');
-    setTimeout(() => {
-      const alreadyParodied = textEl.classList.contains('parodied');
-      let newText;
-      
-      if (!alreadyParodied) {
-        newText = facebookParodies[index % facebookParodies.length];
-        textEl.classList.add('parodied');
-      } else if (parodiesComplete) {
-        newText = celliAds[index % celliAds.length];
-        textEl.classList.add('celli-ad');
-        post.classList.add('has-celli-ad');
-      } else {
-        post.classList.remove('glitching');
-        return;
-      }
-      
-      textEl.textContent = newText;
-      post.classList.remove('glitching');
-    }, 800);
-  }
-  
-  function checkCompletionStatus(items, selector) {
-    const parodiedCount = items.filter(item => {
-      const el = item.querySelector(selector);
-      return el && el.classList.contains('parodied');
-    }).length;
-    
-    const celliAdCount = items.filter(item => {
-      const el = item.querySelector(selector);
-      return el && el.classList.contains('celli-ad');
-    }).length;
-    
-    if (parodiedCount >= items.length && !parodiesComplete) {
-      parodiesComplete = true;
-      console.log(`\n🎊🎊🎊 ALL PARODIES COMPLETE! 🎊🎊🎊`);
-      console.log(`✨ Next clicks will replace with CELLI ADS ✨\n`);
-    }
-    
-    if (celliAdCount >= items.length && !celliAdsComplete) {
-      celliAdsComplete = true;
-      console.log(`\n✨✨✨ ALL POSTS ARE NOW CELLI ADS! ✨✨✨`);
-      console.log(`🎪 Animating sidebar from off-screen...\n`);
-      animateSidebarEntry();
-    }
+
+  function glitchAndReplaceFacebookPosts() {
+    glitchNextItem('facebook', facebookItems, {
+      getTarget: (item) => item.querySelector('.facebook-post-text'),
+      getContainer: (item) => item,
+      applyParody: (item, target, index) => {
+        const newText = facebookParodies[index % facebookParodies.length];
+        target.textContent = newText;
+        target.classList.add('parodied');
+        target.setAttribute('data-original-text', newText);
+        setGlitchLink(target, buildGlitchUrl('facebook', 'parody', index));
+      },
+      applyCelli: (item, target, index) => {
+        const newText = celliAds[index % celliAds.length];
+        target.textContent = newText;
+        target.classList.add('celli-ad');
+        item.classList.add('has-celli-ad');
+        target.setAttribute('data-original-text', newText);
+        setGlitchLink(target, buildGlitchUrl('facebook', 'celli', index));
+      },
+      logLabel: '📘 Facebook post'
+    });
   }
   
   function animateSidebarEntry() {
@@ -3749,6 +3706,8 @@
     requestAnimationFrame(() => {
       sidebar.classList.add('stage-float');
     });
+
+    playChantAudio();
 
     console.log('  💎 Crystalline note seeded - awaiting tap to awaken.');
   }
@@ -3836,6 +3795,7 @@
     impactCount = 0;
     parodiesComplete = false;
     celliAdsComplete = false;
+    resetGlitchProgress();
     noteAwaitingActivation = false;
     clearNoteStageTimeouts();
     stopChantAudio();
@@ -3877,9 +3837,11 @@
             titleLink.classList.remove('parodied', 'celli-ad');
           }
         }
+        const originalLink = titleLink.dataset.originalLink || titleLink.getAttribute('href') || '#';
+        setGlitchLink(titleLink, originalLink);
       }
     });
-    
+
     // Reset Reddit posts
     redditItems.forEach(item => {
       item.classList.remove('glitching', 'has-celli-ad');
@@ -3892,9 +3854,11 @@
             titleLink.classList.remove('parodied', 'celli-ad');
           }
         }
+        const originalLink = titleLink.dataset.originalLink || titleLink.getAttribute('href') || '#';
+        setGlitchLink(titleLink, originalLink);
       }
     });
-    
+
     // Reset Twitter tweets
     twitterItems.forEach(item => {
       item.classList.remove('glitching', 'has-celli-ad');
@@ -3907,9 +3871,11 @@
             textEl.classList.remove('parodied', 'celli-ad');
           }
         }
+        const originalLink = textEl.dataset.originalLink || '#';
+        setGlitchLink(textEl, originalLink);
       }
     });
-    
+
     // Reset Facebook posts
     facebookItems.forEach(item => {
       item.classList.remove('glitching', 'has-celli-ad');
@@ -3922,6 +3888,8 @@
             textEl.classList.remove('parodied', 'celli-ad');
           }
         }
+        const originalLink = textEl.dataset.originalLink || '#';
+        setGlitchLink(textEl, originalLink);
       }
     });
 
@@ -3975,23 +3943,24 @@
   
   function onLinkClick(e, url) {
     e.preventDefault();
-    
+
     // Hide the hover tooltip
     hideTooltip();
-    
+
     // Create a NEW independent flying tooltip for this link click
-    const linkElement = e.target;
-    const flyingTooltip = createFlyingTooltip(url, linkElement);
-    
+    const linkElement = e.currentTarget || e.target;
+    const activeUrl = getCurrentLink(linkElement, url);
+    const flyingTooltip = createFlyingTooltip(activeUrl, linkElement);
+
     // Animate this specific tooltip independently
     morphTooltipToSidebar(flyingTooltip);
     runGlitchOnce();
     jitterList(400);
-    
+
     // Show sidebar with impact effect after tooltip splats into edge
     // (Only show after first few impacts - not on every link click)
     if (impactCount > 0 && impactCount <= 3) {
-    setTimeout(() => showSidebar(url, true), 500);
+    setTimeout(() => showSidebar(activeUrl, true), 500);
     }
   }
   
@@ -4011,6 +3980,7 @@
       currentHNView = (platformType === 'hn');
       parodiesComplete = false;
       celliAdsComplete = false;
+      resetGlitchProgress(platformType);
       
       console.log(`  Cleared refList, set currentView=${currentView}`);
     
@@ -4061,22 +4031,24 @@
         `;
         
         const link = itemDiv.querySelector('.hn-story-title');
-        if (it.link) {
-          link.href = it.link;
-          link.addEventListener('mouseenter', () => showTooltip(it.link, link));
-          link.addEventListener('mouseleave', () => {
-            if (!refTooltip.classList.contains('morphing')) hideTooltip();
-          });
-          link.addEventListener('click', (e) => onLinkClick(e, it.link));
-        }
-        
+        const originalLink = it.link || '#';
+        setGlitchLink(link, originalLink);
+        link.dataset.originalLink = originalLink;
+        link.addEventListener('mouseenter', () => showTooltip(getCurrentLink(link, originalLink), link));
+        link.addEventListener('mouseleave', () => {
+          if (!refTooltip.classList.contains('morphing')) hideTooltip();
+        });
+        link.addEventListener('click', (e) => onLinkClick(e, getCurrentLink(link, originalLink)));
+
         itemDiv.querySelectorAll('.hn-subtext a, .hn-sitebit a').forEach(a => {
           const href = a.getAttribute('href') || '#';
-          a.addEventListener('mouseenter', () => showTooltip(href, a));
+          setGlitchLink(a, href);
+          a.dataset.originalLink = href;
+          a.addEventListener('mouseenter', () => showTooltip(getCurrentLink(a, href), a));
           a.addEventListener('mouseleave', () => {
             if (!refTooltip.classList.contains('morphing')) hideTooltip();
           });
-          a.addEventListener('click', (e) => onLinkClick(e, href));
+          a.addEventListener('click', (e) => onLinkClick(e, getCurrentLink(a, href)));
         });
         
         content.appendChild(itemDiv);
@@ -4140,14 +4112,14 @@
         `;
         
         const link = postDiv.querySelector('.reddit-title a');
-        if (it.link) {
-          link.href = it.link;
-          link.addEventListener('mouseenter', () => showTooltip(it.link, link));
-          link.addEventListener('mouseleave', () => {
-            if (!refTooltip.classList.contains('morphing')) hideTooltip();
-          });
-          link.addEventListener('click', (e) => onLinkClick(e, it.link));
-        }
+        const originalLink = it.link || '#';
+        setGlitchLink(link, originalLink);
+        link.dataset.originalLink = originalLink;
+        link.addEventListener('mouseenter', () => showTooltip(getCurrentLink(link, originalLink), link));
+        link.addEventListener('mouseleave', () => {
+          if (!refTooltip.classList.contains('morphing')) hideTooltip();
+        });
+        link.addEventListener('click', (e) => onLinkClick(e, getCurrentLink(link, originalLink)));
         
         content.appendChild(postDiv);
       });
@@ -4222,7 +4194,14 @@
         
         const textEl = tweet.querySelector('.twitter-text');
         if (textEl) {
-          textEl.addEventListener('click', (e) => onLinkClick(e, it.link || '#'));
+          const originalLink = it.link || '#';
+          setGlitchLink(textEl, originalLink);
+          textEl.dataset.originalLink = originalLink;
+          textEl.addEventListener('mouseenter', () => showTooltip(getCurrentLink(textEl, originalLink), textEl));
+          textEl.addEventListener('mouseleave', () => {
+            if (!refTooltip.classList.contains('morphing')) hideTooltip();
+          });
+          textEl.addEventListener('click', (e) => onLinkClick(e, getCurrentLink(textEl, originalLink)));
         }
         
         content.appendChild(tweet);
@@ -4298,7 +4277,14 @@
         
         const textEl = post.querySelector('.facebook-post-text');
         if (textEl) {
-          textEl.addEventListener('click', (e) => onLinkClick(e, it.link || '#'));
+          const originalLink = it.link || '#';
+          setGlitchLink(textEl, originalLink);
+          textEl.dataset.originalLink = originalLink;
+          textEl.addEventListener('mouseenter', () => showTooltip(getCurrentLink(textEl, originalLink), textEl));
+          textEl.addEventListener('mouseleave', () => {
+            if (!refTooltip.classList.contains('morphing')) hideTooltip();
+          });
+          textEl.addEventListener('click', (e) => onLinkClick(e, getCurrentLink(textEl, originalLink)));
         }
         
         feed.appendChild(post);
