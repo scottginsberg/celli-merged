@@ -56,48 +56,53 @@ export class SceneManager {
    * @param {Object} options - Transition options
    */
   async transitionTo(sceneName, options = {}) {
+    console.group(`[SceneManager] transitionTo → ${sceneName}`);
+    console.log('Current scene:', this.activeScene ?? 'none');
+    console.log('Options:', options);
+
     if (this.transitionInProgress) {
       console.warn('Transition already in progress');
+      console.groupEnd();
       return false;
     }
 
     if (!this.scenes.has(sceneName)) {
       console.error(`Scene "${sceneName}" not registered`);
+      console.groupEnd();
       return false;
     }
 
-    // Check permissions
     if (!this.can('transition', sceneName)) {
       console.warn(`Permission denied for scene: ${sceneName}`);
+      console.groupEnd();
       return false;
     }
 
     this.transitionInProgress = true;
+    let success = false;
 
     try {
-      // Call before transition hooks
       await this._callHooks('beforeTransition', { from: this.activeScene, to: sceneName });
 
-      // Stop current scene
       if (this.activeScene) {
         await this._stopScene(this.activeScene);
       }
 
-      // Start new scene
       await this._startScene(sceneName, options);
 
-      // Call after transition hooks
       await this._callHooks('afterTransition', { from: this.activeScene, to: sceneName });
 
       this.activeScene = sceneName;
       console.log(`🎬 Transitioned to scene: ${sceneName}`);
-
+      success = true;
       return true;
     } catch (error) {
-      console.error(`Scene transition failed:`, error);
+      console.error('Scene transition failed:', error);
       return false;
     } finally {
       this.transitionInProgress = false;
+      console.log(`🏁 Transition ${success ? 'completed' : 'failed'} for scene: ${sceneName}`);
+      console.groupEnd();
     }
   }
 
@@ -106,12 +111,27 @@ export class SceneManager {
    */
   async _initScene(sceneName) {
     const scene = this.scenes.get(sceneName);
+    if (!scene) {
+      throw new Error(`Scene "${sceneName}" not found during initialization`);
+    }
+
     if (!scene.initialized) {
+      const label = `[SceneManager] init ${sceneName}`;
+      console.time(label);
       console.log(`🔧 Initializing scene: ${sceneName}`);
-      if (scene.module.init) {
-        await scene.module.init(scene.state);
+
+      try {
+        if (scene.module.init) {
+          await scene.module.init(scene.state);
+        }
+        scene.initialized = true;
+        console.log(`✅ Scene initialized: ${sceneName}`);
+      } catch (error) {
+        console.error(`❌ Failed to initialize scene "${sceneName}":`, error);
+        throw error;
+      } finally {
+        console.timeEnd(label);
       }
-      scene.initialized = true;
     }
   }
 
@@ -121,12 +141,26 @@ export class SceneManager {
   async _startScene(sceneName, options) {
     await this._initScene(sceneName);
     const scene = this.scenes.get(sceneName);
-    
-    console.log(`▶️ Starting scene: ${sceneName}`);
-    if (scene.module.start) {
-      await scene.module.start(scene.state, options);
+    if (!scene) {
+      throw new Error(`Scene "${sceneName}" not found during start`);
     }
-    scene.active = true;
+
+    const label = `[SceneManager] start ${sceneName}`;
+    console.time(label);
+    console.log(`▶️ Starting scene: ${sceneName}`);
+
+    try {
+      if (scene.module.start) {
+        await scene.module.start(scene.state, options);
+      }
+      scene.active = true;
+      console.log(`✅ Scene active: ${sceneName}`);
+    } catch (error) {
+      console.error(`❌ Failed to start scene "${sceneName}":`, error);
+      throw error;
+    } finally {
+      console.timeEnd(label);
+    }
   }
 
   /**
@@ -134,13 +168,27 @@ export class SceneManager {
    */
   async _stopScene(sceneName) {
     const scene = this.scenes.get(sceneName);
-    if (!scene || !scene.active) return;
-
-    console.log(`⏹️ Stopping scene: ${sceneName}`);
-    if (scene.module.stop) {
-      await scene.module.stop(scene.state);
+    if (!scene || !scene.active) {
+      console.log(`⏹️ Stop skipped for scene: ${sceneName} (not active)`);
+      return;
     }
-    scene.active = false;
+
+    const label = `[SceneManager] stop ${sceneName}`;
+    console.time(label);
+    console.log(`⏹️ Stopping scene: ${sceneName}`);
+
+    try {
+      if (scene.module.stop) {
+        await scene.module.stop(scene.state);
+      }
+      scene.active = false;
+      console.log(`✅ Scene stopped: ${sceneName}`);
+    } catch (error) {
+      console.error(`❌ Failed to stop scene "${sceneName}":`, error);
+      throw error;
+    } finally {
+      console.timeEnd(label);
+    }
   }
 
   /**

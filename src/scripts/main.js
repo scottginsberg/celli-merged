@@ -58,25 +58,74 @@ function init() {
   setupButtons();
 
   // Autostart experience if requested via query parameters
-  handleAutoStart();
+  handleAutoStart()
+    .then((autoStarted) => {
+      if (autoStarted) {
+        console.log('⚙️ Auto-start completed via query parameter.');
+        return true;
+      }
 
-  console.log('✨ Celli initialized - Click Play to start!');
+      console.log('🎯 No auto-start parameter detected - starting intro animation immediately.');
+      return startExperience('init-default');
+    })
+    .catch((error) => {
+      console.error('❌ Failed to orchestrate auto-start flow:', error);
+    });
+
+  console.log('✨ Celli initialized - experience will auto-start when ready (Play button still available).');
   console.log('📋 Available scenes:', sceneManager.listScenes().join(', '));
 }
 
 // Sequence UI instance
 let sequenceUI = null;
 
-async function startExperience() {
-  await startApp();
+let experienceStartInProgress = false;
 
-  setTimeout(() => {
-    const appContext = getAppContext();
-    if (appContext) {
-      registerSceneComponents(appContext);
-      console.log('✅ Scene components registered with sequence system');
-    }
-  }, 100);
+async function startExperience(triggerSource = 'unknown') {
+  console.group('[Celli] startExperience');
+  console.log(`🔁 Trigger source: ${triggerSource}`);
+
+  if (window.celliApp?.initialized) {
+    console.warn('⚠️ startExperience called but app is already initialized.');
+    console.groupEnd();
+    return true;
+  }
+
+  if (window.celliApp?.initializing || experienceStartInProgress) {
+    console.warn('⚠️ App start already in progress - ignoring duplicate start request.');
+    console.groupEnd();
+    return false;
+  }
+
+  experienceStartInProgress = true;
+  const timerLabel = `[Celli] startApp (${triggerSource})`;
+  console.time(timerLabel);
+
+  let success = false;
+
+  try {
+    await startApp();
+    success = true;
+    console.log('✅ startExperience completed without errors.');
+
+    setTimeout(() => {
+      const appContext = getAppContext();
+      if (appContext) {
+        registerSceneComponents(appContext);
+        console.log('✅ Scene components registered with sequence system');
+      } else {
+        console.warn('⚠️ App context not available after start - sequence components not registered yet.');
+      }
+    }, 100);
+  } catch (error) {
+    console.error('❌ startExperience failed:', error);
+  } finally {
+    console.timeEnd(timerLabel);
+    experienceStartInProgress = false;
+    console.groupEnd();
+  }
+
+  return success;
 }
 
 function setupButtons() {
@@ -85,7 +134,10 @@ function setupButtons() {
   if (playBtn) {
     playBtn.addEventListener('click', async () => {
       console.log('▶️ Play button clicked - Starting intro sequence!');
-      await startExperience();
+      const started = await startExperience('play-button');
+      if (!started) {
+        console.warn('⚠️ Play button start request did not complete successfully.');
+      }
     });
     console.log('✅ Play button initialized');
   }
@@ -122,10 +174,11 @@ function setupButtons() {
       const play = document.getElementById('play');
       if (play) play.style.display = 'none';
       // Initialize systems if needed
-      if (!window.celliApp.initialized) {
-        await startApp();
+      const started = await startExperience('test-button');
+      if (!started) {
+        console.warn('⚠️ Test button was unable to start the app cleanly - attempting city transition anyway.');
       }
-      // Transition to city
+
       transitionToCity();
     });
     console.log('✅ Test button initialized');
@@ -182,19 +235,26 @@ async function handleAutoStart() {
   const shouldAutostart = autostart === '' || autostart === '1' || autostart?.toLowerCase() === 'true';
 
   if (!shouldAutostart) {
-    return;
+    console.log('ℹ️ Autostart parameter not present or disabled.');
+    return false;
   }
 
   if (window.celliApp?.initialized) {
-    return;
+    console.log('ℹ️ Autostart requested but app is already initialized.');
+    return true;
   }
 
   console.log('⚡ Autostart parameter detected - starting experience automatically.');
 
   try {
-    await startExperience();
+    const started = await startExperience('query-parameter');
+    if (!started) {
+      console.warn('⚠️ Autostart attempt did not complete successfully.');
+    }
+    return started;
   } catch (error) {
     console.error('❌ Failed to autostart experience:', error);
+    return false;
   }
 }
 
