@@ -384,20 +384,20 @@
   .light-ray {
    position: fixed;
    right: 0;
-   width: 800px;
-   height: 60px;
+   width: var(--ref-light-ray-width, 800px);
+   height: var(--ref-light-ray-height, 60px);
    background: linear-gradient(to left, rgba(255, 255, 255, 0.3), transparent);
    mix-blend-mode: screen;
    pointer-events: none;
    z-index: 9998;
    animation: ray-shine 0.5s ease-out;
-   filter: blur(20px);
+   filter: blur(var(--ref-light-ray-blur, 20px));
   }
-  
+
   @keyframes ray-shine {
    0% { opacity: 0; width: 0; }
    50% { opacity: 1; }
-   100% { opacity: 0.6; width: 800px; }
+   100% { opacity: 0.6; width: var(--ref-light-ray-width, 800px); }
   }
   
   /* Giant burst beam for final card entrance */
@@ -653,9 +653,9 @@
  <div id="refTooltip" class="ref-tooltip"></div>
  
 <!-- Edge Impact Effects -->
-<div id="edgeImpact" class="edge-impact"></div>
-<div id="darkeningOverlay" class="darkening-overlay" style="position: fixed; inset: 0; background: rgba(0, 0, 0, 1); pointer-events: none; z-index: 9998; opacity: 0;"></div>
-<div id="lightBeam" class="light-beam"></div>
+<div id="edgeImpact" class="edge-impact" aria-hidden="true"></div>
+<div id="darkeningOverlay" class="darkening-overlay" aria-hidden="true"></div>
+<div id="lightBeam" class="light-beam" aria-hidden="true"></div>
 
 <!-- Video Player Overlay -->
 <div id="videoPlayerOverlay" style="position:fixed; inset:0; background:#000; z-index:30000; display:none; flex-direction:column; align-items:center; justify-content:center;">
@@ -1793,6 +1793,98 @@
   let chantFadeFrameId = null;
   let noteStageTimeouts = [];
 
+  const TOOLTIP_ANIMATION_DURATION = 700;
+  const TOOLTIP_COLLISION_RATIO = 0.95;
+
+  function clampSize(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function computeEdgeMetrics() {
+    const viewportWidth = Math.max(window.innerWidth || 0, 320);
+    const viewportHeight = Math.max(window.innerHeight || 0, 320);
+    const edgePadding = clampSize(viewportWidth * 0.08, 24, 120);
+    const impactWidth = clampSize(viewportWidth * 0.45, 220, 520);
+    const lightBeamWidth = clampSize(viewportWidth * 0.9, 280, 960);
+    const lightBeamHeight = clampSize(viewportHeight * 0.55, 160, 420);
+    const lightRayWidth = clampSize(viewportWidth * 0.88, 240, 880);
+    const lightRayHeight = clampSize(viewportHeight * 0.1, 28, 80);
+    return {
+      edgePadding,
+      impactWidth,
+      lightBeamWidth,
+      lightBeamHeight,
+      lightRayWidth,
+      lightRayHeight
+    };
+  }
+
+  let edgeMetrics = computeEdgeMetrics();
+
+  function getEdgeMetrics() {
+    if (!edgeMetrics) {
+      edgeMetrics = computeEdgeMetrics();
+    }
+    return edgeMetrics;
+  }
+
+  function applyEdgeMetrics() {
+    edgeMetrics = computeEdgeMetrics();
+    const rootStyle = document.documentElement.style;
+
+    rootStyle.setProperty('--ref-edge-impact-width', `${edgeMetrics.impactWidth}px`);
+    rootStyle.setProperty('--ref-edge-offset', `${edgeMetrics.edgePadding}px`);
+    rootStyle.setProperty('--ref-light-beam-width', `${edgeMetrics.lightBeamWidth}px`);
+    rootStyle.setProperty('--ref-light-beam-height', `${edgeMetrics.lightBeamHeight}px`);
+    rootStyle.setProperty('--ref-light-beam-blur', `${Math.round(edgeMetrics.lightBeamHeight * 0.05)}px`);
+    rootStyle.setProperty('--ref-light-ray-width', `${edgeMetrics.lightRayWidth}px`);
+    rootStyle.setProperty('--ref-light-ray-height', `${edgeMetrics.lightRayHeight}px`);
+    const rayBlur = Math.max(12, edgeMetrics.lightRayHeight * 0.6);
+    rootStyle.setProperty('--ref-light-ray-blur', `${Math.round(rayBlur)}px`);
+  }
+
+  function getTooltipMetrics() {
+    const metrics = getEdgeMetrics();
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
+    const availableWidth = Math.max(180, viewportWidth - (metrics.edgePadding * 2));
+    const tooltipWidth = Math.min(400, availableWidth);
+    const verticalOffset = Math.max(28, Math.min(72, metrics.edgePadding * 0.9));
+    return { tooltipWidth, edgePadding: metrics.edgePadding, verticalOffset };
+  }
+
+  function updateSharedTooltipWidth() {
+    if (!refTooltip) {
+      return;
+    }
+    const { tooltipWidth } = getTooltipMetrics();
+    refTooltip.style.width = `${tooltipWidth}px`;
+    refTooltip.style.maxWidth = `${tooltipWidth}px`;
+  }
+
+  function updateActiveTooltipEdgeDistance() {
+    const metrics = getTooltipMetrics();
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
+
+    document.querySelectorAll('.ref-tooltip.morphing').forEach((tooltip) => {
+      const storedWidth = parseFloat(tooltip.dataset.tooltipWidth || '0');
+      const storedLeft = parseFloat(tooltip.dataset.initialLeft || '0');
+      const tooltipWidth = storedWidth || metrics.tooltipWidth;
+      const initialLeft = Number.isFinite(storedLeft) ? storedLeft : 0;
+      const edgePadding = metrics.edgePadding;
+      const distanceToEdge = Math.max(0, viewportWidth - edgePadding - (initialLeft + tooltipWidth));
+      tooltip.style.setProperty('--edge-distance', `${distanceToEdge}px`);
+    });
+  }
+
+  applyEdgeMetrics();
+  updateSharedTooltipWidth();
+
+  window.addEventListener('resize', () => {
+    applyEdgeMetrics();
+    updateSharedTooltipWidth();
+    updateActiveTooltipEdgeDistance();
+  });
+
   function createGlitchState() {
     return { stage: 'parody', nextIndex: 0 };
   }
@@ -2177,6 +2269,20 @@
     stopNoteEntryMonitor();
   }
 
+  function startAiEnhancedScan() {
+    if (!refSidebarAck) {
+      return;
+    }
+    refSidebarAck.classList.add('ai-scan-active');
+  }
+
+  function stopAiEnhancedScan() {
+    if (!refSidebarAck) {
+      return;
+    }
+    refSidebarAck.classList.remove('ai-scan-active');
+  }
+
   function playChantAudio() {
     if (chantFadeFrameId) {
       cancelAnimationFrame(chantFadeFrameId);
@@ -2303,6 +2409,7 @@
     ackBtn.style.transition = 'all 0.3s ease-out';
     ackBtn.setAttribute('aria-label', 'Reveal the hidden offer');
 
+    startAiEnhancedScan();
     console.log('  ✨ AI MESSAGE DISPLAYED WITH TWINKLE');
   }
 
@@ -2370,6 +2477,7 @@
     noteHoverSequenceStarted = false;
     loomAiMessageActive = false;
     loomFakeAdActive = false;
+    stopAiEnhancedScan();
     clearNoteStageTimeouts();
     stopChantAudio();
 
@@ -3258,6 +3366,7 @@
     loomAiMessageActive = false;
     loomFakeAdActive = false;
     noteHasEnteredFrame = false;
+    stopAiEnhancedScan();
 
     // Reset button to original state
     const ackBtn = refSidebarAck;
@@ -3330,24 +3439,26 @@
   function showTooltip(url, linkElement) {
     // Show the shared hover tooltip
     refTooltip.textContent = url;
-    
+
+    updateSharedTooltipWidth();
+
     // Position above the link element
     const rect = linkElement.getBoundingClientRect();
-    const tooltipWidth = 400; // max-width from CSS
-    
+    const { tooltipWidth, edgePadding, verticalOffset } = getTooltipMetrics();
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || tooltipWidth;
+
     // Center horizontally on the link, position above it
     let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
-    const top = rect.top - 40; // 40px above the link
-    
-    // Keep within viewport bounds
-    const viewportWidth = window.innerWidth;
-    if (left < 10) left = 10;
-    if (left + tooltipWidth > viewportWidth - 10) {
-      left = viewportWidth - tooltipWidth - 10;
+    const top = Math.max(12, rect.top - verticalOffset);
+
+    // Keep within viewport bounds using adaptive padding
+    if (left < edgePadding) left = edgePadding;
+    if (left + tooltipWidth > viewportWidth - edgePadding) {
+      left = viewportWidth - tooltipWidth - edgePadding;
     }
-    
-    refTooltip.style.left = left + 'px';
-    refTooltip.style.top = top + 'px';
+
+    refTooltip.style.left = `${left}px`;
+    refTooltip.style.top = `${top}px`;
     refTooltip.classList.remove('morphing');
     refTooltip.classList.add('active');
   }
@@ -3358,23 +3469,30 @@
     tooltip.className = 'ref-tooltip active';
     tooltip.textContent = url;
     document.body.appendChild(tooltip);
-    
+
     // Position above the link element
     const rect = linkElement.getBoundingClientRect();
-    const tooltipWidth = 400;
-    
+    const { tooltipWidth, edgePadding, verticalOffset } = getTooltipMetrics();
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || tooltipWidth;
+
     let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
-    const top = rect.top - 40;
-    
-    const viewportWidth = window.innerWidth;
-    if (left < 10) left = 10;
-    if (left + tooltipWidth > viewportWidth - 10) {
-      left = viewportWidth - tooltipWidth - 10;
+    const top = Math.max(12, rect.top - verticalOffset);
+
+    if (left < edgePadding) left = edgePadding;
+    if (left + tooltipWidth > viewportWidth - edgePadding) {
+      left = viewportWidth - tooltipWidth - edgePadding;
     }
-    
-    tooltip.style.left = left + 'px';
-    tooltip.style.top = top + 'px';
-    
+
+    const distanceToEdge = Math.max(0, viewportWidth - edgePadding - (left + tooltipWidth));
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+    tooltip.style.width = `${tooltipWidth}px`;
+    tooltip.style.maxWidth = `${tooltipWidth}px`;
+    tooltip.style.setProperty('--edge-distance', `${distanceToEdge}px`);
+    tooltip.dataset.initialLeft = `${left}`;
+    tooltip.dataset.tooltipWidth = `${tooltipWidth}`;
+
     return tooltip;
   }
   
@@ -3384,9 +3502,10 @@
   
   function createImpactParticles(tooltipElement) {
     console.log('💨 Creating impact particles...');
-    
+
     const tooltipRect = tooltipElement.getBoundingClientRect();
-    const impactX = window.innerWidth - 5; // Slightly inset from edge
+    const metrics = getEdgeMetrics();
+    const impactX = window.innerWidth - Math.max(metrics.edgePadding * 0.6, 12);
     const impactYTop = tooltipRect.top;
     const impactYBottom = tooltipRect.bottom;
     const impactYCenter = (impactYTop + impactYBottom) / 2;
@@ -3475,14 +3594,20 @@
     console.log(`  📊 Current hole count: ${brickHoles.length}`);
     
     // Create hole visual indicator (for debugging)
+    const metrics = getEdgeMetrics();
+    const holeWidth = Math.max(220, metrics.lightRayWidth * 0.35);
+    const holeHeight = Math.max(70, metrics.lightRayHeight * 1.3);
+    const holeTop = yPosition - (holeHeight / 2);
+    const holeRightOffset = Math.round(metrics.edgePadding * 0.15);
+
     const hole = document.createElement('div');
     hole.className = 'darkening-hole';
-    hole.style.top = (yPosition - 40) + 'px'; // Center on impact
-    hole.style.right = '0';
-    hole.style.width = '300px';
-    hole.style.height = '80px';
+    hole.style.top = `${holeTop}px`;
+    hole.style.right = `-${holeRightOffset}px`;
+    hole.style.width = `${Math.round(holeWidth)}px`;
+    hole.style.height = `${Math.round(holeHeight)}px`;
     hole.style.position = 'fixed';
-    hole.style.border = '2px solid rgba(255, 0, 0, 0.5)'; // Debug border
+    hole.style.border = 'none';
     hole.style.zIndex = '10001';
     
     const holeId = `hole-${Date.now()}`;
@@ -3519,12 +3644,16 @@
     // Build a paint() mask that punches holes
     // Start with full black (visible), then punch transparent holes
     let maskGradients = [];
-    
+    const metrics = getEdgeMetrics();
+    const holeRadiusX = Math.max(120, metrics.lightRayWidth * 0.32);
+    const holeRadiusY = Math.max(40, metrics.lightRayHeight * 1.15);
+    const holeOffset = Math.max(holeRadiusX, metrics.edgePadding * 1.2);
+
     brickHoles.forEach(hole => {
       const y = hole.y;
       // Create a radial gradient hole centered on the right edge
       maskGradients.push(
-        `radial-gradient(ellipse 150px 40px at calc(100% - 150px) ${y}px, transparent 0%, transparent 100%, black 100%)`
+        `radial-gradient(ellipse ${holeRadiusX}px ${holeRadiusY}px at calc(100% - ${holeOffset}px) ${y}px, transparent 0%, transparent 60%, black 100%)`
       );
     });
     
@@ -3545,14 +3674,20 @@
   
   function createLightRay(yPosition) {
     console.log(`✨ Creating light ray at Y: ${yPosition}`);
-    
+
     const ray = document.createElement('div');
     ray.className = 'light-ray';
-    ray.style.top = (yPosition - 30) + 'px';
+    const metrics = getEdgeMetrics();
+    const rayHeight = metrics.lightRayHeight;
+    const rayWidth = metrics.lightRayWidth;
+    const topOffset = yPosition - (rayHeight / 2);
+    ray.style.top = `${topOffset}px`;
+    ray.style.width = `${rayWidth}px`;
+    ray.style.height = `${rayHeight}px`;
     ray.style.zIndex = '9999'; // Above darkening overlay
     document.body.appendChild(ray);
-    
-    console.log(`  💡 Light ray added to DOM at Y: ${yPosition - 30}px`);
+
+    console.log(`  💡 Light ray added to DOM at Y: ${topOffset}px`);
     
     // Keep ray visible (don't fade it out completely)
     setTimeout(() => {
@@ -3830,6 +3965,7 @@
 
     clearNoteStageTimeouts();
     stopChantAudio();
+    stopAiEnhancedScan();
 
     const sidebar = refSidebar;
     const ackBtn = refSidebarAck;
@@ -4080,15 +4216,11 @@
     tooltipElement.classList.add('morphing');
     
     console.log('🚀 Tooltip animation started');
-    console.log('  Animation: 700ms total, collision at ~95% keyframe = 665ms');
-    
-    // CSS transform animations don't update getBoundingClientRect()!
-    // We need to use timing based on the animation keyframes:
-    // - 90%: translate(1200px, 0) at 630ms
-    // - 95%: translate(1400px, 0) scale(0.3, 2) at 665ms <- COLLISION
-    // - 100%: translate(1500px, 0) scale(0.1, 2.5) at 700ms
-    
-    const COLLISION_TIME = 665; // ms - when tooltip hits edge (95% keyframe)
+    const COLLISION_TIME = Math.round(TOOLTIP_ANIMATION_DURATION * TOOLTIP_COLLISION_RATIO);
+    console.log(`  Animation: ${TOOLTIP_ANIMATION_DURATION}ms total, collision at ~${Math.round(TOOLTIP_COLLISION_RATIO * 100)}% keyframe = ${COLLISION_TIME}ms`);
+
+    // CSS transform animations don't update getBoundingClientRect().
+    // Timing is based on the animation duration; collision happens near 95%.
     
     // Trigger effects at exact collision moment
           setTimeout(() => {
