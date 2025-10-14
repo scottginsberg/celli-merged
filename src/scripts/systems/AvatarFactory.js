@@ -13,6 +13,233 @@
 
 const ARRAYA_BASE_SCALE = 0.28;
 
+function enableAccessorySystem(THREE, root, anchorEntries = {}) {
+  const accessories = new Map();
+  const anchors = new Map();
+
+  if (!root || !THREE) return null;
+
+  anchors.set('root', root);
+  if (anchorEntries && typeof anchorEntries === 'object') {
+    Object.entries(anchorEntries).forEach(([key, value]) => {
+      if (value) anchors.set(key, value);
+    });
+  }
+
+  const tmpBox = new THREE.Box3();
+  const tmpSize = new THREE.Vector3();
+  const tmpCenter = new THREE.Vector3();
+
+  const resolveAnchor = (ref) => {
+    if (!ref) return anchors.get('root');
+    if (typeof ref === 'string') return anchors.get(ref) || null;
+    return ref;
+  };
+
+  const system = {
+    anchors,
+    addAnchor(name, object) {
+      if (name && object) anchors.set(name, object);
+    },
+    getAnchor(name) {
+      return anchors.get(name) || null;
+    },
+    addAccessory(name, object, options = {}) {
+      if (!name || !object) return null;
+      const existing = accessories.get(name);
+      if (existing) this.removeAccessory(name);
+
+      const parent = resolveAnchor(options.parent) || root;
+      parent.add(object);
+
+      if (options.position) {
+        if (options.position.isVector3) {
+          object.position.copy(options.position);
+        } else {
+          const { x = 0, y = 0, z = 0 } = options.position;
+          object.position.set(x, y, z);
+        }
+      }
+
+      if (options.rotation) {
+        if (options.rotation.isEuler) {
+          object.rotation.copy(options.rotation);
+        } else {
+          const { x = 0, y = 0, z = 0 } = options.rotation;
+          object.rotation.set(x, y, z);
+        }
+      }
+
+      if (options.scale) {
+        if (options.scale.isVector3) {
+          object.scale.copy(options.scale);
+        } else {
+          const { x = 1, y = 1, z = 1 } = options.scale;
+          object.scale.set(x, y, z);
+        }
+      }
+
+      object.userData.accessoryName = name;
+      accessories.set(name, { object, parent, options });
+      return object;
+    },
+    removeAccessory(name) {
+      const entry = accessories.get(name);
+      if (!entry) return null;
+      if (entry.object.parent) entry.object.parent.remove(entry.object);
+      accessories.delete(name);
+      return entry.object;
+    },
+    getAccessory(name) {
+      return accessories.get(name)?.object || null;
+    },
+    toggleAccessory(name, factory, options = {}) {
+      if (accessories.has(name)) {
+        this.removeAccessory(name);
+        return null;
+      }
+      const created = typeof factory === 'function' ? factory() : factory;
+      return this.addAccessory(name, created, options);
+    },
+    measureWidth(target = 'root') {
+      const anchor = resolveAnchor(target);
+      if (!anchor) return 0;
+      tmpBox.setFromObject(anchor);
+      tmpBox.getSize(tmpSize);
+      return tmpSize.x;
+    },
+    measureBounds(target = 'root') {
+      const anchor = resolveAnchor(target);
+      if (!anchor) return null;
+      tmpBox.setFromObject(anchor);
+      tmpBox.getCenter(tmpCenter);
+      tmpBox.getSize(tmpSize);
+      return {
+        box: tmpBox.clone(),
+        center: tmpCenter.clone(),
+        size: tmpSize.clone()
+      };
+    },
+    fitAccessory(name, width) {
+      const entry = accessories.get(name);
+      if (!entry) return;
+      const targetWidth = (typeof width === 'number' && isFinite(width))
+        ? width
+        : this.measureWidth(entry.options?.widthAnchor || entry.parent);
+      const handler = entry.object?.userData?.setWidth || entry.object?.userData?.fitWidth;
+      if (typeof handler === 'function') {
+        handler.call(entry.object.userData, targetWidth);
+      }
+    },
+    listAccessories() {
+      return Array.from(accessories.keys());
+    }
+  };
+
+  root.userData = root.userData || {};
+  root.userData.accessorySystem = system;
+  return system;
+}
+
+function createSunglasses(THREE, options = {}) {
+  const group = new THREE.Group();
+  group.name = options.name || 'SunglassesAccessory';
+
+  const frameColor = options.frameColor ?? 0x111111;
+  const lensColor = options.lensColor ?? 0x1b1f30;
+  const lensOpacity = options.lensOpacity ?? 0.65;
+  const lensRadius = options.lensRadius ?? 0.45;
+  const lensThickness = options.lensThickness ?? 0.08;
+  const armLength = options.armLength ?? 1.2;
+  const minOffset = options.minCenterOffset ?? lensRadius * 0.8;
+  const noseDepth = options.noseDepth ?? 0.04;
+
+  const frameMaterial = new THREE.MeshStandardMaterial({
+    color: frameColor,
+    metalness: 0.75,
+    roughness: 0.28
+  });
+
+  const lensMaterial = new THREE.MeshStandardMaterial({
+    color: lensColor,
+    transparent: true,
+    opacity: lensOpacity,
+    metalness: 0.35,
+    roughness: 0.18
+  });
+
+  const torusGeo = new THREE.TorusGeometry(lensRadius, lensThickness, 24, 64, Math.PI);
+  torusGeo.rotateY(Math.PI / 2);
+
+  const fillRadius = Math.max(0.01, lensRadius - lensThickness * 0.35);
+  const fillGeo = new THREE.CircleGeometry(fillRadius, 32, Math.PI / 2, Math.PI);
+  fillGeo.rotateY(Math.PI / 2);
+
+  const makeLens = (sign) => {
+    const lensGroup = new THREE.Group();
+    lensGroup.name = sign < 0 ? 'SunglassesLensLeft' : 'SunglassesLensRight';
+
+    const frame = new THREE.Mesh(torusGeo, frameMaterial.clone());
+    if (sign < 0) frame.rotation.z = Math.PI;
+    lensGroup.add(frame);
+
+    const fill = new THREE.Mesh(fillGeo, lensMaterial.clone());
+    if (sign < 0) fill.rotation.z = Math.PI;
+    fill.position.z = noseDepth * 0.25;
+    lensGroup.add(fill);
+
+    return { lensGroup, frame, fill };
+  };
+
+  const left = makeLens(-1);
+  const right = makeLens(1);
+
+  const baseOffset = options.centerOffset ?? lensRadius * 1.1;
+  left.lensGroup.position.x = -baseOffset;
+  right.lensGroup.position.x = baseOffset;
+
+  const bridgeShape = new THREE.Shape();
+  const bridgeRadius = options.bridgeRadius ?? lensRadius * 0.65;
+  bridgeShape.absarc(0, 0, bridgeRadius, Math.PI, 0, false);
+  bridgeShape.lineTo(bridgeRadius, -bridgeRadius * 0.6);
+  bridgeShape.lineTo(-bridgeRadius, -bridgeRadius * 0.6);
+  bridgeShape.closePath();
+  const bridgeGeo = new THREE.ShapeGeometry(bridgeShape);
+  const bridge = new THREE.Mesh(bridgeGeo, frameMaterial.clone());
+  bridge.rotation.y = Math.PI / 2;
+  bridge.position.z = noseDepth * 0.5;
+  const bridgeBaseWidth = bridgeRadius * 2;
+
+  const armGeo = new THREE.BoxGeometry(lensThickness * 1.6, lensThickness * 1.2, armLength);
+  const leftArm = new THREE.Mesh(armGeo, frameMaterial.clone());
+  const rightArm = new THREE.Mesh(armGeo, frameMaterial.clone());
+  leftArm.position.set(-(baseOffset + lensRadius * 0.55), 0, -armLength * 0.35);
+  rightArm.position.set(baseOffset + lensRadius * 0.55, 0, -armLength * 0.35);
+
+  group.add(left.lensGroup, right.lensGroup, bridge, leftArm, rightArm);
+
+  const outerRadius = lensRadius + lensThickness;
+
+  const setWidth = (width) => {
+    if (!width || !isFinite(width)) return;
+    const halfWidth = width * 0.5;
+    const centerOffset = Math.max(minOffset, halfWidth - outerRadius * 0.1);
+    left.lensGroup.position.x = -centerOffset;
+    right.lensGroup.position.x = centerOffset;
+    bridge.scale.x = Math.max(0.5, (centerOffset * 2) / (bridgeBaseWidth || 1));
+    leftArm.position.x = -(centerOffset + outerRadius * 0.55);
+    rightArm.position.x = centerOffset + outerRadius * 0.55;
+  };
+
+  group.userData.type = 'sunglasses';
+  group.userData.setWidth = setWidth;
+  group.userData.fitWidth = setWidth;
+
+  setWidth(options.initialWidth ?? outerRadius * 4);
+
+  return group;
+}
+
 export const AvatarFactory = {
   /**
    * Create Celli avatar
@@ -169,6 +396,17 @@ export const AvatarFactory = {
     legR.legRoot.position.set(Math.abs(legL.legRoot.position.x), legL.legRoot.position.y, legL.legRoot.position.z);
 
     root.add(bodyGroup, bowGroup, L.armRoot, R.armRoot, legL.legRoot, legR.legRoot);
+
+    const accessorySystem = enableAccessorySystem(THREE, root, {
+      body: bodyGroup,
+      face: faceGroup,
+      bow: bowGroup
+    });
+    root.userData.faceGroup = faceGroup;
+    root.userData.bodyGroup = bodyGroup;
+    root.userData.bodyDimensions = { width: BW, height: BH, depth: BD };
+    root.userData.faceForward = faceZ;
+    root.userData.accessorySystem = accessorySystem;
 
     const BASE_RENDER_ORDER = 10500;
     
@@ -487,7 +725,12 @@ export const AvatarFactory = {
     bobGroup.userData.leftArm = leftArm;
     bobGroup.userData.rightArm = rightArm;
     bobGroup.userData.type = 'bob';
-    
+
+    enableAccessorySystem(THREE, bobGroup, {
+      root: bobGroup,
+      body: bobGroup
+    });
+
     return bobGroup;
   },
 
@@ -554,8 +797,20 @@ export const AvatarFactory = {
     paletteGroup.userData.gridWidth = gridWidth;
     paletteGroup.userData.gridHeight = gridHeight;
     paletteGroup.userData.type = 'palette';
-    
+
+    enableAccessorySystem(THREE, paletteGroup, {
+      grid: paletteGroup
+    });
+
     return paletteGroup;
+  },
+
+  enableAccessories(THREE, group, anchors = {}) {
+    return enableAccessorySystem(THREE, group, anchors);
+  },
+
+  createSunglasses(THREE, options = {}) {
+    return createSunglasses(THREE, options);
   }
 };
 
