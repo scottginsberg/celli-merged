@@ -384,20 +384,56 @@
   .light-ray {
    position: fixed;
    right: 0;
-   width: var(--ref-light-ray-width, 800px);
-   height: var(--ref-light-ray-height, 60px);
-   background: linear-gradient(to left, rgba(255, 255, 255, 0.3), transparent);
+   width: var(--ref-light-ray-width, 420px);
+   height: var(--ref-light-ray-height, 18px);
    mix-blend-mode: screen;
    pointer-events: none;
    z-index: 9998;
-   animation: ray-shine 0.5s ease-out;
-   filter: blur(var(--ref-light-ray-blur, 20px));
+   animation: ray-shine 0.45s ease-out;
+   transform-origin: right center;
+   border-radius: calc(var(--ref-light-ray-height, 18px) / 2);
+   opacity: 0;
+  }
+
+  .light-ray::before,
+  .light-ray::after {
+   content: '';
+   position: absolute;
+   inset: 0;
+   border-radius: inherit;
+   pointer-events: none;
+  }
+
+  .light-ray::before {
+   background: linear-gradient(
+    to left,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.08) 10%,
+    rgba(255, 255, 255, 0.55) 32%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0.55) 68%,
+    rgba(255, 255, 255, 0.08) 90%,
+    rgba(255, 255, 255, 0)
+   );
+  }
+
+  .light-ray::after {
+   inset: -25% -4% -25% 0;
+   background: linear-gradient(
+    to left,
+    rgba(255, 255, 255, 0.35),
+    rgba(255, 255, 255, 0.2) 18%,
+    rgba(255, 255, 255, 0.06) 60%,
+    rgba(255, 255, 255, 0)
+   );
+   filter: blur(var(--ref-light-ray-blur, 12px));
+   opacity: 0.65;
   }
 
   @keyframes ray-shine {
-   0% { opacity: 0; width: 0; }
-   50% { opacity: 1; }
-   100% { opacity: 0.6; width: var(--ref-light-ray-width, 800px); }
+   0% { opacity: 0; transform: scaleX(0.2); }
+   45% { opacity: 1; }
+   100% { opacity: 0.4; transform: scaleX(1); }
   }
   
   /* Giant burst beam for final card entrance */
@@ -1807,8 +1843,8 @@
     const impactWidth = clampSize(viewportWidth * 0.45, 220, 520);
     const lightBeamWidth = clampSize(viewportWidth * 0.9, 280, 960);
     const lightBeamHeight = clampSize(viewportHeight * 0.55, 160, 420);
-    const lightRayWidth = clampSize(viewportWidth * 0.88, 240, 880);
-    const lightRayHeight = clampSize(viewportHeight * 0.1, 28, 80);
+    const lightRayWidth = clampSize(viewportWidth * 0.6, 200, 620);
+    const lightRayHeight = clampSize(viewportHeight * 0.035, 12, 28);
     return {
       edgePadding,
       impactWidth,
@@ -1839,7 +1875,7 @@
     rootStyle.setProperty('--ref-light-beam-blur', `${Math.round(edgeMetrics.lightBeamHeight * 0.05)}px`);
     rootStyle.setProperty('--ref-light-ray-width', `${edgeMetrics.lightRayWidth}px`);
     rootStyle.setProperty('--ref-light-ray-height', `${edgeMetrics.lightRayHeight}px`);
-    const rayBlur = Math.max(12, edgeMetrics.lightRayHeight * 0.6);
+    const rayBlur = Math.max(8, edgeMetrics.lightRayHeight * 2.4);
     rootStyle.setProperty('--ref-light-ray-blur', `${Math.round(rayBlur)}px`);
   }
 
@@ -3495,6 +3531,22 @@
 
     return tooltip;
   }
+
+  function getPostIdForElement(element) {
+    if (!element) {
+      return null;
+    }
+
+    if (element.dataset && element.dataset.refPostId) {
+      return element.dataset.refPostId;
+    }
+
+    const container = typeof element.closest === 'function'
+      ? element.closest('[data-ref-post-id]')
+      : null;
+
+    return container?.dataset?.refPostId || null;
+  }
   
   function hideTooltip() {
     refTooltip.classList.remove('active', 'morphing');
@@ -3588,17 +3640,49 @@
   
   // Track brick holes for final burst
   let brickHoles = [];
-  
-  function createBrickHole(yPosition) {
-    console.log(`🧱💥 Creating brick hole at Y: ${yPosition}px`);
+  const brickHoleByPostId = new Map();
+  const lightRaysByPostId = new Map();
+
+  function createBrickHole(yPosition, postId = null) {
+    const postSuffix = postId ? ` (post ${postId})` : '';
+    console.log(`🧱💥 Creating brick hole at Y: ${yPosition}px${postSuffix}`);
     console.log(`  📊 Current hole count: ${brickHoles.length}`);
-    
-    // Create hole visual indicator (for debugging)
+
     const metrics = getEdgeMetrics();
-    const holeWidth = Math.max(220, metrics.lightRayWidth * 0.35);
-    const holeHeight = Math.max(70, metrics.lightRayHeight * 1.3);
+    const holeWidth = Math.max(200, metrics.lightRayWidth * 0.42);
+    const holeHeight = Math.max(48, metrics.lightRayHeight * 2.4);
     const holeTop = yPosition - (holeHeight / 2);
     const holeRightOffset = Math.round(metrics.edgePadding * 0.15);
+
+    if (postId && brickHoleByPostId.has(postId)) {
+      const existingRecord = brickHoleByPostId.get(postId);
+      const existingHole = existingRecord?.element;
+      if (existingHole && existingHole.parentNode) {
+        console.log(`  ♻️ Reusing existing brick hole for ${postId}`);
+        existingRecord.y = yPosition;
+        existingHole.style.top = `${holeTop}px`;
+        existingHole.style.right = `-${holeRightOffset}px`;
+        existingHole.style.width = `${Math.round(holeWidth)}px`;
+        existingHole.style.height = `${Math.round(holeHeight)}px`;
+        existingHole.dataset.refPostId = postId;
+        existingHole.style.animation = 'none';
+        void existingHole.offsetWidth;
+        existingHole.style.animation = '';
+
+        updateDarkeningMask();
+        setTimeout(() => createLightRay(yPosition, postId), 150);
+        return existingHole;
+      }
+
+      // Element was removed, drop the stale record so we can recreate it
+      brickHoleByPostId.delete(postId);
+      if (existingRecord) {
+        const index = brickHoles.indexOf(existingRecord);
+        if (index !== -1) {
+          brickHoles.splice(index, 1);
+        }
+      }
+    }
 
     const hole = document.createElement('div');
     hole.className = 'darkening-hole';
@@ -3609,23 +3693,31 @@
     hole.style.position = 'fixed';
     hole.style.border = 'none';
     hole.style.zIndex = '10001';
-    
-    const holeId = `hole-${Date.now()}`;
+    if (postId) {
+      hole.dataset.refPostId = postId;
+    }
+
+    const holeId = `hole-${postId || Date.now()}`;
     hole.setAttribute('data-hole-id', holeId);
-    
+
     document.body.appendChild(hole);
-    brickHoles.push({ y: yPosition, element: hole });
-    
+
+    const record = { y: yPosition, element: hole, postId: postId || null, ray: null };
+    brickHoles.push(record);
+    if (postId) {
+      brickHoleByPostId.set(postId, record);
+    }
+
     console.log(`  ✅ Hole element added to DOM`);
     console.log(`  📍 Total brick holes now: ${brickHoles.length}`);
-    
-    // Update darkening overlay mask to show holes
+
     updateDarkeningMask();
-    
-    // Create light ray through the hole
+
     setTimeout(() => {
-      createLightRay(yPosition);
+      createLightRay(yPosition, postId);
     }, 150);
+
+    return hole;
   }
   
   function updateDarkeningMask() {
@@ -3645,9 +3737,9 @@
     // Start with full black (visible), then punch transparent holes
     let maskGradients = [];
     const metrics = getEdgeMetrics();
-    const holeRadiusX = Math.max(120, metrics.lightRayWidth * 0.32);
-    const holeRadiusY = Math.max(40, metrics.lightRayHeight * 1.15);
-    const holeOffset = Math.max(holeRadiusX, metrics.edgePadding * 1.2);
+    const holeRadiusX = Math.max(90, metrics.lightRayWidth * 0.45);
+    const holeRadiusY = Math.max(28, metrics.lightRayHeight * 2.2);
+    const holeOffset = Math.max(holeRadiusX, metrics.edgePadding * 1.1);
 
     brickHoles.forEach(hole => {
       const y = hole.y;
@@ -3672,30 +3764,83 @@
     console.log(`  ✅ Mask applied with ${brickHoles.length} hole(s)`);
   }
   
-  function createLightRay(yPosition) {
-    console.log(`✨ Creating light ray at Y: ${yPosition}`);
-
-    const ray = document.createElement('div');
-    ray.className = 'light-ray';
+  function createLightRay(yPosition, postId = null) {
     const metrics = getEdgeMetrics();
     const rayHeight = metrics.lightRayHeight;
     const rayWidth = metrics.lightRayWidth;
     const topOffset = yPosition - (rayHeight / 2);
+
+    if (postId && lightRaysByPostId.has(postId)) {
+      const record = lightRaysByPostId.get(postId);
+      const existingRay = record?.element;
+      if (existingRay && existingRay.parentNode) {
+        console.log(`✨ Updating existing light ray for ${postId}`);
+        record.y = yPosition;
+        existingRay.style.top = `${topOffset}px`;
+        existingRay.style.width = `${rayWidth}px`;
+        existingRay.style.height = `${rayHeight}px`;
+        existingRay.dataset.refPostId = postId;
+        pulseLightRay(existingRay, record);
+        return existingRay;
+      }
+
+      if (record?.fadeTimeout) {
+        clearTimeout(record.fadeTimeout);
+      }
+      lightRaysByPostId.delete(postId);
+    }
+
+    console.log(`✨ Creating light ray at Y: ${yPosition}${postId ? ` (post ${postId})` : ''}`);
+
+    const ray = document.createElement('div');
+    ray.className = 'light-ray';
     ray.style.top = `${topOffset}px`;
     ray.style.width = `${rayWidth}px`;
     ray.style.height = `${rayHeight}px`;
-    ray.style.zIndex = '9999'; // Above darkening overlay
+    ray.style.zIndex = '9999';
+    if (postId) {
+      ray.dataset.refPostId = postId;
+    }
     document.body.appendChild(ray);
 
-    console.log(`  💡 Light ray added to DOM at Y: ${topOffset}px`);
-    
-    // Keep ray visible (don't fade it out completely)
-    setTimeout(() => {
-      if (ray.parentNode) {
-        ray.style.opacity = '0.5';
-        ray.style.transition = 'opacity 0.5s';
+    const record = postId ? { element: ray, y: yPosition, fadeTimeout: null } : null;
+    if (record && postId) {
+      lightRaysByPostId.set(postId, record);
+      const holeRecord = brickHoleByPostId.get(postId);
+      if (holeRecord) {
+        holeRecord.ray = ray;
       }
-    }, 500);
+    }
+
+    pulseLightRay(ray, record);
+    return ray;
+  }
+
+  function pulseLightRay(ray, record = null) {
+    if (!ray) return;
+
+    if (record?.fadeTimeout) {
+      clearTimeout(record.fadeTimeout);
+      record.fadeTimeout = null;
+    }
+
+    ray.style.opacity = '1';
+    ray.style.transition = 'none';
+    ray.style.animation = 'none';
+    void ray.offsetWidth;
+    ray.style.animation = '';
+
+    const timeout = setTimeout(() => {
+      if (!ray.parentNode) {
+        return;
+      }
+      ray.style.transition = 'opacity 0.8s ease-out';
+      ray.style.opacity = '0.22';
+    }, 420);
+
+    if (record) {
+      record.fadeTimeout = timeout;
+    }
   }
   
   function triggerEdgeImpact() {
@@ -4128,7 +4273,15 @@
       }
     });
     brickHoles = [];
-    
+    brickHoleByPostId.clear();
+
+    lightRaysByPostId.forEach(record => {
+      if (record?.fadeTimeout) {
+        clearTimeout(record.fadeTimeout);
+      }
+    });
+    lightRaysByPostId.clear();
+
     // Clean up light rays
     document.querySelectorAll('.light-ray').forEach(ray => ray.remove());
     document.querySelectorAll('.burst-beam').forEach(beam => beam.remove());
@@ -4211,7 +4364,7 @@
     console.log('🔄 Impact effects reset - all content restored');
   }
   
-  function morphTooltipToSidebar(tooltipElement) {
+  function morphTooltipToSidebar(tooltipElement, sourceElement) {
     // Animate towards the sidebar (right edge of screen)
     tooltipElement.classList.add('morphing');
     
@@ -4234,9 +4387,13 @@
       console.log(`  📍 Tooltip rect:`, tooltipRect);
       console.log(`  📍 Impact Y position: ${impactY}px`);
       
-            triggerEdgeImpact();
+      triggerEdgeImpact();
       createImpactParticles(tooltipElement);
-      createBrickHole(impactY); // Create hole in darkening wall
+      const postId = getPostIdForElement(sourceElement);
+      if (postId) {
+        console.log(`  🔢 Impact postId: ${postId}`);
+      }
+      createBrickHole(impactY, postId); // Create hole in darkening wall
     }, COLLISION_TIME);
     
     // Cleanup and remove this specific tooltip after animation completes
@@ -4262,7 +4419,7 @@
     const flyingTooltip = createFlyingTooltip(activeUrl, linkElement);
 
     // Animate this specific tooltip independently
-    morphTooltipToSidebar(flyingTooltip);
+    morphTooltipToSidebar(flyingTooltip, linkElement);
     runGlitchOnce();
     jitterList(400);
 
@@ -4316,6 +4473,8 @@
       items.slice(0, 30).forEach((it, idx) => {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'hn-item';
+        const postId = `hn-${idx}`;
+        itemDiv.dataset.refPostId = postId;
         itemDiv.style.opacity = '0';
         
         const rank = idx + 1;
@@ -4338,6 +4497,10 @@
             </div>
           </div>
         `;
+
+        itemDiv.querySelectorAll('a').forEach(anchor => {
+          anchor.dataset.refPostId = postId;
+        });
         
         const link = itemDiv.querySelector('.hn-story-title');
         const originalLink = it.link || '#';
@@ -4392,6 +4555,8 @@
       items.slice(0, 24).forEach((it, idx) => {
         const postDiv = document.createElement('div');
         postDiv.className = 'reddit-post';
+        const postId = `reddit-${idx}`;
+        postDiv.dataset.refPostId = postId;
         postDiv.style.opacity = '0';
         
         const score = Math.floor(Math.random() * 5000) + 100;
@@ -4419,6 +4584,10 @@
             </div>
           </div>
         `;
+
+        postDiv.querySelectorAll('a').forEach(anchor => {
+          anchor.dataset.refPostId = postId;
+        });
         
         const link = postDiv.querySelector('.reddit-title a');
         const originalLink = it.link || '#';
@@ -4483,6 +4652,8 @@
       items.forEach((it, idx) => {
         const tweet = document.createElement('div');
         tweet.className = 'twitter-tweet';
+        const postId = `twitter-${idx}`;
+        tweet.dataset.refPostId = postId;
         tweet.style.opacity = '0';
         
         tweet.innerHTML = `
@@ -4500,9 +4671,14 @@
             </div>
           </div>
         `;
-        
+
+        tweet.querySelectorAll('a').forEach(anchor => {
+          anchor.dataset.refPostId = postId;
+        });
+
         const textEl = tweet.querySelector('.twitter-text');
         if (textEl) {
+          textEl.dataset.refPostId = postId;
           const originalLink = it.link || '#';
           setGlitchLink(textEl, originalLink);
           textEl.dataset.originalLink = originalLink;
@@ -4566,6 +4742,8 @@
       items.forEach((it, idx) => {
         const post = document.createElement('div');
         post.className = 'facebook-post';
+        const postId = `facebook-${idx}`;
+        post.dataset.refPostId = postId;
         post.style.opacity = '0';
         
         post.innerHTML = `
@@ -4583,9 +4761,14 @@
             <div class="facebook-action">↗ Share</div>
           </div>
         `;
-        
+
+        post.querySelectorAll('a').forEach(anchor => {
+          anchor.dataset.refPostId = postId;
+        });
+
         const textEl = post.querySelector('.facebook-post-text');
         if (textEl) {
+          textEl.dataset.refPostId = postId;
           const originalLink = it.link || '#';
           setGlitchLink(textEl, originalLink);
           textEl.dataset.originalLink = originalLink;
