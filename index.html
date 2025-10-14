@@ -355,6 +355,7 @@
    <button id="sceneSelectBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">Scene Select</button>
    <button id="testAudioBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">TEST Audio</button>
    <button id="playIntroVideoBtn" style="font-size:12px; padding:10px 20px; opacity:0.7; background:#9b59b6;">🎬 Play Intro</button>
+   <button id="playIntroVideoBtn2" style="font-size:12px; padding:10px 20px; opacity:0.7; background:#8e44ad;">🎬 Play Intro II</button>
   </div>
   <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap; justify-content:center; max-width:550px;">
    <button id="sequenceBuilderBtn" style="font-size:11px; padding:8px 16px; opacity:0.7; background:#ff6b6b;">🎬 Sequence Builder</button>
@@ -892,204 +893,346 @@
    }
   });
 
-  // Play Intro Video button with glitch effects
-  document.getElementById('playIntroVideoBtn').addEventListener('click', () => {
-   console.log('🎬 Playing intro.mp4 with effects');
-   
-   const overlay = document.getElementById('videoPlayerOverlay');
-   const video = document.getElementById('introVideo');
-   const canvas = document.getElementById('videoCanvas');
-   const ctx = canvas.getContext('2d');
-   const closeBtn = document.getElementById('videoCloseBtn');
-   
-   let isPlaying = false;
-   let animationId = null;
-   let audioContext = null;
-   let sourceNode = null;
-   let gainNode = null;
-   let filterNode = null;
-   let distortionNode = null;
-   
-   function makeDistortionCurve(amount) {
-    const samples = 44100;
-    const curve = new Float32Array(samples);
-    const deg = Math.PI / 180;
-    for (let i = 0; i < samples; i++) {
-     const x = (i * 2) / samples - 1;
-     curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
-    }
-    return curve;
+
+  // Glitch video playback controls (intro & intro2)
+  const videoOverlay = document.getElementById('videoPlayerOverlay');
+  const videoElement = document.getElementById('introVideo');
+  const videoCanvas = document.getElementById('videoCanvas');
+  const videoCtx = videoCanvas.getContext('2d');
+  const videoCloseBtn = document.getElementById('videoCloseBtn');
+
+  const VIDEO_CROP_BOTTOM = 150;
+
+  let isVideoPlaying = false;
+  let videoAnimationId = null;
+  let audioContext = null;
+  let sourceNode = null;
+  let gainNode = null;
+  let filterNode = null;
+  let distortionNode = null;
+  let currentSourceHeight = 0;
+
+  function makeDistortionCurve(amount) {
+   const samples = 44100;
+   const curve = new Float32Array(samples);
+   const deg = Math.PI / 180;
+   for (let i = 0; i < samples; i++) {
+    const x = (i * 2) / samples - 1;
+    curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
    }
-   
-   function applyRandomAudioEffects() {
-    if (!isPlaying) return;
-    const interval = 100 + Math.random() * 400;
-    setTimeout(() => {
-     if (!isPlaying) return;
-     const now = audioContext.currentTime;
-     
-     if (Math.random() < 0.3) {
-      const muffleFreq = 300 + Math.random() * 1500;
-      filterNode.frequency.setValueAtTime(muffleFreq, now);
-      filterNode.frequency.linearRampToValueAtTime(22000, now + 0.2);
+   return curve;
+  }
+
+  function applyRandomAudioEffects() {
+   if (!isVideoPlaying || !audioContext) return;
+   const interval = 100 + Math.random() * 400;
+   setTimeout(() => {
+    if (!isVideoPlaying || !audioContext) return;
+    const now = audioContext.currentTime;
+
+    if (filterNode && Math.random() < 0.3) {
+     const muffleFreq = 300 + Math.random() * 1500;
+     filterNode.frequency.setValueAtTime(muffleFreq, now);
+     filterNode.frequency.linearRampToValueAtTime(22000, now + 0.2);
+    }
+
+    if (distortionNode && Math.random() < 0.25) {
+     distortionNode.curve = makeDistortionCurve(60 + Math.random() * 120);
+     setTimeout(() => {
+      if (distortionNode) {
+       distortionNode.curve = makeDistortionCurve(12);
+      }
+     }, 50 + Math.random() * 120);
+    }
+
+    if (gainNode && Math.random() < 0.2) {
+     const glitchVolume = 0.2 + Math.random() * 0.6;
+     gainNode.gain.setValueAtTime(glitchVolume, now);
+     gainNode.gain.linearRampToValueAtTime(0.7, now + 0.1);
+    }
+
+    applyRandomAudioEffects();
+   }, interval);
+  }
+
+  function applyGlitchEffect() {
+   const imageData = videoCtx.getImageData(0, 0, videoCanvas.width, videoCanvas.height);
+   const data = imageData.data;
+   const width = videoCanvas.width;
+   const height = videoCanvas.height;
+
+   const glitchLines = 6 + Math.floor(Math.random() * 12);
+
+   for (let i = 0; i < glitchLines; i++) {
+    const startY = Math.floor(Math.random() * height);
+    const lineHeight = 1 + Math.floor(Math.random() * 6);
+    const shift = (Math.random() - 0.5) * 50;
+
+    for (let y = startY; y < startY + lineHeight && y < height; y++) {
+     const rowStart = y * width * 4;
+     for (let x = width - 1; x >= 0; x--) {
+      const src = rowStart + ((x + shift + width) % width) * 4;
+      const dest = rowStart + x * 4;
+      data[dest] = data[src];
+      data[dest + 1] = data[src + 1];
+      data[dest + 2] = data[src + 2];
      }
-     
-     if (Math.random() < 0.2) {
-      distortionNode.curve = makeDistortionCurve(50 + Math.random() * 100);
-      setTimeout(() => { distortionNode.curve = makeDistortionCurve(10); }, 50 + Math.random() * 100);
-     }
-     
-     if (Math.random() < 0.15) {
-      gainNode.gain.setValueAtTime(0.3, now);
-      gainNode.gain.linearRampToValueAtTime(0.7, now + 0.15);
-     }
-     
-     applyRandomAudioEffects();
-    }, interval);
-   }
-   
-   function applyGlitchEffect() {
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const numGlitches = 3 + Math.floor(Math.random() * 5);
-    
-    for (let i = 0; i < numGlitches; i++) {
-     const y = Math.floor(Math.random() * canvas.height);
-     const height = 5 + Math.floor(Math.random() * 30);
-     const offset = -20 + Math.floor(Math.random() * 40);
-     const sliceData = ctx.getImageData(0, y, canvas.width, height);
-     ctx.putImageData(sliceData, offset, y);
-    }
-    
-    const data = imageData.data;
-    for (let i = 0; i < data.length; i += 4 * Math.floor(Math.random() * 1000)) {
-     if (Math.random() < 0.5) {
-      data[i] = Math.random() * 255;
-      data[i + 1] = Math.random() * 255;
-      data[i + 2] = Math.random() * 255;
-     }
-    }
-    ctx.putImageData(imageData, 0, 0);
-   }
-   
-   function applyDistortionEffect() {
-    const blockSize = 50 + Math.floor(Math.random() * 100);
-    const numBlocks = 5 + Math.floor(Math.random() * 10);
-    
-    for (let i = 0; i < numBlocks; i++) {
-     const srcX = Math.floor(Math.random() * (canvas.width - blockSize));
-     const srcY = Math.floor(Math.random() * (canvas.height - blockSize));
-     const destX = Math.floor(Math.random() * (canvas.width - blockSize));
-     const destY = Math.floor(Math.random() * (canvas.height - blockSize));
-     const blockData = ctx.getImageData(srcX, srcY, blockSize, blockSize);
-     ctx.putImageData(blockData, destX, destY);
     }
    }
-   
-   function applyRGBShift() {
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const shiftAmount = 2 + Math.floor(Math.random() * 8);
-    const shiftedR = ctx.getImageData(shiftAmount, 0, canvas.width - shiftAmount, canvas.height);
-    const shiftedB = ctx.getImageData(-shiftAmount, 0, canvas.width + shiftAmount, canvas.height);
-    const data = imageData.data;
-    
-    for (let i = 0; i < data.length; i += 4) {
-     const pixelIndex = i / 4;
-     const x = pixelIndex % canvas.width;
-     if (x < shiftAmount || x >= canvas.width - shiftAmount) continue;
-     data[i] = shiftedR.data[i];
-     data[i + 2] = shiftedB.data[i + 2];
-    }
-    ctx.putImageData(imageData, 0, 0);
+
+   videoCtx.putImageData(imageData, 0, 0);
+  }
+
+  function applyDistortionEffect() {
+   const rawBlockSize = 20 + Math.floor(Math.random() * 40);
+   const blockWidth = Math.min(rawBlockSize, videoCanvas.width);
+   const blockHeight = Math.min(rawBlockSize, videoCanvas.height);
+   if (blockWidth <= 1 || blockHeight <= 1) return;
+
+   const numBlocks = 6 + Math.floor(Math.random() * 24);
+   const maxX = Math.max(1, videoCanvas.width - blockWidth);
+   const maxY = Math.max(1, videoCanvas.height - blockHeight);
+
+   for (let i = 0; i < numBlocks; i++) {
+    const srcX = Math.floor(Math.random() * (maxX + 1));
+    const srcY = Math.floor(Math.random() * (maxY + 1));
+    const destX = Math.floor(Math.random() * (maxX + 1));
+    const destY = Math.floor(Math.random() * (maxY + 1));
+    const blockData = videoCtx.getImageData(srcX, srcY, blockWidth, blockHeight);
+    videoCtx.putImageData(blockData, destX, destY);
    }
-   
-   function renderWithEffects() {
-    if (!isPlaying) return;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    if (Math.random() < 0.15) applyGlitchEffect();
-    if (Math.random() < 0.08) applyDistortionEffect();
-    if (Math.random() < 0.1) applyRGBShift();
-    
-    animationId = requestAnimationFrame(renderWithEffects);
-   }
-   
-   function closeVideo() {
-    isPlaying = false;
-    if (animationId) {
-     cancelAnimationFrame(animationId);
-     animationId = null;
-    }
-    video.pause();
-    video.currentTime = 0;
-    overlay.style.display = 'none';
-    console.log('🛑 Video player closed');
-   }
-   
-   async function playVideo() {
-    try {
-     overlay.style.display = 'flex';
-     
-     if (!audioContext) {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-     }
-     
-     video.src = './intro.mp4';
-     video.load();
-     
-     await new Promise((resolve, reject) => {
-      video.onloadedmetadata = resolve;
-      video.onerror = reject;
-     });
-     
-     canvas.width = video.videoWidth;
-     canvas.height = video.videoHeight;
-     
-     if (!sourceNode) {
-      sourceNode = audioContext.createMediaElementSource(video);
-     }
-     
-     gainNode = audioContext.createGain();
-     gainNode.gain.value = 0.7;
-     
-     filterNode = audioContext.createBiquadFilter();
-     filterNode.type = 'lowpass';
-     filterNode.frequency.value = 22000;
-     filterNode.Q.value = 1;
-     
-     distortionNode = audioContext.createWaveShaper();
-     distortionNode.curve = makeDistortionCurve(10);
-     distortionNode.oversample = '4x';
-     
-     sourceNode.connect(filterNode);
-     filterNode.connect(distortionNode);
-     distortionNode.connect(gainNode);
-     gainNode.connect(audioContext.destination);
-     
-     await video.play();
-     isPlaying = true;
-     
-     applyRandomAudioEffects();
-     renderWithEffects();
-     
-     console.log('🎬 Playing intro video with effects');
-     toast('Playing intro.mp4 with glitch effects');
-     
-    } catch (error) {
-     console.error('Error playing video:', error);
-     toast('Failed to load intro.mp4');
-     closeVideo();
+  }
+
+  function applyRGBShift() {
+   const imageData = videoCtx.getImageData(0, 0, videoCanvas.width, videoCanvas.height);
+   const data = imageData.data;
+   const width = videoCanvas.width;
+   const height = videoCanvas.height;
+   const shiftAmount = Math.min(width / 4, 2 + Math.floor(Math.random() * 8));
+   if (shiftAmount < 1) return;
+
+   const original = new Uint8ClampedArray(data);
+   const rowStride = width * 4;
+   const offset = shiftAmount * 4;
+
+   for (let y = 0; y < height; y++) {
+    const rowStart = y * rowStride;
+    for (let x = shiftAmount; x < width - shiftAmount; x++) {
+     const idx = rowStart + x * 4;
+     const srcR = idx - offset;
+     const srcB = idx + offset;
+     data[idx] = original[srcR];
+     data[idx + 1] = original[idx + 1];
+     data[idx + 2] = original[srcB + 2];
     }
    }
-   
-   closeBtn.onclick = closeVideo;
-   video.onended = closeVideo;
-   
-   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isPlaying) closeVideo();
+
+   videoCtx.putImageData(imageData, 0, 0);
+  }
+
+  function applyVerticalEdgeDistortions() {
+   if (videoCanvas.height < 2) return;
+   const bottomRow = videoCtx.getImageData(0, videoCanvas.height - 1, videoCanvas.width, 1).data;
+   const streakCount = 8 + Math.floor(Math.random() * 14);
+
+   videoCtx.save();
+   videoCtx.globalCompositeOperation = 'lighter';
+
+   for (let i = 0; i < streakCount; i++) {
+    const x = Math.floor(Math.random() * videoCanvas.width);
+    const idx = x * 4;
+    const r = bottomRow[idx];
+    const g = bottomRow[idx + 1];
+    const b = bottomRow[idx + 2];
+    const alpha = 0.25 + Math.random() * 0.45;
+    const streakHeight = Math.floor(videoCanvas.height * (0.3 + Math.random() * 0.7));
+    const streakWidth = 1 + Math.floor(Math.random() * 4);
+
+    const gradient = videoCtx.createLinearGradient(x, videoCanvas.height - streakHeight, x, videoCanvas.height);
+    gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
+    gradient.addColorStop(0.4, `rgba(${r}, ${g}, ${b}, ${alpha * 0.5})`);
+    gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${alpha})`);
+
+    videoCtx.fillStyle = gradient;
+    videoCtx.fillRect(x, videoCanvas.height - streakHeight, streakWidth, streakHeight);
+   }
+
+   videoCtx.restore();
+  }
+
+  function applyDigitalStatic() {
+   videoCtx.save();
+   videoCtx.globalCompositeOperation = 'screen';
+   videoCtx.globalAlpha = 0.08 + Math.random() * 0.12;
+
+   const staticLines = 10 + Math.floor(Math.random() * 20);
+   for (let i = 0; i < staticLines; i++) {
+    const y = Math.floor(Math.random() * videoCanvas.height);
+    const height = 1 + Math.floor(Math.random() * 3);
+    const hue = Math.random() < 0.5 ? 180 : 320;
+    videoCtx.fillStyle = `hsla(${hue}, 80%, ${60 + Math.random() * 20}%, 1)`;
+    videoCtx.fillRect(0, y, videoCanvas.width, height);
+   }
+
+   const speckles = 40 + Math.floor(Math.random() * 60);
+   for (let i = 0; i < speckles; i++) {
+    const x = Math.floor(Math.random() * videoCanvas.width);
+    const y = Math.floor(Math.random() * videoCanvas.height);
+    const size = Math.random() < 0.7 ? 1 : 2;
+    videoCtx.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,0.6)' : 'rgba(0,255,255,0.5)';
+    videoCtx.fillRect(x, y, size, size);
+   }
+
+   videoCtx.restore();
+  }
+
+  function renderWithEffects() {
+   if (!isVideoPlaying) return;
+
+   videoCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
+   videoCtx.drawImage(
+    videoElement,
+    0,
+    0,
+    videoElement.videoWidth,
+    currentSourceHeight,
+    0,
+    0,
+    videoCanvas.width,
+    videoCanvas.height
+   );
+
+   if (Math.random() < 0.45) applyVerticalEdgeDistortions();
+   if (Math.random() < 0.35) applyDigitalStatic();
+   if (Math.random() < 0.2) applyGlitchEffect();
+   if (Math.random() < 0.15) applyDistortionEffect();
+   if (Math.random() < 0.18) applyRGBShift();
+
+   videoAnimationId = requestAnimationFrame(renderWithEffects);
+  }
+
+  function closeVideo() {
+   isVideoPlaying = false;
+   if (videoAnimationId) {
+    cancelAnimationFrame(videoAnimationId);
+    videoAnimationId = null;
+   }
+
+   if (gainNode) {
+    gainNode.disconnect();
+    gainNode = null;
+   }
+   if (filterNode) {
+    filterNode.disconnect();
+    filterNode = null;
+   }
+   if (distortionNode) {
+    distortionNode.disconnect();
+    distortionNode = null;
+   }
+
+   videoElement.pause();
+   videoElement.currentTime = 0;
+   videoOverlay.style.display = 'none';
+
+   console.log('🛑 Video player closed');
+  }
+
+  async function playVideoWithEffects(videoSrc, videoLabel) {
+   try {
+    console.log(`🎬 Playing ${videoLabel} with effects`);
+    videoOverlay.style.display = 'flex';
+
+    if (!audioContext) {
+     audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioContext.state === 'suspended') {
+     await audioContext.resume();
+    }
+
+    videoElement.pause();
+    videoElement.currentTime = 0;
+    videoElement.src = videoSrc;
+    videoElement.load();
+
+    await new Promise((resolve, reject) => {
+     const cleanup = () => {
+      videoElement.onloadedmetadata = null;
+      videoElement.onerror = null;
+     };
+
+     videoElement.onloadedmetadata = () => {
+      cleanup();
+      resolve();
+     };
+
+     videoElement.onerror = (err) => {
+      cleanup();
+      reject(err);
+     };
+    });
+
+    currentSourceHeight = Math.max(1, videoElement.videoHeight - VIDEO_CROP_BOTTOM);
+    videoCanvas.width = videoElement.videoWidth;
+    videoCanvas.height = currentSourceHeight;
+
+    if (!sourceNode) {
+     sourceNode = audioContext.createMediaElementSource(videoElement);
+    } else {
+     sourceNode.disconnect();
+    }
+
+    gainNode = audioContext.createGain();
+    gainNode.gain.value = 0.7;
+
+    filterNode = audioContext.createBiquadFilter();
+    filterNode.type = 'lowpass';
+    filterNode.frequency.value = 22000;
+    filterNode.Q.value = 1;
+
+    distortionNode = audioContext.createWaveShaper();
+    distortionNode.curve = makeDistortionCurve(12);
+    distortionNode.oversample = '4x';
+
+    sourceNode.connect(filterNode);
+    filterNode.connect(distortionNode);
+    distortionNode.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    await videoElement.play();
+    isVideoPlaying = true;
+
+    applyRandomAudioEffects();
+    renderWithEffects();
+
+    console.log(`🎬 Playing ${videoLabel} with glitch effects`);
+    toast(`Playing ${videoLabel} with glitch effects`);
+
+   } catch (error) {
+    console.error(`Error playing ${videoLabel}:`, error);
+    toast(`Failed to load ${videoLabel}`);
+    closeVideo();
+   }
+  }
+
+  function setupGlitchVideoButton(buttonId, videoSrc, videoLabel) {
+   const button = document.getElementById(buttonId);
+   if (!button) return;
+   button.addEventListener('click', () => {
+    playVideoWithEffects(videoSrc, videoLabel);
    });
-   
-   playVideo();
+  }
+
+  videoCloseBtn.addEventListener('click', closeVideo);
+  videoElement.addEventListener('ended', closeVideo);
+  document.addEventListener('keydown', (e) => {
+   if (e.key === 'Escape' && isVideoPlaying) {
+    closeVideo();
+   }
   });
+
+  setupGlitchVideoButton('playIntroVideoBtn', './intro.mp4', 'intro.mp4');
+  setupGlitchVideoButton('playIntroVideoBtn2', './intro2.mp4', 'intro2.mp4');
 
   // Template vs Componentized toggle
   document.querySelectorAll('.mode-toggle').forEach(btn => {
