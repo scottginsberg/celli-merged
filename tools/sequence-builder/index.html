@@ -44,6 +44,8 @@
       gap: 0;
       position: relative;
       overflow: hidden;
+      --builder-header-height: 60px;
+      --builder-bottom-height: 180px;
     }
 
     /* Resizer Handles */
@@ -55,6 +57,9 @@
       z-index: 1000;
       cursor: col-resize;
       pointer-events: auto;
+      top: var(--builder-header-height);
+      bottom: var(--builder-bottom-height);
+      box-shadow: 0 0 12px rgba(52, 152, 219, 0.45);
     }
 
     .resize-handle:hover,
@@ -67,28 +72,11 @@
       opacity: 0.6 !important;
     }
 
-    .resize-handle-1 {
-      left: 280px;
-      top: 60px;
-      bottom: 180px;
+    .resize-handle-1,
+    .resize-handle-2,
+    .resize-handle-3 {
       width: 4px;
       margin-left: -2px;
-    }
-
-    .resize-handle-2 {
-      right: 760px;
-      top: 60px;
-      bottom: 180px;
-      width: 4px;
-      margin-right: -2px;
-    }
-
-    .resize-handle-3 {
-      right: 400px;
-      top: 60px;
-      bottom: 180px;
-      width: 4px;
-      margin-right: -2px;
     }
 
     .resize-handle-vertical {
@@ -96,10 +84,12 @@
       right: 0;
       height: 4px;
       cursor: row-resize;
+      background: linear-gradient(90deg, rgba(52, 152, 219, 0.15) 0%, rgba(52, 152, 219, 0.7) 50%, rgba(52, 152, 219, 0.15) 100%);
+      box-shadow: 0 0 14px rgba(52, 152, 219, 0.35);
     }
 
     .resize-handle-bottom {
-      bottom: 180px;
+      bottom: var(--builder-bottom-height);
       margin-bottom: -2px;
     }
 
@@ -1100,6 +1090,24 @@
       justify-content: space-between;
     }
 
+    .dialogue-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .dialogue-tag {
+      background: rgba(52, 152, 219, 0.18);
+      border: 1px solid rgba(52, 152, 219, 0.35);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 9px;
+      letter-spacing: 0.3px;
+      color: #d0e8ff;
+      text-transform: uppercase;
+    }
+
     .display-target {
       padding: 2px 6px;
       background: #27ae60;
@@ -1299,6 +1307,7 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      position: relative;
     }
 
     .prop-preview-canvas {
@@ -1309,6 +1318,33 @@
       border: 1px solid #3e3e3e;
       box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
       cursor: grab;
+    }
+
+    .prop-preview-resizer {
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(52, 152, 219, 0.25);
+      border: 1px solid rgba(52, 152, 219, 0.45);
+      cursor: ns-resize;
+      transition: background 0.2s;
+      position: relative;
+    }
+
+    .prop-preview-resizer::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 30px;
+      height: 2px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.35);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 8px rgba(52, 152, 219, 0.4);
+    }
+
+    .prop-preview-resizer:hover {
+      background: rgba(52, 152, 219, 0.45);
     }
 
     .prop-preview-meta {
@@ -1622,8 +1658,10 @@
             <span>Scene Viewport</span>
           </div>
           <div class="viewport-controls">
-            <button class="viewport-btn active" id="viewRenderBtn">Render</button>
-            <button class="viewport-btn" id="viewWireframeBtn">Wireframe</button>
+            <button class="viewport-btn active" id="viewRenderBtn" data-mode="render">Render</button>
+            <button class="viewport-btn" id="viewWireframeBtn" data-mode="wireframe">Wireframe</button>
+            <button class="viewport-btn" id="viewUnlitBtn" data-mode="unlit">Unlit</button>
+            <button class="viewport-btn" id="viewFlatBtn" data-mode="flat">Flat Light</button>
             <button class="viewport-btn" id="viewResetBtn">Reset</button>
             <select class="camera-select" id="cameraSelect">
               <option value="viewport">Viewport Camera</option>
@@ -1686,6 +1724,7 @@
           <div class="inspector-section-title">🎭 Prop Preview</div>
           <div class="prop-preview-wrapper">
             <canvas id="propPreviewCanvas" class="prop-preview-canvas"></canvas>
+            <div class="prop-preview-resizer" id="propPreviewResizer"></div>
             <div class="prop-preview-meta">
               <strong id="propPreviewTitle">Select a prop to preview</strong>
               <div class="prop-preview-description" id="propPreviewDescription">
@@ -1771,6 +1810,15 @@
     }
 
     console.log('🎬 Unified Sequence Builder Starting...');
+
+    let landingPageLibrary = [];
+    try {
+      const landingModule = await import('../../src/scripts/scenes/components/ReferrerLandingPages.js');
+      landingPageLibrary = landingModule?.REFERRER_LANDING_PAGES || [];
+      console.log(`✅ Loaded ${landingPageLibrary.length} landing page component(s)`);
+    } catch (error) {
+      console.warn('⚠️ Could not load referrer landing pages library:', error);
+    }
 
     // Scene Manager Data - Hierarchical scene entities
     const sceneData = {
@@ -1911,6 +1959,14 @@
           ]
         }
       ],
+      "Landing Pages": landingPageLibrary.map(page => ({
+        name: page.name,
+        icon: page.icon || "📰",
+        previewId: page.previewId || null,
+        description: page.description,
+        tags: page.tags || [],
+        components: page.components || []
+      })),
       "Audio": [
         {
           name: "bgMusic",
@@ -1942,16 +1998,32 @@
         this.controls = null;
         this.animationId = null;
         this.stats = { fps: 0, objects: 0, tris: 0 };
+        this.nodeMarkers = new Map();
+        this.dynamicHelpers = [];
+        this.previewGridIndex = 0;
+        this.originalMaterials = new Map();
+        this.unlitMaterialCache = new Map();
+        this.flatMaterialCache = new Map();
+        this.lightingMode = 'default';
+        this.flatLightingRig = null;
       }
 
       init() {
         // Try to get live scene from parent window
         const liveScene = this.getLiveScene();
-        
+
         this.sceneCameras = [];
         this.currentCameraIndex = 0;
         this.selectedObject = null;
-        
+        this.nodeMarkers.clear();
+        this.dynamicHelpers = [];
+        this.previewGridIndex = 0;
+        this.originalMaterials.clear();
+        this.unlitMaterialCache.clear();
+        this.flatMaterialCache.clear();
+        this.lightingMode = 'default';
+        this.flatLightingRig = null;
+
         if (liveScene) {
           console.log('🎥 Using live scene from parent window');
           this.scene = liveScene.scene;
@@ -2162,7 +2234,16 @@
         if (this.controls && this.controls.enabled) {
           this.controls.update();
         }
-        
+
+        if (this.dynamicHelpers.length) {
+          this.dynamicHelpers = this.dynamicHelpers.filter(entry => entry.helper && entry.target);
+          this.dynamicHelpers.forEach(entry => {
+            if (entry.helper && entry.target) {
+              entry.helper.update();
+            }
+          });
+        }
+
         // Render with viewport camera and renderer
         if (this.viewportRenderer && this.viewportCamera) {
           this.viewportRenderer.render(this.scene, this.viewportCamera);
@@ -2249,6 +2330,17 @@
         this.animationId = null;
         this.library = null;
         this.lights = [];
+        this.canvasHeight = (canvas ? canvas.clientHeight : 220) || 220;
+        this.minHeight = 160;
+        this.maxHeight = 420;
+        this.nodeMarkers = new Map();
+        this.dynamicHelpers = [];
+        this.previewGridIndex = 0;
+        this.originalMaterials = new Map();
+        this.unlitMaterialCache = new Map();
+        this.flatMaterialCache = new Map();
+        this.lightingMode = 'default';
+        this.flatLightingRig = null;
       }
 
       async init() {
@@ -2271,7 +2363,10 @@
         }
 
         const width = this.canvas.clientWidth || 320;
-        const height = this.canvas.clientHeight || 200;
+        const height = this.canvas.clientHeight || this.canvasHeight || 200;
+        this.canvasHeight = height;
+
+        this.canvas.style.height = `${this.canvasHeight}px`;
 
         this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
         this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -2382,10 +2477,303 @@
       handleResize() {
         if (!this.renderer || !this.camera || !this.canvas) return;
         const width = this.canvas.clientWidth || 320;
-        const height = this.canvas.clientHeight || 200;
+        const height = this.canvas.clientHeight || this.canvasHeight || 200;
+        this.canvasHeight = height;
         this.renderer.setSize(width, height);
         this.camera.aspect = width / Math.max(1, height);
         this.camera.updateProjectionMatrix();
+      }
+
+      setHeight(height) {
+        if (!this.canvas) return;
+        const clamped = Math.max(this.minHeight, Math.min(this.maxHeight, height));
+        this.canvasHeight = clamped;
+        this.canvas.style.height = `${clamped}px`;
+        if (this.renderer) {
+          const width = this.canvas.clientWidth || 320;
+          this.renderer.setSize(width, clamped);
+        }
+        this.handleResize();
+      }
+
+      getHeight() {
+        return this.canvasHeight;
+      }
+
+      setLightingMode(mode = 'default') {
+        if (!this.scene) return;
+        if (mode === this.lightingMode) return;
+
+        this._restoreOriginalMaterials();
+
+        switch (mode) {
+          case 'unlit':
+            this._applyUnlitMaterials();
+            this._removeFlatLighting();
+            break;
+          case 'flat':
+            this._applyFlatMaterials();
+            this._ensureFlatLighting();
+            break;
+          default:
+            this._removeFlatLighting();
+            break;
+        }
+
+        this.lightingMode = mode;
+      }
+
+      addNodePreview(node) {
+        if (!node || !this.scene) return;
+        if (this.nodeMarkers.has(node.id)) return;
+
+        const color = this._getNodeColor(node.type);
+        let marker = null;
+
+        if (node.type === 'object' && node.data?.entityName) {
+          marker = this._highlightSceneObject(node.data.entityName, node.id, color);
+        }
+
+        if (!marker) {
+          marker = this._createPreviewMesh(node, color);
+        }
+
+        if (marker) {
+          this.nodeMarkers.set(node.id, marker);
+        }
+      }
+
+      removeNodePreview(nodeId) {
+        const marker = this.nodeMarkers.get(nodeId);
+        if (!marker) return;
+
+        if (marker.type === 'mesh' && marker.mesh) {
+          this.scene.remove(marker.mesh);
+          marker.mesh.geometry?.dispose?.();
+          marker.mesh.material?.dispose?.();
+        }
+
+        if (marker.type === 'highlight') {
+          if (marker.helper) {
+            this.scene.remove(marker.helper);
+            this.dynamicHelpers = this.dynamicHelpers.filter(entry => entry.helper !== marker.helper);
+          }
+
+          if (marker.target && marker.emissiveBackup) {
+            const applyRestore = (mat, backup) => {
+              if (mat && mat.emissive && backup !== undefined) {
+                mat.emissive.setHex(backup);
+              }
+            };
+
+            if (Array.isArray(marker.target.material)) {
+              marker.target.material.forEach((mat, index) => applyRestore(mat, marker.emissiveBackup[index]));
+            } else {
+              applyRestore(marker.target.material, marker.emissiveBackup[0]);
+            }
+          }
+        }
+
+        this.nodeMarkers.delete(nodeId);
+      }
+
+      clearNodePreviews() {
+        Array.from(this.nodeMarkers.keys()).forEach(id => this.removeNodePreview(id));
+        this.previewGridIndex = 0;
+      }
+
+      _getNodeColor(type) {
+        const colors = {
+          object: 0x3498db,
+          parameter: 0x2ecc71,
+          animation: 0xff6b6b,
+          transition: 0xf39c12,
+          event: 0xf1c40f,
+          dialogue: 0x9b59b6,
+          snapshot: 0x95a5a6
+        };
+        return colors[type] || 0xffffff;
+      }
+
+      _createPreviewMesh(node, color) {
+        const geometry = new THREE.BoxGeometry(0.35, 0.35, 0.35);
+        const emissiveColor = new THREE.Color(color).multiplyScalar(0.35);
+        const material = new THREE.MeshStandardMaterial({
+          color,
+          emissive: emissiveColor,
+          transparent: true,
+          opacity: 0.85
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+        const row = Math.floor(this.previewGridIndex / 5);
+        const col = this.previewGridIndex % 5;
+        mesh.position.set(-2 + col * 0.9, 0.25 + row * 0.55, -1.8 - row * 0.8);
+        mesh.userData.nodeId = node.id;
+        this.previewGridIndex += 1;
+
+        this.scene.add(mesh);
+        return { type: 'mesh', mesh };
+      }
+
+      _highlightSceneObject(name, nodeId, color) {
+        if (!name) return null;
+        let target = null;
+        this.scene.traverse(obj => {
+          if (target) return;
+          if (obj.name && obj.name.toLowerCase() === name.toLowerCase()) {
+            target = obj;
+          }
+        });
+
+        if (!target) return null;
+
+        const helper = new THREE.BoxHelper(target, color);
+        helper.userData.nodeId = nodeId;
+        this.scene.add(helper);
+        this.dynamicHelpers.push({ helper, target });
+
+        const emissiveBackup = [];
+        const applyHighlight = (material) => {
+          if (material && material.emissive) {
+            emissiveBackup.push(material.emissive.getHex());
+            material.emissive.setHex(color);
+          }
+        };
+
+        if (Array.isArray(target.material)) {
+          target.material.forEach(applyHighlight);
+        } else {
+          applyHighlight(target.material);
+        }
+
+        return { type: 'highlight', helper, target, emissiveBackup };
+      }
+
+      _cacheOriginalMaterial(mesh) {
+        if (this.originalMaterials.has(mesh.uuid)) return;
+        const material = mesh.material;
+        if (Array.isArray(material)) {
+          this.originalMaterials.set(mesh.uuid, material.map(mat => mat));
+        } else {
+          this.originalMaterials.set(mesh.uuid, material);
+        }
+      }
+
+      _restoreOriginalMaterials() {
+        if (!this.scene) return;
+        this.scene.traverse(obj => {
+          if (!obj.isMesh) return;
+          if (!this.originalMaterials.has(obj.uuid)) return;
+
+          const original = this.originalMaterials.get(obj.uuid);
+          if (Array.isArray(original)) {
+            obj.material = original.map(mat => mat);
+          } else {
+            obj.material = original;
+          }
+
+          const resetFlat = (material) => {
+            if (material && material.flatShading !== undefined) {
+              material.flatShading = false;
+              material.needsUpdate = true;
+            }
+          };
+
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach(resetFlat);
+          } else {
+            resetFlat(obj.material);
+          }
+        });
+      }
+
+      _applyUnlitMaterials() {
+        if (!this.scene) return;
+        this.scene.traverse(obj => {
+          if (!obj.isMesh) return;
+          this._cacheOriginalMaterial(obj);
+          const original = this.originalMaterials.get(obj.uuid);
+          if (!original) return;
+
+          if (Array.isArray(original)) {
+            const overrides = original.map(mat => this._createUnlitMaterial(mat));
+            this.unlitMaterialCache.set(obj.uuid, overrides);
+            obj.material = overrides;
+          } else {
+            let override = this.unlitMaterialCache.get(obj.uuid);
+            if (!override) {
+              override = this._createUnlitMaterial(original);
+              this.unlitMaterialCache.set(obj.uuid, override);
+            }
+            obj.material = override;
+          }
+        });
+      }
+
+      _applyFlatMaterials() {
+        if (!this.scene) return;
+        this.scene.traverse(obj => {
+          if (!obj.isMesh) return;
+          this._cacheOriginalMaterial(obj);
+          const original = this.originalMaterials.get(obj.uuid);
+          if (!original) return;
+
+          if (Array.isArray(original)) {
+            let overrides = this.flatMaterialCache.get(obj.uuid);
+            if (!overrides) {
+              overrides = original.map(mat => this._cloneFlatMaterial(mat));
+              this.flatMaterialCache.set(obj.uuid, overrides);
+            }
+            obj.material = overrides;
+          } else {
+            let override = this.flatMaterialCache.get(obj.uuid);
+            if (!override) {
+              override = this._cloneFlatMaterial(original);
+              this.flatMaterialCache.set(obj.uuid, override);
+            }
+            obj.material = override;
+          }
+        });
+      }
+
+      _createUnlitMaterial(material) {
+        if (!material) {
+          return new THREE.MeshBasicMaterial({ color: 0xffffff });
+        }
+
+        const color = material.color ? material.color.clone() : new THREE.Color(0xffffff);
+        return new THREE.MeshBasicMaterial({
+          color,
+          transparent: material.transparent === true,
+          opacity: material.opacity !== undefined ? material.opacity : 1,
+          wireframe: material.wireframe === true
+        });
+      }
+
+      _cloneFlatMaterial(material) {
+        if (!material) return new THREE.MeshStandardMaterial({ flatShading: true });
+        const clone = material.clone ? material.clone() : material;
+        if (clone && clone.flatShading !== undefined) {
+          clone.flatShading = true;
+          clone.needsUpdate = true;
+        }
+        return clone;
+      }
+
+      _ensureFlatLighting() {
+        if (!this.scene) return;
+        if (this.flatLightingRig) return;
+        this.flatLightingRig = new THREE.HemisphereLight(0xffffff, 0x111111, 0.85);
+        this.flatLightingRig.position.set(0, 6, 0);
+        this.scene.add(this.flatLightingRig);
+      }
+
+      _removeFlatLighting() {
+        if (this.flatLightingRig && this.scene) {
+          this.scene.remove(this.flatLightingRig);
+          this.flatLightingRig = null;
+        }
       }
 
       _focusOnProp(object) {
@@ -2443,6 +2831,30 @@
       }
     }
 
+    const sharedPreviewMethods = [
+      'setLightingMode',
+      'addNodePreview',
+      'removeNodePreview',
+      'clearNodePreviews',
+      '_getNodeColor',
+      '_createPreviewMesh',
+      '_highlightSceneObject',
+      '_cacheOriginalMaterial',
+      '_restoreOriginalMaterials',
+      '_applyUnlitMaterials',
+      '_applyFlatMaterials',
+      '_createUnlitMaterial',
+      '_cloneFlatMaterial',
+      '_ensureFlatLighting',
+      '_removeFlatLighting'
+    ];
+
+    sharedPreviewMethods.forEach((method) => {
+      if (!SceneViewportManager.prototype[method] && PropPreviewer.prototype[method]) {
+        SceneViewportManager.prototype[method] = PropPreviewer.prototype[method];
+      }
+    });
+
     // ===== RESIZABLE PANELS MANAGER =====
     class ResizableManager {
       constructor(container) {
@@ -2452,7 +2864,10 @@
         this.currentHandle = null;
         this.startX = 0;
         this.startY = 0;
-        this.startWidths = [];
+        this.startColumns = [];
+        this.startBottomHeight = 180;
+        this.startHeaderHeight = 60;
+        this.minColumnWidths = [220, 320, 280, 320];
       }
 
       init() {
@@ -2462,6 +2877,9 @@
 
         document.addEventListener('mousemove', (e) => this.resize(e));
         document.addEventListener('mouseup', () => this.stopResize());
+
+        this._syncHandlePositions();
+        window.addEventListener('resize', () => this._syncHandlePositions());
       }
 
       startResize(e, handle) {
@@ -2469,12 +2887,16 @@
         this.currentHandle = handle;
         this.startX = e.clientX;
         this.startY = e.clientY;
-        
-        const style = window.getComputedStyle(this.container);
-        const columns = style.gridTemplateColumns.split(' ');
-        this.startWidths = columns.map(c => parseFloat(c));
-        
         handle.classList.add('active');
+
+        this.startColumns = this._captureColumnWidths();
+        const { header, bottom } = this._captureRowHeights();
+        this.startHeaderHeight = header;
+        this.startBottomHeight = bottom;
+
+        // Convert grid to fixed pixels for smooth dragging
+        this._applyColumnWidths(this.startColumns);
+        this.container.style.gridTemplateRows = `${this.startHeaderHeight}px 1fr ${this.startBottomHeight}px`;
         e.preventDefault();
       }
 
@@ -2482,39 +2904,31 @@
         if (!this.isResizing) return;
 
         const handleNum = this.currentHandle.dataset.handle;
-        
+
         if (handleNum === 'bottom') {
           // Vertical resize
           const deltaY = e.clientY - this.startY;
-          const bottomHeight = this.startWidths[2] || 180;
-          const newHeight = Math.max(100, Math.min(400, bottomHeight - deltaY));
-          
-          this.container.style.gridTemplateRows = `60px 1fr ${newHeight}px`;
-          
-          // Update bottom handle position
-          const bottomHandle = document.querySelector('.resize-handle-bottom');
-          if (bottomHandle) {
-            bottomHandle.style.bottom = `${newHeight}px`;
-          }
+          const desiredHeight = this.startBottomHeight - deltaY;
+          const newHeight = Math.max(140, Math.min(420, desiredHeight));
+
+          this.container.style.gridTemplateRows = `${this.startHeaderHeight}px 1fr ${newHeight}px`;
+          this.container.style.setProperty('--builder-bottom-height', `${newHeight}px`);
+          this._syncHandlePositions();
         } else {
           // Horizontal resize
           const deltaX = e.clientX - this.startX;
           const handleIndex = parseInt(handleNum) - 1;
-          
-          const newWidths = [...this.startWidths];
-          newWidths[handleIndex] = Math.max(200, newWidths[handleIndex] + deltaX);
-          
-          this.container.style.gridTemplateColumns = newWidths.map(w => `${w}px`).join(' ');
-          
-          // Update handle positions
-          if (handleNum === '1') {
-            this.currentHandle.style.left = `${newWidths[0]}px`;
-          } else if (handleNum === '2') {
-            const rightPos = newWidths[2] + newWidths[3];
-            this.currentHandle.style.right = `${rightPos}px`;
-          } else if (handleNum === '3') {
-            this.currentHandle.style.right = `${newWidths[3]}px`;
-          }
+          const nextIndex = handleIndex + 1;
+
+          if (nextIndex >= this.startColumns.length) return;
+
+          const delta = this._computeColumnDelta(handleIndex, nextIndex, deltaX);
+          const newWidths = [...this.startColumns];
+          newWidths[handleIndex] = this.startColumns[handleIndex] + delta;
+          newWidths[nextIndex] = this.startColumns[nextIndex] - delta;
+
+          this._applyColumnWidths(newWidths);
+          this._syncHandlePositions();
         }
       }
 
@@ -2527,17 +2941,88 @@
         }
         this.currentHandle = null;
         
-        // Keep handles visible briefly after resize
-        setTimeout(() => {
-          // Handles will fade via CSS :hover
-        }, 500);
-        
         // Notify viewport to resize
         if (window.viewportManager) {
           setTimeout(() => window.viewportManager.handleResize(), 100);
         }
         if (window.propPreviewer) {
           setTimeout(() => window.propPreviewer.handleResize(), 150);
+        }
+
+        this._syncHandlePositions();
+      }
+
+      _computeColumnDelta(index, nextIndex, deltaX) {
+        const currentWidth = this.startColumns[index];
+        const nextWidth = this.startColumns[nextIndex];
+        let delta = deltaX;
+
+        const minCurrent = this.minColumnWidths[index] || 200;
+        const minNext = this.minColumnWidths[nextIndex] || 240;
+
+        if (currentWidth + delta < minCurrent) {
+          delta = minCurrent - currentWidth;
+        }
+        if (nextWidth - delta < minNext) {
+          delta = nextWidth - minNext;
+        }
+
+        return delta;
+      }
+
+      _captureColumnWidths() {
+        const left = this.container.querySelector('.panel-left');
+        const viewport = this.container.querySelector('.panel-viewport');
+        const center = this.container.querySelector('.panel-center');
+        const right = this.container.querySelector('.panel-right');
+        return [left, viewport, center, right]
+          .map(panel => (panel ? panel.offsetWidth : 0));
+      }
+
+      _captureRowHeights() {
+        const header = this.container.querySelector('.builder-header');
+        const bottom = this.container.querySelector('.panel-bottom');
+        return {
+          header: header ? header.offsetHeight : 60,
+          bottom: bottom ? bottom.offsetHeight : 180
+        };
+      }
+
+      _applyColumnWidths(widths) {
+        this.container.style.gridTemplateColumns = widths.map(w => `${Math.max(120, Math.round(w))}px`).join(' ');
+      }
+
+      _syncHandlePositions() {
+        const widths = this._captureColumnWidths();
+        if (widths.some(w => !w)) return;
+
+        const positions = [widths[0], widths[0] + widths[1], widths[0] + widths[1] + widths[2]];
+        const headerBottom = this._captureRowHeights();
+
+        this.container.style.setProperty('--builder-header-height', `${headerBottom.header}px`);
+        this.container.style.setProperty('--builder-bottom-height', `${headerBottom.bottom}px`);
+
+        const handles = {
+          first: this.container.querySelector('.resize-handle-1'),
+          second: this.container.querySelector('.resize-handle-2'),
+          third: this.container.querySelector('.resize-handle-3'),
+          bottom: this.container.querySelector('.resize-handle-bottom')
+        };
+
+        if (handles.first) {
+          handles.first.style.left = `${positions[0]}px`;
+          handles.first.style.right = '';
+        }
+        if (handles.second) {
+          handles.second.style.left = `${positions[1]}px`;
+          handles.second.style.right = '';
+        }
+        if (handles.third) {
+          handles.third.style.left = `${positions[2]}px`;
+          handles.third.style.right = '';
+        }
+        if (handles.bottom) {
+          handles.bottom.style.bottom = `${headerBottom.bottom}px`;
         }
       }
     }
@@ -2550,23 +3035,27 @@
       }
 
       createDialogue(data = {}) {
-        const dialogue = {
+        const baseDialogue = {
           id: Date.now(),
           speaker: data.speaker || 'Unknown',
           text: data.text || '',
           display: data.display || 'subtitle',
-          timestamp: data.timestamp || 0,
-          duration: data.duration || 3.0,
+          timestamp: data.timestamp ?? 0,
+          duration: data.duration ?? 3.0,
+          nodeType: data.nodeType || 'dialogue',
           ...data
         };
-        this.dialogues.push(dialogue);
-        return dialogue;
+
+        baseDialogue.tags = this._deriveDialogueTags(baseDialogue);
+        this.dialogues.push(baseDialogue);
+        return baseDialogue;
       }
 
       updateDialogue(id, updates) {
         const dialogue = this.dialogues.find(d => d.id === id);
         if (dialogue) {
           Object.assign(dialogue, updates);
+          dialogue.tags = this._deriveDialogueTags(dialogue);
         }
         return dialogue;
       }
@@ -2587,14 +3076,42 @@
 
       importDialogues(data) {
         if (data.dialogues) {
-          this.dialogues = data.dialogues;
+          this.dialogues = data.dialogues.map(dialogue => ({
+            ...dialogue,
+            tags: this._deriveDialogueTags(dialogue)
+          }));
         }
+      }
+
+      _deriveDialogueTags(dialogue) {
+        const tags = new Set();
+        const add = (value) => {
+          if (value === undefined || value === null) return;
+          const str = String(value)
+            .replace(/[_-]/g, ' ')
+            .replace(/([a-z])([A-Z])/g, '$1 $2')
+            .trim()
+            .toLowerCase();
+          if (str) tags.add(str);
+        };
+
+        add('dialogue');
+        add(dialogue.display || 'subtitle');
+        add(dialogue.nodeType || 'card');
+        if (dialogue.category) add(dialogue.category);
+        if (dialogue.entityName) add(dialogue.entityName);
+
+        if (Array.isArray(dialogue.tags)) {
+          dialogue.tags.forEach(add);
+        }
+
+        return Array.from(tags);
       }
     }
 
     // ===== NODE GRAPH MANAGER =====
     class NodeGraphManager {
-      constructor(canvasEl, svgEl, nodesContainerEl) {
+      constructor(canvasEl, svgEl, nodesContainerEl, options = {}) {
         this.canvas = canvasEl;
         this.svg = svgEl;
         this.nodesContainer = nodesContainerEl;
@@ -2606,7 +3123,8 @@
         this.dragState = null;
         this.connectionDrag = null;
         this.canvasOffset = { x: 0, y: 0 };
-        
+        this.options = options || {};
+
         this._setupCanvasInteraction();
       }
       
@@ -2680,6 +3198,13 @@
         this._expandCanvasIfNeeded(x + 250, y + 150);
         
         console.log(`✅ Node created and rendered: ${node.id}`);
+        if (this.options.onNodeCreated) {
+          try {
+            this.options.onNodeCreated(node);
+          } catch (err) {
+            console.warn('onNodeCreated callback failed', err);
+          }
+        }
         return node;
       }
       
@@ -3050,18 +3575,25 @@
       deleteNode(nodeId) {
         const index = this.nodes.findIndex(n => n.id === nodeId);
         if (index === -1) return;
-        
+
         this.nodes.splice(index, 1);
         this.connections = this.connections.filter(c => c.from !== nodeId && c.to !== nodeId);
-        
+
         const nodeEl = document.querySelector(`[data-node-id="${nodeId}"].graph-node`);
         if (nodeEl) nodeEl.remove();
-        
+
         this._updateConnections();
-        
+
         console.log('✅ Node deleted:', nodeId);
+        if (this.options.onNodeDeleted) {
+          try {
+            this.options.onNodeDeleted(nodeId);
+          } catch (err) {
+            console.warn('onNodeDeleted callback failed', err);
+          }
+        }
       }
-      
+
       deleteConnection(connectionId) {
         const index = this.connections.findIndex(c => c.id === connectionId);
         if (index === -1) return;
@@ -3077,6 +3609,13 @@
         this.connections = [];
         this.nodesContainer.innerHTML = '';
         this.svg.innerHTML = '';
+        if (this.options.onCleared) {
+          try {
+            this.options.onCleared();
+          } catch (err) {
+            console.warn('onCleared callback failed', err);
+          }
+        }
       }
     }
 
@@ -3116,6 +3655,10 @@
           propPreviewDescription: document.getElementById('propPreviewDescription'),
           propPreviewTags: document.getElementById('propPreviewTags')
         };
+
+        this.nodeTagIndex = new Map();
+        this.keyframeRegistry = new Map();
+        this.dialogueTagIndex = new Map();
       }
 
       async init(overlayMode = false) {
@@ -3159,13 +3702,19 @@
         window.propPreviewer = this.propPreviewer;
           console.log('✅ Prop preview initialized');
 
+        this._bindPropPreviewResizer();
+
           // Initialize node graph
           this.ui.loadingDetail.textContent = 'Initializing node graph...';
           console.log('Step 4: Node graph...');
           const nodeCanvas = document.getElementById('nodeCanvas');
           const connectionsSvg = document.getElementById('connectionsSvg');
           const nodesContainer = document.getElementById('nodesContainer');
-          this.nodeGraphManager = new NodeGraphManager(nodeCanvas, connectionsSvg, nodesContainer);
+          this.nodeGraphManager = new NodeGraphManager(nodeCanvas, connectionsSvg, nodesContainer, {
+            onNodeCreated: (node) => this._handleNodeCreated(node),
+            onNodeDeleted: (nodeId) => this._handleNodeDeleted(nodeId),
+            onCleared: () => this._handleGraphCleared()
+          });
           window.nodeGraphManager = this.nodeGraphManager;
           window.sequenceBuilder = sequenceBuilder;
           console.log('✅ Node graph initialized');
@@ -3398,16 +3947,29 @@
       
       _addObjectNode(entityName, category) {
         console.log(`Adding object node for: ${entityName} (${category})`);
-        // Create object node in dialogue workspace
-        this.dialogueManager.createDialogue({
+        const baseData = {
           speaker: entityName,
           text: `Object node for ${entityName}`,
           display: 'terminal',
-          timestamp: 0,
+          timestamp: this.nodeGraphManager ? this.nodeGraphManager.nodes.length * 0.5 : 0,
+          duration: 1.5,
           nodeType: 'object',
           entityName,
           category
+        };
+
+        if (this.nodeGraphManager) {
+          const x = 200 + Math.random() * 320;
+          const y = 160 + Math.random() * 260;
+          this.nodeGraphManager.createNode('object', x, y, baseData);
+        }
+
+        const categoryTag = this._formatTagValue ? this._formatTagValue(category) : category?.toLowerCase();
+        this.dialogueManager.createDialogue({
+          ...baseData,
+          tags: ['object', categoryTag, 'scene'].filter(Boolean)
         });
+
         this._renderDialogueCards();
       }
       
@@ -3417,6 +3979,8 @@
         
         console.log(`Ingesting all parameters for: ${entityName}`);
         
+        const categoryTag = this._formatTagValue ? this._formatTagValue(category) : category?.toLowerCase();
+
         // Add main entity components
         entity.components.forEach(comp => {
           this.dialogueManager.createDialogue({
@@ -3426,7 +3990,8 @@
             timestamp: 0,
             nodeType: 'parameter',
             path: comp.path,
-            paramType: comp.type
+            paramType: comp.type,
+            tags: ['parameter', categoryTag, comp.type].filter(Boolean)
           });
         });
         
@@ -3441,7 +4006,8 @@
                 timestamp: 0,
                 nodeType: 'parameter',
                 path: comp.path,
-                paramType: comp.type
+                paramType: comp.type,
+                tags: ['parameter', categoryTag, part.name, comp.type].filter(Boolean)
               });
             });
           });
@@ -3462,13 +4028,15 @@
         const xStart = 400;
         const yStart = 100;
         const spacing = 120;
-        
+
         part.components.forEach((comp, i) => {
           this.nodeGraphManager.createNode('parameter', xStart, yStart + i * spacing, {
             speaker: `${entityName}.${partName}.${comp.name}`,
             text: `${comp.path} (${comp.type})`,
             path: comp.path,
-            paramType: comp.type
+            paramType: comp.type,
+            duration: 0,
+            tags: ['parameter', this._formatTagValue ? this._formatTagValue(partName) : partName, comp.type].filter(Boolean)
           });
         });
       }
@@ -3486,7 +4054,13 @@
       }
 
       _renderDialogueCards() {
-        this.ui.dialogueCardsContainer.innerHTML = this.dialogueManager.dialogues.map(dialogue => `
+        this.ui.dialogueCardsContainer.innerHTML = this.dialogueManager.dialogues.map(dialogue => {
+          const tags = Array.isArray(dialogue.tags) ? dialogue.tags.filter(Boolean) : [];
+          const tagsHtml = tags.length
+            ? `<div class="dialogue-tags">${tags.map(tag => `<span class=\"dialogue-tag\">${tag}</span>`).join('')}</div>`
+            : '';
+
+          return `
           <div class="dialogue-card" data-id="${dialogue.id}">
             <div class="dialogue-header">
               <div class="dialogue-speaker">${dialogue.speaker}</div>
@@ -3500,8 +4074,12 @@
               <span>@${dialogue.timestamp.toFixed(1)}s</span>
               <span class="display-target">${dialogue.display}</span>
             </div>
+            ${tagsHtml}
           </div>
-        `).join('');
+        `;
+        }).join('');
+
+        this._rebuildDialogueTagIndex();
 
         document.querySelectorAll('.dialogue-card').forEach(card => {
           card.addEventListener('click', (e) => {
@@ -3512,11 +4090,221 @@
         });
       }
 
+      _rebuildDialogueTagIndex() {
+        this.dialogueTagIndex.clear();
+        this.dialogueManager.dialogues.forEach(dialogue => {
+          if (!dialogue || !Array.isArray(dialogue.tags)) return;
+          dialogue.tags.forEach(tag => {
+            if (!tag) return;
+            if (!this.dialogueTagIndex.has(tag)) {
+              this.dialogueTagIndex.set(tag, new Set());
+            }
+            this.dialogueTagIndex.get(tag).add(dialogue.id);
+          });
+        });
+      }
+
+      _handleNodeCreated(node) {
+        if (!node) return;
+        node.data = node.data || {};
+
+        const initialTags = Array.isArray(node.data?.tags) ? node.data.tags : [];
+        const tags = this._generateTagsForNode(node);
+        node.data.tags = tags;
+        if (initialTags.length) {
+          node.data.sourceTags = initialTags;
+        }
+        this._indexNodeTags(node, tags);
+
+        const keyframes = this._generateKeyframesForNode(node);
+        if (keyframes.length) {
+          node.data.keyframes = keyframes;
+          this.keyframeRegistry.set(node.id, keyframes);
+        } else {
+          this.keyframeRegistry.delete(node.id);
+        }
+
+        if (this.viewportManager && typeof this.viewportManager.addNodePreview === 'function') {
+          this.viewportManager.addNodePreview(node);
+        }
+
+        this._updateCodePreview();
+      }
+
+      _handleNodeDeleted(nodeId) {
+        this._removeNodeFromTagIndex(nodeId);
+        this.keyframeRegistry.delete(nodeId);
+        if (this.viewportManager && typeof this.viewportManager.removeNodePreview === 'function') {
+          this.viewportManager.removeNodePreview(nodeId);
+        }
+        this._updateCodePreview();
+      }
+
+      _handleGraphCleared() {
+        this.nodeTagIndex.clear();
+        this.keyframeRegistry.clear();
+        if (this.viewportManager && typeof this.viewportManager.clearNodePreviews === 'function') {
+          this.viewportManager.clearNodePreviews();
+        }
+        this._updateCodePreview();
+      }
+
+      _generateTagsForNode(node) {
+        const tags = [
+          'sequence',
+          node.type,
+          node.data?.nodeType,
+          node.data?.display,
+          node.data?.category,
+          node.data?.entityName
+        ];
+
+        if (Array.isArray(node.data?.tags)) {
+          node.data.tags.forEach(tag => tags.push(tag));
+        }
+
+        if (node.data?.path) {
+          node.data.path.split('.').slice(0, 3).forEach(segment => tags.push(segment));
+        }
+
+        if (node.data?.timestamp !== undefined) tags.push('timed');
+        if (node.type === 'animation' || node.type === 'transition') tags.push('animation');
+        if (node.type === 'parameter') tags.push('parameter');
+        if (node.type === 'dialogue') tags.push('card');
+        if (node.type === 'event') tags.push('event');
+
+        return this._normalizeTagSet(tags);
+      }
+
+      _generateKeyframesForNode(node) {
+        const keyframes = [];
+        const start = parseFloat(node.data?.timestamp);
+        const duration = parseFloat(node.data?.duration);
+
+        if (!Number.isNaN(start)) {
+          keyframes.push({ time: start, action: 'start' });
+
+          if (!Number.isNaN(duration)) {
+            keyframes.push({ time: start + duration, action: 'end' });
+          }
+        }
+
+        if (node.data?.path) {
+          keyframes.push({ time: Number.isNaN(start) ? 0 : start, action: node.data.path });
+        }
+
+        return keyframes;
+      }
+
+      _indexNodeTags(node, tags) {
+        if (!Array.isArray(tags)) return;
+        tags.forEach(tag => {
+          if (!tag) return;
+          if (!this.nodeTagIndex.has(tag)) {
+            this.nodeTagIndex.set(tag, new Set());
+          }
+          this.nodeTagIndex.get(tag).add(node.id);
+        });
+      }
+
+      _removeNodeFromTagIndex(nodeId) {
+        this.nodeTagIndex.forEach((set, tag) => {
+          if (set.has(nodeId)) {
+            set.delete(nodeId);
+            if (set.size === 0) {
+              this.nodeTagIndex.delete(tag);
+            }
+          }
+        });
+      }
+
+      _normalizeTagSet(rawTags = []) {
+        const normalized = new Set();
+        rawTags.forEach(tag => {
+          const formatted = this._formatTagValue(tag);
+          if (formatted) normalized.add(formatted);
+        });
+        return Array.from(normalized);
+      }
+
+      _formatTagValue(value) {
+        if (value === undefined || value === null) return null;
+        return String(value)
+          .replace(/[_-]/g, ' ')
+          .replace(/([a-z])([A-Z])/g, '$1 $2')
+          .trim()
+          .toLowerCase();
+      }
+
+      _formatLabel(value) {
+        const normalized = this._formatTagValue(value);
+        if (!normalized) return '';
+        return normalized.replace(/\b\w/g, char => char.toUpperCase());
+      }
+
+      _ingestUniversalCollections(sceneObject, startX, startY, xSpacing, ySpacing) {
+        if (!this.nodeGraphManager) {
+          return { nodes: [], nextX: startX, nextY: startY };
+        }
+
+        const keys = ['cards', 'cardDeck', 'dialogues', 'panels', 'overlays', 'cssLayers', 'css', 'styles', 'screens', 'landingPages', 'referrerPages'];
+        const nodes = [];
+        let currentX = startX;
+        let currentY = startY;
+
+        keys.forEach((key, index) => {
+          const collection = sceneObject[key];
+          if (!collection) return;
+
+          const items = Array.isArray(collection)
+            ? collection
+            : typeof collection === 'object'
+              ? Object.values(collection)
+              : [];
+
+          if (!items || items.length === 0) return;
+
+          items.forEach((item, itemIndex) => {
+            const label = item?.name || item?.title || `Item ${itemIndex + 1}`;
+            const description = typeof item === 'string'
+              ? item
+              : item?.description || item?.text || `${this._formatLabel(key)} entry`;
+            const slug = this._formatTagValue(label)?.replace(/\s+/g, '_') || `item_${itemIndex + 1}`;
+            const node = this.nodeGraphManager.createNode('parameter', currentX, currentY, {
+              speaker: `${this._formatLabel(key)}: ${label}`,
+              text: description.length > 140 ? `${description.slice(0, 137)}...` : description,
+              path: `${key}.${slug}`,
+              duration: item?.duration || 0,
+              nodeType: 'parameter',
+              tags: [key, item?.type, item?.category, item?.layer]
+                .map(value => this._formatTagValue(value))
+                .filter(Boolean)
+            });
+
+            if (node) {
+              if (item?.timeline) {
+                node.data.timeline = item.timeline;
+              }
+              if (item?.events) {
+                node.data.events = item.events;
+              }
+              nodes.push(node);
+              currentY += ySpacing;
+            }
+          });
+
+          currentX += xSpacing * 0.7;
+          currentY = startY;
+        });
+
+        return { nodes, nextX: currentX, nextY: currentY };
+      }
+
       _selectDialogue(id) {
         document.querySelectorAll('.dialogue-card').forEach(el => el.classList.remove('selected'));
         const card = document.querySelector(`.dialogue-card[data-id="${id}"]`);
         if (card) card.classList.add('selected');
-        
+
         const dialogue = this.dialogueManager.dialogues.find(d => d.id === id);
         if (dialogue) {
           this._showDialogueInspector(dialogue);
@@ -3673,24 +4461,76 @@
 
       _updateCodePreview() {
         const dialogues = this.dialogueManager.exportDialogues();
-        
-        let code = `<span class="code-comment">// Scene: ${this.state.currentScene}</span>\n`;
+        const nodes = this.nodeGraphManager ? this.nodeGraphManager.nodes : [];
+
+        let code = `<span class="code-comment">// Scene: ${this.state.currentScene || 'Unknown'}</span>\n`;
         code += `<span class="code-keyword">const</span> sequence = {\n`;
         code += `  <span class="code-string">dialogues</span>: [\n`;
-        
+
         dialogues.dialogues.forEach((d, i) => {
+          const tags = Array.isArray(d.tags) && d.tags.length
+            ? `, <span class="code-string">tags</span>: [${d.tags.map(tag => `<span class=\"code-string\">\"${tag}\"</span>`).join(', ')}]`
+            : '';
+
           code += `    {\n`;
           code += `      <span class="code-string">speaker</span>: <span class="code-string">"${d.speaker}"</span>,\n`;
           code += `      <span class="code-string">text</span>: <span class="code-string">"${d.text}"</span>,\n`;
           code += `      <span class="code-string">display</span>: <span class="code-string">"${d.display}"</span>,\n`;
-          code += `      <span class="code-string">timestamp</span>: <span class="code-number">${d.timestamp}</span>\n`;
+          code += `      <span class="code-string">timestamp</span>: <span class="code-number">${d.timestamp}</span>${tags}\n`;
           code += `    }${i < dialogues.count - 1 ? ',' : ''}\n`;
         });
-        
-        code += `  ]\n`;
-        code += `};\n\n`;
+
+        code += `  ]`;
+
+        if (nodes.length) {
+          code += `,\n  <span class="code-string">nodes</span>: [\n`;
+          nodes.forEach((node, index) => {
+            const tagList = Array.isArray(node.data?.tags) && node.data.tags.length
+              ? `[${node.data.tags.map(tag => `<span class=\"code-string\">\"${tag}\"</span>`).join(', ')}]`
+              : '[]';
+            const keyframes = Array.isArray(node.data?.keyframes) && node.data.keyframes.length
+              ? `[${node.data.keyframes.map(kf => `{ <span class="code-string">time</span>: <span class="code-number">${Number(kf.time).toFixed ? Number(kf.time).toFixed(2) : kf.time}</span>, <span class="code-string">action</span>: <span class="code-string">"${kf.action}"</span> }`).join(', ')}]`
+              : '[]';
+
+            code += `    {\n`;
+            code += `      <span class="code-string">id</span>: <span class="code-number">${node.id}</span>,\n`;
+            code += `      <span class="code-string">type</span>: <span class="code-string">"${node.type}"</span>,\n`;
+            code += `      <span class="code-string">label</span>: <span class="code-string">"${node.data?.speaker || node.type}"</span>,\n`;
+            code += `      <span class="code-string">timestamp</span>: <span class="code-number">${Number(node.data?.timestamp ?? 0)}</span>,\n`;
+            code += `      <span class="code-string">duration</span>: <span class="code-number">${Number(node.data?.duration ?? 0)}</span>,\n`;
+            code += `      <span class="code-string">tags</span>: ${tagList},\n`;
+            code += `      <span class="code-string">keyframes</span>: ${keyframes}\n`;
+            code += `    }${index < nodes.length - 1 ? ',' : ''}\n`;
+          });
+          code += `  ]`;
+        }
+
+        const tagSummaries = [];
+        this.nodeTagIndex.forEach((nodeSet, tag) => {
+          tagSummaries.push({
+            tag,
+            nodes: nodeSet.size,
+            dialogues: this.dialogueTagIndex.get(tag)?.size || 0
+          });
+        });
+        this.dialogueTagIndex.forEach((dialogueSet, tag) => {
+          if (!this.nodeTagIndex.has(tag)) {
+            tagSummaries.push({ tag, nodes: 0, dialogues: dialogueSet.size });
+          }
+        });
+
+        if (tagSummaries.length) {
+          tagSummaries.sort((a, b) => a.tag.localeCompare(b.tag));
+          code += `,\n  <span class="code-string">tags</span>: {\n`;
+          tagSummaries.forEach((entry, index) => {
+            code += `    <span class="code-string">"${entry.tag}"</span>: { <span class="code-string">nodes</span>: <span class="code-number">${entry.nodes}</span>, <span class="code-string">dialogues</span>: <span class="code-number">${entry.dialogues}</span> }${index < tagSummaries.length - 1 ? ',' : ''}\n`;
+          });
+          code += `  }`;
+        }
+
+        code += `\n};\n\n`;
         code += `<span class="code-keyword">export</span> <span class="code-keyword">default</span> sequence;`;
-        
+
         this.ui.codePreview.innerHTML = code;
       }
 
@@ -3914,29 +4754,45 @@
         });
 
         // Viewport controls
-        const viewRenderBtn = document.getElementById('viewRenderBtn');
-        if (viewRenderBtn) {
-          viewRenderBtn.addEventListener('click', (e) => {
-          document.querySelectorAll('.viewport-btn').forEach(b => b.classList.remove('active'));
-          e.target.classList.add('active');
-          this.viewportManager.setWireframe(false);
-        });
-        }
+        const viewportModeButtons = document.querySelectorAll('.viewport-btn[data-mode]');
+        viewportModeButtons.forEach(btn => {
+          btn.addEventListener('click', () => {
+            viewportModeButtons.forEach(b => b.classList.toggle('active', b === btn));
+            const mode = btn.dataset.mode;
 
-        const viewWireframeBtn = document.getElementById('viewWireframeBtn');
-        if (viewWireframeBtn) {
-          viewWireframeBtn.addEventListener('click', (e) => {
-          document.querySelectorAll('.viewport-btn').forEach(b => b.classList.remove('active'));
-          e.target.classList.add('active');
-          this.viewportManager.setWireframe(true);
+            switch (mode) {
+              case 'render':
+                this.viewportManager.setWireframe(false);
+                this.viewportManager.setLightingMode('default');
+                break;
+              case 'wireframe':
+                this.viewportManager.setLightingMode('default');
+                this.viewportManager.setWireframe(true);
+                break;
+              case 'unlit':
+                this.viewportManager.setWireframe(false);
+                this.viewportManager.setLightingMode('unlit');
+                break;
+              case 'flat':
+                this.viewportManager.setWireframe(false);
+                this.viewportManager.setLightingMode('flat');
+                break;
+              default:
+                this.viewportManager.setWireframe(false);
+                this.viewportManager.setLightingMode('default');
+                break;
+            }
+          });
         });
-        }
 
         const viewResetBtn = document.getElementById('viewResetBtn');
         if (viewResetBtn) {
           viewResetBtn.addEventListener('click', () => {
-          this.viewportManager.resetCamera();
-        });
+            this.viewportManager.resetCamera();
+            this.viewportManager.setWireframe(false);
+            this.viewportManager.setLightingMode('default');
+            viewportModeButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === 'render'));
+          });
         }
         
         // Camera picker
@@ -4331,7 +5187,39 @@
         
         console.log('✅ All event listeners attached');
       }
-      
+
+      _bindPropPreviewResizer() {
+        const resizer = document.getElementById('propPreviewResizer');
+        if (!resizer || !this.propPreviewer) return;
+
+        let isDragging = false;
+        let startY = 0;
+        let startHeight = this.propPreviewer.getHeight ? this.propPreviewer.getHeight() : (this.ui.propPreviewCanvas?.clientHeight || 220);
+
+        const onMouseMove = (event) => {
+          if (!isDragging) return;
+          const delta = startY - event.clientY;
+          const desiredHeight = startHeight + delta;
+          this.propPreviewer.setHeight(desiredHeight);
+        };
+
+        const onMouseUp = () => {
+          if (!isDragging) return;
+          isDragging = false;
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        resizer.addEventListener('mousedown', (event) => {
+          event.preventDefault();
+          isDragging = true;
+          startY = event.clientY;
+          startHeight = this.propPreviewer.getHeight ? this.propPreviewer.getHeight() : (this.ui.propPreviewCanvas?.clientHeight || 220);
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+        });
+      }
+
       async autoIngestScene(sceneObject) {
         console.log('🔍 Inspecting scene object for data...');
         console.log('Scene object:', sceneObject);
@@ -4480,7 +5368,21 @@
         } else {
           console.log('⚠️ No sequence array found');
         }
-        
+
+        const universalResults = this._ingestUniversalCollections(
+          sceneObject,
+          xPos + xSpacing * 3,
+          yPos,
+          xSpacing,
+          ySpacing
+        );
+
+        if (universalResults.nodes.length) {
+          nodes.push(...universalResults.nodes);
+          xPos = Math.max(xPos, universalResults.nextX);
+          yPos = Math.max(yPos, universalResults.nextY);
+        }
+
         // If still no nodes, try to inspect all properties and create generic nodes
         if (nodes.length === 0) {
           console.log('⚠️ No standard properties found, scanning all properties...');
