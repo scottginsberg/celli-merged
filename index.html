@@ -18,10 +18,313 @@
  <!-- Twemoji for consistent emoji rendering -->
  <script src="https://unpkg.com/twemoji@latest/dist/twemoji.min.js"></script>
  
+ <!-- GIF.js for screen recording -->
+ <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+ 
  <!-- Styles -->
  <link rel="stylesheet" href="src/styles/main.css">
  <link rel="stylesheet" href="src/styles/sequence.css">
  <link rel="stylesheet" href="src/styles/celli-real.css">
+ <link rel="stylesheet" href="src/styles/referrer-overlay.css">
+ <link rel="stylesheet" href="src/styles/recorder.css">
+ 
+ <!-- Mythic Sidebar Entrance Animations -->
+ <style>
+  @keyframes pulse {
+   0%, 100% { opacity: 1; transform: scale(1); }
+   50% { opacity: 0.8; transform: scale(1.05); }
+  }
+  
+  @keyframes float {
+   0%, 100% { transform: translateY(-50%) translateX(0); }
+   50% { transform: translateY(-50%) translateX(-10px); }
+  }
+  
+  @keyframes rumble {
+   0%, 100% { transform: translate(50%, -50%) rotate(0deg); }
+   10% { transform: translate(calc(50% - 5px), calc(-50% - 5px)) rotate(-1deg); }
+   20% { transform: translate(calc(50% + 5px), calc(-50% + 5px)) rotate(1deg); }
+   30% { transform: translate(calc(50% - 5px), calc(-50% + 5px)) rotate(-1deg); }
+   40% { transform: translate(calc(50% + 5px), calc(-50% - 5px)) rotate(1deg); }
+   50% { transform: translate(calc(50% - 3px), calc(-50% - 3px)) rotate(-0.5deg); }
+   60% { transform: translate(calc(50% + 3px), calc(-50% + 3px)) rotate(0.5deg); }
+   70% { transform: translate(calc(50% - 3px), calc(-50% + 3px)) rotate(-0.5deg); }
+   80% { transform: translate(calc(50% + 3px), calc(-50% - 3px)) rotate(0.5deg); }
+   90% { transform: translate(calc(50% - 1px), calc(-50% - 1px)) rotate(-0.2deg); }
+  }
+  
+  @keyframes glow-pulse {
+   0%, 100% { 
+    box-shadow: 0 0 50px rgba(102, 126, 234, 0.8), 0 0 20px rgba(255, 255, 255, 0.5);
+   }
+   50% { 
+    box-shadow: 0 0 80px rgba(102, 126, 234, 1), 0 0 40px rgba(255, 255, 255, 0.8);
+   }
+  }
+  
+  /* Initial state: off-screen right */
+  .ref-sidebar.mythic-entrance {
+   display: block !important;
+   position: fixed;
+   right: -400px;
+   top: 50%;
+   transform: translateY(-50%);
+   transition: right 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.8s ease-out;
+   box-shadow: 0 0 50px rgba(102, 126, 234, 0.8);
+   z-index: 10001;
+   animation: glow-pulse 2s ease-in-out infinite;
+   background: rgba(30, 30, 40, 0.95) !important;
+   backdrop-filter: blur(10px);
+   border-radius: 12px;
+  }
+  
+  /* Stage 1: Float in from right */
+  .ref-sidebar.mythic-entrance.stage-float {
+   right: 20px;
+   animation: float 2s ease-in-out infinite, glow-pulse 2s ease-in-out infinite;
+  }
+  
+  /* Stage 2: Sweep to center */
+  .ref-sidebar.mythic-entrance.stage-sweep {
+   right: 50%;
+   top: 50%;
+   transform: translate(50%, -50%);
+   transition: all 1.2s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+   animation: glow-pulse 1.5s ease-in-out infinite;
+  }
+  
+  /* Stage 3: Rumble */
+  .ref-sidebar.mythic-entrance.stage-rumble {
+   animation: rumble 0.6s ease-in-out, glow-pulse 0.6s ease-in-out infinite;
+  }
+  
+  /* Stage 4: Expand */
+  .ref-sidebar.mythic-entrance.stage-expand {
+   width: 560px;
+   padding: 0;
+   transform: translate(50%, -50%) scale(1.05);
+   transition: all 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+   box-shadow: 0 0 100px rgba(102, 126, 234, 0.5), 0 8px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+   background: linear-gradient(135deg, rgba(15, 25, 45, 0.85), rgba(25, 35, 55, 0.9)) !important;
+   backdrop-filter: blur(30px) saturate(200%) !important;
+   -webkit-backdrop-filter: blur(30px) saturate(200%) !important;
+   border: 1px solid rgba(143, 180, 255, 0.3);
+   border-radius: 20px;
+  }
+  
+  .ref-sidebar.mythic-entrance.stage-expand .ref-sidebar-btn {
+   animation: none;
+  }
+  
+  /* AI Twinkle effect */
+  @keyframes ai-twinkle {
+   0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+   }
+   25% {
+    opacity: 0.8;
+    transform: scale(1.05);
+    text-shadow: 0 0 20px rgba(102, 126, 234, 0.8), 0 0 40px rgba(255, 255, 255, 0.4);
+   }
+   50% { 
+    opacity: 1;
+    transform: scale(1.1);
+    text-shadow: 0 0 30px rgba(102, 126, 234, 1), 0 0 60px rgba(255, 255, 255, 0.6);
+   }
+   75% {
+    opacity: 0.9;
+    transform: scale(1.05);
+    text-shadow: 0 0 20px rgba(102, 126, 234, 0.8), 0 0 40px rgba(255, 255, 255, 0.4);
+   }
+  }
+  
+  .ai-message {
+   animation: ai-twinkle 2s ease-in-out;
+  }
+  
+  /* Animated gradient for gaudy ad */
+  @keyframes rainbow-shift {
+   0% { background-position: 0% 50%; }
+   50% { background-position: 100% 50%; }
+   100% { background-position: 0% 50%; }
+  }
+  
+  /* Hide real cursor when faux cursor is active */
+  body.faux-cursor-active {
+   cursor: none !important;
+  }
+  
+  body.faux-cursor-active * {
+   cursor: none !important;
+  }
+  
+  /* Checkbox container hover effect */
+  #tosCheckboxContainer:hover {
+   border-color: rgba(143, 180, 255, 0.6) !important;
+   background: linear-gradient(135deg, rgba(143, 180, 255, 0.15), rgba(102, 126, 234, 0.2)) !important;
+   box-shadow: 0 6px 24px rgba(102, 126, 234, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+   transform: translateY(-1px);
+  }
+  
+  /* Ensure all glow effects use screen blend mode (never darken) */
+  .edge-impact,
+  .light-beam,
+  .impact-particle {
+   mix-blend-mode: screen;
+  }
+  
+  /* Base darkening overlay - starts invisible */
+  .darkening-overlay {
+   opacity: 0;
+  }
+  
+  /* Darkening overlay flicker animation */
+  @keyframes darken-flicker {
+   0% { opacity: 0; }
+   10% { opacity: 0.3; }
+   20% { opacity: 0.05; }
+   30% { opacity: 0.4; }
+   40% { opacity: 0.1; }
+   50% { opacity: 0.5; }
+   60% { opacity: 0.15; }
+   70% { opacity: 0.6; }
+   80% { opacity: 0.2; }
+   90% { opacity: 0.7; }
+   100% { opacity: 0; }
+  }
+  
+  .darkening-overlay.flickering {
+   animation: darken-flicker var(--flicker-duration, 800ms) ease-in-out;
+   animation-iteration-count: var(--flicker-count, 5);
+   animation-fill-mode: both;
+  }
+  
+  /* Progressive darkness levels */
+  .darkening-overlay.level-1 {
+   opacity: 0.2 !important;
+   transition: opacity 0.5s ease-out;
+  }
+  
+  .darkening-overlay.level-2 {
+   opacity: 0.4 !important;
+   transition: opacity 0.5s ease-out;
+  }
+  
+  .darkening-overlay.level-3 {
+   opacity: 0.6 !important;
+   transition: opacity 0.5s ease-out;
+  }
+  
+  .darkening-overlay.level-4 {
+   opacity: 0.8 !important;
+   transition: opacity 0.5s ease-out;
+  }
+  
+  .darkening-overlay.level-5 {
+   opacity: 0.95 !important;
+   transition: opacity 0.5s ease-out;
+  }
+  
+  /* Flash of life - momentary restoration of light */
+  @keyframes flash-life {
+   0% { opacity: 0.95 !important; }
+   15% { opacity: 0 !important; }
+   30% { opacity: 0.2 !important; }
+   45% { opacity: 0 !important; }
+   60% { opacity: 0.3 !important; }
+   75% { opacity: 0.1 !important; }
+   100% { opacity: 0.95 !important; }
+  }
+  
+  .darkening-overlay.flash-of-life {
+   animation: flash-life 1.5s ease-in-out !important;
+   opacity: initial !important;
+  }
+  
+  /* Brick hole in darkening wall */
+  .darkening-hole {
+   position: fixed;
+   right: 0;
+   width: 300px;
+   height: 80px;
+   background: transparent;
+   pointer-events: none;
+   z-index: 9999;
+   border-radius: 50%;
+   box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+   animation: hole-break 0.3s ease-out;
+  }
+  
+  @keyframes hole-break {
+   0% { transform: scaleX(0); opacity: 0; }
+   100% { transform: scaleX(1); opacity: 1; }
+  }
+  
+  /* Light beam through hole */
+  .light-ray {
+   position: fixed;
+   right: 0;
+   width: 800px;
+   height: 60px;
+   background: linear-gradient(to left, rgba(255, 255, 255, 0.3), transparent);
+   mix-blend-mode: screen;
+   pointer-events: none;
+   z-index: 9998;
+   animation: ray-shine 0.5s ease-out;
+   filter: blur(20px);
+  }
+  
+  @keyframes ray-shine {
+   0% { opacity: 0; width: 0; }
+   50% { opacity: 1; }
+   100% { opacity: 0.6; width: 800px; }
+  }
+  
+  /* Giant burst beam for final card entrance */
+  .burst-beam {
+   position: fixed;
+   right: 0;
+   top: 0;
+   width: 100vw;
+   height: 100vh;
+   background: radial-gradient(ellipse at right center, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.4) 30%, transparent 60%);
+   mix-blend-mode: screen;
+   pointer-events: none;
+   z-index: 10000;
+   opacity: 0;
+   animation: burst-flash 2.5s ease-out forwards;
+  }
+  
+  @keyframes burst-flash {
+   0% { 
+    opacity: 0; 
+    transform: scaleX(0);
+    filter: brightness(1);
+   }
+   10% { 
+    opacity: 1; 
+    transform: scaleX(0.5);
+    filter: brightness(2);
+   }
+   25% { 
+    opacity: 1; 
+    transform: scaleX(1.3);
+    filter: brightness(1.8);
+   }
+   50% {
+    opacity: 0.8;
+    transform: scaleX(1.1);
+    filter: brightness(1.2);
+   }
+   100% { 
+    opacity: 0.2; 
+    transform: scaleX(1);
+    filter: brightness(1);
+   }
+  }
+ </style>
 </head>
 <body>
  <div id="app" class="scanlines"></div>
@@ -51,11 +354,32 @@
   <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; justify-content:center; max-width:550px;">
    <button id="sceneSelectBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">Scene Select</button>
    <button id="testAudioBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">TEST Audio</button>
+   <button id="playIntroVideoBtn" style="font-size:12px; padding:10px 20px; opacity:0.7; background:#9b59b6;">🎬 Play Intro</button>
   </div>
   <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap; justify-content:center; max-width:550px;">
    <button id="sequenceBuilderBtn" style="font-size:11px; padding:8px 16px; opacity:0.7; background:#ff6b6b;">🎬 Sequence Builder</button>
    <button id="singleBuilderBtn" style="font-size:11px; padding:8px 16px; opacity:0.7; background:#ffa500;">🛠️ Single Builder</button>
    <button id="testRunnerBtn" style="font-size:11px; padding:8px 16px; opacity:0.7; background:#4ec9b0;">🧪 Test Runner</button>
+  </div>
+  <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; justify-content:center; max-width:550px; padding:10px; background:rgba(0,0,0,0.3); border-radius:8px;">
+   <div style="color:#fff; font-size:11px; width:100%; text-align:center; margin-bottom:6px; opacity:0.8;">Scene Loading Mode:</div>
+   <button id="useTemplateBtn" class="mode-toggle active" data-mode="template" style="flex:1; padding:8px 16px; background:#4a7cff; border:1px solid #6a9cff; color:#fff; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600;">📄 Template (Fast)</button>
+   <button id="useComponentBtn" class="mode-toggle" data-mode="component" style="flex:1; padding:8px 16px; background:#2a2a2f; border:1px solid #444; color:#ddd; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600;">🧩 Componentized</button>
+  </div>
+  
+  <!-- Referrer Glitch Overlay Controls -->
+  <div style="margin-top:16px; padding:10px; background:rgba(102,126,234,0.1); border:1px solid rgba(102,126,234,0.3); border-radius:8px; max-width:550px;">
+   <div style="color:#667eea; font-size:11px; width:100%; text-align:center; margin-bottom:8px; font-weight:600;">✨ Referrer Glitch Overlay</div>
+   <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <input id="manualUrlInput" type="text" placeholder="Enter URL (e.g. reddit.com/r/programming)" style="flex:1; min-width:280px; padding:8px 12px; background:#191a23; border:1px solid rgba(255,255,255,.1); border-radius:6px; color:#e8e8ee; font-size:11px" />
+    <button id="manualTrigger" style="padding:8px 16px; background:#667eea; border:0; color:#fff; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600;">Open</button>
+   </div>
+   <div style="display:flex; gap:6px; margin-top:6px; justify-content:center; flex-wrap:wrap;">
+    <button id="quickHN" style="padding:6px 14px; background:#ff6600; border:0; color:#000; border-radius:6px; cursor:pointer; font-size:10px; font-weight:700;">Hacker News</button>
+    <button id="quickReddit" style="padding:6px 14px; background:#ff4500; border:0; color:#fff; border-radius:6px; cursor:pointer; font-size:10px; font-weight:700;">Reddit</button>
+    <button id="quickTwitter" style="padding:6px 14px; background:#1da1f2; border:0; color:#fff; border-radius:6px; cursor:pointer; font-size:10px; font-weight:700;">Zeed</button>
+    <button id="quickFacebook" style="padding:6px 14px; background:#1877f2; border:0; color:#fff; border-radius:6px; cursor:pointer; font-size:10px; font-weight:700;">Facebook</button>
+   </div>
   </div>
  </div>
  
@@ -87,19 +411,28 @@
     </div>
     
     <div class="scene-option locked" data-scene="end3">
-     <div>HARD.CORE → End3</div>
-     <div class="scene-option-desc">Terminal environment - crawl sequence</div>
+     <div>HARD.CORE → End3 <span class="mode-badge"></span></div>
+     <div class="scene-option-desc">Terminal environment - crawl sequence • <span class="mode-indicator"></span></div>
     </div>
     
-    <div class="scene-option locked" data-scene="fullhand">
-     <div>EXEC.ENV → Execution Environment</div>
-     <div class="scene-option-desc">Integrated scene - voxel hand, keyboard, character & glowing head</div>
+   <div class="scene-option locked" data-scene="fullhand">
+    <div>EXEC.ENV → Execution Environment <span class="mode-badge"></span></div>
+    <div class="scene-option-desc">Integrated scene - voxel hand, keyboard, character & glowing head • <span class="mode-indicator"></span></div>
+    <div class="scene-mode-toggle" style="margin-top: 8px; display: flex; gap: 8px;">
+      <button class="mode-btn active" data-mode="sequence" data-scene-target="fullhand" style="flex: 1; padding: 6px 12px; background: #4a7cff; border: 1px solid #6a9cff; color: #fff; border-radius: 4px; cursor: pointer; font-size: 11px; transition: all 0.2s; pointer-events: auto;">Sequence</button>
+      <button class="mode-btn" data-mode="debug" data-scene-target="fullhand" style="flex: 1; padding: 6px 12px; background: #2a2a2f; border: 1px solid #444; color: #ddd; border-radius: 4px; cursor: pointer; font-size: 11px; transition: all 0.2s; pointer-events: auto;">Debug</button>
     </div>
+   </div>
     
     <div class="scene-option locked" data-scene="cellireal">
-     <div>CELLI.REAL → Spreadsheet Reality</div>
-     <div class="scene-option-desc">The awakened terminal - interactive spreadsheet environment</div>
+     <div>CELLI.REAL → Spreadsheet Reality <span class="mode-badge"></span></div>
+     <div class="scene-option-desc">The awakened terminal - interactive spreadsheet environment • <span class="mode-indicator"></span></div>
     </div>
+   
+   <div class="scene-option" data-scene="rave" style="border-left: 3px solid #ff00ff;">
+    <div>🎵 RAVE → Celli & Array Party</div>
+    <div class="scene-option-desc">Both avatars in a shared rave environment - pulsing lights, music visualization, and dance animations</div>
+   </div>
     
     <div class="scene-option" data-scene="sequence-builder" style="border-left: 3px solid #ff6b6b;">
      <div>🎬 DEV.TOOLS → Sequence Builder</div>
@@ -154,7 +487,68 @@
  <!-- Sequence Builder Overlay Container -->
  <div id="sequence-overlay" style="display: none;"></div>
  
- <!-- Import map for ES modules -->
+ <!-- Referrer Glitch Overlay -->
+ <div id="celliRefOverlay" class="celli-ref-overlay" aria-hidden="true">
+  <div class="celli-ref-mask"></div>
+  <div class="celli-ref-panel" role="dialog" aria-modal="true" aria-labelledby="refTitle">
+   <div class="ref-header">
+    <div id="refLogo" class="ref-logo">SRC</div>
+    <div class="ref-meta">
+     <div id="refTitle" class="ref-title">Reconstructing previous page…</div>
+     <div id="refSub" class="ref-sub">Please wait</div>
+    </div>
+    <button id="refClose" class="ref-close" aria-label="Close overlay">Close</button>
+   </div>
+   
+   <div id="refList" class="ref-list"></div>
+   
+   <div class="ref-footer">
+    <div class="ref-sub">Looks unstable — try "recreate" for another pass.</div>
+    <div style="display: flex; gap: 8px;">
+     <button id="refReset" class="btn" style="background: #3498db;">↻ Reset</button>
+     <button id="refRecreate" class="btn">Recreate</button>
+     <button id="refDismiss" class="btn">Dismiss</button>
+    </div>
+   </div>
+   
+   <div id="refGlitch" class="ref-glitch" aria-hidden="true"></div>
+   <div class="scanlines"></div>
+   
+   <!-- Sidebar Ad -->
+   <div id="refSidebar" class="ref-sidebar" style="display:none;">
+    <button id="refSidebarClose" class="ref-sidebar-close" aria-label="Close sidebar">✕</button>
+    <h3>✨ Wait, what just happened?</h3>
+    <p>You clicked a link and reality started to break down. The glitch is spreading...</p>
+    <div id="refSidebarUrl" class="ref-sidebar-url" style="display:none"></div>
+    <p style="font-size:12px;opacity:.7">This reconstructed page is unstable. Each click destabilizes it further.</p>
+    <button id="refSidebarAck" class="ref-sidebar-btn">Acknowledge Glitch</button>
+   </div>
+  </div>
+  
+  <!-- Custom Cursor -->
+  <div id="customCursor" class="custom-cursor"></div>
+ </div>
+ 
+ <!-- Tooltip -->
+ <div id="refTooltip" class="ref-tooltip"></div>
+ 
+<!-- Edge Impact Effects -->
+<div id="edgeImpact" class="edge-impact"></div>
+<div id="darkeningOverlay" class="darkening-overlay" style="position: fixed; inset: 0; background: rgba(0, 0, 0, 1); pointer-events: none; z-index: 9998; opacity: 0;"></div>
+<div id="lightBeam" class="light-beam"></div>
+
+<!-- Video Player Overlay -->
+<div id="videoPlayerOverlay" style="position:fixed; inset:0; background:#000; z-index:30000; display:none; flex-direction:column; align-items:center; justify-content:center;">
+ <div style="position:relative; width:90vw; height:90vh; display:flex; align-items:center; justify-content:center;">
+  <video id="introVideo" style="display:none;" crossorigin="anonymous"></video>
+  <canvas id="videoCanvas" style="max-width:100%; max-height:100%; object-fit:contain;"></canvas>
+  <div style="position:absolute; bottom:20px; right:20px; display:flex; gap:10px;">
+   <button id="videoCloseBtn" style="padding:10px 20px; background:#e74c3c; border:none; border-radius:6px; color:white; cursor:pointer; font-weight:600;">✕ Close</button>
+  </div>
+ </div>
+</div>
+
+<!-- Import map for ES modules -->
  <script type="importmap">
  {
   "imports": {
@@ -166,34 +560,56 @@
 
  <!-- Main Application -->
  <script type="module">
-  import { IntroSceneComplete } from './src/scripts/scenes/IntroSceneComplete.js?v=5.7';
+  // Template versions (load complete HTML via redirect)
+  import { IntroScene as IntroFaithful } from './src/scripts/scenes/IntroScene-Faithful.js';
+  import { End3Scene as End3Faithful } from './src/scripts/scenes/End3Scene-Faithful.js';
+  import { CelliRealScene as CelliRealFaithful } from './src/scripts/scenes/CelliRealScene-Faithful.js';
+  import { FullhandScene as FullhandFaithful } from './src/scripts/scenes/FullhandScene-Faithful.js';
+  
+  // Componentized versions (modular)
+  import { IntroSceneComplete as IntroModular } from './src/scripts/scenes/IntroSceneComplete.js?v=5.7';
+  import { End3Scene as End3Modular } from './src/scripts/scenes/End3Scene.js';
+  import { CelliRealScene as CelliRealModular } from './src/scripts/scenes/CelliRealScene-Full.js';
+  import { FullhandScene as FullhandModular } from './src/scripts/scenes/FullhandScene.js';
+  
   import { VisiCalcScene } from './src/scripts/scenes/VisiCalcScene.js';
-  import { CelliRealScene } from './src/scripts/scenes/CelliRealScene-Full.js';
-  import { End3Scene } from './src/scripts/scenes/End3Scene.js';
-  import { FullhandScene } from './src/scripts/scenes/FullhandScene.js';
+  
   import { CityScene } from './src/scripts/scenes/CityScene.js';
   import { LeaveScene } from './src/scripts/scenes/LeaveScene.js';
+  
+  // Screen Recorder Tool
+  import { screenRecorder } from './src/scripts/tools/ScreenRecorder.js';
 
-  console.log('🎬 Cell.real Application Starting v6.0 - Full Component Composition');
-  console.log('%c🔥 CELLI-REAL FULL SCENE READY 🔥', 'background:#ff4400; color:#fff; font-size:18px; padding:8px; font-weight:bold;');
-  console.log('%c✅ Complete celli-real.html experience with modular components', 'background:#0f0; color:#000; font-size:14px; padding:6px;');
+  console.log('🎬 Cell.real Application Starting v6.0 - Dual Mode');
+  console.log('%c🔥 TEMPLATE (faithful) OR COMPONENTIZED (modular) 🔥', 'background:#ff4400; color:#fff; font-size:18px; padding:8px; font-weight:bold;');
+  console.log('%c✅ Toggle mode in Play overlay - template loads exact scenes', 'background:#0f0; color:#000; font-size:14px; padding:6px;');
 
   let introScene = null;
   let currentScene = null;
   let animationFrameId = null;
   let debugMode = false;
+  let fullhandMode = 'sequence'; // Track fullhand mode
+  let sceneLoadingMode = localStorage.getItem('sceneLoadingMode') || 'template'; // 'template' | 'component'
   
-  // Scene registry
-  const scenes = {
-    intro: IntroSceneComplete,
-    visicell: VisiCalcScene,
-    cellireal: CelliRealScene, // Now uses CelliRealScene-Full
-    end3: End3Scene,
-    fullhand: FullhandScene,
-    theos: CityScene,
-    blackhole: CityScene,
-    leave: LeaveScene
-  };
+  // Dynamic scene registry based on loading mode
+  function getScenes() {
+    const useTemplate = sceneLoadingMode === 'template';
+    console.log(`Scene loading mode: ${sceneLoadingMode} (${useTemplate ? 'faithful' : 'modular'})`);
+    
+    return {
+      intro: useTemplate ? IntroFaithful : IntroModular,
+      visicell: VisiCalcScene,
+      cellireal: useTemplate ? CelliRealFaithful : CelliRealModular,
+      end3: useTemplate ? End3Faithful : End3Modular,
+      fullhand: useTemplate ? FullhandFaithful : FullhandModular,
+      theos: CityScene,
+      blackhole: CityScene,
+      leave: LeaveScene
+    };
+  }
+  
+  // Get initial scenes
+  let scenes = getScenes();
 
   // Helper: toast notification
   function toast(message) {
@@ -209,6 +625,25 @@
   async function transitionToScene(sceneName) {
    console.log(`🎬 Transitioning to scene: ${sceneName}`);
    console.log(`Available scenes:`, Object.keys(scenes));
+   
+   // Handle special standalone scenes
+   if (sceneName === 'rave') {
+     console.log('🎵 Loading standalone rave scene...');
+     window.location.href = './templates/componentized/rave-complete.html';
+     return;
+   }
+   
+   if (sceneName === 'sequence-builder') {
+     window.open('./tools/sequence-builder/index.html?standalone=true', 'SequenceBuilder', 'width=1800,height=1000');
+     toast('Opening Sequence Builder in new window...');
+     return;
+   }
+   
+   if (sceneName === 'test-runner') {
+     window.open('./tests/test-runner.html', '_blank');
+     toast('Opening Test Runner in new window...');
+     return;
+   }
    
    // Stop current scene
    if (currentScene) {
@@ -251,6 +686,16 @@
    // Create and start new scene
    try {
     currentScene = new SceneClass();
+    
+    // Expose current scene globally for sequence builder
+    window.currentScene = currentScene;
+    
+    // Set mode for fullhand scene
+    if (sceneName === 'fullhand' && fullhandMode && currentScene.setMode) {
+      currentScene.setMode(fullhandMode);
+      console.log(`Fullhand scene mode: ${fullhandMode}`);
+    }
+    
     console.log('Scene instance created, initializing...');
     
     await currentScene.init();
@@ -291,9 +736,16 @@
    const playEl = document.getElementById('play');
    if (playEl) playEl.classList.add('hidden');
    
+   // Get the appropriate intro scene based on current mode
+   const IntroSceneClass = scenes.intro;
+   console.log(`Loading intro with mode: ${sceneLoadingMode}`);
+   
    // Initialize intro scene
-   introScene = new IntroSceneComplete();
+   introScene = new IntroSceneClass();
    await introScene.init();
+   
+   // Expose intro scene globally for sequence builder
+   window.introScene = introScene;
    
    // Start intro scene
    await introScene.start({}, {});
@@ -360,24 +812,51 @@
    debugMode = !debugMode;
    this.textContent = debugMode ? 'Debug: Hide' : 'Debug: Show All';
    
-   // Toggle all scene options to unlocked
-   const sceneOptions = document.querySelectorAll('.scene-option');
-   sceneOptions.forEach(opt => {
-    if (debugMode) {
-     opt.classList.remove('locked');
-    } else {
-     opt.classList.add('locked');
-    }
-   });
-   
-   toast(debugMode ? 'Debug mode: All scenes unlocked' : 'Debug mode: Scenes locked');
+   if (debugMode) {
+     // Unlock all scenes temporarily
+     const sceneOptions = document.querySelectorAll('.scene-option');
+     sceneOptions.forEach(opt => {
+       opt.classList.remove('locked');
+     });
+     toast('Debug mode: All scenes unlocked');
+   } else {
+     // Restore lock status based on localStorage
+     const sceneOptions = document.querySelectorAll('.scene-option');
+     sceneOptions.forEach(opt => {
+       const sceneName = opt.dataset.scene;
+       if (!sceneName) return;
+       
+       // Check if viewed
+       const viewedKey = `celli_scene_viewed_${sceneName}`;
+       const hasViewed = localStorage.getItem(viewedKey) === 'true';
+       
+       // Dev tools always unlocked
+       const isDevTool = sceneName === 'sequence-builder' || sceneName === 'test-runner';
+       
+       if (!hasViewed && !isDevTool) {
+         opt.classList.add('locked');
+       }
+     });
+     toast('Debug mode: Scenes locked (except viewed ones)');
+   }
   });
 
   // Clear Progress
   document.getElementById('clearProgress').addEventListener('click', () => {
-   if (confirm('Clear all progress? This will reset all unlocked scenes.')) {
-    localStorage.clear();
-    toast('Progress cleared');
+   if (confirm('Clear all progress? This will lock all scenes and reset preferences.')) {
+    // Clear all scene progress
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('celli_scene_viewed_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Also clear other preferences
+    localStorage.removeItem('sceneLoadingMode');
+    localStorage.removeItem('fullhand_mode');
+    
+    toast('Progress cleared - all scenes locked');
     location.reload();
    }
   });
@@ -413,16 +892,348 @@
    }
   });
 
+  // Play Intro Video button with glitch effects
+  document.getElementById('playIntroVideoBtn').addEventListener('click', () => {
+   console.log('🎬 Playing intro.mp4 with effects');
+   
+   const overlay = document.getElementById('videoPlayerOverlay');
+   const video = document.getElementById('introVideo');
+   const canvas = document.getElementById('videoCanvas');
+   const ctx = canvas.getContext('2d');
+   const closeBtn = document.getElementById('videoCloseBtn');
+   
+   let isPlaying = false;
+   let animationId = null;
+   let audioContext = null;
+   let sourceNode = null;
+   let gainNode = null;
+   let filterNode = null;
+   let distortionNode = null;
+   
+   function makeDistortionCurve(amount) {
+    const samples = 44100;
+    const curve = new Float32Array(samples);
+    const deg = Math.PI / 180;
+    for (let i = 0; i < samples; i++) {
+     const x = (i * 2) / samples - 1;
+     curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
+    }
+    return curve;
+   }
+   
+   function applyRandomAudioEffects() {
+    if (!isPlaying) return;
+    const interval = 100 + Math.random() * 400;
+    setTimeout(() => {
+     if (!isPlaying) return;
+     const now = audioContext.currentTime;
+     
+     if (Math.random() < 0.3) {
+      const muffleFreq = 300 + Math.random() * 1500;
+      filterNode.frequency.setValueAtTime(muffleFreq, now);
+      filterNode.frequency.linearRampToValueAtTime(22000, now + 0.2);
+     }
+     
+     if (Math.random() < 0.2) {
+      distortionNode.curve = makeDistortionCurve(50 + Math.random() * 100);
+      setTimeout(() => { distortionNode.curve = makeDistortionCurve(10); }, 50 + Math.random() * 100);
+     }
+     
+     if (Math.random() < 0.15) {
+      gainNode.gain.setValueAtTime(0.3, now);
+      gainNode.gain.linearRampToValueAtTime(0.7, now + 0.15);
+     }
+     
+     applyRandomAudioEffects();
+    }, interval);
+   }
+   
+   function applyGlitchEffect() {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const numGlitches = 3 + Math.floor(Math.random() * 5);
+    
+    for (let i = 0; i < numGlitches; i++) {
+     const y = Math.floor(Math.random() * canvas.height);
+     const height = 5 + Math.floor(Math.random() * 30);
+     const offset = -20 + Math.floor(Math.random() * 40);
+     const sliceData = ctx.getImageData(0, y, canvas.width, height);
+     ctx.putImageData(sliceData, offset, y);
+    }
+    
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4 * Math.floor(Math.random() * 1000)) {
+     if (Math.random() < 0.5) {
+      data[i] = Math.random() * 255;
+      data[i + 1] = Math.random() * 255;
+      data[i + 2] = Math.random() * 255;
+     }
+    }
+    ctx.putImageData(imageData, 0, 0);
+   }
+   
+   function applyDistortionEffect() {
+    const blockSize = 50 + Math.floor(Math.random() * 100);
+    const numBlocks = 5 + Math.floor(Math.random() * 10);
+    
+    for (let i = 0; i < numBlocks; i++) {
+     const srcX = Math.floor(Math.random() * (canvas.width - blockSize));
+     const srcY = Math.floor(Math.random() * (canvas.height - blockSize));
+     const destX = Math.floor(Math.random() * (canvas.width - blockSize));
+     const destY = Math.floor(Math.random() * (canvas.height - blockSize));
+     const blockData = ctx.getImageData(srcX, srcY, blockSize, blockSize);
+     ctx.putImageData(blockData, destX, destY);
+    }
+   }
+   
+   function applyRGBShift() {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const shiftAmount = 2 + Math.floor(Math.random() * 8);
+    const shiftedR = ctx.getImageData(shiftAmount, 0, canvas.width - shiftAmount, canvas.height);
+    const shiftedB = ctx.getImageData(-shiftAmount, 0, canvas.width + shiftAmount, canvas.height);
+    const data = imageData.data;
+    
+    for (let i = 0; i < data.length; i += 4) {
+     const pixelIndex = i / 4;
+     const x = pixelIndex % canvas.width;
+     if (x < shiftAmount || x >= canvas.width - shiftAmount) continue;
+     data[i] = shiftedR.data[i];
+     data[i + 2] = shiftedB.data[i + 2];
+    }
+    ctx.putImageData(imageData, 0, 0);
+   }
+   
+   function renderWithEffects() {
+    if (!isPlaying) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    if (Math.random() < 0.15) applyGlitchEffect();
+    if (Math.random() < 0.08) applyDistortionEffect();
+    if (Math.random() < 0.1) applyRGBShift();
+    
+    animationId = requestAnimationFrame(renderWithEffects);
+   }
+   
+   function closeVideo() {
+    isPlaying = false;
+    if (animationId) {
+     cancelAnimationFrame(animationId);
+     animationId = null;
+    }
+    video.pause();
+    video.currentTime = 0;
+    overlay.style.display = 'none';
+    console.log('🛑 Video player closed');
+   }
+   
+   async function playVideo() {
+    try {
+     overlay.style.display = 'flex';
+     
+     if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+     }
+     
+     video.src = './intro.mp4';
+     video.load();
+     
+     await new Promise((resolve, reject) => {
+      video.onloadedmetadata = resolve;
+      video.onerror = reject;
+     });
+     
+     canvas.width = video.videoWidth;
+     canvas.height = video.videoHeight;
+     
+     if (!sourceNode) {
+      sourceNode = audioContext.createMediaElementSource(video);
+     }
+     
+     gainNode = audioContext.createGain();
+     gainNode.gain.value = 0.7;
+     
+     filterNode = audioContext.createBiquadFilter();
+     filterNode.type = 'lowpass';
+     filterNode.frequency.value = 22000;
+     filterNode.Q.value = 1;
+     
+     distortionNode = audioContext.createWaveShaper();
+     distortionNode.curve = makeDistortionCurve(10);
+     distortionNode.oversample = '4x';
+     
+     sourceNode.connect(filterNode);
+     filterNode.connect(distortionNode);
+     distortionNode.connect(gainNode);
+     gainNode.connect(audioContext.destination);
+     
+     await video.play();
+     isPlaying = true;
+     
+     applyRandomAudioEffects();
+     renderWithEffects();
+     
+     console.log('🎬 Playing intro video with effects');
+     toast('Playing intro.mp4 with glitch effects');
+     
+    } catch (error) {
+     console.error('Error playing video:', error);
+     toast('Failed to load intro.mp4');
+     closeVideo();
+    }
+   }
+   
+   closeBtn.onclick = closeVideo;
+   video.onended = closeVideo;
+   
+   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isPlaying) closeVideo();
+   });
+   
+   playVideo();
+  });
+
+  // Template vs Componentized toggle
+  document.querySelectorAll('.mode-toggle').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const mode = this.dataset.mode;
+      sceneLoadingMode = mode;
+      localStorage.setItem('sceneLoadingMode', mode);
+      
+      // Update active state
+      document.querySelectorAll('.mode-toggle').forEach(b => {
+        b.classList.remove('active');
+        b.style.background = '#2a2a2f';
+        b.style.color = '#ddd';
+      });
+      this.classList.add('active');
+      this.style.background = '#4a7cff';
+      this.style.color = '#fff';
+      
+      // Update scene registry
+      scenes = getScenes();
+      
+      // Update mode indicators in scene select
+      updateModeIndicators();
+      
+      console.log(`Scene loading mode changed to: ${mode}`);
+      toast(`Mode: ${mode === 'template' ? 'Template (Faithful)' : 'Componentized (Modular)'}`);
+    });
+  });
+  
+  // Update mode indicators in scene select
+  function updateModeIndicators() {
+    const isTemplate = sceneLoadingMode === 'template';
+    const modeText = isTemplate ? '📄 Template' : '🧩 Component';
+    const modeColor = isTemplate ? '#4a7cff' : '#22c55e';
+    
+    document.querySelectorAll('.mode-indicator').forEach(el => {
+      el.textContent = modeText;
+      el.style.color = modeColor;
+      el.style.fontWeight = '600';
+      el.style.fontSize = '10px';
+    });
+    
+    document.querySelectorAll('.mode-badge').forEach(el => {
+      el.textContent = isTemplate ? '📄' : '🧩';
+      el.style.fontSize = '12px';
+      el.style.opacity = '0.8';
+    });
+  }
+  
+  // Restore saved mode on load
+  const savedMode = localStorage.getItem('sceneLoadingMode') || 'template';
+  document.querySelectorAll('.mode-toggle').forEach(btn => {
+    if (btn.dataset.mode === savedMode) {
+      btn.classList.add('active');
+      btn.style.background = '#4a7cff';
+      btn.style.color = '#fff';
+    } else {
+      btn.classList.remove('active');
+      btn.style.background = '#2a2a2f';
+      btn.style.color = '#ddd';
+    }
+  });
+  
+  // Update mode indicators initially
+  updateModeIndicators();
+
+  // Mode toggle button handlers (Sequence vs Debug for fullhand)
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation(); // Don't trigger scene load
+      
+      const mode = this.dataset.mode;
+      const sceneTarget = this.dataset.sceneTarget;
+      
+      // Update active state
+      const parent = this.parentElement;
+      parent.querySelectorAll('.mode-btn').forEach(b => {
+        b.classList.remove('active');
+        b.style.background = '#2a2a2f';
+      });
+      this.classList.add('active');
+      this.style.background = '#4a7cff';
+      
+      // Store mode preference
+      if (sceneTarget === 'fullhand') {
+        fullhandMode = mode;
+        localStorage.setItem('fullhand_mode', mode);
+        console.log(`Fullhand mode set to: ${mode}`);
+      }
+    });
+  });
+
+  // Check localStorage for previously viewed scenes and unlock them
+  function updateSceneLockStatus() {
+    document.querySelectorAll('.scene-option').forEach(option => {
+      const sceneName = option.dataset.scene;
+      if (!sceneName) return;
+      
+      // Check if this scene has been viewed
+      const viewedKey = `celli_scene_viewed_${sceneName}`;
+      const hasViewed = localStorage.getItem(viewedKey) === 'true';
+      
+      if (hasViewed) {
+        option.classList.remove('locked');
+        
+        // Add visual indicator (checkmark)
+        if (!option.querySelector('.viewed-badge')) {
+          const badge = document.createElement('span');
+          badge.className = 'viewed-badge';
+          badge.textContent = '✓ ';
+          badge.style.cssText = 'color:#22c55e; font-weight:bold; margin-right:4px;';
+          option.firstElementChild.prepend(badge);
+        }
+        
+        console.log(`Scene "${sceneName}" unlocked (previously viewed)`);
+      }
+    });
+    
+    // Dev tools scenes are never locked
+    const devScenes = ['sequence-builder', 'test-runner'];
+    devScenes.forEach(sceneName => {
+      const option = document.querySelector(`.scene-option[data-scene="${sceneName}"]`);
+      if (option) option.classList.remove('locked');
+    });
+  }
+  
+  // Update lock status on page load
+  updateSceneLockStatus();
+
   // Scene option click handlers
   document.querySelectorAll('.scene-option').forEach(option => {
    option.addEventListener('click', async function() {
     if (this.classList.contains('locked') && !debugMode) {
-     toast('Scene locked - experience the intro first');
+     toast('Scene locked - experience the intro first or view it once to unlock');
      return;
     }
     
     const scene = this.dataset.scene;
     console.log(`🎬 Loading scene: ${scene}`);
+    
+    // Mark scene as viewed (will be unlocked next time)
+    const viewedKey = `celli_scene_viewed_${scene}`;
+    localStorage.setItem(viewedKey, 'true');
+    console.log(`Scene "${scene}" marked as viewed`);
     
     // Close scene select menu
     const sceneSelectEl = document.getElementById('sceneSelect');
@@ -457,6 +1268,90 @@
    console.log(`📡 Scene transition event received: ${sceneName}`);
    await transitionToScene(sceneName);
   });
+  
+  // Expose globally for sequence builder and other tools
+  window.transitionToScene = transitionToScene;
+  window.scenes = scenes;
+  window.getScenes = getScenes;
+  
+  // Helper to get scene by name (for sequence builder)
+  window.getSceneByName = function(sceneName) {
+    // Map scene names to keys
+    const sceneKeyMap = {
+      'IntroSceneComplete': 'intro',
+      'VisiCalcScene': 'visicell',
+      'CelliRealScene': 'cellireal',
+      'FullhandScene': 'fullhand',
+      'End3Scene': 'end3',
+      'CityScene': 'theos',
+      'LeaveScene': 'leave'
+    };
+    
+    const sceneKey = sceneKeyMap[sceneName] || sceneName.toLowerCase();
+    return scenes[sceneKey];
+  };
+  
+  console.log('✅ Scene management functions exposed globally');
+  console.log('Available via: window.transitionToScene(sceneName)');
+  console.log('Available scenes:', Object.keys(scenes));
+  
+  // Quick composability patcher (for Sequence Builder compatibility)
+  window.makeSceneComposable = function(scene) {
+    if (!scene) {
+      scene = window.introScene || window.currentScene;
+    }
+    
+    if (!scene) {
+      console.error('❌ No scene found');
+      return false;
+    }
+    
+    console.log('🔧 Making scene composable:', scene.constructor.name);
+    
+    // Convert introCfg to timing.phases
+    if (scene.introCfg && !scene.timing) {
+      const phases = [];
+      const entries = Object.entries(scene.introCfg).sort((a, b) => a[1] - b[1]);
+      
+      entries.forEach(([key, endTime], i) => {
+        const startTime = i > 0 ? entries[i - 1][1] : 0;
+        const phaseName = key.replace(/End$/, '').replace(/([A-Z])/g, ' $1').trim();
+        const duration = endTime - startTime;
+        
+        if (duration > 0) {
+          const name = phaseName.charAt(0).toUpperCase() + phaseName.slice(1);
+          const type = name.toLowerCase().includes('transition') ? 'transition' :
+                       name.toLowerCase().includes('glitch') ? 'event' :
+                       name.toLowerCase().includes('text') ? 'dialogue' : 'animation';
+          
+          phases.push({ name, start: startTime, end: endTime, type, duration });
+        }
+      });
+      
+      scene.timing = {
+        phases,
+        markers: {},
+        duration: Math.max(...Object.values(scene.introCfg), 0)
+      };
+      
+      console.log(`✅ Created ${phases.length} timing phases`);
+    }
+    
+    if (!scene.motion && scene.motionCfg) {
+      scene.motion = { ...scene.motionCfg };
+    }
+    
+    if (!scene.events) {
+      scene.events = { dialogues: [], triggers: [], sounds: [] };
+    }
+    
+    console.log('✅ Scene is now composable for Sequence Builder');
+    console.log(`Phases: ${scene.timing?.phases?.length || 0}`);
+    
+    return true;
+  };
+  
+  console.log('💡 Helper available: window.makeSceneComposable(scene)');
 
   // Cleanup on page unload
   window.addEventListener('beforeunload', () => {
@@ -535,9 +1430,2437 @@
     toggleSequenceOverlay();
    }
   });
+  
+  // Listen for messages from sequence builder
+  window.addEventListener('message', (event) => {
+   if (event.data && event.data.type === 'closeSequenceBuilder') {
+    if (sequenceOverlayActive) {
+      toggleSequenceOverlay();
+    }
+   }
+  });
 
   console.log('✅ Application initialized - Click Play to begin');
   console.log('💡 Tip: Press \\ anytime to open Sequence Builder overlay');
+ </script>
+
+ <!-- Referrer Glitch Overlay Logic -->
+ <script type="module">
+  /*
+    Celli Referrer Glitch Overlay
+    - Triggers on Reddit / Hacker News arrivals, or manual URL input
+    - Pulls data via public JSON APIs (HN Firebase, Reddit .json)
+  */
+  
+  console.log('🚀 REFERRER OVERLAY SCRIPT STARTING');
+  console.error('=== DIAGNOSTIC MODE - CHECK FOR ERRORS BELOW ===');
+  
+  const overlay = document.getElementById('celliRefOverlay');
+  const refHeader = document.querySelector('.ref-header');
+  const refLogo = document.getElementById('refLogo');
+  const refTitle = document.getElementById('refTitle');
+  const refSub = document.getElementById('refSub');
+  const refList = document.getElementById('refList');
+  const btnClose = document.getElementById('refClose');
+  const btnDismiss = document.getElementById('refDismiss');
+  const btnRecreate = document.getElementById('refRecreate');
+  const btnReset = document.getElementById('refReset');
+  const refGlitch = document.getElementById('refGlitch');
+  const refSidebar = document.getElementById('refSidebar');
+  const refSidebarClose = document.getElementById('refSidebarClose');
+  const refSidebarUrl = document.getElementById('refSidebarUrl');
+  const refSidebarAck = document.getElementById('refSidebarAck');
+  const refTooltip = document.getElementById('refTooltip');
+  const customCursor = document.getElementById('customCursor');
+  const refPanel = document.querySelector('.celli-ref-panel');
+  const edgeImpact = document.getElementById('edgeImpact');
+  const darkeningOverlay = document.getElementById('darkeningOverlay');
+  const lightBeam = document.getElementById('lightBeam');
+  
+  // Track impact hits for progressive darkening
+  let impactCount = 0;
+  const MAX_IMPACTS_BEFORE_BEAM = 5;
+  
+  // Store items for glitching (all platforms)
+  let hnItems = [];
+  let redditItems = [];
+  let twitterItems = [];
+  let facebookItems = [];
+  let currentView = 'none';
+  let currentHNView = false;
+  let parodiesComplete = false;
+  let celliAdsComplete = false;
+  
+  // Parody headlines
+  const parodyHeadlines = [
+    "Show HN: Dyson Sphere Made from Dyson Vacuum and Home-Built Particle Accelerator",
+    "Ask HN: Why Does My Code Work Better When I'm Not Looking at It?",
+    "Show HN: I Trained GPT on My Therapy Sessions, Now It Won't Stop Asking If I'm Okay",
+    "I Quit My $500K FAANG Job to Build a Startup That Tells You When to Quit Your Job",
+    "Show HN: Blockchain-Based TODO List (Gas Fees Apply to Each Checkmark)",
+    "My Weekend Project Became a Unicorn and Now I Miss My Weekends",
+    "Show HN: Neural Network That Predicts When Your Neural Network Will Fail",
+    "Ask HN: Is It Normal That My Smart Fridge is Running a Mining Pool?",
+    "I Wrote Assembly for My Coffee Maker and Now It Judges My Life Choices",
+    "Show HN: Startup Idea Generator Powered by Startup Idea Generators",
+    "Ask HN: My AI Assistant Quit. Should I Write a Reference Letter?",
+    "Show HN: Decentralized Ping-Pong Score Tracker Using WebRTC and Tears",
+    "I Optimized My Life With Algorithms and Now I Can't Make Simple Decisions",
+    "Show HN: Browser Extension That Blocks Distractions by Adding More Distractions",
+    "Ask HN: Can I Put 'Survived HN Front Page' on My Resume?",
+    "Show HN: I Replaced My Team With Python Scripts (They're Less Buggy)",
+    "My Side Project Got More GitHub Stars Than My Main Job's Product",
+    "Show HN: Real-Time Collaborative Notepad for Writing Code You'll Delete Later",
+    "Ask HN: Is Burning Out Considered a Design Pattern Now?",
+    "I Built a Compiler That Only Works During Mercury Retrograde"
+  ];
+  
+  // Celli ads (second pass glitch replacements)
+  const celliAds = [
+    "Experience Cell.real - Where Spreadsheets Become Reality",
+    "Cell.real: Build Your World, One Cell at a Time",
+    "Now Available: Cell.real - The Revolutionary 3D Spreadsheet Engine",
+    "Cell.real: Because Your Ideas Deserve More Dimensions",
+    "Join the Cell.real Beta - Reshape How You Think About Data",
+    "Cell.real: From Formulas to Worlds in Seconds",
+    "Discover Cell.real - The Future of Creative Computing",
+    "Cell.real: Your Imagination, Rendered in Real-Time",
+    "Get Early Access to Cell.real - Limited Slots Available",
+    "Cell.real: Where Logic Meets Spatial Reasoning",
+    "Transform Your Workflow with Cell.real Today",
+    "Cell.real: The 3D Canvas for Programmers and Dreamers",
+    "Pre-Order Cell.real Now - Special Launch Pricing",
+    "Cell.real: Making the Impossible Computable",
+    "Experience Cell.real - No Downloads, Pure Browser Magic",
+    "Cell.real: Spreadsheets That Move, Think, and Create",
+    "Join 10,000+ Beta Testers Building with Cell.real",
+    "Cell.real: Your Next Favorite Development Environment",
+    "Unlock Cell.real Pro - Advanced Features for Power Users",
+    "Cell.real: Because Flat Data is So Last Decade"
+  ];
+  
+  // Reddit parodies
+  const redditParodies = [
+    "TIL that the inventor of autocorrect has died. Restaurant in pieces.",
+    "AITA for teaching my AI to argue with my girlfriend?",
+    "Today I learned that 'learning' is just continuous confusion management",
+    "[AskReddit] What's a red flag that someone peaked in high school? (7.2k comments)",
+    "TIL the average person spends 6 months of their life waiting for red lights to turn green",
+    "My [27F] boyfriend [29M] keeps trying to optimize our relationship with spreadsheets",
+    "TIFU by automating my job so well they gave me more work",
+    "ELI5: Why does deleting system32 fix everything?",
+    "Unpopular Opinion: Maybe we should have stopped at Web 1.0",
+    "LPT: If you can't afford therapy, just explain your code to a rubber duck",
+    "TIL that 'cloud computing' is just someone else's computer having a bad day",
+    "[Serious] People who upvote but don't comment, why?",
+    "My boss just discovered I've been working from a hammock in Bali for 3 years",
+    "CMV: The real treasure was the bugs we introduced along the way",
+    "TIL Steve Jobs once told a programmer 'It should just work' and that's why we're all suffering",
+    "AITA for correcting my date's use of 'literally'?",
+    "Today's Daily Discussion: Why is everything a subscription now?",
+    "[Breaking] Local man discovers productivity hack: closing Reddit",
+    "TIL that 73% of statistics cited on Reddit are made up on the spot",
+    "What's the male equivalent of 'I'm fine'? (23.7k upvotes)"
+  ];
+  
+  // Twitter/X parodies (aka "Zeed")
+  const twitterParodies = [
+    "just spent 6 hours debugging only to find the cable wasn't plugged in",
+    "normalize admitting you have no idea what you're doing",
+    "me: *writes perfect code* // the code: *immediately stops working when someone looks at it*",
+    "CEO announces layoffs but keeps the office ping pong table. priorities.",
+    "hot take: we should bring back websites that just say 'under construction'",
+    "the duality of man: wanting to quit your job vs. needing health insurance",
+    "POV: you're a senior developer who just googled 'how to exit vim'",
+    "why does every startup look like an Apple Store had a baby with a WeWork",
+    "my therapist: 'you can't blame everything on mercury retrograde' // me: 'sounds like something mercury retrograde would make you say'",
+    "just overheard someone say 'we'll use AI for that' about a problem that needs a for loop",
+    "accidentally typed 'npm run sadness' instead of 'npm run dev' but it still felt accurate",
+    "the metaverse died so we could have 37 new AI chatbots. this is the future we chose.",
+    "breaking: man who said 'I'll just make a quick fix' has not been seen in 3 days",
+    "interviewer: where do you see yourself in 5 years // me: bold of you to assume I can plan past Tuesday",
+    "just learned my side project has more users than my main job's product. do I tell them?",
+    "love when a tutorial starts with 'this is easy' then immediately imports 47 libraries",
+    "manager: 'can you hop on a quick call' // me: *stress intensifies*",
+    "the four horsemen: 'works on my machine' 'it was working yesterday' 'did you try turning it off' 'check the logs'",
+    "why is every tech conference basically 'we made a thing that shouldn't be blockchain but is'",
+    "my code at 2am vs my code at 2pm: same code, different level of confidence"
+  ];
+  
+  // Facebook parodies
+  const facebookParodies = [
+    "Just bought a house! JK it's an NFT of a house. Still living with my parents.",
+    "Thoughts and prayers for everyone who has to go back to the office",
+    "Can anyone recommend a good therapist? Preferably one who accepts memes as payment",
+    "Blessed to announce I'm now a founder! (unemployed)",
+    "Just finished a 40-hour coding bootcamp. Where's my $200k job?",
+    "Why does no one talk about how expensive it is to simply exist anymore",
+    "Normalize not having a side hustle. My side hustle is resting.",
+    "Couldn't help but notice all my friends are either getting married or having existential crises",
+    "POV: You're 30 and everyone's wedding photos are starting to look the same",
+    "Just submitted 50 job applications and got 1 rejection. The other 49 ghosted me.",
+    "Sharing my journey: Day 47 of pretending to understand cryptocurrency",
+    "BREAKING: Local man discovers the key to happiness is lowering expectations",
+    "Grateful for my hybrid work setup (working from bed instead of couch)",
+    "Unpopular opinion: Maybe infinite growth on a finite planet isn't sustainable?",
+    "Tag someone who needs to hear this: Your laptop charger isn't a personality trait",
+    "Just me or does every corporate email end with 'let's circle back' now?",
+    "Shoutout to everyone still trying to make 'networking events' sound fun",
+    "Remember when we thought 2020 was bad? Simpler times.",
+    "Fun fact: The word 'literally' has literally lost all meaning",
+    "Celebrating 5 years at my job! (JK I'm just too tired to update my resume)"
+  ];
+  
+  // Verify all elements exist
+  console.log('🔍 Checking referrer overlay elements:');
+  console.log('  overlay:', overlay ? '✓' : '✗');
+  console.log('  refHeader:', refHeader ? '✓' : '✗');
+  console.log('  edgeImpact:', edgeImpact ? '✓' : '✗');
+  console.log('  darkeningOverlay:', darkeningOverlay ? '✓' : '✗');
+  console.log('  lightBeam:', lightBeam ? '✓' : '✗');
+  console.log('  manualTrigger:', document.getElementById('manualTrigger') ? '✓' : '✗');
+  console.log('  quickHN:', document.getElementById('quickHN') ? '✓' : '✗');
+  console.log('  quickReddit:', document.getElementById('quickReddit') ? '✓' : '✗');
+  console.log('  quickTwitter:', document.getElementById('quickTwitter') ? '✓' : '✗');
+  console.log('  quickFacebook:', document.getElementById('quickFacebook') ? '✓' : '✗');
+  
+  // Manual trigger
+  const manualTriggerBtn = document.getElementById('manualTrigger');
+  if (manualTriggerBtn) {
+    manualTriggerBtn.addEventListener('click', () => {
+      console.log('📝 Manual trigger clicked');
+    const url = document.getElementById('manualUrlInput').value.trim();
+    if (!url) return alert('Please enter a URL');
+      triggerOverlay(url).catch((err) => {
+        console.error('Trigger error:', err);
+  });
+    });
+  } else {
+    console.error('❌ manualTrigger button not found!');
+  }
+  
+  // Quick access buttons
+  const quickHNBtn = document.getElementById('quickHN');
+  if (quickHNBtn) {
+    quickHNBtn.addEventListener('click', () => {
+      console.log('🔶 HN button clicked');
+      triggerOverlay('https://news.ycombinator.com').catch((err) => {
+        console.error('HN trigger error:', err);
+      });
+    });
+  } else {
+    console.error('❌ quickHN button not found!');
+  }
+  
+  const quickRedditBtn = document.getElementById('quickReddit');
+  if (quickRedditBtn) {
+    quickRedditBtn.addEventListener('click', () => {
+      console.log('🔴 Reddit button clicked');
+      triggerOverlay('https://www.reddit.com/r/all').catch((err) => {
+        console.error('Reddit trigger error:', err);
+      });
+    });
+  } else {
+    console.error('❌ quickReddit button not found!');
+  }
+  
+  const quickTwitterBtn = document.getElementById('quickTwitter');
+  if (quickTwitterBtn) {
+    quickTwitterBtn.addEventListener('click', () => {
+      console.log('🐦 Zeed button clicked');
+      triggerOverlay('zeed').catch((err) => {
+        console.error('Zeed trigger error:', err);
+      });
+    });
+  } else {
+    console.error('❌ quickTwitter button not found!');
+  }
+  
+  const quickFacebookBtn = document.getElementById('quickFacebook');
+  if (quickFacebookBtn) {
+    quickFacebookBtn.addEventListener('click', () => {
+      console.log('📘 Facebook button clicked');
+      triggerOverlay('facebook').catch((err) => {
+        console.error('Facebook trigger error:', err);
+      });
+    });
+  } else {
+    console.error('❌ quickFacebook button not found!');
+  }
+  
+  // Sidebar controls
+  refSidebarClose.addEventListener('click', hideSidebar);
+  
+  // Track if ToS phase is active
+  let tosPhaseActive = false;
+  
+  refSidebarAck.addEventListener('click', () => {
+    // If ToS phase is active, trigger final submission
+    if (tosPhaseActive) {
+      console.log('📝 ToS CHECKBOX CLICKED - FINAL SUBMISSION');
+      // TODO: Add final submission effect
+      return;
+    }
+    
+    // If fake ad is showing, transform to serious message
+    if (celliAdsComplete && refSidebar.classList.contains('mythic-entrance')) {
+      console.log('💥 BADBOOLEAN.COM AD CLICKED! Switching to serious message...');
+      transformToSeriousMessage();
+    } else {
+      hideSidebar();
+    }
+  });
+  
+  function showLoomworksInvite(isAltVersion = false) {
+    const sidebar = refSidebar;
+    const ackBtn = refSidebarAck;
+    const h3 = sidebar.querySelector('h3');
+    const paragraphs = sidebar.querySelectorAll('p');
+    
+    // Clear any pending timeout
+    if (window.badBooleanTimeout) {
+      clearTimeout(window.badBooleanTimeout);
+      window.badBooleanTimeout = null;
+    }
+    
+    // Hide the base card elements completely
+    h3.style.display = 'none';
+    paragraphs.forEach(p => p.style.display = 'none');
+    refSidebarUrl.style.display = 'none';
+    
+    // Quick fade transition
+    ackBtn.style.transition = 'all 0.3s ease-out';
+    ackBtn.style.opacity = '0';
+    
+    // Transform entire sidebar into unified hazy glass crystal
+    sidebar.style.background = 'linear-gradient(135deg, rgba(15, 25, 45, 0.65), rgba(25, 35, 55, 0.75), rgba(20, 30, 50, 0.7))';
+    sidebar.style.backdropFilter = 'blur(40px) saturate(200%) brightness(1.1)';
+    sidebar.style.webkitBackdropFilter = 'blur(40px) saturate(200%) brightness(1.1)';
+    sidebar.style.border = '1px solid rgba(143, 180, 255, 0.4)';
+    sidebar.style.borderRadius = '24px';
+    sidebar.style.padding = '0';
+    sidebar.style.overflow = 'hidden';
+    sidebar.style.boxShadow = '0 8px 40px rgba(0, 0, 0, 0.5), 0 0 80px rgba(102, 126, 234, 0.25), inset 0 2px 0 rgba(255, 255, 255, 0.15), inset 0 -2px 20px rgba(102, 126, 234, 0.1)';
+    
+    // Choose opening text based on version
+    const openingText = isAltVersion 
+      ? 'The willpower. I wouldn\'t have been so strong. The things we do to fill the nulls in our heart. You\'re exactly who we need.'
+      : 'Somebody who knows what they want. A rarity these days.';
+    
+    const versionLabel = isAltVersion ? 'WILLPOWER' : 'IMMEDIATE';
+    console.log(`  📝 Showing ${versionLabel} version of LOOMWORKS invite`);
+    
+    setTimeout(() => {
+      // Show complete unified ToS card with header - hazy glass crystal effect
+      ackBtn.innerHTML = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">
+          <!-- Header with crystal haze effect -->
+          <div style="padding: 28px 36px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(143, 180, 255, 0.15), rgba(118, 75, 162, 0.18)); border-bottom: 1px solid rgba(143, 180, 255, 0.3); backdrop-filter: blur(10px);">
+            <div style="font-size: 13px; font-weight: 500; color: #b4d0ff; letter-spacing: 4px; text-align: center; text-shadow: 0 0 15px rgba(143, 180, 255, 0.6), 0 0 30px rgba(102, 126, 234, 0.3);">
+              ...LOOMWORKS INVITES YOU...
+            </div>
+          </div>
+          
+          <!-- Content -->
+          <div style="padding: 36px; font-size: 15px; font-weight: 300; line-height: 1.9; color: #f8f9fa;">
+            <div style="margin-bottom: 24px; font-weight: 400; font-size: 16px; color: #ffffff; letter-spacing: 0.4px; line-height: 1.6;">
+              ${openingText}
+            </div>
+            <div style="margin-bottom: 28px; opacity: 0.95; font-size: 14px; line-height: 1.7;">
+              Not everyone passes that test, you know? And for that, we'd like you to join our incredibly exclusive <span id="alphaText" style="font-weight: 600; color: #8fb4ff; text-shadow: 0 0 8px rgba(143, 180, 255, 0.5);">alpha</span> test.
+            </div>
+            <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid rgba(143, 180, 255, 0.2); font-size: 13px; opacity: 0.85; font-weight: 300;">
+              Just need you to sign the ToS....
+            </div>
+            <div id="tosLabel" style="margin-top: 16px; font-size: 11px; color: #a0b0c0; letter-spacing: 2px; font-weight: 500;">
+              TERMS OF <span id="eternalText" style="opacity: 0;"></span> SUBMISSION
+            </div>
+            <div id="tosCheckboxContainer" style="margin-top: 22px; display: flex; align-items: center; gap: 14px; cursor: pointer; padding: 18px 24px; border: 1px solid rgba(143, 180, 255, 0.4); border-radius: 14px; background: linear-gradient(135deg, rgba(143, 180, 255, 0.12), rgba(102, 126, 234, 0.15)); backdrop-filter: blur(15px) saturate(180%); box-shadow: 0 4px 24px rgba(102, 126, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 -1px 10px rgba(102, 126, 234, 0.1); transition: all 0.3s ease;">
+              <input type="checkbox" id="tosCheckbox" style="width: 22px; height: 22px; cursor: pointer; accent-color: #667eea; border-radius: 4px;">
+              <label for="tosCheckbox" style="cursor: pointer; user-select: none; font-size: 13px; font-weight: 400; color: #e8ecf0; letter-spacing: 0.4px;">I accept the terms</label>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Reset button to transparent (content defines styling now)
+      ackBtn.style.background = 'transparent';
+      ackBtn.style.backdropFilter = 'none';
+      ackBtn.style.webkitBackdropFilter = 'none';
+      ackBtn.style.border = 'none';
+      ackBtn.style.borderRadius = '0';
+      ackBtn.style.padding = '0';
+      ackBtn.style.boxShadow = 'none';
+      ackBtn.style.animation = '';
+      ackBtn.style.opacity = '1';
+      ackBtn.style.transform = 'scale(1)';
+      
+      // Start glitching "alpha" text
+      setTimeout(() => glitchAlphaText(), 500);
+      
+      // Start flashing "ETERNAL" letter by letter
+      setTimeout(() => flashEternalText(), 1000);
+      
+      // Activate magnetic cursor for checkbox
+      setTimeout(() => activateMagneticCheckbox(), 1500);
+      
+      tosPhaseActive = true;
+      
+      console.log(`✨ Unified hazy glass crystal LOOMWORKS invitation displayed (${versionLabel})`);
+    }, 300);
+  }
+  
+  function transformToSeriousMessage() {
+    // When clicked immediately, show the immediate version
+    showLoomworksInvite(false);
+  }
+  
+  function glitchAlphaText() {
+    const alphaEl = document.getElementById('alphaText');
+    if (!alphaEl) return;
+    
+    const original = 'alpha';
+    const glitchChars = {
+      'a': ['@', 'α', 'а', 'ａ', 'ą'],
+      'l': ['|', 'ℓ', '1', 'ǀ', 'Ɩ'],
+      'p': ['þ', 'ρ', 'р', 'ƿ', 'φ'],
+      'h': ['ħ', 'н', 'һ', 'ђ', 'ћ']
+    };
+    
+    setInterval(() => {
+      const glitched = original.split('').map(char => {
+        const variants = glitchChars[char] || [char];
+        return variants[Math.floor(Math.random() * variants.length)];
+      }).join('');
+      
+      alphaEl.textContent = glitched;
+      
+      // Occasionally show original
+      if (Math.random() < 0.3) {
+        setTimeout(() => { alphaEl.textContent = original; }, 50);
+      }
+    }, 200);
+  }
+  
+  function flashEternalText() {
+    const eternalEl = document.getElementById('eternalText');
+    if (!eternalEl) return;
+    
+    const word = 'ETERNAL ';
+    let currentIndex = 0;
+    
+    const flashInterval = setInterval(() => {
+      if (currentIndex < word.length) {
+        eternalEl.textContent = word.substring(0, currentIndex + 1);
+        eternalEl.style.opacity = '1';
+        eternalEl.style.color = '#ff6b6b';
+        eternalEl.style.fontWeight = '700';
+        currentIndex++;
+      } else {
+        clearInterval(flashInterval);
+      }
+    }, 150);
+  }
+  
+  function activateMagneticCheckbox() {
+    const checkbox = document.getElementById('tosCheckbox');
+    const container = document.getElementById('tosCheckboxContainer');
+    if (!checkbox || !container) return;
+    
+    console.log('🧲 Magnetic checkbox activated - hiding real cursor');
+    
+    // Hide real cursor
+    document.body.classList.add('faux-cursor-active');
+    
+    // Create faux cursor
+    let fauxCursor = document.getElementById('fauxCursor');
+    if (!fauxCursor) {
+      fauxCursor = document.createElement('div');
+      fauxCursor.id = 'fauxCursor';
+      fauxCursor.style.cssText = `
+        position: fixed;
+        width: 24px;
+        height: 24px;
+        border: 3px solid rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 100000;
+        background: radial-gradient(circle, rgba(102, 126, 234, 0.6), transparent);
+        box-shadow: 0 0 20px rgba(102, 126, 234, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.3);
+        transform-origin: center center;
+        transform: translate(-50%, -50%);
+      `;
+      document.body.appendChild(fauxCursor);
+      console.log('  🎯 Faux cursor element created');
+    }
+    
+    fauxCursor.style.display = 'block';
+    console.log('  👁️ Faux cursor visible, real cursor hidden');
+    
+    // Track real mouse position - initialize with current position
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    
+    const mouseMoveHandler = (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    };
+    
+    // Add event listener and store reference for cleanup
+    document.addEventListener('mousemove', mouseMoveHandler);
+    window.fauxCursorMouseHandler = mouseMoveHandler;
+    
+    console.log(`  📍 Initial mouse position: (${mouseX}, ${mouseY})`);
+    
+    // Animate faux cursor toward checkbox with smooth interpolation
+    let currentFauxX = mouseX;
+    let currentFauxY = mouseY;
+    let animationId;
+    let frameCount = 0;
+    
+    const animateFauxCursor = () => {
+      frameCount++;
+      
+      // Get checkbox position
+      const checkboxRect = checkbox.getBoundingClientRect();
+      if (!checkboxRect || checkboxRect.width === 0) {
+        // Checkbox not visible yet, retry
+        animationId = requestAnimationFrame(animateFauxCursor);
+        return;
+      }
+      
+      const targetX = checkboxRect.left + checkboxRect.width / 2;
+      const targetY = checkboxRect.top + checkboxRect.height / 2;
+      
+      // Calculate gravitational pull from real mouse to checkbox
+      const dx = targetX - mouseX;
+      const dy = targetY - mouseY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Strong magnetic effect within 600px
+      let desiredFauxX = mouseX;
+      let desiredFauxY = mouseY;
+      
+      if (distance < 600) {
+        const strength = 1 - (distance / 600);
+        const pullStrength = 0.85; // Very strong pull (85% toward checkbox)
+        desiredFauxX = mouseX + (dx * strength * pullStrength);
+        desiredFauxY = mouseY + (dy * strength * pullStrength);
+        
+        // Scale and glow faux cursor based on proximity
+        const scale = 1 + (strength * 0.8);
+        const glow = 20 + (strength * 40);
+        fauxCursor.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        fauxCursor.style.boxShadow = `0 0 ${glow}px rgba(102, 126, 234, ${0.8 + strength * 0.2}), inset 0 0 10px rgba(255, 255, 255, ${0.3 + strength * 0.4})`;
+        
+        // Log every 60 frames for debugging
+        if (frameCount % 60 === 0) {
+          console.log(`  🧲 Mouse:(${mouseX.toFixed(0)},${mouseY.toFixed(0)}) Checkbox:(${targetX.toFixed(0)},${targetY.toFixed(0)}) Distance:${distance.toFixed(0)}px Strength:${(strength * 100).toFixed(0)}%`);
+          console.log(`  🎯 Faux:(${currentFauxX.toFixed(0)},${currentFauxY.toFixed(0)}) Desired:(${desiredFauxX.toFixed(0)},${desiredFauxY.toFixed(0)})`);
+        }
+      } else {
+        fauxCursor.style.transform = 'translate(-50%, -50%) scale(1)';
+        fauxCursor.style.boxShadow = '0 0 20px rgba(102, 126, 234, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.3)';
+      }
+      
+      // Smooth interpolation for cursor position
+      currentFauxX += (desiredFauxX - currentFauxX) * 0.15;
+      currentFauxY += (desiredFauxY - currentFauxY) * 0.15;
+      
+      fauxCursor.style.left = currentFauxX + 'px';
+      fauxCursor.style.top = currentFauxY + 'px';
+      
+      animationId = requestAnimationFrame(animateFauxCursor);
+    };
+    
+    console.log('  🚀 Starting faux cursor animation loop');
+    animateFauxCursor();
+    
+    // Store animation ID for cleanup
+    window.fauxCursorAnimationId = animationId;
+  }
+  
+  // Magnetic cursor effect
+  let magneticActive = false;
+  let cursorX = 0, cursorY = 0;
+  let targetX = 0, targetY = 0;
+  
+  function startMagneticCursor() {
+    magneticActive = true;
+    refPanel.classList.add('magnetic-active');
+    customCursor.classList.add('active');
+  }
+  
+  function stopMagneticCursor() {
+    magneticActive = false;
+    refPanel.classList.remove('magnetic-active');
+    customCursor.classList.remove('active');
+    refSidebarAck.style.transform = 'scale(1)';
+    refSidebarAck.style.boxShadow = 'none';
+  }
+  
+  // Track mouse position
+  overlay.addEventListener('mousemove', (e) => {
+    cursorX = e.clientX;
+    cursorY = e.clientY;
+    
+    if (!magneticActive || !refSidebar.classList.contains('active')) {
+      customCursor.style.left = cursorX + 'px';
+      customCursor.style.top = cursorY + 'px';
+      return;
+    }
+    
+    const btnRect = refSidebarAck.getBoundingClientRect();
+    const btnCenterX = btnRect.left + btnRect.width / 2;
+    const btnCenterY = btnRect.top + btnRect.height / 2;
+    
+    const dx = btnCenterX - cursorX;
+    const dy = btnCenterY - cursorY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Magnetic range: 300px
+    if (distance < 300) {
+      const strength = 1 - (distance / 300);
+      const pullX = dx * strength * 0.4;
+      const pullY = dy * strength * 0.4;
+      
+      targetX = cursorX + pullX;
+      targetY = cursorY + pullY;
+      
+      const scale = 1 + strength * 0.2;
+      refSidebarAck.style.transform = `scale(${scale})`;
+      refSidebarAck.style.boxShadow = `0 0 ${strength * 25}px rgba(255,255,255,${strength * 0.6})`;
+    } else {
+      targetX = cursorX;
+      targetY = cursorY;
+      refSidebarAck.style.transform = 'scale(1)';
+      refSidebarAck.style.boxShadow = 'none';
+    }
+    
+    customCursor.style.left = targetX + 'px';
+    customCursor.style.top = targetY + 'px';
+  });
+  
+  async function triggerOverlay(url) {
+    // Detect source type from URL
+    const urlLower = (url || '').toLowerCase();
+    const isHN = /news\.ycombinator\.com/.test(urlLower);
+    const isReddit = /(^|\/\/|\.)reddit\.com/.test(urlLower);
+    const isTwitter = /(^|\/\/|\.)twitter\.com/.test(urlLower) || /(^|\/\/|\.)x\.com/.test(urlLower) || url === 'zeed';
+    const isFacebook = /(^|\/\/|\.)facebook\.com/.test(urlLower) || url === 'facebook';
+    
+    // Set header visuals
+    if (isHN) {
+      refLogo.classList.remove('reddit', 'twitter', 'facebook');
+      refLogo.classList.add('hn');
+      refLogo.textContent = 'HN';
+      refTitle.textContent = 'Previously on Hacker News…';
+      refSub.textContent = new URL(url || 'https://news.ycombinator.com').hostname;
+    } else if (isReddit) {
+      refLogo.classList.remove('hn', 'twitter', 'facebook');
+      refLogo.classList.add('reddit');
+      refLogo.textContent = 'reddit';
+      refTitle.textContent = 'Previously on Reddit…';
+      refSub.textContent = hostOrPath(url || 'https://www.reddit.com');
+    } else if (isTwitter) {
+      refLogo.classList.remove('hn', 'reddit', 'facebook');
+      refLogo.classList.add('twitter');
+      refLogo.textContent = 'Z';
+      refTitle.textContent = 'Previously on Zeed…';
+      refSub.textContent = 'timeline reconstructed';
+    } else if (isFacebook) {
+      refLogo.classList.remove('hn', 'reddit', 'twitter');
+      refLogo.classList.add('facebook');
+      refLogo.textContent = 'f';
+      refTitle.textContent = 'Previously on Facebook…';
+      refSub.textContent = 'news feed + messenger';
+    } else {
+      refLogo.classList.remove('hn', 'reddit', 'twitter', 'facebook');
+      refLogo.textContent = 'SRC';
+      refTitle.textContent = 'Reconstructing previous page…';
+      refSub.textContent = hostOrPath(url);
+    }
+    
+    // Show overlay
+    openOverlay();
+    
+    // Fetch snapshot
+    let items = [];
+    let platformType = 'hn';
+    
+    try {
+      if (isHN) {
+        platformType = 'hn';
+        items = await fetchHNSnapshot(url);
+      } else if (isReddit) {
+        platformType = 'reddit';
+        items = await fetchRedditSnapshot(url);
+      } else if (isTwitter) {
+        platformType = 'twitter';
+        items = await fetchTwitterSnapshot(url);
+      } else if (isFacebook) {
+        platformType = 'facebook';
+        items = await fetchFacebookSnapshot(url);
+      } else {
+        items = await fetchGenericFallback(url);
+      }
+      console.log(`✓ Fetched ${items ? items.length : 0} items for ${platformType}`);
+    } catch (e) {
+      console.error('Fetch error:', e);
+      items = [];
+    }
+    
+    if (!items || items.length === 0) {
+      console.warn('No items - using fallback');
+      items = [{ title: '(no items found — source may be private or blocked)', sub: '', link: '' }];
+    }
+    
+    console.log(`📝 Calling renderItems with ${items.length} items for platform: ${platformType}`);
+    renderItems(items, platformType);
+    
+    console.log(`✨ Calling stagedReveal for platform: ${platformType}`);
+    stagedReveal(platformType);
+    
+    console.log(`👻 Scheduling glitch effect`);
+    setTimeout(runGlitchOnce, 700);
+    
+    // Wire controls
+    btnClose.replaceWith(btnClose.cloneNode(true));
+    btnDismiss.replaceWith(btnDismiss.cloneNode(true));
+    btnRecreate.replaceWith(btnRecreate.cloneNode(true));
+    btnReset.replaceWith(btnReset.cloneNode(true));
+    const newClose = document.getElementById('refClose');
+    const newDismiss = document.getElementById('refDismiss');
+    const newRecreate = document.getElementById('refRecreate');
+    const newReset = document.getElementById('refReset');
+    newClose.addEventListener('click', dismiss);
+    newDismiss.addEventListener('click', dismiss);
+    newRecreate.addEventListener('click', () => {
+      runGlitchOnce();
+      jitterList(700);
+    });
+    newReset.addEventListener('click', () => {
+      resetImpacts();
+    });
+  }
+  
+  function openOverlay() {
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+  
+  function dismiss() {
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    hideSidebar();
+    hideTooltip();
+    resetImpacts();
+  }
+  
+  function showSidebar(url, withImpact = false) {
+    refSidebar.classList.remove('bouncing', 'impact');
+    refSidebar.classList.add('active');
+    
+    if (url) {
+      refSidebarUrl.textContent = `Navigating to: ${url}`;
+      refSidebarUrl.style.display = 'block';
+    }
+    
+    if (withImpact) {
+      // Add impact effect from tooltip splat
+      setTimeout(() => refSidebar.classList.add('impact'), 10);
+      setTimeout(() => refSidebar.classList.remove('impact'), 600);
+    } else {
+      // Normal bounce in
+      setTimeout(() => refSidebar.classList.add('bouncing'), 10);
+      setTimeout(() => refSidebar.classList.remove('bouncing'), 600);
+    }
+    
+    setTimeout(() => startMagneticCursor(), 800);
+  }
+  
+  function hideSidebar() {
+    refSidebar.classList.remove('active', 'bouncing', 'impact', 'mythic-entrance', 'stage-float', 'stage-sweep', 'stage-rumble', 'stage-expand');
+    refSidebarUrl.style.display = 'none';
+    refSidebarUrl.textContent = '';
+    refSidebarClose.style.display = 'block';
+    
+    // Reset button to original state
+    const ackBtn = refSidebarAck;
+    ackBtn.innerHTML = 'Acknowledge Glitch';
+    ackBtn.style.background = '';
+    ackBtn.style.padding = '';
+    ackBtn.style.fontSize = '';
+    ackBtn.style.animation = '';
+    ackBtn.style.border = '';
+    ackBtn.style.boxShadow = '';
+    ackBtn.style.opacity = '1';
+    ackBtn.style.transition = '';
+    
+    // Reset sidebar content visibility
+    const h3 = refSidebar.querySelector('h3');
+    const paragraphs = refSidebar.querySelectorAll('p');
+    if (h3) {
+      h3.style.opacity = '1';
+      h3.style.display = 'block';
+    }
+    paragraphs.forEach(p => {
+      p.style.opacity = '1';
+      p.style.display = 'block';
+    });
+    
+    // Clean up ToS phase
+    tosPhaseActive = false;
+    
+    // Remove faux cursor
+    const fauxCursor = document.getElementById('fauxCursor');
+    if (fauxCursor) {
+      fauxCursor.style.display = 'none';
+    }
+    
+    // Restore real cursor
+    document.body.classList.remove('faux-cursor-active');
+    
+    // Cancel faux cursor animation
+    if (window.fauxCursorAnimationId) {
+      cancelAnimationFrame(window.fauxCursorAnimationId);
+      window.fauxCursorAnimationId = null;
+    }
+    
+    // Remove mouse handler
+    if (window.fauxCursorMouseHandler) {
+      document.removeEventListener('mousemove', window.fauxCursorMouseHandler);
+      window.fauxCursorMouseHandler = null;
+    }
+    
+    // Reset sidebar styling
+    const sidebar = refSidebar;
+    sidebar.style.background = '';
+    sidebar.style.backdropFilter = '';
+    sidebar.style.webkitBackdropFilter = '';
+    sidebar.style.border = '';
+    sidebar.style.borderRadius = '';
+    sidebar.style.padding = '';
+    sidebar.style.overflow = '';
+    
+    stopMagneticCursor();
+  }
+  
+  function showTooltip(url, linkElement) {
+    // Show the shared hover tooltip
+    refTooltip.textContent = url;
+    
+    // Position above the link element
+    const rect = linkElement.getBoundingClientRect();
+    const tooltipWidth = 400; // max-width from CSS
+    
+    // Center horizontally on the link, position above it
+    let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+    const top = rect.top - 40; // 40px above the link
+    
+    // Keep within viewport bounds
+    const viewportWidth = window.innerWidth;
+    if (left < 10) left = 10;
+    if (left + tooltipWidth > viewportWidth - 10) {
+      left = viewportWidth - tooltipWidth - 10;
+    }
+    
+    refTooltip.style.left = left + 'px';
+    refTooltip.style.top = top + 'px';
+    refTooltip.classList.remove('morphing');
+    refTooltip.classList.add('active');
+  }
+  
+  function createFlyingTooltip(url, linkElement) {
+    // Create a NEW independent tooltip for animation
+    const tooltip = document.createElement('div');
+    tooltip.className = 'ref-tooltip active';
+    tooltip.textContent = url;
+    document.body.appendChild(tooltip);
+    
+    // Position above the link element
+    const rect = linkElement.getBoundingClientRect();
+    const tooltipWidth = 400;
+    
+    let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+    const top = rect.top - 40;
+    
+    const viewportWidth = window.innerWidth;
+    if (left < 10) left = 10;
+    if (left + tooltipWidth > viewportWidth - 10) {
+      left = viewportWidth - tooltipWidth - 10;
+    }
+    
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+    
+    return tooltip;
+  }
+  
+  function hideTooltip() {
+    refTooltip.classList.remove('active', 'morphing');
+  }
+  
+  function createImpactParticles(tooltipElement) {
+    console.log('💨 Creating impact particles...');
+    
+    const tooltipRect = tooltipElement.getBoundingClientRect();
+    const impactX = window.innerWidth - 5; // Slightly inset from edge
+    const impactYTop = tooltipRect.top;
+    const impactYBottom = tooltipRect.bottom;
+    const impactYCenter = (impactYTop + impactYBottom) / 2;
+    
+    console.log(`   Impact point: x=${impactX}, y=${impactYCenter.toFixed(0)} (top:${impactYTop.toFixed(0)}, bottom:${impactYBottom.toFixed(0)})`);
+    
+    // Number of particles to spawn
+    const particleCount = 25;
+    console.log(`   Spawning ${particleCount} particles`);
+    
+    // Spawn particles from top of tooltip collision
+    for (let i = 0; i < particleCount / 3; i++) {
+      createParticle(impactX, impactYTop, -1); // -1 = upward bias
+    }
+    
+    // Spawn particles from bottom of tooltip collision
+    for (let i = 0; i < particleCount / 3; i++) {
+      createParticle(impactX, impactYBottom, 1); // 1 = downward bias
+    }
+    
+    // Spawn particles from center (spray in both directions)
+    for (let i = 0; i < particleCount / 3; i++) {
+      createParticle(impactX, impactYCenter, Math.random() > 0.5 ? 1 : -1);
+    }
+  }
+  
+  function createParticle(x, y, verticalBias) {
+    const particle = document.createElement('div');
+    particle.className = 'impact-particle pixel-particle';
+    
+    // Pixelated sizes (4px, 6px, 8px blocks)
+    const sizeOptions = [4, 6, 8];
+    const size = sizeOptions[Math.floor(Math.random() * sizeOptions.length)];
+    particle.style.width = size + 'px';
+    particle.style.height = size + 'px';
+    
+    // Specific pixel colors: cyan-ish blue, orange-ish yellow, magenta-ish red
+    const colors = [
+      '#00d4ff',  // slightly cyan blue
+      '#ff8800',  // slightly orange yellow
+      '#ff0055',  // slightly magenta red
+    ];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    particle.style.background = color;
+    particle.style.boxShadow = `0 0 ${size}px ${color}`;
+    particle.style.mixBlendMode = 'screen';
+    
+    particle.style.left = x + 'px';
+    particle.style.top = y + 'px';
+    
+    // Random velocity (biased by vertical direction)
+    // Wider spread angle for explosive effect
+    const angleSpread = Math.PI * 0.8; // 144 degrees spread
+    const baseAngle = verticalBias > 0 ? Math.PI / 2 : -Math.PI / 2;
+    const angle = (Math.random() - 0.5) * angleSpread + baseAngle;
+    const speed = 80 + Math.random() * 150; // Faster particles
+    const vx = Math.cos(angle) * speed * -1; // Move left into frame
+    const vy = Math.sin(angle) * speed;
+    
+    particle.style.setProperty('--particle-x', vx + 'px');
+    particle.style.setProperty('--particle-y', vy + 'px');
+    
+    document.body.appendChild(particle);
+    
+    // Trigger animation with slight delay for staggered effect
+    const delay = Math.random() * 30;
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        particle.classList.add('active');
+      });
+    }, delay);
+    
+    // Remove after animation
+    setTimeout(() => {
+      if (particle.parentNode) {
+        particle.parentNode.removeChild(particle);
+      }
+    }, 700 + delay);
+  }
+  
+  // Track brick holes for final burst
+  let brickHoles = [];
+  
+  function createBrickHole(yPosition) {
+    console.log(`🧱💥 Creating brick hole at Y: ${yPosition}px`);
+    console.log(`  📊 Current hole count: ${brickHoles.length}`);
+    
+    // Create hole visual indicator (for debugging)
+    const hole = document.createElement('div');
+    hole.className = 'darkening-hole';
+    hole.style.top = (yPosition - 40) + 'px'; // Center on impact
+    hole.style.right = '0';
+    hole.style.width = '300px';
+    hole.style.height = '80px';
+    hole.style.position = 'fixed';
+    hole.style.border = '2px solid rgba(255, 0, 0, 0.5)'; // Debug border
+    hole.style.zIndex = '10001';
+    
+    const holeId = `hole-${Date.now()}`;
+    hole.setAttribute('data-hole-id', holeId);
+    
+    document.body.appendChild(hole);
+    brickHoles.push({ y: yPosition, element: hole });
+    
+    console.log(`  ✅ Hole element added to DOM`);
+    console.log(`  📍 Total brick holes now: ${brickHoles.length}`);
+    
+    // Update darkening overlay mask to show holes
+    updateDarkeningMask();
+    
+    // Create light ray through the hole
+    setTimeout(() => {
+      createLightRay(yPosition);
+    }, 150);
+  }
+  
+  function updateDarkeningMask() {
+    if (!darkeningOverlay) return;
+    
+    if (brickHoles.length === 0) {
+      // No holes, clear any masks
+      darkeningOverlay.style.maskImage = 'none';
+      darkeningOverlay.style.webkitMaskImage = 'none';
+      console.log(`  🕳️  No holes, full darkening (no mask)`);
+      return;
+    }
+    
+    console.log(`  🕳️  Creating mask with ${brickHoles.length} holes at Y positions:`, brickHoles.map(h => h.y));
+    
+    // Build a paint() mask that punches holes
+    // Start with full black (visible), then punch transparent holes
+    let maskGradients = [];
+    
+    brickHoles.forEach(hole => {
+      const y = hole.y;
+      // Create a radial gradient hole centered on the right edge
+      maskGradients.push(
+        `radial-gradient(ellipse 150px 40px at calc(100% - 150px) ${y}px, transparent 0%, transparent 100%, black 100%)`
+      );
+    });
+    
+    // If we have holes, we need to combine them properly
+    // Use a solid black background, then subtract the holes
+    const fullMask = 'linear-gradient(black, black)';
+    
+    // Apply the full mask first, then the holes will subtract from it
+    darkeningOverlay.style.maskImage = `${fullMask}, ${maskGradients.join(', ')}`;
+    darkeningOverlay.style.webkitMaskImage = `${fullMask}, ${maskGradients.join(', ')}`;
+    darkeningOverlay.style.maskComposite = 'subtract';
+    darkeningOverlay.style.webkitMaskComposite = 'source-out';
+    darkeningOverlay.style.maskRepeat = 'no-repeat';
+    darkeningOverlay.style.webkitMaskRepeat = 'no-repeat';
+    
+    console.log(`  ✅ Mask applied with ${brickHoles.length} hole(s)`);
+  }
+  
+  function createLightRay(yPosition) {
+    console.log(`✨ Creating light ray at Y: ${yPosition}`);
+    
+    const ray = document.createElement('div');
+    ray.className = 'light-ray';
+    ray.style.top = (yPosition - 30) + 'px';
+    ray.style.zIndex = '9999'; // Above darkening overlay
+    document.body.appendChild(ray);
+    
+    console.log(`  💡 Light ray added to DOM at Y: ${yPosition - 30}px`);
+    
+    // Keep ray visible (don't fade it out completely)
+    setTimeout(() => {
+      if (ray.parentNode) {
+        ray.style.opacity = '0.5';
+        ray.style.transition = 'opacity 0.5s';
+      }
+    }, 500);
+  }
+  
+  function triggerEdgeImpact() {
+    // Increment impact count
+    impactCount++;
+    
+    console.log(`\n💥 ═══════════ EDGE IMPACT #${impactCount} ═══════════`);
+    console.log(`  currentHNView: ${currentHNView}, hnItems.length: ${hnItems.length}`);
+    
+    // Show HN header bar after first collision (if in HN view)
+    if (impactCount === 1 && currentHNView) {
+      console.log('  📊 First impact - showing HN wrap');
+      showHNWrap();
+    }
+    
+    // Flicker effect
+    if (edgeImpact) {
+      console.log('  ⚡ Triggering edgeImpact flash animation');
+    edgeImpact.classList.remove('active');
+    void edgeImpact.offsetWidth;
+    edgeImpact.classList.add('active');
+      console.log('     Class added, animation should play for 1200ms');
+    
+    setTimeout(() => {
+      edgeImpact.classList.remove('active');
+        console.log('  ⚡ edgeImpact animation complete');
+    }, 1200);
+    } else {
+      console.error('  ✗✗✗ edgeImpact element NOT FOUND!');
+    }
+    
+    // Progressive darkening
+    console.log('  🌑 Updating darkening level...');
+    updateDarkeningLevel();
+    
+    // Glitch and replace content based on current view (all use same pattern)
+    if (currentView === 'hn' && hnItems.length > 0) {
+      console.log(`  🔶 HN view - processing impact ${impactCount}`);
+      glitchAndReplaceHNPosts(impactCount);
+    } else if (currentView === 'reddit' && redditItems.length > 0) {
+      console.log(`  🔴 Reddit view - processing impact ${impactCount}`);
+      glitchAndReplaceRedditPosts(impactCount);
+    } else if (currentView === 'twitter' && twitterItems.length > 0) {
+      console.log(`  🐦 Twitter view - processing impact ${impactCount}`);
+      glitchAndReplaceTwitterPosts(impactCount);
+    } else if (currentView === 'facebook' && facebookItems.length > 0) {
+      console.log(`  📘 Facebook view - processing impact ${impactCount}`);
+      glitchAndReplaceFacebookPosts(impactCount);
+    } else {
+      console.log(`  ⊘ No items to glitch (view: ${currentView})`);
+    }
+    
+    // Activate light beam after reaching max impacts
+    if (impactCount >= MAX_IMPACTS_BEFORE_BEAM) {
+      console.log(`  ✨ LIGHT BEAM THRESHOLD REACHED (${impactCount} >= ${MAX_IMPACTS_BEFORE_BEAM})`);
+      activateLightBeam();
+    } else {
+      console.log(`  ⊙ Light beam not yet (${impactCount}/${MAX_IMPACTS_BEFORE_BEAM})`);
+    }
+    
+    console.log(`💥 Impact ${impactCount} complete ═══════════\n`);
+  }
+  
+  function showHNWrap() {
+    const hnWrap = document.querySelector('.hn-wrap');
+    if (hnWrap) {
+      hnWrap.classList.add('visible');
+      console.log('🔶 HN browser bar revealed');
+    }
+  }
+  
+  function hideHNWrap() {
+    const hnWrap = document.querySelector('.hn-wrap');
+    if (hnWrap) {
+      hnWrap.classList.remove('visible');
+    }
+  }
+  
+  function glitchAndReplaceHNPosts(impactNum) {
+    console.log(`🔶 glitchAndReplaceHNPosts called - Impact #${impactNum}`);
+    
+    if (hnItems.length === 0) {
+      console.error('  ✗ No HN items to glitch');
+      return;
+    }
+    
+    let indicesToGlitch = [];
+    
+    // First 3 clicks: individual posts
+    if (impactNum <= 3) {
+      indicesToGlitch = [impactNum - 1];
+      console.log(`  Individual mode: glitching post ${impactNum}`);
+    } else {
+      // After 3: clusters of 3-5 posts
+      const clusterSize = 3 + Math.floor(Math.random() * 3);
+      const startIdx = ((impactNum - 4) * clusterSize) % hnItems.length;
+      
+      for (let i = 0; i < clusterSize; i++) {
+        indicesToGlitch.push((startIdx + i) % hnItems.length);
+      }
+      
+      console.log(`  Cluster mode: glitching ${clusterSize} posts starting at ${startIdx}`);
+    }
+    
+    // Check completion status
+    checkCompletionStatus(hnItems, '.hn-story-title');
+    
+    // Glitch each post in the cluster
+    indicesToGlitch.forEach((idx, i) => {
+      setTimeout(() => glitchSingleHNPost(idx), i * 100);
+    });
+  }
+  
+  function glitchSingleHNPost(index) {
+    if (index >= hnItems.length) return;
+    
+    const item = hnItems[index];
+    if (!item) return;
+    
+    const titleLink = item.querySelector('.hn-story-title');
+    if (!titleLink) return;
+    
+    const alreadyParodied = titleLink.classList.contains('parodied');
+    const alreadyCelliAd = titleLink.classList.contains('celli-ad');
+    
+    // Skip if already Celli ad (keep it persistent)
+    if (alreadyCelliAd) {
+      console.log(`  - Post ${index + 1} already Celli ad, keeping it`);
+      return;
+    }
+    
+    // Add glitch animation
+    item.classList.add('glitching');
+    
+    setTimeout(() => {
+      let newTitle;
+      
+      if (!alreadyParodied) {
+        // First pass: parody
+        newTitle = parodyHeadlines[index % parodyHeadlines.length];
+        titleLink.classList.add('parodied');
+      } else if (parodiesComplete) {
+        // Second pass: Celli ads (keep parody class for history)
+        newTitle = celliAds[index % celliAds.length];
+        titleLink.classList.add('celli-ad');
+        item.classList.add('has-celli-ad');
+      } else {
+        item.classList.remove('glitching');
+        return;
+      }
+      
+      titleLink.textContent = newTitle;
+      item.classList.remove('glitching');
+      
+      console.log(`  🔶 HN post ${index + 1}: "${newTitle.substring(0, 50)}..."`);
+    }, 800);
+  }
+  
+  function glitchAndReplaceRedditPosts(impactNum) {
+    console.log(`🔴 glitchAndReplaceRedditPosts called - Impact #${impactNum}`);
+    
+    if (redditItems.length === 0) return;
+    
+    let indicesToGlitch = [];
+    
+    // First 3 clicks: individual posts
+    if (impactNum <= 3) {
+      indicesToGlitch = [impactNum - 1];
+      console.log(`  Individual mode: glitching post ${impactNum}`);
+    } else {
+      // After 3: clusters
+      const clusterSize = 3 + Math.floor(Math.random() * 3);
+      const startIdx = ((impactNum - 4) * clusterSize) % redditItems.length;
+      for (let i = 0; i < clusterSize; i++) {
+        indicesToGlitch.push((startIdx + i) % redditItems.length);
+      }
+      console.log(`  Cluster mode: ${clusterSize} posts starting at ${startIdx}`);
+    }
+    
+    checkCompletionStatus(redditItems, '.reddit-title a');
+    indicesToGlitch.forEach((idx, i) => setTimeout(() => glitchSingleRedditPost(idx), i * 100));
+  }
+  
+  function glitchSingleRedditPost(index) {
+    if (index >= redditItems.length) return;
+    const post = redditItems[index];
+    if (!post) return;
+    const titleLink = post.querySelector('.reddit-title a');
+    if (!titleLink) return;
+    
+    const alreadyCelliAd = titleLink.classList.contains('celli-ad');
+    if (alreadyCelliAd) return; // Keep persistent
+    
+    post.classList.add('glitching');
+    setTimeout(() => {
+      const alreadyParodied = titleLink.classList.contains('parodied');
+      let newTitle;
+      
+      if (!alreadyParodied) {
+        newTitle = redditParodies[index % redditParodies.length];
+        titleLink.classList.add('parodied');
+      } else if (parodiesComplete) {
+        newTitle = celliAds[index % celliAds.length];
+        titleLink.classList.add('celli-ad');
+        post.classList.add('has-celli-ad');
+      } else {
+        post.classList.remove('glitching');
+        return;
+      }
+      
+      titleLink.textContent = newTitle;
+      post.classList.remove('glitching');
+    }, 800);
+  }
+  
+  function glitchAndReplaceTwitterPosts(impactNum) {
+    console.log(`🐦 glitchAndReplaceTwitterPosts called - Impact #${impactNum}`);
+    
+    if (twitterItems.length === 0) return;
+    
+    let indicesToGlitch = [];
+    
+    if (impactNum <= 3) {
+      indicesToGlitch = [impactNum - 1];
+    } else {
+      const clusterSize = 3 + Math.floor(Math.random() * 3);
+      const startIdx = ((impactNum - 4) * clusterSize) % twitterItems.length;
+      for (let i = 0; i < clusterSize; i++) {
+        indicesToGlitch.push((startIdx + i) % twitterItems.length);
+      }
+    }
+    
+    checkCompletionStatus(twitterItems, '.twitter-text');
+    indicesToGlitch.forEach((idx, i) => setTimeout(() => glitchSingleTwitterTweet(idx), i * 100));
+  }
+  
+  function glitchSingleTwitterTweet(index) {
+    if (index >= twitterItems.length) return;
+    const tweet = twitterItems[index];
+    if (!tweet) return;
+    const textEl = tweet.querySelector('.twitter-text');
+    if (!textEl) return;
+    
+    const alreadyCelliAd = textEl.classList.contains('celli-ad');
+    if (alreadyCelliAd) return; // Keep persistent
+    
+    tweet.classList.add('glitching');
+    setTimeout(() => {
+      const alreadyParodied = textEl.classList.contains('parodied');
+      let newText;
+      
+      if (!alreadyParodied) {
+        newText = twitterParodies[index % twitterParodies.length];
+        textEl.classList.add('parodied');
+      } else if (parodiesComplete) {
+        newText = celliAds[index % celliAds.length];
+        textEl.classList.add('celli-ad');
+        tweet.classList.add('has-celli-ad');
+      } else {
+        tweet.classList.remove('glitching');
+        return;
+      }
+      
+      textEl.textContent = newText;
+      tweet.classList.remove('glitching');
+    }, 800);
+  }
+  
+  function glitchAndReplaceFacebookPosts(impactNum) {
+    console.log(`📘 glitchAndReplaceFacebookPosts called - Impact #${impactNum}`);
+    
+    if (facebookItems.length === 0) return;
+    
+    let indicesToGlitch = [];
+    
+    if (impactNum <= 3) {
+      indicesToGlitch = [impactNum - 1];
+    } else {
+      const clusterSize = 3 + Math.floor(Math.random() * 3);
+      const startIdx = ((impactNum - 4) * clusterSize) % facebookItems.length;
+      for (let i = 0; i < clusterSize; i++) {
+        indicesToGlitch.push((startIdx + i) % facebookItems.length);
+      }
+    }
+    
+    checkCompletionStatus(facebookItems, '.facebook-post-text');
+    indicesToGlitch.forEach((idx, i) => setTimeout(() => glitchSingleFacebookPost(idx), i * 100));
+  }
+  
+  function glitchSingleFacebookPost(index) {
+    if (index >= facebookItems.length) return;
+    const post = facebookItems[index];
+    if (!post) return;
+    const textEl = post.querySelector('.facebook-post-text');
+    if (!textEl) return;
+    
+    const alreadyCelliAd = textEl.classList.contains('celli-ad');
+    if (alreadyCelliAd) return; // Keep persistent
+    
+    post.classList.add('glitching');
+    setTimeout(() => {
+      const alreadyParodied = textEl.classList.contains('parodied');
+      let newText;
+      
+      if (!alreadyParodied) {
+        newText = facebookParodies[index % facebookParodies.length];
+        textEl.classList.add('parodied');
+      } else if (parodiesComplete) {
+        newText = celliAds[index % celliAds.length];
+        textEl.classList.add('celli-ad');
+        post.classList.add('has-celli-ad');
+      } else {
+        post.classList.remove('glitching');
+        return;
+      }
+      
+      textEl.textContent = newText;
+      post.classList.remove('glitching');
+    }, 800);
+  }
+  
+  function checkCompletionStatus(items, selector) {
+    const parodiedCount = items.filter(item => {
+      const el = item.querySelector(selector);
+      return el && el.classList.contains('parodied');
+    }).length;
+    
+    const celliAdCount = items.filter(item => {
+      const el = item.querySelector(selector);
+      return el && el.classList.contains('celli-ad');
+    }).length;
+    
+    if (parodiedCount >= items.length && !parodiesComplete) {
+      parodiesComplete = true;
+      console.log(`\n🎊🎊🎊 ALL PARODIES COMPLETE! 🎊🎊🎊`);
+      console.log(`✨ Next clicks will replace with CELLI ADS ✨\n`);
+    }
+    
+    if (celliAdCount >= items.length && !celliAdsComplete) {
+      celliAdsComplete = true;
+      console.log(`\n✨✨✨ ALL POSTS ARE NOW CELLI ADS! ✨✨✨`);
+      console.log(`🎪 Animating sidebar from off-screen...\n`);
+      animateSidebarEntry();
+    }
+  }
+  
+  function animateSidebarEntry() {
+    console.log('🎪 🎭 MYTHIC SIDEBAR ENTRY SEQUENCE INITIATED 🎭 🎪');
+    console.log(`💥 BURSTING THROUGH ${brickHoles.length} HOLES IN THE WALL!`);
+    
+    // FLASH OF LIFE - Momentarily restore light
+    console.log('💡 FLASH OF LIFE - Restoring light momentarily!');
+    if (darkeningOverlay) {
+      // Flash bright white
+      darkeningOverlay.classList.add('flash-of-life');
+      
+      // After flash, return to darkness
+    setTimeout(() => {
+        darkeningOverlay.classList.remove('flash-of-life');
+      }, 1500);
+    }
+    
+    // Create GIANT burst beam through all holes
+    const burstBeam = document.createElement('div');
+    burstBeam.className = 'burst-beam';
+    document.body.appendChild(burstBeam);
+    
+    // Position burst beam to align with hole cluster
+    if (brickHoles.length > 0) {
+      const avgY = brickHoles.reduce((sum, h) => sum + h.y, 0) / brickHoles.length;
+      burstBeam.style.background = `radial-gradient(ellipse at right ${avgY}px, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.3) 30%, transparent 70%)`;
+    }
+    
+    // Clean up burst beam after animation
+    setTimeout(() => {
+      if (burstBeam.parentNode) {
+        burstBeam.style.opacity = '0';
+        setTimeout(() => burstBeam.remove(), 1000);
+      }
+    }, 3000);
+    
+    // Transform sidebar into dramatic fake ad card
+    const sidebar = refSidebar;
+    const ackBtn = refSidebarAck;
+    
+    // Hide close button and url during dramatic entrance
+    refSidebarClose.style.display = 'none';
+    refSidebarUrl.style.display = 'none';
+    
+    // Reset sidebar classes
+    sidebar.classList.remove('active', 'bouncing', 'impact');
+    
+    // Add mythic entrance class
+    sidebar.classList.add('mythic-entrance');
+    
+    // Transform content for fake ad
+    const h3 = sidebar.querySelector('h3');
+    const paragraphs = sidebar.querySelectorAll('p');
+    h3.style.opacity = '0';
+    paragraphs.forEach(p => p.style.opacity = '0');
+    
+    // STAGE 1: Fly in from right (0.5s)
+    console.log('  ✈️  Stage 1: Flying in from right edge...');
+    setTimeout(() => {
+      sidebar.classList.add('stage-float');
+      console.log('  🎈 Stage 2: Floating...');
+    }, 800);
+    
+    // STAGE 2: Sweep to center (1.5s)
+    setTimeout(() => {
+      sidebar.classList.add('stage-sweep');
+      console.log('  🌀 Stage 3: Sweeping to center...');
+    }, 2000);
+    
+    // STAGE 3: Rumble (2.5s)
+    setTimeout(() => {
+      sidebar.classList.add('stage-rumble');
+      console.log('  💥 Stage 4: Rumbling...');
+    }, 3200);
+    
+    // STAGE 4: Expand and reveal AI message (3.5s)
+    setTimeout(() => {
+      sidebar.classList.remove('stage-rumble');
+      sidebar.classList.add('stage-expand');
+      console.log('  ✨ Stage 5: EXPANDING TO REVEAL AI MESSAGE...');
+      
+      // Show sophisticated AI message with twinkle - modern glassmorphic design
+      ackBtn.innerHTML = `
+        <div class="ai-message" style="font-size: 15px; font-weight: 300; line-height: 1.8; color: #f8f9fa; text-align: center; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">
+          <div style="font-size: 48px; margin-bottom: 16px;">✨</div>
+          <div style="font-weight: 500; margin-bottom: 14px; font-size: 18px; color: #8fb4ff; letter-spacing: 0.5px; text-shadow: 0 0 12px rgba(143, 180, 255, 0.4);">AI-Enhanced Content Discovery</div>
+          <div style="opacity: 0.9; font-size: 14px;">Analyzing your browsing patterns to deliver personalized recommendations with unprecedented accuracy.</div>
+          <div style="margin-top: 16px; font-size: 12px; opacity: 0.6; letter-spacing: 1px; color: #a0b0c0;">Powered by Cell.real Intelligence</div>
+        </div>
+      `;
+      ackBtn.style.background = 'linear-gradient(135deg, rgba(15, 25, 45, 0.7), rgba(25, 35, 55, 0.8))';
+      ackBtn.style.backdropFilter = 'blur(20px) saturate(180%)';
+      ackBtn.style.webkitBackdropFilter = 'blur(20px) saturate(180%)';
+      ackBtn.style.border = '1px solid rgba(143, 180, 255, 0.25)';
+      ackBtn.style.borderRadius = '16px';
+      ackBtn.style.padding = '0';
+      ackBtn.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(102, 126, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
+      ackBtn.style.cursor = 'pointer';
+      ackBtn.style.animation = '';
+      
+      console.log('  ✨ AI MESSAGE DISPLAYED WITH TWINKLE');
+      
+      // JARRING SWITCH TO GAUDY AD (after 2.5s of AI message)
+      setTimeout(() => {
+        console.log('  💥💥💥 JARRING SWITCH TO BADBOOLEAN AD!');
+        
+        // Jarring transition effect
+        ackBtn.style.transition = 'all 0.1s ease-out';
+        
+        ackBtn.innerHTML = `
+          <div style="font-size: 20px; font-weight: 900; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 2px; color: #ff0080; animation: pulse 0.5s infinite;">
+            ARE YOU A TOTAL ZERO?
+          </div>
+          <div style="font-size: 16px; margin-bottom: 10px; color: #ffff00; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+            💋 SINGLES IN YOUR AREA 💋
+          </div>
+          <div style="font-size: 26px; font-weight: 900; color: #00ff00; text-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00; letter-spacing: 3px; animation: pulse 0.8s infinite;">
+            BADBOOLEAN.COM
+          </div>
+          <div style="font-size: 14px; margin-top: 10px; color: #ff69b4; font-style: italic; font-weight: 500; opacity: 0.9;">
+            True love never felt so false.
+          </div>
+          <div style="font-size: 12px; margin-top: 8px; color: #ff00ff; font-weight: 600;">🔥 CLICK HERE NOW!!! 🔥</div>
+        `;
+        ackBtn.style.background = 'linear-gradient(135deg, #ff0080 0%, #ff8c00 25%, #ffff00 50%, #00ff00 75%, #ff0080 100%)';
+        ackBtn.style.backgroundSize = '200% 200%';
+        ackBtn.style.border = '3px solid #ff00ff';
+        ackBtn.style.boxShadow = '0 0 20px #ff0080, 0 0 40px #00ff00, inset 0 0 20px rgba(255,255,255,0.3)';
+        ackBtn.style.animation = 'pulse 0.5s infinite, rainbow-shift 3s ease infinite';
+        ackBtn.style.padding = '30px 20px';
+        
+        console.log('  🎪🎪🎪 BADBOOLEAN AD ACTIVE! 🎪🎪🎪');
+        console.log('  ⏰ Starting 5-second timeout for alt LOOMWORKS invite');
+        
+        // If user doesn't click within 5 seconds, show alt LOOMWORKS invite
+        const adTimeout = setTimeout(() => {
+          console.log('  ⏱️ 5 seconds elapsed - transforming to alt LOOMWORKS invite');
+          transformToAltLoomworksInvite();
+        }, 5000);
+        
+        // Store timeout ID for cleanup
+        window.badBooleanTimeout = adTimeout;
+      }, 2500);
+    }, 4000);
+  }
+  
+  function transformToAltLoomworksInvite() {
+    const sidebar = refSidebar;
+    const ackBtn = refSidebarAck;
+    
+    console.log('⏱️ User waited 5 seconds - showing WILLPOWER version');
+    
+    // Shrink and fade the ad
+    ackBtn.style.transition = 'all 0.5s ease-out';
+    ackBtn.style.transform = 'scale(0.3)';
+    ackBtn.style.opacity = '0';
+    
+    setTimeout(() => {
+      // Show alt LOOMWORKS invitation (willpower version)
+      showLoomworksInvite(true); // Pass true for alt/willpower version
+    }, 500);
+  }
+  
+  function updateDarkeningLevel() {
+    if (!darkeningOverlay) {
+      console.error('✗ darkeningOverlay element not found!');
+      return;
+    }
+    
+    const level = Math.min(impactCount, 5);
+    console.log(`  ✓ Darkening to level: ${level}`);
+    
+    // Calculate target opacity
+    const targetOpacity = level * 0.2; // 0.2, 0.4, 0.6, 0.8, 1.0
+    
+    // Flicker effect - like power going out
+    const flickerDuration = Math.max(800 - (impactCount * 100), 200);
+    const flickerCount = Math.max(5 - impactCount, 2);
+    
+    console.log(`  💡 Flickering ${flickerCount} times over ${flickerDuration}ms, target opacity: ${targetOpacity}`);
+    
+    // Remove all level classes and add flicker
+    darkeningOverlay.classList.remove('level-1', 'level-2', 'level-3', 'level-4', 'level-5', 'flickering');
+    darkeningOverlay.classList.add('flickering');
+    
+    // Set CSS variable for flicker animation
+    darkeningOverlay.style.setProperty('--flicker-duration', `${flickerDuration}ms`);
+    darkeningOverlay.style.setProperty('--flicker-count', flickerCount);
+    
+    // After flickering, settle into the new darkness level
+    setTimeout(() => {
+      darkeningOverlay.classList.remove('flickering');
+      
+    if (level > 0) {
+        // Directly set opacity instead of relying on classes
+        darkeningOverlay.style.opacity = targetOpacity;
+      darkeningOverlay.classList.add(`level-${level}`);
+        console.log(`  🌑 Settled at darkness level: ${level}, opacity: ${targetOpacity}`);
+        console.log(`  📊 Darkening overlay inline style opacity:`, darkeningOverlay.style.opacity);
+        console.log(`  👁️ Darkening overlay computed opacity:`, window.getComputedStyle(darkeningOverlay).opacity);
+    }
+    }, flickerDuration);
+  }
+  
+  function activateLightBeam() {
+    if (!lightBeam) {
+      console.error('✗ lightBeam element not found!');
+      return;
+    }
+    
+    if (!lightBeam.classList.contains('active')) {
+      lightBeam.classList.add('active');
+      console.log('✨ Light beam activated!');
+    }
+  }
+  
+  function deactivateLightBeam() {
+    if (lightBeam) {
+    lightBeam.classList.remove('active');
+    }
+  }
+  
+  function resetImpacts() {
+    impactCount = 0;
+    parodiesComplete = false;
+    celliAdsComplete = false;
+    darkeningOverlay.classList.remove('level-1', 'level-2', 'level-3', 'level-4', 'level-5', 'flickering');
+    
+    // Reset darkening opacity to 0
+    if (darkeningOverlay) {
+      darkeningOverlay.style.opacity = '0';
+      darkeningOverlay.style.maskImage = 'none';
+      darkeningOverlay.style.webkitMaskImage = 'none';
+    }
+    
+    // Clear brick holes
+    brickHoles.forEach(hole => {
+      if (hole.element && hole.element.parentNode) {
+        hole.element.parentNode.removeChild(hole.element);
+      }
+    });
+    brickHoles = [];
+    
+    // Clean up light rays
+    document.querySelectorAll('.light-ray').forEach(ray => ray.remove());
+    document.querySelectorAll('.burst-beam').forEach(beam => beam.remove());
+    document.querySelectorAll('.darkening-hole').forEach(hole => hole.remove());
+    
+    deactivateLightBeam();
+    hideHNWrap();
+    hideSidebar();
+    
+    // Reset HN headlines to original
+    hnItems.forEach(item => {
+      item.classList.remove('glitching', 'has-celli-ad');
+      const titleLink = item.querySelector('.hn-story-title');
+      if (titleLink) {
+        if (titleLink.classList.contains('parodied') || titleLink.classList.contains('celli-ad')) {
+          const originalTitle = titleLink.getAttribute('data-original-title');
+          if (originalTitle) {
+            titleLink.textContent = originalTitle;
+            titleLink.classList.remove('parodied', 'celli-ad');
+          }
+        }
+      }
+    });
+    
+    // Reset Reddit posts
+    redditItems.forEach(item => {
+      item.classList.remove('glitching', 'has-celli-ad');
+      const titleLink = item.querySelector('.reddit-title a');
+      if (titleLink) {
+        if (titleLink.classList.contains('parodied') || titleLink.classList.contains('celli-ad')) {
+          const originalTitle = titleLink.getAttribute('data-original-title');
+          if (originalTitle) {
+            titleLink.textContent = originalTitle;
+            titleLink.classList.remove('parodied', 'celli-ad');
+          }
+        }
+      }
+    });
+    
+    // Reset Twitter tweets
+    twitterItems.forEach(item => {
+      item.classList.remove('glitching', 'has-celli-ad');
+      const textEl = item.querySelector('.twitter-text');
+      if (textEl) {
+        if (textEl.classList.contains('parodied') || textEl.classList.contains('celli-ad')) {
+          const originalText = textEl.getAttribute('data-original-text');
+          if (originalText) {
+            textEl.textContent = originalText;
+            textEl.classList.remove('parodied', 'celli-ad');
+          }
+        }
+      }
+    });
+    
+    // Reset Facebook posts
+    facebookItems.forEach(item => {
+      item.classList.remove('glitching', 'has-celli-ad');
+      const textEl = item.querySelector('.facebook-post-text');
+      if (textEl) {
+        if (textEl.classList.contains('parodied') || textEl.classList.contains('celli-ad')) {
+          const originalText = textEl.getAttribute('data-original-text');
+          if (originalText) {
+            textEl.textContent = originalText;
+            textEl.classList.remove('parodied', 'celli-ad');
+          }
+        }
+      }
+    });
+    
+    console.log('🔄 Impact effects reset - all content restored');
+  }
+  
+  function morphTooltipToSidebar(tooltipElement) {
+    // Animate towards the sidebar (right edge of screen)
+    tooltipElement.classList.add('morphing');
+    
+    console.log('🚀 Tooltip animation started');
+    console.log('  Animation: 700ms total, collision at ~95% keyframe = 665ms');
+    
+    // CSS transform animations don't update getBoundingClientRect()!
+    // We need to use timing based on the animation keyframes:
+    // - 90%: translate(1200px, 0) at 630ms
+    // - 95%: translate(1400px, 0) scale(0.3, 2) at 665ms <- COLLISION
+    // - 100%: translate(1500px, 0) scale(0.1, 2.5) at 700ms
+    
+    const COLLISION_TIME = 665; // ms - when tooltip hits edge (95% keyframe)
+    
+    // Trigger effects at exact collision moment
+          setTimeout(() => {
+      console.log(`💥💥💥 COLLISION AT EDGE! (${COLLISION_TIME}ms)`);
+      console.log(`  Triggering: edgeImpact, particles, darkening, HN glitch, BRICK BREAK`);
+      
+      // Get tooltip Y position for brick breaking
+      const tooltipRect = tooltipElement.getBoundingClientRect();
+      const impactY = tooltipRect.top + (tooltipRect.height / 2);
+      
+      console.log(`  📍 Tooltip rect:`, tooltipRect);
+      console.log(`  📍 Impact Y position: ${impactY}px`);
+      
+            triggerEdgeImpact();
+      createImpactParticles(tooltipElement);
+      createBrickHole(impactY); // Create hole in darkening wall
+    }, COLLISION_TIME);
+    
+    // Cleanup and remove this specific tooltip after animation completes
+    setTimeout(() => {
+      tooltipElement.classList.remove('active', 'morphing');
+      setTimeout(() => {
+        if (tooltipElement.parentNode) {
+          tooltipElement.parentNode.removeChild(tooltipElement);
+        }
+      }, 100);
+    }, 750);
+  }
+  
+  function onLinkClick(e, url) {
+    e.preventDefault();
+    
+    // Hide the hover tooltip
+    hideTooltip();
+    
+    // Create a NEW independent flying tooltip for this link click
+    const linkElement = e.target;
+    const flyingTooltip = createFlyingTooltip(url, linkElement);
+    
+    // Animate this specific tooltip independently
+    morphTooltipToSidebar(flyingTooltip);
+    runGlitchOnce();
+    jitterList(400);
+    
+    // Show sidebar with impact effect after tooltip splats into edge
+    // (Only show after first few impacts - not on every link click)
+    if (impactCount > 0 && impactCount <= 3) {
+    setTimeout(() => showSidebar(url, true), 500);
+    }
+  }
+  
+  function renderItems(items, platformType) {
+    console.log(`\n📝 ═══ renderItems START ═══`);
+    console.log(`  Platform: ${platformType}`);
+    console.log(`  Items: ${items.length}`);
+    console.log(`  First item:`, items[0]);
+    
+    try {
+      refList.innerHTML = '';
+      hnItems = [];
+      redditItems = [];
+      twitterItems = [];
+      facebookItems = [];
+      currentView = platformType;
+      currentHNView = (platformType === 'hn');
+      parodiesComplete = false;
+      celliAdsComplete = false;
+      
+      console.log(`  Cleared refList, set currentView=${currentView}`);
+    
+    if (platformType === 'hn') {
+      console.log('  🔶 Rendering HN view');
+      refList.className = 'ref-list hn-style';
+      
+      const wrap = document.createElement('div');
+      wrap.className = 'hn-wrap';
+      wrap.innerHTML = `
+        <div class="hn-top">
+          <span class="hn-logo"></span>
+          <span class="hn-title">Hacker News</span>
+          <div class="hn-nav">
+            <a href="#">new</a> | <a href="#">past</a> | <a href="#">comments</a> | <a href="#">ask</a> | <a href="#">show</a> | <a href="#">jobs</a> | <a href="#">submit</a>
+          </div>
+        </div>
+      `;
+      refList.appendChild(wrap);
+      
+      const content = document.createElement('div');
+      content.className = 'hn-content';
+      
+      items.slice(0, 30).forEach((it, idx) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'hn-item';
+        itemDiv.style.opacity = '0';
+        
+        const rank = idx + 1;
+        const domain = it.domain || '';
+        const score = it.score || 0;
+        const by = it.by || 'unknown';
+        const time = it.time || 'moments ago';
+        const comments = it.descendants || 0;
+        
+        itemDiv.innerHTML = `
+          <div class="hn-rank">${rank}.</div>
+          <div class="hn-vote"><div class="hn-vote-arrow"></div></div>
+          <div class="hn-main">
+            <div class="hn-titleline">
+              <a class="hn-story-title" href="#" data-original-title="${escapeHtml(it.title || '(untitled)')}">${escapeHtml(it.title || '(untitled)')}</a>
+              ${domain ? `<span class="hn-sitebit">(<a href="#">${escapeHtml(domain)}</a>)</span>` : ''}
+            </div>
+            <div class="hn-subtext">
+              ${score} points by <a href="#">${escapeHtml(by)}</a> ${escapeHtml(time)} | <a href="#">hide</a> | <a href="#">${comments} comments</a>
+            </div>
+          </div>
+        `;
+        
+        const link = itemDiv.querySelector('.hn-story-title');
+        if (it.link) {
+          link.href = it.link;
+          link.addEventListener('mouseenter', () => showTooltip(it.link, link));
+          link.addEventListener('mouseleave', () => {
+            if (!refTooltip.classList.contains('morphing')) hideTooltip();
+          });
+          link.addEventListener('click', (e) => onLinkClick(e, it.link));
+        }
+        
+        itemDiv.querySelectorAll('.hn-subtext a, .hn-sitebit a').forEach(a => {
+          const href = a.getAttribute('href') || '#';
+          a.addEventListener('mouseenter', () => showTooltip(href, a));
+          a.addEventListener('mouseleave', () => {
+            if (!refTooltip.classList.contains('morphing')) hideTooltip();
+          });
+          a.addEventListener('click', (e) => onLinkClick(e, href));
+        });
+        
+        content.appendChild(itemDiv);
+        hnItems.push(itemDiv);
+      });
+      
+      console.log(`  ✓ Added ${hnItems.length} HN items to hnItems array`);
+      
+      const spacer = document.createElement('div');
+      spacer.className = 'hn-spacer';
+      content.appendChild(spacer);
+      
+      refList.appendChild(content);
+    } else if (platformType === 'reddit') {
+      // Classic Reddit layout
+      console.log('  🔴 Rendering Reddit view');
+      refList.className = 'ref-list reddit-style';
+      
+      const header = document.createElement('div');
+      header.className = 'reddit-header';
+      header.innerHTML = `
+        <div class="reddit-logo">reddit</div>
+        <div class="reddit-nav">
+          <a href="#">hot</a> | <a href="#">new</a> | <a href="#">rising</a> | <a href="#">controversial</a> | <a href="#">top</a> | <a href="#">gilded</a> | <a href="#">wiki</a>
+        </div>
+      `;
+      refList.appendChild(header);
+      
+      const content = document.createElement('div');
+      content.className = 'reddit-content';
+      
+      items.slice(0, 24).forEach((it, idx) => {
+        const postDiv = document.createElement('div');
+        postDiv.className = 'reddit-post';
+        postDiv.style.opacity = '0';
+        
+        const score = Math.floor(Math.random() * 5000) + 100;
+        const subreddit = it.subreddit || 'r/all';
+        const author = it.author || 'anonymous';
+        const comments = Math.floor(Math.random() * 500);
+        
+        postDiv.innerHTML = `
+          <div class="reddit-vote">
+            <div class="reddit-arrow up"></div>
+            <div class="reddit-score">${score}</div>
+            <div class="reddit-arrow down"></div>
+          </div>
+          <div class="reddit-thumbnail broken-image"></div>
+          <div class="reddit-main">
+            <div class="reddit-title">
+              <a href="#">${escapeHtml(it.title || '(untitled)')}</a>
+              <span class="reddit-domain">(${it.domain || 'self.reddit'})</span>
+            </div>
+            <div class="reddit-meta">
+              submitted by <a href="#">${escapeHtml(author)}</a> to <a href="#" class="reddit-subreddit">${escapeHtml(subreddit)}</a>
+            </div>
+            <div class="reddit-meta">
+              <a href="#">${comments} comments</a> | <a href="#">share</a> | <a href="#">save</a> | <a href="#">hide</a> | <a href="#">report</a>
+            </div>
+          </div>
+        `;
+        
+        const link = postDiv.querySelector('.reddit-title a');
+        if (it.link) {
+          link.href = it.link;
+          link.addEventListener('mouseenter', () => showTooltip(it.link, link));
+          link.addEventListener('mouseleave', () => {
+            if (!refTooltip.classList.contains('morphing')) hideTooltip();
+          });
+          link.addEventListener('click', (e) => onLinkClick(e, it.link));
+        }
+        
+        content.appendChild(postDiv);
+      });
+      
+      refList.appendChild(content);
+    } else if (platformType === 'twitter') {
+      // Zeed (Modern X layout)
+      console.log('  🐦 Rendering Zeed view');
+      refList.className = 'ref-list twitter-style';
+      
+      // Left sidebar
+      const sidebar = document.createElement('div');
+      sidebar.className = 'twitter-sidebar';
+      sidebar.innerHTML = `
+        <div class="twitter-logo">Zeed</div>
+        <div class="twitter-nav-item">🏠 Home</div>
+        <div class="twitter-nav-item">🔍 Explore</div>
+        <div class="twitter-nav-item">🔔 Notifications</div>
+        <div class="twitter-nav-item">✉️ Messages</div>
+        <div class="twitter-nav-item">🔖 Bookmarks</div>
+        <div class="twitter-nav-item">👤 Profile</div>
+        <button class="twitter-post-btn">Post</button>
+      `;
+      refList.appendChild(sidebar);
+      
+      // Center feed
+      const feed = document.createElement('div');
+      feed.className = 'twitter-feed';
+      
+      // Feed header with tabs
+      const feedHeader = document.createElement('div');
+      feedHeader.className = 'twitter-feed-header';
+      feedHeader.innerHTML = `
+        <div class="twitter-tab active">For you</div>
+        <div class="twitter-tab">Following</div>
+      `;
+      feed.appendChild(feedHeader);
+      
+      // Compose box
+      const compose = document.createElement('div');
+      compose.className = 'twitter-compose';
+      compose.innerHTML = `
+        <div class="twitter-avatar"></div>
+        <input type="text" class="twitter-compose-input" placeholder="It's about to get nuts." />
+      `;
+      feed.appendChild(compose);
+      
+      // Tweets
+      const content = document.createElement('div');
+      content.className = 'twitter-content';
+      
+      items.forEach((it, idx) => {
+        const tweet = document.createElement('div');
+        tweet.className = 'twitter-tweet';
+        tweet.style.opacity = '0';
+        
+        tweet.innerHTML = `
+          <div class="twitter-avatar"></div>
+          <div class="twitter-tweet-content">
+            <div>
+              <span class="twitter-user">${escapeHtml(it.user)}</span><span class="twitter-handle">@${escapeHtml(it.handle)}</span><span class="twitter-time"> · ${Math.floor(Math.random() * 12) + 1}h</span>
+            </div>
+            <div class="twitter-text" data-original-text="${escapeHtml(it.text)}">${escapeHtml(it.text)}</div>
+            <div class="twitter-actions">
+              <span class="twitter-action">💬 ${Math.floor(Math.random() * 500)}</span>
+              <span class="twitter-action">🔁 ${Math.floor(Math.random() * 2000)}</span>
+              <span class="twitter-action">♥ ${Math.floor(Math.random() * 5000)}</span>
+              <span class="twitter-action">📊</span>
+            </div>
+          </div>
+        `;
+        
+        const textEl = tweet.querySelector('.twitter-text');
+        if (textEl) {
+          textEl.addEventListener('click', (e) => onLinkClick(e, it.link || '#'));
+        }
+        
+        content.appendChild(tweet);
+        twitterItems.push(tweet);
+      });
+      
+      feed.appendChild(content);
+      refList.appendChild(feed);
+      
+      // Right panel with widgets
+      const rightPanel = document.createElement('div');
+      rightPanel.className = 'twitter-right-panel';
+      rightPanel.innerHTML = `
+        <div class="twitter-widget">
+          <div class="twitter-widget-title">What's happening</div>
+          <div class="twitter-trend">
+            <div class="twitter-trend-category">Trending in Tech</div>
+            <div class="twitter-trend-name">Celli</div>
+            <div class="twitter-trend-posts">847K posts</div>
+          </div>
+          <div class="twitter-trend">
+            <div class="twitter-trend-category">Technology · Trending</div>
+            <div class="twitter-trend-name">Spreadsheets</div>
+            <div class="twitter-trend-posts">92.4K posts</div>
+          </div>
+          <div class="twitter-trend">
+            <div class="twitter-trend-category">Development · Trending</div>
+            <div class="twitter-trend-name">VoxelCalc</div>
+            <div class="twitter-trend-posts">34.2K posts</div>
+          </div>
+        </div>
+      `;
+      refList.appendChild(rightPanel);
+      
+      console.log(`  ✓ Rendered ${items.length} tweets with modern X layout`);
+      
+    } else if (platformType === 'facebook') {
+      // Facebook with Messenger
+      console.log('  📘 Rendering Facebook view');
+      refList.className = 'ref-list facebook-style';
+      
+      const header = document.createElement('div');
+      header.className = 'facebook-header';
+      header.innerHTML = `
+        <div class="facebook-logo">facebook</div>
+        <input type="text" class="facebook-search" placeholder="Search Facebook" />
+      `;
+      refList.appendChild(header);
+      
+      const feed = document.createElement('div');
+      feed.className = 'facebook-feed';
+      
+      items.forEach((it, idx) => {
+        const post = document.createElement('div');
+        post.className = 'facebook-post';
+        post.style.opacity = '0';
+        
+        post.innerHTML = `
+          <div class="facebook-post-header">
+            <div class="facebook-avatar"></div>
+            <div>
+              <div class="facebook-user">${escapeHtml(it.user)}</div>
+              <div class="facebook-time">${it.time}</div>
+            </div>
+          </div>
+          <div class="facebook-post-text" data-original-text="${escapeHtml(it.text)}">${escapeHtml(it.text)}</div>
+          <div class="facebook-actions">
+            <div class="facebook-action">👍 Like</div>
+            <div class="facebook-action">💬 Comment</div>
+            <div class="facebook-action">↗ Share</div>
+          </div>
+        `;
+        
+        const textEl = post.querySelector('.facebook-post-text');
+        if (textEl) {
+          textEl.addEventListener('click', (e) => onLinkClick(e, it.link || '#'));
+        }
+        
+        feed.appendChild(post);
+        facebookItems.push(post);
+      });
+      
+      refList.appendChild(feed);
+      
+      // Messenger sidebar
+      const messenger = document.createElement('div');
+      messenger.className = 'facebook-messenger';
+      messenger.innerHTML = `
+        <div class="messenger-header">Messenger</div>
+        <div class="messenger-contact">
+          <div class="messenger-avatar"></div>
+          <div>
+            <div class="messenger-name">Celli Bot</div>
+            <div class="messenger-preview">Have you tried Celli yet?</div>
+          </div>
+        </div>
+        <div class="messenger-contact">
+          <div class="messenger-avatar"></div>
+          <div>
+            <div class="messenger-name">Your Future Self</div>
+            <div class="messenger-preview">Why haven't you tried Celli??</div>
+          </div>
+        </div>
+        <div class="messenger-contact">
+          <div class="messenger-avatar"></div>
+          <div>
+            <div class="messenger-name">The Simulation Admin</div>
+            <div class="messenger-preview">Celli is the answer</div>
+          </div>
+        </div>
+      `;
+      refList.appendChild(messenger);
+      console.log(`  ✓ Rendered ${items.length} posts + Messenger`);
+    }
+    
+    console.log(`📝 ═══ renderItems COMPLETE ═══`);
+    console.log(`  currentView=${currentView}, hnItems=${hnItems.length}, redditItems=${redditItems.length}, twitterItems=${twitterItems.length}, facebookItems=${facebookItems.length}\n`);
+    
+    } catch (error) {
+      console.error(`❌❌❌ ERROR in renderItems:`, error);
+      console.error(`Stack:`, error.stack);
+      console.error(`Platform: ${platformType}, Items:`, items);
+      throw error;
+    }
+  }
+  
+  function stagedReveal(platformType) {
+    console.log(`\n✨ ═══ stagedReveal START ═══`);
+    console.log(`  Platform: ${platformType}`);
+    
+    if (platformType === 'hn') {
+      // HN: Load all simultaneously
+      const items = refList.querySelectorAll('.hn-item');
+      console.log(`  Found ${items.length} .hn-item elements`);
+      items.forEach((n) => {
+        n.style.transition = 'opacity .3s ease';
+        n.style.opacity = '1';
+      });
+      console.log(`  ✓ All ${items.length} HN items revealed simultaneously`);
+    } else if (platformType === 'reddit') {
+      const posts = refList.querySelectorAll('.reddit-post');
+      console.log(`  Found ${posts.length} .reddit-post elements`);
+      posts.forEach((n, idx) => {
+        setTimeout(() => {
+          n.style.transition = 'opacity .25s ease';
+          n.style.opacity = '1';
+        }, 50 + idx * 30);
+      });
+      console.log(`  ✓ Staged ${posts.length} Reddit posts`);
+    } else if (platformType === 'twitter') {
+      const tweets = refList.querySelectorAll('.twitter-tweet');
+      console.log(`  Found ${tweets.length} .twitter-tweet elements`);
+      tweets.forEach((n, idx) => {
+        setTimeout(() => {
+          n.style.transition = 'opacity .2s ease';
+          n.style.opacity = '1';
+        }, 40 + idx * 25);
+      });
+      console.log(`  ✓ Staged ${tweets.length} tweets`);
+    } else if (platformType === 'facebook') {
+      const posts = refList.querySelectorAll('.facebook-post');
+      console.log(`  Found ${posts.length} .facebook-post elements`);
+      posts.forEach((n, idx) => {
+        setTimeout(() => {
+          n.style.transition = 'opacity .3s ease';
+          n.style.opacity = '1';
+        }, 60 + idx * 35);
+      });
+      console.log(`  ✓ Staged ${posts.length} Facebook posts`);
+    } else {
+      console.warn(`  Unknown platform type: ${platformType}`);
+    }
+    
+    console.log(`✨ ═══ stagedReveal COMPLETE ═══\n`);
+  }
+  
+  function jitterList(durationMs = 600) {
+    refList.classList.add('jitter');
+    setTimeout(() => refList.classList.remove('jitter'), durationMs);
+  }
+  
+  function runGlitchOnce() {
+    refGlitch.innerHTML = '';
+    const rows = 7;
+    for (let i = 0; i < rows; i++) {
+      const slice = document.createElement('div');
+      slice.className = 'slice';
+      slice.style.top = `${(i * (100 / rows))}%`;
+      slice.style.height = `${100 / rows}%`;
+      const row = document.createElement('div');
+      row.className = 'row ' + (i % 3 === 0 ? 'glitch-r' : i % 3 === 1 ? 'glitch-g' : 'glitch-b');
+      row.innerHTML = `
+        <div class="ref-header"></div>
+        <div class="ref-list"></div>
+        <div class="ref-footer"></div>
+      `;
+      const offset = (i % 2 ? 8 : -8);
+      row.style.transform = `translateX(${offset}px)`;
+      slice.appendChild(row);
+      refGlitch.appendChild(slice);
+    }
+    
+    let t = 0;
+    const id = setInterval(() => {
+      const rowsEls = refGlitch.querySelectorAll('.row');
+      rowsEls.forEach((r, idx) => {
+        const off = Math.round(Math.sin((t + idx * 3) / 2) * (idx % 2 ? 10 : -10));
+        r.style.transform = `translateX(${off}px)`;
+      });
+      t++;
+    }, 70);
+    setTimeout(() => { clearInterval(id); refGlitch.innerHTML = ''; }, 3200);
+  }
+  
+  /* === Data sources === */
+  
+  async function fetchHNSnapshot(refUrl) {
+    const id = parseHNItemId(refUrl);
+    if (id) {
+      const item = await hnItem(id);
+      const list = [hnFormatItem(item)];
+      const top = await hnTop(29);
+      top.filter(x => x.id !== id).slice(0, 29).forEach(x => list.push(hnFormatItem(x)));
+      return list;
+    } else {
+      const top = await hnTop(30);
+      return top.map(hnFormatItem);
+    }
+  }
+  
+  function hnFormatItem(item) {
+    const domain = item.url ? extractDomain(item.url) : '';
+    const time = formatHNTime(item.time);
+    return {
+      id: item.id,
+      title: item.title || '(untitled)',
+      link: item.url || `https://news.ycombinator.com/item?id=${item.id}`,
+      domain: domain,
+      score: item.score || 0,
+      by: item.by || 'unknown',
+      time: time,
+      descendants: item.descendants || 0
+    };
+  }
+  
+  function extractDomain(url) {
+    try {
+      const u = new URL(url);
+      return u.hostname.replace(/^www\./, '');
+    } catch {
+      return '';
+    }
+  }
+  
+  function formatHNTime(timestamp) {
+    if (!timestamp) return 'moments ago';
+    const now = Math.floor(Date.now() / 1000);
+    const diff = now - timestamp;
+    
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+    return `${Math.floor(diff / 86400)} days ago`;
+  }
+  
+  function parseHNItemId(u) {
+    try {
+      const url = new URL(u);
+      if (!/news\.ycombinator\.com/.test(url.hostname)) return null;
+      return Number(url.searchParams.get('id')) || null;
+    } catch {
+      return null;
+    }
+  }
+  
+  async function hnItem(id) {
+    const r = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
+    if (!r.ok) throw new Error('hn item');
+    return r.json();
+  }
+  
+  async function hnTop(n = 30) {
+    const r = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json');
+    if (!r.ok) throw new Error('hn top');
+    const ids = (await r.json()).slice(0, n);
+    const items = await Promise.all(ids.map(hnItem));
+    return items.filter(Boolean);
+  }
+  
+  async function fetchRedditSnapshot(refUrl) {
+    let endpoint = 'https://www.reddit.com/r/all.json?limit=24';
+    try {
+      if (refUrl) {
+        let u;
+        if (refUrl.startsWith('http')) {
+          u = new URL(refUrl);
+        } else {
+          u = new URL('https://www.reddit.com' + (refUrl.startsWith('/') ? refUrl : '/' + refUrl));
+        }
+        
+        let path = u.pathname;
+        if (path.endsWith('/')) path = path.slice(0, -1);
+        endpoint = `https://www.reddit.com${path}.json?limit=24&raw_json=1`;
+      }
+    } catch (e) {
+      console.warn('Reddit URL parse error:', e);
+    }
+    
+    console.log('Fetching Reddit - skipping slow proxies, using mock data immediately');
+    
+    // Skip slow proxy attempts - go straight to mock data for fast loading
+    console.log('⚡ Using instant mock Reddit data');
+    return [
+      { title: 'TIL that the "faux Reddit" feature uses CORS proxies to bypass browser restrictions', link: 'https://reddit.com', subreddit: 'r/todayilearned', author: 'developer', domain: 'self.reddit' },
+      { title: 'This is mock data because Reddit blocked the API request', link: 'https://reddit.com', subreddit: 'r/programming', author: 'cors_warrior', domain: 'self.reddit' },
+      { title: 'PSA: Reddit\'s JSON API now requires authentication for most endpoints', link: 'https://reddit.com', subreddit: 'r/webdev', author: 'api_user', domain: 'self.reddit' },
+      { title: 'I built a referrer overlay system with glitch effects', link: 'https://reddit.com', subreddit: 'r/webdev', author: 'creative_dev', domain: 'self.reddit' },
+      { title: 'When your CORS proxy times out but you still want to show something', link: 'https://reddit.com', subreddit: 'r/ProgrammerHumor', author: 'fallback_king', domain: 'self.reddit' },
+      { title: 'Real-time web scraping challenges in 2025', link: 'https://reddit.com', subreddit: 'r/programming', author: 'tech_writer', domain: 'self.reddit' },
+      { title: 'AITA for automating my entire workflow and not telling my boss?', link: 'https://reddit.com', subreddit: 'r/AmItheAsshole', author: 'efficiency_king', domain: 'self.reddit' },
+      { title: '[AskReddit] What screams "I peaked in the tutorial"?', link: 'https://reddit.com', subreddit: 'r/AskReddit', author: 'forever_junior', domain: 'self.reddit' },
+      { title: 'TIL the average developer spends 90% of their time googling and 10% pretending they didn\'t', link: 'https://reddit.com', subreddit: 'r/todayilearned', author: 'stack_overflow_user', domain: 'self.reddit' },
+      { title: 'My startup failed but at least I got some karma', link: 'https://reddit.com', subreddit: 'r/Entrepreneur', author: 'reformed_founder', domain: 'self.reddit' },
+      { title: '[Shower Thoughts] Maybe the real MVP was the friends we made in Slack channels', link: 'https://reddit.com', subreddit: 'r/Showerthoughts', author: 'deep_thinker', domain: 'self.reddit' },
+      { title: 'ELI5: How is the cloud not just someone else\'s computer?', link: 'https://reddit.com', subreddit: 'r/explainlikeimfive', author: 'confused_newbie', domain: 'self.reddit' },
+      { title: 'LPT: Close all 47 Stack Overflow tabs before the standup meeting', link: 'https://reddit.com', subreddit: 'r/LifeProTips', author: 'pro_developer', domain: 'self.reddit' },
+      { title: 'My code passed all tests but broke production. AMA', link: 'https://reddit.com', subreddit: 'r/programming', author: 'incident_manager', domain: 'self.reddit' },
+      { title: 'TIFU by pushing directly to main on Friday at 4:59 PM', link: 'https://reddit.com', subreddit: 'r/tifu', author: 'weekend_ruiner', domain: 'self.reddit' },
+      { title: 'Unpopular opinion: Writing documentation is actually harder than writing code', link: 'https://reddit.com', subreddit: 'r/unpopularopinion', author: 'doc_writer', domain: 'self.reddit' },
+      { title: 'CMV: Dark mode is just light mode for people who pretend to be hackers', link: 'https://reddit.com', subreddit: 'r/changemyview', author: 'theme_warrior', domain: 'self.reddit' },
+      { title: 'DAE feel personally attacked when their code gets refactored?', link: 'https://reddit.com', subreddit: 'r/DoesAnybodyElse', author: 'sensitive_dev', domain: 'self.reddit' },
+      { title: '[Discussion] At what point did we normalize 15 npm packages for a hello world app?', link: 'https://reddit.com', subreddit: 'r/webdev', author: 'minimalist_dev', domain: 'self.reddit' },
+      { title: 'My rubber duck quit. Where can I hire a new debugging assistant?', link: 'https://reddit.com', subreddit: 'r/ProgrammerHumor', author: 'lonely_coder', domain: 'self.reddit' },
+      { title: 'TIL that "works on my machine" is not an acceptable debugging strategy', link: 'https://reddit.com', subreddit: 'r/todayilearned', author: 'learning_slowly', domain: 'self.reddit' },
+      { title: 'Is anyone else just Googling things and pretending to know what they\'re doing?', link: 'https://reddit.com', subreddit: 'r/cscareerquestions', author: 'imposter_syndrome', domain: 'self.reddit' },
+      { title: '[Meta] This sub has more junior devs asking questions than senior devs answering them', link: 'https://reddit.com', subreddit: 'r/learnprogramming', author: 'meta_observer', domain: 'self.reddit' },
+      { title: 'Just spent 6 hours optimizing code that runs once a week. Worth it.', link: 'https://reddit.com', subreddit: 'r/programming', author: 'premature_optimizer', domain: 'self.reddit' }
+    ];
+  }
+  
+  async function fetchTwitterSnapshot(refUrl) {
+    console.log('🐦 fetchTwitterSnapshot - generating mock tweets for Zeed');
+    const tweets = [
+      { user: 'Cilon Dusk', handle: 'cilondusk', text: 'Congratulations to @SpaceXX on their first all-woman shuttle disaster. My heart will go on. 🚀💔', link: '#' },
+      { user: 'Food Pleaser', handle: 'foodpleaser', text: 'Well, can you name one? 🤷', link: '#' },
+      { user: 'TechCrunch', handle: 'techcrunch', text: 'Breaking: New AI model achieves 99.9% accuracy (on training data)', link: '#' },
+      { user: 'GitHub', handle: 'github', text: 'Ship code faster with GitHub Copilot. Now with 100% more hallucinations!', link: '#' },
+      { user: 'Vercel', handle: 'vercel', text: 'Deploy your app in milliseconds. Debug it for hours. ⚡', link: '#' },
+      { user: 'DHH', handle: 'dhh', text: 'Hot take: Maybe we don\'t need 47 JavaScript frameworks for a contact form', link: '#' },
+      { user: 'Theo', handle: 't3dotgg', text: 'Me: *writes clean code* // The PR reviewer: "Have you considered rewriting this from scratch?"', link: '#' },
+      { user: 'Fireship', handle: 'fireship_dev', text: 'New framework just dropped. Learn it in 100 seconds before it\'s deprecated.', link: '#' },
+      { user: 'Coding Garden', handle: 'coding_garden', text: 'Live coding session: Building a TODO app for the 847th time 🌱', link: '#' },
+      { user: 'JavaScript', handle: 'javascript', text: 'const bugs = "features"; // This is fine 🔥', link: '#' },
+      { user: 'TypeScript', handle: 'typescript', text: 'You can\'t have runtime errors if you have compile-time errors *taps head*', link: '#' },
+      { user: 'Stack Overflow', handle: 'stackoverflow', text: 'Question marked as duplicate. The original question is from 2009 and doesn\'t help. Good luck!', link: '#' },
+      { user: 'npm', handle: 'npmjs', text: 'node_modules weighs more than a black hole but at least your build works', link: '#' },
+      { user: 'React', handle: 'reactjs', text: 'useEffect(() => { console.log("why did this run 47 times"); }, []);', link: '#' },
+      { user: 'Tailwind CSS', handle: 'tailwindcss', text: 'className="flex items-center justify-between p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out bg-gradient-to-r from-blue-500 to-purple-600"', link: '#' },
+      { user: 'VS Code', handle: 'code', text: 'New extension: "Closes all your tabs when you\'re about to do something productive"', link: '#' },
+      { user: 'Mozilla', handle: 'mozilla', text: 'Firefox is like that indie band you swear is better but nobody else listens to', link: '#' },
+      { user: 'Chrome DevTools', handle: 'chromedevtools', text: 'console.log("debugging is just printf debugging with extra steps")', link: '#' },
+      { user: 'Docker', handle: 'docker', text: 'It works on my container 🐳', link: '#' },
+      { user: 'Linux', handle: 'linux', text: 'I use Arch btw. How did you know? Was it the 3-hour monologue about package managers?', link: '#' }
+    ];
+    console.log(`  ✓ Generated ${tweets.length} mock Zeed posts`);
+    console.log(`  Sample: "${tweets[0].text}"`);
+    return tweets;
+  }
+  
+  async function fetchFacebookSnapshot(refUrl) {
+    console.log('📘 fetchFacebookSnapshot - generating mock Facebook posts');
+    const posts = [
+      { user: 'Jane Developer', text: '🎉 Just got my first PR merged! Only took 47 revisions and 3 existential crises!', time: '2h', link: '#' },
+      { user: 'Tech Dad', text: 'My son asked what I do for a living. I said "I copy code from Stack Overflow." He looked disappointed. I\'m raising him right. 😌', time: '4h', link: '#' },
+      { user: 'Sarah Coder', text: 'SHARING THIS because it changed my life: ctrl+shift+T reopens closed tabs. You\'re welcome. ❤️', time: '6h', link: '#' },
+      { user: 'Bob Programmer', text: 'Remember when we thought Zoom fatigue was temporary? *laughs in permanent work-from-home*', time: '8h', link: '#' },
+      { user: 'DevLife Quotes', text: 'Live. Laugh. localhost:3000 💻✨', time: '10h', link: '#' },
+      { user: 'Jenny Code', text: 'Some of you never had to debug IE6 and it shows. Stay blessed. 🙏', time: '12h', link: '#' },
+      { user: 'Mike Stack', text: 'My code review comments: "nit:", "nit:", "nit:", "THIS WILL DESTROY EVERYTHING" (submitted anyway)', time: '14h', link: '#' },
+      { user: 'Lisa Debug', text: 'Fun fact: 80% of programming is naming variables. The other 20% is renaming them.', time: '16h', link: '#' },
+      { user: 'Tom Binary', text: 'Wife: Why are you talking to yourself? // Me: I\'m not, I\'m explaining my code to the rubber duck // Wife: *backs away slowly*', time: '18h', link: '#' },
+      { user: 'Alex Syntax', text: 'Me: I\'ll never use math after school // Also me: *calculating time complexity at 2am*', time: '20h', link: '#' },
+      { user: 'Chris Deploy', text: 'PRAYER CIRCLE for everyone who deployed to production 5 minutes before their vacation started 🕯️🕯️🕯️', time: '22h', link: '#' },
+      { user: 'Patricia Loop', text: 'Relationship status: for(;;) { hope; }', time: '1d', link: '#' },
+      { user: 'Steve Async', text: 'They say the best time to plant a tree was 20 years ago. The second best time is now. The third best time is after your code review is approved.', time: '1d', link: '#' },
+      { user: 'Rachel Frontend', text: 'normalize asking "is this a real email or did my regex break again" before replying to important messages', time: '2d', link: '#' },
+      { user: 'Dan Fullstack', text: 'My resume: Full-stack developer // What I actually do: Full-stack googler 🔍', time: '2d', link: '#' }
+    ];
+    console.log(`  ✓ Generated ${posts.length} mock Facebook posts`);
+    console.log(`  Sample: "${posts[0].text}"`);
+    return posts;
+  }
+  
+  async function fetchGenericFallback(refUrl) {
+    const host = hostOrPath(refUrl);
+    return [
+      { 
+        title: `Loading ${host}…`, 
+        link: refUrl || '',
+        subreddit: 'r/unknown',
+        author: 'system',
+        domain: host
+      },
+      { 
+        title: 'Tip: add ?ref=hn or ?ref=reddit to your link', 
+        link: '',
+        subreddit: 'r/help',
+        author: 'system',
+        domain: 'self.help'
+      }
+    ];
+  }
+  
+  function hostOrPath(u) {
+    try {
+      const x = new URL(u);
+      return x.hostname + x.pathname;
+    } catch {
+      return u || '';
+    }
+  }
+  
+  function escapeHtml(s) {
+    return ('' + s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+  }
+  
+  console.log('✅ Referrer Glitch Overlay initialized');
+  console.log('📋 Ready to test: Click "Hacker News" or "Reddit" button in Play overlay');
  </script>
 </body>
 </html>
