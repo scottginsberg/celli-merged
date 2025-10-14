@@ -377,11 +377,15 @@ document.addEventListener('click', function(e){
  </div>
  
  <!-- Scene & Physics Controls -->
- <div class="row" style="padding:0 12px 6px;">
- <button class="btn good" id="physicsBtn">? Physics</button>
- <button class="btn" id="toggleChunks">?? Chunks</button>
- <button class="btn warn" id="reset">?? Reset</button>
- </div>
+  <div class="row" style="padding:0 12px 6px;">
+  <button class="btn good" id="physicsBtn">? Physics</button>
+  <button class="btn" id="toggleChunks">?? Chunks</button>
+  <button class="btn warn" id="reset">?? Reset</button>
+  </div>
+
+  <div class="row" style="padding:0 12px 6px;">
+  <button class="btn" id="celliCollapseBtn">?? Multi-Wrap Collapse</button>
+  </div>
 
  <div class="row" style="padding:0 12px 6px;">
  <button class="btn" id="presentToggleBtn">?? Present: OFF</button>
@@ -10823,9 +10827,153 @@ let physicsCameraConfig = { mode:'free', distance:10, allowRotation:false };
  let lastTouchKey = null;
  let lastLandKey = null;
  let landingCellKey = null;
- let landingCellAnim = null;
- let surfaceBounceState = { key:null, depression:0, intensity:1 };
- let skipWalkBounceUntil = 0;
+let landingCellAnim = null;
+let surfaceBounceState = { key:null, depression:0, intensity:1 };
+let skipWalkBounceUntil = 0;
+const BOUNCE_GAG_THRESHOLD = 9;
+const bounceGagState = {
+ active: false,
+ phase: null,
+ startTime: 0,
+ durationMs: 0,
+ holdMs: 0,
+ triggeredHeight: 0,
+ originalControls: null,
+ originalPosition: new THREE.Vector3(),
+ originalTarget: new THREE.Vector3(),
+ followOffset: new THREE.Vector3(),
+ cameraLift: 0,
+ recoverFromPosition: new THREE.Vector3(),
+ recoverFromTarget: new THREE.Vector3()
+};
+
+function finishBounceGag(){
+ bounceGagState.active = false;
+ bounceGagState.phase = null;
+ const restore = bounceGagState.originalControls;
+ if(controls && restore){
+  controls.enabled = restore.enabled;
+  controls.enableRotate = restore.enableRotate;
+  controls.enablePan = restore.enablePan;
+  try{ controls.update(); }catch{}
+ }
+ bounceGagState.originalControls = null;
+ needsRender = true;
+}
+
+function startBounceGag(height){
+ if(bounceGagState.active) return;
+ if(!camera) return;
+ const physicsActive = !!Store.getState().scene?.physics;
+ if(!physicsActive) return;
+ const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+ const playerPos = new THREE.Vector3(cachedPlayerPos.x, cachedPlayerPos.y, cachedPlayerPos.z);
+
+ bounceGagState.active = true;
+ bounceGagState.phase = 'launch';
+ bounceGagState.startTime = now;
+ const baseDuration = 3200;
+ const extraDuration = Math.min(2600, Math.max(0, height - 6) * 220);
+ bounceGagState.durationMs = baseDuration + extraDuration;
+ bounceGagState.holdMs = 700;
+ bounceGagState.triggeredHeight = height;
+ bounceGagState.cameraLift = Math.min(40, 10 + height * 1.4);
+
+ bounceGagState.originalPosition.copy(camera.position);
+ if(controls){
+  bounceGagState.originalTarget.copy(controls.target);
+  bounceGagState.originalControls = {
+   enabled: controls.enabled,
+   enableRotate: controls.enableRotate,
+   enablePan: controls.enablePan
+  };
+  controls.enabled = false;
+  controls.enableRotate = false;
+  controls.enablePan = false;
+ } else {
+  bounceGagState.originalTarget.copy(playerPos);
+  bounceGagState.originalControls = null;
+ }
+
+ const horizontal = camera.position.clone().sub(playerPos);
+ horizontal.y = 0;
+ if(horizontal.lengthSq() < 1e-4){
+  horizontal.set(0, 0, 1);
+ }
+ horizontal.normalize().multiplyScalar(6);
+ bounceGagState.followOffset.copy(horizontal);
+
+ console.log(`[BOUNCE] High-energy bounce triggered (h=${height.toFixed(2)})`);
+ needsRender = true;
+}
+
+function updateBounceGag(deltaSeconds){
+ if(!bounceGagState.active) return;
+ if(!camera){
+  finishBounceGag();
+  return;
+ }
+ const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+ const playerPos = new THREE.Vector3(cachedPlayerPos.x, cachedPlayerPos.y, cachedPlayerPos.z);
+
+ if(bounceGagState.phase === 'launch'){
+  const elapsed = now - bounceGagState.startTime;
+  const clamped = Math.min(elapsed, bounceGagState.durationMs);
+  const progress = bounceGagState.durationMs > 0 ? clamped / bounceGagState.durationMs : 1;
+  const smooth = 1 - Math.pow(1 - progress, 3);
+
+  const horizontal = bounceGagState.followOffset.clone().multiplyScalar(THREE.MathUtils.lerp(1, 0.35, smooth));
+  const desiredPos = playerPos.clone().add(horizontal);
+  desiredPos.y += THREE.MathUtils.lerp(2.4, bounceGagState.cameraLift, smooth);
+
+  const desiredTarget = playerPos.clone();
+  desiredTarget.y += THREE.MathUtils.lerp(1.2, bounceGagState.cameraLift * 0.85, smooth);
+
+  camera.position.lerp(desiredPos, 0.18);
+  if(controls){
+   controls.target.lerp(desiredTarget, 0.18);
+   try{ controls.update(); }catch{}
+  } else {
+   camera.lookAt(desiredTarget);
+  }
+
+  needsRender = true;
+
+  if(elapsed >= bounceGagState.durationMs + bounceGagState.holdMs){
+   bounceGagState.phase = 'recover';
+   bounceGagState.startTime = now;
+   bounceGagState.recoverFromPosition.copy(camera.position);
+   const currentTarget = controls ? controls.target.clone() : desiredTarget;
+   bounceGagState.recoverFromTarget.copy(currentTarget);
+   bounceGagState.durationMs = 1200;
+  }
+  return;
+ }
+
+ if(bounceGagState.phase === 'recover'){
+  const elapsed = now - bounceGagState.startTime;
+  const clamped = Math.min(elapsed, bounceGagState.durationMs);
+  const progress = bounceGagState.durationMs > 0 ? clamped / bounceGagState.durationMs : 1;
+  const smooth = 1 - Math.pow(1 - progress, 3);
+
+  const desiredPos = bounceGagState.recoverFromPosition.clone().lerp(bounceGagState.originalPosition, smooth);
+  const desiredTarget = bounceGagState.recoverFromTarget.clone().lerp(bounceGagState.originalTarget, smooth);
+
+  camera.position.copy(desiredPos);
+  if(controls){
+   controls.target.copy(desiredTarget);
+   try{ controls.update(); }catch{}
+  } else {
+   camera.lookAt(desiredTarget);
+  }
+
+  needsRender = true;
+
+  if(progress >= 1){
+   finishBounceGag();
+  }
+ }
+}
 
  function resetContactCache(){
  lastTouchKey = null;
@@ -12020,10 +12168,368 @@ let physicsCameraConfig = { mode:'free', distance:10, allowRotation:false };
  const opacity = (typeof s.outlineOpacity==='number' ? s.outlineOpacity : 0.35);
  return { thickness, colorHex, opacity };
  }
- const focusMarker=new THREE.Mesh(new THREE.BoxGeometry(1.06,1.06,1.06),new THREE.MeshBasicMaterial({color:COLORS.focus,wireframe:true}));
- const selectionCelli = createSelectionCelliHighlight();
+const focusMarker=new THREE.Mesh(new THREE.BoxGeometry(1.06,1.06,1.06),new THREE.MeshBasicMaterial({color:COLORS.focus,wireframe:true}));
+const selectionCelli = createSelectionCelliHighlight();
 
- function createSelectionCelliHighlight(){
+const selectionCollapseState = {
+ active: false,
+ recovering: false,
+ velocity: 0,
+ gravity: 6.4,
+ waddlePhase: 0,
+ horizontalAmplitude: 0.4,
+ rotationAmplitude: 0.24,
+ bounceDamping: 0.58,
+ minBounceVelocity: 0.18,
+ settleTimer: 0,
+ settleHold: 0.35,
+ startPosition: null,
+ startQuaternion: null,
+ groundY: 0,
+ currentOffset: 0,
+ recoverProgress: 0,
+ recoverDuration: 0.9,
+ recoverStartPosition: null,
+ recoverStartQuaternion: null,
+ clones: [],
+ clonesGroup: null,
+ startRight: new THREE.Vector3(1,0,0),
+ startForward: new THREE.Vector3(0,0,1),
+ forwardAxis: new THREE.Vector3(0,0,1),
+ queuedUpdate: null,
+ waddleSpeed: 7.6
+};
+
+const selectionCollapseScratch = {
+ offset: new THREE.Vector3(),
+ tmp: new THREE.Vector3(),
+ wobbleQuat: new THREE.Quaternion()
+};
+
+function ensureSelectionCollapseGroup(){
+ if(selectionCollapseState.clonesGroup){
+  const existing = selectionCollapseState.clonesGroup;
+  if(scene && existing.parent !== scene){
+   scene.add(existing);
+  }
+  return existing;
+ }
+ const group = new THREE.Group();
+ group.name = 'SelectionCollapseGroup';
+ group.visible = false;
+ if(scene && group.parent !== scene){
+  scene.add(group);
+ }
+ selectionCollapseState.clonesGroup = group;
+ return group;
+}
+
+function clearSelectionCollapseClones(){
+ const group = selectionCollapseState.clonesGroup;
+ if(group){
+  while(group.children.length){
+  const child = group.children[group.children.length - 1];
+  group.remove(child);
+  try{ child.material?.map?.dispose?.(); }catch{}
+  try{ child.material?.dispose?.(); }catch{}
+  child.geometry?.dispose?.();
+  }
+  group.visible = false;
+ }
+ selectionCollapseState.clones.length = 0;
+ needsRender = true;
+}
+
+function updateSelectionCelliBlink(deltaSeconds){
+ if(!selectionCelli?.userData) return;
+ const data = selectionCelli.userData;
+ if(typeof data.updateBlink !== 'function') return;
+ const changed = data.updateBlink(deltaSeconds || 0.016);
+ if(changed) needsRender = true;
+}
+
+function computeCollapseHorizontalOffset(state, amplitudeFactor){
+ const offset = selectionCollapseScratch.offset;
+ offset.set(0,0,0);
+ if(state.startRight){
+ offset.addScaledVector(state.startRight, Math.sin(state.waddlePhase) * state.horizontalAmplitude * amplitudeFactor);
+ }
+ if(state.startForward){
+ offset.addScaledVector(state.startForward, Math.sin(state.waddlePhase * 0.6) * state.horizontalAmplitude * 0.45 * amplitudeFactor);
+ }
+ return offset;
+}
+
+function triggerSelectionCollapse(){
+ try{
+ const sel = Store.getState().selection;
+ if(!sel?.arrayId || !sel.range){
+ showToast?.('Select multiple cells first');
+ console.warn('[CELLI] Collapse requires a multi-selection');
+ return;
+ }
+ const arr = Store.getState().arrays[sel.arrayId];
+ if(!arr){
+ console.warn('[CELLI] Collapse target array missing');
+ return;
+ }
+ const focus = sel.focus || {x:0,y:0,z:0};
+ const x1 = Number.isFinite(sel.range.x1) ? sel.range.x1 : (sel.range.x ?? focus.x);
+ const x2 = Number.isFinite(sel.range.x2) ? sel.range.x2 : (sel.range.x ?? focus.x);
+ const y1 = Number.isFinite(sel.range.y1) ? sel.range.y1 : (sel.range.y ?? focus.y);
+ const y2 = Number.isFinite(sel.range.y2) ? sel.range.y2 : (sel.range.y ?? focus.y);
+ const z1 = Number.isFinite(sel.range.z1) ? sel.range.z1 : (sel.range.z ?? focus.z);
+ const z2 = Number.isFinite(sel.range.z2) ? sel.range.z2 : (sel.range.z ?? focus.z);
+
+ const counts = { x: x2 - x1 + 1, y: y2 - y1 + 1, z: z2 - z1 + 1 };
+ const multi = counts.x > 1 || counts.y > 1 || counts.z > 1;
+ if(!multi){
+ showToast?.('Select multiple cells first');
+ console.warn('[CELLI] Collapse requires multi-wrap selection');
+ return;
+ }
+
+ const center = {
+ x: x1 + (counts.x - 1) / 2,
+ y: y1 + (counts.y - 1) / 2,
+ z: z1 + (counts.z - 1) / 2
+ };
+
+ const scale = arrayVoxelScale(arr);
+ const faceHint = sel.faceHint ? { ...sel.faceHint } : null;
+
+ updateSelectionCelliHighlight(arr, center, counts, scale, faceHint);
+
+ const group = ensureSelectionCollapseGroup();
+ clearSelectionCollapseClones();
+
+ const baseGeo = new THREE.BoxGeometry(scale * 0.92, scale * 0.92, scale * 0.92);
+ const clones = [];
+ let minY = Infinity;
+ let maxY = -Infinity;
+
+ for(let z = z1; z <= z2; z++){
+ for(let y = y1; y <= y2; y++){
+ for(let x = x1; x <= x2; x++){
+ const pos = worldPos(arr, x, y, z);
+ if(!pos) continue;
+ const cell = getCellFast(arr.id, {x,y,z}) || {};
+ const hasValue = cell.value !== '' && cell.value !== null && cell.value !== undefined;
+ const isFormula = !!cell.formula;
+ const key = `${arr.id}:${x},${y},${z}`;
+ const emitted = !!Store.getState().sourceByCell?.get?.(key);
+ let colorHex = COLORS.empty;
+ if(hasValue) colorHex = COLORS.filled;
+ if(isFormula) colorHex = COLORS.formula;
+ if(emitted) colorHex = COLORS.emitted;
+ if(cell.meta?.color != null) colorHex = cell.meta.color;
+ const material = new THREE.MeshStandardMaterial({
+ color: new THREE.Color(colorHex),
+ roughness: 0.48,
+ metalness: 0.18,
+ transparent: true,
+ opacity: 0.92,
+ depthWrite: false
+ });
+ material.toneMapped = false;
+ const geometry = baseGeo.clone();
+ const mesh = new THREE.Mesh(geometry, material);
+ mesh.position.copy(pos);
+ mesh.castShadow = false;
+ mesh.receiveShadow = false;
+ group.add(mesh);
+ clones.push({
+ mesh,
+ startPosition: pos.clone(),
+ phase: Math.random() * Math.PI * 2,
+ amplitude: THREE.MathUtils.randFloat(0.12, Math.max(scale * 0.32, 0.18)),
+ baseOpacity: material.opacity,
+ groundY: 0
+ });
+ minY = Math.min(minY, pos.y);
+ maxY = Math.max(maxY, pos.y);
+ }
+ }
+ }
+
+ baseGeo.dispose();
+
+ if(!clones.length){
+ showToast?.('No voxels to collapse');
+ return;
+ }
+
+ selectionCollapseState.clones = clones;
+ group.visible = true;
+
+ const data = selectionCelli.userData || {};
+ const startPos = data.basePosition ? data.basePosition.clone() : selectionCelli.position.clone();
+ const startQuat = data.baseQuaternion ? data.baseQuaternion.clone() : selectionCelli.quaternion.clone();
+ const rightDir = (data.rightDir ? data.rightDir.clone() : new THREE.Vector3(1,0,0));
+ const forwardDir = (data.forwardDir ? data.forwardDir.clone() : new THREE.Vector3(0,0,1));
+
+ rightDir.y = 0; if(rightDir.lengthSq() < 1e-6) rightDir.set(1,0,0); rightDir.normalize();
+ forwardDir.y = 0; if(forwardDir.lengthSq() < 1e-6){ forwardDir.set(-rightDir.z, 0, rightDir.x); } forwardDir.normalize();
+
+ selectionCollapseState.startPosition = startPos;
+ selectionCollapseState.startQuaternion = startQuat;
+ selectionCollapseState.startRight = rightDir;
+ selectionCollapseState.startForward = forwardDir;
+ selectionCollapseState.forwardAxis = new THREE.Vector3(0,0,1).applyQuaternion(startQuat).normalize();
+ selectionCollapseState.horizontalAmplitude = Math.max(scale * 0.45, Math.min(counts.x + counts.z, 6) * scale * 0.12);
+ selectionCollapseState.rotationAmplitude = 0.2 + Math.min(0.35, counts.x * 0.04 + counts.y * 0.03);
+ selectionCollapseState.gravity = 5.8 + counts.y * 0.6;
+ selectionCollapseState.waddleSpeed = 6.6 + Math.min(8, counts.x + counts.z) * 0.6;
+ selectionCollapseState.minBounceVelocity = 0.16 + counts.y * 0.05;
+ selectionCollapseState.velocity = 0;
+ selectionCollapseState.currentOffset = 0;
+ selectionCollapseState.settleTimer = 0;
+ selectionCollapseState.recoverProgress = 0;
+ selectionCollapseState.queuedUpdate = null;
+
+ const dropDistance = Math.max(scale * (counts.y + 0.8), scale * 1.2);
+ const computedGround = startPos.y - dropDistance;
+ selectionCollapseState.groundY = Math.min(computedGround, minY - scale * 0.4);
+
+ clones.forEach(entry=>{
+ entry.groundY = entry.startPosition.y - (startPos.y - selectionCollapseState.groundY);
+ });
+
+ selectionCollapseState.active = true;
+ selectionCollapseState.recovering = false;
+ selectionCollapseState.waddlePhase = 0;
+ selectionCollapseState.clonesGroup = group;
+ selectionCelli.userData.collapseActive = true;
+ selectionCelli.visible = true;
+ selectionCelli.userData.applyBlink?.(0);
+
+ needsRender = true;
+ showToast?.('Multi-wrap collapse engaged');
+ }catch(err){
+ console.warn('[CELLI] Failed to trigger collapse', err);
+ }
+}
+
+function updateCollapseClones(state, sharedOffset, amplitudeFactor){
+ const tmp = selectionCollapseScratch.tmp;
+ state.clones.forEach(entry=>{
+ const mesh = entry.mesh;
+ tmp.copy(sharedOffset);
+ if(state.startRight){
+ tmp.addScaledVector(state.startRight, Math.sin(state.waddlePhase + entry.phase) * entry.amplitude * 0.35 * amplitudeFactor);
+ }
+ if(state.startForward){
+ tmp.addScaledVector(state.startForward, Math.sin(state.waddlePhase * 0.8 + entry.phase * 0.6) * entry.amplitude * 0.25 * amplitudeFactor);
+ }
+ const target = entry.startPosition.clone().add(tmp);
+ const candidateY = entry.startPosition.y - state.currentOffset;
+ const floorY = entry.groundY;
+ target.y = candidateY < floorY ? floorY : candidateY;
+ mesh.position.copy(target);
+ mesh.rotation.x = Math.sin(state.waddlePhase + entry.phase) * 0.35 * amplitudeFactor;
+ mesh.rotation.z = Math.sin(state.waddlePhase * 0.75 + entry.phase * 0.4) * 0.25 * amplitudeFactor;
+ if(mesh.material && mesh.material.transparent){
+ const base = entry.baseOpacity ?? mesh.material.opacity ?? 1;
+ const fade = target.y <= floorY + 0.001 ? 0.85 : 1;
+ mesh.material.opacity = THREE.MathUtils.clamp(base * fade, 0, 1);
+ }
+ });
+ if(selectionCollapseState.clonesGroup){
+ selectionCollapseState.clonesGroup.visible = true;
+ }
+}
+
+function updateSelectionCollapse(deltaSeconds){
+ const state = selectionCollapseState;
+ if(!state.active && !state.recovering) return;
+ if(!selectionCelli){
+ clearSelectionCollapseClones();
+ state.active = false;
+ state.recovering = false;
+ return;
+ }
+ const dt = deltaSeconds || 0.016;
+ if(state.active){
+ state.velocity += state.gravity * dt;
+ state.currentOffset += state.velocity * dt;
+ state.waddlePhase += state.waddleSpeed * dt;
+ const amplitudeFactor = Math.min(1, 0.3 + Math.abs(state.velocity) * 0.18);
+ let newY = (state.startPosition?.y ?? selectionCelli.position.y) - state.currentOffset;
+ if(newY <= state.groundY){
+ newY = state.groundY;
+ state.currentOffset = (state.startPosition?.y ?? selectionCelli.position.y) - state.groundY;
+ state.velocity = -state.velocity * state.bounceDamping;
+ if(Math.abs(state.velocity) < state.minBounceVelocity){
+ state.velocity = 0;
+ state.settleTimer += dt;
+ if(state.settleTimer >= state.settleHold){
+ state.settleTimer = 0;
+ state.active = false;
+ state.recovering = true;
+ state.recoverProgress = 0;
+ state.recoverStartPosition = selectionCelli.position.clone();
+ state.recoverStartQuaternion = selectionCelli.quaternion.clone();
+ }
+ } else {
+ state.settleTimer = 0;
+ }
+ }
+ const offset = computeCollapseHorizontalOffset(state, amplitudeFactor);
+ const basePos = state.startPosition ? state.startPosition.clone() : selectionCelli.position.clone();
+ basePos.add(offset);
+ basePos.y = newY;
+ selectionCelli.position.copy(basePos);
+ if(state.startQuaternion){
+ const wobbleQuat = selectionCollapseScratch.wobbleQuat;
+ wobbleQuat.setFromAxisAngle(state.forwardAxis, Math.sin(state.waddlePhase) * state.rotationAmplitude * amplitudeFactor);
+ selectionCelli.quaternion.copy(state.startQuaternion).multiply(wobbleQuat);
+ }
+ updateCollapseClones(state, offset, amplitudeFactor);
+ needsRender = true;
+ } else if(state.recovering){
+ state.recoverProgress += dt / Math.max(0.001, state.recoverDuration);
+ const t = Math.min(1, state.recoverProgress);
+ const eased = 1 - Math.pow(1 - t, 3);
+ if(state.recoverStartPosition && state.startPosition){
+ selectionCelli.position.lerpVectors(state.recoverStartPosition, state.startPosition, eased);
+ }
+ if(state.recoverStartQuaternion && state.startQuaternion){
+ selectionCelli.quaternion.copy(state.recoverStartQuaternion).slerp(state.startQuaternion, eased);
+ }
+ selectionCollapseState.clones.forEach(entry=>{
+ const mesh = entry.mesh;
+ mesh.position.lerpVectors(mesh.position, entry.startPosition, eased);
+ mesh.rotation.x *= (1 - eased);
+ mesh.rotation.z *= (1 - eased);
+ if(mesh.material && mesh.material.transparent){
+ mesh.material.opacity = THREE.MathUtils.lerp(entry.baseOpacity ?? mesh.material.opacity ?? 1, 0, eased);
+ }
+ });
+ if(selectionCollapseState.clonesGroup){
+ selectionCollapseState.clonesGroup.visible = selectionCollapseState.clones.length > 0 && eased < 1;
+ }
+ if(t >= 1){
+ clearSelectionCollapseClones();
+ state.recovering = false;
+ state.active = false;
+ state.startPosition = null;
+ state.startQuaternion = null;
+ selectionCelli.userData.collapseActive = false;
+ if(state.queuedUpdate){
+ const pending = state.queuedUpdate;
+ const arr = Store.getState().arrays[pending.arrId];
+ if(arr){
+ const rescale = arrayVoxelScale(arr);
+ updateSelectionCelliHighlight(arr, pending.center, pending.counts, rescale, pending.faceHint);
+ }
+ state.queuedUpdate = null;
+ }
+ }
+ needsRender = true;
+ }
+}
+
+function createSelectionCelliHighlight(){
  const group = new THREE.Group();
  group.name = 'SelectionCelliHighlight';
 
@@ -12063,7 +12569,11 @@ let physicsCameraConfig = { mode:'free', distance:10, allowRotation:false };
 
  const bowGroup = new THREE.Group();
  bowGroup.name = 'CelliBow';
- const bowWingGeo = new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(0.18,0), new THREE.Vector2(-0.1,0.18), new THREE.Vector2(-0.1,-0.18)]));
+ const bowWingGeo = new THREE.ShapeGeometry(new THREE.Shape([
+  new THREE.Vector2(0.18,0),
+  new THREE.Vector2(-0.1,0.18),
+  new THREE.Vector2(-0.1,-0.18)
+ ]));
  const bowWingLeft = new THREE.Mesh(bowWingGeo, MAT_BOW);
  bowWingLeft.position.set(-0.12, 0, 0);
  const bowWingRight = bowWingLeft.clone();
@@ -12074,6 +12584,58 @@ let physicsCameraConfig = { mode:'free', distance:10, allowRotation:false };
  bowGroup.add(bowWingLeft, bowWingRight, bowKnot);
  group.add(bowGroup);
 
+ const eyes = [eyeLeft, eyeRight];
+ const blinkState = {
+ countdown: THREE.MathUtils.randFloat(2.6, 5.4),
+ minDelay: 2.6,
+ maxDelay: 5.4,
+ blinkDuration: 0.18,
+ minScale: 0.2,
+ progress: 0,
+ blinking: false,
+ baseScales: eyes.map(eye => eye.scale.y)
+ };
+
+ const applyBlinkAmount = (amount = 0)=>{
+ eyes.forEach((eye, index)=>{
+ const base = blinkState.baseScales[index] ?? 1;
+ eye.scale.y = THREE.MathUtils.lerp(base, base * blinkState.minScale, amount);
+ });
+ };
+
+ const resetBlink = ()=>{
+ blinkState.countdown = THREE.MathUtils.randFloat(blinkState.minDelay, blinkState.maxDelay);
+ blinkState.progress = 0;
+ blinkState.blinking = false;
+ blinkState.baseScales = eyes.map(eye => eye.scale.y);
+ applyBlinkAmount(0);
+ };
+
+ const updateBlink = (delta = 0.016)=>{
+ if(!blinkState) return;
+ if(blinkState.blinking){
+ blinkState.progress += delta / blinkState.blinkDuration;
+ const progress = Math.min(blinkState.progress, 1);
+ const amount = Math.sin(progress * Math.PI);
+ applyBlinkAmount(amount);
+ if(progress >= 1){
+ blinkState.blinking = false;
+ blinkState.progress = 0;
+ }
+ return true;
+ }
+ blinkState.countdown -= delta;
+ if(blinkState.countdown <= 0){
+ blinkState.blinking = true;
+ blinkState.progress = 0;
+ blinkState.countdown = THREE.MathUtils.randFloat(blinkState.minDelay, blinkState.maxDelay);
+ }
+ applyBlinkAmount(0);
+ return false;
+ };
+
+ applyBlinkAmount(0);
+
  group.userData = {
  bodyFrame,
  mouthFrame,
@@ -12082,16 +12644,27 @@ let physicsCameraConfig = { mode:'free', distance:10, allowRotation:false };
  cheekLeft,
  cheekRight,
  bowGroup,
+ eyes,
+ blinkState,
+ applyBlink: applyBlinkAmount,
+ updateBlink,
+ resetBlink,
  lastSignature: null,
  stretchState: null,
- lastStretchSignature: null
+ lastStretchSignature: null,
+ collapseActive: false,
+ basePosition: new THREE.Vector3(),
+ baseQuaternion: new THREE.Quaternion(),
+ rightDir: new THREE.Vector3(1,0,0),
+ forwardDir: new THREE.Vector3(0,0,1)
  };
 
  return group;
- }
+}
 
- function startSelectionCelliStretch(counts, center){
+function startSelectionCelliStretch(counts, center){
  if(!selectionCelli) return;
+ if(selectionCollapseState.active || selectionCollapseState.recovering) return;
  const data = selectionCelli.userData || {};
  const signature = `${counts.x||1}:${counts.y||1}:${counts.z||1}:${Math.round((center?.x||0)*10)}:${Math.round((center?.y||0)*10)}:${Math.round((center?.z||0)*10)}`;
  if(data.lastStretchSignature === signature) return;
@@ -12144,10 +12717,19 @@ let physicsCameraConfig = { mode:'free', distance:10, allowRotation:false };
  return {horizontal:0, vertical:1}; // Z face (front/back): X is horizontal, Y is vertical
  }
 
- function updateSelectionCelliHighlight(arr, center, counts, scale, faceHint){
+function updateSelectionCelliHighlight(arr, center, counts, scale, faceHint){
  if(!selectionCelli || !arr) return;
  const data = selectionCelli.userData || {};
  if(!data.bodyFrame || !data.mouthFrame) return;
+ if(selectionCollapseState.active || selectionCollapseState.recovering){
+ selectionCollapseState.queuedUpdate = {
+ arrId: arr.id,
+ center: { x: center?.x ?? 0, y: center?.y ?? 0, z: center?.z ?? 0 },
+ counts: { x: counts?.x ?? 1, y: counts?.y ?? 1, z: counts?.z ?? 1 },
+ faceHint: faceHint ? { ...faceHint } : null
+ };
+ return;
+ }
 
  const axisKeys = ['x','y','z'];
  let axis = null;
@@ -12300,16 +12882,60 @@ let physicsCameraConfig = { mode:'free', distance:10, allowRotation:false };
  const offsetTowardCamera = forward.clone().multiplyScalar(0.02);
  const adjustedPos = pos.clone().add(offsetTowardCamera);
  selectionCelli.position.copy(adjustedPos);
- 
+
  // Snap rotation to align with the viewing axis
  const rotMatrix = new THREE.Matrix4().makeBasis(worldRight, worldUp, forward);
  selectionCelli.rotation.setFromRotationMatrix(rotMatrix);
- 
+
+ const horizontalRight = worldRight.clone();
+ horizontalRight.y = 0;
+ if(horizontalRight.lengthSq() < 1e-6) horizontalRight.set(1,0,0);
+ horizontalRight.normalize();
+
+ const horizontalForward = forward.clone();
+ horizontalForward.y = 0;
+ if(horizontalForward.lengthSq() < 1e-6){
+ horizontalForward.set(-horizontalRight.z, 0, horizontalRight.x);
+ }
+ horizontalForward.normalize();
+
+ if(data){
+ data.basePosition = adjustedPos.clone();
+ data.baseQuaternion = selectionCelli.quaternion.clone();
+ if(!data.rightDir) data.rightDir = new THREE.Vector3();
+ if(!data.forwardDir) data.forwardDir = new THREE.Vector3();
+ data.rightDir.copy(horizontalRight);
+ data.forwardDir.copy(horizontalForward);
+ if(data.blinkState){
+  data.blinkState.baseScales = [data.eyeLeft.scale.y, data.eyeRight.scale.y];
+ }
+ if(typeof data.applyBlink === 'function'){
+  data.applyBlink(0);
+ }
+ if(typeof data.resetBlink === 'function'){
+  data.resetBlink();
+ }
+}
+
+ if(!selectionCollapseState.active && !selectionCollapseState.recovering){
+ selectionCollapseState.startPosition = adjustedPos.clone();
+ selectionCollapseState.startQuaternion = selectionCelli.quaternion.clone();
+ selectionCollapseState.startRight = horizontalRight.clone();
+ selectionCollapseState.startForward = horizontalForward.clone();
+ selectionCollapseState.forwardAxis = forward.clone().normalize();
+ }
+
+ selectionCelli.userData.collapseActive = selectionCollapseState.active || selectionCollapseState.recovering;
+
  selectionCelli.visible = true;
  selectionCelli.userData.lastSignature = `${arr.id}:${center.x},${center.y},${center.z}:${counts.x},${counts.y},${counts.z}:${axis}:${sign}`;
  
  console.log(`[CELLI] Border placed: pos=(${adjustedPos.x.toFixed(2)},${adjustedPos.y.toFixed(2)},${adjustedPos.z.toFixed(2)}), axis=${axis}, sign=${sign}, visible=${selectionCelli.visible}`);
- 
+
+ if(selectionCollapseState.clonesGroup && !selectionCollapseState.active && !selectionCollapseState.recovering){
+  selectionCollapseState.clonesGroup.visible = false;
+ }
+
  needsRender = true;
  }
  
@@ -12873,6 +13499,7 @@ renderer.setSize(window.innerWidth,window.innerHeight);
 
  scene.add(focusMarker); focusMarker.visible=false;
  scene.add(selectionCelli); selectionCelli.visible=false;
+ ensureSelectionCollapseGroup();
  // Dependency overlay group
  depGroup = new THREE.Group(); depGroup.visible=false; depGroup.userData.kind='depGroup'; scene.add(depGroup);
  initAvatars();
@@ -14592,12 +15219,21 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  }
  
  if(!sel.arrayId||!sel.focus){
- focusMarker.visible=false;
- selectionCelli.visible=false;
- if(selectionCelli.userData){
- selectionCelli.userData.stretchState = null;
- selectionCelli.userData.lastStretchSignature = null;
- }
+  focusMarker.visible=false;
+  selectionCelli.visible=false;
+  clearSelectionCollapseClones();
+  selectionCollapseState.active = false;
+  selectionCollapseState.recovering = false;
+  selectionCollapseState.queuedUpdate = null;
+  selectionCollapseState.startPosition = null;
+  selectionCollapseState.startQuaternion = null;
+  if(selectionCelli.userData){
+   selectionCelli.userData.collapseActive = false;
+  }
+  if(selectionCelli.userData){
+   selectionCelli.userData.stretchState = null;
+   selectionCelli.userData.lastStretchSignature = null;
+  }
  selectionCelli.scale.set(1,1,1);
  if(lastFocusedArrayId){
  const prev = Store.getState().arrays[lastFocusedArrayId];
@@ -15587,15 +16223,18 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  if(celliDerezState.respawnScheduled && celliDerezState.respawnData){
  const data = celliDerezState.respawnData;
  console.log('[DEREZ] Animation complete, executing delayed respawn');
- if(playerBody){
- playerBody.setTranslation(data.pos, true);
- playerBody.setLinvel({x: 0, y: 0, z: 0}, true);
- cachedPlayerPos.set(data.pos.x, data.pos.y, data.pos.z);
- jumpVelocity = 0;
- landingSquashTime = 0;
- wasGroundedLastFrame = false;
- lastLandKey = null;
- }
+  if(playerBody){
+   playerBody.setTranslation(data.pos, true);
+   playerBody.setLinvel({x: 0, y: 0, z: 0}, true);
+   cachedPlayerPos.set(data.pos.x, data.pos.y, data.pos.z);
+   jumpVelocity = 0;
+   landingSquashTime = 0;
+   anticipationSquashTime = 0;
+   wasGroundedLastFrame = false;
+   lastLandKey = null;
+   skipWalkBounceUntil = 0;
+   resetJumpBudget();
+  }
  // Re-enable camera controls
  if(controls){
  try{ controls.enabled = true; }catch{}
@@ -15710,11 +16349,16 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  const deltaRaw = lastFrame ? (time - lastFrame) : 16;
  if(deltaRaw < 16){ __rafId = requestAnimationFrame(animate); return; }
  const deltaMs = Math.min(64, deltaRaw);
+ const deltaSec = deltaMs * 0.001;
  lastFrame = time;
  try {
- updateDerezEffects(deltaMs);
- Scene.updateDeleteEffects?.(16);
- if(arrayaAvatar) arrayaAvatar.update(time * 0.001);
+  updateDerezEffects(deltaMs);
+  Scene.updateDeleteEffects?.(16);
+  if(arrayaAvatar) arrayaAvatar.update(time * 0.001);
+
+ updateSelectionCelliBlink(deltaSec);
+ updateSelectionCollapse(deltaSec);
+ updateBounceGag(deltaSec);
  
  // Reset derez lastY when not in physics mode
  const physicsActive = !!Store.getState().scene?.physics;
@@ -16053,16 +16697,19 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  } else if(respawnPos && !celliDerezState.active){
  // Immediate respawn if no derez animation
  console.log('[PHYSICS] Fell off world, respawning at spawn point');
- playerBody.setTranslation(respawnPos, true);
- playerBody.setLinvel({x: 0, y: 0, z: 0}, true);
- cachedPlayerPos.set(respawnPos.x, respawnPos.y, respawnPos.z);
- jumpVelocity = 0;
- landingSquashTime = 0;
- wasGroundedLastFrame = false;
- lastLandKey = null;
- respawned = true;
+  playerBody.setTranslation(respawnPos, true);
+  playerBody.setLinvel({x: 0, y: 0, z: 0}, true);
+  cachedPlayerPos.set(respawnPos.x, respawnPos.y, respawnPos.z);
+  jumpVelocity = 0;
+  landingSquashTime = 0;
+  anticipationSquashTime = 0;
+  wasGroundedLastFrame = false;
+  lastLandKey = null;
+  skipWalkBounceUntil = 0;
+  resetJumpBudget();
+  respawned = true;
  }
- }
+}
  if(!respawned){
  celliDerezState.lastY = cachedPlayerPos.y;
  } else {
@@ -16089,7 +16736,7 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  if(RAPIER && rapierWorld && Number.isFinite(p.x) && Number.isFinite(p.y) && Number.isFinite(p.z)){
  try{
  const ray = new RAPIER.Ray({x: p.x, y: p.y, z: p.z}, {x: 0, y: -1, z: 0});
- const maxToi = 0.6;
+ const maxToi = 0.5;
  const hit = rapierWorld.castRay(ray, maxToi, true);
  nowGrounded = hit !== null && Math.abs(vel.y) < 1.0;
  }catch(e){
@@ -18830,7 +19477,7 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  
  // Raycast downward from player position to detect ground/platforms
  const ray = new RAPIER.Ray(translation, {x: 0, y: -1, z: 0});
- const maxToi = 0.6; // Check 0.6 units below (player capsule radius is 0.5)
+ const maxToi = 0.5; // Check 0.5 units below (player capsule radius is ~0.22)
  const solid = true;
  
  const hit = rapierWorld.castRay(ray, maxToi, solid);
@@ -20075,7 +20722,7 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  frameId = requestAnimationFrame(step);
  }
 
- function parseBounceMeta(meta){
+function parseBounceMeta(meta){
  if(!meta) return { walk:0, land:0 };
  const normalized = normalizeMetaKeys(meta) || {};
  let raw = normalized.bounceConfig ?? normalized.bounce ?? null;
@@ -20158,11 +20805,14 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  try{ startLandingCellBounce(hit.arr, hit.coord, intensity); }catch{}
  const applied = applyBounceImpulse(h, mode);
  if(applied){
- landingSquashTime = Math.max(landingSquashTime, 1);
+  landingSquashTime = Math.max(landingSquashTime, 1);
+  if(h >= BOUNCE_GAG_THRESHOLD){
+   startBounceGag(h);
+  }
  } else {
- landingSquashTime = Math.max(landingSquashTime || 0, 1);
+  landingSquashTime = Math.max(landingSquashTime || 0, 1);
  }
- }
+}
 
  function triggerTouchHandlers(){
  try{
@@ -20400,14 +21050,18 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  function spawnPlayerAt(x, y, z){
  if(playerBody){
  try{
- playerBody.setTranslation({x, y, z}, true);
- playerBody.setLinvel({x: 0, y: 0, z: 0}, true); // Reset all velocities
- playerBody.setAngvel({x: 0, y: 0, z: 0}, true); // Reset angular velocity
- cachedPlayerPos.set(x, y, z);
- jumpVelocity = 0; // Reset jump velocity on spawn
- landingSquashTime = 0; // Reset squash animation
- physicsSpawnPos = {x, y, z}; // Store for respawn on fall
- console.log(`[PHYSICS] Spawned player at (${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`);
+  playerBody.setTranslation({x, y, z}, true);
+  playerBody.setLinvel({x: 0, y: 0, z: 0}, true); // Reset all velocities
+  playerBody.setAngvel({x: 0, y: 0, z: 0}, true); // Reset angular velocity
+  cachedPlayerPos.set(x, y, z);
+  jumpVelocity = 0; // Reset jump velocity on spawn
+  landingSquashTime = 0; // Reset squash animation
+  anticipationSquashTime = 0;
+  wasGroundedLastFrame = false;
+  skipWalkBounceUntil = 0;
+  resetJumpBudget();
+  physicsSpawnPos = {x, y, z}; // Store for respawn on fall
+  console.log(`[PHYSICS] Spawned player at (${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)})`);
  }catch(e){
  console.warn('spawnPlayerAt failed:', e);
  }
@@ -20542,7 +21196,7 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  rb.setAngularDamping(1.0);
  rb.setCcdEnabled(true);
  playerBody=rapierWorld.createRigidBody(rb);
- const capsuleDesc = RAPIER.ColliderDesc.capsule(0.35, 0.25);
+ const capsuleDesc = RAPIER.ColliderDesc.capsule(0.32, 0.22);
  capsuleDesc.setRestitution(0.0);
  capsuleDesc.setFriction(0.7);
  capsuleDesc.setDensity(1.5);
@@ -20684,8 +21338,9 @@ const UI = (()=>{
  focusChip:document.getElementById('focusChip'), inspect:document.getElementById('inspect'),
  centerHome:document.getElementById('centerHome'), viewMainframe:document.getElementById('viewMainframe'),
  toggleGrid:document.getElementById('toggleGrid'), toggleAxes:document.getElementById('toggleAxes'),
- presentToggle:document.getElementById('presentToggleBtn'), graphicsSettingsBtn:document.getElementById('graphicsSettingsBtn'), oceanSettingsBtn:document.getElementById('oceanSettingsBtn'), crystalToggle:document.getElementById('crystal2DToggle'),
- physicsBtn:document.getElementById('physicsBtn'), reset:document.getElementById('reset'),
+  presentToggle:document.getElementById('presentToggleBtn'), graphicsSettingsBtn:document.getElementById('graphicsSettingsBtn'), oceanSettingsBtn:document.getElementById('oceanSettingsBtn'), crystalToggle:document.getElementById('crystal2DToggle'),
+  celliCollapse:document.getElementById('celliCollapseBtn'),
+  physicsBtn:document.getElementById('physicsBtn'), reset:document.getElementById('reset'),
  status:document.getElementById('statusChip'),
  sheetTitle:document.getElementById('sheetTitle'),
  rowHeaders:document.getElementById('rowHeaders'), colHeaders:document.getElementById('colHeaders'), grid:document.getElementById('grid'),
@@ -21249,6 +21904,12 @@ const UI = (()=>{
  };
  if(els.toggleGrid) els.toggleGrid.onclick=Actions.toggleGrid;
  if(els.toggleAxes) els.toggleAxes.onclick=Actions.toggleAxes;
+ if(els.celliCollapse && !els.celliCollapse._wired){
+ els.celliCollapse._wired = true;
+ els.celliCollapse.addEventListener('click',()=>{
+ try{ triggerSelectionCollapse(); }catch(e){ console.warn('Collapse trigger failed', e); }
+ });
+ }
  const presentInitial = Scene.isPresentEnabled ? Scene.isPresentEnabled() : false;
  syncPresentUI(presentInitial);
  if(els.presentToggle){
