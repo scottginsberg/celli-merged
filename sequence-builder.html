@@ -3,37 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Celli Sequence Builder - Comprehensive</title>
-  
-  <!-- Dynamic CSS Import Container -->
+  <title>Celli Sequence Builder - Unified Experience</title>
+
   <div id="dynamic-styles"></div>
-  
-  <!-- Core Styles -->
+
   <link rel="stylesheet" href="src/styles/main.css">
   <link rel="stylesheet" href="src/styles/sequence.css">
-  
+
   <style>
-    * { box-sizing: border-box; }
-    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: #1a1a1a;
       color: #e0e0e0;
+      overflow: hidden;
     }
 
-    /* Main Layout */
     .builder-container {
       display: grid;
-      grid-template-columns: 300px 1fr 350px;
-      grid-template-rows: 60px 1fr 200px;
+      grid-template-columns: 320px 1fr 360px;
+      grid-template-rows: 60px 1fr 220px;
       height: 100vh;
       gap: 0;
     }
 
-    /* Header Bar */
     .builder-header {
       grid-column: 1 / -1;
       background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
@@ -58,9 +52,20 @@
       font-size: 24px;
     }
 
+    .scene-badge {
+      background: #3498db;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
     .builder-controls {
       display: flex;
-      gap: 10px;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .btn {
@@ -78,17 +83,13 @@
 
     .btn-primary { background: #3498db; color: white; }
     .btn-primary:hover { background: #2980b9; transform: translateY(-1px); }
-    
     .btn-success { background: #27ae60; color: white; }
     .btn-success:hover { background: #229954; }
-    
     .btn-danger { background: #e74c3c; color: white; }
     .btn-danger:hover { background: #c0392b; }
-    
     .btn-secondary { background: #7f8c8d; color: white; }
     .btn-secondary:hover { background: #5d6d6e; }
 
-    /* Left Panel - Scene Resources */
     .panel-left {
       background: #2c2c2c;
       border-right: 1px solid #444;
@@ -96,19 +97,258 @@
       padding: 15px;
     }
 
+    .scene-info {
+      background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      border: 1px solid #445566;
+    }
+
+    .scene-info-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #3498db;
+      margin-bottom: 8px;
+    }
+
+    .scene-info-detail {
+      font-size: 11px;
+      color: #bdc3c7;
+      margin: 4px 0;
+    }
+
+    .scene-info-count {
+      display: inline-block;
+      background: #3498db;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      margin-left: 6px;
+    }
+
+    .asset-manager-header {
+      background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #445566;
+    }
+
+    .asset-manager-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #3498db;
+      margin-bottom: 8px;
+    }
+
+    .asset-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 10px;
+      color: #bdc3c7;
+    }
+
+    .stat-item {
+      background: rgba(52, 152, 219, 0.1);
+      padding: 6px;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #3498db;
+      display: block;
+    }
+
+    .panel-divider {
+      height: 1px;
+      background: #3a3a3a;
+      border: none;
+      margin: 18px 0;
+    }
+
     .panel-section {
       margin-bottom: 20px;
     }
 
+    .panel-section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      color: #d0d6d9;
+    }
+
     .panel-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ecf0f1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-meta {
+      font-size: 11px;
+      color: #7f8c8d;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .section-search {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: 1px solid #3d3d3d;
+      background: #1f1f1f;
+      color: #e0e0e0;
+      font-size: 12px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .section-search:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 1px rgba(52, 152, 219, 0.25);
+    }
+    .asset-group {
+      margin-bottom: 12px;
+      background: #353535;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #444;
+    }
+
+    .asset-group-header {
+      padding: 10px 12px;
+      background: #2a2a2a;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.2s;
+      user-select: none;
+    }
+
+    .asset-group-header:hover { background: #333; }
+    .asset-group-header.active { background: #2c3e50; }
+
+    .asset-group-title {
       font-size: 12px;
       font-weight: 700;
+      color: #e0e0e0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .asset-count {
+      background: #3498db;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .expand-icon {
+      font-size: 12px;
+      transition: transform 0.2s;
       color: #999;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 10px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #444;
+    }
+
+    .asset-group-header.active .expand-icon { transform: rotate(90deg); }
+
+    .asset-group-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .asset-group-content.expanded {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .asset-item {
+      padding: 8px 12px;
+      margin: 4px 8px;
+      background: #2a2a2a;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 11px;
+      border-left: 3px solid transparent;
+    }
+
+    .asset-item:hover {
+      background: #333;
+      border-left-color: #3498db;
+      transform: translateX(4px);
+    }
+
+    .asset-item.selected {
+      background: #2c3e50;
+      border-left-color: #f39c12;
+      box-shadow: 0 0 0 1px rgba(243, 156, 18, 0.4);
+    }
+
+    .asset-name {
+      font-weight: 600;
+      color: #e0e0e0;
+    }
+
+    .asset-details {
+      font-size: 10px;
+      color: #7f8c8d;
+      margin-left: 16px;
+      margin-top: 4px;
+    }
+
+    .asset-type {
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .asset-type.type-components { background: #9b59b6; color: white; }
+    .asset-type.type-functions { background: #f39c12; color: white; }
+    .asset-type.type-variables { background: #16a085; color: white; }
+    .asset-type.type-styles { background: #e74c3c; color: white; }
+    .asset-type.type-imports { background: #34495e; color: white; }
+    .asset-type.type-classes { background: #2c3e50; color: white; }
+
+    .node-palette {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 8px;
+    }
+
+    .palette-node {
+      padding: 8px 12px;
+      background: #353535;
+      border-radius: 6px;
+      border: 1px solid #444;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      cursor: grab;
+      transition: all 0.2s;
+    }
+
+    .palette-node:hover {
+      background: #404040;
+      border-color: #3498db;
+      transform: translateY(-2px);
     }
 
     .resource-list {
@@ -134,11 +374,6 @@
       transform: translateX(4px);
     }
 
-    .resource-item.active {
-      background: #2c3e50;
-      border-left-color: #3498db;
-    }
-
     .resource-badge {
       display: inline-block;
       padding: 2px 6px;
@@ -152,13 +387,213 @@
     .badge-js { background: #f39c12; color: white; }
     .badge-scene { background: #9b59b6; color: white; }
 
-    /* Center Panel - Timeline */
+    .empty-state {
+      font-size: 11px;
+      color: #777;
+      text-align: center;
+      padding: 20px 10px;
+      border: 1px dashed #3a3a3a;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    .scene-catalog {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .catalog-group {
+      background: #353535;
+      border-radius: 6px;
+      border: 1px solid #3d3d3d;
+      padding: 12px;
+    }
+
+    .catalog-group-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 700;
+      color: #e0e0e0;
+    }
+
+    .catalog-group-description {
+      font-size: 11px;
+      color: #8f9aa5;
+      margin-top: 6px;
+    }
+
+    .catalog-items {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .catalog-item {
+      padding: 8px 10px;
+      background: #2a2a2a;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .catalog-item:hover {
+      border-color: #3498db;
+      box-shadow: 0 0 0 1px rgba(52, 152, 219, 0.4);
+    }
+
+    .catalog-item.active {
+      border-color: #f39c12;
+      box-shadow: 0 0 0 1px rgba(243, 156, 18, 0.4);
+    }
+
+    .catalog-item-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+
+    .catalog-item-summary {
+      font-size: 11px;
+      color: #aab4bf;
+      margin-top: 4px;
+    }
+
+    .catalog-tags {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .catalog-tag {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      background: rgba(52, 152, 219, 0.2);
+      color: #9bd4ff;
+    }
+
+    .prop-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .prop-card {
+      background: #2a2a2a;
+      border-radius: 6px;
+      padding: 10px;
+      border: 1px solid #3d3d3d;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+
+    .prop-card:hover {
+      border-color: #3498db;
+      transform: translateY(-2px);
+    }
+
+    .prop-name {
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #e0e0e0;
+    }
+
+    .prop-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      color: #999;
+      font-size: 10px;
+    }
+
     .panel-center {
       background: #1e1e1e;
       display: flex;
       flex-direction: column;
     }
 
+    .center-tabs {
+      display: flex;
+      background: #252525;
+      border-bottom: 1px solid #333;
+    }
+
+    .tab-btn {
+      padding: 12px 16px;
+      color: #999;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+    }
+
+    .tab-btn:hover {
+      color: #e0e0e0;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .tab-btn.active {
+      color: #3498db;
+      border-bottom-color: #3498db;
+    }
+
+    .tab-content {
+      flex: 1;
+      overflow: hidden;
+      display: none;
+    }
+
+    .tab-content.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .builder-toolbar {
+      background: #252525;
+      border-bottom: 1px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 15px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .toolbar-btn {
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid #3d3d3d;
+      background: #2a2a2a;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .toolbar-btn:hover {
+      background: #333;
+      border-color: #3498db;
+    }
+
+    .toolbar-btn.active {
+      background: #3498db;
+      border-color: #3498db;
+      color: white;
+    }
     .timeline-container {
       flex: 1;
       position: relative;
@@ -168,7 +603,7 @@
     .timeline-grid {
       position: absolute;
       inset: 0;
-      background: 
+      background:
         repeating-linear-gradient(90deg, #2a2a2a 0, #2a2a2a 1px, transparent 1px, transparent 50px),
         repeating-linear-gradient(0deg, #2a2a2a 0, #2a2a2a 1px, transparent 1px, transparent 40px);
     }
@@ -191,6 +626,7 @@
       color: #888;
       font-size: 11px;
       font-weight: 600;
+      padding-left: 6px;
     }
 
     .timeline-marker::before {
@@ -236,148 +672,9 @@
       box-shadow: 0 4px 12px rgba(243, 156, 18, 0.6);
     }
 
-    .node-label {
-      font-size: 11px;
-      opacity: 0.9;
-    }
+    .node-label { font-size: 11px; opacity: 0.9; }
+    .node-duration { font-size: 10px; opacity: 0.7; margin-top: 4px; }
 
-    .node-duration {
-      font-size: 10px;
-      opacity: 0.7;
-      margin-top: 4px;
-    }
-
-    /* Right Panel - Properties */
-    .panel-right {
-      background: #2c2c2c;
-      border-left: 1px solid #444;
-      overflow-y: auto;
-      padding: 15px;
-    }
-
-    .property-group {
-      margin-bottom: 20px;
-    }
-
-    .property-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: #999;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
-    }
-
-    .property-input {
-      width: 100%;
-      padding: 8px 10px;
-      background: #353535;
-      border: 1px solid #555;
-      border-radius: 4px;
-      color: #e0e0e0;
-      font-size: 13px;
-      font-family: 'Consolas', 'Monaco', monospace;
-    }
-
-    .property-input:focus {
-      outline: none;
-      border-color: #3498db;
-      background: #3a3a3a;
-    }
-
-    select.property-input {
-      cursor: pointer;
-    }
-
-    .property-slider {
-      width: 100%;
-    }
-
-    .property-value-display {
-      font-size: 12px;
-      color: #3498db;
-      font-weight: 600;
-      margin-left: 8px;
-    }
-
-    /* Bottom Panel - Code Preview */
-    .panel-bottom {
-      grid-column: 1 / -1;
-      background: #1a1a1a;
-      border-top: 2px solid #444;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .code-preview-header {
-      background: #252525;
-      padding: 8px 15px;
-      border-bottom: 1px solid #333;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .code-preview-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: #999;
-    }
-
-    .code-preview-content {
-      flex: 1;
-      overflow: auto;
-      padding: 15px;
-      font-family: 'Consolas', 'Monaco', monospace;
-      font-size: 12px;
-      line-height: 1.6;
-      background: #1a1a1a;
-      color: #d4d4d4;
-    }
-
-    .code-line {
-      display: block;
-    }
-
-    .code-keyword { color: #569cd6; }
-    .code-string { color: #ce9178; }
-    .code-number { color: #b5cea8; }
-    .code-comment { color: #6a9955; font-style: italic; }
-    .code-function { color: #dcdcaa; }
-
-    /* Context Menu */
-    .context-menu {
-      position: fixed;
-      background: #2c2c2c;
-      border: 1px solid #555;
-      border-radius: 6px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-      padding: 4px;
-      z-index: 10002;
-      min-width: 180px;
-    }
-
-    .context-menu-item {
-      padding: 8px 12px;
-      cursor: pointer;
-      border-radius: 4px;
-      font-size: 13px;
-      transition: all 0.15s;
-    }
-
-    .context-menu-item:hover {
-      background: #3498db;
-      color: white;
-    }
-
-    .context-menu-separator {
-      height: 1px;
-      background: #444;
-      margin: 4px 0;
-    }
-
-    /* Playhead */
     .playhead {
       position: absolute;
       top: 0;
@@ -399,129 +696,103 @@
       font-size: 14px;
     }
 
-    /* Loading Overlay */
-    .loading-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.9);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-      pointer-events: auto;
+    .dialogue-workspace {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
     }
 
-    .loading-content {
-      text-align: center;
-      color: #3498db;
-    }
-
-    .loading-spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid #444;
-      border-top-color: #3498db;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .loading-text {
-      font-size: 16px;
-      font-weight: 600;
-    }
-
-    .loading-detail {
-      font-size: 12px;
-      color: #999;
-      margin-top: 8px;
-    }
-
-    /* Toolbar */
-    .builder-toolbar {
+    .dialogue-controls {
       background: #252525;
-      padding: 10px 15px;
+      padding: 12px;
       border-bottom: 1px solid #333;
       display: flex;
-      gap: 10px;
+      gap: 8px;
       align-items: center;
+      flex-wrap: wrap;
     }
 
-    .toolbar-group {
+    .dialogue-cards-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 15px;
+      padding: 10px;
+    }
+
+    .dialogue-card {
+      background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+      border: 1px solid #445566;
+      border-radius: 8px;
+      padding: 15px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .dialogue-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+      border-color: #3498db;
+    }
+
+    .dialogue-card.selected {
+      border-color: #3498db;
+      box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.4);
+    }
+
+    .dialogue-header {
       display: flex;
-      gap: 6px;
-      padding-right: 15px;
-      border-right: 1px solid #444;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
     }
 
-    .toolbar-group:last-child {
-      border-right: none;
-    }
+    .dialogue-speaker { font-size: 13px; font-weight: 700; color: #3498db; }
+    .dialogue-actions { display: flex; gap: 4px; }
 
-    .toolbar-btn {
-      padding: 6px 12px;
-      background: #353535;
-      border: 1px solid #555;
+    .icon-btn {
+      padding: 4px 8px;
+      background: rgba(255,255,255,0.1);
+      border: none;
       border-radius: 4px;
-      color: #e0e0e0;
       cursor: pointer;
       font-size: 12px;
       transition: all 0.2s;
     }
 
-    .toolbar-btn:hover {
-      background: #404040;
-      border-color: #3498db;
-    }
+    .icon-btn:hover { background: rgba(255,255,255,0.2); }
 
-    .toolbar-btn.active {
-      background: #3498db;
-      border-color: #5dade2;
-      color: white;
-    }
-
-    /* Node Types Palette */
-    .node-palette {
-      background: #2a2a2a;
-      padding: 12px;
-      margin-bottom: 15px;
-      border-radius: 6px;
-      border: 1px solid #444;
-    }
-
-    .palette-node {
-      background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
-      padding: 10px;
-      margin: 6px 0;
-      border-radius: 6px;
-      cursor: grab;
-      text-align: center;
+    .dialogue-text {
       font-size: 12px;
-      font-weight: 600;
+      line-height: 1.6;
+      color: #e0e0e0;
+      min-height: 60px;
+    }
+
+    .dialogue-meta {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 10px;
+      color: #999;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .display-target {
+      padding: 2px 8px;
+      background: #27ae60;
       color: white;
-      border: 2px solid #af7ac5;
-      transition: all 0.2s;
+      border-radius: 10px;
+      font-size: 9px;
+      font-weight: 700;
     }
 
-    .palette-node:hover {
-      transform: scale(1.05);
-      box-shadow: 0 4px 12px rgba(155, 89, 182, 0.5);
-    }
-
-    .palette-node:active {
-      cursor: grabbing;
-    }
-
-    /* Inspector */
-    .inspector-empty {
-      text-align: center;
-      color: #666;
-      padding: 40px 20px;
-      font-size: 13px;
+    .panel-right {
+      background: #2c2c2c;
+      border-left: 1px solid #444;
+      overflow-y: auto;
+      padding: 15px;
     }
 
     .inspector-section {
@@ -541,99 +812,187 @@
       border-bottom: 1px solid #444;
     }
 
-    /* Status Bar */
-    .status-bar {
+    .inspector-empty {
+      text-align: center;
+      color: #666;
+      padding: 40px 20px;
+      font-size: 13px;
+    }
+
+    .property-group { margin-bottom: 12px; }
+
+    .property-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .property-input {
+      width: 100%;
+      padding: 8px 10px;
+      background: #2a2a2a;
+      border: 1px solid #555;
+      border-radius: 4px;
+      color: #e0e0e0;
+      font-size: 13px;
+      font-family: 'Consolas', 'Monaco', monospace;
+    }
+
+    .property-input:focus {
+      outline: none;
+      border-color: #3498db;
+      background: #333;
+    }
+
+    textarea.property-input {
+      resize: vertical;
+      min-height: 80px;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .property-slider { width: 100%; }
+
+    .property-value-display {
+      font-size: 12px;
+      color: #3498db;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .panel-bottom {
+      grid-column: 1 / -1;
       background: #1a1a1a;
-      border-top: 1px solid #333;
+      border-top: 2px solid #444;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .code-preview-header {
+      background: #252525;
       padding: 8px 15px;
+      border-bottom: 1px solid #333;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 11px;
-      color: #888;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
-    .status-item {
+    .code-preview-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #999;
+    }
+
+    .code-preview-content {
+      flex: 1;
+      overflow: auto;
+      padding: 15px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      background: #1a1a1a;
+      color: #d4d4d4;
+      white-space: pre;
+    }
+
+    .code-keyword { color: #569cd6; }
+    .code-string { color: #ce9178; }
+    .code-number { color: #b5cea8; }
+    .code-comment { color: #6a9955; font-style: italic; }
+    .code-function { color: #dcdcaa; }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
       display: flex;
       align-items: center;
-      gap: 6px;
+      justify-content: center;
+      z-index: 10000;
     }
 
-    .status-indicator {
-      width: 8px;
-      height: 8px;
+    .loading-content { text-align: center; color: #3498db; }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #444;
+      border-top-color: #3498db;
       border-radius: 50%;
-      background: #27ae60;
-      animation: pulse-indicator 2s ease-in-out infinite;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
     }
 
-    @keyframes pulse-indicator {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Scene Info Panel */
-    .scene-info {
-      background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 8px;
-      border: 1px solid #445566;
-    }
+    .loading-text { font-size: 16px; font-weight: 600; }
+    .loading-detail { font-size: 12px; color: #999; margin-top: 8px; }
 
-    .scene-info-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #3498db;
-      margin-bottom: 8px;
-    }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #1a1a1a; }
+    ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #666; }
 
-    .scene-info-detail {
-      font-size: 11px;
-      color: #bdc3c7;
-      margin: 4px 0;
-    }
+    @media (max-width: 1400px) {
+      .builder-container {
+        grid-template-columns: 280px 1fr;
+        grid-template-rows: 60px 1fr 220px 260px;
+      }
 
-    .scene-info-count {
-      display: inline-block;
-      background: #3498db;
-      color: white;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 10px;
-      font-weight: 700;
-      margin-left: 6px;
+      .panel-right {
+        grid-column: 1 / -1;
+        grid-row: 4;
+        border-left: none;
+        border-top: 1px solid #444;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- Main Container -->
   <div class="builder-container">
-    
-    <!-- Header -->
     <div class="builder-header">
       <div class="builder-title">
         <span class="builder-title-icon">🎬</span>
         <span>Sequence Builder</span>
-        <span id="sceneName" style="font-size: 13px; color: #3498db; font-weight: 400;"></span>
+        <span class="scene-badge" id="sceneName">Loading...</span>
       </div>
       <div class="builder-controls">
         <button class="btn btn-success" id="playBtn">▶ Play</button>
         <button class="btn btn-secondary" id="stopBtn">⏹ Stop</button>
+        <button class="btn btn-primary" id="analyzeBtn">🔍 Analyze</button>
         <button class="btn btn-primary" id="exportBtn">💾 Export</button>
         <button class="btn btn-secondary" id="importBtn">📂 Import</button>
         <button class="btn btn-danger" id="closeBtn">✕ Close</button>
       </div>
     </div>
-
-    <!-- Left Panel - Resources -->
     <div class="panel-left">
       <div class="scene-info" id="sceneInfo">
         <div class="scene-info-title">📦 Current Scene</div>
-        <div class="scene-info-detail">
-          Loading scene resources...
+        <div class="scene-info-detail">Loading scene resources...</div>
+      </div>
+
+      <div class="asset-manager-header">
+        <div class="asset-manager-title">📦 Scene Asset Manager</div>
+        <div class="asset-stats">
+          <div class="stat-item">
+            <span class="stat-value" id="totalAssets">0</span>
+            <span>Total Assets</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="totalGroups">0</span>
+            <span>Asset Groups</span>
+          </div>
         </div>
       </div>
+
+      <div id="assetGroupsContainer"></div>
+
+      <div class="panel-divider"></div>
 
       <div class="panel-section">
         <div class="panel-section-title">📐 Node Types</div>
@@ -661,67 +1020,103 @@
         <div class="panel-section-title">🎭 Scene Objects</div>
         <ul class="resource-list" id="sceneObjects"></ul>
       </div>
+
+      <div class="panel-divider"></div>
+
+      <div class="panel-section catalog-section">
+        <div class="panel-section-heading">
+          <span class="panel-section-title">🎞️ Scene Catalog</span>
+          <span class="section-meta" id="sceneCatalogCount">0 scenes</span>
+        </div>
+        <input type="search" id="sceneCatalogSearch" class="section-search" placeholder="Search scenes or tags..." />
+        <div class="scene-catalog" id="sceneCatalogList"></div>
+      </div>
+
+      <div class="panel-divider"></div>
+
+      <div class="panel-section prop-section">
+        <div class="panel-section-heading">
+          <span class="panel-section-title">🎭 Prop Browser</span>
+          <span class="section-meta" id="propCount">0 props</span>
+        </div>
+        <input type="search" id="propSearch" class="section-search" placeholder="Filter props or tags..." />
+        <div class="prop-grid" id="propList"></div>
+      </div>
     </div>
 
-    <!-- Center Panel - Timeline -->
     <div class="panel-center">
-      <div class="builder-toolbar">
-        <div class="toolbar-group">
-          <button class="toolbar-btn" id="zoomInBtn">🔍+</button>
-          <button class="toolbar-btn" id="zoomOutBtn">🔍−</button>
-          <button class="toolbar-btn" id="fitBtn">⬌ Fit</button>
-        </div>
-        <div class="toolbar-group">
-          <button class="toolbar-btn" id="snapBtn">🧲 Snap</button>
-          <button class="toolbar-btn" id="loopBtn">🔁 Loop</button>
-        </div>
-        <div class="toolbar-group">
-          <button class="toolbar-btn" id="addTrackBtn">➕ Track</button>
-          <button class="toolbar-btn" id="deleteBtn">🗑️ Delete</button>
-        </div>
-        <div class="toolbar-group">
-          <span style="font-size: 11px; color: #999;">
-            Time: <span id="currentTime" style="color: #3498db; font-weight: 600;">0.00s</span>
-          </span>
-        </div>
+      <div class="center-tabs">
+        <button class="tab-btn active" data-tab="timeline">⏱️ Timeline</button>
+        <button class="tab-btn" data-tab="dialogue">💬 Dialogue</button>
+        <button class="tab-btn" data-tab="hierarchy">🗂️ Hierarchy</button>
       </div>
 
-      <div class="timeline-container" id="timelineContainer">
-        <div class="timeline-grid"></div>
-        <div class="timeline-ruler" id="timelineRuler"></div>
-        <div id="timelineTracks"></div>
-        <div class="playhead" id="playhead" style="left: 15px;"></div>
-      </div>
-    </div>
-
-    <!-- Right Panel - Inspector -->
-    <div class="panel-right">
-      <div class="panel-section">
-        <div class="panel-section-title">🔍 Inspector</div>
-        <div id="inspector">
-          <div class="inspector-empty">
-            Select a node to edit properties
+      <div class="tab-content active" id="timeline-tab">
+        <div class="builder-toolbar">
+          <div class="toolbar-group">
+            <button class="toolbar-btn" id="zoomInBtn">🔍+</button>
+            <button class="toolbar-btn" id="zoomOutBtn">🔍−</button>
+            <button class="toolbar-btn" id="addTrackBtn">➕ Track</button>
+            <button class="toolbar-btn" id="deleteBtn">🗑️ Delete</button>
+          </div>
+          <div class="toolbar-group">
+            <button class="toolbar-btn" id="snapBtn">🧲 Snap</button>
+            <button class="toolbar-btn" id="loopBtn">🔁 Loop</button>
+          </div>
+          <div class="toolbar-group" style="font-size: 11px; color: #999;">
+            Time: <span id="currentTime" style="color: #3498db; font-weight: 600; margin-left: 6px;">0.00s</span>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Bottom Panel - Code Preview -->
-    <div class="panel-bottom">
-      <div class="code-preview-header">
-        <div class="code-preview-title">📄 Generated Code</div>
-        <div>
-          <button class="btn btn-sm btn-secondary" id="copyCodeBtn" style="padding: 4px 10px; font-size: 11px;">📋 Copy</button>
+        <div class="timeline-ruler" id="timelineRuler"></div>
+        <div class="timeline-container" id="timelineContainer">
+          <div class="timeline-grid"></div>
+          <div id="timelineTracks"></div>
+          <div class="playhead" id="playhead" style="left: 15px;"></div>
         </div>
       </div>
-      <div class="code-preview-content" id="codePreview">
-        <span class="code-comment">// Sequence code will appear here...</span>
+
+      <div class="tab-content" id="dialogue-tab">
+        <div class="dialogue-controls">
+          <button class="btn btn-primary" id="addDialogueBtn">➕ Add Dialogue</button>
+          <button class="btn btn-secondary" id="castToDisplayBtn">📺 Cast to Display</button>
+          <select class="property-input" id="displaySelect" style="width: auto; padding: 6px 10px;">
+            <option value="terminal">Terminal</option>
+            <option value="notepad">Notepad</option>
+            <option value="subtitle">Subtitle</option>
+            <option value="popup">Popup</option>
+          </select>
+        </div>
+        <div class="dialogue-workspace">
+          <div class="dialogue-cards-container" id="dialogueCardsContainer"></div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="hierarchy-tab">
+        <div style="padding: 20px; color: #999;">
+          <h3 style="color: #3498db; margin-bottom: 10px;">Scene Hierarchy</h3>
+          <div id="hierarchyTree" style="font-family: monospace; font-size: 12px; line-height: 1.8;"></div>
+        </div>
       </div>
     </div>
 
+    <div class="panel-right">
+      <div class="inspector-section">
+        <div class="inspector-section-title">🔍 Inspector</div>
+        <div id="inspector" class="inspector-empty">Select a node, asset, or dialogue to inspect</div>
+      </div>
+    </div>
+
+    <div class="panel-bottom">
+      <div class="code-preview-header">
+        <div class="code-preview-title">📄 Generated Code &amp; Analysis</div>
+        <button class="btn btn-secondary" id="copyCodeBtn" style="padding: 4px 10px; font-size: 11px;">📋 Copy</button>
+      </div>
+      <div class="code-preview-content" id="codePreview">
+        <span class="code-comment">// Scene analysis, dialogue plan, and sequence code will appear here...</span>
+      </div>
+    </div>
   </div>
 
-  <!-- Loading Overlay -->
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-content">
       <div class="loading-spinner"></div>
@@ -730,7 +1125,6 @@
     </div>
   </div>
 
-  <!-- Import Map -->
   <script type="importmap">
   {
     "imports": {
@@ -740,11 +1134,12 @@
   }
   </script>
 
-  <!-- Main Application -->
   <script type="module">
-    console.log('🎬 Sequence Builder Starting...');
+    import { sceneCatalog } from './src/data/catalog/sceneCatalog.js';
+    import { PROP_CATALOG } from './src/assets/js/props/propCatalog.js';
 
-    // Dynamic scene resource loader
+    console.log('🎬 Unified Sequence Builder Starting...');
+
     class SceneResourceLoader {
       constructor() {
         this.loadedCSS = new Set();
@@ -754,277 +1149,989 @@
 
       async loadSceneResources(sceneName) {
         console.log(`📦 Loading resources for scene: ${sceneName}`);
-        
+
         const resources = {
           css: [],
           js: [],
           scene: null
         };
 
-        // Detect CSS files from current page
-        const styleSheets = Array.from(document.styleSheets);
-        styleSheets.forEach((sheet) => {
-          if (sheet.href) {
-            const href = sheet.href.split('/').pop();
-            resources.css.push(href);
-            this.loadedCSS.add(href);
-          }
-        });
-
-        // Dynamically import scene module
         try {
-          const sceneModulePath = `./src/scripts/scenes/${sceneName}.js`;
+          const mapResponse = await fetch('./FINAL_EXTRACTION_MANIFEST.md');
+          if (mapResponse.ok) {
+            const manifest = await mapResponse.text();
+            const cssMatches = [...manifest.matchAll(/src\/styles\/scene\/([\w-]+\.css)/g)].map(m => m[0]);
+            const jsMatches = [...manifest.matchAll(/src\/scripts\/scenes\/([\w-]+\.js)/g)].map(m => m[0]);
+
+            resources.css = cssMatches;
+            resources.js = jsMatches;
+          }
+        } catch (error) {
+          console.warn('⚠️ Unable to parse manifest for resources', error);
+        }
+
+        const sceneModulePath = `./src/scripts/scenes/${sceneName}.js`;
+        try {
           const module = await import(sceneModulePath);
           resources.scene = module;
           this.sceneModules.set(sceneName, module);
-          
-          console.log(`✅ Loaded scene module: ${sceneName}`);
         } catch (error) {
-          console.warn(`⚠️ Could not load scene ${sceneName}:`, error);
-        }
-
-        // Scan for related JS modules
-        const relatedModules = [
-          './src/scripts/sequence/SequenceComposer.js',
-          './src/scripts/sequence/SequenceNode.js',
-          './src/scripts/sequence/SequenceUI.js',
-          './src/scripts/utils/timeline.js',
-          './src/scripts/utils/easing.js'
-        ];
-
-        for (const modulePath of relatedModules) {
-          try {
-            const module = await import(modulePath);
-            const moduleName = modulePath.split('/').pop();
-            this.loadedJS.set(moduleName, module);
-            resources.js.push(moduleName);
-          } catch (error) {
-            // Module might not exist, that's okay
-          }
+          console.warn(`⚠️ Unable to load scene module ${sceneName}`, error);
         }
 
         return resources;
       }
 
       async injectSceneStyles() {
-        // Dynamically load all CSS from src/styles
-        const cssFiles = [
-          'variables.css',
-          'animations.css',
-          'hud.css',
-          'doorway.css',
-          'play-overlay.css',
-          'scene-select.css',
-          'skip-button.css',
-          'effects.css',
-          'debug.css',
-          'sequence.css'
-        ];
-
         const container = document.getElementById('dynamic-styles');
-        container.innerHTML = '';
+        if (!container) return;
 
-        for (const cssFile of cssFiles) {
-          const link = document.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = `./src/styles/${cssFile}`;
-          container.appendChild(link);
+        try {
+          const styles = [
+            './src/styles/main.css',
+            './src/styles/sequence.css'
+          ];
+
+          styles.forEach(styleUrl => {
+            if (!this.loadedCSS.has(styleUrl)) {
+              const link = document.createElement('link');
+              link.rel = 'stylesheet';
+              link.href = styleUrl;
+              document.head.appendChild(link);
+              this.loadedCSS.add(styleUrl);
+            }
+          });
+        } catch (error) {
+          console.warn('⚠️ Unable to inject styles', error);
         }
+      }
+    }
+    class SceneAssetAnalyzer {
+      constructor() {
+        this.sceneSource = null;
+        this.assets = {
+          components: [],
+          styles: [],
+          functions: [],
+          variables: [],
+          imports: [],
+          classes: [],
+          dependencies: []
+        };
+      }
 
-        console.log(`✅ Injected ${cssFiles.length} CSS files`);
+      async analyzeScene(scenePath) {
+        console.log(`🔍 Analyzing scene: ${scenePath}`);
+
+        try {
+          const response = await fetch(scenePath);
+          if (!response.ok) {
+            console.warn(`Could not fetch ${scenePath}`);
+            return this._generateMockAssets(scenePath);
+          }
+
+          this.sceneSource = await response.text();
+          return this._parseSceneSource();
+        } catch (error) {
+          console.warn('Scene analysis error:', error);
+          return this._generateMockAssets(scenePath);
+        }
+      }
+
+      _parseSceneSource() {
+        const assets = {
+          components: [],
+          styles: [],
+          functions: [],
+          variables: [],
+          imports: [],
+          classes: [],
+          dependencies: []
+        };
+
+        const lines = this.sceneSource.split('\n');
+
+        lines.forEach((line, index) => {
+          if (line.includes('import ')) {
+            const match = line.match(/import\s+(?:{([^}]+)}|(\w+))\s+from\s+['"](.+)['"]/);
+            if (match) {
+              const imported = match[1] || match[2];
+              const from = match[3];
+              assets.imports.push({
+                name: imported.trim(),
+                from,
+                line: index + 1
+              });
+              assets.dependencies.push(from);
+            }
+          }
+
+          if (line.includes('class ')) {
+            const match = line.match(/class\s+(\w+)/);
+            if (match) {
+              assets.classes.push({
+                name: match[1],
+                line: index + 1,
+                type: line.includes('extends') ? 'extended' : 'base'
+              });
+            }
+          }
+
+          if (line.includes('function ') || line.match(/^\s*\w+\s*\(/)) {
+            const match = line.match(/(?:async\s+)?(?:function\s+)?(\w+)\s*\(/);
+            if (match && !line.includes('//')) {
+              assets.functions.push({
+                name: match[1],
+                line: index + 1,
+                async: line.includes('async')
+              });
+            }
+          }
+
+          if (line.match(/^\s*(?:const|let|var)\s+(\w+)/)) {
+            const match = line.match(/(?:const|let|var)\s+(\w+)/);
+            if (match) {
+              assets.variables.push({
+                name: match[1],
+                line: index + 1,
+                type: line.includes('const') ? 'const' : line.includes('let') ? 'let' : 'var'
+              });
+            }
+          }
+
+          if (line.includes('.css') || line.includes('style')) {
+            const match = line.match(/['"]([^'"]*\.css)['"]/);
+            if (match) {
+              assets.styles.push({
+                name: match[1],
+                line: index + 1
+              });
+            }
+          }
+
+          if (line.includes('new THREE.') || line.includes('new ')) {
+            const match = line.match(/new\s+(THREE\.)?(\w+)/);
+            if (match) {
+              assets.components.push({
+                name: match[2],
+                line: index + 1,
+                namespace: match[1] || 'custom'
+              });
+            }
+          }
+        });
+
+        Object.keys(assets).forEach(key => {
+          if (Array.isArray(assets[key])) {
+            assets[key] = this._uniqueBy(assets[key], 'name');
+          }
+        });
+
+        this.assets = assets;
+        return assets;
+      }
+
+      _uniqueBy(array, key) {
+        const seen = new Set();
+        return array.filter(item => {
+          const value = item[key];
+          if (seen.has(value)) return false;
+          seen.add(value);
+          return true;
+        });
+      }
+
+      _generateMockAssets(scenePath) {
+        const sceneName = scenePath.split('/').pop().replace('.js', '');
+        this.assets = {
+          components: [
+            { name: 'IntroLogo', namespace: 'Celli', line: 42 },
+            { name: 'CameraRig', namespace: 'Celli', line: 120 }
+          ],
+          styles: [
+            { name: 'intro.css', line: 12 },
+            { name: 'fx/glow.css', line: 28 }
+          ],
+          functions: [
+            { name: 'init', line: 30, async: true },
+            { name: 'animate', line: 50, async: false }
+          ],
+          variables: [
+            { name: 'scene', line: 12, type: 'const' },
+            { name: 'renderer', line: 14, type: 'const' }
+          ],
+          imports: [
+            { name: 'THREE', from: 'three', line: 1 },
+            { name: 'Store', from: './engine/Store.js', line: 2 }
+          ],
+          classes: [
+            { name: sceneName, line: 40, type: 'extended' }
+          ],
+          dependencies: [
+            'three',
+            './engine/Store.js',
+            './core/SceneManager.js'
+          ]
+        };
+        return this.assets;
+      }
+
+      generateHierarchy() {
+        const hierarchy = {
+          scene: this.assets.classes[0]?.name || 'Scene',
+          children: [
+            {
+              name: 'Imports',
+              count: this.assets.imports.length,
+              items: this.assets.imports.map(i => `${i.name} from ${i.from}`)
+            },
+            {
+              name: 'Components',
+              count: this.assets.components.length,
+              items: this.assets.components.map(c => `${c.namespace}${c.name}`)
+            },
+            {
+              name: 'Functions',
+              count: this.assets.functions.length,
+              items: this.assets.functions.map(f => `${f.async ? 'async ' : ''}${f.name}()`)
+            },
+            {
+              name: 'Variables',
+              count: this.assets.variables.length,
+              items: this.assets.variables.map(v => `${v.type} ${v.name}`)
+            },
+            {
+              name: 'Styles',
+              count: this.assets.styles.length,
+              items: this.assets.styles.map(s => s.name)
+            }
+          ]
+        };
+        return hierarchy;
       }
     }
 
-    // Sequence Builder Application
-    class SequenceBuilderApp {
+    class DialogueManager {
       constructor() {
+        this.dialogues = [];
+      }
+
+      createDialogue(data = {}) {
+        const dialogue = {
+          id: Date.now() + Math.floor(Math.random() * 1000),
+          speaker: data.speaker || 'Unknown',
+          text: data.text || '',
+          display: data.display || 'subtitle',
+          timestamp: data.timestamp ?? 0,
+          duration: data.duration ?? 3.0,
+          ...data
+        };
+        this.dialogues.push(dialogue);
+        return dialogue;
+      }
+
+      updateDialogue(id, updates) {
+        const dialogue = this.dialogues.find(d => d.id === id);
+        if (dialogue) {
+          Object.assign(dialogue, updates);
+        }
+        return dialogue;
+      }
+
+      deleteDialogue(id) {
+        const index = this.dialogues.findIndex(d => d.id === id);
+        if (index > -1) {
+          this.dialogues.splice(index, 1);
+        }
+      }
+
+      exportDialogues() {
+        return {
+          dialogues: this.dialogues,
+          count: this.dialogues.length
+        };
+      }
+
+      importDialogues(data) {
+        if (Array.isArray(data.dialogues)) {
+          this.dialogues = data.dialogues;
+        }
+      }
+    }
+    class UnifiedSequenceBuilder {
+      constructor() {
+        this.loader = new SceneResourceLoader();
+        this.analyzer = new SceneAssetAnalyzer();
+        this.dialogueManager = new DialogueManager();
+        this.sceneCatalog = sceneCatalog;
+        this.propCatalog = PROP_CATALOG;
+        this.totalSceneCount = this.sceneCatalog.reduce((total, category) => total + category.scenes.length, 0);
+
         this.state = {
           currentScene: null,
           resources: null,
-          selectedNode: null,
+          assets: null,
           nodes: [],
           tracks: [],
+          selectedNode: null,
+          selectedAsset: null,
+          selectedDialogueId: null,
           playhead: 0,
           isPlaying: false,
-          zoom: 1.0,
+          zoom: 1,
           snapEnabled: true,
-          loopEnabled: false
+          loopEnabled: false,
+          currentTab: 'timeline',
+          sceneSearchTerm: '',
+          propSearchTerm: ''
         };
 
-        this.loader = new SceneResourceLoader();
         this.ui = {
+          sceneName: document.getElementById('sceneName'),
+          sceneInfo: document.getElementById('sceneInfo'),
+          cssResources: document.getElementById('cssResources'),
+          jsResources: document.getElementById('jsResources'),
+          sceneObjects: document.getElementById('sceneObjects'),
           timelineRuler: document.getElementById('timelineRuler'),
           timelineTracks: document.getElementById('timelineTracks'),
           playhead: document.getElementById('playhead'),
           inspector: document.getElementById('inspector'),
           codePreview: document.getElementById('codePreview'),
-          cssResources: document.getElementById('cssResources'),
-          jsResources: document.getElementById('jsResources'),
-          sceneObjects: document.getElementById('sceneObjects'),
-          sceneInfo: document.getElementById('sceneInfo'),
-          sceneName: document.getElementById('sceneName'),
           currentTime: document.getElementById('currentTime'),
           loadingOverlay: document.getElementById('loadingOverlay'),
-          loadingDetail: document.getElementById('loadingDetail')
+          loadingDetail: document.getElementById('loadingDetail'),
+          assetGroupsContainer: document.getElementById('assetGroupsContainer'),
+          totalAssets: document.getElementById('totalAssets'),
+          totalGroups: document.getElementById('totalGroups'),
+          sceneCatalogList: document.getElementById('sceneCatalogList'),
+          sceneCatalogSearch: document.getElementById('sceneCatalogSearch'),
+          sceneCatalogCount: document.getElementById('sceneCatalogCount'),
+          propList: document.getElementById('propList'),
+          propSearch: document.getElementById('propSearch'),
+          propCount: document.getElementById('propCount'),
+          dialogueCardsContainer: document.getElementById('dialogueCardsContainer'),
+          hierarchyTree: document.getElementById('hierarchyTree')
         };
       }
 
       async init() {
-        console.log('🎬 Initializing Sequence Builder...');
-        
-        // Update loading text
+        console.log('🎬 Initializing Unified Sequence Builder...');
         this.ui.loadingDetail.textContent = 'Loading scene resources...';
-        
-        // Inject scene styles
+
         await this.loader.injectSceneStyles();
-        
-        // Detect current scene from opener or default to intro
+
         const currentScene = this._detectCurrentScene();
         this.state.currentScene = currentScene;
-        this.ui.sceneName.textContent = `(${currentScene})`;
-        
-        // Load scene resources
+        if (this.ui.sceneName) {
+          this.ui.sceneName.textContent = currentScene;
+        }
+
         this.ui.loadingDetail.textContent = `Loading ${currentScene} scene...`;
         this.state.resources = await this.loader.loadSceneResources(currentScene);
-        
-        // Populate resource lists
         this._populateResourceLists();
-        
-        // Initialize timeline
+
+        this.ui.loadingDetail.textContent = 'Analyzing scene assets...';
+        this.state.assets = await this.analyzer.analyzeScene(`./src/scripts/scenes/${currentScene}.js`);
+        this._renderAssetGroups();
+        this._renderSceneCatalog();
+        this._renderPropBrowser();
+
+        this._renderInitialDialogues();
+        this._renderDialogueCards();
+        this._renderHierarchyTree();
+
         this._initTimeline();
-        
-        // Setup event listeners
         this._setupEventListeners();
-        
-        // Hide loading overlay
+        this._updateCodePreview();
+
         setTimeout(() => {
           this.ui.loadingOverlay.style.display = 'none';
-          console.log('✅ Sequence Builder Ready');
-        }, 500);
+          console.log('✅ Unified Sequence Builder Ready');
+        }, 400);
       }
 
       _detectCurrentScene() {
-        // Try to get from opener window
         if (window.opener && window.opener.introScene) {
           return 'IntroSceneComplete';
         }
         if (window.opener && window.opener.currentScene) {
           return window.opener.currentScene.constructor.name;
         }
-        
-        // Default to intro
         return 'IntroSceneComplete';
       }
 
       _populateResourceLists() {
-        // Update scene info
-        const sceneModule = this.state.resources.scene;
+        if (!this.state.resources) {
+          return;
+        }
+
         const cssCount = this.state.resources.css.length;
         const jsCount = this.state.resources.js.length;
-        
-        this.ui.sceneInfo.innerHTML = `
-          <div class="scene-info-title">📦 ${this.state.currentScene}</div>
-          <div class="scene-info-detail">
-            CSS Files: <span class="scene-info-count">${cssCount}</span>
-          </div>
-          <div class="scene-info-detail">
-            JS Modules: <span class="scene-info-count">${jsCount}</span>
-          </div>
-          <div class="scene-info-detail">
-            Scene Status: <span style="color: #27ae60; font-weight: 600;">✓ Loaded</span>
-          </div>
-        `;
+        const sceneModule = this.state.resources.scene;
 
-        // Populate CSS list
-        this.ui.cssResources.innerHTML = this.state.resources.css.map(css => 
-          `<li class="resource-item" data-resource="${css}">
-            <span>${css}</span>
-            <span class="resource-badge badge-css">CSS</span>
-          </li>`
-        ).join('');
+        if (this.ui.sceneInfo) {
+          this.ui.sceneInfo.innerHTML = `
+            <div class="scene-info-title">📦 ${this.state.currentScene}</div>
+            <div class="scene-info-detail">CSS Files: <span class="scene-info-count">${cssCount}</span></div>
+            <div class="scene-info-detail">JS Modules: <span class="scene-info-count">${jsCount}</span></div>
+            <div class="scene-info-detail">Scene Status: <span style="color: #27ae60; font-weight: 600;">✓ Loaded</span></div>
+          `;
+        }
 
-        // Populate JS list
-        this.ui.jsResources.innerHTML = this.state.resources.js.map(js => 
-          `<li class="resource-item" data-resource="${js}">
-            <span>${js}</span>
-            <span class="resource-badge badge-js">JS</span>
-          </li>`
-        ).join('');
+        if (this.ui.cssResources) {
+          this.ui.cssResources.innerHTML = this.state.resources.css.map(css => `
+            <li class="resource-item" data-resource="${css}">
+              <span>${css}</span>
+              <span class="resource-badge badge-css">CSS</span>
+            </li>
+          `).join('');
+        }
 
-        // Populate scene objects (if scene module loaded)
-        if (sceneModule) {
+        if (this.ui.jsResources) {
+          this.ui.jsResources.innerHTML = this.state.resources.js.map(js => `
+            <li class="resource-item" data-resource="${js}">
+              <span>${js}</span>
+              <span class="resource-badge badge-js">JS</span>
+            </li>
+          `).join('');
+        }
+
+        if (sceneModule && this.ui.sceneObjects) {
           const sceneClass = Object.values(sceneModule)[0];
           if (sceneClass && sceneClass.prototype) {
             const methods = Object.getOwnPropertyNames(sceneClass.prototype)
               .filter(m => m !== 'constructor' && !m.startsWith('_'));
-            
-            this.ui.sceneObjects.innerHTML = methods.map(method => 
-              `<li class="resource-item" data-resource="${method}">
+            this.ui.sceneObjects.innerHTML = methods.map(method => `
+              <li class="resource-item" data-resource="${method}">
                 <span>${method}()</span>
                 <span class="resource-badge badge-scene">Method</span>
-              </li>`
-            ).join('');
+              </li>
+            `).join('');
           }
         }
       }
+      _renderAssetGroups() {
+        if (!this.state.assets || !this.ui.assetGroupsContainer) return;
+
+        const assets = this.state.assets;
+        const groups = [
+          { key: 'components', icon: '🧩', title: 'Components' },
+          { key: 'functions', icon: '⚡', title: 'Functions' },
+          { key: 'variables', icon: '📊', title: 'Variables' },
+          { key: 'styles', icon: '🎨', title: 'Styles' },
+          { key: 'imports', icon: '📦', title: 'Imports' },
+          { key: 'classes', icon: '🏛️', title: 'Classes' }
+        ];
+
+        let totalAssets = 0;
+        this.ui.assetGroupsContainer.innerHTML = '';
+
+        groups.forEach(group => {
+          const items = assets[group.key] || [];
+          totalAssets += items.length;
+
+          const groupEl = document.createElement('div');
+          groupEl.className = 'asset-group';
+          groupEl.innerHTML = `
+            <div class="asset-group-header">
+              <div class="asset-group-title">
+                <span>${group.icon}</span>
+                <span>${group.title}</span>
+                <span class="asset-count">${items.length}</span>
+              </div>
+              <span class="expand-icon">▶</span>
+            </div>
+            <div class="asset-group-content">
+              ${items.map((item, idx) => `
+                <div class="asset-item" data-group="${group.key}" data-index="${idx}">
+                  <span class="asset-name">${item.name}</span>
+                  <span class="asset-type type-${group.key}">${group.title.substring(0, 3).toUpperCase()}</span>
+                </div>
+                ${item.from || item.line ? `
+                  <div class="asset-details">
+                    ${item.from ? `from: ${item.from}` : `line: ${item.line}`}
+                    ${item.async ? ' | async' : ''}
+                    ${item.type ? ` | ${item.type}` : ''}
+                  </div>
+                ` : ''}
+              `).join('')}
+            </div>
+          `;
+
+          const header = groupEl.querySelector('.asset-group-header');
+          const content = groupEl.querySelector('.asset-group-content');
+          header.addEventListener('click', () => {
+            header.classList.toggle('active');
+            content.classList.toggle('expanded');
+          });
+
+          content.querySelectorAll('.asset-item').forEach(item => {
+            item.addEventListener('click', (event) => {
+              event.stopPropagation();
+              const groupKey = item.dataset.group;
+              const index = parseInt(item.dataset.index, 10);
+              this._selectAsset(groupKey, index);
+            });
+          });
+
+          this.ui.assetGroupsContainer.appendChild(groupEl);
+        });
+
+        if (this.ui.totalAssets) {
+          this.ui.totalAssets.textContent = totalAssets;
+        }
+        if (this.ui.totalGroups) {
+          this.ui.totalGroups.textContent = groups.length;
+        }
+
+        if (this.state.selectedAsset) {
+          const { groupKey, index } = this.state.selectedAsset;
+          setTimeout(() => this._highlightSelectedAsset(groupKey, index), 0);
+        }
+      }
+
+      _highlightSelectedAsset(groupKey, index) {
+        document.querySelectorAll('.asset-item').forEach(el => el.classList.remove('selected'));
+        const selector = `.asset-item[data-group="${groupKey}"][data-index="${index}"]`;
+        const target = document.querySelector(selector);
+        if (target) {
+          target.classList.add('selected');
+          target.scrollIntoView({ block: 'nearest' });
+        }
+      }
+
+      _renderSceneCatalog() {
+        if (!this.ui.sceneCatalogList) return;
+
+        const term = (this.state.sceneSearchTerm || '').trim().toLowerCase();
+        let totalMatches = 0;
+        const fragments = [];
+
+        this.sceneCatalog.forEach(category => {
+          const matches = category.scenes.filter(scene => this._matchesScene(scene, category, term));
+          if (matches.length === 0) {
+            return;
+          }
+
+          totalMatches += matches.length;
+          const items = matches.map(scene => {
+            const tags = Array.isArray(scene.tags)
+              ? scene.tags.map(tag => `<span class="catalog-tag">${tag}</span>`).join('')
+              : '';
+            const isActive = scene.id === this.state.currentScene;
+            return `
+              <div class="catalog-item ${isActive ? 'active' : ''}" data-scene-id="${scene.id}">
+                <div class="catalog-item-title">
+                  <span>${scene.icon || category.icon || '🎬'}</span>
+                  <span>${scene.name}</span>
+                </div>
+                <div class="catalog-item-summary">${scene.summary}</div>
+                ${tags ? `<div class="catalog-tags">${tags}</div>` : ''}
+              </div>
+            `;
+          }).join('');
+
+          fragments.push(`
+            <div class="catalog-group">
+              <div class="catalog-group-header">
+                <span>${category.icon || '📁'} ${category.title}</span>
+                <span class="catalog-count">${matches.length}</span>
+              </div>
+              <div class="catalog-group-description">${category.description}</div>
+              <div class="catalog-items">${items}</div>
+            </div>
+          `);
+        });
+
+        this.ui.sceneCatalogList.innerHTML = fragments.join('') ||
+          (term
+            ? `<div class="empty-state">No scenes match “${this.state.sceneSearchTerm}”.</div>`
+            : `<div class="empty-state">No scenes available.</div>`);
+
+        const countLabel = term
+          ? `${totalMatches}/${this.totalSceneCount} scenes`
+          : `${this.totalSceneCount} scenes`;
+        if (this.ui.sceneCatalogCount) {
+          this.ui.sceneCatalogCount.textContent = countLabel;
+        }
+
+        this.ui.sceneCatalogList.querySelectorAll('.catalog-item').forEach(item => {
+          item.addEventListener('click', async () => {
+            const sceneId = item.dataset.sceneId;
+            await this._changeScene(sceneId);
+          });
+        });
+      }
+
+      _matchesScene(scene, category, term) {
+        if (!term) return true;
+        const haystack = [
+          scene.id,
+          scene.name,
+          scene.summary,
+          ...(scene.tags || []),
+          category.title,
+          category.description,
+        ].filter(Boolean).join(' ').toLowerCase();
+        return haystack.includes(term);
+      }
+      async _changeScene(sceneId) {
+        if (!sceneId || sceneId === this.state.currentScene) {
+          return;
+        }
+
+        this.ui.loadingOverlay.style.display = 'flex';
+        this.ui.loadingDetail.textContent = `Analyzing ${sceneId}...`;
+
+        this.state.currentScene = sceneId;
+        if (this.ui.sceneName) {
+          this.ui.sceneName.textContent = sceneId;
+        }
+
+        this.state.resources = await this.loader.loadSceneResources(sceneId);
+        this._populateResourceLists();
+
+        const scenePath = `./src/scripts/scenes/${sceneId}.js`;
+        this.state.assets = await this.analyzer.analyzeScene(scenePath);
+        this.state.selectedAsset = null;
+        this._renderAssetGroups();
+        this._renderSceneCatalog();
+        this._renderHierarchyTree();
+
+        this._renderPropBrowser();
+        this._renderInitialDialogues();
+        this._renderDialogueCards();
+        this._updateCodePreview();
+
+        setTimeout(() => {
+          this.ui.loadingOverlay.style.display = 'none';
+        }, 300);
+      }
+
+      _renderPropBrowser() {
+        if (!this.ui.propList) return;
+
+        const term = (this.state.propSearchTerm || '').toLowerCase();
+        const props = this.propCatalog.filter(prop => {
+          if (!term) return true;
+          const haystack = [prop.name, ...(prop.tags || [])].join(' ').toLowerCase();
+          return haystack.includes(term);
+        });
+
+        if (this.ui.propCount) {
+          this.ui.propCount.textContent = `${props.length}/${this.propCatalog.length} props`;
+        }
+
+        this.ui.propList.innerHTML = props.map(prop => `
+          <div class="prop-card">
+            <div class="prop-name">${prop.icon || '🎭'} ${prop.name}</div>
+            <div class="prop-tags">
+              ${(prop.tags || []).map(tag => `#${tag}`).join(' ')}
+            </div>
+          </div>
+        `).join('');
+      }
+
+      _renderInitialDialogues() {
+        this.dialogueManager.dialogues = [];
+        this.dialogueManager.createDialogue({
+          speaker: 'System',
+          text: 'Welcome to the unified sequence builder. Use this interface to orchestrate scenes, assets, and dialogue.',
+          display: 'terminal',
+          timestamp: 0
+        });
+        this.dialogueManager.createDialogue({
+          speaker: 'Celli',
+          text: 'Drag timeline nodes, inspect assets, and craft dialogue cards to tell your story.',
+          display: 'subtitle',
+          timestamp: 3.0
+        });
+      }
+
+      _renderDialogueCards() {
+        if (!this.ui.dialogueCardsContainer) return;
+        this.ui.dialogueCardsContainer.innerHTML = this.dialogueManager.dialogues.map(dialogue => `
+          <div class="dialogue-card" data-id="${dialogue.id}">
+            <div class="dialogue-header">
+              <div class="dialogue-speaker">${dialogue.speaker}</div>
+              <div class="dialogue-actions">
+                <button class="icon-btn" onclick="window.builderApp._editDialogue(${dialogue.id})">✏️</button>
+                <button class="icon-btn" onclick="window.builderApp._deleteDialogue(${dialogue.id})">🗑️</button>
+              </div>
+            </div>
+            <div class="dialogue-text">${dialogue.text}</div>
+            <div class="dialogue-meta">
+              <span>@${dialogue.timestamp.toFixed(1)}s</span>
+              <span class="display-target">${dialogue.display}</span>
+            </div>
+          </div>
+        `).join('');
+
+        this.ui.dialogueCardsContainer.querySelectorAll('.dialogue-card').forEach(card => {
+          card.addEventListener('click', (event) => {
+            if (!event.target.closest('.icon-btn')) {
+              this._selectDialogue(parseInt(card.dataset.id, 10));
+            }
+          });
+        });
+      }
+
+      _selectDialogue(id) {
+        this.state.selectedDialogueId = id;
+        this.state.selectedNode = null;
+        this.state.selectedAsset = null;
+        document.querySelectorAll('.asset-item').forEach(el => el.classList.remove('selected'));
+        this.state.nodes.forEach(node => node.element.classList.remove('selected'));
+
+        document.querySelectorAll('.dialogue-card').forEach(el => el.classList.remove('selected'));
+        const card = document.querySelector(`.dialogue-card[data-id="${id}"]`);
+        if (card) card.classList.add('selected');
+
+        const dialogue = this.dialogueManager.dialogues.find(d => d.id === id);
+        if (dialogue) {
+          this._showDialogueInspector(dialogue);
+        }
+      }
+
+      _showDialogueInspector(dialogue) {
+        if (!this.ui.inspector) return;
+        this.ui.inspector.innerHTML = `
+          <div class="inspector-section">
+            <div class="inspector-section-title">💬 Dialogue Properties</div>
+            <div class="property-group">
+              <div class="property-label">Speaker</div>
+              <input type="text" class="property-input" id="dialogueSpeaker" value="${dialogue.speaker}">
+            </div>
+            <div class="property-group">
+              <div class="property-label">Text</div>
+              <textarea class="property-input" id="dialogueText">${dialogue.text}</textarea>
+            </div>
+            <div class="property-group">
+              <div class="property-label">Display Target</div>
+              <select class="property-input" id="dialogueDisplay">
+                <option value="terminal" ${dialogue.display === 'terminal' ? 'selected' : ''}>Terminal</option>
+                <option value="notepad" ${dialogue.display === 'notepad' ? 'selected' : ''}>Notepad</option>
+                <option value="subtitle" ${dialogue.display === 'subtitle' ? 'selected' : ''}>Subtitle</option>
+                <option value="popup" ${dialogue.display === 'popup' ? 'selected' : ''}>Popup</option>
+              </select>
+            </div>
+            <div class="property-group">
+              <div class="property-label">Timestamp (seconds)</div>
+              <input type="number" class="property-input" id="dialogueTimestamp" value="${dialogue.timestamp}" step="0.1" min="0">
+            </div>
+            <div class="property-group">
+              <div class="property-label">Duration (seconds)</div>
+              <input type="number" class="property-input" id="dialogueDuration" value="${dialogue.duration}" step="0.1" min="0.1">
+            </div>
+            <button class="btn btn-primary" onclick="window.builderApp._saveDialogueChanges(${dialogue.id})" style="width: 100%; margin-top: 10px;">
+              💾 Save Changes
+            </button>
+          </div>
+        `;
+      }
+
+      _saveDialogueChanges(id) {
+        const updates = {
+          speaker: document.getElementById('dialogueSpeaker').value,
+          text: document.getElementById('dialogueText').value,
+          display: document.getElementById('dialogueDisplay').value,
+          timestamp: parseFloat(document.getElementById('dialogueTimestamp').value),
+          duration: parseFloat(document.getElementById('dialogueDuration').value)
+        };
+
+        this.dialogueManager.updateDialogue(id, updates);
+        this._renderDialogueCards();
+        this._updateCodePreview();
+      }
+
+      _editDialogue(id) {
+        this._selectDialogue(id);
+      }
+
+      _deleteDialogue(id) {
+        if (confirm('Delete this dialogue?')) {
+          this.dialogueManager.deleteDialogue(id);
+          this._renderDialogueCards();
+          this._updateCodePreview();
+        }
+      }
+      _selectAsset(groupKey, index) {
+        this.state.selectedAsset = { groupKey, index };
+        this.state.selectedNode = null;
+        this.state.selectedDialogueId = null;
+
+        document.querySelectorAll('.dialogue-card').forEach(el => el.classList.remove('selected'));
+        this.state.nodes.forEach(node => node.element.classList.remove('selected'));
+
+        this._highlightSelectedAsset(groupKey, index);
+
+        const asset = (this.state.assets[groupKey] || [])[index];
+        if (asset) {
+          this._showAssetInspector(groupKey, asset);
+        }
+      }
+
+      _showAssetInspector(groupKey, asset) {
+        if (!this.ui.inspector) return;
+        const labelBase = groupKey.replace(/es$/, '').replace(/s$/, '');
+        const label = labelBase.charAt(0).toUpperCase() + labelBase.slice(1);
+        this.ui.inspector.innerHTML = `
+          <div class="inspector-section">
+            <div class="inspector-section-title">📦 ${label} Details</div>
+            <div class="property-group">
+              <div class="property-label">Name</div>
+              <input type="text" class="property-input" value="${asset.name}" readonly>
+            </div>
+            ${asset.line ? `
+              <div class="property-group">
+                <div class="property-label">Line</div>
+                <input type="text" class="property-input" value="${asset.line}" readonly>
+              </div>` : ''}
+            ${asset.from ? `
+              <div class="property-group">
+                <div class="property-label">Import From</div>
+                <input type="text" class="property-input" value="${asset.from}" readonly>
+              </div>` : ''}
+            ${asset.namespace ? `
+              <div class="property-group">
+                <div class="property-label">Namespace</div>
+                <input type="text" class="property-input" value="${asset.namespace}" readonly>
+              </div>` : ''}
+            ${asset.type ? `
+              <div class="property-group">
+                <div class="property-label">Type</div>
+                <input type="text" class="property-input" value="${asset.type}" readonly>
+              </div>` : ''}
+          </div>
+        `;
+      }
+
+      _renderHierarchyTree() {
+        if (!this.ui.hierarchyTree) return;
+        const hierarchy = this.analyzer.generateHierarchy();
+        let html = `<div style="color: #3498db; font-weight: bold; margin-bottom: 15px;">📁 ${hierarchy.scene}</div>`;
+        hierarchy.children.forEach(child => {
+          html += `<div style="margin-left: 20px; margin-bottom: 10px;">`;
+          html += `<div style="color: #f39c12; font-weight: bold;">├─ ${child.name} (${child.count})</div>`;
+          child.items.slice(0, 8).forEach((item, idx) => {
+            const isLast = idx === Math.min(child.items.length - 1, 7);
+            html += `<div style="margin-left: 20px; color: #bbb;">${isLast ? '└─' : '├─'} ${item}</div>`;
+          });
+          if (child.items.length > 8) {
+            html += `<div style="margin-left: 20px; color: #666;">└─ ... ${child.items.length - 8} more</div>`;
+          }
+          html += `</div>`;
+        });
+        this.ui.hierarchyTree.innerHTML = html;
+      }
 
       _initTimeline() {
-        // Create timeline ruler markers (0-50 seconds)
+        if (!this.ui.timelineRuler || !this.ui.timelineTracks) return;
+        this.ui.timelineRuler.innerHTML = '';
+        this.ui.timelineTracks.innerHTML = '';
+        this.state.tracks = [];
         for (let i = 0; i <= 50; i += 5) {
           const marker = document.createElement('div');
           marker.className = 'timeline-marker';
-          marker.style.left = `${15 + i * 50}px`; // 50px per second
+          marker.style.left = `${15 + i * 50}px`;
           marker.textContent = `${i}s`;
-          marker.style.paddingLeft = '6px';
           this.ui.timelineRuler.appendChild(marker);
         }
-
-        // Create initial track
         this._addTrack('Main Sequence');
       }
 
       _addTrack(name) {
+        if (!this.ui.timelineTracks) return;
         const track = document.createElement('div');
         track.className = 'sequence-track';
         track.dataset.trackName = name;
         track.innerHTML = `
-          <div style="font-size: 11px; color: #999; margin-bottom: 8px; font-weight: 600;">
-            ${name}
-          </div>
+          <div style="font-size: 11px; color: #999; margin-bottom: 8px; font-weight: 600;">${name}</div>
         `;
         this.ui.timelineTracks.appendChild(track);
         this.state.tracks.push({ name, element: track, nodes: [] });
       }
 
       _setupEventListeners() {
-        // Play button
-        document.getElementById('playBtn').addEventListener('click', () => {
-          this._playSequence();
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(`${tab}-tab`).classList.add('active');
+            this.state.currentTab = tab;
+            if (tab === 'hierarchy') {
+              this._renderHierarchyTree();
+            }
+          });
         });
 
-        // Stop button
-        document.getElementById('stopBtn').addEventListener('click', () => {
-          this._stopSequence();
+        this.ui.sceneCatalogSearch?.addEventListener('input', event => {
+          this.state.sceneSearchTerm = event.target.value;
+          this._renderSceneCatalog();
         });
 
-        // Export button
-        document.getElementById('exportBtn').addEventListener('click', () => {
-          this._exportSequence();
+        this.ui.propSearch?.addEventListener('input', event => {
+          this.state.propSearchTerm = event.target.value;
+          this._renderPropBrowser();
         });
 
-        // Import button
-        document.getElementById('importBtn').addEventListener('click', () => {
-          this._importSequence();
+        document.getElementById('analyzeBtn').addEventListener('click', async () => {
+          this.ui.loadingOverlay.style.display = 'flex';
+          this.ui.loadingDetail.textContent = 'Re-analyzing scene...';
+          const scenePath = `./src/scripts/scenes/${this.state.currentScene}.js`;
+          this.state.assets = await this.analyzer.analyzeScene(scenePath);
+          this._renderAssetGroups();
+          this._renderHierarchyTree();
+          this._updateCodePreview();
+          setTimeout(() => {
+            this.ui.loadingOverlay.style.display = 'none';
+          }, 400);
         });
 
-        // Close button
+        document.getElementById('addDialogueBtn').addEventListener('click', () => {
+          const dialogue = this.dialogueManager.createDialogue({
+            speaker: 'New Speaker',
+            text: 'Enter dialogue text here...',
+            display: 'subtitle',
+            timestamp: 0
+          });
+          this._renderDialogueCards();
+          this._selectDialogue(dialogue.id);
+          this._updateCodePreview();
+        });
+
+        document.getElementById('castToDisplayBtn').addEventListener('click', () => {
+          if (!this.state.selectedDialogueId) {
+            alert('Please select a dialogue first');
+            return;
+          }
+          const display = document.getElementById('displaySelect').value;
+          this.dialogueManager.updateDialogue(this.state.selectedDialogueId, { display });
+          this._renderDialogueCards();
+          this._selectDialogue(this.state.selectedDialogueId);
+          this._updateCodePreview();
+        });
+
+        document.getElementById('copyCodeBtn').addEventListener('click', () => {
+          const code = this.ui.codePreview.innerText;
+          navigator.clipboard.writeText(code);
+          alert('✅ Copied to clipboard!');
+        });
+
         document.getElementById('closeBtn').addEventListener('click', () => {
           if (confirm('Close Sequence Builder?')) {
             window.close();
           }
         });
 
-        // Add track button
+        document.getElementById('playBtn').addEventListener('click', () => this._playSequence());
+        document.getElementById('stopBtn').addEventListener('click', () => this._stopSequence());
+
+        document.getElementById('exportBtn').addEventListener('click', () => this._exportBuilderState());
+        document.getElementById('importBtn').addEventListener('click', () => this._importBuilderState());
+
         document.getElementById('addTrackBtn').addEventListener('click', () => {
           const trackName = prompt('Enter track name:', `Track ${this.state.tracks.length + 1}`);
           if (trackName) {
@@ -1032,7 +2139,14 @@
           }
         });
 
-        // Zoom controls
+        document.getElementById('deleteBtn').addEventListener('click', () => {
+          if (this.state.selectedNode) {
+            this._deleteNode(this.state.selectedNode);
+          } else if (this.state.selectedDialogueId) {
+            this._deleteDialogue(this.state.selectedDialogueId);
+          }
+        });
+
         document.getElementById('zoomInBtn').addEventListener('click', () => {
           this.state.zoom = Math.min(this.state.zoom * 1.2, 5.0);
           this._updateTimelineZoom();
@@ -1043,66 +2157,54 @@
           this._updateTimelineZoom();
         });
 
-        // Snap toggle
-        document.getElementById('snapBtn').addEventListener('click', (e) => {
+        document.getElementById('snapBtn').addEventListener('click', (event) => {
           this.state.snapEnabled = !this.state.snapEnabled;
-          e.target.classList.toggle('active', this.state.snapEnabled);
+          event.currentTarget.classList.toggle('active', this.state.snapEnabled);
         });
 
-        // Loop toggle
-        document.getElementById('loopBtn').addEventListener('click', (e) => {
+        document.getElementById('loopBtn').addEventListener('click', (event) => {
           this.state.loopEnabled = !this.state.loopEnabled;
-          e.target.classList.toggle('active', this.state.loopEnabled);
+          event.currentTarget.classList.toggle('active', this.state.loopEnabled);
         });
 
-        // Palette node drag
         document.querySelectorAll('.palette-node').forEach(node => {
-          node.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('nodeType', node.dataset.nodeType);
-          });
           node.setAttribute('draggable', 'true');
+          node.addEventListener('dragstart', (event) => {
+            event.dataTransfer.setData('nodeType', node.dataset.nodeType);
+          });
         });
 
-        // Track drop zones
-        this.ui.timelineTracks.addEventListener('dragover', (e) => {
-          e.preventDefault();
+        this.ui.timelineTracks.addEventListener('dragover', (event) => {
+          event.preventDefault();
         });
 
-        this.ui.timelineTracks.addEventListener('drop', (e) => {
-          e.preventDefault();
-          const nodeType = e.dataTransfer.getData('nodeType');
+        this.ui.timelineTracks.addEventListener('drop', (event) => {
+          event.preventDefault();
+          const nodeType = event.dataTransfer.getData('nodeType');
           if (nodeType) {
-            this._createNode(nodeType, e.clientX);
+            this._createNode(nodeType, event.clientX);
           }
         });
 
-        // Resource item clicks
-        document.querySelectorAll('.resource-item').forEach(item => {
-          item.addEventListener('click', () => {
-            this._showResourceInfo(item.dataset.resource);
-          });
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-          if (e.key === ' ') {
-            e.preventDefault();
+        document.addEventListener('keydown', (event) => {
+          if (event.key === ' ') {
+            event.preventDefault();
             this._togglePlayPause();
-          } else if (e.key === 'Delete' && this.state.selectedNode) {
+          } else if (event.key === 'Delete' && this.state.selectedNode) {
             this._deleteNode(this.state.selectedNode);
-          } else if (e.ctrlKey && e.key === 's') {
-            e.preventDefault();
-            this._exportSequence();
+          } else if (event.ctrlKey && event.key.toLowerCase() === 's') {
+            event.preventDefault();
+            this._exportBuilderState();
           }
         });
       }
+      _createNode(nodeType, clientX) {
+        const time = (clientX - 15) / (50 * this.state.zoom);
+        const clampedTime = Math.max(0, time);
 
-      _createNode(nodeType, x) {
-        const time = (x - 15) / (50 * this.state.zoom); // Convert x to time
-        
         const node = document.createElement('div');
         node.className = 'sequence-node';
-        node.style.left = `${15 + time * 50 * this.state.zoom}px`;
+        node.style.left = `${15 + clampedTime * 50 * this.state.zoom}px`;
         node.style.top = '30px';
         node.innerHTML = `
           <div class="node-label">${nodeType}</div>
@@ -1114,7 +2216,7 @@
 
         const nodeData = {
           type: nodeType,
-          time: time,
+          time: clampedTime,
           duration: 2.0,
           element: node,
           properties: {}
@@ -1122,32 +2224,31 @@
 
         this.state.nodes.push(nodeData);
         this._makeNodeDraggable(node, nodeData);
+        this._selectNode(nodeData);
         this._updateCodePreview();
-
-        console.log(`✅ Created ${nodeType} node at ${time.toFixed(2)}s`);
       }
 
       _makeNodeDraggable(element, nodeData) {
         let isDragging = false;
-        let startX = 0;
+        let offsetX = 0;
 
-        element.addEventListener('mousedown', (e) => {
+        element.addEventListener('mousedown', (event) => {
           isDragging = true;
-          startX = e.clientX - element.offsetLeft;
+          offsetX = event.clientX - element.offsetLeft;
           this._selectNode(nodeData);
-          e.stopPropagation();
+          event.stopPropagation();
         });
 
-        document.addEventListener('mousemove', (e) => {
-          if (isDragging) {
-            let newX = e.clientX - startX;
-            if (this.state.snapEnabled) {
-              newX = Math.round(newX / 25) * 25; // Snap to grid
-            }
-            element.style.left = `${newX}px`;
-            nodeData.time = (newX - 15) / (50 * this.state.zoom);
-            this._updateInspector();
+        document.addEventListener('mousemove', (event) => {
+          if (!isDragging) return;
+          let newX = event.clientX - offsetX;
+          if (this.state.snapEnabled) {
+            newX = Math.round(newX / 25) * 25;
           }
+          newX = Math.max(15, newX);
+          element.style.left = `${newX}px`;
+          nodeData.time = (newX - 15) / (50 * this.state.zoom);
+          this._updateNodeInspector(nodeData);
         });
 
         document.addEventListener('mouseup', () => {
@@ -1159,40 +2260,29 @@
       }
 
       _selectNode(nodeData) {
-        // Deselect all
-        this.state.nodes.forEach(n => n.element.classList.remove('selected'));
-        
-        // Select this node
         this.state.selectedNode = nodeData;
+        this.state.selectedAsset = null;
+        this.state.selectedDialogueId = null;
+        document.querySelectorAll('.asset-item').forEach(el => el.classList.remove('selected'));
+        document.querySelectorAll('.dialogue-card').forEach(el => el.classList.remove('selected'));
+        this.state.nodes.forEach(node => node.element.classList.remove('selected'));
         nodeData.element.classList.add('selected');
-        
-        this._updateInspector();
+        this._showNodeInspector(nodeData);
       }
 
-      _updateInspector() {
-        if (!this.state.selectedNode) {
-          this.ui.inspector.innerHTML = '<div class="inspector-empty">Select a node to edit properties</div>';
-          return;
-        }
-
-        const node = this.state.selectedNode;
-        
+      _showNodeInspector(nodeData) {
+        if (!this.ui.inspector) return;
         this.ui.inspector.innerHTML = `
           <div class="inspector-section">
-            <div class="inspector-section-title">${node.type} Node</div>
-            
+            <div class="inspector-section-title">${nodeData.type} Node</div>
             <div class="property-group">
               <div class="property-label">Start Time</div>
-              <input type="number" class="property-input" id="propTime" 
-                     value="${node.time.toFixed(2)}" step="0.1" min="0">
+              <input type="number" class="property-input" id="propTime" value="${nodeData.time.toFixed(2)}" step="0.1" min="0">
             </div>
-            
             <div class="property-group">
               <div class="property-label">Duration</div>
-              <input type="number" class="property-input" id="propDuration" 
-                     value="${node.duration}" step="0.1" min="0.1">
+              <input type="number" class="property-input" id="propDuration" value="${nodeData.duration}" step="0.1" min="0.1">
             </div>
-            
             <div class="property-group">
               <div class="property-label">Easing</div>
               <select class="property-input" id="propEasing">
@@ -1203,28 +2293,20 @@
                 <option value="cubic">Cubic</option>
               </select>
             </div>
-            
-            ${node.type === 'animation' ? `
+            ${nodeData.type === 'animation' ? `
               <div class="property-group">
                 <div class="property-label">Target Property</div>
-                <input type="text" class="property-input" id="propTarget" 
-                       placeholder="e.g. position.x" value="${node.properties.target || ''}">
+                <input type="text" class="property-input" id="propTarget" placeholder="e.g. position.x" value="${nodeData.properties.target || ''}">
               </div>
-              
               <div class="property-group">
                 <div class="property-label">From Value</div>
-                <input type="number" class="property-input" id="propFrom" 
-                       value="${node.properties.from || 0}" step="0.01">
+                <input type="number" class="property-input" id="propFrom" value="${nodeData.properties.from || 0}" step="0.01">
               </div>
-              
               <div class="property-group">
                 <div class="property-label">To Value</div>
-                <input type="number" class="property-input" id="propTo" 
-                       value="${node.properties.to || 1}" step="0.01">
-              </div>
-            ` : ''}
-            
-            ${node.type === 'effect' ? `
+                <input type="number" class="property-input" id="propTo" value="${nodeData.properties.to || 1}" step="0.01">
+              </div>` : ''}
+            ${nodeData.type === 'effect' ? `
               <div class="property-group">
                 <div class="property-label">Effect Type</div>
                 <select class="property-input" id="propEffectType">
@@ -1234,138 +2316,132 @@
                   <option value="shake">Shake</option>
                 </select>
               </div>
-              
               <div class="property-group">
                 <div class="property-label">Intensity</div>
-                <input type="range" class="property-slider" id="propIntensity" 
-                       min="0" max="1" step="0.01" value="${node.properties.intensity || 0.5}">
-                <span class="property-value-display" id="intensityValue">0.5</span>
-              </div>
-            ` : ''}
-            
-            ${node.type === 'sound' ? `
+                <input type="range" class="property-slider" id="propIntensity" min="0" max="1" step="0.01" value="${nodeData.properties.intensity || 0.5}">
+                <span class="property-value-display" id="intensityValue">${nodeData.properties.intensity || 0.5}</span>
+              </div>` : ''}
+            ${nodeData.type === 'sound' ? `
               <div class="property-group">
                 <div class="property-label">Sound File</div>
-                <input type="text" class="property-input" id="propSoundFile" 
-                       placeholder="e.g. chime.mp3" value="${node.properties.file || ''}">
+                <input type="text" class="property-input" id="propSoundFile" placeholder="e.g. chime.mp3" value="${nodeData.properties.file || ''}">
               </div>
-              
               <div class="property-group">
                 <div class="property-label">Volume</div>
-                <input type="range" class="property-slider" id="propVolume" 
-                       min="0" max="1" step="0.01" value="${node.properties.volume || 0.7}">
-                <span class="property-value-display" id="volumeValue">0.7</span>
-              </div>
-            ` : ''}
+                <input type="range" class="property-slider" id="propVolume" min="0" max="1" step="0.01" value="${nodeData.properties.volume || 0.7}">
+                <span class="property-value-display" id="volumeValue">${nodeData.properties.volume || 0.7}</span>
+              </div>` : ''}
           </div>
         `;
-
-        // Attach property change listeners
-        this._attachPropertyListeners();
+        this._attachNodeInspectorListeners(nodeData);
       }
 
-      _attachPropertyListeners() {
+      _attachNodeInspectorListeners(nodeData) {
         const timeInput = document.getElementById('propTime');
         const durationInput = document.getElementById('propDuration');
         const easingSelect = document.getElementById('propEasing');
 
-        if (timeInput) {
-          timeInput.addEventListener('change', (e) => {
-            this.state.selectedNode.time = parseFloat(e.target.value);
-            this.state.selectedNode.element.style.left = `${15 + this.state.selectedNode.time * 50 * this.state.zoom}px`;
-            this._updateCodePreview();
-          });
-        }
+        timeInput?.addEventListener('change', (event) => {
+          nodeData.time = parseFloat(event.target.value);
+          nodeData.element.style.left = `${15 + nodeData.time * 50 * this.state.zoom}px`;
+          this._updateCodePreview();
+        });
 
-        if (durationInput) {
-          durationInput.addEventListener('change', (e) => {
-            this.state.selectedNode.duration = parseFloat(e.target.value);
-            this.state.selectedNode.element.querySelector('.node-duration').textContent = `${e.target.value}s`;
-            this._updateCodePreview();
-          });
-        }
+        durationInput?.addEventListener('change', (event) => {
+          nodeData.duration = parseFloat(event.target.value);
+          nodeData.element.querySelector('.node-duration').textContent = `${event.target.value}s`;
+          this._updateCodePreview();
+        });
 
-        if (easingSelect) {
-          easingSelect.addEventListener('change', (e) => {
-            this.state.selectedNode.properties.easing = e.target.value;
-            this._updateCodePreview();
-          });
-        }
+        easingSelect?.addEventListener('change', (event) => {
+          nodeData.properties.easing = event.target.value;
+          this._updateCodePreview();
+        });
 
-        // Sliders
         const intensitySlider = document.getElementById('propIntensity');
-        if (intensitySlider) {
-          intensitySlider.addEventListener('input', (e) => {
-            this.state.selectedNode.properties.intensity = parseFloat(e.target.value);
-            document.getElementById('intensityValue').textContent = e.target.value;
-            this._updateCodePreview();
-          });
-        }
+        intensitySlider?.addEventListener('input', (event) => {
+          nodeData.properties.intensity = parseFloat(event.target.value);
+          document.getElementById('intensityValue').textContent = event.target.value;
+          this._updateCodePreview();
+        });
 
         const volumeSlider = document.getElementById('propVolume');
-        if (volumeSlider) {
-          volumeSlider.addEventListener('input', (e) => {
-            this.state.selectedNode.properties.volume = parseFloat(e.target.value);
-            document.getElementById('volumeValue').textContent = e.target.value;
-            this._updateCodePreview();
-          });
-        }
+        volumeSlider?.addEventListener('input', (event) => {
+          nodeData.properties.volume = parseFloat(event.target.value);
+          document.getElementById('volumeValue').textContent = event.target.value;
+          this._updateCodePreview();
+        });
 
-        // Text inputs for animation/sound
         ['propTarget', 'propFrom', 'propTo', 'propSoundFile', 'propEffectType'].forEach(id => {
           const input = document.getElementById(id);
-          if (input) {
-            input.addEventListener('change', (e) => {
-              const propName = id.replace('prop', '').toLowerCase();
-              if (propName === 'target') this.state.selectedNode.properties.target = e.target.value;
-              if (propName === 'from') this.state.selectedNode.properties.from = parseFloat(e.target.value);
-              if (propName === 'to') this.state.selectedNode.properties.to = parseFloat(e.target.value);
-              if (propName === 'soundfile') this.state.selectedNode.properties.file = e.target.value;
-              if (propName === 'effecttype') this.state.selectedNode.properties.effectType = e.target.value;
-              this._updateCodePreview();
-            });
-          }
+          if (!input) return;
+          input.addEventListener('change', (event) => {
+            const value = event.target.value;
+            switch (id) {
+              case 'propTarget':
+                nodeData.properties.target = value;
+                break;
+              case 'propFrom':
+                nodeData.properties.from = parseFloat(value);
+                break;
+              case 'propTo':
+                nodeData.properties.to = parseFloat(value);
+                break;
+              case 'propSoundFile':
+                nodeData.properties.file = value;
+                break;
+              case 'propEffectType':
+                nodeData.properties.effectType = value;
+                break;
+            }
+            this._updateCodePreview();
+          });
         });
+      }
+      _updateNodeInspector(nodeData) {
+        if (this.state.selectedNode !== nodeData) return;
+        const timeInput = document.getElementById('propTime');
+        const durationInput = document.getElementById('propDuration');
+        if (timeInput) {
+          timeInput.value = nodeData.time.toFixed(2);
+        }
+        if (durationInput) {
+          durationInput.value = nodeData.duration;
+        }
       }
 
       _playSequence() {
-        console.log('▶ Playing sequence');
+        if (this.state.isPlaying) return;
         this.state.isPlaying = true;
-        this.state.playhead = 0;
-        
-        const startTime = performance.now();
-        
-        const animate = (currentTime) => {
+        let startTime = performance.now() - this.state.playhead * 1000;
+
+        const animate = (timestamp) => {
           if (!this.state.isPlaying) return;
-          
-          const elapsed = (currentTime - startTime) / 1000;
+          const elapsed = (timestamp - startTime) / 1000;
           this.state.playhead = elapsed;
-          
-          // Update playhead position
           this.ui.playhead.style.left = `${15 + elapsed * 50 * this.state.zoom}px`;
-          this.ui.currentTime.textContent = `${elapsed.toFixed(2)}s`;
-          
-          // Check for max time or loop
-          const maxTime = Math.max(...this.state.nodes.map(n => n.time + n.duration), 10);
+          this.ui.currentTime.textContent = `${Math.max(0, elapsed).toFixed(2)}s`;
+
+          const maxTime = Math.max(...this.state.nodes.map(n => n.time + n.duration), 5);
           if (elapsed >= maxTime) {
             if (this.state.loopEnabled) {
-              this.state.playhead = 0;
               startTime = performance.now();
+              this.state.playhead = 0;
             } else {
               this._stopSequence();
               return;
             }
           }
-          
+
           requestAnimationFrame(animate);
         };
-        
+
         requestAnimationFrame(animate);
       }
 
       _stopSequence() {
-        console.log('⏹ Stopping sequence');
         this.state.isPlaying = false;
+        this.state.playhead = 0;
         this.ui.playhead.style.left = '15px';
         this.ui.currentTime.textContent = '0.00s';
       }
@@ -1379,21 +2455,18 @@
       }
 
       _updateTimelineZoom() {
-        console.log(`🔍 Zoom: ${this.state.zoom.toFixed(2)}x`);
-        // Update all node positions based on zoom
         this.state.nodes.forEach(node => {
           node.element.style.left = `${15 + node.time * 50 * this.state.zoom}px`;
         });
-        
-        // Update ruler markers
-        this.ui.timelineRuler.innerHTML = '';
-        for (let i = 0; i <= 50; i += 5) {
-          const marker = document.createElement('div');
-          marker.className = 'timeline-marker';
-          marker.style.left = `${15 + i * 50 * this.state.zoom}px`;
-          marker.textContent = `${i}s`;
-          marker.style.paddingLeft = '6px';
-          this.ui.timelineRuler.appendChild(marker);
+        if (this.ui.timelineRuler) {
+          this.ui.timelineRuler.innerHTML = '';
+          for (let i = 0; i <= 50; i += 5) {
+            const marker = document.createElement('div');
+            marker.className = 'timeline-marker';
+            marker.style.left = `${15 + i * 50 * this.state.zoom}px`;
+            marker.textContent = `${i}s`;
+            this.ui.timelineRuler.appendChild(marker);
+          }
         }
       }
 
@@ -1403,122 +2476,130 @@
           this.state.nodes.splice(index, 1);
           nodeData.element.remove();
           this.state.selectedNode = null;
-          this._updateInspector();
+          this.ui.inspector.innerHTML = '<div class="inspector-empty">Select a node, asset, or dialogue to inspect</div>';
           this._updateCodePreview();
-          console.log(`🗑️ Deleted node`);
         }
       }
 
-      _showResourceInfo(resourceName) {
-        console.log(`📄 Showing info for: ${resourceName}`);
-        alert(`Resource: ${resourceName}\n\nClick to view details (not yet implemented)`);
-      }
-
       _updateCodePreview() {
+        const assets = this.state.assets || {};
+        const dialogues = this.dialogueManager.exportDialogues();
         const sortedNodes = [...this.state.nodes].sort((a, b) => a.time - b.time);
-        
-        let code = `<span class="code-comment">// Generated Sequence Code</span>\n`;
+        const sequenceDuration = sortedNodes.length
+          ? Math.max(...sortedNodes.map(n => n.time + n.duration))
+          : 0;
+
+        let code = `<span class="code-comment">// Scene Asset Analysis</span>\n`;
+        code += `<span class="code-keyword">const</span> sceneAssets = {\n`;
+        code += `  <span class="code-string">scene</span>: <span class="code-string">"${this.state.currentScene}"</span>,\n`;
+        code += `  <span class="code-string">totalAssets</span>: <span class="code-number">${Object.values(assets).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0)}</span>,\n`;
+        code += `  <span class="code-string">imports</span>: [${(assets.imports || []).slice(0, 5).map(i => `<span class="code-string">"${i.name}"</span>`).join(', ')}${(assets.imports || []).length > 5 ? ', ...' : ''}]\n`;
+        code += `};\n\n`;
+
+        code += `<span class="code-comment">// Dialogue Plan (${dialogues.count})</span>\n`;
+        code += `<span class="code-keyword">const</span> dialoguePlan = [\n`;
+        dialogues.dialogues.forEach((dialogue, idx) => {
+          code += `  { <span class="code-string">speaker</span>: <span class="code-string">"${dialogue.speaker}"</span>, <span class="code-string">text</span>: <span class="code-string">"${dialogue.text.replace(/"/g, '\\"')}"</span>, <span class="code-string">display</span>: <span class="code-string">"${dialogue.display}"</span>, <span class="code-string">timestamp</span>: <span class="code-number">${dialogue.timestamp}</span> }${idx < dialogues.count - 1 ? ',' : ''}\n`;
+        });
+        code += `];\n\n`;
+
+        code += `<span class="code-comment">// Generated Sequence Timeline (${sortedNodes.length} nodes)</span>\n`;
         code += `<span class="code-keyword">const</span> sequence = {\n`;
         code += `  <span class="code-string">name</span>: <span class="code-string">"Custom Sequence"</span>,\n`;
-        code += `  <span class="code-string">duration</span>: <span class="code-number">${Math.max(...sortedNodes.map(n => n.time + n.duration), 0).toFixed(2)}</span>,\n`;
+        code += `  <span class="code-string">duration</span>: <span class="code-number">${sequenceDuration.toFixed(2)}</span>,\n`;
         code += `  <span class="code-string">nodes</span>: [\n`;
-        
-        sortedNodes.forEach((node, i) => {
-          code += `    {\n`;
-          code += `      <span class="code-string">type</span>: <span class="code-string">"${node.type}"</span>,\n`;
-          code += `      <span class="code-string">time</span>: <span class="code-number">${node.time.toFixed(2)}</span>,\n`;
-          code += `      <span class="code-string">duration</span>: <span class="code-number">${node.duration}</span>,\n`;
-          code += `      <span class="code-string">properties</span>: ${JSON.stringify(node.properties, null, 2).replace(/\n/g, '\n      ')}\n`;
-          code += `    }${i < sortedNodes.length - 1 ? ',' : ''}\n`;
+        sortedNodes.forEach((node, idx) => {
+          code += `    { <span class="code-string">type</span>: <span class="code-string">"${node.type}"</span>, <span class="code-string">time</span>: <span class="code-number">${node.time.toFixed(2)}</span>, <span class="code-string">duration</span>: <span class="code-number">${node.duration}</span>, <span class="code-string">properties</span>: ${JSON.stringify(node.properties)} }${idx < sortedNodes.length - 1 ? ',' : ''}\n`;
         });
-        
         code += `  ]\n`;
         code += `};\n\n`;
-        code += `<span class="code-comment">// Export for use in scene</span>\n`;
-        code += `<span class="code-keyword">export</span> <span class="code-keyword">default</span> sequence;`;
-        
+        code += `<span class="code-comment">// Export unified builder payload</span>\n`;
+        code += `<span class="code-keyword">export</span> <span class="code-keyword">default</span> { sceneAssets, dialoguePlan, sequence };`;
+
         this.ui.codePreview.innerHTML = code;
       }
 
-      _exportSequence() {
-        const sequence = {
-          name: 'Custom Sequence',
+      _exportBuilderState() {
+        const payload = {
           scene: this.state.currentScene,
-          duration: Math.max(...this.state.nodes.map(n => n.time + n.duration), 0),
-          nodes: this.state.nodes.map(n => ({
-            type: n.type,
-            time: n.time,
-            duration: n.duration,
-            properties: n.properties
-          }))
+          assets: this.state.assets,
+          dialogues: this.dialogueManager.exportDialogues(),
+          sequence: {
+            duration: Math.max(...this.state.nodes.map(n => n.time + n.duration), 0),
+            nodes: this.state.nodes.map(n => ({
+              type: n.type,
+              time: n.time,
+              duration: n.duration,
+              properties: n.properties
+            }))
+          }
         };
 
-        const json = JSON.stringify(sequence, null, 2);
-        
-        // Create download
+        const json = JSON.stringify(payload, null, 2);
         const blob = new Blob([json], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sequence_${Date.now()}.json`;
+        a.download = `builder_${this.state.currentScene}_${Date.now()}.json`;
         a.click();
         URL.revokeObjectURL(url);
-        
-        console.log('💾 Sequence exported');
-        
-        // Also copy to clipboard
-        navigator.clipboard.writeText(json).then(() => {
-          alert('✅ Sequence exported and copied to clipboard!');
-        });
+        navigator.clipboard.writeText(json);
+        alert('✅ Builder state exported and copied to clipboard!');
       }
 
-      _importSequence() {
+      _importBuilderState() {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.json';
-        
-        input.addEventListener('change', async (e) => {
-          const file = e.target.files[0];
+
+        input.addEventListener('change', async (event) => {
+          const file = event.target.files[0];
           if (!file) return;
-          
           const text = await file.text();
-          const sequence = JSON.parse(text);
-          
-          // Clear existing nodes
-          this.state.nodes.forEach(n => n.element.remove());
-          this.state.nodes = [];
-          
-          // Create nodes from imported data
-          sequence.nodes.forEach(nodeData => {
-            const x = 15 + nodeData.time * 50 * this.state.zoom;
-            this._createNode(nodeData.type, x);
-            
-            const node = this.state.nodes[this.state.nodes.length - 1];
-            node.time = nodeData.time;
-            node.duration = nodeData.duration;
-            node.properties = nodeData.properties;
-            node.element.querySelector('.node-duration').textContent = `${nodeData.duration}s`;
-          });
-          
+          const data = JSON.parse(text);
+
+          if (data.scene && data.scene !== this.state.currentScene) {
+            await this._changeScene(data.scene);
+          }
+
+          if (data.assets) {
+            this.state.assets = data.assets;
+            this._renderAssetGroups();
+            this._renderHierarchyTree();
+          }
+
+          if (data.dialogues) {
+            this.dialogueManager.importDialogues(data.dialogues);
+            this._renderDialogueCards();
+          }
+
+          if (data.sequence) {
+            this.state.nodes.forEach(n => n.element.remove());
+            this.state.nodes = [];
+            data.sequence.nodes.forEach(nodeData => {
+              const x = 15 + nodeData.time * 50 * this.state.zoom;
+              this._createNode(nodeData.type, x);
+              const node = this.state.nodes[this.state.nodes.length - 1];
+              node.time = nodeData.time;
+              node.duration = nodeData.duration;
+              node.properties = nodeData.properties || {};
+              node.element.querySelector('.node-duration').textContent = `${node.duration}s`;
+            });
+          }
+
           this._updateCodePreview();
-          console.log('📂 Sequence imported');
-          alert('✅ Sequence imported successfully!');
+          alert('✅ Builder state imported successfully!');
         });
-        
+
         input.click();
       }
     }
 
-    // Initialize app
-    const app = new SequenceBuilderApp();
+    const app = new UnifiedSequenceBuilder();
     app.init();
-    
-    // Make globally accessible for debugging
-    window.sequenceBuilder = app;
-    
-    console.log('✅ Sequence Builder Ready');
-    console.log('💡 Tip: Drag nodes from left panel to timeline');
-    console.log('💡 Shortcuts: Space=Play/Pause, Delete=Remove, Ctrl+S=Export');
+    window.builderApp = app;
+    console.log('✅ Unified Sequence Builder Ready');
+    console.log('💡 Tips: Drag nodes onto the timeline, inspect assets, and manage dialogue cards.');
   </script>
 </body>
 </html>
