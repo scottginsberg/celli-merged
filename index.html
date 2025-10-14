@@ -1619,7 +1619,7 @@
   const edgeImpact = document.getElementById('edgeImpact');
   const darkeningOverlay = document.getElementById('darkeningOverlay');
   const lightBeam = document.getElementById('lightBeam');
-  
+
   // Track impact hits for progressive darkening
   let impactCount = 0;
   const MAX_IMPACTS_BEFORE_BEAM = 5;
@@ -1633,7 +1633,12 @@
   let currentHNView = false;
   let parodiesComplete = false;
   let celliAdsComplete = false;
-  
+  let postTermsSequenceStarted = false;
+  let goldenHoldOverlay = null;
+  let goldenHoldCleanup = null;
+  let goldenHoldTimer = null;
+  let goldenDustAnimationId = null;
+
   // Parody headlines
   const parodyHeadlines = [
     "Show HN: Dyson Sphere Made from Dyson Vacuum and Home-Built Particle Accelerator",
@@ -1946,9 +1951,11 @@
       
       // Activate magnetic cursor for checkbox
       setTimeout(() => activateMagneticCheckbox(), 1500);
-      
+
+      attachTosAcceptanceHandler();
+
       tosPhaseActive = true;
-      
+
       console.log(`✨ Unified hazy glass crystal LOOMWORKS invitation displayed (${versionLabel})`);
     }, 300);
   }
@@ -2118,9 +2125,417 @@
     
     console.log('  🚀 Starting faux cursor animation loop');
     animateFauxCursor();
-    
+
     // Store animation ID for cleanup
     window.fauxCursorAnimationId = animationId;
+  }
+
+  function attachTosAcceptanceHandler() {
+    const checkbox = document.getElementById('tosCheckbox');
+    if (!checkbox) {
+      return;
+    }
+
+    if (checkbox.dataset.listenerAttached === 'true') {
+      return;
+    }
+
+    checkbox.dataset.listenerAttached = 'true';
+    checkbox.addEventListener('change', (event) => {
+      if (event.target.checked) {
+        console.log('🌟 Terms accepted – launching golden ascension sequence');
+        startGoldenHoldSequence();
+      }
+    });
+  }
+
+  let html2CanvasPromise = null;
+  async function ensureHtml2CanvasLoaded() {
+    if (typeof html2canvas !== 'undefined') {
+      return true;
+    }
+
+    if (html2CanvasPromise) {
+      return html2CanvasPromise.then(() => typeof html2canvas !== 'undefined');
+    }
+
+    html2CanvasPromise = new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.head.appendChild(script);
+    });
+
+    const loaded = await html2CanvasPromise;
+    return loaded && typeof html2canvas !== 'undefined';
+  }
+
+  function cleanupGoldenSequence() {
+    if (goldenHoldCleanup) {
+      goldenHoldCleanup();
+      goldenHoldCleanup = null;
+    }
+
+    if (goldenHoldTimer) {
+      clearTimeout(goldenHoldTimer);
+      goldenHoldTimer = null;
+    }
+
+    if (goldenDustAnimationId) {
+      cancelAnimationFrame(goldenDustAnimationId);
+      goldenDustAnimationId = null;
+    }
+
+    if (goldenHoldOverlay && goldenHoldOverlay.parentNode) {
+      goldenHoldOverlay.parentNode.removeChild(goldenHoldOverlay);
+    }
+
+    goldenHoldOverlay = null;
+    postTermsSequenceStarted = false;
+    document.body.classList.remove('referrer-whiteout');
+  }
+
+  function startGoldenHoldSequence() {
+    if (postTermsSequenceStarted) {
+      return;
+    }
+
+    postTermsSequenceStarted = true;
+
+    stopMagneticCursor();
+    document.body.classList.remove('faux-cursor-active');
+
+    const fauxCursor = document.getElementById('fauxCursor');
+    if (fauxCursor) {
+      fauxCursor.style.display = 'none';
+    }
+
+    if (window.fauxCursorAnimationId) {
+      cancelAnimationFrame(window.fauxCursorAnimationId);
+      window.fauxCursorAnimationId = null;
+    }
+
+    if (window.fauxCursorMouseHandler) {
+      document.removeEventListener('mousemove', window.fauxCursorMouseHandler);
+      window.fauxCursorMouseHandler = null;
+    }
+
+    const overlayElement = document.createElement('div');
+    overlayElement.className = 'golden-ascension-overlay';
+    overlayElement.innerHTML = `
+      <div class="golden-content">
+        <div class="golden-instruction">Click &amp; hold to finalize acceptance</div>
+        <div class="golden-hold-wrapper">
+          <div class="golden-hold-button">
+            <span class="golden-label">CLICK + HOLD</span>
+            <div class="golden-trail-pack">
+              <span style="--i:0"></span>
+              <span style="--i:1"></span>
+              <span style="--i:2"></span>
+              <span style="--i:3"></span>
+              <span style="--i:4"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlayElement);
+    goldenHoldOverlay = overlayElement;
+
+    setupGoldenHoldInteraction(overlayElement);
+  }
+
+  function setupGoldenHoldInteraction(overlayElement) {
+    const holdButton = overlayElement.querySelector('.golden-hold-button');
+    if (!holdButton) {
+      return;
+    }
+
+    const holdInstruction = overlayElement.querySelector('.golden-instruction');
+    const defaultInstructionText = holdInstruction ? holdInstruction.textContent : '';
+    const holdDuration = 1600;
+    let holdComplete = false;
+
+    const startHold = (event) => {
+      event.preventDefault();
+      if (holdComplete) {
+        return;
+      }
+
+      overlayElement.classList.add('holding');
+      holdButton.classList.add('holding');
+
+      if (holdInstruction) {
+        holdInstruction.textContent = 'Hold steady…';
+      }
+
+      if (goldenHoldTimer) {
+        clearTimeout(goldenHoldTimer);
+      }
+
+      goldenHoldTimer = setTimeout(() => {
+        holdComplete = true;
+        finalizeHold();
+      }, holdDuration);
+    };
+
+    const cancelHold = () => {
+      if (holdComplete) {
+        return;
+      }
+
+      overlayElement.classList.remove('holding');
+      holdButton.classList.remove('holding');
+
+      if (goldenHoldTimer) {
+        clearTimeout(goldenHoldTimer);
+        goldenHoldTimer = null;
+      }
+
+      if (holdInstruction) {
+        holdInstruction.textContent = defaultInstructionText;
+      }
+    };
+
+    const finalizeHold = () => {
+      overlayElement.classList.remove('holding');
+      holdButton.classList.remove('holding');
+
+      if (goldenHoldTimer) {
+        clearTimeout(goldenHoldTimer);
+        goldenHoldTimer = null;
+      }
+
+      if (goldenHoldCleanup) {
+        goldenHoldCleanup();
+        goldenHoldCleanup = null;
+      }
+
+      overlayElement.classList.add('hold-complete');
+      holdButton.classList.add('morphing');
+
+      if (holdInstruction) {
+        holdInstruction.textContent = 'Acceptance locked in';
+      }
+
+      setTimeout(() => {
+        beginDustTransition(overlayElement, holdButton);
+      }, 1100);
+    };
+
+    holdButton.addEventListener('mousedown', startHold);
+    holdButton.addEventListener('touchstart', startHold, { passive: false });
+    window.addEventListener('mouseup', cancelHold);
+    window.addEventListener('touchend', cancelHold);
+
+    goldenHoldCleanup = () => {
+      holdButton.removeEventListener('mousedown', startHold);
+      holdButton.removeEventListener('touchstart', startHold);
+      window.removeEventListener('mouseup', cancelHold);
+      window.removeEventListener('touchend', cancelHold);
+    };
+  }
+
+  async function beginDustTransition(overlayElement, triangleElement) {
+    const label = triangleElement.querySelector('.golden-label');
+    if (label) {
+      setTimeout(() => label.remove(), 320);
+    }
+
+    const trailSpans = triangleElement.querySelectorAll('.golden-trail-pack span');
+    trailSpans.forEach((span, index) => {
+      span.style.setProperty('--i', index);
+    });
+
+    document.body.classList.add('referrer-whiteout');
+    overlayElement.classList.add('dust-phase');
+
+    let captureCanvas = null;
+    const html2CanvasReady = await ensureHtml2CanvasLoaded();
+
+    if (html2CanvasReady && typeof html2canvas !== 'undefined') {
+      const previousVisibility = overlayElement.style.visibility;
+      overlayElement.style.visibility = 'hidden';
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      try {
+        captureCanvas = await html2canvas(document.body, {
+          useCORS: true,
+          logging: false,
+          scale: window.devicePixelRatio || 1,
+          backgroundColor: getComputedStyle(document.body).backgroundColor || '#0b0b10'
+        });
+        console.log('🖼️ DOM captured for raster dust sequence');
+      } catch (err) {
+        console.warn('⚠️ html2canvas capture failed', err);
+      }
+      overlayElement.style.visibility = previousVisibility || '';
+    }
+
+    const whiteout = document.createElement('div');
+    whiteout.className = 'golden-whiteout';
+    overlayElement.appendChild(whiteout);
+
+    if (captureCanvas) {
+      const dustCanvas = document.createElement('canvas');
+      dustCanvas.className = 'golden-dust-canvas';
+      overlayElement.appendChild(dustCanvas);
+
+      runDustAnimation(captureCanvas, dustCanvas, whiteout, () => {
+        dustCanvas.classList.add('fade-out');
+        setTimeout(() => {
+          if (dustCanvas.parentNode) {
+            dustCanvas.parentNode.removeChild(dustCanvas);
+          }
+        }, 1600);
+        overlayElement.classList.add('dust-complete');
+        triangleElement.classList.add('into-white');
+        startWarpSequence(overlayElement, triangleElement);
+      });
+    } else {
+      overlayElement.classList.add('dust-complete');
+      triangleElement.classList.add('into-white');
+      setTimeout(() => startWarpSequence(overlayElement, triangleElement), 600);
+    }
+
+    triangleElement.classList.add('triangle-flight');
+    setTimeout(() => {
+      triangleElement.classList.add('into-white');
+    }, 900);
+  }
+
+  function runDustAnimation(sourceCanvas, targetCanvas, whiteoutElement, onComplete) {
+    const sourceContext = sourceCanvas.getContext('2d');
+    const ctx = targetCanvas.getContext('2d');
+    if (!sourceContext || !ctx) {
+      if (typeof onComplete === 'function') {
+        onComplete();
+      }
+      return;
+    }
+
+    const width = sourceCanvas.width;
+    const height = sourceCanvas.height;
+    targetCanvas.width = width;
+    targetCanvas.height = height;
+    targetCanvas.style.width = '100vw';
+    targetCanvas.style.height = '100vh';
+
+    ctx.imageSmoothingEnabled = false;
+
+    const imageData = sourceContext.getImageData(0, 0, width, height).data;
+    const step = Math.max(4, Math.floor(width / 240));
+    const particles = [];
+
+    for (let y = 0; y < height; y += step) {
+      for (let x = 0; x < width; x += step) {
+        const index = (y * width + x) * 4;
+        const alpha = imageData[index + 3];
+        if (alpha < 48) {
+          continue;
+        }
+
+        particles.push({
+          x,
+          y,
+          r: imageData[index],
+          g: imageData[index + 1],
+          b: imageData[index + 2],
+          a: alpha / 255,
+          vx: -Math.random() * 6 - 1.5,
+          vy: (Math.random() - 0.5) * 3.2,
+          drift: Math.random() * 2,
+          life: 1,
+          size: step
+        });
+      }
+    }
+
+    let progress = 0;
+
+    const animate = () => {
+      progress += 0.012;
+      ctx.clearRect(0, 0, width, height);
+
+      const windForce = -10 * progress;
+      particles.forEach((particle) => {
+        if (particle.life <= 0) {
+          return;
+        }
+
+        particle.x += (particle.vx + windForce) * (0.85 + progress * 0.35);
+        particle.y += particle.vy + Math.sin((particle.x + progress * 620) * 0.01) * particle.drift;
+        particle.life -= 0.008 + progress * 0.015;
+
+        if (particle.life <= 0) {
+          return;
+        }
+
+        ctx.fillStyle = `rgba(${particle.r}, ${particle.g}, ${particle.b}, ${Math.max(particle.life, 0) * particle.a})`;
+        ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
+      });
+
+      if (whiteoutElement) {
+        const opacityTarget = Math.min(1, progress * 1.8);
+        whiteoutElement.style.opacity = opacityTarget.toFixed(3);
+      }
+
+      if (progress < 1.3) {
+        goldenDustAnimationId = requestAnimationFrame(animate);
+      } else {
+        goldenDustAnimationId = null;
+        if (typeof onComplete === 'function') {
+          onComplete();
+        }
+      }
+    };
+
+    goldenDustAnimationId = requestAnimationFrame(animate);
+  }
+
+  function startWarpSequence(overlayElement, triangleElement) {
+    if (!overlayElement || !triangleElement) {
+      return;
+    }
+
+    if (overlayElement.classList.contains('warp-drive')) {
+      return;
+    }
+
+    overlayElement.classList.add('warp-drive');
+
+    const existingTunnel = overlayElement.querySelector('.warp-tunnel');
+    if (!existingTunnel) {
+      const warpTunnel = document.createElement('div');
+      warpTunnel.className = 'warp-tunnel';
+      overlayElement.appendChild(warpTunnel);
+      requestAnimationFrame(() => warpTunnel.classList.add('active'));
+    }
+
+    const warpStars = document.createElement('div');
+    warpStars.className = 'warp-stars';
+    overlayElement.appendChild(warpStars);
+    requestAnimationFrame(() => warpStars.classList.add('active'));
+
+    const depthLines = document.createElement('div');
+    depthLines.className = 'warp-depth-lines';
+    for (let i = 0; i < 7; i++) {
+      const span = document.createElement('span');
+      span.style.setProperty('--depth-index', i);
+      depthLines.appendChild(span);
+    }
+    overlayElement.appendChild(depthLines);
+    requestAnimationFrame(() => depthLines.classList.add('active'));
+
+    const trailSpans = triangleElement.querySelectorAll('.golden-trail-pack span');
+    trailSpans.forEach((span, index) => {
+      span.style.setProperty('--i', index);
+    });
+
+    setTimeout(() => {
+      triangleElement.classList.add('warp-orientation');
+    }, 350);
   }
   
   // Magnetic cursor effect
@@ -3279,7 +3694,9 @@
         }
       }
     });
-    
+
+    cleanupGoldenSequence();
+
     console.log('🔄 Impact effects reset - all content restored');
   }
   
