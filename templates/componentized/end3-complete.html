@@ -282,8 +282,9 @@ function addGlobalSkip(){
  btn.id='global-skip'; btn.textContent='SKIP >';
  btn.style.cssText='position:fixed;bottom:20px;right:88px;width:auto;height:50px;padding:0 14px;background:rgba(255,204,51,0.9);border:2px solid #ffcc33;border-radius:25px;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#000;cursor:pointer;z-index:200;box-shadow:0 0 18px rgba(255,200,80,0.6)';
  btn.addEventListener('click',()=>{
- crawlActive=false;
- collapseCrawlToCloseFrame(true);
+  crawlActive=false;
+  stopCrawlAudio();
+  collapseCrawlToCloseFrame(true);
  });
  document.body.appendChild(btn);
 }
@@ -416,6 +417,7 @@ let devices={}, recursiveRT, recursiveCam;
 let floatingTexts=[], voxelParticles=[];
 let cageEmitters=[];
 let frameCount=0, crawlActive=false;
+let crawlAudioInstance = null;
 let lastFrameTime=0;
 let cableMaterial;
 let crawlMirror = null; // mirror overlay for main monitor
@@ -440,6 +442,33 @@ let cameraMode = 'orbital'; // 'orbital' or 'fps'
 let initialCameraPos, initialCameraRot;
 let audioCtx; // main AudioContext for thud
 const groundLevel = -13.5; // player height above voxel floor
+
+function playCrawlAudio(){
+ if (typeof Audio === 'undefined') return;
+ if(!crawlAudioInstance){
+  crawlAudioInstance = new Audio('../../test.mp3');
+  crawlAudioInstance.preload = 'auto';
+ }
+ try{
+  crawlAudioInstance.currentTime = 0;
+ }catch(err){
+  console.warn('Unable to reset crawl audio time', err);
+ }
+ const playPromise = crawlAudioInstance.play();
+ if(playPromise && typeof playPromise.catch === 'function'){
+  playPromise.catch(err=>console.warn('Unable to play crawl audio', err));
+ }
+}
+
+function stopCrawlAudio(){
+ if(!crawlAudioInstance) return;
+ crawlAudioInstance.pause();
+ try{
+  crawlAudioInstance.currentTime = 0;
+ }catch(err){
+  console.warn('Unable to reset crawl audio time after pause', err);
+ }
+}
 
 /* =========================
  Shaders (BIOS tint via terminal shader color)
@@ -1354,11 +1383,12 @@ renderer.shadowMap.enabled=true;
  if (skipBtn) {
  skipBtn.style.display = 'block'; // Show during crawl
  skipBtn.addEventListener('click', () => {
- console.log('? Skipping text crawl');
- crawlActive = false; // Stop crawl animation
- const container = document.getElementById('crawl-container');
- if (container) container.style.display = 'none';
- skipBtn.style.display = 'none';
+  console.log('? Skipping text crawl');
+  crawlActive = false; // Stop crawl animation
+  stopCrawlAudio();
+  const container = document.getElementById('crawl-container');
+  if (container) container.style.display = 'none';
+  skipBtn.style.display = 'none';
  });
  }
  
@@ -3262,6 +3292,9 @@ function startTextCrawl(forceFinal=false){
  ];
  let i=0;
  let current=crawl.textContent||'';
+ if(!forceFinal){
+  playCrawlAudio();
+ }
  crawlActive=true;
 
  // local canonical matcher (avoids hoisting issues)
@@ -3275,12 +3308,14 @@ function startTextCrawl(forceFinal=false){
 
  if(forceFinal){
  crawlActive=false;
+ stopCrawlAudio();
  collapseCrawlToCloseFrame(true, parts);
  return;
  }
 
  function endAsPresent(){
  crawlActive=false;
+ stopCrawlAudio();
  collapseCrawlToCloseFrame(false, parts);
  }
 
