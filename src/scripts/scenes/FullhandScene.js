@@ -54,7 +54,8 @@ export class FullhandScene {
     this.state.renderer = new THREE.WebGLRenderer({ 
       antialias: true,
       alpha: true,
-      powerPreference: 'high-performance'
+      powerPreference: 'high-performance',
+      preserveDrawingBuffer: true // Enable screen recording
     });
     this.state.renderer.setSize(window.innerWidth, window.innerHeight);
     this.state.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));

@@ -11,7 +11,8 @@ export default {
     antialias: true,
     alpha: false,
     powerPreference: 'high-performance',
-    maxPixelRatio: 2
+    maxPixelRatio: 2,
+    preserveDrawingBuffer: true // Enable screen recording/capture
   },
   
   // Scene settings

@@ -58,7 +58,8 @@ export class CelliRealScene {
     // Create renderer
     this.state.renderer = new THREE.WebGLRenderer({ 
       antialias: true,
-      alpha: true
+      alpha: true,
+      preserveDrawingBuffer: true // Enable screen recording
     });
     this.state.renderer.setSize(window.innerWidth, window.innerHeight);
     this.state.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));

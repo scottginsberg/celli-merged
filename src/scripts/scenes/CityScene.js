@@ -30,7 +30,7 @@ export class CityScene {
     if (this.state.renderer) return;
 
     // Create renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.domElement.style.cssText = 'position:fixed;inset:0;z-index:700;display:none;';

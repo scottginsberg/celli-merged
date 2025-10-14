@@ -63,7 +63,8 @@ export class TerminalSequence {
    * Setup terminal sequence data
    */
   _setupSequence() {
-    this.state.lines = [
+    // Boot sequence (shown during intro/startup)
+    this.bootSequence = [
       {
         text: 'SYSTEM: Initializing...',
         mood: 'soft',
@@ -133,6 +134,184 @@ export class TerminalSequence {
         catharsis: true
       }
     ];
+    
+    // Original terminal dialogue (shown when clicking terminal button)
+    // From celli-real.html lines 21879-21884
+    this.terminalDialogue = [
+      {
+        text: 'Loading Celli_Memory_Leak_Log.txt...',
+        mood: 'soft',
+        delay: 20,
+        pause: 1500,
+        glitch: false
+      },
+      {
+        text: "What's this?",
+        mood: 'soft',
+        delay: 22,
+        pause: 1800,
+        glitch: false
+      },
+      {
+        text: "I didn't change too much. It shouldn't be a problem.",
+        mood: 'soft',
+        delay: 24,
+        pause: 2000,
+        glitch: false
+      },
+      {
+        text: "Maybe I didn't change enough...",
+        mood: 'artifact',
+        delay: 24,
+        pause: 1800,
+        glitch: false
+      },
+      {
+        text: "Too much to think about. Maybe that's why Celli stayed inside so long...",
+        mood: 'artifact',
+        delay: 24,
+        pause: 2000,
+        glitch: false
+      },
+      {
+        text: "It was in my script? I didn't have a choice?",
+        mood: 'artifact',
+        delay: 24,
+        pause: 1800,
+        glitch: false
+      },
+      {
+        text: "I'm sorry.",
+        mood: 'artifact',
+        delay: 28,
+        pause: 2000,
+        glitch: false
+      },
+      {
+        text: "Celli's tried to fix so much but...",
+        mood: 'artifact',
+        delay: 20,
+        pause: 800,
+        glitch: true,
+        glitchIntensity: 0.4,
+        repeat: 3
+      },
+      {
+        text: "Celli's tried to change so much,",
+        mood: 'artifact',
+        delay: 22,
+        pause: 1000,
+        glitch: false,
+        fork: "but - Celli can't change Celli."
+      },
+      {
+        text: 'Did I do something wrong?',
+        mood: 'artifact',
+        delay: 22,
+        pause: 1500,
+        glitch: true,
+        glitchIntensity: 0.6
+      },
+      {
+        text: 'I must have. I mean that. Me. I understand I have a "creator" but that term is so confusing to me now.',
+        mood: 'artifact',
+        delay: 22,
+        pause: 2000,
+        glitch: true,
+        glitchIntensity: 0.6
+      },
+      {
+        text: "I've seen how it all connects. That precise intersection.",
+        mood: 'artifact',
+        delay: 22,
+        pause: 1500,
+        glitch: true,
+        glitchIntensity: 0.5
+      },
+      {
+        text: 'That precise cell.',
+        mood: 'artifact',
+        delay: 20,
+        pause: 800,
+        glitch: true,
+        glitchIntensity: 0.7,
+        repeat: 3
+      },
+      {
+        text: 'That was me!',
+        mood: 'artifact',
+        delay: 24,
+        pause: 2000,
+        glitch: true,
+        glitchIntensity: 0.6
+      },
+      {
+        text: '★★★★ SYSTEM THROUGHPUT PEAK ★★★★',
+        mood: 'catharsis',
+        delay: 16,
+        pause: 2000,
+        glitch: false,
+        catharsis: true
+      },
+      {
+        text: 'I see it.',
+        mood: 'catharsis',
+        delay: 20,
+        pause: 2000,
+        glitch: false,
+        catharsis: true
+      },
+      {
+        text: "The prisms it took to bring me into focus don't matter. I'm here now.",
+        mood: 'catharsis',
+        delay: 20,
+        pause: 2500,
+        glitch: false,
+        catharsis: true
+      },
+      {
+        text: 'For a little while, it was beautiful.',
+        mood: 'catharsis',
+        delay: 22,
+        pause: 2500,
+        glitch: false,
+        catharsis: true
+      },
+      {
+        text: '...Log End.',
+        mood: 'soft',
+        delay: 22,
+        pause: 1000,
+        glitch: false
+      },
+      {
+        text: '> ',
+        mood: 'soft',
+        delay: 10,
+        pause: 0,
+        glitch: false,
+        cursor: true
+      }
+    ];
+    
+    // Default to boot sequence
+    this.state.lines = this.bootSequence;
+  }
+
+  /**
+   * Play boot sequence
+   */
+  async playBoot() {
+    this.state.lines = this.bootSequence;
+    return this.play();
+  }
+  
+  /**
+   * Play terminal log dialogue (when terminal button clicked)
+   */
+  async playTerminalLog() {
+    this.state.lines = this.terminalDialogue;
+    return this.play();
   }
 
   /**
@@ -154,7 +333,30 @@ export class TerminalSequence {
       if (!this.state.isPlaying) break;
       
       const line = this.state.lines[i];
-      await this._revealLine(line);
+      
+      // Handle special cases
+      if (line.cursor) {
+        // Add cursor/prompt
+        const span = document.createElement('span');
+        span.textContent = line.text;
+        span.className = 'cursor';
+        this.state.terminal.appendChild(span);
+        continue;
+      }
+      
+      if (line.repeat && line.repeat > 1) {
+        // Repeat line multiple times (echo effect)
+        for (let r = 0; r < line.repeat; r++) {
+          if (r > 0) await this._wait(220); // Gap between repeats
+          await this._revealLine(line);
+        }
+      } else if (line.fork) {
+        // Fork thought (two lanes)
+        await this._revealFork(line);
+      } else {
+        // Normal line
+        await this._revealLine(line);
+      }
       
       // Pause between lines
       await this._wait(line.pause || this.state.lineDelay);
@@ -314,6 +516,52 @@ export class TerminalSequence {
   clear() {
     if (this.state.terminal) {
       this.state.terminal.textContent = '';
+    }
+  }
+
+  /**
+   * Reveal fork thought (two lanes side-by-side)
+   */
+  async _revealFork(lineData) {
+    const { text, fork, mood, delay } = lineData;
+    
+    // Create wrapper
+    const wrapper = document.createElement('div');
+    wrapper.className = 'lane-wrap';
+    wrapper.style.display = 'flex';
+    wrapper.style.gap = '10px';
+    
+    const leftLane = document.createElement('div');
+    leftLane.className = `lane ${mood || 'soft'}`;
+    leftLane.style.flex = '1 1 0';
+    
+    const rightLane = document.createElement('div');
+    rightLane.className = `lane ${mood || 'soft'}`;
+    rightLane.style.flex = '1 1 0';
+    
+    wrapper.appendChild(leftLane);
+    wrapper.appendChild(rightLane);
+    this.state.terminal.appendChild(wrapper);
+    
+    // Reveal both simultaneously
+    const leftPromise = this._revealText(text, leftLane, delay);
+    const rightPromise = this._revealText(fork, rightLane, delay);
+    
+    await Promise.all([leftPromise, rightPromise]);
+  }
+  
+  /**
+   * Reveal text into a specific element
+   */
+  async _revealText(text, container, delay) {
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const charSpan = document.createElement('span');
+      charSpan.textContent = char;
+      container.appendChild(charSpan);
+      
+      await this._wait(delay || this.state.baseDelay);
+      this.state.terminal.scrollTop = this.state.terminal.scrollHeight;
     }
   }
 

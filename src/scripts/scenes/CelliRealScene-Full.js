@@ -171,7 +171,8 @@ export class CelliRealScene {
       this.state.renderer = new THREE.WebGLRenderer({ 
         canvas, 
         antialias: true,
-        alpha: true
+        alpha: true,
+        preserveDrawingBuffer: true // Enable screen recording
       });
       this.state.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       this.state.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -330,7 +331,69 @@ export class CelliRealScene {
       }
     });
     
+    // Wire terminal icon to show original terminal dialogue
+    this._wireTerminalButton();
+    
     console.log('[CelliRealScene-Full] ✅ Events setup');
+  }
+  
+  /**
+   * Wire terminal and notepad icon buttons
+   */
+  _wireTerminalButton() {
+    const termIcon = document.getElementById('terminal-icon');
+    const termClose = document.getElementById('term-close');
+    const terminal = document.getElementById('terminal');
+    const padIcon = document.getElementById('notepad-icon');
+    const padClose = document.getElementById('pad-close');
+    const notepad = document.getElementById('pad');
+    
+    // Terminal icon - shows original Celli_Memory_Leak_Log dialogue
+    if (termIcon && !termIcon._wired) {
+      termIcon._wired = true;
+      termIcon.title = 'Open Celli_Log.txt';
+      termIcon.addEventListener('click', async () => {
+        console.log('[CelliRealScene-Full] Terminal icon clicked - playing terminal log');
+        
+        if (terminal && this.state.terminalSequence) {
+          terminal.style.display = 'flex';
+          await this.state.terminalSequence.playTerminalLog();
+        }
+      });
+    }
+    
+    if (termClose && !termClose._wired) {
+      termClose._wired = true;
+      termClose.addEventListener('click', () => {
+        console.log('[CelliRealScene-Full] Terminal closed');
+        if (terminal) {
+          terminal.style.display = 'none';
+        }
+      });
+    }
+    
+    // Notepad icon - shows ty.txt
+    if (padIcon && !padIcon._wired) {
+      padIcon._wired = true;
+      padIcon.title = 'ty.txt';
+      padIcon.addEventListener('click', () => {
+        console.log('[CelliRealScene-Full] Notepad icon clicked');
+        
+        if (notepad) {
+          notepad.style.display = 'flex';
+        }
+      });
+    }
+    
+    if (padClose && !padClose._wired) {
+      padClose._wired = true;
+      padClose.addEventListener('click', () => {
+        console.log('[CelliRealScene-Full] Notepad closed');
+        if (notepad) {
+          notepad.style.display = 'none';
+        }
+      });
+    }
   }
 
   /**
@@ -448,17 +511,17 @@ export class CelliRealScene {
     
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Phase 1.5: Terminal sequence with pacing, glitch, catharsis
-    console.log('[CelliRealScene-Full] Phase 1.5: Terminal sequence...');
+    // Phase 1.5: Boot sequence in terminal (with pacing, glitch, catharsis)
+    console.log('[CelliRealScene-Full] Phase 1.5: Boot sequence...');
     this.state.introPhase = 'terminal';
     
-    // Open terminal window
+    // Open terminal window and play BOOT sequence
     const terminal = document.getElementById('terminal');
     if (terminal && this.state.terminalSequence) {
       terminal.style.display = 'flex';
-      await this.state.terminalSequence.play();
+      await this.state.terminalSequence.playBoot();
       
-      // Close terminal after sequence
+      // Close terminal after boot sequence
       await new Promise(resolve => setTimeout(resolve, 1000));
       terminal.style.display = 'none';
     }
@@ -507,6 +570,13 @@ export class CelliRealScene {
     // Show all UI controls via UIManager
     this.state.uiManager?.showDPad();
     this.state.uiManager?.showWindows();
+    
+    // Show terminal and notepad icons
+    const termIcon = document.getElementById('terminal-icon');
+    const padIcon = document.getElementById('notepad-icon');
+    
+    if (termIcon) termIcon.style.display = 'flex';
+    if (padIcon) padIcon.style.display = 'flex';
     
     console.log('[CelliRealScene-Full] ✅ Full interaction enabled');
   }

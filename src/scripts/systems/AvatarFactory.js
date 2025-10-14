@@ -367,6 +367,195 @@ export const AvatarFactory = {
     group.userData.cheeks = [cheekL, cheekR];
 
     return group;
+  },
+
+  /**
+   * Create Bob avatar (voxel block character from rave scene)
+   * Pink/cyan voxel character with blocky aesthetic
+   */
+  createBob(THREE) {
+    const voxelSize = 0.5;
+    const voxelGeometry = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
+    
+    const bobGroup = new THREE.Group();
+    bobGroup.name = 'BobAvatar';
+    bobGroup.scale.setScalar(0.4);
+    
+    // Head material
+    const headMaterial = new THREE.MeshStandardMaterial({
+      color: 0xff6b9d,
+      emissive: 0xff1493,
+      emissiveIntensity: 0.3,
+      roughness: 0.5,
+      metalness: 0.3
+    });
+    
+    // Build voxel head (8x8x8)
+    const headGroup = new THREE.Group();
+    headGroup.name = 'BobHead';
+    
+    for (let x = -2; x <= 2; x++) {
+      for (let y = 0; y <= 4; y++) {
+        for (let z = -2; z <= 2; z++) {
+          // Create hollow head with face
+          const isEdge = Math.abs(x) === 2 || Math.abs(z) === 2 || y === 0 || y === 4;
+          const isFace = z === 2 && y >= 1 && y <= 3;
+          
+          // Eyes
+          const isEye = z === 2 && y === 3 && (x === -1 || x === 1);
+          
+          // Mouth
+          const isMouth = z === 2 && y === 1 && Math.abs(x) <= 1;
+          
+          if (isEdge || (isFace && !isEye && !isMouth)) {
+            const voxel = new THREE.Mesh(voxelGeometry, headMaterial.clone());
+            voxel.position.set(x * voxelSize, y * voxelSize + 5, z * voxelSize);
+            voxel.castShadow = true;
+            
+            // Make eyes and mouth glow
+            if (isEye || isMouth) {
+              voxel.material.color.setHex(0x00ffff);
+              voxel.material.emissive.setHex(0x00ffff);
+              voxel.material.emissiveIntensity = 0.8;
+            }
+            
+            headGroup.add(voxel);
+          }
+        }
+      }
+    }
+    
+    // Body
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+      color: 0x4a7cff,
+      emissive: 0x0066ff,
+      emissiveIntensity: 0.2,
+      roughness: 0.6,
+      metalness: 0.2
+    });
+    
+    const bodyGroup = new THREE.Group();
+    bodyGroup.name = 'BobBody';
+    
+    for (let x = -1.5; x <= 1.5; x++) {
+      for (let y = 0; y <= 3; y++) {
+        for (let z = -1; z <= 1; z++) {
+          if (Math.abs(x) >= 0.5 || Math.abs(z) >= 0.5) {
+            const voxel = new THREE.Mesh(voxelGeometry, bodyMaterial.clone());
+            voxel.position.set(x * voxelSize, y * voxelSize + 1, z * voxelSize);
+            voxel.castShadow = true;
+            bodyGroup.add(voxel);
+          }
+        }
+      }
+    }
+    
+    // Arms
+    const armMaterial = new THREE.MeshStandardMaterial({
+      color: 0xff6b9d,
+      emissive: 0xff1493,
+      emissiveIntensity: 0.2,
+      roughness: 0.5,
+      metalness: 0.3
+    });
+    
+    const leftArm = new THREE.Group();
+    leftArm.name = 'BobLeftArm';
+    const rightArm = new THREE.Group();
+    rightArm.name = 'BobRightArm';
+    
+    for (let y = 0; y <= 2; y++) {
+      const leftVoxel = new THREE.Mesh(voxelGeometry, armMaterial.clone());
+      leftVoxel.position.set(-2 * voxelSize, (2.5 - y * 0.5) * voxelSize, 0);
+      leftVoxel.castShadow = true;
+      leftArm.add(leftVoxel);
+      
+      const rightVoxel = new THREE.Mesh(voxelGeometry, armMaterial.clone());
+      rightVoxel.position.set(2 * voxelSize, (2.5 - y * 0.5) * voxelSize, 0);
+      rightVoxel.castShadow = true;
+      rightArm.add(rightVoxel);
+    }
+    
+    bobGroup.add(headGroup);
+    bobGroup.add(bodyGroup);
+    bobGroup.add(leftArm);
+    bobGroup.add(rightArm);
+    
+    // Store references for animation
+    bobGroup.userData.head = headGroup;
+    bobGroup.userData.body = bodyGroup;
+    bobGroup.userData.leftArm = leftArm;
+    bobGroup.userData.rightArm = rightArm;
+    bobGroup.userData.type = 'bob';
+    
+    return bobGroup;
+  },
+
+  /**
+   * Create Pal-ette avatar (3D spreadsheet grid character from rave scene)
+   * Animated grid of glowing cells with rainbow colors
+   */
+  createPalette(THREE) {
+    const cellSize = 0.8;
+    const gridWidth = 5;
+    const gridHeight = 8;
+    
+    const paletteGroup = new THREE.Group();
+    paletteGroup.name = 'PaletteAvatar';
+    paletteGroup.scale.setScalar(0.3);
+    
+    const cells = [];
+    
+    for (let x = 0; x < gridWidth; x++) {
+      for (let y = 0; y < gridHeight; y++) {
+        // Cell frame
+        const frameGeometry = new THREE.BoxGeometry(cellSize * 0.9, cellSize * 0.9, 0.1);
+        const frameMaterial = new THREE.MeshStandardMaterial({
+          color: 0x00ff00,
+          emissive: 0x00ff00,
+          emissiveIntensity: 0.3,
+          roughness: 0.3,
+          metalness: 0.7,
+          transparent: true,
+          opacity: 0.7
+        });
+        
+        const cell = new THREE.Mesh(frameGeometry, frameMaterial);
+        cell.position.set(
+          (x - gridWidth / 2) * cellSize,
+          y * cellSize + 1,
+          0
+        );
+        cell.castShadow = true;
+        
+        // Add random content indicator
+        if (Math.random() > 0.5) {
+          const contentGeometry = new THREE.BoxGeometry(cellSize * 0.6, cellSize * 0.6, 0.05);
+          const contentMaterial = new THREE.MeshStandardMaterial({
+            color: 0x00ffff,
+            emissive: 0x00ffff,
+            emissiveIntensity: 0.5
+          });
+          const content = new THREE.Mesh(contentGeometry, contentMaterial);
+          content.position.z = 0.08;
+          cell.add(content);
+          cell.userData.content = content;
+        }
+        
+        paletteGroup.add(cell);
+        cell.userData.originalY = cell.position.y;
+        cell.userData.cellIndex = cells.length;
+        cells.push(cell);
+      }
+    }
+    
+    // Store references for animation
+    paletteGroup.userData.cells = cells;
+    paletteGroup.userData.gridWidth = gridWidth;
+    paletteGroup.userData.gridHeight = gridHeight;
+    paletteGroup.userData.type = 'palette';
+    
+    return paletteGroup;
   }
 };
 

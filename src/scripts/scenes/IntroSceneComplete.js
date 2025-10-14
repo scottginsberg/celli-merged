@@ -142,7 +142,8 @@ export class IntroSceneComplete {
     const renderer = new THREE.WebGLRenderer({ 
       antialias: true, 
       alpha: false, 
-      powerPreference: 'high-performance' 
+      powerPreference: 'high-performance',
+      preserveDrawingBuffer: true // Enable screen recording
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);

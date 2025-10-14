@@ -47,7 +47,8 @@ export class LeaveScene {
     // Create renderer
     const renderer = new THREE.WebGLRenderer({ 
       antialias: true, 
-      alpha: false
+      alpha: false,
+      preserveDrawingBuffer: true // Enable screen recording
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);

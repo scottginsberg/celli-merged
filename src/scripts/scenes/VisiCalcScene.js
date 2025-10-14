@@ -283,7 +283,7 @@ export class VisiCalcScene {
     let renderer = app.querySelector('canvas')?.renderer;
     
     if (!renderer) {
-      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       app.appendChild(renderer.domElement);
     }
