@@ -17,7 +17,7 @@ import { audioSystem } from './systems/AudioSystem.js';
  * Register all default configuration
  */
 export function registerDefaultConfig() {
-  console.log('⚙️ Registering default configuration...');
+  console.group('⚙️ Registering default configuration...');
 
   // Graphics configuration
   configSystem.registerCategory('graphics', {
@@ -157,6 +157,7 @@ export function registerDefaultConfig() {
     ]
   });
 
+  console.groupEnd();
   console.log('✅ Configuration registered');
 }
 
@@ -164,15 +165,18 @@ export function registerDefaultConfig() {
  * Register all assets for preloading
  */
 export function registerAssets() {
-  console.log('📦 Registering assets...');
+  console.group('📦 Registering assets...');
 
   // Shaders
   assetPool.register('shader_blackhole_vert', './src/assets/shaders/blackhole.vert.glsl', 'shader');
+  console.log('➕ shader_blackhole_vert (shader)');
   assetPool.register('shader_blackhole_frag', './src/assets/shaders/blackhole.frag.glsl', 'shader');
+  console.log('➕ shader_blackhole_frag (shader)');
   
   // JSON data
   assetPool.register('quotes', './src/data/quotes.json', 'json');
-  
+  console.log('➕ quotes (json)');
+
   // Sequences (if they exist)
   // assetPool.register('seq_intro', './src/data/sequences/intro.json', 'json');
   // assetPool.register('seq_theos', './src/data/sequences/theos.json', 'json');
@@ -180,6 +184,7 @@ export function registerAssets() {
   // Audio (when we have audio files)
   // assetPool.register('audio_chime', './src/assets/audio/chime.mp3', 'audio');
 
+  console.groupEnd();
   console.log(`✅ ${assetPool.assets.size} assets registered`);
 }
 
@@ -207,7 +212,7 @@ export async function preloadAssets(onProgress = null) {
  * Initialize all systems
  */
 export async function initializeSystems() {
-  console.log('🔧 Initializing systems...');
+  console.group('🔧 Initializing systems...');
 
   // Register configuration
   registerDefaultConfig();
@@ -224,6 +229,7 @@ export async function initializeSystems() {
   // Initialize audio system
   // (will be initialized on user interaction)
 
+  console.groupEnd();
   console.log('✅ Systems initialized');
 }
 
@@ -231,6 +237,7 @@ export async function initializeSystems() {
  * Setup configuration watchers for hot reload
  */
 function setupConfigWatchers() {
+  console.groupCollapsed('👀 Setting up config watchers');
   // Watch graphics settings
   configSystem.watch('graphics.bloomStrength', (value) => {
     console.log(`🔄 Bloom strength changed: ${value}`);
@@ -267,6 +274,7 @@ function setupConfigWatchers() {
       configSystem.save();
     }, 1000);
   });
+  console.groupEnd();
 }
 
 /**

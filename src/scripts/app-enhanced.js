@@ -147,66 +147,102 @@ export function initializeAudio() {
 // ============================================================================
 
 export async function startApp() {
-  console.log('%c🚀 STARTING CELLI APP', 
+  console.group('%c🚀 STARTING CELLI APP',
     'background: #0f0; color: #000; font-size: 20px; padding: 10px; font-weight: bold;');
 
-  try {
-    // Mark as initialized
-    window.celliApp.initialized = true;
+  console.time('Celli startApp total time');
 
-    // Hide play overlay
+  try {
+    // Hide play overlay immediately to avoid duplicate UIs
     const play = document.getElementById('play');
-    if (play) play.style.display = 'none';
+    if (play) {
+      console.log('🪄 Hiding play overlay');
+      play.style.display = 'none';
+    }
+
+    console.group('🧰 System bootstrap');
+    console.log('🧭 Scene registry before init:', sceneManager.listScenes());
 
     // Initialize all systems (config, assets, etc.)
+    console.time('initializeSystems');
     await initializeSystems();
+    console.timeEnd('initializeSystems');
+
+    console.groupCollapsed('📦 Asset pool state before preload');
+    console.log('Registered assets:', assetPool.assets?.size ?? 0);
+    console.log('Total assets counter:', assetPool.totalAssets);
+    console.groupEnd();
 
     // Preload assets with progress
-    await preloadAssets((progress, loaded, total) => {
+    console.time('preloadAssets');
+    const assetsLoaded = await preloadAssets((progress, loaded, total) => {
       console.log(`📦 Loading assets: ${Math.round(progress * 100)}% (${loaded}/${total})`);
     });
+    console.timeEnd('preloadAssets');
+    console.log('📦 Asset preload result:', assetsLoaded ? 'success' : 'partial/failed');
 
     // Initialize audio (user interaction happened)
+    console.group('🔊 Audio bootstrap');
     audioSystem.init();
-    await audioSystem.resume();
+    try {
+      await audioSystem.resume();
+      console.log('🔊 Audio context resumed');
+    } catch (audioError) {
+      console.warn('⚠️ Audio resume failed (likely autoplay restrictions):', audioError);
+    }
+    console.groupEnd();
 
     // Setup sequence engine hooks
     setupSequenceHooks();
 
     // Create player tuning UI (if enabled)
     if (configSystem.get('debug.enablePlayerTuning') !== false) {
+      console.log('🎛️ Creating player tuning UI');
       createPlayerTuningUI();
+    } else {
+      console.log('🎛️ Player tuning UI disabled via config');
     }
 
     // Initialize debug commands
     initializeDebugCommands();
+    console.groupEnd();
 
     // Start animation loop
     startAnimationLoop();
 
     // Transition to intro scene - THIS STARTS THE INTRO SEQUENCE!
-    console.log('🎬 Starting intro sequence...');
+    console.log('🎬 Starting intro sequence transition...');
     await sceneManager.transitionTo('intro');
+
+    // Mark as initialized after successful transition
+    window.celliApp.initialized = true;
 
     // Show GUI elements (with config timings)
     const quoteDelay = configSystem.get('scene.introQuoteDelay') || 0;
     const loomworksDelay = configSystem.get('scene.introLoomworksDelay') || 5000;
 
     setTimeout(() => {
+      console.log('🗨️ Showing quote system');
       quoteSystem.show(true);
     }, quoteDelay);
-    
+
     setTimeout(() => {
+      console.log('🧵 Showing Loomworks system');
       loomworksSystem.show(true);
       loomworksSystem.startReveal();
     }, loomworksDelay);
 
     console.log('✅ App started successfully! Intro sequence playing...');
     console.log('🎛️ Press `Ctrl+Shift+T` or use tuning button to open tuning panel');
-    
+
   } catch (error) {
+    window.celliApp.initialized = false;
     console.error('❌ Failed to start app:', error);
     alert(`Failed to start Celli: ${error.message}`);
+    throw error;
+  } finally {
+    console.timeEnd('Celli startApp total time');
+    console.groupEnd();
   }
 }
 

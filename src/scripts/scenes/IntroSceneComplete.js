@@ -836,7 +836,7 @@ export class IntroSceneComplete {
     if (phase === 'doorway' && !this.state.doorwayShown && allVoxelsSettled) {
       const doorwayProgress = (t - cfg.celliEnd) / (cfg.doorwayEnd - cfg.celliEnd);
       if (doorwayProgress > 0.05) {
-      this._showDoorway();
+        this._showDoorway();
       }
     }
     
