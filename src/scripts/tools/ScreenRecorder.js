@@ -10,7 +10,7 @@ export class ScreenRecorder {
     this.frames = [];
     this.gif = null;
     this.startTime = null;
-    this.recordingInterval = null;
+    this.recordingTimer = null;
     this.delayTimeout = null;
     
     // Default settings
@@ -811,25 +811,70 @@ ${diagnosis}
   
   startGIFRecording() {
     this.frames = [];
+
     const frameInterval = 1000 / this.settings.fps;
-    const totalFrames = this.settings.duration * this.settings.fps;
-    let frameCount = 0;
-    
-    this.recordingInterval = setInterval(async () => {
+    const totalFrames = Math.round(this.settings.duration * this.settings.fps);
+    const startTime = performance.now();
+    let capturedFrames = 0;
+    let lastCaptureTime = startTime;
+
+    const scheduleNext = (delay = 0) => {
+      if (this.recordingTimer) {
+        clearTimeout(this.recordingTimer);
+      }
+
+      this.recordingTimer = setTimeout(captureNextFrame, Math.max(0, delay));
+    };
+
+    const captureNextFrame = async () => {
+      if (!this.isRecording) return;
+
       await this.captureFrame();
-      frameCount++;
-      
-      // Update progress
-      const progress = (frameCount / totalFrames) * 100;
+      const captureEnd = performance.now();
+
+      capturedFrames++;
+
+      // Track the actual delay for this frame so playback feels smooth
+      const frameDelay = Math.max(frameInterval, Math.round(captureEnd - lastCaptureTime));
+      const currentFrame = this.frames[this.frames.length - 1];
+      if (currentFrame) {
+        currentFrame.delay = frameDelay;
+      }
+      lastCaptureTime = captureEnd;
+
+      // If we are falling behind schedule, pad with filler frames to keep timing stable
+      const expectedElapsed = capturedFrames * frameInterval;
+      const actualElapsed = captureEnd - startTime;
+      let drift = actualElapsed - expectedElapsed;
+
+      while (drift > frameInterval * 0.75 && capturedFrames < totalFrames && currentFrame) {
+        this.frames.push({
+          canvas: this.cloneCanvas(currentFrame.canvas),
+          delay: Math.round(frameInterval),
+          filler: true
+        });
+        capturedFrames++;
+        drift -= frameInterval;
+      }
+
+      // Update progress bar based on how many frames we have queued
       if (this.progressBar) {
+        const progress = Math.min((capturedFrames / totalFrames) * 100, 100);
         this.progressBar.style.width = `${progress}%`;
       }
-      
-      // Check if done
-      if (frameCount >= totalFrames) {
+
+      if (capturedFrames >= totalFrames) {
         this.stopRecording();
+        return;
       }
-    }, frameInterval);
+
+      const now = performance.now();
+      const targetTime = startTime + (capturedFrames + 1) * frameInterval;
+      scheduleNext(targetTime - now);
+    };
+
+    // Kick off immediately so the first frame reflects the starting state
+    scheduleNext(0);
   }
   
   async startMP4Recording() {
@@ -1142,7 +1187,7 @@ ${diagnosis}
   drawCursor(ctx, scaleX = 1, scaleY = 1) {
     const x = this.cursorPos.x * scaleX;
     const y = this.cursorPos.y * scaleY;
-    
+
     // Draw a simple arrow cursor
     ctx.save();
     ctx.strokeStyle = '#FFFFFF';
@@ -1161,8 +1206,19 @@ ${diagnosis}
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    
+
     ctx.restore();
+  }
+
+  cloneCanvas(sourceCanvas) {
+    const clone = document.createElement('canvas');
+    clone.width = sourceCanvas.width;
+    clone.height = sourceCanvas.height;
+
+    const ctx = clone.getContext('2d');
+    ctx.drawImage(sourceCanvas, 0, 0);
+
+    return clone;
   }
   
   stopRecording() {
@@ -1180,9 +1236,9 @@ ${diagnosis}
       }
     } else {
       // Stop GIF recording
-      if (this.recordingInterval) {
-        clearInterval(this.recordingInterval);
-        this.recordingInterval = null;
+      if (this.recordingTimer) {
+        clearTimeout(this.recordingTimer);
+        this.recordingTimer = null;
       }
       
       if (this.statusText) {
@@ -1285,17 +1341,19 @@ ${diagnosis}
       });
       
       // Add frames
-      const delay = 1000 / this.settings.fps;
-      console.log(`➕ Adding ${this.frames.length} frames with ${delay}ms delay...`);
-      
+      const baseDelay = Math.round(1000 / this.settings.fps);
+      console.log(`➕ Adding ${this.frames.length} frames with base ${baseDelay}ms delay...`);
+
       this.frames.forEach((frame, index) => {
         try {
+          const delay = Math.max(16, Math.round(frame?.delay ?? baseDelay));
+
           // Use canvas for better compatibility
-          this.gif.addFrame(frame.canvas, { 
+          this.gif.addFrame(frame.canvas, {
             delay: delay,
             copy: true // Copy frame data
           });
-          
+
           if (index === 0) {
             console.log('✅ First frame added successfully');
           }
@@ -1367,9 +1425,13 @@ ${diagnosis}
     // Create save prompt overlay
     const overlay = document.createElement('div');
     overlay.className = 'recorder-save-overlay';
-    
+
     const blobUrl = URL.createObjectURL(blob);
-    const previewHTML = format === 'mp4' 
+    const recordedDuration = format === 'gif'
+      ? this.getRecordedDurationSeconds()
+      : this.settings.duration;
+    const durationLabel = `${parseFloat(recordedDuration.toFixed(2))}s`;
+    const previewHTML = format === 'mp4'
       ? `<video src="${blobUrl}" autoplay loop muted style="max-width:100%;max-height:300px;object-fit:contain;border-radius:8px;" />`
       : `<img src="${blobUrl}" alt="Recording preview" />`;
     
@@ -1395,7 +1457,7 @@ ${diagnosis}
             </div>
             <div class="recorder-save-stat">
               <span class="recorder-save-label">Duration:</span>
-              <span class="recorder-save-value">${this.settings.duration}s</span>
+              <span class="recorder-save-value">${durationLabel}</span>
             </div>
             <div class="recorder-save-stat">
               <span class="recorder-save-label">Size:</span>
@@ -1455,15 +1517,29 @@ ${diagnosis}
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     
     console.log(`💾 ${format.toUpperCase()} saved: ${filename}`);
-    
+
     // Show toast notification
     this.showToast(`${format.toUpperCase()} saved successfully! Check your Downloads folder.`);
   }
-  
+
   formatFileSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  getRecordedDurationSeconds() {
+    if (!Array.isArray(this.frames) || this.frames.length === 0) {
+      return this.settings.duration;
+    }
+
+    const baseDelay = 1000 / this.settings.fps;
+    const totalMs = this.frames.reduce((total, frame) => {
+      const delay = typeof frame?.delay === 'number' ? frame.delay : baseDelay;
+      return total + delay;
+    }, 0);
+
+    return Math.max(0.1, parseFloat((totalMs / 1000).toFixed(2)));
   }
   
   showToast(message) {
@@ -1485,7 +1561,12 @@ ${diagnosis}
   reset() {
     this.frames = [];
     this.isRecording = false;
-    
+
+    if (this.recordingTimer) {
+      clearTimeout(this.recordingTimer);
+      this.recordingTimer = null;
+    }
+
     if (this.btn) {
       this.btn.classList.remove('recording');
     }
@@ -1564,9 +1645,9 @@ ${diagnosis}
     }
     
     // Clean up intervals
-    if (this.recordingInterval) {
-      clearInterval(this.recordingInterval);
-      this.recordingInterval = null;
+    if (this.recordingTimer) {
+      clearTimeout(this.recordingTimer);
+      this.recordingTimer = null;
     }
     if (this.canvasDetectionInterval) {
       clearInterval(this.canvasDetectionInterval);
