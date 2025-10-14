@@ -1,0 +1,37 @@
+CELLI-REFACTOR SPLIT STRUCTURE
+========================================
+
+This folder contains:
+
+STRUCTURE:
+-----------
+- Small folders (under 100 items, copied as-is)
+- Large folders (100+ items, split into folder1, folder2, etc.)
+
+SPLIT FOLDERS (>99 items):
+---------------
+src1: 99 items
+src2: 63 items
+
+REGULAR FOLDERS (<100 items):
+---------------
+docs: 5 items
+templates: 15 items
+tests: 16 items
+tools: 8 items
+
+USAGE:
+========================================
+
+Split folders (e.g., src1, src2, etc.) each contain
+their own subfolder with the original name:
+
+  src1\src\   - First batch of src files
+  src2\src\   - Second batch of src files
+  src3\src\   - Third batch of src files
+
+All other small folders are in split\ directly.
+
+To recombine, merge all numbered folder contents
+back into their parent folder names.
+

@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sequence Composer - Enhanced</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e1e;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+        }
+
+        #sidebar {
+            width: 300px;
+            background: #252526;
+            border-right: 1px solid #3e3e42;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            gap: 10px;
+            overflow-y: auto;
+        }
+
+        #sidebar h2 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #cccccc;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .node-palette {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .node-button {
+            padding: 10px 12px;
+            background: #37373d;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            color: #cccccc;
+            text-align: left;
+        }
+
+        .node-button:hover {
+            background: #404045;
+            border-color: #007acc;
+        }
+
+        .node-button:active {
+            transform: scale(0.98);
+        }
+
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #2d2d30;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        #canvas {
+            position: absolute;
+            cursor: grab;
+        }
+
+        #canvas.dragging {
+            cursor: grabbing;
+        }
+
+        .node {
+            position: absolute;
+            background: #1e1e1e;
+            border: 2px solid #3e3e42;
+            border-radius: 6px;
+            min-width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            cursor: move;
+            user-select: none;
+        }
+
+        .node.selected {
+            border-color: #007acc;
+            box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.3);
+        }
+
+        .node-header {
+            padding: 10px 12px;
+            background: #2d2d30;
+            border-bottom: 1px solid #3e3e42;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 4px 4px 0 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .node-header .node-type-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .node-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .node-copy,
+        .node-delete {
+            width: 18px;
+            height: 18px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .node-copy {
+            background: #2ecc71;
+        }
+
+        .node-copy:hover {
+            opacity: 1;
+        }
+
+        .node-delete {
+            background: #f44336;
+        }
+
+        .node-delete:hover {
+            opacity: 1;
+        }
+
+        .node-body {
+            padding: 12px;
+        }
+
+        .node-param {
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .node-param label {
+            display: block;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .node-param input,
+        .node-param select,
+        .node-param textarea {
+            width: 100%;
+            padding: 6px 8px;
+            background: #3c3c3c;
+            border: 1px solid #555;
+            border-radius: 3px;
+            color: #ccc;
+            font-size: 12px;
+            font-family: inherit;
+        }
+
+        .node-param textarea {
+            resize: vertical;
+            min-height: 50px;
+        }
+
+        .socket {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            border: 2px solid #3e3e42;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+
+        .socket.input {
+            left: -7px;
+            background: #4a9eff;
+        }
+
+        .socket.output {
+            right: -7px;
+            background: #ff6b6b;
+        }
+
+        .socket.param-input {
+            background: #9b59b6;
+        }
+
+        .socket.param-output {
+            background: #f39c12;
+        }
+
+        .socket:hover {
+            transform: scale(1.3);
+            border-color: #fff;
+        }
+
+        .socket-label {
+            position: absolute;
+            font-size: 11px;
+            color: #999;
+            white-space: nowrap;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        .socket.input .socket-label {
+            left: 20px;
+        }
+
+        .socket.output .socket-label {
+            right: 20px;
+        }
+
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        .connection {
+            stroke-width: 2.5;
+            fill: none;
+            stroke: #4a9eff;
+            opacity: 0.7;
+        }
+
+        .connection.param {
+            stroke: #9b59b6;
+        }
+
+        .connection:hover {
+            opacity: 1;
+            stroke-width: 3;
+        }
+
+        .temp-connection {
+            stroke: #4a9eff;
+            stroke-width: 2.5;
+            fill: none;
+            stroke-dasharray: 5, 5;
+            opacity: 0.5;
+        }
+
+        .search-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #252526;
+            border: 1px solid #007acc;
+            border-radius: 6px;
+            padding: 15px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            z-index: 1000;
+            min-width: 350px;
+            max-width: 500px;
+            display: none;
+        }
+
+        .search-overlay.active {
+            display: block;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px;
+            background: #3c3c3c;
+            border: 1px solid #555;
+            border-radius: 4px;
+            color: #ccc;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .search-results {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .search-item {
+            padding: 8px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 13px;
+            margin-bottom: 4px;
+            background: #37373d;
+        }
+
+        .search-item:hover {
+            background: #404045;
+        }
+
+        .search-item-path {
+            color: #999;
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .info-panel {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(37, 37, 38, 0.9);
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #999;
+            border: 1px solid #3e3e42;
+        }
+
+        .toolbar {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .toolbar button {
+            padding: 8px 12px;
+            background: #37373d;
+            border: 1px solid #555;
+            border-radius: 4px;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .toolbar button:hover {
+            background: #404045;
+            border-color: #007acc;
+        }
+
+        /* Node type specific colors */
+        .node.type-dialogue .node-header { background: linear-gradient(135deg, #2d5d7b 0%, #2d2d30 100%); }
+        .node.type-animation .node-header { background: linear-gradient(135deg, #7b2d5d 0%, #2d2d30 100%); }
+        .node.type-delay .node-header { background: linear-gradient(135deg, #5d7b2d 0%, #2d2d30 100%); }
+        .node.type-transition .node-header { background: linear-gradient(135deg, #7b5d2d 0%, #2d2d30 100%); }
+        .node.type-parameter .node-header { background: linear-gradient(135deg, #5d2d7b 0%, #2d2d30 100%); }
+        .node.type-event .node-header { background: linear-gradient(135deg, #2d7b5d 0%, #2d2d30 100%); }
+        .node.type-object .node-header { background: linear-gradient(135deg, #2d7b7b 0%, #2d2d30 100%); }
+        .node.type-snapshot .node-header { background: linear-gradient(135deg, #7b7b2d 0%, #2d2d30 100%); }
+
+        /* Scene Manager Styles */
+        .scene-manager {
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .scene-category {
+            margin-bottom: 12px;
+        }
+
+        .category-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: #4a9eff;
+            padding: 6px 8px;
+            background: #2d2d30;
+            border-radius: 3px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.2s;
+        }
+
+        .category-header:hover {
+            background: #37373d;
+        }
+
+        .category-toggle {
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+
+        .category-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .scene-entity {
+            padding: 6px 8px;
+            margin: 4px 0 4px 12px;
+            background: #2d2d30;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid #555;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .scene-entity:hover {
+            background: #37373d;
+            border-left-color: #2ecc71;
+        }
+
+        .entity-name {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .entity-icon {
+            font-size: 14px;
+        }
+
+        .entity-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .scene-entity:hover .entity-actions {
+            opacity: 1;
+        }
+
+        .entity-btn {
+            padding: 2px 6px;
+            background: #007acc;
+            border: none;
+            border-radius: 2px;
+            color: white;
+            font-size: 9px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .entity-btn:hover {
+            background: #005a9e;
+        }
+
+        .entity-btn.ingest-all {
+            background: #2ecc71;
+        }
+
+        .entity-btn.ingest-all:hover {
+            background: #27ae60;
+        }
+
+        .entity-part {
+            padding: 4px 6px;
+            margin: 2px 0 2px 24px;
+            background: #252526;
+            border-radius: 2px;
+            font-size: 10px;
+            color: #999;
+            border-left: 2px solid #666;
+        }
+
+        .entity-part:hover {
+            background: #2d2d30;
+            color: #ccc;
+        }
+
+        .section-divider {
+            height: 1px;
+            background: #3e3e42;
+            margin: 15px 0;
+        }
+
+        .save-params-btn {
+            width: 100%;
+            padding: 8px;
+            margin-top: 8px;
+            background: #2ecc71;
+            border: none;
+            border-radius: 3px;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .save-params-btn:hover {
+            background: #27ae60;
+        }
+
+        .node-info {
+            padding: 8px;
+            background: #252526;
+            border-radius: 3px;
+            font-size: 10px;
+            color: #999;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .entity-add-btn {
+            padding: 2px 6px;
+            background: #9b59b6;
+            border: none;
+            border-radius: 2px;
+            color: white;
+            font-size: 9px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .entity-add-btn:hover {
+            background: #8e44ad;
+        }
+
+        .snapshot-params {
+            max-height: 150px;
+            overflow-y: auto;
+            background: #252526;
+            padding: 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-top: 6px;
+        }
+
+        .snapshot-param-item {
+            padding: 3px 0;
+            color: #999;
+            border-bottom: 1px solid #333;
+        }
+
+        .snapshot-param-item:last-child {
+            border-bottom: none;
+        }
+
+        .snapshot-param-name {
+            color: #4a9eff;
+            font-weight: 600;
+        }
+
+        /* Dialogue Display Mode Styles */
+        .dialogue-mode-select {
+            margin-top: 8px;
+            padding: 8px;
+            background: #252526;
+            border-radius: 3px;
+            border-top: 1px solid #3e3e42;
+        }
+
+        .dialogue-mode-label {
+            font-size: 10px;
+            color: #999;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .dialogue-mode-options {
+            display: flex;
+            gap: 4px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 6px;
+            background: #37373d;
+            border: 1px solid #555;
+            border-radius: 3px;
+            color: #ccc;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-btn:hover {
+            background: #404045;
+        }
+
+        .mode-btn.active {
+            background: #007acc;
+            border-color: #007acc;
+            color: white;
+        }
+
+        .screen-select {
+            margin-top: 6px;
+            display: none;
+        }
+
+        .screen-select.visible {
+            display: block;
+        }
+
+        .screen-select select {
+            width: 100%;
+            padding: 6px 8px;
+            background: #3c3c3c;
+            border: 1px solid #555;
+            border-radius: 3px;
+            color: #ccc;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="sidebar">
+            <h2>Scene Manager</h2>
+            <div class="scene-manager" id="scene-manager">
+                <!-- Scene hierarchy will be rendered here -->
+            </div>
+
+            <div class="section-divider"></div>
+
+            <h2>Node Tools Panel</h2>
+            <div class="node-palette">
+                <button class="node-button" data-node-type="dialogue">💬 Dialogue</button>
+                <button class="node-button" data-node-type="animation">🎬 Animation</button>
+                <button class="node-button" data-node-type="delay">⏱️ Delay</button>
+                <button class="node-button" data-node-type="transition">🔄 Transition</button>
+                <button class="node-button" data-node-type="parameter">📊 Parameter Ingestor</button>
+                <button class="node-button" data-node-type="event">⚡ Event Trigger</button>
+                <button class="node-button" data-node-type="branch">🔀 Branch</button>
+                <button class="node-button" data-node-type="parallel">⏩ Parallel</button>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <h2>Instructions</h2>
+            <div style="font-size: 11px; color: #999; line-height: 1.5;">
+                <p><strong>Scene Manager:</strong> Click entity to view, "Ingest All" to create parameter nodes</p>
+                <p><strong>Add Nodes:</strong> Click buttons in Node Tools Panel</p>
+                <p><strong>Connect:</strong> Drag from output to input socket</p>
+                <p><strong>Move:</strong> Drag nodes around canvas</p>
+                <p><strong>Copy:</strong> Click 📋 button on any node</p>
+                <p><strong>Delete:</strong> Click × on node or select and press Delete</p>
+                <p><strong>Dialogue:</strong> Can be displayed as card/terminal or on a screen</p>
+            </div>
+        </div>
+
+        <div id="canvas-container">
+            <svg id="connections-svg"></svg>
+            <div id="canvas"></div>
+            
+            <div class="toolbar">
+                <button id="clear-btn">Clear All</button>
+                <button id="export-btn">Export JSON</button>
+                <button id="import-btn">Import JSON</button>
+            </div>
+
+            <div class="info-panel">
+                <div>Nodes: <span id="node-count">0</span> | Connections: <span id="connection-count">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="search-overlay" id="search-overlay">
+        <h3 style="margin-bottom: 10px; font-size: 14px;">Search Scene Parameters</h3>
+        <input type="text" class="search-input" id="search-input" placeholder="Search entities and components...">
+        <div class="search-results" id="search-results"></div>
+    </div>
+
+    <script>
+        // State management
+        const state = {
+            nodes: [],
+            connections: [],
+            selectedNode: null,
+            dragState: null,
+            connectionDrag: null,
+            canvas: { x: 0, y: 0, zoom: 1 },
+            nodeIdCounter: 0,
+            connectionIdCounter: 0
+        };
+
+        // Scene data organized by categories
+        const sceneData = {
+            "Scene Objects": [
+                { 
+                    name: "celli", 
+                    icon: "🔷",
+                    components: [
+                        { name: "position", type: "vector3", path: "celli.transform.position" },
+                        { name: "rotation", type: "vector3", path: "celli.transform.rotation" },
+                        { name: "scale", type: "vector3", path: "celli.transform.scale" },
+                        { name: "visible", type: "boolean", path: "celli.renderer.visible" },
+                        { name: "opacity", type: "number", path: "celli.renderer.opacity" }
+                    ],
+                    parts: [
+                        { 
+                            name: "head", 
+                            components: [
+                                { name: "position", type: "vector3", path: "celli.head.position" },
+                                { name: "rotation", type: "vector3", path: "celli.head.rotation" },
+                                { name: "color", type: "color", path: "celli.head.color" },
+                                { name: "visible", type: "boolean", path: "celli.head.visible" }
+                            ]
+                        },
+                        {
+                            name: "body",
+                            components: [
+                                { name: "position", type: "vector3", path: "celli.body.position" },
+                                { name: "color", type: "color", path: "celli.body.color" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "player",
+                    icon: "👤",
+                    components: [
+                        { name: "position", type: "vector3", path: "player.position" },
+                        { name: "velocity", type: "vector3", path: "player.velocity" },
+                        { name: "health", type: "number", path: "player.health" },
+                        { name: "energy", type: "number", path: "player.energy" }
+                    ]
+                }
+            ],
+            "Environment": [
+                {
+                    name: "camera",
+                    icon: "📷",
+                    components: [
+                        { name: "position", type: "vector3", path: "camera.position" },
+                        { name: "target", type: "vector3", path: "camera.target" },
+                        { name: "fov", type: "number", path: "camera.fov" },
+                        { name: "near", type: "number", path: "camera.near" },
+                        { name: "far", type: "number", path: "camera.far" }
+                    ]
+                },
+                {
+                    name: "lights",
+                    icon: "💡",
+                    components: [
+                        { name: "ambient.intensity", type: "number", path: "lights.ambient.intensity" },
+                        { name: "ambient.color", type: "color", path: "lights.ambient.color" },
+                        { name: "directional.intensity", type: "number", path: "lights.directional.intensity" },
+                        { name: "directional.color", type: "color", path: "lights.directional.color" },
+                        { name: "directional.position", type: "vector3", path: "lights.directional.position" }
+                    ]
+                },
+                {
+                    name: "skybox",
+                    icon: "🌌",
+                    components: [
+                        { name: "color", type: "color", path: "skybox.color" },
+                        { name: "rotation", type: "number", path: "skybox.rotation" },
+                        { name: "intensity", type: "number", path: "skybox.intensity" }
+                    ]
+                }
+            ],
+            "Effects": [
+                {
+                    name: "postprocessing",
+                    icon: "✨",
+                    components: [
+                        { name: "bloom.intensity", type: "number", path: "fx.bloom.intensity" },
+                        { name: "bloom.threshold", type: "number", path: "fx.bloom.threshold" },
+                        { name: "vignette.intensity", type: "number", path: "fx.vignette.intensity" },
+                        { name: "chromatic.offset", type: "number", path: "fx.chromatic.offset" }
+                    ]
+                },
+                {
+                    name: "particles",
+                    icon: "✨",
+                    components: [
+                        { name: "emissionRate", type: "number", path: "particles.emissionRate" },
+                        { name: "lifetime", type: "number", path: "particles.lifetime" },
+                        { name: "size", type: "number", path: "particles.size" },
+                        { name: "color", type: "color", path: "particles.color" }
+                    ]
+                }
+            ],
+            "Audio": [
+                {
+                    name: "bgMusic",
+                    icon: "🎵",
+                    components: [
+                        { name: "volume", type: "number", path: "audio.bgMusic.volume" },
+                        { name: "pitch", type: "number", path: "audio.bgMusic.pitch" },
+                        { name: "loop", type: "boolean", path: "audio.bgMusic.loop" }
+                    ]
+                },
+                {
+                    name: "sfx",
+                    icon: "🔊",
+                    components: [
+                        { name: "volume", type: "number", path: "audio.sfx.volume" },
+                        { name: "spatialBlend", type: "number", path: "audio.sfx.spatialBlend" }
+                    ]
+                }
+            ]
+        };
+
+        // Flatten for search compatibility
+        const sceneEntities = [];
+        Object.keys(sceneData).forEach(category => {
+            sceneEntities.push(...sceneData[category]);
+        });
+
+        // DOM elements
+        const canvas = document.getElementById('canvas');
+        const canvasContainer = document.getElementById('canvas-container');
+        const svg = document.getElementById('connections-svg');
+        const searchOverlay = document.getElementById('search-overlay');
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+        const sceneManager = document.getElementById('scene-manager');
+
+        // Scene Manager state
+        const sceneManagerState = {
+            collapsedCategories: new Set()
+        };
+
+        // Scene Manager Rendering
+        function renderSceneManager() {
+            sceneManager.innerHTML = '';
+
+            Object.keys(sceneData).forEach(category => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'scene-category';
+
+                const isCollapsed = sceneManagerState.collapsedCategories.has(category);
+
+                // Category header
+                const header = document.createElement('div');
+                header.className = 'category-header';
+                header.innerHTML = `
+                    <span>${category}</span>
+                    <span class="category-toggle ${isCollapsed ? 'collapsed' : ''}">▼</span>
+                `;
+                header.addEventListener('click', () => {
+                    if (sceneManagerState.collapsedCategories.has(category)) {
+                        sceneManagerState.collapsedCategories.delete(category);
+                    } else {
+                        sceneManagerState.collapsedCategories.add(category);
+                    }
+                    renderSceneManager();
+                });
+                categoryDiv.appendChild(header);
+
+                // Entities in category
+                if (!isCollapsed) {
+                    sceneData[category].forEach(entity => {
+                        const entityDiv = document.createElement('div');
+                        entityDiv.className = 'scene-entity';
+                        entityDiv.innerHTML = `
+                            <div class="entity-name">
+                                <span class="entity-icon">${entity.icon || '📦'}</span>
+                                <span>${entity.name}</span>
+                            </div>
+                            <div class="entity-actions">
+                                <button class="entity-add-btn" onclick="addObjectNode('${entity.name}', '${category}')">Add Node</button>
+                                <button class="entity-btn ingest-all" onclick="ingestAllParameters('${entity.name}', '${category}')">Ingest All</button>
+                            </div>
+                        `;
+                        categoryDiv.appendChild(entityDiv);
+
+                        // Entity parts (if any)
+                        if (entity.parts && entity.parts.length > 0) {
+                            entity.parts.forEach(part => {
+                                const partDiv = document.createElement('div');
+                                partDiv.className = 'entity-part';
+                                partDiv.textContent = `↳ ${part.name}`;
+                                partDiv.onclick = (e) => {
+                                    e.stopPropagation();
+                                    ingestEntityPart(entity.name, part, category);
+                                };
+                                categoryDiv.appendChild(partDiv);
+                            });
+                        }
+                    });
+                }
+
+                sceneManager.appendChild(categoryDiv);
+            });
+        }
+
+        // Ingest all parameters from an entity
+        function ingestAllParameters(entityName, category) {
+            const entity = sceneData[category].find(e => e.name === entityName);
+            if (!entity) return;
+
+            const allComponents = [];
+            
+            // Add main entity components
+            entity.components.forEach(comp => {
+                allComponents.push({
+                    displayName: `${entityName}.${comp.name}`,
+                    path: comp.path,
+                    type: comp.type
+                });
+            });
+
+            // Add parts components
+            if (entity.parts) {
+                entity.parts.forEach(part => {
+                    part.components.forEach(comp => {
+                        allComponents.push({
+                            displayName: `${entityName}.${part.name}.${comp.name}`,
+                            path: comp.path,
+                            type: comp.type
+                        });
+                    });
+                });
+            }
+
+            // Create nodes in a vertical layout
+            const startX = 100;
+            const startY = 100;
+            const spacing = 120;
+
+            allComponents.forEach((comp, index) => {
+                const node = createNode('parameter', startX, startY + index * spacing);
+                if (node) {
+                    node.params.entity = comp.displayName;
+                    node.params.path = comp.path;
+                    node.params.type = comp.type;
+
+                    // Update the node's display
+                    const nodeEl = document.querySelector(`[data-node-id="${node.id}"]`);
+                    if (nodeEl) {
+                        const inputs = nodeEl.querySelectorAll('input');
+                        inputs[0].value = comp.displayName;
+                        inputs[1].value = comp.path;
+                        inputs[2].value = comp.type;
+                    }
+                }
+            });
+
+            updateStats();
+        }
+
+        // Ingest entity part parameters
+        function ingestEntityPart(entityName, part, category) {
+            const allComponents = [];
+            
+            part.components.forEach(comp => {
+                allComponents.push({
+                    displayName: `${entityName}.${part.name}.${comp.name}`,
+                    path: comp.path,
+                    type: comp.type
+                });
+            });
+
+            // Create nodes in a vertical layout
+            const startX = 100;
+            const startY = 100;
+            const spacing = 120;
+
+            allComponents.forEach((comp, index) => {
+                const node = createNode('parameter', startX, startY + index * spacing);
+                if (node) {
+                    node.params.entity = comp.displayName;
+                    node.params.path = comp.path;
+                    node.params.type = comp.type;
+
+                    // Update the node's display
+                    const nodeEl = document.querySelector(`[data-node-id="${node.id}"]`);
+                    if (nodeEl) {
+                        const inputs = nodeEl.querySelectorAll('input');
+                        inputs[0].value = comp.displayName;
+                        inputs[1].value = comp.path;
+                        inputs[2].value = comp.type;
+                    }
+                }
+            });
+
+            updateStats();
+        }
+
+        // Add object node from Scene Manager
+        function addObjectNode(entityName, category) {
+            const entity = sceneData[category].find(e => e.name === entityName);
+            if (!entity) return;
+
+            const x = Math.random() * 400 + 100;
+            const y = Math.random() * 300 + 100;
+            
+            const node = createNode('object', x, y);
+            if (node) {
+                node.params.entityName = entityName;
+                node.params.category = category;
+                node.entityData = entity; // Store full entity data
+                
+                // Update display
+                const nodeEl = document.querySelector(`[data-node-id="${node.id}"]`);
+                if (nodeEl) {
+                    const inputs = nodeEl.querySelectorAll('input[type="text"]');
+                    inputs[0].value = entityName;
+                    inputs[1].value = category;
+                }
+            }
+        }
+
+        // Save object parameters as a snapshot
+        function saveObjectParameters(objectNodeId) {
+            const objectNode = state.nodes.find(n => n.id === objectNodeId);
+            if (!objectNode || objectNode.type !== 'object') return;
+            
+            const entity = objectNode.entityData;
+            if (!entity) {
+                alert('No entity data found for this object node.');
+                return;
+            }
+
+            // Collect all parameters
+            const allParams = [];
+            
+            // Add main entity components
+            entity.components.forEach(comp => {
+                allParams.push({
+                    name: comp.name,
+                    path: comp.path,
+                    type: comp.type,
+                    value: null // Will be set at runtime
+                });
+            });
+
+            // Add parts components
+            if (entity.parts) {
+                entity.parts.forEach(part => {
+                    part.components.forEach(comp => {
+                        allParams.push({
+                            name: `${part.name}.${comp.name}`,
+                            path: comp.path,
+                            type: comp.type,
+                            value: null
+                        });
+                    });
+                });
+            }
+
+            // Create snapshot node
+            const snapshotX = objectNode.x + 250;
+            const snapshotY = objectNode.y;
+            
+            const snapshotNode = createNode('snapshot', snapshotX, snapshotY);
+            if (snapshotNode) {
+                // Count existing snapshots for this entity
+                const existingSnapshots = state.nodes.filter(n => 
+                    n.type === 'snapshot' && 
+                    n.params.sourceEntity === objectNode.params.entityName
+                ).length;
+                
+                snapshotNode.params.snapshotName = `${objectNode.params.entityName} State ${existingSnapshots + 1}`;
+                snapshotNode.params.sourceEntity = objectNode.params.entityName;
+                snapshotNode.savedParams = allParams;
+                
+                // Update display
+                const nodeEl = document.querySelector(`[data-node-id="${snapshotNode.id}"]`);
+                if (nodeEl) {
+                    // Remove and re-render to show saved params
+                    nodeEl.remove();
+                    renderNode(snapshotNode);
+                }
+                
+                // Auto-connect object to snapshot
+                createConnection(
+                    objectNodeId,
+                    'object',
+                    snapshotNode.id,
+                    'object',
+                    'param'
+                );
+                
+                renderConnections();
+            }
+        }
+
+        // Copy node function
+        function copyNode(nodeId) {
+            const originalNode = state.nodes.find(n => n.id === nodeId);
+            if (!originalNode) return;
+
+            // Create a copy with offset position
+            const newNode = createNode(originalNode.type, originalNode.x + 30, originalNode.y + 30);
+            if (newNode) {
+                // Copy all parameters
+                Object.keys(originalNode.params).forEach(key => {
+                    newNode.params[key] = originalNode.params[key];
+                });
+
+                // Copy additional data for specific node types
+                if (originalNode.entityData) {
+                    newNode.entityData = originalNode.entityData;
+                }
+                if (originalNode.savedParams) {
+                    newNode.savedParams = [...originalNode.savedParams];
+                }
+
+                // Re-render to show copied values
+                const nodeEl = document.querySelector(`[data-node-id="${newNode.id}"]`);
+                if (nodeEl) {
+                    nodeEl.remove();
+                    renderNode(newNode);
+                }
+
+                updateStats();
+            }
+        }
+
+        // Node type definitions
+        const nodeTypes = {
+            dialogue: {
+                name: "Dialogue",
+                color: "#4a9eff",
+                inputs: [{ id: "in", label: "In", type: "flow" }],
+                outputs: [{ id: "out", label: "Out", type: "flow" }],
+                params: [
+                    { id: "speaker", label: "Speaker", type: "text", default: "Character" },
+                    { id: "text", label: "Text", type: "textarea", default: "Dialogue text here..." },
+                    { id: "duration", label: "Duration (s)", type: "number", default: 2 },
+                    { id: "displayMode", label: "Display Mode", type: "hidden", default: "card" },
+                    { id: "screenTarget", label: "Screen Target", type: "hidden", default: "screen1" }
+                ],
+                hasCustomUI: true
+            },
+            animation: {
+                name: "Animation",
+                color: "#ff6b6b",
+                inputs: [
+                    { id: "in", label: "In", type: "flow" },
+                    { id: "target", label: "Target", type: "param" }
+                ],
+                outputs: [{ id: "out", label: "Out", type: "flow" }],
+                params: [
+                    { id: "property", label: "Property", type: "text", default: "position.x" },
+                    { id: "from", label: "From", type: "text", default: "0" },
+                    { id: "to", label: "To", type: "text", default: "100" },
+                    { id: "duration", label: "Duration (s)", type: "number", default: 1 },
+                    { id: "easing", label: "Easing", type: "select", options: ["linear", "easeIn", "easeOut", "easeInOut", "bounce"], default: "easeInOut" }
+                ]
+            },
+            delay: {
+                name: "Delay",
+                color: "#9b59b6",
+                inputs: [{ id: "in", label: "In", type: "flow" }],
+                outputs: [{ id: "out", label: "Out", type: "flow" }],
+                params: [
+                    { id: "duration", label: "Duration (s)", type: "number", default: 1 }
+                ]
+            },
+            transition: {
+                name: "Transition",
+                color: "#f39c12",
+                inputs: [
+                    { id: "in", label: "In", type: "flow" },
+                    { id: "valueA", label: "Value A", type: "param" },
+                    { id: "valueB", label: "Value B", type: "param" }
+                ],
+                outputs: [
+                    { id: "out", label: "Out", type: "flow" },
+                    { id: "current", label: "Current", type: "param" }
+                ],
+                params: [
+                    { id: "mode", label: "Mode", type: "select", options: ["trigger", "ease", "snap", "lerp"], default: "ease" },
+                    { id: "duration", label: "Duration (s)", type: "number", default: 1 },
+                    { id: "easing", label: "Easing", type: "select", options: ["linear", "easeIn", "easeOut", "easeInOut"], default: "easeInOut" }
+                ]
+            },
+            parameter: {
+                name: "Parameter Ingestor",
+                color: "#2ecc71",
+                inputs: [],
+                outputs: [{ id: "value", label: "Value", type: "param" }],
+                params: [
+                    { id: "entity", label: "Entity", type: "text", default: "", readonly: true },
+                    { id: "path", label: "Parameter Path", type: "text", default: "", readonly: true },
+                    { id: "type", label: "Type", type: "text", default: "", readonly: true }
+                ]
+            },
+            event: {
+                name: "Event Trigger",
+                color: "#e74c3c",
+                inputs: [{ id: "in", label: "In", type: "flow" }],
+                outputs: [{ id: "out", label: "Out", type: "flow" }],
+                params: [
+                    { id: "event", label: "Event Name", type: "text", default: "custom_event" },
+                    { id: "data", label: "Event Data", type: "textarea", default: "{}" }
+                ]
+            },
+            branch: {
+                name: "Branch",
+                color: "#3498db",
+                inputs: [
+                    { id: "in", label: "In", type: "flow" },
+                    { id: "condition", label: "Condition", type: "param" }
+                ],
+                outputs: [
+                    { id: "true", label: "True", type: "flow" },
+                    { id: "false", label: "False", type: "flow" }
+                ],
+                params: [
+                    { id: "operator", label: "Operator", type: "select", options: ["==", "!=", ">", "<", ">=", "<="], default: "==" },
+                    { id: "compareValue", label: "Compare To", type: "text", default: "0" }
+                ]
+            },
+            parallel: {
+                name: "Parallel Execution",
+                color: "#16a085",
+                inputs: [{ id: "in", label: "In", type: "flow" }],
+                outputs: [
+                    { id: "out1", label: "Out 1", type: "flow" },
+                    { id: "out2", label: "Out 2", type: "flow" },
+                    { id: "out3", label: "Out 3", type: "flow" },
+                    { id: "complete", label: "All Complete", type: "flow" }
+                ],
+                params: []
+            },
+            object: {
+                name: "Scene Object",
+                color: "#17a2b8",
+                inputs: [{ id: "in", label: "In", type: "flow" }],
+                outputs: [
+                    { id: "out", label: "Out", type: "flow" },
+                    { id: "object", label: "Object Ref", type: "param" }
+                ],
+                params: [
+                    { id: "entityName", label: "Entity Name", type: "text", default: "", readonly: true },
+                    { id: "category", label: "Category", type: "text", default: "", readonly: true }
+                ],
+                hasCustomUI: true
+            },
+            snapshot: {
+                name: "State Snapshot",
+                color: "#f39c12",
+                inputs: [
+                    { id: "in", label: "In", type: "flow" },
+                    { id: "object", label: "From Object", type: "param" }
+                ],
+                outputs: [{ id: "out", label: "Out", type: "flow" }],
+                params: [
+                    { id: "snapshotName", label: "Snapshot Name", type: "text", default: "State 1" },
+                    { id: "sourceEntity", label: "Source Entity", type: "text", default: "", readonly: true }
+                ],
+                hasCustomUI: true
+            }
+        };
+
+        // Node creation
+        function createNode(type, x, y) {
+            const nodeType = nodeTypes[type];
+            if (!nodeType) return null;
+
+            const node = {
+                id: state.nodeIdCounter++,
+                type: type,
+                x: x,
+                y: y,
+                params: {}
+            };
+
+            // Initialize parameters with defaults
+            nodeType.params.forEach(param => {
+                node.params[param.id] = param.default;
+            });
+
+            state.nodes.push(node);
+            renderNode(node);
+            updateStats();
+            return node;
+        }
+
+        // Render a node
+        function renderNode(node) {
+            const nodeType = nodeTypes[node.type];
+            const el = document.createElement('div');
+            el.className = `node type-${node.type}`;
+            el.dataset.nodeId = node.id;
+            el.style.left = node.x + 'px';
+            el.style.top = node.y + 'px';
+
+            // Header
+            const header = document.createElement('div');
+            header.className = 'node-header';
+            header.innerHTML = `
+                <span><span class="node-type-indicator" style="background: ${nodeType.color}; display: inline-block;"></span>${nodeType.name}</span>
+                <div class="node-actions">
+                    <button class="node-copy" onclick="copyNode(${node.id})" title="Copy Node">📋</button>
+                    <button class="node-delete" onclick="deleteNode(${node.id})" title="Delete Node">×</button>
+                </div>
+            `;
+            el.appendChild(header);
+
+            // Body with parameters
+            const body = document.createElement('div');
+            body.className = 'node-body';
+            
+            nodeType.params.forEach(param => {
+                if (param.type === 'hidden') return; // Skip hidden params in main UI
+                
+                const paramDiv = document.createElement('div');
+                paramDiv.className = 'node-param';
+                
+                const label = document.createElement('label');
+                label.textContent = param.label;
+                paramDiv.appendChild(label);
+
+                let input;
+                if (param.type === 'textarea') {
+                    input = document.createElement('textarea');
+                    input.value = node.params[param.id] || param.default;
+                } else if (param.type === 'select') {
+                    input = document.createElement('select');
+                    param.options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt;
+                        option.textContent = opt;
+                        input.appendChild(option);
+                    });
+                    input.value = node.params[param.id] || param.default;
+                } else if (param.type === 'number') {
+                    input = document.createElement('input');
+                    input.type = 'number';
+                    input.step = '0.1';
+                    input.value = node.params[param.id] || param.default;
+                } else {
+                    input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = node.params[param.id] || param.default;
+                    if (param.readonly) {
+                        input.readOnly = true;
+                        input.style.opacity = '0.7';
+                    }
+                }
+
+                input.addEventListener('change', (e) => {
+                    node.params[param.id] = e.target.value;
+                });
+
+                // Prevent drag when interacting with inputs
+                input.addEventListener('mousedown', (e) => e.stopPropagation());
+                
+                paramDiv.appendChild(input);
+                body.appendChild(paramDiv);
+            });
+
+            el.appendChild(body);
+
+            // Custom UI for dialogue nodes - Display Mode Selection
+            if (nodeType.hasCustomUI && node.type === 'dialogue') {
+                const customUI = document.createElement('div');
+                customUI.className = 'dialogue-mode-select';
+                
+                const label = document.createElement('label');
+                label.className = 'dialogue-mode-label';
+                label.textContent = 'Display Mode:';
+                customUI.appendChild(label);
+                
+                const modeOptions = document.createElement('div');
+                modeOptions.className = 'dialogue-mode-options';
+                
+                const cardBtn = document.createElement('button');
+                cardBtn.className = `mode-btn ${node.params.displayMode === 'card' ? 'active' : ''}`;
+                cardBtn.textContent = 'Card/Terminal';
+                cardBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+                cardBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    node.params.displayMode = 'card';
+                    updateDialogueModeUI(node.id);
+                });
+                modeOptions.appendChild(cardBtn);
+                
+                const screenBtn = document.createElement('button');
+                screenBtn.className = `mode-btn ${node.params.displayMode === 'screen' ? 'active' : ''}`;
+                screenBtn.textContent = 'On Screen';
+                screenBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+                screenBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    node.params.displayMode = 'screen';
+                    updateDialogueModeUI(node.id);
+                });
+                modeOptions.appendChild(screenBtn);
+                
+                customUI.appendChild(modeOptions);
+                
+                // Screen selection dropdown (shown only when screen mode is active)
+                const screenSelect = document.createElement('div');
+                screenSelect.className = `screen-select ${node.params.displayMode === 'screen' ? 'visible' : ''}`;
+                
+                const screenLabel = document.createElement('label');
+                screenLabel.className = 'dialogue-mode-label';
+                screenLabel.textContent = 'Target Screen:';
+                screenSelect.appendChild(screenLabel);
+                
+                const select = document.createElement('select');
+                ['screen1', 'screen2', 'screen3', 'mainDisplay', 'hudOverlay'].forEach(screenId => {
+                    const option = document.createElement('option');
+                    option.value = screenId;
+                    option.textContent = screenId;
+                    select.appendChild(option);
+                });
+                select.value = node.params.screenTarget || 'screen1';
+                select.addEventListener('mousedown', (e) => e.stopPropagation());
+                select.addEventListener('change', (e) => {
+                    node.params.screenTarget = e.target.value;
+                });
+                screenSelect.appendChild(select);
+                
+                customUI.appendChild(screenSelect);
+                el.appendChild(customUI);
+            }
+
+            // Custom UI for object nodes
+            if (nodeType.hasCustomUI && node.type === 'object') {
+                const customUI = document.createElement('div');
+                customUI.style.padding = '0 12px 12px 12px';
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'node-info';
+                infoDiv.textContent = 'Object node represents a scene entity. Save its parameters to create state snapshots.';
+                customUI.appendChild(infoDiv);
+                
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'save-params-btn';
+                saveBtn.textContent = '💾 Save Parameters';
+                saveBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+                saveBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    saveObjectParameters(node.id);
+                });
+                customUI.appendChild(saveBtn);
+                
+                el.appendChild(customUI);
+            }
+
+            // Custom UI for snapshot nodes
+            if (nodeType.hasCustomUI && node.type === 'snapshot') {
+                const customUI = document.createElement('div');
+                customUI.style.padding = '0 12px 12px 12px';
+                
+                if (node.savedParams && node.savedParams.length > 0) {
+                    const paramsDiv = document.createElement('div');
+                    paramsDiv.className = 'snapshot-params';
+                    
+                    const header = document.createElement('div');
+                    header.style.fontWeight = '600';
+                    header.style.marginBottom = '4px';
+                    header.style.color = '#ccc';
+                    header.textContent = `Saved Parameters (${node.savedParams.length}):`;
+                    paramsDiv.appendChild(header);
+                    
+                    node.savedParams.forEach(param => {
+                        const paramItem = document.createElement('div');
+                        paramItem.className = 'snapshot-param-item';
+                        paramItem.innerHTML = `<span class="snapshot-param-name">${param.name}</span>: ${param.type}`;
+                        paramsDiv.appendChild(paramItem);
+                    });
+                    
+                    customUI.appendChild(paramsDiv);
+                } else {
+                    const infoDiv = document.createElement('div');
+                    infoDiv.className = 'node-info';
+                    infoDiv.textContent = 'No parameters saved yet. Connect to an Object node.';
+                    customUI.appendChild(infoDiv);
+                }
+                
+                el.appendChild(customUI);
+            }
+
+            // Input sockets
+            nodeType.inputs.forEach((input, idx) => {
+                const socket = createSocket('input', input, idx, nodeType.inputs.length);
+                el.appendChild(socket);
+            });
+
+            // Output sockets
+            nodeType.outputs.forEach((output, idx) => {
+                const socket = createSocket('output', output, idx, nodeType.outputs.length);
+                el.appendChild(socket);
+            });
+
+            // Node drag
+            header.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.node-delete') || e.target.closest('.node-copy')) return;
+                
+                state.selectedNode = node;
+                state.dragState = {
+                    node: node,
+                    startX: e.clientX,
+                    startY: e.clientY,
+                    nodeStartX: node.x,
+                    nodeStartY: node.y
+                };
+                
+                // Update selected state
+                document.querySelectorAll('.node').forEach(n => n.classList.remove('selected'));
+                el.classList.add('selected');
+            });
+
+            // Double-click for parameter search
+            if (node.type === 'parameter') {
+                el.addEventListener('dblclick', () => {
+                    showParameterSearch(node);
+                });
+            }
+
+            canvas.appendChild(el);
+        }
+
+        // Update dialogue mode UI
+        function updateDialogueModeUI(nodeId) {
+            const nodeEl = document.querySelector(`[data-node-id="${nodeId}"]`);
+            if (!nodeEl) return;
+            
+            const node = state.nodes.find(n => n.id === nodeId);
+            if (!node) return;
+            
+            // Update button active states
+            const buttons = nodeEl.querySelectorAll('.mode-btn');
+            buttons[0].classList.toggle('active', node.params.displayMode === 'card');
+            buttons[1].classList.toggle('active', node.params.displayMode === 'screen');
+            
+            // Show/hide screen select
+            const screenSelect = nodeEl.querySelector('.screen-select');
+            if (screenSelect) {
+                screenSelect.classList.toggle('visible', node.params.displayMode === 'screen');
+            }
+        }
+
+        // Create socket element
+        function createSocket(type, socketData, index, total) {
+            const socket = document.createElement('div');
+            socket.className = `socket ${type}`;
+            
+            if (socketData.type === 'param') {
+                socket.classList.add(`param-${type}`);
+            }
+
+            socket.dataset.socketId = socketData.id;
+            socket.dataset.socketType = socketData.type;
+            
+            const spacing = 40;
+            const offset = 50 + index * spacing;
+            socket.style.top = offset + 'px';
+
+            // Socket label
+            const label = document.createElement('span');
+            label.className = 'socket-label';
+            label.textContent = socketData.label;
+            socket.appendChild(label);
+
+            // Connection dragging
+            socket.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                const nodeEl = socket.closest('.node');
+                const nodeId = parseInt(nodeEl.dataset.nodeId);
+                const socketId = socketData.id;
+
+                state.connectionDrag = {
+                    fromNode: nodeId,
+                    fromSocket: socketId,
+                    fromType: type,
+                    socketType: socketData.type
+                };
+            });
+
+            socket.addEventListener('mouseup', (e) => {
+                if (state.connectionDrag && state.connectionDrag.fromType !== type) {
+                    const nodeEl = socket.closest('.node');
+                    const toNode = parseInt(nodeEl.dataset.nodeId);
+                    const toSocket = socketData.id;
+
+                    createConnection(
+                        state.connectionDrag.fromNode,
+                        state.connectionDrag.fromSocket,
+                        toNode,
+                        toSocket,
+                        state.connectionDrag.socketType
+                    );
+                }
+            });
+
+            return socket;
+        }
+
+        // Connection management
+        function createConnection(fromNode, fromSocket, toNode, toSocket, socketType) {
+            // Prevent duplicate connections
+            const exists = state.connections.some(c => 
+                c.fromNode === fromNode && c.fromSocket === fromSocket &&
+                c.toNode === toNode && c.toSocket === toSocket
+            );
+
+            if (exists) return;
+
+            const connection = {
+                id: state.connectionIdCounter++,
+                fromNode,
+                fromSocket,
+                toNode,
+                toSocket,
+                type: socketType
+            };
+
+            state.connections.push(connection);
+            renderConnections();
+            updateStats();
+        }
+
+        function deleteConnection(id) {
+            state.connections = state.connections.filter(c => c.id !== id);
+            renderConnections();
+            updateStats();
+        }
+
+        // Render all connections
+        function renderConnections() {
+            svg.innerHTML = '';
+
+            state.connections.forEach(conn => {
+                const fromNode = state.nodes.find(n => n.id === conn.fromNode);
+                const toNode = state.nodes.find(n => n.id === conn.toNode);
+
+                if (!fromNode || !toNode) return;
+
+                const fromEl = document.querySelector(`[data-node-id="${conn.fromNode}"] [data-socket-id="${conn.fromSocket}"].output`);
+                const toEl = document.querySelector(`[data-node-id="${conn.toNode}"] [data-socket-id="${conn.toSocket}"].input`);
+
+                if (!fromEl || !toEl) return;
+
+                const fromRect = fromEl.getBoundingClientRect();
+                const toRect = toEl.getBoundingClientRect();
+                const containerRect = canvasContainer.getBoundingClientRect();
+
+                const x1 = fromRect.left + fromRect.width / 2 - containerRect.left;
+                const y1 = fromRect.top + fromRect.height / 2 - containerRect.top;
+                const x2 = toRect.left + toRect.width / 2 - containerRect.left;
+                const y2 = toRect.top + toRect.height / 2 - containerRect.top;
+
+                const path = createCurvePath(x1, y1, x2, y2);
+                const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                pathEl.setAttribute('d', path);
+                pathEl.setAttribute('class', `connection ${conn.type === 'param' ? 'param' : ''}`);
+                pathEl.style.pointerEvents = 'stroke';
+                pathEl.style.cursor = 'pointer';
+                
+                pathEl.addEventListener('click', () => {
+                    if (confirm('Delete this connection?')) {
+                        deleteConnection(conn.id);
+                    }
+                });
+
+                svg.appendChild(pathEl);
+            });
+        }
+
+        function createCurvePath(x1, y1, x2, y2) {
+            const dx = Math.abs(x2 - x1);
+            const dy = Math.abs(y2 - y1);
+            const offset = Math.min(dx * 0.5, 100);
+
+            return `M ${x1} ${y1} C ${x1 + offset} ${y1}, ${x2 - offset} ${y2}, ${x2} ${y2}`;
+        }
+
+        // Node deletion
+        function deleteNode(id) {
+            state.nodes = state.nodes.filter(n => n.id !== id);
+            state.connections = state.connections.filter(c => c.fromNode !== id && c.toNode !== id);
+            
+            const nodeEl = document.querySelector(`[data-node-id="${id}"]`);
+            if (nodeEl) nodeEl.remove();
+            
+            renderConnections();
+            updateStats();
+        }
+
+        // Parameter search
+        function showParameterSearch(node) {
+            searchOverlay.classList.add('active');
+            searchInput.value = '';
+            searchInput.focus();
+            renderSearchResults('');
+
+            // Store the node we're editing
+            searchOverlay.dataset.nodeId = node.id;
+        }
+
+        function hideParameterSearch() {
+            searchOverlay.classList.remove('active');
+        }
+
+        function renderSearchResults(query) {
+            searchResults.innerHTML = '';
+            const lowerQuery = query.toLowerCase();
+
+            sceneEntities.forEach(entity => {
+                // Search entity components
+                entity.components.forEach(comp => {
+                    if (!query || comp.name.toLowerCase().includes(lowerQuery) || 
+                        entity.name.toLowerCase().includes(lowerQuery)) {
+                        const item = document.createElement('div');
+                        item.className = 'search-item';
+                        item.innerHTML = `
+                            <div>${entity.name}.${comp.name}</div>
+                            <div class="search-item-path">${comp.path} (${comp.type})</div>
+                        `;
+                        item.addEventListener('click', () => {
+                            selectParameter(comp.path, `${entity.name}.${comp.name}`, comp.type);
+                        });
+                        searchResults.appendChild(item);
+                    }
+                });
+
+                // Search entity parts
+                if (entity.parts) {
+                    entity.parts.forEach(part => {
+                        part.components.forEach(comp => {
+                            if (!query || comp.name.toLowerCase().includes(lowerQuery) || 
+                                part.name.toLowerCase().includes(lowerQuery) ||
+                                entity.name.toLowerCase().includes(lowerQuery)) {
+                                const item = document.createElement('div');
+                                item.className = 'search-item';
+                                item.innerHTML = `
+                                    <div>${entity.name}.${part.name}.${comp.name}</div>
+                                    <div class="search-item-path">${comp.path} (${comp.type})</div>
+                                `;
+                                item.addEventListener('click', () => {
+                                    selectParameter(comp.path, `${entity.name}.${part.name}.${comp.name}`, comp.type);
+                                });
+                                searchResults.appendChild(item);
+                            }
+                        });
+                    });
+                }
+            });
+        }
+
+        function selectParameter(path, displayName, type) {
+            const nodeId = parseInt(searchOverlay.dataset.nodeId);
+            const node = state.nodes.find(n => n.id === nodeId);
+            
+            if (node) {
+                node.params.entity = displayName;
+                node.params.path = path;
+                node.params.type = type;
+
+                // Update the node's display
+                const nodeEl = document.querySelector(`[data-node-id="${nodeId}"]`);
+                if (nodeEl) {
+                    const inputs = nodeEl.querySelectorAll('input');
+                    inputs[0].value = displayName;
+                    inputs[1].value = path;
+                    inputs[2].value = type;
+                }
+            }
+
+            hideParameterSearch();
+        }
+
+        // Mouse event handlers
+        document.addEventListener('mousemove', (e) => {
+            // Node dragging
+            if (state.dragState) {
+                const dx = e.clientX - state.dragState.startX;
+                const dy = e.clientY - state.dragState.startY;
+                
+                state.dragState.node.x = state.dragState.nodeStartX + dx;
+                state.dragState.node.y = state.dragState.nodeStartY + dy;
+
+                const nodeEl = document.querySelector(`[data-node-id="${state.dragState.node.id}"]`);
+                if (nodeEl) {
+                    nodeEl.style.left = state.dragState.node.x + 'px';
+                    nodeEl.style.top = state.dragState.node.y + 'px';
+                }
+
+                renderConnections();
+            }
+
+            // Connection dragging visualization
+            if (state.connectionDrag) {
+                const tempLine = document.getElementById('temp-connection') || 
+                    document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                tempLine.id = 'temp-connection';
+                tempLine.setAttribute('class', 'temp-connection');
+
+                const fromNode = state.nodes.find(n => n.id === state.connectionDrag.fromNode);
+                const fromEl = document.querySelector(
+                    `[data-node-id="${state.connectionDrag.fromNode}"] [data-socket-id="${state.connectionDrag.fromSocket}"].${state.connectionDrag.fromType}`
+                );
+
+                if (fromEl) {
+                    const fromRect = fromEl.getBoundingClientRect();
+                    const containerRect = canvasContainer.getBoundingClientRect();
+
+                    const x1 = fromRect.left + fromRect.width / 2 - containerRect.left;
+                    const y1 = fromRect.top + fromRect.height / 2 - containerRect.top;
+                    const x2 = e.clientX - containerRect.left;
+                    const y2 = e.clientY - containerRect.top;
+
+                    const path = createCurvePath(x1, y1, x2, y2);
+                    tempLine.setAttribute('d', path);
+
+                    if (!tempLine.parentNode) {
+                        svg.appendChild(tempLine);
+                    }
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            state.dragState = null;
+            
+            if (state.connectionDrag) {
+                const tempLine = document.getElementById('temp-connection');
+                if (tempLine) tempLine.remove();
+                state.connectionDrag = null;
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Delete' && state.selectedNode) {
+                deleteNode(state.selectedNode.id);
+                state.selectedNode = null;
+            }
+
+            if (e.key === 'Escape') {
+                hideParameterSearch();
+            }
+        });
+
+        // Search input handler
+        searchInput.addEventListener('input', (e) => {
+            renderSearchResults(e.target.value);
+        });
+
+        // Click outside to close search
+        searchOverlay.addEventListener('click', (e) => {
+            if (e.target === searchOverlay) {
+                hideParameterSearch();
+            }
+        });
+
+        // Toolbar buttons
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            if (confirm('Clear all nodes and connections?')) {
+                state.nodes = [];
+                state.connections = [];
+                canvas.innerHTML = '';
+                renderConnections();
+                updateStats();
+            }
+        });
+
+        document.getElementById('export-btn').addEventListener('click', () => {
+            const data = {
+                nodes: state.nodes,
+                connections: state.connections
+            };
+            const json = JSON.stringify(data, null, 2);
+            
+            // Download as file
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sequence.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('import-btn').addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            state.nodes = data.nodes || [];
+                            state.connections = data.connections || [];
+                            state.nodeIdCounter = Math.max(...state.nodes.map(n => n.id), 0) + 1;
+                            state.connectionIdCounter = Math.max(...state.connections.map(c => c.id), 0) + 1;
+                            
+                            canvas.innerHTML = '';
+                            state.nodes.forEach(node => renderNode(node));
+                            renderConnections();
+                            updateStats();
+                        } catch (err) {
+                            alert('Error parsing JSON file: ' + err.message);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            });
+            input.click();
+        });
+
+        // Node palette buttons
+        document.querySelectorAll('.node-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.nodeType;
+                const x = Math.random() * 400 + 100;
+                const y = Math.random() * 300 + 100;
+                createNode(type, x, y);
+            });
+        });
+
+        // Update stats display
+        function updateStats() {
+            document.getElementById('node-count').textContent = state.nodes.length;
+            document.getElementById('connection-count').textContent = state.connections.length;
+        }
+
+        // Initialize with a welcome setup
+        window.addEventListener('load', () => {
+            renderSceneManager();
+            updateStats();
+        });
+
+        // Expose functions globally for inline event handlers
+        window.deleteNode = deleteNode;
+        window.copyNode = copyNode;
+        window.ingestAllParameters = ingestAllParameters;
+        window.ingestEntityPart = ingestEntityPart;
+        window.addObjectNode = addObjectNode;
+        window.saveObjectParameters = saveObjectParameters;
+    </script>
+</body>
+</html>
+

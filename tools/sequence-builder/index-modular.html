@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Celli Sequence Builder</title>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="../../src/tools/sequence-builder/styles.css">
+  <link rel="stylesheet" href="../../src/tools/sequence-builder/node-styles.css">
+  
+  <style>
+    /* Additional component-specific styles */
+    .asset-manager-header {
+      background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #445566;
+    }
+
+    .asset-manager-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #3498db;
+      margin-bottom: 8px;
+    }
+
+    .node-tool-btn {
+      width: 100%;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      background: #37373d;
+      border: 1px solid #555;
+      border-radius: 4px;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 11px;
+      text-align: left;
+      transition: all 0.2s;
+      display: block;
+    }
+
+    .node-tool-btn:hover {
+      background: #404045;
+      border-color: #3498db;
+      transform: translateX(4px);
+    }
+
+    .viewport-header {
+      background: #252525;
+      padding: 10px 15px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .viewport-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #3498db;
+    }
+
+    #sceneViewport {
+      flex: 1;
+      position: relative;
+      background: #0a0a0a;
+    }
+
+    .timeline-container {
+      flex: 1;
+      position: relative;
+      overflow: auto;
+      padding: 20px;
+    }
+
+    .center-tabs {
+      background: #252525;
+      border-bottom: 1px solid #333;
+      display: flex;
+      gap: 2px;
+      padding: 0 10px;
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      background: transparent;
+      border: none;
+      color: #999;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      color: #3498db;
+      border-bottom-color: #3498db;
+    }
+
+    .tab-content {
+      flex: 1;
+      overflow: hidden;
+      display: none;
+    }
+
+    .tab-content.active {
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <!-- Overlay Mode Container -->
+  <div class="builder-overlay active" id="builderOverlay">
+    <div class="builder-container" id="builderContainer">
+      
+      <!-- Resize Handles -->
+      <div class="resize-handle resize-handle-1" data-handle="1"></div>
+      <div class="resize-handle resize-handle-2" data-handle="2"></div>
+      <div class="resize-handle resize-handle-3" data-handle="3"></div>
+      <div class="resize-handle resize-handle-vertical resize-handle-bottom" data-handle="bottom"></div>
+      
+      <!-- Header -->
+      <div class="builder-header">
+        <div class="builder-title">
+          <span>🎬</span>
+          <span>Sequence Builder</span>
+          <span class="scene-badge" id="sceneName">Loading...</span>
+        </div>
+        <div class="builder-controls">
+          <select id="sceneDropdown" class="property-input" style="width: 180px; padding: 8px; font-size: 12px; margin-right: 8px;">
+            <option value="">Current Scene</option>
+            <option value="IntroSceneComplete">Intro Scene</option>
+            <option value="VisiCalcScene">VisiCalc</option>
+            <option value="CelliRealScene">Celli Real</option>
+            <option value="FullhandScene">Fullhand</option>
+            <option value="End3Scene">End3</option>
+            <option value="CityScene">City</option>
+            <option value="LeaveScene">Leave</option>
+          </select>
+          <button class="btn btn-primary" id="switchSceneBtn">🔄 Switch to Scene</button>
+          <button class="btn btn-success" id="autoIngestBtn">📥 Auto-Ingest</button>
+          <button class="btn btn-success" id="exportBtn">💾 Export</button>
+          <button class="btn btn-danger" id="closeBtn">✕ Close</button>
+        </div>
+      </div>
+
+      <!-- Left Panel - Node Tools -->
+      <div class="panel-left">
+        <div class="asset-manager-header">
+          <div class="asset-manager-title">🛠️ Node Tools</div>
+        </div>
+        <div id="nodeToolsPanel" style="padding: 10px;">
+          <button class="node-tool-btn" data-node-type="dialogue">💬 Dialogue</button>
+          <button class="node-tool-btn" data-node-type="animation">🎬 Animation</button>
+          <button class="node-tool-btn" data-node-type="delay">⏱️ Delay</button>
+          <button class="node-tool-btn" data-node-type="transition">🔄 Transition</button>
+          <button class="node-tool-btn" data-node-type="parameter">📊 Parameter</button>
+          <button class="node-tool-btn" data-node-type="event">⚡ Event</button>
+          <button class="node-tool-btn" data-node-type="object">🎯 Object</button>
+          <button class="node-tool-btn" data-node-type="snapshot">📸 Snapshot</button>
+          <button class="node-tool-btn" data-node-type="parallel">⚡ Parallel</button>
+        </div>
+      </div>
+
+      <!-- Center Left - Scene Viewport -->
+      <div class="panel-viewport">
+        <div class="viewport-header">
+          <div class="viewport-title">🎥 Scene Viewport</div>
+        </div>
+        <div id="sceneViewport">
+          <div style="padding: 20px; color: #666; text-align: center;">
+            <p>Scene viewport placeholder</p>
+            <p style="font-size: 11px; margin-top: 10px;">Connect to a running scene to see live preview</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Right - Timeline & Nodes -->
+      <div class="panel-center">
+        <div class="center-tabs">
+          <button class="tab-btn active" data-tab="timeline">⏱️ Timeline</button>
+          <button class="tab-btn" data-tab="graph">🔗 Node Graph</button>
+        </div>
+
+        <!-- Timeline Tab -->
+        <div class="tab-content active" id="timeline-tab">
+          <div class="timeline-container" id="timelineContainer">
+            <div style="padding: 20px; color: #666;">
+              <p>Timeline view - Auto-ingest a scene to see sequence</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Graph Tab -->
+        <div class="tab-content" id="graph-tab">
+          <div class="timeline-container" style="overflow: auto;">
+            <div id="nodeCanvas">
+              <svg id="connectionsSvg"></svg>
+              <div id="nodesContainer"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel - Inspector -->
+      <div class="panel-right">
+        <div style="background: #353535; padding: 12px; margin-bottom: 12px; border-radius: 6px; border: 1px solid #444;">
+          <div style="font-size: 13px; font-weight: 600; color: #3498db; margin-bottom: 10px;">🔍 Inspector</div>
+          <div id="inspector">
+            <div style="text-align: center; color: #666; padding: 40px 20px; font-size: 12px;">
+              Select a node to inspect
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Panel - Code Preview -->
+      <div class="panel-bottom">
+        <div style="background: #252525; padding: 8px 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 12px; font-weight: 600; color: #999;">📄 Sequence Data</div>
+        </div>
+        <div style="flex: 1; overflow: auto; padding: 15px; font-family: 'Consolas', 'Monaco', monospace; font-size: 11px; line-height: 1.6; background: #1a1a1a; color: #d4d4d4;" id="codePreview">
+          <span style="color: #6a9955; font-style: italic;">// Sequence data will appear here...</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading Sequence Builder</div>
+      <div class="loading-detail" id="loadingDetail">Initializing modules...</div>
+    </div>
+  </div>
+
+  <!-- Import Map for THREE.js (if needed) -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <!-- Main Application Module -->
+  <script type="module">
+    // Import and initialize
+    import { initSequenceBuilder } from '../../src/tools/sequence-builder/main.js';
+    
+    console.log('📦 Main module loaded');
+    
+    // Initialize the application
+    const isStandalone = !window.opener || window.location.search.includes('standalone');
+    console.log(`🎯 Initializing in ${isStandalone ? 'standalone' : 'overlay'} mode...`);
+    
+    try {
+      await initSequenceBuilder(!isStandalone);
+    } catch (error) {
+      console.error('❌ Failed to initialize:', error);
+    }
+    
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        btn.classList.add('active');
+        document.getElementById(`${tab}-tab`).classList.add('active');
+      });
+    });
+    
+    console.log('✅ Modular Sequence Builder UI Ready');
+  </script>
+  
+  <!-- Module fallback error handler -->
+  <script>
+    window.addEventListener('error', (e) => {
+      if (e.message && e.message.includes('module')) {
+        console.error('❌ Module loading error:', e);
+        const loadingDetail = document.getElementById('loadingDetail');
+        if (loadingDetail) {
+          loadingDetail.textContent = 'Error: ES6 modules require a web server. Use python -m http.server or similar.';
+          loadingDetail.style.color = '#e74c3c';
+        }
+      }
+    });
+    
+    // Timeout fallback
+    setTimeout(() => {
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+        console.warn('⚠️ Initialization taking longer than expected');
+        const loadingDetail = document.getElementById('loadingDetail');
+        if (loadingDetail) {
+          loadingDetail.textContent = 'Loading... (check console for errors)';
+        }
+      }
+    }, 3000);
+    
+    // Console helper for debugging
+    window.checkIntegration = function() {
+      const w = window.parent && window.parent !== window ? window.parent : window.opener;
+      if (!w) {
+        console.error('❌ No parent or opener window');
+        return;
+      }
+      
+      console.log('🔍 Checking integration with main app...\n');
+      console.log('transitionToScene:', typeof w.transitionToScene);
+      console.log('getSceneByName:', typeof w.getSceneByName);
+      console.log('scenes:', w.scenes ? Object.keys(w.scenes) : 'not found');
+      console.log('currentScene:', w.currentScene?.constructor?.name || 'not running');
+      console.log('introScene:', w.introScene?.constructor?.name || 'not running');
+      
+      if (typeof w.transitionToScene === 'function') {
+        console.log('\n✅ Integration is working!');
+      } else {
+        console.log('\n❌ Integration incomplete - transitionToScene not found');
+      }
+    };
+    
+    console.log('💡 Run checkIntegration() in console to verify setup');
+  </script>
+</body>
+</html>
+

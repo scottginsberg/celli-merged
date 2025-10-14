@@ -37,12 +37,13 @@
     /* Main Container - Resizable Grid */
     .builder-container {
       display: grid;
-      grid-template-columns: 280px 1fr 360px 400px;
+      grid-template-columns: 280px 1fr 360px minmax(400px, 1fr);
       grid-template-rows: 60px 1fr 180px;
       height: 100vh;
       width: 100vw;
       gap: 0;
       position: relative;
+      overflow: hidden;
     }
 
     /* Resizer Handles */
@@ -53,11 +54,17 @@
       transition: opacity 0.2s;
       z-index: 1000;
       cursor: col-resize;
+      pointer-events: auto;
     }
 
     .resize-handle:hover,
+    .resize-handle.active,
+    .builder-container:hover .resize-handle {
+      opacity: 0.3;
+    }
+    
     .resize-handle.active {
-      opacity: 0.5;
+      opacity: 0.6 !important;
     }
 
     .resize-handle-1 {
@@ -106,6 +113,8 @@
       justify-content: space-between;
       padding: 0 20px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .builder-title {
@@ -161,6 +170,9 @@
       padding: 15px;
       grid-column: 1;
       grid-row: 2;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
     }
 
     .asset-manager-header {
@@ -321,6 +333,9 @@
       border-right: 1px solid #444;
       position: relative;
       overflow: hidden;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
     }
 
     .viewport-header {
@@ -344,6 +359,8 @@
     .viewport-controls {
       display: flex;
       gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
     .viewport-btn {
@@ -366,6 +383,67 @@
       background: #3498db;
       border-color: #5dade2;
       color: white;
+    }
+    
+    .camera-select {
+      padding: 4px 8px;
+      background: #353535;
+      border: 1px solid #555;
+      border-radius: 4px;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 11px;
+      min-width: 100px;
+    }
+    
+    .camera-select:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+    
+    .playback-controls {
+      display: flex;
+      gap: 4px;
+      margin-left: 8px;
+      padding-left: 8px;
+      border-left: 1px solid #555;
+    }
+    
+    .play-btn {
+      padding: 4px 8px;
+      background: #27ae60;
+      border: 1px solid #2ecc71;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    
+    .play-btn:hover {
+      background: #229954;
+    }
+    
+    .play-btn.paused {
+      background: #3498db;
+      border-color: #5dade2;
+    }
+    
+    .pause-btn {
+      padding: 4px 8px;
+      background: #e74c3c;
+      border: 1px solid #ec7063;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    
+    .pause-btn:hover {
+      background: #c0392b;
     }
 
     #sceneViewport {
@@ -401,6 +479,9 @@
       grid-column: 3;
       grid-row: 2;
       border-right: 1px solid #444;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
     }
 
     .center-tabs {
@@ -444,21 +525,485 @@
       flex-direction: column;
     }
 
-    /* Timeline */
+    /* Timeline - Node Canvas */
     .timeline-container {
       flex: 1;
       position: relative;
       overflow: auto;
-      padding: 20px;
+      padding: 0;
+      background: #1e1e1e;
+    }
+    
+    #nodeCanvas {
+      position: relative;
+      min-width: 3000px;
+      min-height: 2000px;
+      background-image: 
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 20px 20px;
+      cursor: grab;
+    }
+    
+    #nodeCanvas.dragging {
+      cursor: grabbing;
+    }
+    
+    #connectionsSvg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3000px;
+      height: 2000px;
+      pointer-events: none;
+      z-index: 1;
+      overflow: visible;
     }
 
-    .timeline-grid {
+    .graph-node {
       position: absolute;
-      inset: 0;
-      background: 
-        repeating-linear-gradient(90deg, #2a2a2a 0, #2a2a2a 1px, transparent 1px, transparent 50px),
-        repeating-linear-gradient(0deg, #2a2a2a 0, #2a2a2a 1px, transparent 1px, transparent 40px);
+      background: #252526;
+      border: 2px solid #3e3e42;
+      border-radius: 6px;
+      min-width: 180px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      cursor: move;
+      user-select: none;
+      z-index: 2;
     }
+
+    .graph-node.selected {
+      border-color: #3498db;
+      box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+    }
+
+    .graph-node-header {
+      padding: 8px 12px;
+      background: #2d2d30;
+      border-bottom: 1px solid #3e3e42;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 4px 4px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .graph-node-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      color: #e0e0e0;
+    }
+
+    .node-type-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .graph-node-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .node-action-btn {
+      width: 16px;
+      height: 16px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 10px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+      padding: 0;
+    }
+
+    .node-action-btn:hover {
+      opacity: 1;
+    }
+
+    .node-copy-btn {
+      background: #27ae60;
+    }
+
+    .node-delete-btn {
+      background: #e74c3c;
+    }
+
+    .graph-node-body {
+      padding: 10px 12px;
+      font-size: 11px;
+      color: #ccc;
+    }
+
+    .node-socket {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid #3e3e42;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 10;
+    }
+
+    .node-socket:hover {
+      transform: scale(1.4);
+      border-color: #fff;
+    }
+
+    .node-socket.input {
+      left: -6px;
+      background: #4a9eff;
+    }
+
+    .node-socket.output {
+      right: -6px;
+      background: #ff6b6b;
+    }
+
+    .socket-label {
+      position: absolute;
+      font-size: 10px;
+      color: #999;
+      white-space: nowrap;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      font-weight: 500;
+    }
+
+    .node-socket.input .socket-label {
+      left: 18px;
+    }
+
+    .node-socket.output .socket-label {
+      right: 18px;
+    }
+
+    .node-connection {
+      stroke-width: 2;
+      fill: none;
+      stroke: #4a9eff;
+      opacity: 0.7;
+      pointer-events: stroke;
+      cursor: pointer;
+    }
+
+    .node-connection:hover {
+      opacity: 1;
+      stroke-width: 3;
+    }
+
+    .temp-connection {
+      stroke: #4a9eff;
+      stroke-width: 2;
+      fill: none;
+      stroke-dasharray: 5, 5;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    
+    /* Node type colors - organized by category */
+    
+    /* Dialogue nodes - Red/Magenta */
+    .graph-node.type-dialogue {
+      background: linear-gradient(135deg, #6d1138 0%, #1a1a1a 100%);
+      border-color: #c2185b;
+    }
+    .graph-node.type-dialogue .graph-node-header {
+      background: #4a0d28;
+      border-bottom-color: #6d1138;
+    }
+    .graph-node.type-dialogue .node-type-indicator {
+      background: #e91e63;
+      box-shadow: 0 0 8px rgba(233, 30, 99, 0.6);
+    }
+    .graph-node.type-dialogue.selected {
+      border-color: #e91e63;
+      box-shadow: 0 0 0 2px rgba(233, 30, 99, 0.4);
+    }
+    
+    /* Object nodes - Blue */
+    .graph-node.type-object {
+      background: linear-gradient(135deg, #0d3a5c 0%, #1a1a1a 100%);
+      border-color: #1565c0;
+    }
+    .graph-node.type-object .graph-node-header {
+      background: #082540;
+      border-bottom-color: #0d3a5c;
+    }
+    .graph-node.type-object .node-type-indicator {
+      background: #2196f3;
+      box-shadow: 0 0 8px rgba(33, 150, 243, 0.6);
+    }
+    .graph-node.type-object.selected {
+      border-color: #2196f3;
+      box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.4);
+    }
+    
+    /* Parameter nodes - Cyan */
+    .graph-node.type-parameter {
+      background: linear-gradient(135deg, #0d4d4d 0%, #1a1a1a 100%);
+      border-color: #00bcd4;
+    }
+    .graph-node.type-parameter .graph-node-header {
+      background: #083838;
+      border-bottom-color: #0d4d4d;
+    }
+    .graph-node.type-parameter .node-type-indicator {
+      background: #00e5ff;
+      box-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+    }
+    .graph-node.type-parameter.selected {
+      border-color: #00e5ff;
+      box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.4);
+    }
+    
+    /* Animation/Transition nodes - Yellow */
+    .graph-node.type-transition,
+    .graph-node.type-animation {
+      background: linear-gradient(135deg, #7d4a0b 0%, #1a1a1a 100%);
+      border-color: #f57f17;
+    }
+    .graph-node.type-transition .graph-node-header,
+    .graph-node.type-animation .graph-node-header {
+      background: #5c3508;
+      border-bottom-color: #7d4a0b;
+    }
+    .graph-node.type-transition .node-type-indicator,
+    .graph-node.type-animation .node-type-indicator {
+      background: #ffc107;
+      box-shadow: 0 0 8px rgba(255, 193, 7, 0.6);
+    }
+    .graph-node.type-transition.selected,
+    .graph-node.type-animation.selected {
+      border-color: #ffc107;
+      box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.4);
+    }
+    
+    /* Event nodes - Orange */
+    .graph-node.type-event {
+      background: linear-gradient(135deg, #7d3a0b 0%, #1a1a1a 100%);
+      border-color: #ff6f00;
+    }
+    .graph-node.type-event .graph-node-header {
+      background: #5c2a08;
+      border-bottom-color: #7d3a0b;
+    }
+    .graph-node.type-event .node-type-indicator {
+      background: #ff9800;
+      box-shadow: 0 0 8px rgba(255, 152, 0, 0.6);
+    }
+    .graph-node.type-event.selected {
+      border-color: #ff9800;
+      box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.4);
+    }
+    
+    /* Delay nodes - Yellow */
+    .graph-node.type-delay {
+      background: linear-gradient(135deg, #7d4a0b 0%, #1a1a1a 100%);
+      border-color: #f57f17;
+    }
+    .graph-node.type-delay .graph-node-header {
+      background: #5c3508;
+      border-bottom-color: #7d4a0b;
+    }
+    .graph-node.type-delay .graph-node-title {
+      color: #e0e0e0;
+    }
+    .graph-node.type-delay .graph-node-body {
+      color: #e0e0e0;
+    }
+    .graph-node.type-delay .node-type-indicator {
+      background: #ffc107;
+      box-shadow: 0 0 8px rgba(255, 193, 7, 0.6);
+    }
+    .graph-node.type-delay.selected {
+      border-color: #ffc107;
+      box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.4);
+    }
+    
+    /* Snapshot/Parallel nodes - Purple */
+    .graph-node.type-snapshot,
+    .graph-node.type-parallel {
+      background: linear-gradient(135deg, #4a0d5c 0%, #1a1a1a 100%);
+      border-color: #9c27b0;
+    }
+    .graph-node.type-snapshot .graph-node-header,
+    .graph-node.type-parallel .graph-node-header {
+      background: #380840;
+      border-bottom-color: #4a0d5c;
+    }
+    .graph-node.type-snapshot .graph-node-title,
+    .graph-node.type-parallel .graph-node-title {
+      color: #e0e0e0;
+    }
+    .graph-node.type-snapshot .graph-node-body,
+    .graph-node.type-parallel .graph-node-body {
+      color: #e0e0e0;
+    }
+    .graph-node.type-snapshot .node-type-indicator,
+    .graph-node.type-parallel .node-type-indicator {
+      background: #ba68c8;
+      box-shadow: 0 0 8px rgba(186, 104, 200, 0.6);
+    }
+    .graph-node.type-snapshot.selected,
+    .graph-node.type-parallel.selected {
+      border-color: #ba68c8;
+      box-shadow: 0 0 0 2px rgba(186, 104, 200, 0.4);
+    }
+    
+    /* Parallel output management */
+    .parallel-outputs {
+      margin-top: 8px;
+      padding: 8px;
+      background: rgba(156, 39, 176, 0.1);
+      border-radius: 4px;
+    }
+    
+    .parallel-output-btn {
+      padding: 4px 8px;
+      margin: 2px;
+      background: #9c27b0;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 10px;
+    }
+    
+    .parallel-output-btn:hover {
+      background: #7b1fa2;
+    }
+    
+    /* Execute After Panel */
+    .execute-after-panel {
+      margin-top: 16px;
+      padding: 12px;
+      background: #2a2a2f;
+      border-radius: 6px;
+      border: 1px solid #444;
+    }
+    
+    .execute-after-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    .execute-after-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #3498db;
+    }
+    
+    .execute-after-toggle {
+      font-size: 10px;
+      color: #999;
+    }
+    
+    .execute-after-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+    
+    .execute-after-content.expanded {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .execute-after-controls {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    
+    .execute-after-btn {
+      padding: 4px 10px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    
+    .execute-after-btn:hover {
+      background: #2980b9;
+    }
+    
+    .execute-after-btn.secondary {
+      background: #7f8c8d;
+    }
+    
+    .execute-after-btn.secondary:hover {
+      background: #5d6d6e;
+    }
+    
+    .execute-after-hierarchy {
+      margin-top: 8px;
+    }
+    
+    .execute-after-node {
+      padding: 6px 8px;
+      margin: 3px 0;
+      background: #353535;
+      border-radius: 4px;
+      border-left: 3px solid #3498db;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .execute-after-node:hover {
+      background: #404040;
+      transform: translateX(2px);
+    }
+    
+    .execute-after-node.checked {
+      background: #2c3e50;
+      border-left-color: #27ae60;
+    }
+    
+    .execute-after-checkbox {
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+    
+    .execute-after-node-title {
+      flex: 1;
+      color: #e0e0e0;
+    }
+    
+    .execute-after-node-type {
+      font-size: 9px;
+      padding: 2px 6px;
+      background: rgba(52, 152, 219, 0.2);
+      border-radius: 3px;
+      color: #3498db;
+    }
+    
+    .execute-after-node.depth-1 { padding-left: 20px; }
+    .execute-after-node.depth-2 { padding-left: 36px; }
+    .execute-after-node.depth-3 { padding-left: 52px; }
 
     /* Dialogue System */
     .dialogue-workspace {
@@ -564,14 +1109,173 @@
       font-weight: 700;
     }
 
+    /* Node Tools Panel */
+    .node-tool-btn {
+      width: 100%;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      background: #37373d;
+      border: 1px solid #555;
+      border-radius: 4px;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 11px;
+      text-align: left;
+      transition: all 0.2s;
+      display: block;
+    }
+
+    .node-tool-btn:hover {
+      background: #404045;
+      border-color: #3498db;
+      transform: translateX(4px);
+    }
+
+    .node-tool-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Enhanced Scene Entity Styles */
+    .scene-entity {
+      padding: 8px 10px;
+      margin: 4px 8px;
+      background: #2a2a2a;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 11px;
+      border-left: 3px solid #555;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .scene-entity:hover {
+      background: #404040;
+      border-left-color: #3498db;
+      transform: translateX(4px);
+    }
+
+    .entity-name {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #e0e0e0;
+      font-weight: 600;
+    }
+
+    .entity-icon {
+      font-size: 14px;
+    }
+
+    .entity-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .scene-entity:hover .entity-actions {
+      opacity: 1;
+    }
+
+    .entity-btn {
+      padding: 2px 6px;
+      background: #3498db;
+      border: none;
+      border-radius: 2px;
+      color: white;
+      font-size: 9px;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-weight: 600;
+    }
+
+    .entity-btn:hover {
+      background: #2980b9;
+    }
+
+    .entity-btn.ingest-all {
+      background: #27ae60;
+    }
+
+    .entity-btn.ingest-all:hover {
+      background: #229954;
+    }
+
+    .entity-part {
+      padding: 6px 10px;
+      margin: 2px 8px 2px 24px;
+      background: #252526;
+      border-radius: 3px;
+      font-size: 10px;
+      color: #999;
+      border-left: 2px solid #666;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .entity-part:hover {
+      background: #2d2d30;
+      color: #e0e0e0;
+      border-left-color: #3498db;
+    }
+
+    /* Dialogue Display Mode Controls */
+    .dialogue-display-mode {
+      margin-top: 10px;
+      padding: 10px;
+      background: #252526;
+      border-radius: 4px;
+      border-top: 1px solid #3e3e42;
+    }
+
+    .mode-label {
+      font-size: 10px;
+      color: #999;
+      margin-bottom: 6px;
+      display: block;
+      font-weight: 600;
+    }
+
+    .mode-options {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .mode-option-btn {
+      flex: 1;
+      padding: 6px;
+      background: #37373d;
+      border: 1px solid #555;
+      border-radius: 3px;
+      color: #ccc;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mode-option-btn:hover {
+      background: #404045;
+    }
+
+    .mode-option-btn.active {
+      background: #3498db;
+      border-color: #3498db;
+      color: white;
+      font-weight: 600;
+    }
+
     /* ===== RIGHT PANEL - INSPECTOR ===== */
     .panel-right {
       background: #2c2c2c;
-      border-right: 1px solid #444;
       overflow-y: auto;
       padding: 15px;
       grid-column: 4;
       grid-row: 2;
+      width: 100%;
+      height: 100%;
     }
 
     .inspector-section {
@@ -635,6 +1339,8 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .code-preview-header {
@@ -710,6 +1416,60 @@
       margin-top: 8px;
     }
 
+    /* Video Player Overlay */
+    .video-player-overlay {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 20000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .video-player-overlay.active {
+      display: flex;
+    }
+
+    .video-container {
+      position: relative;
+      width: 90vw;
+      height: 90vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .video-canvas {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .video-controls {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .video-close-btn {
+      padding: 10px 20px;
+      background: #e74c3c;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .video-close-btn:hover {
+      background: #c0392b;
+    }
+
     /* Scrollbar Styling */
     ::-webkit-scrollbar {
       width: 8px;
@@ -749,6 +1509,19 @@
           <span class="scene-badge" id="sceneName">Loading...</span>
         </div>
         <div class="builder-controls">
+          <select id="sceneDropdown" class="property-input" style="width: 180px; padding: 8px; font-size: 12px; margin-right: 8px;">
+            <option value="">Current Scene</option>
+            <option value="IntroSceneComplete">Intro Scene</option>
+            <option value="VisiCalcScene">VisiCalc</option>
+            <option value="CelliRealScene">Celli Real</option>
+            <option value="FullhandScene">Fullhand</option>
+            <option value="End3Scene">End3</option>
+            <option value="CityScene">City</option>
+            <option value="LeaveScene">Leave</option>
+          </select>
+          <button class="btn btn-primary" id="switchSceneBtn">🔄 Switch</button>
+          <button class="btn btn-success" id="autoIngestBtn">📥 Ingest</button>
+          <button class="btn btn-primary" id="playIntroBtn">🎬 Intro</button>
           <button class="btn btn-primary" id="analyzeBtn">🔍 Analyze</button>
           <button class="btn btn-success" id="exportBtn">💾 Export</button>
           <button class="btn btn-secondary" id="importBtn">📂 Import</button>
@@ -756,22 +1529,37 @@
         </div>
       </div>
 
-      <!-- Left Panel - Asset Manager -->
+      <!-- Left Panel - Scene Manager & Node Tools -->
       <div class="panel-left">
         <div class="asset-manager-header">
-          <div class="asset-manager-title">📦 Scene Assets</div>
+          <div class="asset-manager-title">🎬 Scene Manager</div>
           <div class="asset-stats">
             <div class="stat-item">
-              <span class="stat-value" id="totalAssets">0</span>
-              <span>Assets</span>
+              <span class="stat-value" id="totalEntities">0</span>
+              <span>Entities</span>
             </div>
             <div class="stat-item">
-              <span class="stat-value" id="totalGroups">0</span>
-              <span>Groups</span>
+              <span class="stat-value" id="totalComponents">0</span>
+              <span>Components</span>
             </div>
           </div>
         </div>
-        <div id="assetGroupsContainer"></div>
+        <div id="sceneManagerContainer"></div>
+        
+        <div class="asset-manager-header" style="margin-top: 15px;">
+          <div class="asset-manager-title">🛠️ Node Tools Panel</div>
+        </div>
+        <div id="nodeToolsPanel" style="padding: 10px;">
+          <button class="node-tool-btn" data-node-type="dialogue">💬 Dialogue</button>
+          <button class="node-tool-btn" data-node-type="animation">🎬 Animation</button>
+          <button class="node-tool-btn" data-node-type="delay">⏱️ Delay</button>
+          <button class="node-tool-btn" data-node-type="transition">🔄 Transition</button>
+          <button class="node-tool-btn" data-node-type="parameter">📊 Parameter</button>
+          <button class="node-tool-btn" data-node-type="event">⚡ Event</button>
+          <button class="node-tool-btn" data-node-type="object">🎯 Object</button>
+          <button class="node-tool-btn" data-node-type="snapshot">📸 Snapshot</button>
+          <button class="node-tool-btn" data-node-type="parallel">⚡ Parallel</button>
+        </div>
       </div>
 
       <!-- Center Left - Scene Viewport -->
@@ -785,6 +1573,13 @@
             <button class="viewport-btn active" id="viewRenderBtn">Render</button>
             <button class="viewport-btn" id="viewWireframeBtn">Wireframe</button>
             <button class="viewport-btn" id="viewResetBtn">Reset</button>
+            <select class="camera-select" id="cameraSelect">
+              <option value="viewport">Viewport Camera</option>
+            </select>
+            <div class="playback-controls">
+              <button class="play-btn" id="playSceneBtn">▶ Play</button>
+              <button class="pause-btn" id="pauseSceneBtn">⏸ Pause</button>
+            </div>
           </div>
         </div>
         <div id="sceneViewport">
@@ -806,10 +1601,10 @@
 
         <!-- Timeline Tab -->
         <div class="tab-content active" id="timeline-tab">
-          <div class="timeline-container">
-            <div class="timeline-grid"></div>
-            <div style="color: #666; text-align: center; padding: 40px;">
-              Timeline view ready for sequence nodes
+          <div class="timeline-container" id="timelineContainer">
+            <div id="nodeCanvas">
+              <svg id="connectionsSvg"></svg>
+              <div id="nodesContainer"></div>
             </div>
           </div>
         </div>
@@ -868,6 +1663,17 @@
     </div>
   </div>
 
+  <!-- Video Player Overlay -->
+  <div class="video-player-overlay" id="videoPlayerOverlay">
+    <div class="video-container">
+      <video id="introVideo" style="display: none;" crossorigin="anonymous"></video>
+      <canvas id="videoCanvas" class="video-canvas"></canvas>
+      <div class="video-controls">
+        <button class="video-close-btn" id="videoCloseBtn">✕ Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Import Map for THREE.js -->
   <script type="importmap">
   {
@@ -881,8 +1687,144 @@
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    
+    // Import sequence builder core for auto-ingest
+    let sequenceBuilder = null;
+    try {
+      const module = await import('../../src/tools/SequenceBuilderCore.js');
+      sequenceBuilder = module.sequenceBuilder;
+      console.log('✅ SequenceBuilderCore loaded');
+    } catch (e) {
+      console.warn('⚠️ Could not load SequenceBuilderCore (may not be on web server):', e);
+      // Create a minimal fallback
+      sequenceBuilder = {
+        transitionToScene: async (sceneName) => {
+          console.warn('Fallback: transitionToScene called for', sceneName);
+          return false;
+        }
+      };
+    }
 
     console.log('🎬 Unified Sequence Builder Starting...');
+
+    // Scene Manager Data - Hierarchical scene entities
+    const sceneData = {
+      "Scene Objects": [
+        { 
+          name: "celli", 
+          icon: "🔷",
+          components: [
+            { name: "position", type: "vector3", path: "celli.transform.position" },
+            { name: "rotation", type: "vector3", path: "celli.transform.rotation" },
+            { name: "scale", type: "vector3", path: "celli.transform.scale" },
+            { name: "visible", type: "boolean", path: "celli.renderer.visible" },
+            { name: "opacity", type: "number", path: "celli.renderer.opacity" }
+          ],
+          parts: [
+            { 
+              name: "head", 
+              components: [
+                { name: "position", type: "vector3", path: "celli.head.position" },
+                { name: "rotation", type: "vector3", path: "celli.head.rotation" },
+                { name: "color", type: "color", path: "celli.head.color" },
+                { name: "visible", type: "boolean", path: "celli.head.visible" }
+              ]
+            },
+            {
+              name: "body",
+              components: [
+                { name: "position", type: "vector3", path: "celli.body.position" },
+                { name: "color", type: "color", path: "celli.body.color" }
+              ]
+            }
+          ]
+        },
+        {
+          name: "player",
+          icon: "👤",
+          components: [
+            { name: "position", type: "vector3", path: "player.position" },
+            { name: "velocity", type: "vector3", path: "player.velocity" },
+            { name: "health", type: "number", path: "player.health" },
+            { name: "energy", type: "number", path: "player.energy" }
+          ]
+        }
+      ],
+      "Environment": [
+        {
+          name: "camera",
+          icon: "📷",
+          components: [
+            { name: "position", type: "vector3", path: "camera.position" },
+            { name: "target", type: "vector3", path: "camera.target" },
+            { name: "fov", type: "number", path: "camera.fov" },
+            { name: "near", type: "number", path: "camera.near" },
+            { name: "far", type: "number", path: "camera.far" }
+          ]
+        },
+        {
+          name: "lights",
+          icon: "💡",
+          components: [
+            { name: "ambient.intensity", type: "number", path: "lights.ambient.intensity" },
+            { name: "ambient.color", type: "color", path: "lights.ambient.color" },
+            { name: "directional.intensity", type: "number", path: "lights.directional.intensity" },
+            { name: "directional.color", type: "color", path: "lights.directional.color" },
+            { name: "directional.position", type: "vector3", path: "lights.directional.position" }
+          ]
+        },
+        {
+          name: "skybox",
+          icon: "🌌",
+          components: [
+            { name: "color", type: "color", path: "skybox.color" },
+            { name: "rotation", type: "number", path: "skybox.rotation" },
+            { name: "intensity", type: "number", path: "skybox.intensity" }
+          ]
+        }
+      ],
+      "Effects": [
+        {
+          name: "postprocessing",
+          icon: "✨",
+          components: [
+            { name: "bloom.intensity", type: "number", path: "fx.bloom.intensity" },
+            { name: "bloom.threshold", type: "number", path: "fx.bloom.threshold" },
+            { name: "vignette.intensity", type: "number", path: "fx.vignette.intensity" },
+            { name: "chromatic.offset", type: "number", path: "fx.chromatic.offset" }
+          ]
+        },
+        {
+          name: "particles",
+          icon: "✨",
+          components: [
+            { name: "emissionRate", type: "number", path: "particles.emissionRate" },
+            { name: "lifetime", type: "number", path: "particles.lifetime" },
+            { name: "size", type: "number", path: "particles.size" },
+            { name: "color", type: "color", path: "particles.color" }
+          ]
+        }
+      ],
+      "Audio": [
+        {
+          name: "bgMusic",
+          icon: "🎵",
+          components: [
+            { name: "volume", type: "number", path: "audio.bgMusic.volume" },
+            { name: "pitch", type: "number", path: "audio.bgMusic.pitch" },
+            { name: "loop", type: "boolean", path: "audio.bgMusic.loop" }
+          ]
+        },
+        {
+          name: "sfx",
+          icon: "🔊",
+          components: [
+            { name: "volume", type: "number", path: "audio.sfx.volume" },
+            { name: "spatialBlend", type: "number", path: "audio.sfx.spatialBlend" }
+          ]
+        }
+      ]
+    };
 
     // ===== SCENE VIEWPORT MANAGER =====
     class SceneViewportManager {
@@ -897,43 +1839,96 @@
       }
 
       init() {
-        // Scene
-        this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x0a0a0a);
+        // Try to get live scene from parent window
+        const liveScene = this.getLiveScene();
+        
+        this.sceneCameras = [];
+        this.currentCameraIndex = 0;
+        this.selectedObject = null;
+        
+        if (liveScene) {
+          console.log('🎥 Using live scene from parent window');
+          this.scene = liveScene.scene;
+          this.camera = liveScene.camera;
+          this.renderer = liveScene.renderer;
+          this.sceneObject = liveScene.sceneObject;
+          this.usingLiveScene = true;
+          
+          // Collect all cameras from scene
+          this.scene.traverse((obj) => {
+            if (obj.isCamera) {
+              this.sceneCameras.push({
+                camera: obj,
+                name: obj.name || `Camera ${this.sceneCameras.length + 1}`
+              });
+            }
+          });
+          console.log(`Found ${this.sceneCameras.length} cameras in scene`);
+          
+          // Setup our own renderer for viewport
+          this.viewportRenderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+          this.viewportRenderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+          this.viewportRenderer.setPixelRatio(window.devicePixelRatio);
+          
+          // Clone camera for independent viewport
+          this.viewportCamera = this.camera.clone();
+          this.viewportCamera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
+          this.viewportCamera.updateProjectionMatrix();
+          this.viewportCamera.name = 'Viewport Camera';
+          
+          // Controls for viewport camera
+          this.controls = new OrbitControls(this.viewportCamera, this.canvas);
+          this.controls.enableDamping = true;
+          this.controls.dampingFactor = 0.05;
+          
+          // Setup raycaster for object selection
+          this.raycaster = new THREE.Raycaster();
+          this.mouse = new THREE.Vector2();
+          this.setupObjectSelection();
+          
+        } else {
+          console.log('🎥 Creating standalone scene');
+          this.usingLiveScene = false;
+          
+          // Scene
+          this.scene = new THREE.Scene();
+          this.scene.background = new THREE.Color(0x0a0a0a);
 
-        // Camera
-        const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
-        this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-        this.camera.position.set(5, 3, 5);
+          // Camera
+          const aspect = this.canvas.clientWidth / this.canvas.clientHeight;
+          this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+          this.camera.position.set(5, 3, 5);
+          this.viewportCamera = this.camera;
 
-        // Renderer
-        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
-        this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
-        this.renderer.setPixelRatio(window.devicePixelRatio);
+          // Renderer
+          this.viewportRenderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+          this.viewportRenderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+          this.viewportRenderer.setPixelRatio(window.devicePixelRatio);
 
-        // Controls
-        this.controls = new OrbitControls(this.camera, this.canvas);
-        this.controls.enableDamping = true;
-        this.controls.dampingFactor = 0.05;
+          // Controls
+          this.controls = new OrbitControls(this.viewportCamera, this.canvas);
+          this.controls.enableDamping = true;
+          this.controls.dampingFactor = 0.05;
 
-        // Lights
-        const ambientLight = new THREE.AmbientLight(0x404040, 2);
-        this.scene.add(ambientLight);
+          // Lights
+          const ambientLight = new THREE.AmbientLight(0x404040, 2);
+          this.scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-        directionalLight.position.set(5, 10, 5);
-        this.scene.add(directionalLight);
+          const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+          directionalLight.position.set(5, 10, 5);
+          this.scene.add(directionalLight);
 
-        // Grid
-        const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
-        this.scene.add(gridHelper);
+          // Grid
+          const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
+          this.scene.add(gridHelper);
 
-        // Sample object
-        const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const material = new THREE.MeshStandardMaterial({ color: 0x3498db });
-        const cube = new THREE.Mesh(geometry, material);
-        cube.position.y = 0.5;
-        this.scene.add(cube);
+          // Sample object
+          const geometry = new THREE.BoxGeometry(1, 1, 1);
+          const material = new THREE.MeshStandardMaterial({ color: 0x3498db });
+          const cube = new THREE.Mesh(geometry, material);
+          cube.position.y = 0.5;
+          this.scene.add(cube);
+        }
 
         // Start animation
         this.animate();
@@ -941,53 +1936,197 @@
         // Handle resize
         window.addEventListener('resize', () => this.handleResize());
         
+        // Populate camera picker
+        this.populateCameraPicker();
+        
         console.log('✅ Scene viewport initialized');
+      }
+      
+      setupObjectSelection() {
+        this.canvas.addEventListener('click', (event) => {
+          const rect = this.canvas.getBoundingClientRect();
+          this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+          this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+          
+          this.raycaster.setFromCamera(this.mouse, this.viewportCamera);
+          const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+          
+          if (intersects.length > 0) {
+            const object = intersects[0].object;
+            this.selectObject(object);
+          }
+        });
+      }
+      
+      selectObject(object) {
+        console.log('Selected object:', object.name || object.type, object);
+        this.selectedObject = object;
+        
+        // Notify main app
+        if (window.builderApp) {
+          window.builderApp._showObjectInspector(object);
+        }
+        
+        // Highlight object (optional visual feedback)
+        if (this.highlightedObject) {
+          // Remove previous highlight
+          if (this.highlightedObject.material && this.highlightedObject.material.emissive) {
+            this.highlightedObject.material.emissive.setHex(this.originalEmissive || 0x000000);
+          }
+        }
+        
+        if (object.material && object.material.emissive) {
+          this.originalEmissive = object.material.emissive.getHex();
+          object.material.emissive.setHex(0x3498db);
+          this.highlightedObject = object;
+        }
+      }
+      
+      populateCameraPicker() {
+        const select = document.getElementById('cameraSelect');
+        if (!select) return;
+        
+        // Clear existing options except viewport
+        select.innerHTML = '<option value="viewport">Viewport Camera</option>';
+        
+        // Add scene cameras
+        this.sceneCameras.forEach((cam, index) => {
+          const option = document.createElement('option');
+          option.value = `scene_${index}`;
+          option.textContent = cam.name;
+          select.appendChild(option);
+        });
+      }
+      
+      switchCamera(value) {
+        if (value === 'viewport') {
+          this.currentCameraIndex = -1;
+          this.controls.enabled = true;
+          console.log('Switched to viewport camera');
+        } else {
+          const index = parseInt(value.split('_')[1]);
+          if (index >= 0 && index < this.sceneCameras.length) {
+            this.currentCameraIndex = index;
+            this.viewportCamera = this.sceneCameras[index].camera;
+            this.controls.enabled = false; // Disable controls when using scene camera
+            console.log(`Switched to ${this.sceneCameras[index].name}`);
+          }
+        }
+      }
+      
+      getLiveScene() {
+        // Try to access parent window's scene
+        try {
+          if (window.parent && window.parent !== window) {
+            const parentScene = window.parent.currentScene || window.parent.introScene;
+            if (parentScene && parentScene.scene && parentScene.camera && parentScene.renderer) {
+              return {
+                scene: parentScene.scene,
+                camera: parentScene.camera,
+                renderer: parentScene.renderer,
+                sceneObject: parentScene
+              };
+            }
+          }
+          
+          // Try opener window
+          if (window.opener) {
+            const openerScene = window.opener.currentScene || window.opener.introScene;
+            if (openerScene && openerScene.scene && openerScene.camera && openerScene.renderer) {
+              return {
+                scene: openerScene.scene,
+                camera: openerScene.camera,
+                renderer: openerScene.renderer,
+                sceneObject: openerScene
+              };
+            }
+          }
+        } catch (e) {
+          console.warn('Could not access parent scene:', e);
+        }
+        
+        return null;
       }
 
       animate() {
-        this.animationId = requestAnimationFrame(() => this.animate());
+        if (!this.isPaused) {
+          this.animationId = requestAnimationFrame(() => this.animate());
+        }
         
-        this.controls.update();
-        this.renderer.render(this.scene, this.camera);
+        if (this.controls && this.controls.enabled) {
+          this.controls.update();
+        }
+        
+        // Render with viewport camera and renderer
+        if (this.viewportRenderer && this.viewportCamera) {
+          this.viewportRenderer.render(this.scene, this.viewportCamera);
+        }
         
         // Update stats
         this.updateStats();
       }
+      
+      play() {
+        if (this.isPaused) {
+          this.isPaused = false;
+          this.animate();
+          console.log('▶ Scene playback resumed');
+        }
+      }
+      
+      pause() {
+        this.isPaused = true;
+        console.log('⏸ Scene playback paused');
+      }
 
       updateStats() {
         this.stats.objects = this.scene.children.length;
-        this.stats.tris = this.renderer.info.render.triangles;
+        this.stats.tris = this.viewportRenderer ? this.viewportRenderer.info.render.triangles : 0;
       }
 
       handleResize() {
         const width = this.canvas.clientWidth;
         const height = this.canvas.clientHeight;
         
-        this.camera.aspect = width / height;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(width, height);
+        if (this.viewportCamera) {
+          this.viewportCamera.aspect = width / height;
+          this.viewportCamera.updateProjectionMatrix();
+        }
+        if (this.viewportRenderer) {
+          this.viewportRenderer.setSize(width, height);
+        }
       }
 
       setWireframe(enabled) {
         this.scene.traverse((object) => {
-          if (object.isMesh) {
-            object.material.wireframe = enabled;
+          if (object.isMesh && object.material) {
+            if (Array.isArray(object.material)) {
+              object.material.forEach(mat => mat.wireframe = enabled);
+            } else {
+              object.material.wireframe = enabled;
+            }
           }
         });
       }
 
       resetCamera() {
-        this.camera.position.set(5, 3, 5);
-        this.controls.target.set(0, 0, 0);
-        this.controls.update();
+        if (this.viewportCamera) {
+          this.viewportCamera.position.set(5, 3, 5);
+          this.controls.target.set(0, 0, 0);
+          this.controls.update();
+        }
       }
 
       dispose() {
         if (this.animationId) {
           cancelAnimationFrame(this.animationId);
         }
-        this.renderer.dispose();
-        this.controls.dispose();
+        if (this.viewportRenderer) {
+          this.viewportRenderer.dispose();
+        }
+        if (this.controls) {
+          this.controls.dispose();
+        }
       }
     }
 
@@ -1034,11 +2173,16 @@
         if (handleNum === 'bottom') {
           // Vertical resize
           const deltaY = e.clientY - this.startY;
-          const containerHeight = this.container.clientHeight;
           const bottomHeight = this.startWidths[2] || 180;
           const newHeight = Math.max(100, Math.min(400, bottomHeight - deltaY));
           
           this.container.style.gridTemplateRows = `60px 1fr ${newHeight}px`;
+          
+          // Update bottom handle position
+          const bottomHandle = document.querySelector('.resize-handle-bottom');
+          if (bottomHandle) {
+            bottomHandle.style.bottom = `${newHeight}px`;
+          }
         } else {
           // Horizontal resize
           const deltaX = e.clientX - this.startX;
@@ -1048,6 +2192,16 @@
           newWidths[handleIndex] = Math.max(200, newWidths[handleIndex] + deltaX);
           
           this.container.style.gridTemplateColumns = newWidths.map(w => `${w}px`).join(' ');
+          
+          // Update handle positions
+          if (handleNum === '1') {
+            this.currentHandle.style.left = `${newWidths[0]}px`;
+          } else if (handleNum === '2') {
+            const rightPos = newWidths[2] + newWidths[3];
+            this.currentHandle.style.right = `${rightPos}px`;
+          } else if (handleNum === '3') {
+            this.currentHandle.style.right = `${newWidths[3]}px`;
+          }
         }
       }
 
@@ -1059,6 +2213,11 @@
           this.currentHandle.classList.remove('active');
         }
         this.currentHandle = null;
+        
+        // Keep handles visible briefly after resize
+        setTimeout(() => {
+          // Handles will fade via CSS :hover
+        }, 500);
         
         // Notify viewport to resize
         if (window.viewportManager) {
@@ -1117,10 +2276,499 @@
       }
     }
 
+    // ===== NODE GRAPH MANAGER =====
+    class NodeGraphManager {
+      constructor(canvasEl, svgEl, nodesContainerEl) {
+        this.canvas = canvasEl;
+        this.svg = svgEl;
+        this.nodesContainer = nodesContainerEl;
+        this.nodes = [];
+        this.connections = [];
+        this.nodeIdCounter = 1;
+        this.connectionIdCounter = 1;
+        this.selectedNode = null;
+        this.dragState = null;
+        this.connectionDrag = null;
+        this.canvasOffset = { x: 0, y: 0 };
+        
+        this._setupCanvasInteraction();
+      }
+      
+      _setupCanvasInteraction() {
+        // Canvas panning
+        let isPanning = false;
+        let panStart = { x: 0, y: 0 };
+        
+        this.canvas.addEventListener('mousedown', (e) => {
+          if (e.target === this.canvas || e.target === this.nodesContainer) {
+            isPanning = true;
+            panStart = { x: e.clientX, y: e.clientY };
+            this.canvas.classList.add('dragging');
+          }
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+          if (isPanning) {
+            const dx = e.clientX - panStart.x;
+            const dy = e.clientY - panStart.y;
+            
+            const container = this.canvas.parentElement;
+            container.scrollLeft -= dx;
+            container.scrollTop -= dy;
+            
+            panStart = { x: e.clientX, y: e.clientY };
+          }
+          
+          // Handle connection dragging
+          if (this.connectionDrag) {
+            this._updateTempConnection(e);
+          }
+        });
+        
+        document.addEventListener('mouseup', () => {
+          if (isPanning) {
+            isPanning = false;
+            this.canvas.classList.remove('dragging');
+          }
+          
+          if (this.connectionDrag) {
+            this._endConnectionDrag();
+          }
+        });
+      }
+      
+      createNode(type, x, y, data = {}) {
+        const node = {
+          id: this.nodeIdCounter++,
+          type,
+          x,
+          y,
+          data: {
+            speaker: data.speaker || 'Node',
+            text: data.text || '',
+            ...data
+          }
+        };
+        
+        console.log(`Creating node: ${type} at (${x}, ${y})`, node);
+        
+        this.nodes.push(node);
+        console.log(`Total nodes: ${this.nodes.length}`);
+        
+        if (!this.nodesContainer) {
+          console.error('❌ nodesContainer is null! Cannot render node.');
+          return node;
+        }
+        
+        this._renderNode(node);
+        this._expandCanvasIfNeeded(x + 250, y + 150);
+        
+        console.log(`✅ Node created and rendered: ${node.id}`);
+        return node;
+      }
+      
+      _expandCanvasIfNeeded(x, y) {
+        const currentWidth = parseInt(this.canvas.style.minWidth) || 3000;
+        const currentHeight = parseInt(this.canvas.style.minHeight) || 2000;
+        
+        let newWidth = currentWidth;
+        let newHeight = currentHeight;
+        let needsUpdate = false;
+        
+        if (x > currentWidth - 500) {
+          newWidth = Math.max(currentWidth, x + 1000);
+          needsUpdate = true;
+        }
+        
+        if (y > currentHeight - 500) {
+          newHeight = Math.max(currentHeight, y + 1000);
+          needsUpdate = true;
+        }
+        
+        if (needsUpdate) {
+          this.canvas.style.minWidth = newWidth + 'px';
+          this.canvas.style.minHeight = newHeight + 'px';
+          this.svg.style.width = newWidth + 'px';
+          this.svg.style.height = newHeight + 'px';
+        }
+      }
+      
+      _renderNode(node) {
+        console.log(`Rendering node ${node.id} of type ${node.type}`);
+        
+        const nodeEl = document.createElement('div');
+        nodeEl.className = `graph-node type-${node.type}`;
+        nodeEl.dataset.nodeId = node.id;
+        nodeEl.style.left = node.x + 'px';
+        nodeEl.style.top = node.y + 'px';
+        
+        console.log(`Node element created, position: ${node.x}, ${node.y}`);
+        
+        nodeEl.innerHTML = `
+          <div class="graph-node-header">
+            <div class="graph-node-title">
+              <div class="node-type-indicator"></div>
+              <span>${node.data.speaker || node.type}</span>
+            </div>
+            <div class="graph-node-actions">
+              <button class="node-action-btn node-copy-btn" title="Copy Node">📋</button>
+              <button class="node-action-btn node-delete-btn" title="Delete Node">×</button>
+            </div>
+          </div>
+          <div class="graph-node-body">
+            ${node.data.text || 'No content'}
+          </div>
+        `;
+        
+        console.log(`Node HTML set for node ${node.id}`);
+        
+        // Add sockets
+        const hasInput = node.type !== 'parameter';
+        const hasOutput = true;
+        
+        if (hasInput) {
+          const inputSocket = this._createSocket('input', node.id);
+          nodeEl.appendChild(inputSocket);
+        }
+        
+        if (hasOutput) {
+          // Handle multiple outputs for parallel nodes
+          if (node.type === 'parallel') {
+            const numOutputs = node.data.outputs || 3;
+            for (let i = 0; i < numOutputs; i++) {
+              const outputSocket = this._createSocket('output', node.id, i);
+              outputSocket.style.top = `${20 + (i * 25)}%`;
+              nodeEl.appendChild(outputSocket);
+            }
+            
+            // Add output management controls
+            const controlsDiv = document.createElement('div');
+            controlsDiv.className = 'parallel-outputs';
+            controlsDiv.innerHTML = `
+              <button class="parallel-output-btn" onclick="window.nodeGraphManager._addParallelOutput('${node.id}')">+ Add Output</button>
+              ${numOutputs > 1 ? `<button class="parallel-output-btn" onclick="window.nodeGraphManager._removeParallelOutput('${node.id}')">- Remove Output</button>` : ''}
+            `;
+            nodeEl.querySelector('.graph-node-body').appendChild(controlsDiv);
+          } else {
+            const outputSocket = this._createSocket('output', node.id);
+            nodeEl.appendChild(outputSocket);
+          }
+        }
+        
+        // Node dragging
+        const header = nodeEl.querySelector('.graph-node-header');
+        header.addEventListener('mousedown', (e) => {
+          if (e.target.closest('.node-action-btn')) return;
+          
+          this.selectedNode = node;
+          this.dragState = {
+            node,
+            startX: e.clientX,
+            startY: e.clientY,
+            nodeStartX: node.x,
+            nodeStartY: node.y
+          };
+          
+          document.querySelectorAll('.graph-node').forEach(n => n.classList.remove('selected'));
+          nodeEl.classList.add('selected');
+          
+          const onMouseMove = (e) => {
+            if (!this.dragState) return;
+            
+            const dx = e.clientX - this.dragState.startX;
+            const dy = e.clientY - this.dragState.startY;
+            
+            // Calculate new position with bounds checking
+            let newX = this.dragState.nodeStartX + dx;
+            let newY = this.dragState.nodeStartY + dy;
+            
+            // Get node dimensions
+            const nodeWidth = nodeEl.offsetWidth || 180;
+            const nodeHeight = nodeEl.offsetHeight || 100;
+            
+            // Get canvas dimensions
+            const canvasWidth = this.canvas.offsetWidth;
+            const canvasHeight = this.canvas.offsetHeight;
+            
+            // Constrain within bounds (with some padding)
+            const padding = 20;
+            newX = Math.max(padding, Math.min(newX, canvasWidth - nodeWidth - padding));
+            newY = Math.max(padding, Math.min(newY, canvasHeight - nodeHeight - padding));
+            
+            node.x = newX;
+            node.y = newY;
+            
+            nodeEl.style.left = node.x + 'px';
+            nodeEl.style.top = node.y + 'px';
+            
+            // Expand canvas if getting close to edge
+            this._expandCanvasIfNeeded(node.x + nodeWidth, node.y + nodeHeight);
+            
+            this._updateConnections();
+          };
+          
+          const onMouseUp = () => {
+            this.dragState = null;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+          };
+          
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+          
+          e.stopPropagation();
+        });
+        
+        // Copy button
+        nodeEl.querySelector('.node-copy-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.copyNode(node.id);
+        });
+        
+        // Delete button
+        nodeEl.querySelector('.node-delete-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.deleteNode(node.id);
+        });
+        
+        console.log(`Appending node ${node.id} to nodesContainer`);
+        this.nodesContainer.appendChild(nodeEl);
+        console.log(`✅ Node ${node.id} appended. Container children count: ${this.nodesContainer.children.length}`);
+      }
+      
+      _createSocket(type, nodeId, index = 0) {
+        const socket = document.createElement('div');
+        socket.className = `node-socket ${type}`;
+        socket.dataset.nodeId = nodeId;
+        socket.dataset.socketType = type;
+        socket.dataset.socketIndex = index;
+        
+        const label = document.createElement('span');
+        label.className = 'socket-label';
+        label.textContent = type === 'input' ? 'In' : (index > 0 ? `Out${index + 1}` : 'Out');
+        socket.appendChild(label);
+        
+        socket.style.top = '50%';
+        socket.style.transform = 'translateY(-50%)';
+        
+        // Socket interaction
+        socket.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          
+          if (type === 'output') {
+            this.connectionDrag = {
+              fromNode: nodeId,
+              fromType: type,
+              fromIndex: index,
+              startX: e.clientX,
+              startY: e.clientY
+            };
+          }
+        });
+        
+        socket.addEventListener('mouseup', (e) => {
+          if (this.connectionDrag && type === 'input' && this.connectionDrag.fromNode !== nodeId) {
+            this.createConnection(this.connectionDrag.fromNode, nodeId, this.connectionDrag.fromIndex);
+          }
+        });
+        
+        return socket;
+      }
+      
+      _addParallelOutput(nodeId) {
+        const node = this.nodes.find(n => n.id === nodeId);
+        if (!node || node.type !== 'parallel') return;
+        
+        node.data.outputs = (node.data.outputs || 3) + 1;
+        node.data.text = `${node.data.outputs} parallel outputs`;
+        
+        // Re-render node
+        const nodeEl = document.querySelector(`.graph-node[data-node-id="${nodeId}"]`);
+        if (nodeEl) {
+          nodeEl.remove();
+          this._renderNode(node);
+        }
+        
+        console.log(`Added output to parallel node. Total outputs: ${node.data.outputs}`);
+      }
+      
+      _removeParallelOutput(nodeId) {
+        const node = this.nodes.find(n => n.id === nodeId);
+        if (!node || node.type !== 'parallel') return;
+        
+        if (node.data.outputs <= 1) return;
+        
+        node.data.outputs = node.data.outputs - 1;
+        node.data.text = `${node.data.outputs} parallel outputs`;
+        
+        // Re-render node
+        const nodeEl = document.querySelector(`.graph-node[data-node-id="${nodeId}"]`);
+        if (nodeEl) {
+          nodeEl.remove();
+          this._renderNode(node);
+        }
+        
+        console.log(`Removed output from parallel node. Total outputs: ${node.data.outputs}`);
+      }
+      
+      createConnection(fromNodeId, toNodeId) {
+        // Check if connection already exists
+        const exists = this.connections.some(c => 
+          c.from === fromNodeId && c.to === toNodeId
+        );
+        
+        if (exists) return;
+        
+        const connection = {
+          id: this.connectionIdCounter++,
+          from: fromNodeId,
+          to: toNodeId
+        };
+        
+        this.connections.push(connection);
+        this._updateConnections();
+        
+        console.log('✅ Connection created:', connection);
+      }
+      
+      _updateConnections() {
+        this.svg.innerHTML = '';
+        
+        this.connections.forEach(conn => {
+          const fromNode = this.nodes.find(n => n.id === conn.from);
+          const toNode = this.nodes.find(n => n.id === conn.to);
+          
+          if (!fromNode || !toNode) return;
+          
+          const fromEl = document.querySelector(`[data-node-id="${conn.from}"].graph-node .node-socket.output`);
+          const toEl = document.querySelector(`[data-node-id="${conn.to}"].graph-node .node-socket.input`);
+          
+          if (!fromEl || !toEl) return;
+          
+          // Get positions relative to the canvas
+          const x1 = fromNode.x + fromEl.offsetParent.offsetWidth - 6;
+          const y1 = fromNode.y + (fromEl.offsetTop || 30);
+          const x2 = toNode.x - 6;
+          const y2 = toNode.y + (toEl.offsetTop || 30);
+          
+          const path = this._createBezierPath(x1, y1, x2, y2);
+          const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          pathEl.setAttribute('d', path);
+          pathEl.setAttribute('class', 'node-connection');
+          pathEl.setAttribute('data-connection-id', conn.id);
+          
+          pathEl.addEventListener('click', () => {
+            if (confirm('Delete this connection?')) {
+              this.deleteConnection(conn.id);
+            }
+          });
+          
+          this.svg.appendChild(pathEl);
+        });
+      }
+      
+      _createBezierPath(x1, y1, x2, y2) {
+        const dx = Math.abs(x2 - x1);
+        const offset = Math.min(dx * 0.5, 100);
+        return `M ${x1} ${y1} C ${x1 + offset} ${y1}, ${x2 - offset} ${y2}, ${x2} ${y2}`;
+      }
+      
+      _updateTempConnection(e) {
+        if (!this.connectionDrag) return;
+        
+        const fromNode = this.nodes.find(n => n.id === this.connectionDrag.fromNode);
+        if (!fromNode) return;
+        
+        const fromSocket = document.querySelector(
+          `[data-node-id="${this.connectionDrag.fromNode}"].graph-node .node-socket.output`
+        );
+        
+        if (!fromSocket) return;
+        
+        const container = this.canvas.parentElement;
+        const canvasRect = this.canvas.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        
+        // Get socket position relative to canvas
+        const x1 = fromNode.x + fromSocket.offsetParent.offsetWidth - 6;
+        const y1 = fromNode.y + (fromSocket.offsetTop || 30);
+        
+        // Get mouse position relative to canvas accounting for scroll
+        const x2 = e.clientX - containerRect.left + container.scrollLeft;
+        const y2 = e.clientY - containerRect.top + container.scrollTop;
+        
+        let tempPath = this.svg.querySelector('.temp-connection');
+        if (!tempPath) {
+          tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          tempPath.setAttribute('class', 'temp-connection');
+          this.svg.appendChild(tempPath);
+        }
+        
+        const path = this._createBezierPath(x1, y1, x2, y2);
+        tempPath.setAttribute('d', path);
+      }
+      
+      _endConnectionDrag() {
+        const tempPath = this.svg.querySelector('.temp-connection');
+        if (tempPath) {
+          tempPath.remove();
+        }
+        this.connectionDrag = null;
+      }
+      
+      copyNode(nodeId) {
+        const node = this.nodes.find(n => n.id === nodeId);
+        if (!node) return;
+        
+        const copy = this.createNode(
+          node.type,
+          node.x + 30,
+          node.y + 30,
+          { ...node.data, speaker: node.data.speaker + ' (Copy)' }
+        );
+        
+        console.log('✅ Node copied:', copy);
+        return copy;
+      }
+      
+      deleteNode(nodeId) {
+        const index = this.nodes.findIndex(n => n.id === nodeId);
+        if (index === -1) return;
+        
+        this.nodes.splice(index, 1);
+        this.connections = this.connections.filter(c => c.from !== nodeId && c.to !== nodeId);
+        
+        const nodeEl = document.querySelector(`[data-node-id="${nodeId}"].graph-node`);
+        if (nodeEl) nodeEl.remove();
+        
+        this._updateConnections();
+        
+        console.log('✅ Node deleted:', nodeId);
+      }
+      
+      deleteConnection(connectionId) {
+        const index = this.connections.findIndex(c => c.id === connectionId);
+        if (index === -1) return;
+        
+        this.connections.splice(index, 1);
+        this._updateConnections();
+        
+        console.log('✅ Connection deleted:', connectionId);
+      }
+      
+      clear() {
+        this.nodes = [];
+        this.connections = [];
+        this.nodesContainer.innerHTML = '';
+        this.svg.innerHTML = '';
+      }
+    }
+
     // ===== MAIN APPLICATION =====
     class UnifiedSequenceBuilder {
       constructor() {
         this.dialogueManager = new DialogueManager();
+        this.nodeGraphManager = null;
         this.viewportManager = null;
         this.resizableManager = null;
         this.isOverlayMode = false;
@@ -1135,9 +2783,9 @@
           overlay: document.getElementById('builderOverlay'),
           container: document.getElementById('builderContainer'),
           sceneName: document.getElementById('sceneName'),
-          assetGroupsContainer: document.getElementById('assetGroupsContainer'),
-          totalAssets: document.getElementById('totalAssets'),
-          totalGroups: document.getElementById('totalGroups'),
+          sceneManagerContainer: document.getElementById('sceneManagerContainer'),
+          totalEntities: document.getElementById('totalEntities'),
+          totalComponents: document.getElementById('totalComponents'),
           inspector: document.getElementById('inspector'),
           codePreview: document.getElementById('codePreview'),
           dialogueCardsContainer: document.getElementById('dialogueCardsContainer'),
@@ -1150,6 +2798,7 @@
       }
 
       async init(overlayMode = false) {
+        try {
         console.log('🎬 Initializing Unified Sequence Builder...');
         
         this.isOverlayMode = overlayMode;
@@ -1162,34 +2811,123 @@
         }
         
         this.ui.loadingDetail.textContent = 'Initializing scene viewport...';
+          console.log('Step 1: Scene viewport...');
         
         // Initialize scene viewport
         const canvas = document.getElementById('sceneCanvas');
         this.viewportManager = new SceneViewportManager(canvas);
         this.viewportManager.init();
         window.viewportManager = this.viewportManager;
+          console.log('✅ Scene viewport initialized');
         
         // Initialize resizable panels
+          this.ui.loadingDetail.textContent = 'Initializing panels...';
+          console.log('Step 2: Resizable panels...');
         this.resizableManager = new ResizableManager(this.ui.container);
         this.resizableManager.init();
+          console.log('✅ Resizable panels initialized');
+          
+          // Initialize node graph
+          this.ui.loadingDetail.textContent = 'Initializing node graph...';
+          console.log('Step 3: Node graph...');
+          const nodeCanvas = document.getElementById('nodeCanvas');
+          const connectionsSvg = document.getElementById('connectionsSvg');
+          const nodesContainer = document.getElementById('nodesContainer');
+          this.nodeGraphManager = new NodeGraphManager(nodeCanvas, connectionsSvg, nodesContainer);
+          window.nodeGraphManager = this.nodeGraphManager;
+          window.sequenceBuilder = sequenceBuilder;
+          console.log('✅ Node graph initialized');
+          
+          // Update connections on scroll and resize
+          const timelineContainer = document.getElementById('timelineContainer');
+          if (timelineContainer) {
+            timelineContainer.addEventListener('scroll', () => {
+              if (this.nodeGraphManager) {
+                requestAnimationFrame(() => {
+                  this.nodeGraphManager._updateConnections();
+                });
+              }
+            });
+          }
+          
+          // Update connections on window resize
+          window.addEventListener('resize', () => {
+            if (this.nodeGraphManager) {
+              requestAnimationFrame(() => {
+                this.nodeGraphManager._updateConnections();
+              });
+            }
+          });
+          
+          // Periodic connection update to handle panel resizing (less frequent now that we have scroll listeners)
+          setInterval(() => {
+            if (this.nodeGraphManager && this.nodeGraphManager.connections.length > 0) {
+              this.nodeGraphManager._updateConnections();
+            }
+          }, 500);
         
         this.ui.loadingDetail.textContent = 'Detecting scene...';
+          console.log('Step 4: Detecting scene...');
         
         const sceneName = this._detectCurrentScene();
         this.state.currentScene = sceneName;
         this.ui.sceneName.textContent = sceneName;
+          console.log(`✅ Scene detected: ${sceneName}`);
         
+          this.ui.loadingDetail.textContent = 'Generating assets...';
+          console.log('Step 5: Generating assets...');
         this._generateMockAssets();
+          console.log('✅ Assets generated');
+          
+          this.ui.loadingDetail.textContent = 'Rendering UI...';
+          console.log('Step 6: Rendering UI...');
         this._renderAssetGroups();
+          console.log('✅ Asset groups rendered');
+          
+          this.ui.loadingDetail.textContent = 'Setting up event listeners...';
+          console.log('Step 7: Event listeners...');
         this._setupEventListeners();
+          console.log('✅ Event listeners set up');
+          
+          this.ui.loadingDetail.textContent = 'Loading dialogues...';
+          console.log('Step 8: Dialogues...');
         this._renderInitialDialogues();
+          console.log('✅ Dialogues rendered');
+          
+          this.ui.loadingDetail.textContent = 'Extracting sequence nodes...';
+          console.log('Step 9: Sequence nodes...');
+        this._extractSequenceNodes();
+          console.log('✅ Sequence nodes extracted');
+          
+          this.ui.loadingDetail.textContent = 'Updating code preview...';
+          console.log('Step 10: Code preview...');
         this._updateCodePreview();
+          console.log('✅ Code preview updated');
+          
+          this.ui.loadingDetail.textContent = 'Starting stats update...';
+          console.log('Step 11: Stats...');
         this._startStatsUpdate();
+          console.log('✅ Stats update started');
+          
+          this.ui.loadingDetail.textContent = 'Ready!';
         
         setTimeout(() => {
           this.ui.loadingOverlay.style.display = 'none';
           console.log('✅ Unified Sequence Builder Ready');
-        }, 500);
+          }, 300);
+          
+        } catch (error) {
+          console.error('❌ Error during initialization:', error);
+          console.error('Stack trace:', error.stack);
+          
+          this.ui.loadingDetail.textContent = `Error: ${error.message}`;
+          this.ui.loadingDetail.style.color = '#e74c3c';
+          
+          setTimeout(() => {
+            this.ui.loadingOverlay.style.display = 'none';
+            alert(`Initialization error:\n\n${error.message}\n\nSome features may not work. Check console for details.`);
+          }, 1000);
+        }
       }
 
       _detectCurrentScene() {
@@ -1203,148 +2941,182 @@
       }
 
       _generateMockAssets() {
-        this.state.assets = {
-          components: [
-            { name: 'Scene', line: 1, namespace: 'THREE' },
-            { name: 'PerspectiveCamera', line: 5, namespace: 'THREE' },
-            { name: 'WebGLRenderer', line: 10, namespace: 'THREE' },
-            { name: 'Mesh', line: 15, namespace: 'THREE' },
-            { name: 'BoxGeometry', line: 20, namespace: 'THREE' }
-          ],
-          functions: [
-            { name: 'init', line: 30, async: true },
-            { name: 'animate', line: 50, async: false },
-            { name: 'update', line: 70, async: false }
-          ],
-          variables: [
-            { name: 'scene', line: 12, type: 'const' },
-            { name: 'camera', line: 13, type: 'const' },
-            { name: 'renderer', line: 14, type: 'const' }
-          ],
-          styles: [
-            { name: 'main.css', line: 1 },
-            { name: 'animations.css', line: 2 }
-          ],
-          imports: [
-            { name: 'THREE', from: 'three', line: 1 },
-            { name: 'Store', from: './engine/Store.js', line: 2 }
-          ],
-          classes: [
-            { name: this.state.currentScene, line: 40, type: 'extended' }
-          ]
-        };
+        // Count scene data
+        this.sceneManagerState = { collapsedCategories: new Set() };
+        let totalEntities = 0;
+        let totalComponents = 0;
+        
+        Object.keys(sceneData).forEach(category => {
+          sceneData[category].forEach(entity => {
+            totalEntities++;
+            totalComponents += entity.components.length;
+            if (entity.parts) {
+              entity.parts.forEach(part => {
+                totalComponents += part.components.length;
+              });
+            }
+          });
+        });
+        
+        // Update UI counts
+        if (this.ui.totalEntities) this.ui.totalEntities.textContent = totalEntities;
+        if (this.ui.totalComponents) this.ui.totalComponents.textContent = totalComponents;
       }
 
       _renderAssetGroups() {
-        const assets = this.state.assets;
-        const groups = [
-          { key: 'components', icon: '🧩', title: 'Components' },
-          { key: 'functions', icon: '⚡', title: 'Functions' },
-          { key: 'variables', icon: '📊', title: 'Variables' },
-          { key: 'styles', icon: '🎨', title: 'Styles' },
-          { key: 'imports', icon: '📦', title: 'Imports' }
-        ];
-
-        let totalAssets = 0;
-        this.ui.assetGroupsContainer.innerHTML = '';
-
-        groups.forEach(group => {
-          const items = assets[group.key] || [];
-          totalAssets += items.length;
-
-          const groupEl = document.createElement('div');
-          groupEl.className = 'asset-group';
+        const container = document.getElementById('sceneManagerContainer');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        Object.keys(sceneData).forEach(category => {
+          const categoryDiv = document.createElement('div');
+          categoryDiv.className = 'asset-group';
           
-          groupEl.innerHTML = `
-            <div class="asset-group-header">
+          const isCollapsed = this.sceneManagerState.collapsedCategories.has(category);
+          const entities = sceneData[category];
+          
+          categoryDiv.innerHTML = `
+            <div class="asset-group-header ${isCollapsed ? '' : 'active'}">
               <div class="asset-group-title">
-                <span>${group.icon}</span>
-                <span>${group.title}</span>
-                <span class="asset-count">${items.length}</span>
+                <span>${category}</span>
+                <span class="asset-count">${entities.length}</span>
               </div>
-              <span class="expand-icon">▶</span>
+              <span class="expand-icon">${isCollapsed ? '▶' : '▼'}</span>
             </div>
-            <div class="asset-group-content">
-              ${items.map((item, idx) => `
-                <div class="asset-item" data-group="${group.key}" data-index="${idx}">
-                  <span class="asset-name">${item.name}</span>
-                  <span class="asset-type type-${group.key.slice(0, -1)}">${group.key.slice(0, 3).toUpperCase()}</span>
-                </div>
-              `).join('')}
+            <div class="asset-group-content ${isCollapsed ? '' : 'expanded'}">
+              ${this._renderSceneEntities(category, entities)}
             </div>
           `;
-
-          this.ui.assetGroupsContainer.appendChild(groupEl);
-
-          const header = groupEl.querySelector('.asset-group-header');
-          const content = groupEl.querySelector('.asset-group-content');
+          
+          container.appendChild(categoryDiv);
+          
+          // Add toggle handler
+          const header = categoryDiv.querySelector('.asset-group-header');
+          const content = categoryDiv.querySelector('.asset-group-content');
           
           header.addEventListener('click', () => {
             const isExpanded = content.classList.contains('expanded');
             if (isExpanded) {
               content.classList.remove('expanded');
               header.classList.remove('active');
+              this.sceneManagerState.collapsedCategories.add(category);
             } else {
               content.classList.add('expanded');
               header.classList.add('active');
+              this.sceneManagerState.collapsedCategories.delete(category);
             }
           });
-
-          groupEl.querySelectorAll('.asset-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-              e.stopPropagation();
-              this._selectAsset(group.key, parseInt(item.dataset.index));
-            });
-          });
         });
-
-        this.ui.totalAssets.textContent = totalAssets;
-        this.ui.totalGroups.textContent = groups.length;
       }
-
-      _selectAsset(groupKey, index) {
-        document.querySelectorAll('.asset-item').forEach(el => el.classList.remove('selected'));
-        
-        const asset = this.state.assets[groupKey][index];
-        this.state.selectedAsset = { ...asset, group: groupKey };
-        
-        const assetEl = document.querySelector(`.asset-item[data-group="${groupKey}"][data-index="${index}"]`);
-        if (assetEl) assetEl.classList.add('selected');
-        
-        this._updateInspector();
-      }
-
-      _updateInspector() {
-        if (!this.state.selectedAsset) {
-          this.ui.inspector.innerHTML = `
-            <div style="text-align: center; color: #666; padding: 40px 20px; font-size: 12px;">
-              Select an asset or dialogue to inspect
+      
+      _renderSceneEntities(category, entities) {
+        return entities.map(entity => {
+          let html = `
+            <div class="scene-entity" data-entity="${entity.name}" data-category="${category}">
+              <div class="entity-name">
+                <span class="entity-icon">${entity.icon || '📦'}</span>
+                <span>${entity.name}</span>
+              </div>
+              <div class="entity-actions">
+                <button class="entity-btn" onclick="window.builderApp._addObjectNode('${entity.name}', '${category}')">Add Node</button>
+                <button class="entity-btn ingest-all" onclick="window.builderApp._ingestAllParameters('${entity.name}', '${category}')">Ingest All</button>
+              </div>
             </div>
           `;
-          return;
-        }
-
-        const asset = this.state.selectedAsset;
-        
-        this.ui.inspector.innerHTML = `
-          <div class="property-group">
-            <div class="property-label">Asset Name</div>
-            <input type="text" class="property-input" value="${asset.name}" readonly>
-          </div>
           
-          <div class="property-group">
-            <div class="property-label">Type</div>
-            <input type="text" class="property-input" value="${asset.group}" readonly>
-          </div>
+          // Add parts if any
+          if (entity.parts && entity.parts.length > 0) {
+            entity.parts.forEach(part => {
+              html += `
+                <div class="entity-part" onclick="window.builderApp._ingestEntityPart('${entity.name}', '${part.name}', '${category}')">
+                  ↳ ${part.name}
+                </div>
+              `;
+            });
+          }
           
-          ${asset.line ? `
-            <div class="property-group">
-              <div class="property-label">Line Number</div>
-              <input type="number" class="property-input" value="${asset.line}" readonly>
-            </div>
-          ` : ''}
-        `;
+          return html;
+        }).join('');
       }
+      
+      _addObjectNode(entityName, category) {
+        console.log(`Adding object node for: ${entityName} (${category})`);
+        // Create object node in dialogue workspace
+        this.dialogueManager.createDialogue({
+          speaker: entityName,
+          text: `Object node for ${entityName}`,
+          display: 'terminal',
+          timestamp: 0,
+          nodeType: 'object',
+          entityName,
+          category
+        });
+        this._renderDialogueCards();
+      }
+      
+      _ingestAllParameters(entityName, category) {
+        const entity = sceneData[category].find(e => e.name === entityName);
+        if (!entity) return;
+        
+        console.log(`Ingesting all parameters for: ${entityName}`);
+        
+        // Add main entity components
+        entity.components.forEach(comp => {
+          this.dialogueManager.createDialogue({
+            speaker: `${entityName}.${comp.name}`,
+            text: `Parameter: ${comp.path} (${comp.type})`,
+            display: 'terminal',
+            timestamp: 0,
+            nodeType: 'parameter',
+            path: comp.path,
+            paramType: comp.type
+          });
+        });
+        
+        // Add parts components
+        if (entity.parts) {
+          entity.parts.forEach(part => {
+            part.components.forEach(comp => {
+              this.dialogueManager.createDialogue({
+                speaker: `${entityName}.${part.name}.${comp.name}`,
+                text: `Parameter: ${comp.path} (${comp.type})`,
+                display: 'terminal',
+                timestamp: 0,
+                nodeType: 'parameter',
+                path: comp.path,
+                paramType: comp.type
+              });
+            });
+          });
+        }
+        
+        this._renderDialogueCards();
+      }
+      
+      _ingestEntityPart(entityName, partName, category) {
+        const entity = sceneData[category].find(e => e.name === entityName);
+        if (!entity || !entity.parts) return;
+        
+        const part = entity.parts.find(p => p.name === partName);
+        if (!part) return;
+        
+        console.log(`Ingesting part: ${entityName}.${partName}`);
+        
+        const xStart = 400;
+        const yStart = 100;
+        const spacing = 120;
+        
+        part.components.forEach((comp, i) => {
+          this.nodeGraphManager.createNode('parameter', xStart, yStart + i * spacing, {
+            speaker: `${entityName}.${partName}.${comp.name}`,
+            text: `${comp.path} (${comp.type})`,
+            path: comp.path,
+            paramType: comp.type
+          });
+        });
+      }
+
 
       _renderInitialDialogues() {
         this.dialogueManager.createDialogue({
@@ -1396,6 +3168,9 @@
       }
 
       _showDialogueInspector(dialogue) {
+        const displayMode = dialogue.displayMode || 'card';
+        const screenTarget = dialogue.screenTarget || 'screen1';
+        
         this.ui.inspector.innerHTML = `
           <div class="property-group">
             <div class="property-label">Speaker</div>
@@ -1417,6 +3192,25 @@
             </select>
           </div>
           
+          <div class="dialogue-display-mode">
+            <label class="mode-label">Display Mode</label>
+            <div class="mode-options">
+              <button class="mode-option-btn ${displayMode === 'card' ? 'active' : ''}" data-mode="card">Card/Terminal</button>
+              <button class="mode-option-btn ${displayMode === 'screen' ? 'active' : ''}" data-mode="screen">On Screen</button>
+            </div>
+            
+            <div id="screenTargetGroup" style="${displayMode === 'screen' ? 'display: block;' : 'display: none;'}">
+              <label class="mode-label">Screen Target</label>
+              <select class="property-input" id="dialogueScreenTarget">
+                <option value="screen1" ${screenTarget === 'screen1' ? 'selected' : ''}>Screen 1</option>
+                <option value="screen2" ${screenTarget === 'screen2' ? 'selected' : ''}>Screen 2</option>
+                <option value="screen3" ${screenTarget === 'screen3' ? 'selected' : ''}>Screen 3</option>
+                <option value="mainDisplay" ${screenTarget === 'mainDisplay' ? 'selected' : ''}>Main Display</option>
+                <option value="hudOverlay" ${screenTarget === 'hudOverlay' ? 'selected' : ''}>HUD Overlay</option>
+              </select>
+            </div>
+          </div>
+          
           <div class="property-group">
             <div class="property-label">Timestamp (s)</div>
             <input type="number" class="property-input" id="dialogueTimestamp" value="${dialogue.timestamp}" step="0.1" min="0">
@@ -1425,20 +3219,88 @@
           <button class="btn btn-primary" onclick="window.builderApp._saveDialogueChanges(${dialogue.id})" style="width: 100%; margin-top: 10px; padding: 8px;">
             💾 Save Changes
           </button>
+          
+          <button class="btn btn-secondary" onclick="window.builderApp._copyDialogue(${dialogue.id})" style="width: 100%; margin-top: 8px; padding: 8px;">
+            📋 Copy Node
+          </button>
+          
+          <!-- Execute After Panel -->
+          <div class="execute-after-panel">
+            <div class="execute-after-header" onclick="window.builderApp._toggleExecuteAfter(${dialogue.id})">
+              <div class="execute-after-title">▶ Execute After</div>
+              <div class="execute-after-toggle" id="executeAfterToggle-${dialogue.id}">Click to expand</div>
+            </div>
+            <div class="execute-after-content" id="executeAfterContent-${dialogue.id}">
+              <div class="execute-after-controls">
+                <button class="execute-after-btn" onclick="window.builderApp._selectAllExecuteAfter(${dialogue.id})">All</button>
+                <button class="execute-after-btn secondary" onclick="window.builderApp._selectNoneExecuteAfter(${dialogue.id})">None</button>
+              </div>
+              <div class="execute-after-hierarchy" id="executeAfterHierarchy-${dialogue.id}">
+                Loading...
+              </div>
+            </div>
+          </div>
         `;
+        
+        // Add event listeners for mode buttons
+        document.querySelectorAll('.mode-option-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.mode-option-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const screenTargetGroup = document.getElementById('screenTargetGroup');
+            if (btn.dataset.mode === 'screen') {
+              screenTargetGroup.style.display = 'block';
+            } else {
+              screenTargetGroup.style.display = 'none';
+            }
+          });
+        });
       }
 
       _saveDialogueChanges(id) {
+        const activeMode = document.querySelector('.mode-option-btn.active');
+        const displayMode = activeMode ? activeMode.dataset.mode : 'card';
+        
         const updates = {
           speaker: document.getElementById('dialogueSpeaker').value,
           text: document.getElementById('dialogueText').value,
           display: document.getElementById('dialogueDisplay').value,
-          timestamp: parseFloat(document.getElementById('dialogueTimestamp').value)
+          timestamp: parseFloat(document.getElementById('dialogueTimestamp').value),
+          displayMode: displayMode
         };
+        
+        // Only save screen target if in screen mode
+        if (displayMode === 'screen') {
+          const screenTargetEl = document.getElementById('dialogueScreenTarget');
+          if (screenTargetEl) {
+            updates.screenTarget = screenTargetEl.value;
+          }
+        }
         
         this.dialogueManager.updateDialogue(id, updates);
         this._renderDialogueCards();
         this._updateCodePreview();
+        
+        console.log('✅ Dialogue saved:', updates);
+      }
+
+      _copyDialogue(id) {
+        const dialogue = this.dialogueManager.dialogues.find(d => d.id === id);
+        if (!dialogue) return;
+        
+        // Create a copy with new ID
+        const copy = this.dialogueManager.createDialogue({
+          ...dialogue,
+          id: undefined, // Will be generated
+          speaker: dialogue.speaker + ' (Copy)',
+          timestamp: dialogue.timestamp + 0.5
+        });
+        
+        this._renderDialogueCards();
+        this._selectDialogue(copy.id);
+        
+        console.log('✅ Dialogue copied:', copy);
       }
 
       _editDialogue(id) {
@@ -1484,6 +3346,199 @@
           }
         }, 100);
       }
+      
+      _extractSequenceNodes() {
+        const nodes = [];
+        
+        try {
+          // Try to get sequence data from live scene
+          const liveScene = this.viewportManager?.getLiveScene?.();
+          if (liveScene && liveScene.sceneObject) {
+            const sceneObj = liveScene.sceneObject;
+            
+            // Extract timing data from scene
+            if (sceneObj.introCfg) {
+              const cfg = sceneObj.introCfg;
+              
+              // Create nodes from intro config
+              if (cfg.rollEnd) nodes.push({ name: 'Roll Phase', time: 0, duration: cfg.rollEnd, type: 'animation' });
+              if (cfg.bounceEnd) nodes.push({ name: 'Bounce Phase', time: cfg.rollEnd || 0, duration: (cfg.bounceEnd - (cfg.rollEnd || 0)), type: 'animation' });
+              if (cfg.triangleEnd) nodes.push({ name: 'Triangle Form', time: cfg.bounceEnd || 0, duration: (cfg.triangleEnd - (cfg.bounceEnd || 0)), type: 'animation' });
+              if (cfg.transitionEnd) nodes.push({ name: 'Orbit Transition', time: cfg.triangleEnd || 0, duration: (cfg.transitionEnd - (cfg.triangleEnd || 0)), type: 'animation' });
+              if (cfg.normalEnd) nodes.push({ name: 'Normal Mode', time: cfg.transitionEnd || 0, duration: (cfg.normalEnd - (cfg.transitionEnd || 0)), type: 'animation' });
+              if (cfg.vennEnd) nodes.push({ name: 'Venn Diagram', time: cfg.normalEnd || 0, duration: (cfg.vennEnd - (cfg.normalEnd || 0)), type: 'effect' });
+              if (cfg.collapseEnd) nodes.push({ name: 'Collapse', time: cfg.vennEnd || 0, duration: (cfg.collapseEnd - (cfg.vennEnd || 0)), type: 'transition' });
+              if (cfg.glitchEnd) nodes.push({ name: 'Glitch Effect', time: cfg.collapseEnd || 0, duration: (cfg.glitchEnd - (cfg.collapseEnd || 0)), type: 'effect' });
+              if (cfg.blackoutEnd) nodes.push({ name: 'Blackout', time: cfg.glitchEnd || 0, duration: (cfg.blackoutEnd - (cfg.glitchEnd || 0)), type: 'transition' });
+              if (cfg.loomworksEnd) nodes.push({ name: 'Loomworks Text', time: cfg.blackoutEnd || 0, duration: (cfg.loomworksEnd - (cfg.blackoutEnd || 0)), type: 'text' });
+              if (cfg.celliEnd) nodes.push({ name: 'CELLI Voxel', time: cfg.loomworksEnd || 0, duration: (cfg.celliEnd - (cfg.loomworksEnd || 0)), type: 'animation' });
+              if (cfg.doorwayEnd) nodes.push({ name: 'Doorway Portal', time: cfg.celliEnd || 0, duration: (cfg.doorwayEnd - (cfg.celliEnd || 0)), type: 'transition' });
+            }
+            
+            // Extract from motionCfg
+            if (sceneObj.motionCfg) {
+              console.log('Found motion config:', sceneObj.motionCfg);
+            }
+            
+            // Check for sequence property
+            if (sceneObj.sequence && Array.isArray(sceneObj.sequence)) {
+              sceneObj.sequence.forEach((seq, i) => {
+                nodes.push({
+                  name: seq.name || `Sequence ${i + 1}`,
+                  time: seq.startTime || seq.time || 0,
+                  duration: seq.duration || 1.0,
+                  type: seq.type || 'animation'
+                });
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('Could not extract sequence nodes:', e);
+        }
+        
+        // If no nodes found, create sample
+        if (nodes.length === 0) {
+          nodes.push({ name: 'Sample Node', time: 0, duration: 2.0, type: 'animation' });
+          nodes.push({ name: 'Effect', time: 2.5, duration: 1.5, type: 'effect' });
+          nodes.push({ name: 'Transition', time: 4.5, duration: 1.0, type: 'transition' });
+        }
+        
+        this._renderTimelineNodes(nodes);
+      }
+      
+      _renderTimelineNodes(nodes) {
+        const container = document.getElementById('timelineNodes');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        const pixelsPerSecond = 50;
+        const trackHeight = 60;
+        
+        nodes.forEach((node, index) => {
+          const nodeEl = document.createElement('div');
+          nodeEl.className = 'sequence-node-item';
+          nodeEl.dataset.index = index;
+          
+          const left = 20 + (node.time * pixelsPerSecond);
+          const width = node.duration * pixelsPerSecond;
+          const top = 20 + (index % 5) * (trackHeight + 10);
+          
+          nodeEl.style.left = `${left}px`;
+          nodeEl.style.top = `${top}px`;
+          nodeEl.style.width = `${Math.max(width, 100)}px`;
+          
+          // Color by type
+          const typeColors = {
+            animation: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+            effect: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+            transition: 'linear-gradient(135deg, #f39c12 0%, #d68910 100%)',
+            text: 'linear-gradient(135deg, #16a085 0%, #138d75 100%)',
+            sound: 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)'
+          };
+          
+          nodeEl.style.background = typeColors[node.type] || typeColors.animation;
+          
+          nodeEl.innerHTML = `
+            <div>${node.name}</div>
+            <div class="node-time">@${node.time.toFixed(1)}s (${node.duration.toFixed(1)}s)</div>
+          `;
+          
+          nodeEl.addEventListener('click', () => {
+            document.querySelectorAll('.sequence-node-item').forEach(n => n.classList.remove('selected'));
+            nodeEl.classList.add('selected');
+            this._showNodeInspector(node);
+          });
+          
+          container.appendChild(nodeEl);
+        });
+        
+        console.log(`✅ Rendered ${nodes.length} sequence nodes`);
+      }
+      
+      _showNodeInspector(node) {
+        this.ui.inspector.innerHTML = `
+          <div class="inspector-section">
+            <div class="inspector-section-title">📦 Sequence Node</div>
+            
+            <div class="property-group">
+              <div class="property-label">Name</div>
+              <input type="text" class="property-input" value="${node.name}" readonly>
+            </div>
+            
+            <div class="property-group">
+              <div class="property-label">Type</div>
+              <input type="text" class="property-input" value="${node.type}" readonly>
+            </div>
+            
+            <div class="property-group">
+              <div class="property-label">Start Time (s)</div>
+              <input type="number" class="property-input" value="${node.time}" readonly>
+            </div>
+            
+            <div class="property-group">
+              <div class="property-label">Duration (s)</div>
+              <input type="number" class="property-input" value="${node.duration}" readonly>
+            </div>
+          </div>
+        `;
+      }
+      
+      _showObjectInspector(object) {
+        const position = object.position ? `(${object.position.x.toFixed(2)}, ${object.position.y.toFixed(2)}, ${object.position.z.toFixed(2)})` : 'N/A';
+        const rotation = object.rotation ? `(${(object.rotation.x * 180 / Math.PI).toFixed(1)}°, ${(object.rotation.y * 180 / Math.PI).toFixed(1)}°, ${(object.rotation.z * 180 / Math.PI).toFixed(1)}°)` : 'N/A';
+        const scale = object.scale ? `(${object.scale.x.toFixed(2)}, ${object.scale.y.toFixed(2)}, ${object.scale.z.toFixed(2)})` : 'N/A';
+        
+        this.ui.inspector.innerHTML = `
+          <div class="inspector-section">
+            <div class="inspector-section-title">🎯 Selected Object</div>
+            
+            <div class="property-group">
+              <div class="property-label">Name</div>
+              <input type="text" class="property-input" value="${object.name || '(unnamed)'}" readonly>
+            </div>
+            
+            <div class="property-group">
+              <div class="property-label">Type</div>
+              <input type="text" class="property-input" value="${object.type}" readonly>
+            </div>
+            
+            <div class="property-group">
+              <div class="property-label">Position</div>
+              <input type="text" class="property-input" value="${position}" readonly>
+            </div>
+            
+            <div class="property-group">
+              <div class="property-label">Rotation</div>
+              <input type="text" class="property-input" value="${rotation}" readonly>
+            </div>
+            
+            <div class="property-group">
+              <div class="property-label">Scale</div>
+              <input type="text" class="property-input" value="${scale}" readonly>
+            </div>
+            
+            ${object.material ? `
+              <div class="property-group">
+                <div class="property-label">Material</div>
+                <input type="text" class="property-input" value="${object.material.type}" readonly>
+              </div>
+            ` : ''}
+            
+            ${object.geometry ? `
+              <div class="property-group">
+                <div class="property-label">Geometry</div>
+                <input type="text" class="property-input" value="${object.geometry.type || 'BufferGeometry'}" readonly>
+              </div>
+            ` : ''}
+            
+            <div class="property-group">
+              <div class="property-label">Visible</div>
+              <input type="text" class="property-input" value="${object.visible ? 'Yes' : 'No'}" readonly>
+            </div>
+          </div>
+        `;
+      }
 
       _setupEventListeners() {
         // Tab switching
@@ -1495,31 +3550,67 @@
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             
             btn.classList.add('active');
-            document.getElementById(`${tab}-tab`).classList.add('active');
+            const tabEl = document.getElementById(`${tab}-tab`);
+            if (tabEl) tabEl.classList.add('active');
             
             this.state.currentTab = tab;
           });
         });
 
         // Viewport controls
-        document.getElementById('viewRenderBtn').addEventListener('click', (e) => {
+        const viewRenderBtn = document.getElementById('viewRenderBtn');
+        if (viewRenderBtn) {
+          viewRenderBtn.addEventListener('click', (e) => {
           document.querySelectorAll('.viewport-btn').forEach(b => b.classList.remove('active'));
           e.target.classList.add('active');
           this.viewportManager.setWireframe(false);
         });
+        }
 
-        document.getElementById('viewWireframeBtn').addEventListener('click', (e) => {
+        const viewWireframeBtn = document.getElementById('viewWireframeBtn');
+        if (viewWireframeBtn) {
+          viewWireframeBtn.addEventListener('click', (e) => {
           document.querySelectorAll('.viewport-btn').forEach(b => b.classList.remove('active'));
           e.target.classList.add('active');
           this.viewportManager.setWireframe(true);
         });
+        }
 
-        document.getElementById('viewResetBtn').addEventListener('click', () => {
+        const viewResetBtn = document.getElementById('viewResetBtn');
+        if (viewResetBtn) {
+          viewResetBtn.addEventListener('click', () => {
           this.viewportManager.resetCamera();
         });
+        }
+        
+        // Camera picker
+        const cameraSelect = document.getElementById('cameraSelect');
+        if (cameraSelect) {
+          cameraSelect.addEventListener('change', (e) => {
+          this.viewportManager.switchCamera(e.target.value);
+        });
+        }
+        
+        // Play button
+        const playSceneBtn = document.getElementById('playSceneBtn');
+        if (playSceneBtn) {
+          playSceneBtn.addEventListener('click', () => {
+          this.viewportManager.play();
+        });
+        }
+        
+        // Pause button
+        const pauseSceneBtn = document.getElementById('pauseSceneBtn');
+        if (pauseSceneBtn) {
+          pauseSceneBtn.addEventListener('click', () => {
+          this.viewportManager.pause();
+        });
+        }
 
         // Add dialogue
-        document.getElementById('addDialogueBtn').addEventListener('click', () => {
+        const addDialogueBtn = document.getElementById('addDialogueBtn');
+        if (addDialogueBtn) {
+          addDialogueBtn.addEventListener('click', () => {
           const dialogue = this.dialogueManager.createDialogue({
             speaker: 'New Speaker',
             text: 'Enter dialogue text here...',
@@ -1529,9 +3620,12 @@
           this._renderDialogueCards();
           this._selectDialogue(dialogue.id);
         });
+        }
 
         // Cast to display
-        document.getElementById('castToDisplayBtn').addEventListener('click', () => {
+        const castToDisplayBtn = document.getElementById('castToDisplayBtn');
+        if (castToDisplayBtn) {
+          castToDisplayBtn.addEventListener('click', () => {
           const selected = document.querySelector('.dialogue-card.selected');
           if (!selected) {
             alert('Please select a dialogue first');
@@ -1543,9 +3637,32 @@
           this.dialogueManager.updateDialogue(id, { display });
           this._renderDialogueCards();
         });
+        }
+
+        // Analyze button
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        if (analyzeBtn) {
+          analyzeBtn.addEventListener('click', () => {
+          console.log('🔍 Re-analyzing scene...');
+          this._generateMockAssets();
+          this._renderAssetGroups();
+          this._updateCodePreview();
+        });
+        }
+        
+        // Refresh Nodes button
+        const refreshNodesBtn = document.getElementById('refreshNodesBtn');
+        if (refreshNodesBtn) {
+          refreshNodesBtn.addEventListener('click', () => {
+          console.log('🔄 Refreshing sequence nodes...');
+          this._extractSequenceNodes();
+        });
+        }
 
         // Export
-        document.getElementById('exportBtn').addEventListener('click', () => {
+        const exportBtn = document.getElementById('exportBtn');
+        if (exportBtn) {
+          exportBtn.addEventListener('click', () => {
           const data = {
             scene: this.state.currentScene,
             dialogues: this.dialogueManager.exportDialogues(),
@@ -1564,23 +3681,612 @@
           navigator.clipboard.writeText(json);
           alert('✅ Exported and copied to clipboard!');
         });
+        }
 
         // Copy code
-        document.getElementById('copyCodeBtn').addEventListener('click', () => {
+        const copyCodeBtn = document.getElementById('copyCodeBtn');
+        if (copyCodeBtn) {
+          copyCodeBtn.addEventListener('click', () => {
           const code = this.ui.codePreview.innerText;
           navigator.clipboard.writeText(code);
           alert('✅ Copied to clipboard!');
         });
+        }
 
         // Close
-        document.getElementById('closeBtn').addEventListener('click', () => {
+        const closeBtn = document.getElementById('closeBtn');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
           if (this.isOverlayMode) {
             this.close();
+            // Notify parent window
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage({ type: 'closeSequenceBuilder' }, '*');
+            }
           } else {
             if (confirm('Close Sequence Builder?')) {
               window.close();
             }
           }
+        });
+        }
+        
+        // Node Tools Panel
+        document.querySelectorAll('.node-tool-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const nodeType = btn.dataset.nodeType;
+            console.log(`Creating ${nodeType} node from tools panel`);
+            
+            const nodeDefaults = {
+              dialogue: {
+                speaker: 'New Speaker',
+                text: 'Enter dialogue text here...'
+              },
+              animation: {
+                speaker: 'Animation',
+                text: 'Configure animation properties'
+              },
+              delay: {
+                speaker: 'Delay',
+                text: 'Duration: 1.0s'
+              },
+              transition: {
+                speaker: 'Transition',
+                text: 'Configure transition'
+              },
+              parameter: {
+                speaker: 'Parameter',
+                text: 'Select from Scene Manager'
+              },
+              event: {
+                speaker: 'Event Trigger',
+                text: 'Event: custom_event'
+              },
+              object: {
+                speaker: 'Object',
+                text: 'Select from Scene Manager'
+              },
+              snapshot: {
+                speaker: 'Snapshot',
+                text: 'Capture object state'
+              },
+              parallel: {
+                speaker: 'Parallel',
+                text: '3 parallel outputs',
+                outputs: 3
+              }
+            };
+            
+            const defaults = nodeDefaults[nodeType] || nodeDefaults.dialogue;
+            
+            // Create node on canvas
+            const x = 150 + Math.random() * 300;
+            const y = 150 + Math.random() * 300;
+            
+            this.nodeGraphManager.createNode(nodeType, x, y, defaults);
+          });
+        });
+        
+        // Auto-Ingest Scene button
+        const autoIngestBtn = document.getElementById('autoIngestBtn');
+        if (autoIngestBtn) {
+          autoIngestBtn.addEventListener('click', async () => {
+            console.log('🔄 Auto-ingesting scene...');
+            
+            const sceneDropdown = document.getElementById('sceneDropdown');
+            const selectedScene = sceneDropdown ? sceneDropdown.value : '';
+            
+            console.log(`Selected scene from dropdown: "${selectedScene}"`);
+          
+          let sceneObject = null;
+          
+          // Get scene object from parent or opener window
+          try {
+            // Try parent window first
+            if (window.parent && window.parent !== window) {
+              console.log('Checking parent window for scene...');
+              
+              // PRIORITY 1: Check for running scene instances FIRST (before selectedScene filtering)
+              if (window.parent.introScene) {
+                const introSceneName = window.parent.introScene.constructor.name;
+                console.log(`Found introScene: ${introSceneName}`);
+                
+                // If no selection or selection matches intro
+                if (!selectedScene || selectedScene === '' || introSceneName === selectedScene || selectedScene === 'IntroSceneComplete') {
+                  sceneObject = window.parent.introScene;
+                  console.log(`✅ Using intro scene: ${introSceneName}`);
+                }
+              }
+              
+              // PRIORITY 2: Check currentScene
+              if (!sceneObject && window.parent.currentScene) {
+                const currentSceneName = window.parent.currentScene.constructor.name;
+                console.log(`Found currentScene: ${currentSceneName}`);
+                
+                // If no selection or selection matches current
+                if (!selectedScene || selectedScene === '' || currentSceneName === selectedScene) {
+                  sceneObject = window.parent.currentScene;
+                  console.log(`✅ Using current scene: ${currentSceneName}`);
+                }
+              }
+              
+              // PRIORITY 3: Try direct property lookup (for scene classes)
+              if (!sceneObject && selectedScene) {
+                sceneObject = window.parent[selectedScene] || 
+                             window.parent[selectedScene.toLowerCase()] ||
+                             window.parent[selectedScene.charAt(0).toLowerCase() + selectedScene.slice(1)];
+                
+                if (sceneObject) {
+                  console.log(`✅ Found scene via property: ${selectedScene}`);
+                }
+              }
+            }
+            
+            // Try opener window if not found in parent
+            if (!sceneObject && window.opener) {
+              console.log('Checking opener window for scene...');
+              
+              // PRIORITY 1: Check for running scene instances FIRST
+              if (window.opener.introScene) {
+                const introSceneName = window.opener.introScene.constructor.name;
+                console.log(`Found opener introScene: ${introSceneName}`);
+                
+                if (!selectedScene || selectedScene === '' || introSceneName === selectedScene || selectedScene === 'IntroSceneComplete') {
+                  sceneObject = window.opener.introScene;
+                  console.log(`✅ Using opener intro scene: ${introSceneName}`);
+                }
+              }
+              
+              // PRIORITY 2: Check currentScene
+              if (!sceneObject && window.opener.currentScene) {
+                const currentSceneName = window.opener.currentScene.constructor.name;
+                console.log(`Found opener currentScene: ${currentSceneName}`);
+                
+                if (!selectedScene || selectedScene === '' || currentSceneName === selectedScene) {
+                  sceneObject = window.opener.currentScene;
+                  console.log(`✅ Using opener current scene: ${currentSceneName}`);
+                }
+              }
+              
+              // PRIORITY 3: Try direct property lookup
+              if (!sceneObject && selectedScene) {
+                sceneObject = window.opener[selectedScene] || 
+                             window.opener[selectedScene.toLowerCase()] ||
+                             window.opener[selectedScene.charAt(0).toLowerCase() + selectedScene.slice(1)];
+                
+                if (sceneObject) {
+                  console.log(`✅ Found scene via opener property: ${selectedScene}`);
+                }
+              }
+            }
+          } catch (e) {
+            console.error('❌ Error accessing scene object:', e);
+          }
+          
+          console.log(`Scene object result:`, sceneObject ? sceneObject.constructor.name : 'NULL');
+          
+          if (!sceneObject) {
+            const sceneName = selectedScene || 'current scene';
+            console.error(`❌ Scene object is null for "${sceneName}"`);
+            
+            // Offer to switch to the scene
+            if (selectedScene && confirm(`Scene "${sceneName}" is not currently running.\n\nWould you like to switch to this scene first?`)) {
+              const transitioned = await window.sequenceBuilder.transitionToScene(selectedScene);
+              
+              if (transitioned) {
+                alert(`Switched to ${selectedScene}. Please wait for the scene to load, then try auto-ingest again.`);
+              } else {
+                alert(`Could not switch to scene "${selectedScene}".\n\nMake sure:\n1. The main app is running in parent/opener window\n2. The scene is available in the scene registry\n3. The transitionToScene function is available`);
+              }
+            } else {
+              alert(`Could not find scene object for "${sceneName}".\n\nOptions:\n1. Use the "Switch" button to switch to the scene first\n2. Make sure a scene is running in the parent window\n3. Open this builder from within a running scene`);
+            }
+            return;
+          }
+          
+          console.log(`Found scene object:`, sceneObject.constructor ? sceneObject.constructor.name : 'unknown');
+          
+          // Check if it's a class constructor (not instantiated)
+          const isClass = typeof sceneObject === 'function';
+          
+          if (isClass) {
+            alert(`Found scene class "${sceneObject.name}" but it's not instantiated.\n\nPlease switch to this scene first, then try auto-ingest.`);
+            
+            if (confirm(`Would you like to switch to ${sceneObject.name} now?`)) {
+              const transitioned = await window.sequenceBuilder.transitionToScene(selectedScene);
+              if (transitioned) {
+                alert(`Switched to ${sceneObject.name}. Please wait for scene to load, then try auto-ingest again.`);
+              }
+            }
+            return;
+          }
+          
+          // Clear existing nodes (skip confirm if graph is empty)
+          const hasExistingNodes = this.nodeGraphManager.nodes.length > 0;
+          const shouldProceed = !hasExistingNodes || confirm(`Clear ${this.nodeGraphManager.nodes.length} existing node(s) and auto-ingest data from ${sceneObject.constructor ? sceneObject.constructor.name : 'scene'}?`);
+          
+          if (shouldProceed) {
+            if (hasExistingNodes) {
+              console.log('Clearing existing nodes and connections...');
+              this.nodeGraphManager.nodes = [];
+              this.nodeGraphManager.connections = [];
+              this.nodeGraphManager.nodesContainer.innerHTML = '';
+              
+              // Clear SVG connections
+              const svgConnections = this.nodeGraphManager.svg.querySelectorAll('.node-connection');
+              svgConnections.forEach(conn => conn.remove());
+              console.log('✅ Cleared all existing nodes and connections');
+            } else {
+              console.log('No existing nodes to clear, proceeding with ingest...');
+            }
+            
+            // Auto-ingest scene
+            console.log('Starting auto-ingest...');
+            console.log('Scene object to ingest:', sceneObject);
+            const ingestedNodes = await this.autoIngestScene(sceneObject);
+            
+            console.log(`✅ Scene auto-ingested successfully - ${ingestedNodes ? ingestedNodes.length : 0} nodes created`);
+            console.log(`Total nodes in graph: ${this.nodeGraphManager.nodes.length}`);
+            console.log(`Nodes in DOM: ${this.nodeGraphManager.nodesContainer.children.length}`);
+            
+            alert(`Scene ingested!\n\n${ingestedNodes ? ingestedNodes.length : 0} nodes created.\n\nCheck the "Node Graph" tab to see them.`);
+          } else {
+            console.log('User cancelled auto-ingest');
+          }
+          });
+        }
+        
+        // Scene dropdown change
+        const sceneDropdown2 = document.getElementById('sceneDropdown');
+        if (sceneDropdown2) {
+          sceneDropdown2.addEventListener('change', (e) => {
+            console.log('Scene selection changed:', e.target.value);
+            this.ui.sceneName.textContent = e.target.value || 'Current Scene';
+          });
+        }
+        
+        // Switch to Scene button
+        const switchSceneBtn = document.getElementById('switchSceneBtn');
+        if (switchSceneBtn) {
+          switchSceneBtn.addEventListener('click', async () => {
+            const sceneDropdown = document.getElementById('sceneDropdown');
+            const selectedScene = sceneDropdown ? sceneDropdown.value : '';
+            
+            if (!selectedScene) {
+              alert('Please select a scene from the dropdown first.');
+              return;
+            }
+            
+            console.log(`🔄 Switching to scene: ${selectedScene}`);
+            
+            if (confirm(`Switch to ${selectedScene}?`)) {
+              const transitioned = await window.sequenceBuilder.transitionToScene(selectedScene);
+              
+              if (transitioned) {
+                alert(`✅ Switched to ${selectedScene}!\n\nYou can now auto-ingest this scene's data.`);
+                // Update the scene badge
+                this.ui.sceneName.textContent = selectedScene;
+              } else {
+                alert(`❌ Could not switch to ${selectedScene}.\n\nMake sure:\n1. The main app is running in parent/opener window\n2. The scene is available\n3. The transitionToScene function is available`);
+              }
+            }
+          });
+        }
+        
+        console.log('✅ All event listeners attached');
+      }
+      
+      async autoIngestScene(sceneObject) {
+        console.log('🔍 Inspecting scene object for data...');
+        console.log('Scene object:', sceneObject);
+        console.log('Scene properties:', Object.keys(sceneObject));
+        
+        const nodes = [];
+        let xPos = 100;
+        let yPos = 100;
+        const xSpacing = 300;
+        const ySpacing = 150;
+
+        // NEW: Extract from timing.phases (BaseScene compatible)
+        if (sceneObject.timing && sceneObject.timing.phases && sceneObject.timing.phases.length > 0) {
+          console.log('✅ Found timing.phases:', sceneObject.timing.phases);
+          
+          sceneObject.timing.phases.forEach((phase, index) => {
+            const node = this.nodeGraphManager.createNode(
+              phase.type || 'animation',
+              xPos,
+              yPos,
+              {
+                speaker: phase.name,
+                text: `Duration: ${phase.duration.toFixed(2)}s | Start: ${phase.start.toFixed(2)}s`,
+                timestamp: phase.start,
+                duration: phase.duration.toFixed(2) + 's'
+              }
+            );
+            nodes.push(node);
+            
+            // Connect to previous node
+            if (index > 0 && nodes[index - 1]) {
+              this.nodeGraphManager.connections.push({
+                from: nodes[index - 1].id,
+                to: node.id,
+                fromSocket: 'output-0',
+                toSocket: 'input-0'
+              });
+            }
+            
+            yPos += ySpacing;
+            if (index % 5 === 0 && index > 0) {
+              xPos += xSpacing;
+              yPos = 100;
+            }
+          });
+        }
+        // OLD: Extract timing configuration from introCfg (backward compatibility)
+        else if (sceneObject.introCfg) {
+          console.log('✅ Found introCfg:', sceneObject.introCfg);
+          const cfg = sceneObject.introCfg;
+          const phases = [
+            { name: 'Roll Phase', start: 0, end: cfg.rollEnd, type: 'animation' },
+            { name: 'Bounce Phase', start: cfg.rollEnd, end: cfg.bounceEnd, type: 'animation' },
+            { name: 'Triangle Form', start: cfg.bounceEnd, end: cfg.triangleEnd, type: 'animation' },
+            { name: 'Orbit Transition', start: cfg.triangleEnd, end: cfg.transitionEnd, type: 'transition' },
+            { name: 'Normal Mode', start: cfg.transitionEnd, end: cfg.normalEnd, type: 'animation' },
+            { name: 'Venn Diagram', start: cfg.normalEnd, end: cfg.vennEnd, type: 'animation' },
+            { name: 'Collapse', start: cfg.vennEnd, end: cfg.collapseEnd, type: 'transition' },
+            { name: 'Glitch Effect', start: cfg.collapseEnd, end: cfg.glitchEnd, type: 'event' },
+            { name: 'Blackout', start: cfg.glitchEnd, end: cfg.blackoutEnd, type: 'transition' },
+            { name: 'Loomworks Text', start: cfg.blackoutEnd, end: cfg.loomworksEnd, type: 'dialogue' },
+            { name: 'CELLI Voxel', start: cfg.loomworksEnd, end: cfg.celliEnd, type: 'animation' },
+            { name: 'Doorway Portal', start: cfg.celliEnd, end: cfg.doorwayEnd, type: 'transition' }
+          ];
+
+          phases.forEach((phase, index) => {
+            if (phase.end && phase.end > (phase.start || 0)) {
+              const duration = phase.end - (phase.start || 0);
+              const node = this.nodeGraphManager.createNode(
+                phase.type,
+                xPos,
+                yPos,
+                {
+                  speaker: phase.name,
+                  text: `Duration: ${duration.toFixed(2)}s | Start: ${(phase.start || 0).toFixed(2)}s`,
+                  timestamp: phase.start || 0,
+                  duration: duration.toFixed(2) + 's'
+                }
+              );
+              nodes.push(node);
+              
+              // Connect to previous node
+              if (index > 0 && nodes[index - 1]) {
+                this.nodeGraphManager.connections.push({
+                  from: nodes[index - 1].id,
+                  to: node.id,
+                  fromSocket: 'output-0',
+                  toSocket: 'input-0'
+                });
+              }
+              
+              yPos += ySpacing;
+              if (index % 5 === 0 && index > 0) {
+                xPos += xSpacing;
+                yPos = 100;
+              }
+            }
+          });
+        } else {
+          console.log('⚠️ No introCfg found');
+        }
+        
+        // Extract from motionCfg
+        if (sceneObject.motionCfg) {
+          console.log('✅ Found motionCfg:', sceneObject.motionCfg);
+          const cfg = sceneObject.motionCfg;
+          Object.keys(cfg).forEach((key) => {
+            const motion = cfg[key];
+            if (motion && typeof motion === 'object') {
+              const node = this.nodeGraphManager.createNode(
+                'parameter',
+                xPos + xSpacing,
+                yPos,
+                {
+                  speaker: `Motion: ${key}`,
+                  text: JSON.stringify(motion).substring(0, 80) + '...',
+                  path: `motionCfg.${key}`
+                }
+              );
+              nodes.push(node);
+              yPos += ySpacing;
+            }
+          });
+        } else {
+          console.log('⚠️ No motionCfg found');
+        }
+        
+        // Extract from sequence array
+        if (sceneObject.sequence && Array.isArray(sceneObject.sequence)) {
+          console.log('✅ Found sequence array:', sceneObject.sequence);
+          sceneObject.sequence.forEach((seq, index) => {
+            const node = this.nodeGraphManager.createNode(
+              seq.type || 'animation',
+              xPos + xSpacing * 2,
+              yPos,
+              {
+                speaker: seq.name || `Sequence ${index + 1}`,
+                text: `Duration: ${seq.duration || 1.0}s | Start: ${seq.startTime || seq.time || 0}s`,
+                timestamp: seq.startTime || seq.time || 0,
+                duration: seq.duration || 1.0
+              }
+            );
+            nodes.push(node);
+            yPos += ySpacing;
+          });
+        } else {
+          console.log('⚠️ No sequence array found');
+        }
+        
+        // If still no nodes, try to inspect all properties and create generic nodes
+        if (nodes.length === 0) {
+          console.log('⚠️ No standard properties found, scanning all properties...');
+          
+          const sceneProps = Object.keys(sceneObject);
+          console.log(`Scene has ${sceneProps.length} properties:`, sceneProps);
+          
+          // Look for config-like objects
+          sceneProps.forEach(prop => {
+            const value = sceneObject[prop];
+            if (value && typeof value === 'object' && !value.constructor || value.constructor.name === 'Object') {
+              // This looks like a config object
+              const configKeys = Object.keys(value);
+              if (configKeys.length > 0 && configKeys.length < 50) {
+                console.log(`Found potential config object: ${prop}`, value);
+                
+                const node = this.nodeGraphManager.createNode(
+                  'parameter',
+                  xPos,
+                  yPos,
+                  {
+                    speaker: prop,
+                    text: `Config with ${configKeys.length} properties: ${configKeys.slice(0, 3).join(', ')}...`
+                  }
+                );
+                nodes.push(node);
+                yPos += ySpacing;
+              }
+            }
+          });
+        }
+        
+        // Absolute fallback - create a sample node to show it's working
+        if (nodes.length === 0) {
+          console.log('⚠️ No data could be extracted. Creating sample node...');
+          const sceneName = sceneObject.constructor ? sceneObject.constructor.name : 'Unknown Scene';
+          
+          const node = this.nodeGraphManager.createNode(
+            'object',
+            xPos,
+            yPos,
+            {
+              speaker: sceneName,
+              text: `Scene object found but no extractable sequence data.\n\nTry adding introCfg, motionCfg, or sequence properties to the scene.`
+            }
+          );
+          nodes.push(node);
+        }
+
+        this.nodeGraphManager._updateConnections();
+        console.log(`✅ Auto-ingested ${nodes.length} nodes from scene`);
+        
+        // Switch to graph tab to show nodes
+        const graphTab = document.querySelector('.tab-btn[data-tab="graph"]');
+        if (graphTab) {
+          graphTab.click();
+          console.log('✅ Switched to Node Graph tab');
+        }
+        
+        return nodes;
+      }
+      
+      _toggleExecuteAfter(dialogueId) {
+        const content = document.getElementById(`executeAfterContent-${dialogueId}`);
+        const toggle = document.getElementById(`executeAfterToggle-${dialogueId}`);
+        const hierarchy = document.getElementById(`executeAfterHierarchy-${dialogueId}`);
+        
+        if (!content) return;
+        
+        if (content.classList.contains('expanded')) {
+          content.classList.remove('expanded');
+          toggle.textContent = 'Click to expand';
+        } else {
+          content.classList.add('expanded');
+          toggle.textContent = 'Click to collapse';
+          
+          // Generate and render hierarchy
+          this._renderExecuteAfterHierarchy(dialogueId, hierarchy);
+        }
+      }
+      
+      _renderExecuteAfterHierarchy(dialogueId, container) {
+        if (!this.nodeGraphManager) return;
+        
+        const hierarchy = this._generateExecuteAfterHierarchy(dialogueId);
+        
+        if (hierarchy.length === 0) {
+          container.innerHTML = '<div style="padding: 8px; color: #999; font-size: 11px;">No connected nodes</div>';
+          return;
+        }
+        
+        container.innerHTML = hierarchy.map(node => `
+          <div class="execute-after-node depth-${node.depth}" data-node-id="${node.id}">
+            <input type="checkbox" class="execute-after-checkbox" ${node.checked ? 'checked' : ''} 
+                   onchange="window.builderApp._toggleNodeCheck(${node.id})">
+            <span class="execute-after-node-title">${node.title}</span>
+            <span class="execute-after-node-type">${node.type}</span>
+          </div>
+        `).join('');
+      }
+      
+      _generateExecuteAfterHierarchy(nodeId) {
+        if (!this.nodeGraphManager) return [];
+        
+        const hierarchy = [];
+        const visited = new Set();
+
+        const traverse = (id, depth = 0) => {
+          if (visited.has(id) || depth > 3) return;
+          visited.add(id);
+
+          const connections = this.nodeGraphManager.connections.filter(c => c.from === id);
+          
+          connections.forEach(conn => {
+            const targetNode = this.nodeGraphManager.nodes.find(n => n.id === conn.to);
+            if (targetNode) {
+              hierarchy.push({
+                id: targetNode.id,
+                title: targetNode.data.speaker || 'Untitled',
+                type: targetNode.type,
+                depth: depth,
+                checked: false
+              });
+              traverse(targetNode.id, depth + 1);
+            }
+          });
+        };
+
+        traverse(nodeId);
+        return hierarchy;
+      }
+      
+      _toggleNodeCheck(nodeId) {
+        console.log(`Toggled node ${nodeId}`);
+        const nodeEl = document.querySelector(`.execute-after-node[data-node-id="${nodeId}"]`);
+        if (nodeEl) {
+          const isChecked = nodeEl.querySelector('input').checked;
+          if (isChecked) {
+            nodeEl.classList.add('checked');
+          } else {
+            nodeEl.classList.remove('checked');
+          }
+        }
+      }
+      
+      _selectAllExecuteAfter(dialogueId) {
+        const container = document.getElementById(`executeAfterHierarchy-${dialogueId}`);
+        if (!container) return;
+        
+        container.querySelectorAll('.execute-after-checkbox').forEach(checkbox => {
+          checkbox.checked = true;
+          checkbox.closest('.execute-after-node').classList.add('checked');
+        });
+      }
+      
+      _selectNoneExecuteAfter(dialogueId) {
+        const container = document.getElementById(`executeAfterHierarchy-${dialogueId}`);
+        if (!container) return;
+        
+        container.querySelectorAll('.execute-after-checkbox').forEach(checkbox => {
+          checkbox.checked = false;
+          checkbox.closest('.execute-after-node').classList.remove('checked');
         });
       }
 
@@ -1605,18 +4311,330 @@
       }
     }
 
+    // ===== VIDEO PLAYER WITH EFFECTS =====
+    class GlitchVideoPlayer {
+      constructor() {
+        this.overlay = document.getElementById('videoPlayerOverlay');
+        this.video = document.getElementById('introVideo');
+        this.canvas = document.getElementById('videoCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.closeBtn = document.getElementById('videoCloseBtn');
+        
+        this.isPlaying = false;
+        this.animationId = null;
+        
+        // Audio context for effects
+        this.audioContext = null;
+        this.sourceNode = null;
+        this.gainNode = null;
+        this.filterNode = null;
+        this.distortionNode = null;
+        
+        this.setupEventListeners();
+      }
+      
+      setupEventListeners() {
+        this.closeBtn.addEventListener('click', () => this.close());
+        
+        this.video.addEventListener('ended', () => this.close());
+        
+        // Escape key to close
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && this.isPlaying) {
+            this.close();
+          }
+        });
+      }
+      
+      async play(videoPath) {
+        try {
+          // Show overlay
+          this.overlay.classList.add('active');
+          
+          // Setup audio context
+          if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          
+          // Load video
+          this.video.src = videoPath;
+          this.video.load();
+          
+          // Wait for video metadata
+          await new Promise((resolve, reject) => {
+            this.video.onloadedmetadata = resolve;
+            this.video.onerror = reject;
+          });
+          
+          // Setup canvas size
+          this.canvas.width = this.video.videoWidth;
+          this.canvas.height = this.video.videoHeight;
+          
+          // Setup audio effects
+          this.setupAudioEffects();
+          
+          // Play video
+          await this.video.play();
+          this.isPlaying = true;
+          
+          // Start rendering with effects
+          this.renderWithEffects();
+          
+          console.log('🎬 Playing intro video with effects');
+        } catch (error) {
+          console.error('Error playing video:', error);
+          alert('Failed to load intro.mp4. Make sure the file exists in the root folder.');
+          this.close();
+        }
+      }
+      
+      setupAudioEffects() {
+        // Create audio nodes
+        if (!this.sourceNode) {
+          this.sourceNode = this.audioContext.createMediaElementSource(this.video);
+        }
+        
+        // Gain node for volume control
+        this.gainNode = this.audioContext.createGain();
+        this.gainNode.gain.value = 0.7;
+        
+        // Low-pass filter for muffled effect
+        this.filterNode = this.audioContext.createBiquadFilter();
+        this.filterNode.type = 'lowpass';
+        this.filterNode.frequency.value = 22000; // Start clear
+        this.filterNode.Q.value = 1;
+        
+        // Distortion (subtle)
+        this.distortionNode = this.audioContext.createWaveShaper();
+        this.distortionNode.curve = this.makeDistortionCurve(10);
+        this.distortionNode.oversample = '4x';
+        
+        // Connect nodes
+        this.sourceNode.connect(this.filterNode);
+        this.filterNode.connect(this.distortionNode);
+        this.distortionNode.connect(this.gainNode);
+        this.gainNode.connect(this.audioContext.destination);
+        
+        // Randomly apply muffle effect
+        this.applyRandomAudioEffects();
+      }
+      
+      makeDistortionCurve(amount) {
+        const samples = 44100;
+        const curve = new Float32Array(samples);
+        const deg = Math.PI / 180;
+        
+        for (let i = 0; i < samples; i++) {
+          const x = (i * 2) / samples - 1;
+          curve[i] = ((3 + amount) * x * 20 * deg) / (Math.PI + amount * Math.abs(x));
+        }
+        
+        return curve;
+      }
+      
+      applyRandomAudioEffects() {
+        if (!this.isPlaying) return;
+        
+        // Random interval between 100-500ms
+        const interval = 100 + Math.random() * 400;
+        
+        setTimeout(() => {
+          if (!this.isPlaying) return;
+          
+          const now = this.audioContext.currentTime;
+          
+          // 30% chance to apply muffle
+          if (Math.random() < 0.3) {
+            const muffleFreq = 300 + Math.random() * 1500;
+            this.filterNode.frequency.setValueAtTime(muffleFreq, now);
+            this.filterNode.frequency.linearRampToValueAtTime(22000, now + 0.2);
+          }
+          
+          // 20% chance to apply distortion spike
+          if (Math.random() < 0.2) {
+            this.distortionNode.curve = this.makeDistortionCurve(50 + Math.random() * 100);
+            setTimeout(() => {
+              this.distortionNode.curve = this.makeDistortionCurve(10);
+            }, 50 + Math.random() * 100);
+          }
+          
+          // 15% chance to apply volume dip
+          if (Math.random() < 0.15) {
+            this.gainNode.gain.setValueAtTime(0.3, now);
+            this.gainNode.gain.linearRampToValueAtTime(0.7, now + 0.15);
+          }
+          
+          // Continue applying effects
+          this.applyRandomAudioEffects();
+        }, interval);
+      }
+      
+      renderWithEffects() {
+        if (!this.isPlaying) return;
+        
+        // Draw video to canvas
+        this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+        
+        // Apply glitch effects randomly
+        if (Math.random() < 0.15) { // 15% chance per frame
+          this.applyGlitchEffect();
+        }
+        
+        // Apply distortion occasionally
+        if (Math.random() < 0.08) { // 8% chance per frame
+          this.applyDistortionEffect();
+        }
+        
+        // Apply RGB shift occasionally
+        if (Math.random() < 0.1) { // 10% chance per frame
+          this.applyRGBShift();
+        }
+        
+        this.animationId = requestAnimationFrame(() => this.renderWithEffects());
+      }
+      
+      applyGlitchEffect() {
+        const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        const data = imageData.data;
+        
+        // Horizontal line displacement
+        const numGlitches = 3 + Math.floor(Math.random() * 5);
+        
+        for (let i = 0; i < numGlitches; i++) {
+          const y = Math.floor(Math.random() * this.canvas.height);
+          const height = 5 + Math.floor(Math.random() * 30);
+          const offset = -20 + Math.floor(Math.random() * 40);
+          
+          const sliceData = this.ctx.getImageData(0, y, this.canvas.width, height);
+          this.ctx.putImageData(sliceData, offset, y);
+        }
+        
+        // Random pixel corruption
+        for (let i = 0; i < data.length; i += 4 * Math.floor(Math.random() * 1000)) {
+          if (Math.random() < 0.5) {
+            data[i] = Math.random() * 255;
+            data[i + 1] = Math.random() * 255;
+            data[i + 2] = Math.random() * 255;
+          }
+        }
+        
+        this.ctx.putImageData(imageData, 0, 0);
+      }
+      
+      applyDistortionEffect() {
+        // Block displacement
+        const blockSize = 50 + Math.floor(Math.random() * 100);
+        const numBlocks = 5 + Math.floor(Math.random() * 10);
+        
+        for (let i = 0; i < numBlocks; i++) {
+          const srcX = Math.floor(Math.random() * (this.canvas.width - blockSize));
+          const srcY = Math.floor(Math.random() * (this.canvas.height - blockSize));
+          const destX = Math.floor(Math.random() * (this.canvas.width - blockSize));
+          const destY = Math.floor(Math.random() * (this.canvas.height - blockSize));
+          
+          const blockData = this.ctx.getImageData(srcX, srcY, blockSize, blockSize);
+          this.ctx.putImageData(blockData, destX, destY);
+        }
+      }
+      
+      applyRGBShift() {
+        const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        const shiftAmount = 2 + Math.floor(Math.random() * 8);
+        
+        const shiftedR = this.ctx.getImageData(shiftAmount, 0, this.canvas.width - shiftAmount, this.canvas.height);
+        const shiftedB = this.ctx.getImageData(-shiftAmount, 0, this.canvas.width + shiftAmount, this.canvas.height);
+        
+        const data = imageData.data;
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const pixelIndex = i / 4;
+          const x = pixelIndex % this.canvas.width;
+          
+          if (x < shiftAmount) continue;
+          if (x >= this.canvas.width - shiftAmount) continue;
+          
+          const shiftedIndex = i;
+          data[shiftedIndex] = shiftedR.data[shiftedIndex]; // R channel shifted
+          data[shiftedIndex + 2] = shiftedB.data[shiftedIndex + 2]; // B channel shifted
+        }
+        
+        this.ctx.putImageData(imageData, 0, 0);
+      }
+      
+      close() {
+        this.isPlaying = false;
+        
+        if (this.animationId) {
+          cancelAnimationFrame(this.animationId);
+          this.animationId = null;
+        }
+        
+        this.video.pause();
+        this.video.currentTime = 0;
+        
+        this.overlay.classList.remove('active');
+        
+        console.log('🛑 Video player closed');
+      }
+    }
+
     // Detect mode and initialize
     const isStandalone = !window.opener || window.location.search.includes('standalone');
-    const app = new UnifiedSequenceBuilder();
-    app.init(!isStandalone);
+    console.log(`🎯 Initializing in ${isStandalone ? 'Standalone' : 'Overlay'} mode...`);
     
+    const app = new UnifiedSequenceBuilder();
+    
+    // Store globally
     window.builderApp = app;
+    window.sequenceBuilder = sequenceBuilder;
     window.openSequenceBuilder = () => app.open();
     window.closeSequenceBuilder = () => app.close();
     window.toggleSequenceBuilder = () => app.toggle();
     
+    // Initialize app
+    try {
+      await app.init(!isStandalone);
+    } catch (error) {
+      console.error('❌ App initialization failed:', error);
+      alert(`Failed to initialize Sequence Builder:\n\n${error.message}`);
+    }
+    
+    // Initialize video player
+    const videoPlayer = new GlitchVideoPlayer();
+    
+    // Add Play Intro button handler
+    document.getElementById('playIntroBtn').addEventListener('click', () => {
+      videoPlayer.play('../../intro.mp4');
+    });
+    
     console.log('✅ Unified Sequence Builder Ready');
     console.log(`Mode: ${isStandalone ? 'Standalone' : 'Overlay'}`);
+    
+    // Console helper for debugging integration
+    window.checkIntegration = function() {
+      const w = window.parent && window.parent !== window ? window.parent : window.opener;
+      if (!w) {
+        console.error('❌ No parent or opener window');
+        return;
+      }
+      
+      console.log('🔍 Checking integration with main app...\n');
+      console.log('transitionToScene:', typeof w.transitionToScene);
+      console.log('getSceneByName:', typeof w.getSceneByName);
+      console.log('scenes:', w.scenes ? Object.keys(w.scenes) : 'not found');
+      console.log('currentScene:', w.currentScene?.constructor?.name || 'not running');
+      console.log('introScene:', w.introScene?.constructor?.name || 'not running');
+      
+      if (typeof w.transitionToScene === 'function') {
+        console.log('\n✅ Integration is working!');
+        console.log('You can now use Auto-Ingest and Switch Scene features.');
+      } else {
+        console.log('\n❌ Integration incomplete - transitionToScene not found');
+        console.log('Make sure you opened this builder from the main app (press \\ key)');
+      }
+    };
+    
+    console.log('💡 Run checkIntegration() in console to verify setup');
   </script>
 </body>
 </html>

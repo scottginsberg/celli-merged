@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Celli & Array Rave Scene</title>
+  <style>
+    html, body { 
+      height: 100%; 
+      margin: 0; 
+      background: #000; 
+      overflow: hidden; 
+      font-family: 'Press Start 2P', monospace;
+    }
+    
+    #app { 
+      position: fixed; 
+      inset: 0; 
+    }
+    
+    /* Rave UI Overlay */
+    #rave-ui {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid #ff00ff;
+      padding: 15px;
+      border-radius: 10px;
+      color: #0ff;
+      z-index: 100;
+      font-size: 10px;
+      box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+    }
+    
+    #rave-ui h3 {
+      margin: 0 0 10px 0;
+      color: #ff00ff;
+      text-shadow: 0 0 10px #ff00ff;
+    }
+    
+    .control-row {
+      margin: 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .control-row label {
+      min-width: 100px;
+    }
+    
+    button {
+      background: linear-gradient(45deg, #ff00ff, #00ffff);
+      border: none;
+      padding: 8px 16px;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 9px;
+      transition: all 0.3s;
+    }
+    
+    button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 20px rgba(255, 0, 255, 0.8);
+    }
+    
+    input[type="range"] {
+      width: 120px;
+    }
+    
+    /* Bass hit flash */
+    #bass-flash {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle, rgba(255,0,255,0.3), transparent);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s;
+      z-index: 50;
+    }
+    
+    #bass-flash.active {
+      opacity: 1;
+    }
+    
+    /* Loading overlay */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0ff;
+      font-size: 14px;
+      z-index: 1000;
+      transition: opacity 0.5s;
+    }
+    
+    #loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #333;
+      border-top-color: #ff00ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="bass-flash"></div>
+  
+  <div id="rave-ui">
+    <h3>🎵 RAVE MODE 🎵</h3>
+    <div class="control-row">
+      <label>Music:</label>
+      <button id="toggle-music">PLAY</button>
+    </div>
+    <div class="control-row">
+      <label>Volume:</label>
+      <input type="range" id="volume-slider" min="0" max="100" value="70" />
+      <span id="volume-value">70</span>
+    </div>
+    <div class="control-row">
+      <label>Lights:</label>
+      <button id="toggle-lights">ON</button>
+    </div>
+    <div class="control-row">
+      <label>Dance:</label>
+      <button id="toggle-dance">START</button>
+    </div>
+    <div class="control-row">
+      <button id="toggle-celli">Toggle Celli</button>
+      <button id="toggle-array">Toggle Arraya</button>
+    </div>
+  </div>
+  
+  <div id="loading">
+    <div>
+      <div class="spinner"></div>
+      <div>Loading Rave Scene...</div>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+    console.log('🎵 Initializing Rave Scene...');
+
+    // Scene setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+    scene.fog = new THREE.FogExp2(0x000000, 0.02);
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 5, 15);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.getElementById('app').appendChild(renderer.domElement);
+
+    // Post-processing
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      1.5, // strength
+      0.4, // radius
+      0.85 // threshold
+    );
+    composer.addPass(bloomPass);
+
+    // Controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 5;
+    controls.maxDistance = 50;
+
+    // Audio setup
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const audioElement = new Audio('./tappin.mp3');
+    audioElement.loop = true;
+    audioElement.volume = 0.7;
+    
+    const audioSource = audioContext.createMediaElementSource(audioElement);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    audioSource.connect(analyser);
+    analyser.connect(audioContext.destination);
+
+    // Rave state
+    const raveState = {
+      musicPlaying: false,
+      bass: 0,
+      treble: 0,
+      volume: 0,
+      lightsOn: true,
+      dancing: false,
+      time: 0,
+      celliVisible: true,
+      arrayVisible: true
+    };
+
+    // Create floor
+    const floorGeometry = new THREE.PlaneGeometry(50, 50, 20, 20);
+    const floorMaterial = new THREE.MeshStandardMaterial({
+      color: 0x111111,
+      roughness: 0.8,
+      metalness: 0.2
+    });
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // Animate floor with reactive grid
+    function animateFloor(beatIntensity) {
+      const positions = floorGeometry.attributes.position;
+      for (let i = 0; i < positions.count; i++) {
+        const x = positions.getX(i);
+        const y = positions.getY(i);
+        const dist = Math.sqrt(x * x + y * y);
+        const wave = Math.sin(dist * 0.5 - raveState.time * 2) * beatIntensity * 0.5;
+        positions.setZ(i, wave);
+      }
+      positions.needsUpdate = true;
+      floorGeometry.computeVertexNormals();
+    }
+
+    // ============= AVATAR FACTORIES =============
+    
+    // Real Celli Avatar Factory (FIXED - all parts properly attached)
+    function createRealCelli() {
+      const MAT_BODY = new THREE.MeshToonMaterial({ color: 0xf59e0b });
+      const MAT_DARK = new THREE.MeshToonMaterial({ color: 0x1f2937 });
+      const MAT_BLUSH = new THREE.MeshToonMaterial({ color: 0xec4899 });
+      const MAT_WING = new THREE.MeshToonMaterial({ color: 0xf59e0b, side: THREE.DoubleSide });
+
+      function addOutline(child, scale=1.06){
+        const outlineMat = new THREE.MeshBasicMaterial({ color: MAT_DARK.color.getHex(), side: THREE.BackSide });
+        const outline = new THREE.Mesh(child.geometry, outlineMat);
+        outline.scale.setScalar(scale);
+        outline.renderOrder = 10499;
+        child.add(outline);
+        return outline;
+      }
+
+      function triWing(width=0.22, height=0.16, depth=0.02){
+        const shape = new THREE.Shape();
+        shape.moveTo(width/2, 0);
+        shape.lineTo(-width/2, height/2);
+        shape.lineTo(-width/2, -height/2);
+        shape.lineTo(width/2, 0);
+        const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled:false });
+        geo.center();
+        geo.computeVertexNormals();
+        return geo;
+      }
+
+      const root = new THREE.Group();
+      root.scale.setScalar(2.5);
+
+      const BW=.8, BH=.8, BD=.3;
+      const bodyGroup = new THREE.Group();
+      const body = new THREE.Mesh(new RoundedBoxGeometry(BW, BH, BD, 6, .12), MAT_BODY);
+      addOutline(body);
+      bodyGroup.add(body);
+      bodyGroup.position.y = BH/2;
+
+      const faceGroup = new THREE.Group();
+      const faceZ = BD/2 + 0.01;
+      const eyeGeo = new THREE.SphereGeometry(0.05, 16, 12);
+      const eyeL = new THREE.Mesh(eyeGeo, MAT_DARK); 
+      addOutline(eyeL); 
+      eyeL.scale.set(1, 2, .25); 
+      eyeL.position.set(-.12,.13,faceZ);
+      
+      const eyeR = new THREE.Mesh(eyeGeo, MAT_DARK); 
+      addOutline(eyeR); 
+      eyeR.scale.set(1, 2, .25); 
+      eyeR.position.set(.12,.13,faceZ);
+      
+      const blushGeo = new THREE.SphereGeometry(0.05, 16, 12);
+      const cheekL = new THREE.Mesh(blushGeo, MAT_BLUSH); 
+      addOutline(cheekL); 
+      cheekL.scale.set(1.2,1,.2); 
+      cheekL.position.set(-.25,-.08,faceZ);
+      
+      const cheekR = new THREE.Mesh(blushGeo, MAT_BLUSH); 
+      addOutline(cheekR); 
+      cheekR.scale.set(1.2,1,.2); 
+      cheekR.position.set(.25,-.08,faceZ);
+      
+      const smileShape = new THREE.Shape();
+      smileShape.moveTo(-0.12, -0.06);
+      smileShape.quadraticCurveTo(0, -0.25, 0.12, -0.06);
+      smileShape.quadraticCurveTo(0, -0.20, -0.12, -0.06);
+      const smile = new THREE.Mesh(new THREE.ShapeGeometry(smileShape), MAT_DARK); 
+      addOutline(smile);
+      smile.position.z = faceZ;
+      faceGroup.add(eyeL, eyeR, cheekL, cheekR, smile);
+      bodyGroup.add(faceGroup);
+
+      const bowGroup = new THREE.Group();
+      const wingL = new THREE.Mesh(triWing(), MAT_WING); 
+      addOutline(wingL);
+      const wingR = new THREE.Mesh(triWing(), MAT_WING); 
+      addOutline(wingR);
+      wingL.rotation.y = 0;
+      wingR.rotation.y = Math.PI;
+      wingL.position.set(-0.18, 0, 0);
+      wingR.position.set(0.18, 0, 0);
+      wingL.scale.set(1.3, 1.3, 1.0);
+      wingR.scale.set(1.3, 1.3, 1.0);
+      const knot = new THREE.Mesh(new THREE.SphereGeometry(0.04, 16, 12), MAT_BODY); 
+      addOutline(knot);
+      knot.scale.set(1.5, 1.5, 1.5);
+      bowGroup.add(wingL, wingR, knot);
+      bowGroup.position.set(0, BH + 0.15, 0);
+      bodyGroup.add(bowGroup); // FIXED: Attach bow to bodyGroup
+
+      const armRadius = .055;
+      const handGeo = new THREE.SphereGeometry(armRadius, 16, 12);
+      const shoulderX = BW * 0.38;
+      const shoulderY = BH * 0.52;
+      const shoulderZ = BD * 0.5 - armRadius * 0.4;
+      const armTilt = THREE.MathUtils.degToRad(-8);
+      const armSweep = THREE.MathUtils.degToRad(26);
+      const armTuck = THREE.MathUtils.degToRad(-4);
+      
+      function makeArm(sign=1){
+        const armRoot = new THREE.Group();
+        const armCurve = new THREE.QuadraticBezierCurve3(
+          new THREE.Vector3(0, -0.015, 0.02),
+          new THREE.Vector3(0.12 * sign, -0.16, 0.05),
+          new THREE.Vector3(0.16 * sign, -0.28, 0.015)
+        );
+        const armGeo = new THREE.TubeGeometry(armCurve, 28, armRadius, 12, false);
+        const upper = new THREE.Mesh(armGeo, MAT_BODY); 
+        addOutline(upper, 1.04);
+        const handGroup = new THREE.Group();
+        const hand = new THREE.Mesh(handGeo, MAT_BODY); 
+        addOutline(hand, 1.04);
+        hand.position.copy(armCurve.getPoint(1));
+        handGroup.add(hand); // FIXED: Add hand directly to handGroup
+        armRoot.add(upper, handGroup);
+        armRoot.position.set(sign * (shoulderX + armRadius * 0.6), shoulderY - 0.02, shoulderZ * 0.4);
+        armRoot.rotation.set(armTilt, sign * armSweep, sign * armTuck);
+        return { armRoot, handGroup, hand };
+      }
+      const L = makeArm(-1), R = makeArm(+1);
+      bodyGroup.add(L.armRoot, R.armRoot); // FIXED: Attach arms to bodyGroup
+
+      const legRadius = .06;
+      const legCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0,0,0), 
+        new THREE.Vector3(0,-.10,.022), 
+        new THREE.Vector3(0,-.17,.036)
+      ]);
+      const legGeo = new THREE.TubeGeometry(legCurve, 12, legRadius, 12, false);
+      const footGeo = new THREE.SphereGeometry(legRadius, 16, 12);
+      
+      function makeLeg(x){
+        const legRoot = new THREE.Group();
+        const leg = new THREE.Mesh(legGeo, MAT_BODY); 
+        addOutline(leg, 1.04);
+        const footGroup = new THREE.Group();
+        const foot = new THREE.Mesh(footGeo, MAT_BODY); 
+        addOutline(foot, 1.04);
+        foot.position.copy(legCurve.getPoint(1));
+        foot.scale.set(1.5,.8,1.2);
+        footGroup.add(foot);
+        legRoot.add(leg, footGroup);
+        legRoot.position.set(x, 0, 0);
+        return { legRoot, footGroup, foot };
+      }
+      const legL = makeLeg(-.20), legR = makeLeg(.20);
+      bodyGroup.add(legL.legRoot, legR.legRoot); // FIXED: Attach legs to bodyGroup
+
+      root.add(bodyGroup); // Only add bodyGroup to root
+
+      root.userData.bodyGroup = bodyGroup;
+      root.userData.bowGroup = bowGroup;
+      root.userData.leftArm = L;
+      root.userData.rightArm = R;
+      root.userData.leftLeg = legL;
+      root.userData.rightLeg = legR;
+
+      return root;
+    }
+
+    // FAITHFUL Arraya Avatar from arraya.html - PROPER BARREL DISTORTION
+    function createRealArraya() {
+      const group = new THREE.Group();
+      group.scale.setScalar(1.8);
+      
+      const W=1.45, H=1.1, D=1.2;
+      const greens = [
+        new THREE.Color(0.75, 0.94, 0.42),
+        new THREE.Color(0.65, 0.88, 0.36),
+        new THREE.Color(0.55, 0.83, 0.32),
+        new THREE.Color(0.46, 0.78, 0.27),
+        new THREE.Color(0.36, 0.71, 0.23),
+        new THREE.Color(0.29, 0.65, 0.20)
+      ];
+      
+      const JOIN_EPS = 0.10; // Increased for tighter seams
+      const HEAD_BULGE = 0.18; // More pronounced bulge
+      const TAIL_BULGE = 0.12;
+      const HEAD_FACE_EXPAND = 0.15; // More face expansion
+      const GLOBAL_ROT_X = Math.PI / 2;
+      const GLOBAL_ROT_Z = -Math.PI / 2;
+      const NSEG = 6;
+      const segLen = D;
+      const L = NSEG * segLen;
+      const thetaAmp = 1.2; // INCREASED for more dramatic curve
+      const yAmp = 0.15; // Add vertical wave
+      const ds = Math.max(0.01, L / 320);
+      
+      // Build parametric curve
+      let samples = [];
+      let p = [0, H/2, 0];
+      let tan = [0,0,1];
+      samples.push({ s: 0, p: p.slice(), t: tan.slice() });
+      for (let s = ds; s <= L + 1e-6; s += ds) {
+        const theta = thetaAmp * Math.sin(2*Math.PI * (s/L));
+        const dy_ds = yAmp * (Math.PI / L) * Math.cos(Math.PI * s / L);
+        tan = normalize([ Math.sin(theta), dy_ds, Math.cos(theta) ]);
+        p = [ p[0] + tan[0]*ds, p[1] + tan[1]*ds, p[2] + tan[2]*ds ];
+        samples.push({ s: Math.min(s, L), p: p.slice(), t: tan.slice() });
+      }
+      
+      function lerp(a,b,t){ return a + (b-a)*t; }
+      function cross(a,b){ return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+      function normalize(v){ const l=Math.hypot(v[0],v[1],v[2]); return l? [v[0]/l,v[1]/l,v[2]/l] : [0,1,0]; }
+      function clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
+      function smoothstep(a,b,x){ const t = clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); }
+      function rotXv(v,a){ const c=Math.cos(a), s=Math.sin(a); return [ v[0], v[1]*c - v[2]*s, v[1]*s + v[2]*c ]; }
+      function rotZv(v,a){ const c=Math.cos(a), s=Math.sin(a); return [ v[0]*c - v[1]*s, v[0]*s + v[1]*c, v[2] ]; }
+      function rotateFrame(F){
+        const pX = rotXv(F.p, GLOBAL_ROT_X);
+        const tX = rotXv(F.t, GLOBAL_ROT_X);
+        const sX = rotXv(F.side, GLOBAL_ROT_X);
+        const uX = rotXv(F.up, GLOBAL_ROT_X);
+        return { p: rotZv(pX, GLOBAL_ROT_Z), t: rotZv(tX, GLOBAL_ROT_Z), side: rotZv(sX, GLOBAL_ROT_Z), up: rotZv(uX, GLOBAL_ROT_Z) };
+      }
+      
+      function sampleFrameAt(s){
+        if (s <= 0) {
+          const t0 = samples[0].t;
+          const up=[0,1,0];
+          let side = cross(up, t0);
+          let Ls=Math.hypot(side[0],side[1],side[2]);
+          if (Ls<1e-6) side=[1,0,0], Ls=1;
+          side=[side[0]/Ls, side[1]/Ls, side[2]/Ls];
+          const up2 = cross(t0, side);
+          return { p: samples[0].p.slice(), t: t0.slice(), side, up: up2 };
+        }
+        if (s >= L) {
+          const last = samples[samples.length-1];
+          const up=[0,1,0];
+          let side = cross(up, last.t);
+          let Ls=Math.hypot(side[0],side[1],side[2]);
+          if (Ls<1e-6) side=[1,0,0], Ls=1;
+          side=[side[0]/Ls, side[1]/Ls, side[2]/Ls];
+          const up2 = cross(last.t, side);
+          return { p: last.p.slice(), t: last.t.slice(), side, up: up2 };
+        }
+        const i = Math.min(samples.length-2, Math.max(0, Math.floor(s/ds)));
+        const a = samples[i], b = samples[i+1];
+        const tt = (s - a.s) / (b.s - a.s);
+        p = [ lerp(a.p[0], b.p[0], tt), lerp(a.p[1], b.p[1], tt), lerp(a.p[2], b.p[2], tt) ];
+        let tan = [ lerp(a.t[0], b.t[0], tt), lerp(a.t[1], b.t[1], tt), lerp(a.t[2], b.t[2], tt) ];
+        tan = normalize(tan);
+        const up=[0,1,0];
+        let side=cross(up, tan);
+        let Ls=Math.hypot(side[0],side[1],side[2]);
+        if (Ls<1e-6) side=[1,0,0], Ls=1;
+        side=[side[0]/Ls, side[1]/Ls, side[2]/Ls];
+        const up2 = cross(tan, side);
+        return { p, t: tan, side, up: up2 };
+      }
+      
+      // EXACT barrel-distorted geometry from arraya.html
+      function roundedBoxGeometry(w, h, d, seg=6, round=0.45){
+        const hw=w/2, hh=h/2, hd=d/2;
+        const positions=[], indices=[];
+        function face(uSeg,vSeg, constX,constY,constZ, ux,uy,uz, vx,vy,vz, flip){
+          const base = positions.length/3;
+          for(let j=0;j<=vSeg;j++){
+            for(let i=0;i<=uSeg;i++){
+              const u=i/uSeg, v=j/vSeg;
+              const x = constX + ux*(u-0.5) + vx*(v-0.5);
+              const y = constY + uy*(u-0.5) + vy*(v-0.5);
+              const z = constZ + uz*(u-0.5) + vz*(v-0.5);
+              positions.push(x, y, z);
+            }
+          }
+          for(let j=0;j<vSeg;j++){
+            for(let i=0;i<uSeg;i++){
+              const a = base + i + (uSeg+1)*j;
+              const b = base + i+1 + (uSeg+1)*j;
+              const c = base + i + (uSeg+1)*(j+1);
+              const d = base + i+1 + (uSeg+1)*(j+1);
+              if (!flip) { indices.push(a,c,b, b,c,d); } else { indices.push(a,b,c, b,d,c); }
+            }
+          }
+        }
+        const sx=seg, sy=seg, sz=seg;
+        face(sx,sy, 0,0, hd, w,0,0, 0,h,0, false);
+        face(sx,sy, 0,0,-hd, w,0,0, 0,h,0, true);
+        face(sz,sy, hw,0,0, 0,0,d, 0,h,0, false);
+        face(sz,sy,-hw,0,0, 0,0,d, 0,h,0, true);
+        face(sx,sz, 0,hh,0, w,0,0, 0,0,d, true);
+        face(sx,sz, 0,-hh,0, w,0,0, 0,0,d, false);
+
+        // CRITICAL: Spherify to create barrel distortion
+        for(let i=0;i<positions.length;i+=3){
+          let x=positions[i]/hw, y=positions[i+1]/hh, z=positions[i+2]/hd;
+          const x2=x*x,y2=y*y,z2=z*z;
+          const sx=x*Math.sqrt(Math.max(0.0,1.0-0.5*(y2+z2)+(y2*z2)/3.0));
+          const sy=y*Math.sqrt(Math.max(0.0,1.0-0.5*(z2+x2)+(z2*x2)/3.0));
+          const sz=z*Math.sqrt(Math.max(0.0,1.0-0.5*(x2+y2)+(x2*y2)/3.0));
+          x = x*(1.0-round) + sx*round;
+          y = y*(1.0-round) + sy*round;
+          z = z*(1.0-round) + sz*round;
+          positions[i]=x*hw; positions[i+1]=y*hh; positions[i+2]=z*hd;
+        }
+        return { positions:new Float32Array(positions), indices:new Uint32Array(indices) };
+      }
+      
+      function computeNormals(positions, indices, out){
+        out.fill(0);
+        for(let i=0;i<indices.length;i+=3){
+          const ia=indices[i]*3, ib=indices[i+1]*3, ic=indices[i+2]*3;
+          const ax=positions[ia], ay=positions[ia+1], az=positions[ia+2];
+          const bx=positions[ib], by=positions[ib+1], bz=positions[ib+2];
+          const cx=positions[ic], cy=positions[ic+1], cz=positions[ic+2];
+          const abx=bx-ax, aby=by-ay, abz=bz-az;
+          const acx=cx-ax, acy=cy-ay, acz=cz-az;
+          let nx=aby*acz-abz*acy, ny=abz*acx-abx*acz, nz=abx*acy-aby*acx;
+          const inv=1/Math.hypot(nx,ny,nz);
+          nx*=inv; ny*=inv; nz*=inv;
+          out[ia]+=nx; out[ia+1]+=ny; out[ia+2]+=nz;
+          out[ib]+=nx; out[ib+1]+=ny; out[ib+2]+=nz;
+          out[ic]+=nx; out[ic+1]+=ny; out[ic+2]+=nz;
+        }
+        for(let i=0;i<out.length;i+=3){
+          const inv=1/Math.hypot(out[i],out[i+1],out[i+2]);
+          out[i]*=inv; out[i+1]*=inv; out[i+2]*=inv;
+        }
+        return out;
+      }
+      
+      // Build barrel-distorted base geometry
+      const cubeBase = roundedBoxGeometry(W, H, D, 8, 0.45);
+      
+      const segments = [];
+      const hd = D/2;
+      const pivotFrame = rotateFrame(sampleFrameAt(0));
+      const pivotVec = new THREE.Vector3(pivotFrame.p[0], pivotFrame.p[1], pivotFrame.p[2]);
+      
+      for (let i=0;i<NSEG;i++){
+        const sStart = i * segLen;
+        const geometry = new THREE.BufferGeometry();
+        const posArray = new Float32Array(cubeBase.positions.length);
+        const norArray = new Float32Array(cubeBase.positions.length);
+        
+        // Deform geometry along curve with EXACT algorithm
+        for (let v=0; v<cubeBase.positions.length; v+=3){
+          let x0 = cubeBase.positions[v+0];
+          let y0 = cubeBase.positions[v+1];
+          const z0 = cubeBase.positions[v+2];
+          let s = sStart + (z0 + hd);
+          if (i>0 && i<NSEG) s -= JOIN_EPS;
+          s = clamp(s, 0, L);
+          const FR = rotateFrame(sampleFrameAt(s));
+          const u = clamp((s - sStart) / segLen, 0, 1);
+          if (i === 0){
+            const mask = smoothstep(0.0, 0.3, 1.0 - u);
+            const expand = 1.0 + HEAD_FACE_EXPAND * mask;
+            x0 *= expand; y0 *= expand;
+          }
+          let px = FR.p[0] + x0*FR.side[0] + y0*FR.up[0];
+          let py = FR.p[1] + x0*FR.side[1] + y0*FR.up[1];
+          let pz = FR.p[2] + x0*FR.side[2] + y0*FR.up[2];
+          const rx = Math.abs(x0)/(W*0.5), ry = Math.abs(y0)/(H*0.5);
+          const radial = clamp(1.0 - 0.6*Math.max(rx, ry), 0, 1);
+          let bulge = 0.0;
+          if (i === 0){
+            bulge = HEAD_BULGE * smoothstep(0.65, 1.0, u) * radial;
+          } else if (i === NSEG-1){
+            bulge = TAIL_BULGE * smoothstep(0.65, 1.0, u) * radial;
+          }
+          if (bulge > 0.0){
+            px += FR.t[0]*bulge; py += FR.t[1]*bulge; pz += FR.t[2]*bulge;
+          }
+          px -= pivotVec.x; py -= pivotVec.y; pz -= pivotVec.z;
+          posArray[v+0] = px; posArray[v+1] = py; posArray[v+2] = pz;
+        }
+        
+        computeNormals(posArray, cubeBase.indices, norArray);
+        
+        geometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        geometry.setAttribute('normal', new THREE.BufferAttribute(norArray, 3));
+        geometry.setIndex(new THREE.BufferAttribute(cubeBase.indices, 1));
+        
+        const material = new THREE.MeshStandardMaterial({
+          color: greens[i],
+          roughness: 0.7,
+          metalness: 0.1,
+          side: THREE.DoubleSide
+        });
+        
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.castShadow = true;
+        group.add(mesh);
+        segments.push({ mesh, posArray, norArray });
+      }
+      
+      // Eyes
+      const sFace = 0.006;
+      const FfaceR = rotateFrame(sampleFrameAt(sFace));
+      const facePos = new THREE.Vector3(FfaceR.p[0], FfaceR.p[1], FfaceR.p[2]);
+      const N = normalize([-FfaceR.t[0], -FfaceR.t[1], -FfaceR.t[2]]);
+      
+      function projectUp(N){
+        const U=[0,1,0];
+        const dot = U[0]*N[0]+U[1]*N[1]+U[2]*N[2];
+        let up=[ U[0]-dot*N[0], U[1]-dot*N[1], U[2]-dot*N[2] ];
+        let L = Math.hypot(up[0],up[1],up[2]);
+        if (L < 1e-4){
+          const WR=[1,0,0];
+          const dot2 = WR[0]*N[0]+WR[1]*N[1]+WR[2]*N[2];
+          up=[ WR[0]-dot2*N[0], WR[1]-dot2*N[1], WR[2]-dot2*N[2] ];
+          L = Math.hypot(up[0],up[1],up[2]);
+        }
+        return [up[0]/L, up[1]/L, up[2]/L];
+      }
+      
+      let up = projectUp(N);
+      const right = normalize(cross(up, N));
+      up = normalize(cross(N, right));
+      
+      const eyeGeo = new THREE.CylinderGeometry(0.085, 0.085, 0.06, 24);
+      const eyeMat = new THREE.MeshStandardMaterial({ color: 0x1f2937 });
+      
+      const EYE_SPACING = 0.20;
+      const EYE_Y = 0.15;
+      const scaleH = 0.85, scaleV = 1.15, scaleN = 0.65;
+      
+      const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+      eyeL.position.set(
+        facePos.x + (-EYE_SPACING)*right[0] + EYE_Y*up[0] - 0.01*N[0],
+        facePos.y + (-EYE_SPACING)*right[1] + EYE_Y*up[1] - 0.01*N[1],
+        facePos.z + (-EYE_SPACING)*right[2] + EYE_Y*up[2] - 0.01*N[2]
+      );
+      eyeL.scale.set(scaleH, scaleV, scaleN);
+      eyeL.lookAt(new THREE.Vector3(
+        facePos.x - N[0],
+        facePos.y - N[1],
+        facePos.z - N[2]
+      ));
+      
+      const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+      eyeR.position.set(
+        facePos.x + EYE_SPACING*right[0] + EYE_Y*up[0] - 0.01*N[0],
+        facePos.y + EYE_SPACING*right[1] + EYE_Y*up[1] - 0.01*N[1],
+        facePos.z + EYE_SPACING*right[2] + EYE_Y*up[2] - 0.01*N[2]
+      );
+      eyeR.scale.set(scaleH, scaleV, scaleN);
+      eyeR.lookAt(new THREE.Vector3(
+        facePos.x - N[0],
+        facePos.y - N[1],
+        facePos.z - N[2]
+      ));
+      
+      group.add(eyeL, eyeR);
+      
+      // Smile
+      const smileGeo = new THREE.TorusGeometry(0.18, 0.028, 16, 56, Math.PI);
+      const smileMat = new THREE.MeshStandardMaterial({ color: 0x1f2937 });
+      const smile = new THREE.Mesh(smileGeo, smileMat);
+      smile.position.set(
+        facePos.x - 0.02*up[0] + 0.006*N[0],
+        facePos.y - 0.02*up[1] + 0.006*N[1],
+        facePos.z - 0.02*up[2] + 0.006*N[2]
+      );
+      smile.lookAt(new THREE.Vector3(
+        facePos.x - N[0],
+        facePos.y - N[1],
+        facePos.z - N[2]
+      ));
+      smile.scale.set(1,1,0.72);
+      group.add(smile);
+      
+      group.userData.segments = segments;
+      group.userData.eyes = [eyeL, eyeR];
+      group.userData.smile = smile;
+      
+      return group;
+    }
+
+    // Bob Avatar Factory (voxel block character with face)
+    function createBob() {
+      const bobGroup = new THREE.Group();
+      bobGroup.scale.setScalar(0.8);
+      
+      const voxelSize = 0.4;
+      const voxelGeometry = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
+      
+      // Pink head material
+      const headMaterial = new THREE.MeshStandardMaterial({
+        color: 0xff6b9d,
+        emissive: 0xff1493,
+        emissiveIntensity: 0.2,
+        roughness: 0.6,
+        metalness: 0.2
+      });
+      
+      // Cyan glow material for face
+      const faceMaterial = new THREE.MeshStandardMaterial({
+        color: 0x00ffff,
+        emissive: 0x00ffff,
+        emissiveIntensity: 0.8,
+        roughness: 0.3,
+        metalness: 0.4
+      });
+      
+      // Build voxel head (5x5x5 hollow with face)
+      const headGroup = new THREE.Group();
+      for (let x = -2; x <= 2; x++) {
+        for (let y = 0; y <= 4; y++) {
+          for (let z = -2; z <= 2; z++) {
+            // Create hollow head with face
+            const isEdge = Math.abs(x) === 2 || Math.abs(z) === 2 || y === 0 || y === 4;
+            const isFace = z === 2 && y >= 1 && y <= 3;
+            
+            // Eyes
+            const isEye = z === 2 && y === 3 && (x === -1 || x === 1);
+            
+            // Mouth
+            const isMouth = z === 2 && y === 1 && Math.abs(x) <= 1;
+            
+            if (isEdge || (isFace && !isEye && !isMouth)) {
+              const voxel = new THREE.Mesh(voxelGeometry, isEye || isMouth ? faceMaterial : headMaterial.clone());
+              voxel.position.set(x * voxelSize, (y + 2) * voxelSize, z * voxelSize);
+              headGroup.add(voxel);
+            }
+          }
+        }
+      }
+      
+      // Blue body material
+      const bodyMaterial = new THREE.MeshStandardMaterial({
+        color: 0x4a7cff,
+        emissive: 0x0066ff,
+        emissiveIntensity: 0.1,
+        roughness: 0.6,
+        metalness: 0.2
+      });
+      
+      // Body (2 voxels tall, wider)
+      for (let x = -1; x <= 1; x++) {
+        for (let y = 0; y <= 1; y++) {
+          for (let z = -1; z <= 1; z++) {
+            if (Math.abs(x) >= 0.5 || Math.abs(z) >= 0.5) {
+              const voxel = new THREE.Mesh(voxelGeometry, bodyMaterial);
+              voxel.position.set(x * voxelSize, y * voxelSize, z * voxelSize);
+              bobGroup.add(voxel);
+            }
+          }
+        }
+      }
+      
+      bobGroup.add(headGroup);
+      bobGroup.userData.head = headGroup;
+      bobGroup.userData.originalY = 0;
+      return bobGroup;
+    }
+
+    // Pal-ette Avatar Factory (full grid character with inner cells)
+    function createPalette() {
+      const paletteGroup = new THREE.Group();
+      paletteGroup.scale.setScalar(0.6);
+      
+      const cellSize = 0.8;
+      const gridWidth = 5;
+      const gridHeight = 8;
+      
+      const cells = [];
+      
+      for (let x = 0; x < gridWidth; x++) {
+        for (let y = 0; y < gridHeight; y++) {
+          // Cell frame (green)
+          const frameGeometry = new THREE.BoxGeometry(cellSize * 0.9, cellSize * 0.9, 0.1);
+          const frameMaterial = new THREE.MeshStandardMaterial({
+            color: 0x00ff00,
+            emissive: 0x00ff00,
+            emissiveIntensity: 0.3,
+            roughness: 0.3,
+            metalness: 0.7,
+            transparent: true,
+            opacity: 0.7
+          });
+          
+          const cell = new THREE.Mesh(frameGeometry, frameMaterial);
+          cell.position.set(
+            (x - gridWidth / 2) * cellSize,
+            (y - gridHeight / 2) * cellSize + 3,
+            0
+          );
+          
+          // Add random inner content (white/cyan)
+          if (Math.random() > 0.4) {
+            const contentGeometry = new THREE.BoxGeometry(cellSize * 0.6, cellSize * 0.6, 0.08);
+            const contentMaterial = new THREE.MeshStandardMaterial({
+              color: Math.random() > 0.5 ? 0xffffff : 0x00ffff,
+              emissive: Math.random() > 0.5 ? 0xffffff : 0x00ffff,
+              emissiveIntensity: 0.6
+            });
+            const content = new THREE.Mesh(contentGeometry, contentMaterial);
+            content.position.z = 0.1;
+            cell.add(content);
+            cell.userData.content = content;
+          }
+          
+          paletteGroup.add(cell);
+          cell.userData.originalY = cell.position.y;
+          cells.push(cell);
+        }
+      }
+      
+      paletteGroup.userData.cells = cells;
+      paletteGroup.userData.gridWidth = gridWidth;
+      paletteGroup.userData.gridHeight = gridHeight;
+      paletteGroup.userData.originalY = 0;
+      return paletteGroup;
+    }
+
+    // ============= CREATE MAIN AVATARS =============
+    
+    // Create real Celli (center-left) - bottom at Y=0
+    const celliGroup = createRealCelli();
+    celliGroup.position.set(-5, 0, 0);
+    scene.add(celliGroup);
+
+    // Create real Arraya (center-right) - raised to match Celli height
+    const arrayGroup = createRealArraya();
+    arrayGroup.position.set(5, 1.8, 0); // Raised significantly to align with Celli
+    scene.add(arrayGroup);
+
+    // Create background dancers in a circle
+    const backgroundDancers = [];
+    const circleRadius = 18;
+    const bobCount = 8;
+    const paletteCount = 8;
+
+    // Create Bob instances in a circle
+    for (let i = 0; i < bobCount; i++) {
+      const angle = (i / bobCount) * Math.PI * 2;
+      const bob = createBob();
+      bob.position.set(
+        Math.cos(angle) * circleRadius,
+        0,
+        Math.sin(angle) * circleRadius
+      );
+      bob.rotation.y = angle + Math.PI; // Face inward
+      bob.userData.angle = angle;
+      scene.add(bob);
+      backgroundDancers.push({ avatar: bob, type: 'bob', angle: angle });
+    }
+
+    // Create Pal-ette instances in a circle (offset from Bobs)
+    for (let i = 0; i < paletteCount; i++) {
+      const angle = ((i + 0.5) / paletteCount) * Math.PI * 2; // Offset by half
+      const palette = createPalette();
+      palette.position.set(
+        Math.cos(angle) * circleRadius,
+        0,
+        Math.sin(angle) * circleRadius
+      );
+      palette.rotation.y = angle + Math.PI; // Face inward
+      palette.userData.angle = angle;
+      scene.add(palette);
+      backgroundDancers.push({ avatar: palette, type: 'palette', angle: angle });
+    }
+
+    console.log(`✅ Main avatars + ${bobCount} Bobs + ${paletteCount} Pal-ettes created`);
+
+    // Create rave lights
+    const lights = [];
+    
+    function createRaveLights() {
+      const ambient = new THREE.AmbientLight(0x404040, 0.5);
+      scene.add(ambient);
+      
+      const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xff00ff, 0xffff00, 0x00ffff];
+      const positions = [
+        [-10, 10, 10],
+        [10, 10, 10],
+        [-10, 10, -10],
+        [10, 10, -10],
+        [0, 15, 0],
+        [0, 5, 15]
+      ];
+      
+      for (let i = 0; i < colors.length; i++) {
+        const light = new THREE.SpotLight(colors[i], 2, 50, Math.PI / 6, 0.5, 1);
+        light.position.set(...positions[i]);
+        light.castShadow = true;
+        light.shadow.mapSize.width = 512;
+        light.shadow.mapSize.height = 512;
+        
+        const sphereGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+        const sphereMaterial = new THREE.MeshBasicMaterial({
+          color: colors[i],
+          emissive: colors[i],
+          emissiveIntensity: 1
+        });
+        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        sphere.position.copy(light.position);
+        scene.add(sphere);
+        
+        scene.add(light);
+        lights.push({ light, sphere, baseColor: colors[i], basePos: light.position.clone() });
+      }
+      
+      console.log('✅ Rave lights created');
+    }
+
+    // Create laser beams
+    const laserBeams = [];
+    
+    function createLaserBeams() {
+      for (let i = 0; i < 8; i++) {
+        const geometry = new THREE.CylinderGeometry(0.05, 0.05, 20, 8);
+        const material = new THREE.MeshBasicMaterial({
+          color: 0xff00ff,
+          transparent: true,
+          opacity: 0.6,
+          emissive: 0xff00ff,
+          emissiveIntensity: 1
+        });
+        
+        const beam = new THREE.Mesh(geometry, material);
+        beam.position.set(
+          (Math.random() - 0.5) * 30,
+          10,
+          (Math.random() - 0.5) * 30
+        );
+        beam.rotation.x = Math.PI / 2;
+        beam.visible = false;
+        
+        scene.add(beam);
+        laserBeams.push({
+          mesh: beam,
+          angle: Math.random() * Math.PI * 2,
+          speed: 0.5 + Math.random() * 1
+        });
+      }
+      
+      console.log('✅ Laser beams created');
+    }
+
+    // Animation functions WITH MUSIC VISUALIZATION
+    function animateCelliDance(beatIntensity) {
+      if (!celliGroup.userData.bodyGroup) return;
+      
+      // Bob to beat - WHOLE CHARACTER
+      const bobHeight = (raveState.bass / 255) * 0.8;
+      celliGroup.position.y = bobHeight;
+      
+      // Stretch body to music
+      const bassStretch = 1 + (raveState.bass / 255) * 0.2;
+      celliGroup.userData.bodyGroup.scale.set(bassStretch, 1 / Math.sqrt(bassStretch), bassStretch);
+      
+      // Wave arms at shoulders (hands follow arms now)
+      if (celliGroup.userData.leftArm && celliGroup.userData.rightArm) {
+        const armWave = raveState.time * 3 + beatIntensity * 2;
+        celliGroup.userData.leftArm.armRoot.rotation.z = Math.sin(armWave) * 0.6;
+        celliGroup.userData.rightArm.armRoot.rotation.z = -Math.sin(armWave) * 0.6;
+        celliGroup.userData.leftArm.armRoot.rotation.x = Math.cos(raveState.time * 2) * 0.2;
+        celliGroup.userData.rightArm.armRoot.rotation.x = Math.cos(raveState.time * 2 + Math.PI) * 0.2;
+      }
+      
+      // Bounce legs at hip (legs stay attached to body)
+      if (celliGroup.userData.leftLeg && celliGroup.userData.rightLeg) {
+        const legBounce = Math.sin(raveState.time * 4) * 0.3 * beatIntensity;
+        celliGroup.userData.leftLeg.legRoot.rotation.x = legBounce;
+        celliGroup.userData.rightLeg.legRoot.rotation.x = -legBounce;
+      }
+      
+      // Bow flutter with music (moves with bodyGroup)
+      if (celliGroup.userData.bowGroup) {
+        celliGroup.userData.bowGroup.rotation.z = Math.sin(raveState.time * 5) * 0.15;
+        celliGroup.userData.bowGroup.scale.set(
+          1 + beatIntensity * 0.1,
+          1 + beatIntensity * 0.1,
+          1
+        );
+      }
+      
+      // Rotate whole character
+      celliGroup.rotation.y = raveState.time * 0.3;
+    }
+
+    function animateArrayDance(beatIntensity) {
+      if (!arrayGroup.userData.segments) return;
+      
+      // Bob to beat from raised position
+      const bobHeight = 1.8 + (raveState.bass / 255) * 0.8;
+      arrayGroup.position.y = bobHeight;
+      
+      // CURVE SIDE TO SIDE with music
+      const sideCurve = Math.sin(raveState.time * 1.5) * (raveState.treble / 255) * 2;
+      arrayGroup.position.x = 5 + sideCurve; // Offset from center
+      
+      // Tilt/sway whole body
+      arrayGroup.rotation.z = Math.sin(raveState.time * 1.2) * (raveState.volume / 255) * 0.4;
+      
+      // Stretch to music
+      const bassScale = 1 + (raveState.bass / 255) * 0.3;
+      const trebleWiggle = (raveState.treble / 255) * 0.25;
+      
+      // SHIFT AND OFFSET COLUMNS to music
+      arrayGroup.userData.segments.forEach((segData, i) => {
+        const segment = segData.mesh;
+        const columnPhase = i / (arrayGroup.userData.segments.length - 1);
+        
+        // Offset each segment based on treble (creates wave effect)
+        const xShift = Math.sin(raveState.time * 3 + columnPhase * Math.PI * 2) * trebleWiggle;
+        const yShift = Math.cos(raveState.time * 2.5 + columnPhase * Math.PI) * trebleWiggle * 0.5;
+        segment.position.x = xShift;
+        segment.position.y = yShift;
+        
+        // Rotate segments individually for snake-like movement
+        const rotWave = Math.sin(raveState.time * 2 + i * 0.5) * trebleWiggle;
+        segment.rotation.y = rotWave * 2;
+        segment.rotation.z = Math.cos(raveState.time * 1.8 + i * 0.4) * trebleWiggle * 1.5;
+        segment.rotation.x = Math.sin(raveState.time * 2.2 + i * 0.3) * trebleWiggle;
+        
+        // Pulse scale on beat - MORE DRAMATIC
+        const pulse = 1 + beatIntensity * 0.25 + (raveState.bass / 255) * 0.2;
+        segment.scale.set(pulse, pulse, pulse);
+      });
+      
+      // Eyes blink with music
+      if (arrayGroup.userData.eyes) {
+        const blinkScale = 1 + (raveState.volume / 255) * 0.5;
+        arrayGroup.userData.eyes.forEach(eye => {
+          eye.scale.y = blinkScale;
+        });
+      }
+      
+      // Rotate whole array (body sway)
+      arrayGroup.rotation.y = Math.sin(raveState.time * 0.6) * 0.3 + Math.cos(raveState.time * 0.4) * 0.2;
+    }
+    
+    function animateBackgroundDancers(beatIntensity) {
+      backgroundDancers.forEach((dancer, i) => {
+        const avatar = dancer.avatar;
+        
+        if (dancer.type === 'bob') {
+          // Bob hop to beat
+          const bobHeight = (raveState.bass / 255) * 1.5 + beatIntensity * 0.5;
+          avatar.position.y = bobHeight;
+          
+          // Rotate head
+          if (avatar.userData.head) {
+            avatar.userData.head.rotation.y = Math.sin(raveState.time * 2 + i) * 0.3;
+            avatar.userData.head.rotation.z = Math.cos(raveState.time * 1.5 + i) * 0.1;
+          }
+          
+          // Pulse scale
+          const pulse = 1 + beatIntensity * 0.2;
+          avatar.scale.set(0.8 * pulse, 0.8 * pulse, 0.8 * pulse);
+          
+        } else if (dancer.type === 'palette') {
+          // Pal-ette bob to beat
+          const bobHeight = (raveState.bass / 255) * 1.2 + beatIntensity * 0.4;
+          avatar.position.y = bobHeight;
+          
+          // RAINBOW ANIMATION across cells
+          if (avatar.userData.cells) {
+            avatar.userData.cells.forEach((cell, cellIndex) => {
+              const cellBeat = Math.sin(raveState.time * 4 + i + cellIndex * 0.2);
+              const pulse = 1 + Math.abs(cellBeat) * beatIntensity * 0.2;
+              cell.scale.set(pulse, pulse, 1);
+              
+              // RAINBOW COLOR CYCLE based on position and time
+              const hue = (raveState.time * 0.5 + i * 0.1 + cellIndex * 0.025) % 1;
+              cell.material.color.setHSL(hue, 1, 0.5);
+              cell.material.emissive.setHSL(hue, 1, 0.4);
+              
+              // Animate inner content colors too
+              if (cell.userData.content) {
+                const contentHue = (hue + 0.5) % 1; // Complementary color
+                cell.userData.content.material.color.setHSL(contentHue, 1, 0.7);
+                cell.userData.content.material.emissive.setHSL(contentHue, 1, 0.5);
+                
+                // Content pulse
+                const contentPulse = 1 + beatIntensity * 0.3;
+                cell.userData.content.scale.set(contentPulse, contentPulse, 1);
+              }
+            });
+          }
+          
+          // Subtle rotation
+          avatar.rotation.y = dancer.angle + Math.PI + Math.sin(raveState.time * 0.5 + i) * 0.1;
+        }
+      });
+    }
+    
+    function animateLights(beatIntensity) {
+      if (!raveState.lightsOn) return;
+      
+      lights.forEach((lightData, i) => {
+        const { light, sphere, baseColor, basePos } = lightData;
+        
+        // Orbit lights
+        const angle = raveState.time * 0.5 + i * (Math.PI * 2 / lights.length);
+        const radius = 15;
+        light.position.x = basePos.x + Math.cos(angle) * radius * 0.3;
+        light.position.z = basePos.z + Math.sin(angle) * radius * 0.3;
+        
+        if (sphere) {
+          sphere.position.copy(light.position);
+        }
+        
+        // Pulse intensity with music
+        light.intensity = 2 + (raveState.bass / 255) * 4;
+        
+        // Color shift
+        const hue = (raveState.time * 0.3 + i * 0.16) % 1;
+        const color = new THREE.Color().setHSL(hue, 1, 0.5);
+        if (light.color) {
+          light.color.copy(color);
+        }
+        if (sphere && sphere.material) {
+          sphere.material.color.copy(color);
+          if (sphere.material.emissive) {
+            sphere.material.emissive.copy(color);
+          }
+        }
+      });
+    }
+
+    function animateLaserBeams() {
+      if (!raveState.lightsOn) return;
+      
+      laserBeams.forEach((beam, i) => {
+        if (!beam.mesh.visible) return;
+        
+        beam.angle += beam.speed * 0.02;
+        beam.mesh.rotation.y = beam.angle;
+        
+        // Color cycle
+        const hue = (raveState.time * 0.5 + i * 0.125) % 1;
+        beam.mesh.material.color.setHSL(hue, 1, 0.5);
+        beam.mesh.material.emissive.setHSL(hue, 1, 0.5);
+        
+        // Pulse opacity with music
+        beam.mesh.material.opacity = 0.3 + (raveState.volume / 255) * 0.5;
+      });
+    }
+
+    function triggerBassHit() {
+      const flash = document.getElementById('bass-flash');
+      flash.classList.add('active');
+      setTimeout(() => flash.classList.remove('active'), 100);
+      
+      // Extra bloom on bass
+      bloomPass.strength = 2.5 + (raveState.bass / 255) * 2;
+      setTimeout(() => bloomPass.strength = 1.5, 100);
+    }
+
+    // Initialize scene
+    createRaveLights();
+    createLaserBeams();
+
+    // Show lasers
+    laserBeams.forEach(beam => beam.mesh.visible = true);
+    
+    console.log('✅ All avatars and effects initialized');
+
+    // UI Controls
+    document.getElementById('toggle-music').addEventListener('click', (e) => {
+      if (!raveState.musicPlaying) {
+        audioContext.resume().then(() => {
+          audioElement.play();
+          raveState.musicPlaying = true;
+          e.target.textContent = 'STOP';
+        });
+      } else {
+        audioElement.pause();
+        raveState.musicPlaying = false;
+        e.target.textContent = 'PLAY';
+      }
+    });
+
+    document.getElementById('volume-slider').addEventListener('input', (e) => {
+      const volume = parseInt(e.target.value);
+      audioElement.volume = volume / 100;
+      document.getElementById('volume-value').textContent = volume;
+    });
+
+    document.getElementById('toggle-lights').addEventListener('click', (e) => {
+      raveState.lightsOn = !raveState.lightsOn;
+      e.target.textContent = raveState.lightsOn ? 'ON' : 'OFF';
+      laserBeams.forEach(beam => beam.mesh.visible = raveState.lightsOn);
+    });
+
+    document.getElementById('toggle-dance').addEventListener('click', (e) => {
+      raveState.dancing = !raveState.dancing;
+      e.target.textContent = raveState.dancing ? 'STOP' : 'START';
+    });
+
+    document.getElementById('toggle-celli').addEventListener('click', () => {
+      raveState.celliVisible = !raveState.celliVisible;
+      celliGroup.visible = raveState.celliVisible;
+    });
+
+    document.getElementById('toggle-array').addEventListener('click', () => {
+      raveState.arrayVisible = !raveState.arrayVisible;
+      arrayGroup.visible = raveState.arrayVisible;
+    });
+
+    // Animation loop
+    const clock = new THREE.Clock();
+    let lastBassHit = 0;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      const deltaTime = clock.getDelta();
+      raveState.time += deltaTime;
+      
+      // Analyze audio
+      if (raveState.musicPlaying) {
+        analyser.getByteFrequencyData(dataArray);
+        
+        // Bass (low frequencies)
+        raveState.bass = dataArray.slice(0, 5).reduce((a, b) => a + b) / 5;
+        
+        // Treble (high frequencies)
+        raveState.treble = dataArray.slice(bufferLength - 10).reduce((a, b) => a + b) / 10;
+        
+        // Overall volume
+        raveState.volume = dataArray.reduce((a, b) => a + b) / bufferLength;
+        
+        // Trigger bass hits
+        if (raveState.bass > 150 && raveState.time - lastBassHit > 0.2) {
+          triggerBassHit();
+          lastBassHit = raveState.time;
+        }
+      }
+      
+      const beatIntensity = raveState.bass / 255;
+      
+      // Animate elements
+      if (raveState.dancing || raveState.musicPlaying) {
+        if (raveState.celliVisible) animateCelliDance(beatIntensity);
+        if (raveState.arrayVisible) animateArrayDance(beatIntensity);
+        animateBackgroundDancers(beatIntensity);
+      }
+      
+      animateLights(beatIntensity);
+      animateLaserBeams();
+      animateFloor(beatIntensity);
+      
+      controls.update();
+      composer.render();
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Hide loading overlay
+    setTimeout(() => {
+      document.getElementById('loading').classList.add('hidden');
+      console.log('🎵 Rave scene ready!');
+      
+      // Auto-start dance
+      raveState.dancing = true;
+      document.getElementById('toggle-dance').textContent = 'STOP';
+    }, 500);
+
+    // Start animation
+    animate();
+
+    console.log('✅ Rave Scene Initialized Successfully!');
+  </script>
+</body>
+</html>
