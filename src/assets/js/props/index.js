@@ -2,43 +2,31 @@ import * as THREE from 'three';
 import { createFilmCameraProp } from './FilmCameraProp.js';
 import { createFilmReelProp } from './FilmReelProp.js';
 import { createFilmStripProp } from './FilmStripProp.js';
+import { PROP_CATALOG } from './propCatalog.js';
 
-const PROP_DEFINITIONS = {
-  filmCamera: {
-    id: 'filmCamera',
-    name: 'Film Camera',
-    description:
-      'Stylized dual-reel film camera inspired by the record button icon, complete with tripod and glowing lens.',
-    tags: ['camera', 'cinema', 'hardware'],
-    create: (options = {}) => createFilmCameraProp(options),
-    defaultOptions: {
-      scale: 1,
-    },
-  },
-  filmReel: {
-    id: 'filmReel',
-    name: 'Film Reel',
-    description:
-      'Layered cinema reel with wound ribbon and reflective metal discs ready for projection booth dressing.',
-    tags: ['cinema', 'prop', 'reel'],
-    create: (options = {}) => createFilmReelProp(options),
-    defaultOptions: {
-      scale: 1,
-    },
-  },
-  filmStrip: {
-    id: 'filmStrip',
-    name: 'Film Strip',
-    description:
-      'Connected translucent frames framed by perforated bars, ideal for UI overlays or set dressing.',
-    tags: ['cinema', 'ui', 'graphic'],
-    create: (options = {}) => createFilmStripProp(options),
-    defaultOptions: {
-      scale: 1.2,
-      cellCount: 4,
-    },
-  },
+const FACTORIES = {
+  filmCamera: createFilmCameraProp,
+  filmReel: createFilmReelProp,
+  filmStrip: createFilmStripProp,
 };
+
+const PROP_DEFINITIONS = PROP_CATALOG.reduce((definitions, meta) => {
+  const factory = FACTORIES[meta.id];
+
+  if (!factory) {
+    return definitions;
+  }
+
+  const defaults = meta.defaultOptions ? { ...meta.defaultOptions } : {};
+
+  definitions[meta.id] = {
+    ...meta,
+    defaultOptions: defaults,
+    create: (options = {}) => factory({ ...defaults, ...options }),
+  };
+
+  return definitions;
+}, {});
 
 /**
  * Create a prop instance by id.
@@ -49,7 +37,7 @@ const PROP_DEFINITIONS = {
 export function createProp(id, options = {}) {
   const def = PROP_DEFINITIONS[id];
   if (!def) return null;
-  return def.create({ ...def.defaultOptions, ...options });
+  return def.create(options);
 }
 
 /**
@@ -71,6 +59,9 @@ export function listProps() {
     name: def.name,
     description: def.description,
     tags: def.tags,
+    category: def.category,
+    icon: def.icon,
+    defaultOptions: def.defaultOptions,
   }));
 }
 
