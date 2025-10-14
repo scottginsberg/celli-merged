@@ -1295,6 +1295,58 @@
       border-bottom: 1px solid #444;
     }
 
+    .prop-preview-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .prop-preview-canvas {
+      width: 100%;
+      height: 220px;
+      background: radial-gradient(circle at 30% 30%, rgba(80, 80, 80, 0.6), rgba(10, 10, 10, 0.9));
+      border-radius: 8px;
+      border: 1px solid #3e3e3e;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+      cursor: grab;
+    }
+
+    .prop-preview-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 11px;
+      color: #d0d0d0;
+    }
+
+    .prop-preview-meta strong {
+      font-size: 12px;
+      letter-spacing: 0.4px;
+      color: #ffffff;
+    }
+
+    .prop-preview-description {
+      line-height: 1.4;
+      color: #b5c2cf;
+    }
+
+    .prop-preview-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .prop-tag {
+      background: rgba(52, 152, 219, 0.15);
+      border: 1px solid rgba(52, 152, 219, 0.35);
+      color: #8cd3ff;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 10px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
     .property-group {
       margin-bottom: 12px;
     }
@@ -1631,6 +1683,19 @@
       <!-- Right Panel - Inspector -->
       <div class="panel-right">
         <div class="inspector-section">
+          <div class="inspector-section-title">🎭 Prop Preview</div>
+          <div class="prop-preview-wrapper">
+            <canvas id="propPreviewCanvas" class="prop-preview-canvas"></canvas>
+            <div class="prop-preview-meta">
+              <strong id="propPreviewTitle">Select a prop to preview</strong>
+              <div class="prop-preview-description" id="propPreviewDescription">
+                Choose a prop from the Props category to see a live Three.js preview.
+              </div>
+              <div class="prop-preview-tags" id="propPreviewTags"></div>
+            </div>
+          </div>
+        </div>
+        <div class="inspector-section">
           <div class="inspector-section-title">🔍 Inspector</div>
           <div id="inspector">
             <div style="text-align: center; color: #666; padding: 40px 20px; font-size: 12px;">
@@ -1802,6 +1867,47 @@
             { name: "lifetime", type: "number", path: "particles.lifetime" },
             { name: "size", type: "number", path: "particles.size" },
             { name: "color", type: "color", path: "particles.color" }
+          ]
+        }
+      ],
+      "Props": [
+        {
+          name: "Film Camera",
+          icon: "🎥",
+          previewId: "filmCamera",
+          description: "Dual-reel film camera with glowing lens and tripod stand.",
+          tags: ["camera", "cinema", "hardware"],
+          components: [
+            { name: "position", type: "vector3", path: "props.filmCamera.position" },
+            { name: "rotation", type: "vector3", path: "props.filmCamera.rotation" },
+            { name: "scale", type: "vector3", path: "props.filmCamera.scale" },
+            { name: "visible", type: "boolean", path: "props.filmCamera.visible" }
+          ]
+        },
+        {
+          name: "Film Reel",
+          icon: "📽️",
+          previewId: "filmReel",
+          description: "Layered cinema reel with reflective plates and wound ribbon.",
+          tags: ["reel", "cinema", "prop"],
+          components: [
+            { name: "position", type: "vector3", path: "props.filmReel.position" },
+            { name: "rotation", type: "vector3", path: "props.filmReel.rotation" },
+            { name: "scale", type: "vector3", path: "props.filmReel.scale" },
+            { name: "visible", type: "boolean", path: "props.filmReel.visible" }
+          ]
+        },
+        {
+          name: "Film Strip",
+          icon: "🎞️",
+          previewId: "filmStrip",
+          description: "Translucent connected frames with perforated guide bars.",
+          tags: ["ui", "cinema", "graphic"],
+          components: [
+            { name: "position", type: "vector3", path: "props.filmStrip.position" },
+            { name: "rotation", type: "vector3", path: "props.filmStrip.rotation" },
+            { name: "scale", type: "vector3", path: "props.filmStrip.scale" },
+            { name: "opacity", type: "number", path: "props.filmStrip.opacity" }
           ]
         }
       ],
@@ -2130,6 +2236,213 @@
       }
     }
 
+    // ===== PROP PREVIEW MANAGER =====
+    class PropPreviewer {
+      constructor(canvas, meta = {}) {
+        this.canvas = canvas;
+        this.meta = meta;
+        this.renderer = null;
+        this.scene = null;
+        this.camera = null;
+        this.controls = null;
+        this.currentProp = null;
+        this.animationId = null;
+        this.library = null;
+        this.lights = [];
+      }
+
+      async init() {
+        if (!this.canvas) {
+          console.warn('PropPreviewer: canvas not found');
+          return;
+        }
+
+        try {
+          this.library = await import('../../src/assets/js/props/index.js');
+          console.log('🎨 Prop library loaded');
+        } catch (error) {
+          console.warn('⚠️ Prop library could not be loaded:', error);
+          this._updateMeta({
+            title: 'Prop library unavailable',
+            description: 'Ensure the assets/js/props bundle is accessible when serving the builder.',
+            tags: ['error'],
+          });
+          return;
+        }
+
+        const width = this.canvas.clientWidth || 320;
+        const height = this.canvas.clientHeight || 200;
+
+        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setSize(width, height);
+        this.renderer.shadowMap.enabled = true;
+
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x050607);
+
+        this.camera = new THREE.PerspectiveCamera(45, width / height, 0.05, 200);
+        this.camera.position.set(3, 2.2, 3.4);
+
+        this.controls = new OrbitControls(this.camera, this.canvas);
+        this.controls.enableDamping = true;
+        this.controls.enablePan = false;
+        this.controls.dampingFactor = 0.08;
+        this.controls.target.set(0, 1, 0);
+
+        // Lighting setup
+        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+        this.scene.add(ambient);
+        this.lights.push(ambient);
+
+        const keyLight = new THREE.DirectionalLight(0xffffff, 0.85);
+        keyLight.position.set(4, 6, 5);
+        keyLight.castShadow = true;
+        this.scene.add(keyLight);
+        this.lights.push(keyLight);
+
+        const rimLight = new THREE.PointLight(0x4cc0ff, 0.8, 12, 2);
+        rimLight.position.set(-3, 2, -4);
+        this.scene.add(rimLight);
+        this.lights.push(rimLight);
+
+        const ground = new THREE.Mesh(
+          new THREE.CircleGeometry(4.5, 48),
+          new THREE.MeshStandardMaterial({
+            color: 0x111216,
+            metalness: 0.2,
+            roughness: 0.8,
+            transparent: true,
+            opacity: 0.95,
+          })
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        ground.position.y = 0.01;
+        this.scene.add(ground);
+
+        this._updateMeta({
+          title: 'Select a prop to preview',
+          description: 'Browse the Props category to see new Three.js ready assets in action.',
+          tags: ['props', 'preview', 'three.js'],
+        });
+
+        this.handleResize();
+        this._animate();
+      }
+
+      _animate() {
+        this.animationId = requestAnimationFrame(() => this._animate());
+        if (this.controls) {
+          this.controls.update();
+        }
+        if (this.renderer && this.scene && this.camera) {
+          this.renderer.render(this.scene, this.camera);
+        }
+      }
+
+      showProp(id, metaOverrides = {}) {
+        if (!this.library) {
+          this._updateMeta({
+            title: 'Prop library not loaded',
+            description: 'Assets could not be loaded. Check console for details.',
+            tags: ['error'],
+          });
+          return;
+        }
+
+        const propDefinition = this.library.getPropDefinition?.(id);
+        const instance = this.library.createProp?.(id);
+
+        if (!instance) {
+          this._updateMeta({
+            title: 'Preview unavailable',
+            description: 'This prop has not been implemented yet.',
+            tags: ['todo'],
+          });
+          return;
+        }
+
+        if (this.currentProp) {
+          this._disposeCurrentProp();
+        }
+
+        this.currentProp = instance;
+        this.scene.add(instance);
+
+        this._focusOnProp(instance);
+
+        this._updateMeta({
+          title: metaOverrides.title || propDefinition?.name || 'Prop Preview',
+          description: metaOverrides.description || propDefinition?.description || '',
+          tags: metaOverrides.tags || propDefinition?.tags || [],
+        });
+      }
+
+      handleResize() {
+        if (!this.renderer || !this.camera || !this.canvas) return;
+        const width = this.canvas.clientWidth || 320;
+        const height = this.canvas.clientHeight || 200;
+        this.renderer.setSize(width, height);
+        this.camera.aspect = width / Math.max(1, height);
+        this.camera.updateProjectionMatrix();
+      }
+
+      _focusOnProp(object) {
+        const box = new THREE.Box3().setFromObject(object);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const distance = maxDim * 2.4 + 0.5;
+
+        const offset = new THREE.Vector3(1.6, 1.1, 1.8).normalize().multiplyScalar(distance);
+        this.camera.position.copy(center.clone().add(offset));
+        this.controls.target.copy(center);
+        this.controls.update();
+
+        this.camera.near = Math.max(0.01, distance / 20);
+        this.camera.far = Math.max(50, distance * 6);
+        this.camera.updateProjectionMatrix();
+      }
+
+      _disposeCurrentProp() {
+        if (!this.currentProp) return;
+        this.scene.remove(this.currentProp);
+        this.currentProp.traverse((child) => {
+          if (child.isMesh) {
+            if (child.geometry) child.geometry.dispose();
+            if (Array.isArray(child.material)) {
+              child.material.forEach((mat) => mat.dispose?.());
+            } else if (child.material) {
+              child.material.dispose?.();
+            }
+          }
+        });
+        this.currentProp = null;
+      }
+
+      _updateMeta({ title, description, tags }) {
+        if (this.meta.titleEl) {
+          this.meta.titleEl.textContent = title || 'Prop Preview';
+        }
+        if (this.meta.descriptionEl) {
+          this.meta.descriptionEl.textContent = description || '';
+        }
+        if (this.meta.tagsEl) {
+          this.meta.tagsEl.innerHTML = '';
+          if (tags && tags.length) {
+            tags.forEach((tag) => {
+              const span = document.createElement('span');
+              span.className = 'prop-tag';
+              span.textContent = tag;
+              this.meta.tagsEl.appendChild(span);
+            });
+          }
+        }
+      }
+    }
+
     // ===== RESIZABLE PANELS MANAGER =====
     class ResizableManager {
       constructor(container) {
@@ -2222,6 +2535,9 @@
         // Notify viewport to resize
         if (window.viewportManager) {
           setTimeout(() => window.viewportManager.handleResize(), 100);
+        }
+        if (window.propPreviewer) {
+          setTimeout(() => window.propPreviewer.handleResize(), 150);
         }
       }
     }
@@ -2771,6 +3087,7 @@
         this.nodeGraphManager = null;
         this.viewportManager = null;
         this.resizableManager = null;
+        this.propPreviewer = null;
         this.isOverlayMode = false;
         this.state = {
           currentScene: null,
@@ -2778,7 +3095,7 @@
           selectedAsset: null,
           currentTab: 'timeline'
         };
-        
+
         this.ui = {
           overlay: document.getElementById('builderOverlay'),
           container: document.getElementById('builderContainer'),
@@ -2793,7 +3110,11 @@
           loadingDetail: document.getElementById('loadingDetail'),
           fpsCounter: document.getElementById('fpsCounter'),
           objectCount: document.getElementById('objectCount'),
-          triCount: document.getElementById('triCount')
+          triCount: document.getElementById('triCount'),
+          propPreviewCanvas: document.getElementById('propPreviewCanvas'),
+          propPreviewTitle: document.getElementById('propPreviewTitle'),
+          propPreviewDescription: document.getElementById('propPreviewDescription'),
+          propPreviewTags: document.getElementById('propPreviewTags')
         };
       }
 
@@ -2812,24 +3133,35 @@
         
         this.ui.loadingDetail.textContent = 'Initializing scene viewport...';
           console.log('Step 1: Scene viewport...');
-        
+
         // Initialize scene viewport
         const canvas = document.getElementById('sceneCanvas');
         this.viewportManager = new SceneViewportManager(canvas);
         this.viewportManager.init();
         window.viewportManager = this.viewportManager;
           console.log('✅ Scene viewport initialized');
-        
+
         // Initialize resizable panels
           this.ui.loadingDetail.textContent = 'Initializing panels...';
           console.log('Step 2: Resizable panels...');
         this.resizableManager = new ResizableManager(this.ui.container);
         this.resizableManager.init();
           console.log('✅ Resizable panels initialized');
-          
+
+          this.ui.loadingDetail.textContent = 'Initializing prop preview...';
+          console.log('Step 3: Prop preview...');
+        this.propPreviewer = new PropPreviewer(this.ui.propPreviewCanvas, {
+          titleEl: this.ui.propPreviewTitle,
+          descriptionEl: this.ui.propPreviewDescription,
+          tagsEl: this.ui.propPreviewTags
+        });
+        await this.propPreviewer.init();
+        window.propPreviewer = this.propPreviewer;
+          console.log('✅ Prop preview initialized');
+
           // Initialize node graph
           this.ui.loadingDetail.textContent = 'Initializing node graph...';
-          console.log('Step 3: Node graph...');
+          console.log('Step 4: Node graph...');
           const nodeCanvas = document.getElementById('nodeCanvas');
           const connectionsSvg = document.getElementById('connectionsSvg');
           const nodesContainer = document.getElementById('nodesContainer');
@@ -2837,7 +3169,7 @@
           window.nodeGraphManager = this.nodeGraphManager;
           window.sequenceBuilder = sequenceBuilder;
           console.log('✅ Node graph initialized');
-          
+
           // Update connections on scroll and resize
           const timelineContainer = document.getElementById('timelineContainer');
           if (timelineContainer) {
@@ -2857,6 +3189,9 @@
                 this.nodeGraphManager._updateConnections();
               });
             }
+            if (this.propPreviewer) {
+              this.propPreviewer.handleResize();
+            }
           });
           
           // Periodic connection update to handle panel resizing (less frequent now that we have scroll listeners)
@@ -2867,45 +3202,45 @@
           }, 500);
         
         this.ui.loadingDetail.textContent = 'Detecting scene...';
-          console.log('Step 4: Detecting scene...');
-        
+          console.log('Step 5: Detecting scene...');
+
         const sceneName = this._detectCurrentScene();
         this.state.currentScene = sceneName;
         this.ui.sceneName.textContent = sceneName;
           console.log(`✅ Scene detected: ${sceneName}`);
-        
+
           this.ui.loadingDetail.textContent = 'Generating assets...';
-          console.log('Step 5: Generating assets...');
+          console.log('Step 6: Generating assets...');
         this._generateMockAssets();
           console.log('✅ Assets generated');
-          
+
           this.ui.loadingDetail.textContent = 'Rendering UI...';
-          console.log('Step 6: Rendering UI...');
+          console.log('Step 7: Rendering UI...');
         this._renderAssetGroups();
           console.log('✅ Asset groups rendered');
-          
+
           this.ui.loadingDetail.textContent = 'Setting up event listeners...';
-          console.log('Step 7: Event listeners...');
+          console.log('Step 8: Event listeners...');
         this._setupEventListeners();
           console.log('✅ Event listeners set up');
-          
+
           this.ui.loadingDetail.textContent = 'Loading dialogues...';
-          console.log('Step 8: Dialogues...');
+          console.log('Step 9: Dialogues...');
         this._renderInitialDialogues();
           console.log('✅ Dialogues rendered');
-          
+
           this.ui.loadingDetail.textContent = 'Extracting sequence nodes...';
-          console.log('Step 9: Sequence nodes...');
+          console.log('Step 10: Sequence nodes...');
         this._extractSequenceNodes();
           console.log('✅ Sequence nodes extracted');
-          
+
           this.ui.loadingDetail.textContent = 'Updating code preview...';
-          console.log('Step 10: Code preview...');
+          console.log('Step 11: Code preview...');
         this._updateCodePreview();
           console.log('✅ Code preview updated');
-          
+
           this.ui.loadingDetail.textContent = 'Starting stats update...';
-          console.log('Step 11: Stats...');
+          console.log('Step 12: Stats...');
         this._startStatsUpdate();
           console.log('✅ Stats update started');
           
@@ -3012,6 +3347,10 @@
       
       _renderSceneEntities(category, entities) {
         return entities.map(entity => {
+          const previewButton = entity.previewId
+            ? `<button class="entity-btn" onclick='window.builderApp._previewAsset(${JSON.stringify(entity.previewId)}, ${JSON.stringify(entity.name)}, ${JSON.stringify(category)})'>Preview</button>`
+            : '';
+
           let html = `
             <div class="scene-entity" data-entity="${entity.name}" data-category="${category}">
               <div class="entity-name">
@@ -3019,6 +3358,7 @@
                 <span>${entity.name}</span>
               </div>
               <div class="entity-actions">
+                ${previewButton}
                 <button class="entity-btn" onclick="window.builderApp._addObjectNode('${entity.name}', '${category}')">Add Node</button>
                 <button class="entity-btn ingest-all" onclick="window.builderApp._ingestAllParameters('${entity.name}', '${category}')">Ingest All</button>
               </div>
@@ -3038,6 +3378,22 @@
           
           return html;
         }).join('');
+      }
+
+      _previewAsset(previewId, entityName, category) {
+        const entities = sceneData[category] || [];
+        const entity = entities.find(e => e.name === entityName);
+
+        if (category === 'Props' && this.propPreviewer) {
+          this.state.selectedAsset = { id: previewId, name: entityName, category };
+          this.propPreviewer.showProp(previewId, {
+            title: entity?.name || entityName,
+            description: entity?.description,
+            tags: entity?.tags || [],
+          });
+        } else {
+          console.log('ℹ️ Preview not available for', entityName, 'in category', category);
+        }
       }
       
       _addObjectNode(entityName, category) {
