@@ -641,6 +641,7 @@
     <div id="refSidebarUrl" class="ref-sidebar-url" style="display:none"></div>
     <p style="font-size:12px;opacity:.7">This reconstructed page is unstable. Each click destabilizes it further.</p>
     <button id="refSidebarAck" class="ref-sidebar-btn">Acknowledge Glitch</button>
+    <div id="loomAudioStatus" class="loom-audio-status" aria-hidden="true">Streaming CallYouByMyName.mp3</div>
    </div>
   </div>
   
@@ -1731,6 +1732,21 @@
   const refSidebarClose = document.getElementById('refSidebarClose');
   const refSidebarUrl = document.getElementById('refSidebarUrl');
   const refSidebarAck = document.getElementById('refSidebarAck');
+  const loomAudioStatus = document.getElementById('loomAudioStatus');
+  const LOOM_AUDIO_STATUS_TEXT = 'Streaming CallYouByMyName.mp3';
+
+  function setLoomAudioStatus(isPlaying) {
+    if (!loomAudioStatus) return;
+    if (isPlaying) {
+      loomAudioStatus.style.display = 'block';
+      loomAudioStatus.textContent = LOOM_AUDIO_STATUS_TEXT;
+      loomAudioStatus.setAttribute('aria-hidden', 'false');
+    } else {
+      loomAudioStatus.style.display = 'none';
+      loomAudioStatus.setAttribute('aria-hidden', 'true');
+    }
+  }
+
   const refTooltip = document.getElementById('refTooltip');
   const customCursor = document.getElementById('customCursor');
   const refPanel = document.querySelector('.celli-ref-panel');
@@ -1742,6 +1758,12 @@
   const CHANT_TARGET_VOLUME = 0.7;
   const CHANT_FADE_DURATION = 400;
   chantAudio.volume = 0;
+  chantAudio.addEventListener('ended', () => setLoomAudioStatus(false));
+  chantAudio.addEventListener('pause', () => {
+    if (chantAudio.currentTime === 0 || chantAudio.ended) {
+      setLoomAudioStatus(false);
+    }
+  });
 
   // Track impact hits for progressive darkening
   let impactCount = 0;
@@ -2169,9 +2191,11 @@
 
     chantAudio.volume = 0;
     const playPromise = chantAudio.play();
+    setLoomAudioStatus(true);
     if (playPromise && typeof playPromise.catch === 'function') {
       playPromise.catch(err => {
         console.warn('⚠️ Chant playback blocked by browser:', err);
+        setLoomAudioStatus(false);
       });
     }
   }
@@ -2184,6 +2208,7 @@
     chantAudio.pause();
     chantAudio.currentTime = 0;
     chantAudio.volume = 0;
+    setLoomAudioStatus(false);
   }
 
   function startNoteHoverSequence() {
