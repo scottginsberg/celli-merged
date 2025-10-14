@@ -1229,7 +1229,7 @@ async function loadRapier(){
 const CHUNK_SIZE = 16;
 const INACTIVE_GREEDY_THRESHOLD = 4096; // switch non-focused large arrays to shell + greedy
 const WINDOW_CHUNK_RADIUS = 1; // detailed window radius (in chunk units) around selection
-const greekChars = ['a',' ','?','d','e','?','?','?','?','?','?',' ','?','?','?','p','?','s','t','?','f','?','?','?'];
+const greekChars = ['α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','τ','υ','φ','χ','ψ','ω'];
 const greek = (i)=>greekChars[i%greekChars.length];
 const A1 = (n)=>{ let s=''; let v=n+1; while(v>0){ const r=(v-1)%26; s=String.fromCharCode(65+r)+s; v=Math.floor((v-1)/26); } return s; };
 const chunkOf = (x,y,z)=>({x:Math.floor(x/CHUNK_SIZE),y:Math.floor(y/CHUNK_SIZE),z:Math.floor(z/CHUNK_SIZE)});
@@ -1259,7 +1259,7 @@ const parseAlt = (s, anchor)=>{
 };
 const formatLocalAddress = (arrId, coord)=>{ const row = coord.y + 1; return `${A1(coord.x)}${row}${greek(coord.z)}`; };
 const debugCoord = (label, arrId, coord) => { console.log(`${label}: 3D(${coord.x},${coord.y},${coord.z}) ? 2D(${formatLocalAddress(arrId, coord)}) ? @[${coord.x+1},${coord.y+1},${coord.z+1},${arrId}]`); };
-const parseA1g = (s,defId)=>{const m=/^([A-Z]+)(\d+)([\u03b1-\u03c9])?(?:\^(-?\d+))?$/.exec(s.trim()); if(!m) return null; let x=0; for(let i=0;i<m[1].length;i++) x=x*26+(m[1].charCodeAt(i)-64); x--; const y=+m[2]-1; const G='a ?de?????? ???p?st?f???'; const z=m[3]?G.indexOf(m[3]):null; const arrId=m[4]!==undefined?+m[4]:defId; return {x,y,z,arrId};};
+const parseA1g = (s,defId)=>{const m=/^([A-Z]+)(\d+)([\u03b1-\u03c9])?(?:\^(-?\d+))?$/.exec(s.trim()); if(!m) return null; let x=0; for(let i=0;i<m[1].length;i++) x=x*26+(m[1].charCodeAt(i)-64); x--; const y=+m[2]-1; const G='αβγδεζηθικλμνξοπρστυφχψω'; const z=m[3]?G.indexOf(m[3]):null; const arrId=m[4]!==undefined?+m[4]:defId; return {x,y,z,arrId};};
 const showToast=(t)=>{const el=document.getElementById('toast'); el.textContent=t; el.style.display='block'; setTimeout(()=>el.style.display='none',1200);};
 
 const META_KEY_ALIASES = {
@@ -4396,7 +4396,7 @@ class FormulaLexer {
  // After reading letters, current char holds the next symbol
  if (this.isDigit(this.ch)) {
  const number = this.readNumber();
- const greek = 'a ?de?????? ???p?st?f???';
+const greek = 'αβγδεζηθικλμνξοπρστυφχψω';
  let greekChar = '';
  let arrayId = '';
  // Greek Z-suffix at current char
@@ -4759,7 +4759,7 @@ class FormulaParser {
  for (let i = 0; i < letters.length; i++) x = x * 26 + (letters.charCodeAt(i) - 64);
  x--;
  const y = +m[2] - 1;
- const G = 'a ?de?????? ???p?st?f???';
+const G = 'αβγδεζηθικλμνξοπρστυφχψω';
  const z = m[3] ? G.indexOf(m[3]) : this.anchor.z;
  const arrId = m[4] !== undefined ? (+m[4]) : this.anchor.arrId;
  return { x, y, z, arrId, raw: t };
@@ -4781,7 +4781,7 @@ class FormulaParser {
  }
 }
 
-const GREEK_SUFFIXES = 'a ?de?????? ???p?st?f???';
+const GREEK_SUFFIXES = 'αβγδεζηθικλμνξοπρστυφχψω';
 
 function columnLabelFromIndex(x) {
  let n = (Number.isFinite(x) ? x : 0) + 1;
@@ -23614,7 +23614,7 @@ const UI = (()=>{
  if(mm){
  // convert letters to X
  let xx=0; const letters=mm[1].toUpperCase(); for(let i=0;i<letters.length;i++) xx = xx*26 + (letters.charCodeAt(i)-64); xx--;
- const yy=(+mm[2])-1; const G='a ?de?????? ???p?st?f???'; const zz=mm[3]? G.indexOf(mm[3]) : s.focus.z;
+const yy=(+mm[2])-1; const G='αβγδεζηθικλμνξοπρστυφχψω'; const zz=mm[3]? G.indexOf(mm[3]) : s.focus.z;
  good = (xx>=0&&xx<W && yy>=0&&yy<H && zz>=0&&zz<D);
  }
  const cls = good? 'ref-ok' : 'ref-bad';

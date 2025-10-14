@@ -22,9 +22,9 @@
 
 import * as THREE from 'three';
 import { UIManager } from '../ui/UIManager.js';
-import { AvatarFactory } from '../systems/AvatarFactory.js';
 import { MainframeSpawn } from './components/MainframeSpawn.js';
 import { TerminalSequence } from './components/TerminalSequence.js';
+import { IntroExperience } from './components/IntroExperience.js';
 
 export class CelliRealScene {
   constructor() {
@@ -41,8 +41,9 @@ export class CelliRealScene {
       // UI Manager (orchestrates all UI components)
       uiManager: null,
       
-      // Mainframe and terminal
+      // Mainframe, intro and terminal
       mainframeSpawn: null,
+      introExperience: null,
       terminalSequence: null,
       
       // Spreadsheet state
@@ -235,7 +236,15 @@ export class CelliRealScene {
       console.error('[CelliRealScene-Full] Failed to initialize UI!');
       return;
     }
-    
+
+    // Stage intro experience overlay and 2D layout
+    this.state.introExperience = new IntroExperience({
+      uiManager: this.state.uiManager,
+      sheetId: 'sheet',
+      overlayId: 'introOverlay'
+    });
+    await this.state.introExperience.init();
+
     // Select first cell
     const spreadsheet = this.state.uiManager.getSpreadsheet();
     if (spreadsheet) {
@@ -254,46 +263,21 @@ export class CelliRealScene {
     // Create mainframe and Celli's home (behind gradient)
     this.state.mainframeSpawn = new MainframeSpawn(this.state.scene);
     await this.state.mainframeSpawn.init();
-    
+
+    if (this.state.introExperience && this.state.mainframeSpawn) {
+      this.state.introExperience.setRevealCallback(() =>
+        this.state.mainframeSpawn?.beginHomeReveal?.()
+      );
+    }
+
     // Create terminal sequence system
     this.state.terminalSequence = new TerminalSequence();
     const terminalEl = document.getElementById('term');
     if (terminalEl) {
       await this.state.terminalSequence.init(terminalEl);
     }
-    
-    // Create example voxel array
-    this._createExampleArray();
-    
-    console.log('[CelliRealScene-Full] ✅ 3D systems initialized');
-  }
 
-  /**
-   * Create example array
-   */
-  _createExampleArray() {
-    const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-    const material = new THREE.MeshStandardMaterial({
-      color: 0x3b82f6,
-      roughness: 0.4,
-      metalness: 0.2
-    });
-    
-    for (let x = 0; x < 3; x++) {
-      for (let y = 0; y < 3; y++) {
-        for (let z = 0; z < 3; z++) {
-          const voxel = new THREE.Mesh(geometry, material.clone());
-          voxel.position.set(
-            (x - 1) * 0.9,
-            (y - 1) * 0.9,
-            (z - 1) * 0.9
-          );
-          voxel.castShadow = true;
-          voxel.receiveShadow = true;
-          this.state.scene.add(voxel);
-        }
-      }
-    }
+    console.log('[CelliRealScene-Full] ✅ 3D systems initialized');
   }
 
   /**
@@ -503,11 +487,8 @@ export class CelliRealScene {
     // Phase 1: Celli.OS - show centered sheet
     console.log('[CelliRealScene-Full] Phase 1: Celli.OS screen...');
     this.state.introPhase = 'celli-os';
-    const sheet = document.getElementById('sheet');
-    if (sheet) {
-      sheet.classList.add('intro-centered');
-      sheet.style.display = 'flex';
-    }
+    this.state.introExperience?.show2DScreen();
+    this.state.introExperience?.setStatus('Boot sequence warming up…');
     
     await new Promise(resolve => setTimeout(resolve, 1000));
     
@@ -519,8 +500,9 @@ export class CelliRealScene {
     const terminal = document.getElementById('terminal');
     if (terminal && this.state.terminalSequence) {
       terminal.style.display = 'flex';
+      this.state.introExperience?.setStatus('Running boot diagnostics…');
       await this.state.terminalSequence.playBoot();
-      
+
       // Close terminal after boot sequence
       await new Promise(resolve => setTimeout(resolve, 1000));
       terminal.style.display = 'none';
@@ -529,13 +511,24 @@ export class CelliRealScene {
     // Phase 2: Transition to 3D
     console.log('[CelliRealScene-Full] Phase 2: Transition 2D → 3D...');
     this.state.introPhase = '2d-to-3d';
+    this.state.introExperience?.setStatus('Handshake complete. Collapsing shell…');
     await this._transition2Dto3D();
-    
+
     // Phase 3: Full interaction
     console.log('[CelliRealScene-Full] Phase 3: Full interaction enabled...');
     this.state.introPhase = '3d-world';
+    const revealResult = this.state.introExperience
+      ? await this.state.introExperience.revealWorld()
+      : this.state.mainframeSpawn?.beginHomeReveal?.();
+
+    if (revealResult && typeof revealResult.then === 'function') {
+      await revealResult;
+    } else if (this.state.mainframeSpawn?.beginHomeReveal) {
+      await this.state.mainframeSpawn.beginHomeReveal();
+    }
+
     this._enableFullInteraction();
-    
+
     console.log('[CelliRealScene-Full] ✅ Complete intro sequence finished');
   }
 
@@ -544,22 +537,20 @@ export class CelliRealScene {
    */
   async _transition2Dto3D() {
     console.log('[CelliRealScene-Full] 🔄 Transitioning 2D → 3D...');
-    
-    // Animate sheet to corner
-    if (this.state.sheet) {
+
+    if (this.state.introExperience) {
+      await this.state.introExperience.collapseToCorner();
+    } else if (this.state.sheet) {
       this.state.sheet.classList.remove('intro-centered');
-      
-      // Move to bottom-left corner
       this.state.sheet.style.left = '16px';
       this.state.sheet.style.bottom = '16px';
       this.state.sheet.style.top = 'auto';
       this.state.sheet.style.transform = 'none';
       this.state.sheet.style.width = '760px';
       this.state.sheet.style.height = '440px';
+      await new Promise(resolve => setTimeout(resolve, 900));
     }
-    
-    await new Promise(resolve => setTimeout(resolve, 900));
-    
+
     console.log('[CelliRealScene-Full] ✅ Transition complete');
   }
 
@@ -617,9 +608,10 @@ export class CelliRealScene {
     
     // Destroy UI Manager (handles all UI components)
     this.state.uiManager?.destroy();
-    
+
     // Destroy mainframe and terminal
     this.state.mainframeSpawn?.destroy();
+    this.state.introExperience?.destroy();
     this.state.terminalSequence?.destroy();
     
     // Remove injected HTML
