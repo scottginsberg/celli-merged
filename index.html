@@ -1799,12 +1799,132 @@
   const CHANT_TARGET_VOLUME = 0.7;
   const CHANT_FADE_DURATION = 1200;
   chantAudio.volume = 0;
-  chantAudio.addEventListener('ended', () => setLoomAudioStatus(false));
+  document.documentElement.style.setProperty('--chant-reactive', '0');
+
+  let chantAudioContext = null;
+  let chantAudioSource = null;
+  let chantAnalyser = null;
+  let chantAnalyserData = null;
+  let chantVisualizerFrameId = null;
+  let chantVisualizerLevel = 0;
+  let chantVisualizerWarned = false;
+
+  chantAudio.addEventListener('play', startChantVisualizer);
+  chantAudio.addEventListener('ended', () => {
+    setLoomAudioStatus(false);
+    stopChantVisualizer();
+  });
   chantAudio.addEventListener('pause', () => {
     if (chantAudio.currentTime === 0 || chantAudio.ended) {
       setLoomAudioStatus(false);
+      stopChantVisualizer();
     }
   });
+
+  function initChantAnalyser() {
+    if (chantAnalyser) {
+      return true;
+    }
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) {
+      if (!chantVisualizerWarned) {
+        console.warn('⚠️ Web Audio API not supported; chant visualizer disabled.');
+        chantVisualizerWarned = true;
+      }
+      return false;
+    }
+
+    try {
+      if (!chantAudioContext) {
+        chantAudioContext = new AudioContext();
+      }
+
+      if (!chantAudioSource) {
+        chantAudioSource = chantAudioContext.createMediaElementSource(chantAudio);
+      }
+
+      chantAnalyser = chantAudioContext.createAnalyser();
+      chantAnalyser.fftSize = 256;
+      chantAnalyser.smoothingTimeConstant = 0.8;
+      chantAudioSource.connect(chantAnalyser);
+      chantAnalyser.connect(chantAudioContext.destination);
+      chantAnalyserData = new Uint8Array(chantAnalyser.frequencyBinCount);
+      return true;
+    } catch (error) {
+      if (!chantVisualizerWarned) {
+        console.warn('⚠️ Unable to initialise chant visualizer:', error);
+        chantVisualizerWarned = true;
+      }
+      chantAnalyser = null;
+      chantAudioSource = null;
+      return false;
+    }
+  }
+
+  function updateChantVisualizer() {
+    if (!chantAnalyser || !chantAnalyserData) {
+      return;
+    }
+
+    chantAnalyser.getByteFrequencyData(chantAnalyserData);
+    let sum = 0;
+    for (let i = 0; i < chantAnalyserData.length; i += 1) {
+      sum += chantAnalyserData[i];
+    }
+
+    const average = sum / chantAnalyserData.length / 255;
+    const emphasis = Math.pow(Math.max(average, 0), 1.5);
+    chantVisualizerLevel = (chantVisualizerLevel * 0.7) + (emphasis * 0.3);
+    document.documentElement.style.setProperty('--chant-reactive', chantVisualizerLevel.toFixed(3));
+    chantVisualizerFrameId = requestAnimationFrame(updateChantVisualizer);
+  }
+
+  function startChantVisualizer() {
+    if (!lightBeam) {
+      return;
+    }
+
+    if (!initChantAnalyser()) {
+      return;
+    }
+
+    if (chantAudioContext && chantAudioContext.state === 'suspended') {
+      chantAudioContext.resume().catch((err) => {
+        if (!chantVisualizerWarned) {
+          console.warn('⚠️ Unable to resume audio context for chant visualizer:', err);
+          chantVisualizerWarned = true;
+        }
+      });
+    }
+
+    lightBeam.classList.add('audio-reactive');
+    if (refSidebarAck) {
+      refSidebarAck.classList.add('audio-reactive');
+    }
+
+    if (!chantVisualizerFrameId) {
+      chantVisualizerFrameId = requestAnimationFrame(updateChantVisualizer);
+    }
+  }
+
+  function stopChantVisualizer() {
+    if (chantVisualizerFrameId) {
+      cancelAnimationFrame(chantVisualizerFrameId);
+      chantVisualizerFrameId = null;
+    }
+
+    chantVisualizerLevel = 0;
+    document.documentElement.style.setProperty('--chant-reactive', '0');
+
+    if (lightBeam) {
+      lightBeam.classList.remove('audio-reactive');
+    }
+
+    if (refSidebarAck) {
+      refSidebarAck.classList.remove('audio-reactive');
+    }
+  }
 
   // Track impact hits for progressive darkening
   let impactCount = 0;
@@ -2358,6 +2478,8 @@
       chantFadeFrameId = null;
     }
 
+    initChantAnalyser();
+
     try {
       chantAudio.currentTime = 0;
     } catch (err) {
@@ -2380,6 +2502,7 @@
       cancelAnimationFrame(chantFadeFrameId);
       chantFadeFrameId = null;
     }
+    stopChantVisualizer();
     chantAudio.pause();
     chantAudio.currentTime = 0;
     chantAudio.volume = 0;
@@ -2462,11 +2585,23 @@
     triggerBurstLight(timeoutId => noteStageTimeouts.push(timeoutId));
   }
 
+  function markInviteActive(isActive) {
+    if (!refSidebarAck) {
+      return;
+    }
+    if (isActive) {
+      refSidebarAck.classList.add('loom-invite-active');
+    } else {
+      refSidebarAck.classList.remove('loom-invite-active');
+    }
+  }
+
   function revealAiMessage() {
     const sidebar = refSidebar;
     const ackBtn = refSidebarAck;
 
     sidebar.classList.remove('note-seed', 'note-hover');
+    markInviteActive(false);
     loomAiMessageActive = true;
     loomFakeAdActive = false;
 
@@ -2505,6 +2640,7 @@
 
     loomAiMessageActive = false;
     loomFakeAdActive = true;
+    markInviteActive(false);
 
     ackBtn.style.transition = 'all 0.1s ease-out';
 
@@ -2560,7 +2696,6 @@
     loomFakeAdActive = false;
     stopAiEnhancedScan();
     clearNoteStageTimeouts();
-    stopChantAudio();
 
     // Clear any pending timeout
     if (window.badBooleanTimeout) {
@@ -2594,11 +2729,12 @@
     
     const versionLabel = isAltVersion ? 'WILLPOWER' : 'IMMEDIATE';
     console.log(`  📝 Showing ${versionLabel} version of LOOMWORKS invite`);
-    
+
     setTimeout(() => {
       // Show complete unified ToS card with header - hazy glass crystal effect
       ackBtn.innerHTML = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">
+        <div class="loom-invite-stack">
+          <div class="loom-invite-card" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">
           <!-- Header with crystal haze effect -->
           <div style="padding: 28px 36px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(143, 180, 255, 0.15), rgba(118, 75, 162, 0.18)); border-bottom: 1px solid rgba(143, 180, 255, 0.3); backdrop-filter: blur(10px);">
             <div style="font-size: 13px; font-weight: 500; color: #b4d0ff; letter-spacing: 4px; text-align: center; text-shadow: 0 0 15px rgba(143, 180, 255, 0.6), 0 0 30px rgba(102, 126, 234, 0.3);">
@@ -2625,9 +2761,12 @@
               <label for="tosCheckbox" style="cursor: pointer; user-select: none; font-size: 13px; font-weight: 400; color: #e8ecf0; letter-spacing: 0.4px;">I accept the terms</label>
             </div>
           </div>
+          </div>
         </div>
       `;
-      
+
+      markInviteActive(true);
+
       // Reset button to transparent (content defines styling now)
       ackBtn.style.background = 'transparent';
       ackBtn.style.backdropFilter = 'none';
@@ -3460,6 +3599,7 @@
     loomFakeAdActive = false;
     noteHasEnteredFrame = false;
     stopAiEnhancedScan();
+    markInviteActive(false);
 
     // Reset button to original state
     const ackBtn = refSidebarAck;
@@ -4288,6 +4428,7 @@
     loomFakeAdActive = false;
     noteHasEnteredFrame = false;
 
+    markInviteActive(false);
     ackBtn.setAttribute('aria-label', 'Open Loomworks invitation note');
     ackBtn.innerHTML = `
       <div class="ref-note-crystal">
