@@ -136,6 +136,17 @@ async function startExperience(options = {}) {
 }
 
 function setupButtons() {
+  const sceneOptionsContainer = document.getElementById('sceneOptions');
+
+  if (sceneOptionsContainer) {
+    const allOptions = sceneOptionsContainer.querySelectorAll('.scene-option');
+    allOptions.forEach(option => {
+      if (!option.dataset.originalLocked) {
+        option.dataset.originalLocked = option.classList.contains('locked') ? 'true' : 'false';
+      }
+    });
+  }
+
   // Play button - starts the app and begins intro sequence
   const playBtn = document.getElementById('playBtn');
   if (playBtn) {
@@ -264,6 +275,81 @@ function setupButtons() {
     console.log('✅ Test Runner button initialized');
   }
 
+  if (sceneOptionsContainer) {
+    const debugToggleBtn = document.getElementById('debugToggle');
+    if (debugToggleBtn) {
+      let debugUnlocked = false;
+
+      debugToggleBtn.addEventListener('click', () => {
+        debugUnlocked = !debugUnlocked;
+
+        sceneOptionsContainer.querySelectorAll('.scene-option').forEach(option => {
+          const originallyLocked = option.dataset.originalLocked === 'true';
+          if (!originallyLocked) {
+            return;
+          }
+
+          if (debugUnlocked) {
+            option.classList.remove('locked');
+            option.dataset.debugUnlocked = 'true';
+          } else {
+            option.classList.add('locked');
+            delete option.dataset.debugUnlocked;
+          }
+        });
+
+        debugToggleBtn.textContent = debugUnlocked ? 'Debug: Hide Locked' : 'Debug: Show All';
+        debugToggleBtn.setAttribute('aria-pressed', debugUnlocked ? 'true' : 'false');
+
+        showToast(debugUnlocked ? 'All scenes unlocked for debug' : 'Scene locks restored');
+      });
+
+      console.log('✅ Scene Select debug toggle initialized');
+    }
+
+    sceneOptionsContainer.addEventListener('click', async event => {
+      const option = event.target.closest('.scene-option');
+      if (!option || !sceneOptionsContainer.contains(option)) {
+        return;
+      }
+
+      if (option.classList.contains('locked')) {
+        console.warn('⛔ Scene option is locked:', option.dataset.scene);
+        showToast('Scene is locked');
+        return;
+      }
+
+      const sceneName = option.dataset.scene;
+      if (!sceneName) {
+        console.warn('⚠️ Scene option clicked without data-scene attribute');
+        return;
+      }
+
+      if (!sceneManager.listScenes().includes(sceneName)) {
+        console.warn(`⚠️ Scene "${sceneName}" is not registered`);
+        showToast(`Scene not registered: ${sceneName}`);
+        return;
+      }
+
+      try {
+        if (!experienceStarted) {
+          await startExperience({ reason: 'scene-select' });
+        }
+
+        const transitionSuccess = await sceneManager.transitionTo(sceneName);
+        if (transitionSuccess) {
+          document.getElementById('sceneSelect')?.classList.remove('visible');
+          showToast(`Transitioning to ${sceneName}…`);
+        } else {
+          showToast(`Failed to transition to ${sceneName}`);
+        }
+      } catch (error) {
+        console.error('❌ Failed to load scene from scene select:', error);
+        showToast(`Scene load failed: ${error.message || error}`);
+      }
+    });
+  }
+
   const playIntroVideoBtn = document.getElementById('playIntroVideoBtn');
   if (playIntroVideoBtn) {
     playIntroVideoBtn.addEventListener('click', () => {
@@ -294,16 +380,6 @@ function setupButtons() {
   }
   
   // Scene selection options
-  const sceneOptions = document.querySelectorAll('.scene-option:not(.locked)');
-  sceneOptions.forEach(option => {
-    option.addEventListener('click', () => {
-      const sceneName = option.dataset.scene;
-      if (sceneName && sceneManager.listScenes().includes(sceneName)) {
-        sceneManager.transitionTo(sceneName);
-        document.getElementById('sceneSelect')?.classList.remove('visible');
-      }
-    });
-  });
 }
 
 // Open sequence composer
