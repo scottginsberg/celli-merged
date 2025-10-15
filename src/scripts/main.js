@@ -18,6 +18,7 @@ import { checkWebGL } from './utils/webgl-check.js';
 import { SequenceUI } from './sequence/SequenceUI.js';
 import { sceneRegistry } from './sequence/SceneRegistry.js';
 import { registerSceneComponents } from './sequence/registerComponents.js';
+import { screenRecorder } from './tools/ScreenRecorder.js';
 
 // Import new systems
 import { permissionManager } from './systems/PermissionManager.js';
@@ -62,6 +63,10 @@ if (!checkWebGL()) {
 function init() {
   console.group('🚀 Initializing Celli bootstrap');
   console.log('📋 Document ready state:', document.readyState);
+
+  if (screenRecorder) {
+    window.screenRecorder = screenRecorder;
+  }
   
   // Initialize core systems
   inputSystem.init();

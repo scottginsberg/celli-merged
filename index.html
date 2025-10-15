@@ -638,9 +638,9 @@
 
   .debug-panel-button {
    position: fixed;
-   bottom: 18px;
-   left: 50%;
-   transform: translateX(-50%);
+   bottom: 24px;
+   left: 24px;
+   transform: none;
    padding: 10px 18px;
    border-radius: 999px;
    background: rgba(15, 23, 42, 0.85);
@@ -660,16 +660,16 @@
   .debug-panel-button:focus-visible {
    background: rgba(30, 41, 59, 0.9);
    box-shadow: 0 16px 38px rgba(15, 23, 42, 0.55);
-   transform: translateX(-50%) translateY(-2px);
+   transform: translateY(-2px);
    outline: none;
   }
 
   .debug-panel {
    position: fixed;
-   bottom: 72px;
-   left: 50%;
-   transform: translateX(-50%) translateY(12px);
-   width: min(420px, 90vw);
+   bottom: 112px;
+   left: 24px;
+   transform: translateY(12px);
+   width: min(380px, 92vw);
    background: rgba(12, 17, 29, 0.92);
    border: 1px solid rgba(100, 116, 139, 0.35);
    border-radius: 18px;
@@ -687,7 +687,7 @@
 
   .debug-panel.visible {
    opacity: 1;
-   transform: translateX(-50%) translateY(0);
+   transform: translateY(0);
    pointer-events: auto;
   }
 
@@ -988,17 +988,17 @@
      <div class="scene-option-desc">The awakened terminal - interactive spreadsheet environment • <span class="mode-indicator"></span></div>
     </div>
    
-   <div class="scene-option" data-scene="rave" style="border-left: 3px solid #ff00ff;">
+   <div class="scene-option" data-scene="rave" data-url="./templates/componentized/rave-complete.html" style="border-left: 3px solid #ff00ff;">
     <div>🎵 RAVE → Celli & Array Party</div>
     <div class="scene-option-desc">Both avatars in a shared rave environment - pulsing lights, music visualization, and dance animations</div>
    </div>
-    
-    <div class="scene-option" data-scene="sequence-builder" style="border-left: 3px solid #ff6b6b;">
+
+    <div class="scene-option" data-scene="sequence-builder" data-url="./tools/sequence-builder/index.html?standalone=true" style="border-left: 3px solid #ff6b6b;">
      <div>🎬 DEV.TOOLS → Sequence Builder</div>
      <div class="scene-option-desc">Visual node-based sequence composer (Press \ in any scene)</div>
     </div>
-    
-    <div class="scene-option" data-scene="test-runner" style="border-left: 3px solid #4ec9b0;">
+
+    <div class="scene-option" data-scene="test-runner" data-url="./tests/test-runner.html" style="border-left: 3px solid #4ec9b0;">
      <div>🧪 DEV.TOOLS → Test Runner</div>
      <div class="scene-option-desc">Automated unit & regression tests for Celli subsystems</div>
     </div>
