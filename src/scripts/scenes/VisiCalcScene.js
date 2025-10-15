@@ -22,6 +22,7 @@ export class VisiCalcScene {
       scene: null,
       camera: null,
       renderer: null,
+      endAudio: null,
       
       // Spreadsheet state
       cells: new Map(), // key: "A1" -> value: { value, formula, computed, style }
@@ -647,9 +648,33 @@ export class VisiCalcScene {
    */
   async start(state, options = {}) {
     console.log('▶️ Starting VisiCalc Scene');
-    
+
     this.state.running = true;
-    
+
+    if (!this.state.endAudio) {
+      try {
+        this.state.endAudio = new Audio('./end.mp3');
+        this.state.endAudio.preload = 'auto';
+      } catch (error) {
+        console.warn('⚠️ Failed to initialize end.mp3 audio element', error);
+        this.state.endAudio = null;
+      }
+    }
+
+    if (this.state.endAudio) {
+      try {
+        this.state.endAudio.currentTime = 0;
+        const playPromise = this.state.endAudio.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise.catch(err => {
+            console.warn('⚠️ Unable to play end.mp3 during VisiCalc Scene', err);
+          });
+        }
+      } catch (error) {
+        console.warn('⚠️ Error playing end.mp3 during VisiCalc Scene', error);
+      }
+    }
+
     // Show spreadsheet
     if (this.state.container) {
       this.state.container.style.display = 'block';
@@ -692,7 +717,16 @@ export class VisiCalcScene {
   async stop() {
     console.log('⏹️ Stopping VisiCalc Scene');
     this.state.running = false;
-    
+
+    if (this.state.endAudio) {
+      try {
+        this.state.endAudio.pause();
+        this.state.endAudio.currentTime = 0;
+      } catch (error) {
+        console.warn('⚠️ Error stopping end.mp3 audio', error);
+      }
+    }
+
     // Hide spreadsheet
     if (this.state.container) {
       this.state.container.style.display = 'none';
@@ -704,7 +738,16 @@ export class VisiCalcScene {
    */
   async destroy() {
     await this.stop();
-    
+
+    if (this.state.endAudio) {
+      try {
+        this.state.endAudio.pause();
+      } catch (error) {
+        console.warn('⚠️ Error pausing end.mp3 audio during destroy', error);
+      }
+      this.state.endAudio = null;
+    }
+
     // Cleanup
     if (this.state.scene) {
       this.state.scene.traverse(obj => {

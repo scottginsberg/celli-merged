@@ -10,6 +10,24 @@ import { Write } from '../Write.js';
 import { aKey, keyChunk, chunkOf, showToast } from '../Constants.js';
 import { normalizeMetaKeys, canonicalMetaKey, META_KEY_ALIASES } from '../CellMeta.js';
 
+let songAudioElement = null;
+
+function ensureSongAudio() {
+  if (songAudioElement) {
+    return songAudioElement;
+  }
+
+  try {
+    songAudioElement = new Audio('./credits.mp3');
+    songAudioElement.preload = 'auto';
+  } catch (error) {
+    console.warn('[Meta] Failed to initialize credits.mp3 audio element', error);
+    songAudioElement = null;
+  }
+
+  return songAudioElement;
+}
+
 // Note: Functions use window.Store, window.Actions, window.Formula, window.Scene, window.UI at runtime
 
 /**
@@ -430,10 +448,29 @@ tag('TOAST',['ACTION'],(anchor,arr,ast)=>{
   const message = String(valOf(ast.args[0]||''));
   const duration = (+valOf(ast.args[1])||3000);
   showToast(message);
-  setTimeout(()=>{ 
-    const toast=document.getElementById('toast'); 
-    if(toast) toast.style.display='none'; 
+  setTimeout(()=>{
+    const toast=document.getElementById('toast');
+    if(toast) toast.style.display='none';
   }, duration);
+});
+
+tag('SONG',['ACTION'],() => {
+  const audio = ensureSongAudio();
+  if (!audio) {
+    return;
+  }
+
+  try {
+    audio.currentTime = 0;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.then === 'function') {
+      playPromise.catch(error => {
+        console.warn('[Meta] Unable to play credits.mp3 via SONG()', error);
+      });
+    }
+  } catch (error) {
+    console.warn('[Meta] Error playing credits.mp3 via SONG()', error);
+  }
 });
 
 /**
