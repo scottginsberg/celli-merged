@@ -26,6 +26,86 @@ import { AfterimagePass } from 'three/examples/jsm/postprocessing/AfterimagePass
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
+const VOXEL_SIZE = 0.05;
+
+const LETTER_PATTERNS = {
+  C: [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [0, 1, 1, 1, 0]
+  ],
+  E: [
+    [1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1]
+  ],
+  L: [
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1]
+  ],
+  I: [
+    [1, 1, 1, 1, 1],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [1, 1, 1, 1, 1]
+  ],
+  H: [
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1]
+  ],
+  T: [
+    [1, 1, 1, 1, 1],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0]
+  ]
+};
+
+const COLOR_THEMES = {
+  white: {
+    base: new THREE.Color(0x2f3547),
+    glow: new THREE.Color(0xffffff),
+    edgeBase: new THREE.Color(0x4a5d7c),
+    edgeGlow: new THREE.Color(0xffffff)
+  },
+  yellow: {
+    base: new THREE.Color(0x3b2a00),
+    glow: new THREE.Color(0xffb62e),
+    edgeBase: new THREE.Color(0x5c3c00),
+    edgeGlow: new THREE.Color(0xffe2a1)
+  },
+  magenta: {
+    base: new THREE.Color(0x3b0015),
+    glow: new THREE.Color(0xff1e6e),
+    edgeBase: new THREE.Color(0x590026),
+    edgeGlow: new THREE.Color(0xff8ab5)
+  },
+  cyan: {
+    base: new THREE.Color(0x002338),
+    glow: new THREE.Color(0x00a8ff),
+    edgeBase: new THREE.Color(0x00354f),
+    edgeGlow: new THREE.Color(0x7fd8ff)
+  },
+  green: {
+    base: new THREE.Color(0x003206),
+    glow: new THREE.Color(0x19ff7a),
+    edgeBase: new THREE.Color(0x005515),
+    edgeGlow: new THREE.Color(0x7dffb5)
+  }
+};
+
 export class IntroSceneComplete {
   constructor() {
     this.state = {
@@ -49,7 +129,8 @@ export class IntroSceneComplete {
       textParticles: [], // Click particle system
       starParticles: [], // Burst particles
       derezParticles: [], // Derez particles
-      
+      tVoxels: [],
+
       // Animation phases
       introCfg: {
         rollEnd: 2.5,
@@ -120,14 +201,26 @@ export class IntroSceneComplete {
       endColorState: 'yellow',
       snapTogetherStarted: false,
       snapTogetherTime: 0,
-      
+      tRevealActive: false,
+      tRevealStartTime: 0,
+      hellTransformActive: false,
+      hellTransformStart: 0,
+      hellTransformDuration: 2.2,
+      hellProgress: 0,
+
       // Audio context
       audioCtx: null,
       synthGain: null,
       synthOsc1: null,
       synthOsc2: null,
-      synthOsc3: null
+      synthOsc3: null,
+
+      // Color theme
+      currentTheme: 'white'
     };
+
+    this.colorThemes = COLOR_THEMES;
+    this.voxelSize = VOXEL_SIZE;
   }
 
   /**
@@ -177,7 +270,7 @@ export class IntroSceneComplete {
     const { spheres, triMesh } = this._createShapes(scene);
     
     // Create CELLI voxels
-    const { voxels, letterVoxels } = this._createVoxels(scene);
+    const { voxels, letterVoxels, tVoxels } = this._createVoxels(scene);
     
     // Post-processing
     const { composer, bloomPass, afterimagePass, filmPass } = this._createPostProcessing(renderer, scene, camera);
@@ -199,9 +292,12 @@ export class IntroSceneComplete {
     this.state.spheres = spheres;
     this.state.voxels = voxels;
     this.state.letterVoxels = letterVoxels;
+    this.state.tVoxels = tVoxels;
     this.state.filmPass = filmPass;
     this.state.triMesh = triMesh;
     this.state.circleGeoTarget = circleGeoTarget;
+
+    this._setColorPhase('white');
 
     // Setup event listeners
     this._setupEventListeners();
@@ -377,16 +473,9 @@ export class IntroSceneComplete {
    * Create CELLI voxel letters
    */
   _createVoxels(scene) {
-    const voxelSize = 0.05;
+    const voxelSize = this.voxelSize;
     const voxelGeo = new THREE.BoxGeometry(voxelSize * 0.95, voxelSize * 0.95, voxelSize * 0.15);
     const edgesGeo = new THREE.EdgesGeometry(voxelGeo);
-
-    const celliPatterns = {
-      C: [[0,1,1,1,0], [1,0,0,0,0], [1,0,0,0,0], [1,0,0,0,0], [0,1,1,1,0]],
-      E: [[1,1,1,1,1], [1,0,0,0,0], [1,1,1,1,0], [1,0,0,0,0], [1,1,1,1,1]],
-      L: [[1,0,0,0,0], [1,0,0,0,0], [1,0,0,0,0], [1,0,0,0,0], [1,1,1,1,1]],
-      I: [[1,1,1,1,1], [0,0,1,0,0], [0,0,1,0,0], [0,0,1,0,0], [1,1,1,1,1]]
-    };
 
     const voxels = [];
     const letterVoxels = { C: [], E: [], L1: [], L2: [], I: [] };
@@ -396,7 +485,7 @@ export class IntroSceneComplete {
     const startX = -(letters.length * letterSpacing * celliScale) / 2 + (letterSpacing * celliScale) / 2;
 
     letters.forEach((letter, letterIdx) => {
-      const pattern = celliPatterns[letter];
+      const pattern = LETTER_PATTERNS[letter];
       const letterX = startX + letterIdx * letterSpacing * celliScale;
       
       pattern.forEach((row, rowIdx) => {
@@ -416,17 +505,19 @@ export class IntroSceneComplete {
               opacity: 0,
               linewidth: 1
             });
-            
+
             const voxel = new THREE.Mesh(voxelGeo, voxelMat);
             const edges = new THREE.LineSegments(edgesGeo, edgeMat);
             voxel.add(edges);
-            
+
             const x = letterX + (colIdx - 2) * voxelSize * 1.2 * celliScale;
             const y = (2 - rowIdx) * voxelSize * 1.2 * celliScale + 0.35;
-            
+
             voxel.userData = {
               targetX: x,
               targetY: y,
+              originalTargetX: x,
+              originalTargetY: y,
               startY: y + 2.0 + Math.random() * 1.0,
               dropDelay: letterIdx * 0.15 + (rowIdx * colIdx) * 0.02,
               dropSpeed: 0.02 + Math.random() * 0.01,
@@ -443,27 +534,232 @@ export class IntroSceneComplete {
               baseScale: celliScale,
               backspaceTransformed: false,
               backspacePulseOffset: Math.random() * Math.PI * 2,
-              baseColor: new THREE.Color(0x2f3547),
-              glowColor: new THREE.Color(0x9cd6ff),
-              edgesBaseColor: new THREE.Color(0x4a5d7c),
-              edgesGlowColor: new THREE.Color(0xc6e4ff)
+              baseColor: COLOR_THEMES.white.base.clone(),
+              glowColor: COLOR_THEMES.white.glow.clone(),
+              edgesBaseColor: COLOR_THEMES.white.edgeBase.clone(),
+              edgesGlowColor: COLOR_THEMES.white.edgeGlow.clone(),
+              burstActive: false,
+              burstVelocity: new THREE.Vector2(
+                (Math.random() - 0.5) * 0.02,
+                -0.03 - Math.random() * 0.02
+              ),
+              burstRotation: (Math.random() - 0.5) * 0.1,
+              patternIndex: 0
             };
-            
+
             voxel.scale.set(celliScale, celliScale, celliScale);
             voxel.position.set(x, voxel.userData.startY, 0);
             voxel.visible = false;
             scene.add(voxel);
             voxels.push(voxel);
-            
+
             // Track by letter
             const letterKey = letterIdx === 0 ? 'C' : letterIdx === 1 ? 'E' : letterIdx === 2 ? 'L1' : letterIdx === 3 ? 'L2' : 'I';
+            voxel.userData.patternIndex = letterVoxels[letterKey].length;
             letterVoxels[letterKey].push(voxel);
           }
         });
       });
     });
 
-    return { voxels, letterVoxels };
+    const tVoxels = this._createTVoxels(scene, voxelGeo, edgesGeo);
+
+    return { voxels, letterVoxels, tVoxels };
+  }
+
+  _createTVoxels(scene, voxelGeo, edgesGeo) {
+    const tPattern = LETTER_PATTERNS.T;
+    const tVoxels = [];
+    const scale = 1.0;
+    const startX = 0;
+    const voxelSize = this.voxelSize;
+
+    tPattern.forEach((row, rowIdx) => {
+      row.forEach((cell, colIdx) => {
+        if (cell !== 1) {
+          return;
+        }
+
+        const mat = new THREE.MeshBasicMaterial({
+          color: COLOR_THEMES.white.base.clone(),
+          transparent: true,
+          opacity: 0,
+          blending: THREE.NormalBlending,
+          side: THREE.FrontSide
+        });
+        const edgeMat = new THREE.LineBasicMaterial({
+          color: COLOR_THEMES.white.edgeBase.clone(),
+          transparent: true,
+          opacity: 0,
+          linewidth: 1
+        });
+
+        const voxel = new THREE.Mesh(voxelGeo.clone(), mat);
+        const edges = new THREE.LineSegments(edgesGeo.clone(), edgeMat);
+        voxel.add(edges);
+
+        const x = startX + (colIdx - 2) * voxelSize * 1.2 * scale;
+        const y = (2 - rowIdx) * voxelSize * 1.2 * scale + 0.35;
+
+        voxel.userData = {
+          targetX: x,
+          targetY: y,
+          startY: y + 2.2 + Math.random() * 0.6,
+          dropDelay: rowIdx * 0.05 + colIdx * 0.04,
+          dropSpeed: 0.03 + Math.random() * 0.015,
+          settled: false,
+          jigglePhase: Math.random() * Math.PI * 2,
+          flickerPhase: Math.random() * Math.PI * 2,
+          edges,
+          baseScale: scale,
+          baseColor: COLOR_THEMES.white.base.clone(),
+          glowColor: COLOR_THEMES.white.glow.clone(),
+          edgesBaseColor: COLOR_THEMES.white.edgeBase.clone(),
+          edgesGlowColor: COLOR_THEMES.white.edgeGlow.clone()
+        };
+
+        voxel.scale.set(scale, scale, scale);
+        voxel.position.set(x, voxel.userData.startY, 0);
+        voxel.visible = false;
+        scene.add(voxel);
+        tVoxels.push(voxel);
+      });
+    });
+
+    this.state.tVoxels = tVoxels;
+    return tVoxels;
+  }
+
+  _applyPaletteToVoxel(voxel, palette) {
+    if (!voxel || !voxel.userData) return;
+    const data = voxel.userData;
+
+    if (!data.baseColor) data.baseColor = new THREE.Color();
+    if (!data.glowColor) data.glowColor = new THREE.Color();
+    if (!data.edgesBaseColor) data.edgesBaseColor = new THREE.Color();
+    if (!data.edgesGlowColor) data.edgesGlowColor = new THREE.Color();
+
+    data.baseColor.copy(palette.base);
+    data.glowColor.copy(palette.glow);
+    data.edgesBaseColor.copy(palette.edgeBase);
+    data.edgesGlowColor.copy(palette.edgeGlow);
+  }
+
+  _setColorPhase(theme) {
+    const palette = this.colorThemes[theme];
+    if (!palette) {
+      return;
+    }
+
+    this.state.currentTheme = theme;
+
+    this.state.voxels.forEach(voxel => this._applyPaletteToVoxel(voxel, palette));
+    this.state.tVoxels.forEach(voxel => this._applyPaletteToVoxel(voxel, palette));
+  }
+
+  _pulseVoxels(intensity = 0.1) {
+    this.state.voxels.forEach(voxel => {
+      if (!voxel.userData) return;
+      voxel.userData.flickerPhase += Math.random() * intensity;
+    });
+  }
+
+  _computePatternPositions(pattern, letterIndex, totalLetters, spacing, offsetY = 0) {
+    const positions = [];
+    const startX = -(totalLetters * spacing) / 2 + spacing / 2;
+    const letterX = startX + letterIndex * spacing;
+
+    pattern.forEach((row, rowIdx) => {
+      row.forEach((cell, colIdx) => {
+        if (cell !== 1) {
+          return;
+        }
+
+        const x = letterX + (colIdx - 2) * this.voxelSize * 1.2;
+        const y = (2 - rowIdx) * this.voxelSize * 1.2 + 0.35 + offsetY;
+        positions.push({ x, y });
+      });
+    });
+
+    return positions;
+  }
+
+  _assignHellTargets(voxels, positions) {
+    voxels.forEach((voxel, idx) => {
+      const target = positions[idx] || positions[positions.length - 1] || {
+        x: voxel.userData.targetX,
+        y: voxel.userData.targetY
+      };
+
+      voxel.visible = true;
+      voxel.userData.hellStart = {
+        x: voxel.position.x,
+        y: voxel.position.y
+      };
+      voxel.userData.hellTarget = target;
+      voxel.userData.hellStartScale = voxel.scale.x;
+      voxel.userData.hellTargetScale = voxel.userData.baseScale;
+      voxel.userData.targetX = target.x;
+      voxel.userData.targetY = target.y;
+    });
+  }
+
+  _startHellTransform() {
+    if (this.state.hellTransformActive) {
+      return;
+    }
+
+    const hellSpacing = 0.36;
+    const totalLetters = 4;
+
+    const hPositions = this._computePatternPositions(LETTER_PATTERNS.H, 0, totalLetters, hellSpacing);
+    const ePositions = this._computePatternPositions(LETTER_PATTERNS.E, 1, totalLetters, hellSpacing);
+    const l1Positions = this._computePatternPositions(LETTER_PATTERNS.L, 2, totalLetters, hellSpacing);
+    const l2Positions = this._computePatternPositions(LETTER_PATTERNS.L, 3, totalLetters, hellSpacing);
+
+    if (this.state.letterVoxels.C) {
+      this._assignHellTargets(this.state.letterVoxels.C, hPositions);
+    }
+    if (this.state.letterVoxels.E) {
+      this._assignHellTargets(this.state.letterVoxels.E, ePositions);
+    }
+    if (this.state.letterVoxels.L1) {
+      this._assignHellTargets(this.state.letterVoxels.L1, l1Positions);
+    }
+    if (this.state.letterVoxels.L2) {
+      this._assignHellTargets(this.state.letterVoxels.L2, l2Positions);
+    }
+
+    if (this.state.letterVoxels.I) {
+      this.state.letterVoxels.I.forEach(voxel => {
+        voxel.userData.hellDrop = true;
+        voxel.userData.dropVelocity = -0.025 - Math.random() * 0.02;
+      });
+    }
+
+    this.state.tRevealActive = false;
+    this.state.tVoxels.forEach(voxel => {
+      voxel.visible = false;
+    });
+
+    this.state.hellTransformStart = performance.now();
+    this.state.hellTransformActive = true;
+    this.state.hellProgress = 0;
+  }
+
+  _transformToMagenta() {
+    this._setColorPhase('magenta');
+    this._pulseVoxels(0.2);
+  }
+
+  _transformToCyan() {
+    this._setColorPhase('cyan');
+    this._pulseVoxels(0.25);
+  }
+
+  _transformToGreenAndHell() {
+    this._setColorPhase('green');
+    this._startHellTransform();
   }
 
   /**
@@ -606,63 +902,94 @@ export class IntroSceneComplete {
   _handleDoorwayInput(e) {
     console.log('⌨️ Doorway input:', e.key);
     
-    const promptText = document.getElementById('promptText');
-    const promptCursor = document.getElementById('promptCursor');
-    
     if (e.key === 't' || e.key === 'T') {
       e.preventDefault();
-      this.state.tEntered = true;
-      this.state.inputText += 'T';
-      
-      // Update display
-      if (promptText) promptText.textContent = this.state.inputText;
-      
-      console.log('✨ T entered - triggering burst animation');
-      
-      // Trigger burst animation
-      if (!this.state.burstAnimStarted) {
-        this.state.burstAnimStarted = true;
-        this._startBurstAnimation();
-      }
-      
-    } else if (e.key === 'Backspace') {
-      e.preventDefault();
-      
-      if (this.state.inputText.length > 5) {
-        // Remove last character
-        this.state.inputText = this.state.inputText.slice(0, -1);
-        if (promptText) promptText.textContent = this.state.inputText;
-      } else {
-        // Start backspace sequence when =STAR is cleared
-        console.log('🔙 Backspace sequence starting');
-        if (!this.state.celliBackspaceSequenceStarted) {
-          this.state.celliBackspaceSequenceStarted = true;
-          this.state.celliBackspaceSequenceTime = 0;
+
+      if (!this.state.tEntered) {
+        this.state.tEntered = true;
+        if (this.state.inputText.length <= 1) {
+          this.state.inputText = `${this.state.inputText}T`;
+        } else {
+          this.state.inputText += 'T';
+        }
+        this._setPromptText(this.state.inputText);
+
+        console.log('✨ T entered - triggering burst animation');
+
+        if (!this.state.burstAnimStarted) {
+          this.state.burstAnimStarted = true;
+          this._startBurstAnimation();
         }
       }
-      
-    } else if (e.key.length === 1 && /[EDNend]/.test(e.key)) {
+      return;
+    }
+
+    if (e.key === 'Backspace') {
       e.preventDefault();
-      
-      // Handle END sequence
-      this.state.endSequence += e.key.toUpperCase();
-      this.state.inputText += e.key.toUpperCase();
-      
-      if (promptText) promptText.textContent = this.state.inputText;
-      
-      console.log('📝 END sequence:', this.state.endSequence);
-      
-      if (this.state.endSequence.includes('END')) {
+
+      if (this.state.inputText.length > 1) {
+        this.state.inputText = this.state.inputText.slice(0, -1);
+        if (this.state.endSequence.length) {
+          this.state.endSequence = this.state.endSequence.slice(0, -1);
+        }
+        if (this.state.inputText.length <= 1) {
+          this.state.endSequence = '';
+        }
+        this._setPromptText(this.state.inputText);
+        return;
+      }
+
+      console.log('🔙 Backspace sequence starting');
+      if (!this.state.burstAnimStarted) {
+        return;
+      }
+      if (!this.state.celliBackspaceSequenceStarted) {
+        this.state.celliBackspaceSequenceStarted = true;
+        this.state.celliBackspaceSequenceTime = 0;
+      }
+      return;
+    }
+
+    const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
+
+    if (this.state.inputText === '=' && this.state.allYellowTransformed) {
+      if (this.state.endSequence === '' && key === 'E') {
+        e.preventDefault();
+        this.state.endSequence = 'E';
+        this.state.inputText = '=E';
+        this._setPromptText(this.state.inputText);
+        this._transformToMagenta();
+        console.log('🟥 Magenta phase triggered (E)');
+        return;
+      }
+
+      if (this.state.endSequence === 'E' && key === 'N') {
+        e.preventDefault();
+        this.state.endSequence = 'EN';
+        this.state.inputText = '=EN';
+        this._setPromptText(this.state.inputText);
+        this._transformToCyan();
+        console.log('🟦 Cyan phase triggered (N)');
+        return;
+      }
+
+      if (this.state.endSequence === 'EN' && key === 'D') {
+        e.preventDefault();
+        this.state.endSequence = 'END';
+        this.state.inputText = '=END';
+        this._setPromptText(this.state.inputText);
+        this._transformToGreenAndHell();
+        console.log('🟩 Green phase triggered (D) - HELL transform starting');
         console.log('🎬 END sequence complete - starting transition');
         this._startEndSequence();
+        return;
       }
-      
-    } else if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+    }
+
+    if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
       e.preventDefault();
-      
-      // Add any alphanumeric character
       this.state.inputText += e.key.toUpperCase();
-      if (promptText) promptText.textContent = this.state.inputText;
+      this._setPromptText(this.state.inputText);
     }
   }
 
@@ -682,15 +1009,48 @@ export class IntroSceneComplete {
     voxelsCopy.forEach((voxel, idx) => {
       setTimeout(() => {
         if (voxel && voxel.userData) {
-          voxel.visible = false;
-          voxel.userData.glitched = true;
-          this.state.glitchedVoxelsStack.push(voxel);
-          
-          // Create star particle
+          const data = voxel.userData;
+          if (!data.glitched) {
+            this.state.glitchedVoxelsStack.push(voxel);
+          }
+
+          data.glitched = true;
+          data.settled = false;
+          data.burstActive = true;
+          data.burstVelocity = new THREE.Vector2(
+            (Math.random() - 0.5) * 0.025,
+            -0.05 - Math.random() * 0.025
+          );
+          data.burstRotation = (Math.random() - 0.5) * 0.12;
+          voxel.visible = true;
+          voxel.material.opacity = 0.85;
+          if (data.edges && data.edges.material) {
+            data.edges.material.opacity = 0.7;
+          }
+
           this._createStarParticle(voxel.position.x, voxel.position.y);
         }
       }, idx * 12);
     });
+
+    // Reset T voxels and schedule reveal
+    const revealDelay = 900;
+    this.state.tRevealActive = false;
+    this.state.tVoxels.forEach(voxel => {
+      const data = voxel.userData;
+      voxel.visible = false;
+      voxel.material.opacity = 0;
+      if (data.edges && data.edges.material) {
+        data.edges.material.opacity = 0;
+      }
+      data.settled = false;
+      voxel.position.set(data.targetX, data.startY, 0);
+    });
+
+    window.setTimeout(() => {
+      this.state.tRevealStartTime = performance.now();
+      this.state.tRevealActive = true;
+    }, revealDelay);
   }
 
   /**
@@ -709,6 +1069,22 @@ export class IntroSceneComplete {
       rotationSpeed: (Math.random() - 0.5) * 0.05
     };
     this.state.starParticles.push(particle);
+  }
+
+  _setPromptText(value) {
+    const promptText = document.getElementById('promptText');
+    const promptCursor = document.getElementById('promptCursor');
+    const promptEl = document.getElementById('prompt');
+
+    if (promptText) {
+      promptText.textContent = value;
+    }
+    if (promptCursor) {
+      promptCursor.textContent = '_';
+    }
+    if (promptEl) {
+      promptEl.setAttribute('data-text', `${value}_`);
+    }
   }
 
   /**
@@ -1611,13 +1987,61 @@ export class IntroSceneComplete {
    * Update CELLI voxels
    */
   _updateVoxels(celliTime) {
+    const hellActive = this.state.hellTransformActive;
+    if (hellActive) {
+      const elapsed = (performance.now() - this.state.hellTransformStart) / 1000;
+      const duration = Math.max(0.1, this.state.hellTransformDuration);
+      this.state.hellProgress = THREE.MathUtils.clamp(elapsed / duration, 0, 1);
+      if (this.state.hellProgress >= 1) {
+        this.state.hellTransformActive = false;
+      }
+    } else {
+      this.state.hellProgress = 0;
+    }
+
     this.state.voxels.forEach(voxel => {
       const data = voxel.userData;
       const localTime = celliTime - data.dropDelay;
-      
+
+      if (data.burstActive) {
+        voxel.visible = true;
+        data.burstVelocity.y -= 0.0015;
+        voxel.position.x += data.burstVelocity.x;
+        voxel.position.y += data.burstVelocity.y;
+        voxel.rotation.z += data.burstRotation;
+
+        voxel.material.opacity = Math.max(0, voxel.material.opacity - 0.035);
+        if (data.edges && data.edges.material) {
+          data.edges.material.opacity = Math.max(0, data.edges.material.opacity - 0.045);
+        }
+
+        if (voxel.position.y < data.originalTargetY - 1.2 || voxel.material.opacity <= 0.05) {
+          voxel.visible = false;
+          voxel.rotation.z = 0;
+          data.burstActive = false;
+        }
+        return;
+      }
+
+      if (data.hellDrop) {
+        if (!data.dropVelocity) {
+          data.dropVelocity = -0.02 - Math.random() * 0.02;
+        }
+        voxel.position.y += data.dropVelocity;
+        voxel.material.opacity = Math.max(0, voxel.material.opacity - 0.03);
+        if (data.edges && data.edges.material) {
+          data.edges.material.opacity = Math.max(0, data.edges.material.opacity - 0.04);
+        }
+        if (voxel.position.y < data.originalTargetY - 2.5) {
+          voxel.visible = false;
+          data.hellDrop = false;
+        }
+        return;
+      }
+
       if (localTime > 0) {
         voxel.visible = true;
-        
+
         if (!data.settled && voxel.position.y > data.targetY) {
           // Dropping
           voxel.position.y -= data.dropSpeed;
@@ -1669,6 +2093,67 @@ export class IntroSceneComplete {
               data.edges.material.color.lerpColors(data.edgesBaseColor, data.edgesGlowColor, glowStrength);
             }
           }
+        }
+
+        if (hellActive && data.hellTarget && data.hellStart) {
+          const progress = this.state.hellProgress;
+          const eased = progress * progress * (3 - 2 * progress);
+          voxel.position.x = THREE.MathUtils.lerp(data.hellStart.x, data.hellTarget.x, eased);
+          voxel.position.y = THREE.MathUtils.lerp(data.hellStart.y, data.hellTarget.y, eased);
+          voxel.scale.setScalar(THREE.MathUtils.lerp(data.hellStartScale, data.hellTargetScale, eased));
+        }
+      }
+    });
+
+    this._updateTVoxels();
+  }
+
+  _updateTVoxels() {
+    if (!this.state.tRevealActive) {
+      return;
+    }
+
+    const elapsed = (performance.now() - this.state.tRevealStartTime) / 1000;
+
+    this.state.tVoxels.forEach(voxel => {
+      const data = voxel.userData;
+      const localTime = elapsed - data.dropDelay;
+
+      if (localTime <= 0) {
+        return;
+      }
+
+      voxel.visible = true;
+
+      if (!data.settled && voxel.position.y > data.targetY) {
+        voxel.position.y -= data.dropSpeed;
+        voxel.material.opacity = Math.min(0.85, voxel.material.opacity + 0.06);
+        if (data.edges && data.edges.material) {
+          data.edges.material.opacity = Math.min(0.7, data.edges.material.opacity + 0.05);
+        }
+      } else if (!data.settled) {
+        voxel.position.y = data.targetY;
+        voxel.material.opacity = 0.85;
+        if (data.edges && data.edges.material) {
+          data.edges.material.opacity = 0.7;
+        }
+        data.settled = true;
+      }
+
+      if (data.settled) {
+        data.jigglePhase += 0.03;
+        const jiggle = Math.sin(data.jigglePhase) * 0.0025;
+        voxel.position.x = data.targetX + jiggle;
+
+        data.flickerPhase += 0.05;
+        const flicker = 0.5 + 0.5 * Math.sin(data.flickerPhase);
+        const glowStrength = THREE.MathUtils.clamp(0.4 + flicker * 0.5, 0, 1);
+
+        voxel.material.opacity = THREE.MathUtils.lerp(voxel.material.opacity, 0.92, 0.1);
+        voxel.material.color.lerpColors(data.baseColor, data.glowColor, glowStrength);
+        if (data.edges && data.edges.material) {
+          data.edges.material.opacity = THREE.MathUtils.lerp(data.edges.material.opacity, 0.75, 0.12);
+          data.edges.material.color.lerpColors(data.edgesBaseColor, data.edgesGlowColor, glowStrength);
         }
       }
     });
@@ -1817,10 +2302,28 @@ export class IntroSceneComplete {
       setTimeout(() => {
         voxel.visible = true;
         voxel.userData.glitched = false;
+        voxel.userData.burstActive = false;
+        voxel.userData.hellDrop = false;
+        voxel.userData.settled = true;
+        voxel.position.x = voxel.userData.originalTargetX;
+        voxel.position.y = voxel.userData.originalTargetY;
+        voxel.rotation.z = 0;
+        voxel.material.opacity = 0.1;
+        if (voxel.userData.edges && voxel.userData.edges.material) {
+          voxel.userData.edges.material.opacity = 0.2;
+        }
+
         voxel.material.opacity = 0.75;
-        voxel.userData.edges.material.opacity = 0.35;
+        if (voxel.userData.edges && voxel.userData.edges.material) {
+          voxel.userData.edges.material.opacity = 0.35;
+        }
       }, idx * 30);
     });
+
+    if (this.state.restoredLetters >= this.state.lettersToRestore.length - 1) {
+      this.state.allYellowTransformed = true;
+      this._setColorPhase('yellow');
+    }
   }
 
   /**
