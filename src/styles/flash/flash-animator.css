@@ -1,0 +1,499 @@
+.flash-animator-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50000;
+  background: #4a4a4a;
+  display: none;
+  flex-direction: column;
+  color: #000;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.flash-animator-overlay.is-visible {
+  display: flex;
+}
+
+.flash-animator-overlay__chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: linear-gradient(to right, rgba(0,0,0,0.2), rgba(0,0,0,0));
+  color: #f0f0f0;
+  font-size: 12px;
+}
+
+.flash-animator-overlay__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.flash-animator-overlay__close {
+  background: rgba(0, 0, 0, 0.4);
+  color: #f0f0f0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.flash-animator-overlay__close:hover {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.flash-animator-root {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.flash-animator {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #4a4a4a;
+  color: #000;
+  overflow: hidden;
+}
+
+.flash-animator__workspace {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.flash-animator__tools,
+.flash-animator__stage,
+.flash-animator__properties {
+  display: flex;
+  flex-direction: column;
+}
+
+.flash-animator__overlays {
+  position: relative;
+}
+
+.flash-animator .menu-bar {
+  background: linear-gradient(to bottom, #e8e8e8 0%, #d0d0d0 100%);
+  border-bottom: 1px solid #999;
+  display: flex;
+  padding: 2px 8px;
+  font-size: 11px;
+  position: relative;
+  z-index: 1000;
+}
+
+.flash-animator .menu-item {
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.flash-animator .menu-item:hover {
+  background: #b0c4de;
+}
+
+.flash-animator .toolbar {
+  background: #e0e0e0;
+  border-bottom: 1px solid #999;
+  padding: 4px;
+  display: flex;
+  gap: 2px;
+  position: relative;
+  z-index: 1000;
+}
+
+.flash-animator .tool-btn {
+  width: 26px;
+  height: 26px;
+  background: #f0f0f0;
+  border: 1px solid #999;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.flash-animator .tool-btn:hover {
+  background: #fff;
+}
+
+.flash-animator .tool-btn.active {
+  background: #d0d0d0;
+  border-style: inset;
+}
+
+.flash-animator .tool-separator {
+  width: 1px;
+  background: #999;
+  margin: 0 4px;
+}
+
+.flash-animator .tools-panel {
+  width: 60px;
+  background: #e8e8e8;
+  border-right: 1px solid #999;
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  z-index: 1000;
+}
+
+.flash-animator .tool-icon {
+  width: 26px;
+  height: 26px;
+  background: #fff;
+  border: 1px solid #999;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flash-animator .tool-icon:hover {
+  border-color: #666;
+}
+
+.flash-animator .tool-icon.selected {
+  background: #d0d0d0;
+  border-style: inset;
+}
+
+.flash-animator .stage-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #5a5a5a;
+  position: relative;
+}
+
+.flash-animator .stage-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  position: relative;
+}
+
+.flash-animator #canvas-container {
+  background: white;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  position: relative;
+}
+
+.flash-animator-overlay.fps-mode .stage-container {
+  background: transparent;
+}
+
+.flash-animator-overlay.fps-mode .stage-wrapper {
+  padding: 0;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.flash-animator-overlay.fps-mode #canvas-container {
+  box-shadow: none;
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.flash-animator #frame-damage-overlay,
+.flash-animator #gas-escape-overlay,
+.flash-animator #gun-overlay,
+.flash-animator #frame-effects-overlay,
+.flash-animator #rehumanize-overlay {
+  pointer-events: none;
+}
+
+#frame-damage-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: none;
+  z-index: 1500;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+#gun-overlay {
+  position: fixed;
+  bottom: 0;
+  right: 20%;
+  width: 400px;
+  height: 300px;
+  display: none;
+  z-index: 100000;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+#frame-effects-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+#gas-escape-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 5;
+  display: none;
+}
+
+#rehumanize-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  font-size: 20px;
+  line-height: 1.2;
+  white-space: pre;
+  overflow: hidden;
+  display: none;
+  z-index: 200000;
+  padding: 0;
+}
+
+.flash-animator .properties-panel {
+  width: 220px;
+  background: #e8e8e8;
+  border-left: 1px solid #999;
+  padding: 8px;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1000;
+}
+
+.flash-animator .prop-section {
+  margin-bottom: 12px;
+}
+
+.flash-animator .prop-title {
+  font-weight: bold;
+  font-size: 11px;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.flash-animator .prop-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.flash-animator .prop-label {
+  width: 60px;
+  color: #333;
+}
+
+.flash-animator .prop-input {
+  flex: 1;
+  padding: 2px 4px;
+  border: 1px solid #999;
+  font-size: 11px;
+}
+
+.flash-animator .prop-input--color {
+  flex: 1;
+  height: 24px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.flash-animator .color-swatch {
+  width: 40px;
+  height: 20px;
+  border: 1px solid #999;
+  cursor: pointer;
+}
+
+.flash-animator .timeline {
+  background: #f8f8f8;
+  border-top: 2px solid #999;
+  height: 180px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1000;
+}
+
+.flash-animator .timeline-header {
+  background: #e0e0e0;
+  border-bottom: 1px solid #999;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.flash-animator .playback-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.flash-animator .play-btn {
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border: 1px solid #999;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+
+.flash-animator .timeline-title {
+  margin-right: 8px;
+}
+
+.flash-animator .timeline-select {
+  font-size: 11px;
+  padding: 2px 4px;
+  margin-right: 8px;
+}
+
+.flash-animator .timeline-spacer {
+  flex: 1;
+}
+
+.flash-animator .timeline-action {
+  padding: 4px 12px;
+  margin-right: 8px;
+  background: #f0f0f0;
+  border: 1px solid #999;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.flash-animator .timeline-frame {
+  font-weight: normal;
+}
+
+.flash-animator .timeline-content {
+  display: flex;
+  flex: 1;
+  overflow: auto;
+}
+
+.flash-animator .layers-section {
+  width: 120px;
+  background: #fff;
+  border-right: 1px solid #999;
+}
+
+.flash-animator .layer-header {
+  background: #e0e0e0;
+  border-bottom: 1px solid #999;
+  padding: 4px;
+  font-size: 10px;
+  text-align: center;
+}
+
+.flash-animator .layer-row {
+  height: 24px;
+  border-bottom: 1px solid #ddd;
+  padding: 4px 8px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.flash-animator .layer-row .layer-label {
+  margin-left: 8px;
+}
+
+.flash-animator .layer-row:hover {
+  background: #f0f0f0;
+}
+
+.flash-animator .layer-row.active {
+  background: #d0e8ff;
+}
+
+.flash-animator .frames-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.flash-animator .frame-ruler {
+  height: 24px;
+  background: #e0e0e0;
+  border-bottom: 1px solid #999;
+  display: flex;
+}
+
+.flash-animator .frame-number {
+  min-width: 20px;
+  border-right: 1px solid #ccc;
+  text-align: center;
+  font-size: 10px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.flash-animator .frame-number:nth-child(5n) {
+  background: #d0d0d0;
+}
+
+.flash-animator .frame-number:hover {
+  background: #b0d4ff;
+}
+
+.flash-animator .frame-cells {
+  height: 24px;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+}
+
+.flash-animator .frame-cell {
+  min-width: 20px;
+  border-right: 1px solid #e0e0e0;
+  cursor: pointer;
+  position: relative;
+}
+
+.flash-animator .frame-cell.keyframe::after {
+  content: '●';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #000;
+}
+
+.flash-animator .frame-cell:hover {
+  background: #e8f4ff;
+}

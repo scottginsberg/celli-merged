@@ -18,6 +18,7 @@ import { checkWebGL } from './utils/webgl-check.js';
 import { SequenceUI } from './sequence/SequenceUI.js';
 import { sceneRegistry } from './sequence/SceneRegistry.js';
 import { registerSceneComponents } from './sequence/registerComponents.js';
+import { openFlashAnimator, closeFlashAnimator } from './flash/FlashAnimatorPortal.js';
 
 // Import new systems
 import { permissionManager } from './systems/PermissionManager.js';
@@ -175,6 +176,32 @@ function setupButtons() {
       showToast('Opening Sequence Composer…');
     });
     console.log('✅ Sequence Composer button initialized');
+  }
+
+  const flashAnimatorBtn = document.getElementById('flashAnimatorBtn');
+  if (flashAnimatorBtn) {
+    flashAnimatorBtn.addEventListener('click', async () => {
+      console.log('⚡ Flash Animator button clicked');
+      flashAnimatorBtn.disabled = true;
+      try {
+        await openFlashAnimator();
+        showToast('Flash Animator loaded');
+      } catch (error) {
+        console.error('❌ Failed to open Flash Animator:', error);
+        showToast(`Flash Animator failed: ${error.message || error}`);
+      } finally {
+        flashAnimatorBtn.disabled = false;
+      }
+    });
+    console.log('✅ Flash Animator button initialized');
+  }
+
+  const flashAnimatorCloseBtn = document.getElementById('flashAnimatorCloseBtn');
+  if (flashAnimatorCloseBtn) {
+    flashAnimatorCloseBtn.addEventListener('click', () => {
+      closeFlashAnimator();
+      showToast('Flash Animator closed');
+    });
   }
 
   // Test button - quick test transition to city
