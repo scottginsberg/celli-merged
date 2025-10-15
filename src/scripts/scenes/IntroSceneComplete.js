@@ -403,16 +403,16 @@ export class IntroSceneComplete {
         row.forEach((cell, colIdx) => {
           if (cell === 1) {
             // Create individual materials for each voxel
-            const voxelMat = new THREE.MeshBasicMaterial({ 
-              color: 0x444444, 
-              transparent: true, 
-              opacity: 0, 
+            const voxelMat = new THREE.MeshBasicMaterial({
+              color: 0x2f3547,
+              transparent: true,
+              opacity: 0,
               blending: THREE.NormalBlending,
               side: THREE.FrontSide
             });
-            const edgeMat = new THREE.LineBasicMaterial({ 
-              color: 0x888888, 
-              transparent: true, 
+            const edgeMat = new THREE.LineBasicMaterial({
+              color: 0x4a5d7c,
+              transparent: true,
               opacity: 0,
               linewidth: 1
             });
@@ -442,7 +442,11 @@ export class IntroSceneComplete {
               glitched: false,
               baseScale: celliScale,
               backspaceTransformed: false,
-              backspacePulseOffset: Math.random() * Math.PI * 2
+              backspacePulseOffset: Math.random() * Math.PI * 2,
+              baseColor: new THREE.Color(0x2f3547),
+              glowColor: new THREE.Color(0x9cd6ff),
+              edgesBaseColor: new THREE.Color(0x4a5d7c),
+              edgesGlowColor: new THREE.Color(0xc6e4ff)
             };
             
             voxel.scale.set(celliScale, celliScale, celliScale);
@@ -1038,12 +1042,17 @@ export class IntroSceneComplete {
       film.uniforms.noise.value = 0;
       film.uniforms.scanAmp.value = 0;
       if (tri) tri.visible = false;
-      
+
+      if (!this.state.loomworksRevealStarted) {
+        this.state.loomworksRevealStarted = true;
+        window.dispatchEvent(new CustomEvent('celli:loomworks-ready'));
+      }
+
       if (!this.state.loomworksShown) {
         this._startLoomworksReveal();
         this.state.loomworksShown = true;
       }
-      
+
       if (!this.state.chimePlayed) {
         this._playStartupChime();
         this.state.chimePlayed = true;
@@ -1638,6 +1647,28 @@ export class IntroSceneComplete {
           data.jigglePhase += 0.02;
           const jiggle = Math.sin(data.jigglePhase) * 0.002;
           voxel.position.x = data.targetX + jiggle;
+
+          data.flickerPhase += 0.045;
+          const flicker = 0.5 + 0.5 * Math.sin(data.flickerPhase + celliTime * 0.4);
+          const glowStrength = THREE.MathUtils.clamp(0.35 + flicker * 0.55, 0, 1);
+
+          const targetOpacity = 0.82 + glowStrength * 0.18;
+          voxel.material.opacity = THREE.MathUtils.lerp(voxel.material.opacity, targetOpacity, 0.08);
+          voxel.material.needsUpdate = true;
+
+          if (data.baseColor && data.glowColor) {
+            voxel.material.color.lerpColors(data.baseColor, data.glowColor, glowStrength);
+          }
+
+          if (data.edges && data.edges.material) {
+            const edgeTargetOpacity = 0.6 + glowStrength * 0.35;
+            data.edges.material.opacity = THREE.MathUtils.lerp(data.edges.material.opacity, edgeTargetOpacity, 0.1);
+            data.edges.material.needsUpdate = true;
+
+            if (data.edgesBaseColor && data.edgesGlowColor && data.edges.material.color) {
+              data.edges.material.color.lerpColors(data.edgesBaseColor, data.edgesGlowColor, glowStrength);
+            }
+          }
         }
       }
     });

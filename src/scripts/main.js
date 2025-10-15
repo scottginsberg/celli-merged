@@ -23,7 +23,7 @@ import { registerSceneComponents } from './sequence/registerComponents.js';
 import { permissionManager } from './systems/PermissionManager.js';
 import { inputSystem } from './systems/InputSystem.js';
 
-const DEFAULT_AUTOSTART = true;
+const DEFAULT_AUTOSTART = false;
 
 let toastTimeoutId = null;
 
