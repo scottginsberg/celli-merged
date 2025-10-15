@@ -407,6 +407,220 @@
    pointer-events: none;
   }
 
+  .tri-color-particles {
+   position: fixed;
+   inset: 0;
+   width: 100vw;
+   height: 100vh;
+   pointer-events: none;
+   z-index: 2147483750;
+   mix-blend-mode: screen;
+  }
+
+  .loom-invite-swarm {
+   position: fixed;
+   inset: 0;
+   width: 100vw;
+   height: 100vh;
+   pointer-events: none;
+   z-index: 2147483780;
+   overflow: visible;
+  }
+
+  .loom-invite-pin {
+   position: absolute;
+   width: 18px;
+   height: 18px;
+   border-radius: 50%;
+   background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.5) 40%, rgba(255,30,110,0.25) 100%);
+   box-shadow: 0 0 24px rgba(255, 30, 110, 0.65), 0 0 48px rgba(0, 168, 255, 0.4);
+   opacity: 0;
+   transform: translate3d(0, 0, 0) scale(0.7);
+   will-change: transform, opacity;
+   pointer-events: none;
+  }
+
+  .loom-invite-pin.pin-yellow {
+   background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.5) 40%, rgba(255,182,46,0.3) 100%);
+   box-shadow: 0 0 24px rgba(255, 182, 46, 0.7), 0 0 48px rgba(0, 168, 255, 0.35);
+  }
+
+  .loom-invite-pin.pin-cyan {
+   background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.5) 40%, rgba(0,168,255,0.3) 100%);
+   box-shadow: 0 0 24px rgba(0, 168, 255, 0.7), 0 0 48px rgba(255, 30, 110, 0.35);
+  }
+
+  @keyframes loomInvitePinFlight {
+   0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.6);
+   }
+   12% {
+    opacity: 1;
+   }
+   55% {
+    opacity: 0.92;
+   }
+   100% {
+    opacity: 0;
+    transform: translate3d(var(--pin-flight-x, -55vw), var(--pin-flight-y, 0), 0) scale(1.05);
+   }
+  }
+
+  .debug-panel-button {
+   position: fixed;
+   bottom: 18px;
+   left: 50%;
+   transform: translateX(-50%);
+   padding: 10px 18px;
+   border-radius: 999px;
+   background: rgba(15, 23, 42, 0.85);
+   border: 1px solid rgba(148, 163, 184, 0.5);
+   color: #e2e8f0;
+   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+   font-size: 13px;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+   cursor: pointer;
+   z-index: 2147483900;
+   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.45);
+   transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .debug-panel-button:hover,
+  .debug-panel-button:focus-visible {
+   background: rgba(30, 41, 59, 0.9);
+   box-shadow: 0 16px 38px rgba(15, 23, 42, 0.55);
+   transform: translateX(-50%) translateY(-2px);
+   outline: none;
+  }
+
+  .debug-panel {
+   position: fixed;
+   bottom: 72px;
+   left: 50%;
+   transform: translateX(-50%) translateY(12px);
+   width: min(420px, 90vw);
+   background: rgba(12, 17, 29, 0.92);
+   border: 1px solid rgba(100, 116, 139, 0.35);
+   border-radius: 18px;
+   padding: 18px;
+   color: #e2e8f0;
+   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+   font-size: 13px;
+   letter-spacing: 0.01em;
+   box-shadow: 0 22px 50px rgba(15, 23, 42, 0.6);
+   opacity: 0;
+   pointer-events: none;
+   transition: opacity 0.22s ease, transform 0.22s ease;
+   z-index: 2147483910;
+  }
+
+  .debug-panel.visible {
+   opacity: 1;
+   transform: translateX(-50%) translateY(0);
+   pointer-events: auto;
+  }
+
+  .debug-panel__header {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   font-size: 12px;
+   letter-spacing: 0.12em;
+   text-transform: uppercase;
+   color: #94a3b8;
+   margin-bottom: 14px;
+  }
+
+  .debug-panel__close {
+   background: transparent;
+   border: none;
+   color: inherit;
+   cursor: pointer;
+   font-size: 16px;
+   line-height: 1;
+   padding: 4px 6px;
+   border-radius: 8px;
+  }
+
+  .debug-panel__close:hover,
+  .debug-panel__close:focus-visible {
+   background: rgba(148, 163, 184, 0.12);
+   outline: none;
+  }
+
+  .debug-panel__section {
+   margin-bottom: 14px;
+   display: grid;
+   gap: 8px;
+  }
+
+  .debug-panel__section:last-of-type {
+   margin-bottom: 0;
+  }
+
+  .debug-toggle {
+   display: flex;
+   align-items: center;
+   gap: 10px;
+  }
+
+  .debug-toggle input[type='checkbox'] {
+   width: 16px;
+   height: 16px;
+   accent-color: #38bdf8;
+  }
+
+  .debug-panel__stats {
+   font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+   font-size: 12px;
+   color: #cbd5f5;
+  }
+
+  .debug-panel__stats span {
+   color: #facc15;
+  }
+
+  .debug-panel__cta {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   padding: 8px 12px;
+   border-radius: 999px;
+   background: rgba(56, 189, 248, 0.16);
+   border: 1px solid rgba(56, 189, 248, 0.35);
+   color: #bae6fd;
+   cursor: pointer;
+   font-size: 12px;
+   letter-spacing: 0.06em;
+   text-transform: uppercase;
+   transition: background 0.2s ease, border 0.2s ease;
+  }
+
+  .debug-panel__cta:hover,
+  .debug-panel__cta:focus-visible {
+   background: rgba(56, 189, 248, 0.28);
+   border-color: rgba(56, 189, 248, 0.55);
+   outline: none;
+  }
+
+  body.debug-hide-light-layers .light-ray,
+  body.debug-hide-light-layers #lightBeam,
+  body.debug-hide-light-layers .edge-impact,
+  body.debug-hide-light-layers .darkening-overlay {
+   display: none !important;
+   opacity: 0 !important;
+  }
+
+  body.debug-hide-tri-color .tri-color-particles {
+   display: none !important;
+  }
+
+  body.debug-hide-invite-waves .loom-invite-swarm {
+   display: none !important;
+  }
+
   .light-ray::before {
    background: linear-gradient(
     to left,
@@ -977,8 +1191,48 @@
   let noteEntryMonitorId = null;
   let noteEntryTickCount = 0;
   let noteHasEnteredFrame = false;
+  let noteEntryFallbackTimer = null;
   let chantFadeFrameId = null;
   let noteStageTimeouts = [];
+
+  const PREFERS_REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const extraInviteState = {
+    active: false,
+    allowSpawns: true,
+    scheduled: false,
+    timers: [],
+    peaks: null,
+    scanningPromise: null,
+    container: null,
+    activePins: 0,
+    totalSpawned: 0,
+    upcomingTimes: [],
+    startTime: 0
+  };
+
+  const triColorState = {
+    canvas: null,
+    ctx: null,
+    particles: [],
+    animationId: null,
+    time: 0,
+    enabled: true,
+    lastTimestamp: null
+  };
+
+  const debugPanelState = {
+    panel: null,
+    button: null,
+    closeBtn: null,
+    lightsToggle: null,
+    triToggle: null,
+    waveToggle: null,
+    pinTotalEl: null,
+    pinActiveEl: null,
+    peakListEl: null,
+    rescanBtn: null
+  };
 
   const TOOLTIP_ANIMATION_DURATION = 700;
   const TOOLTIP_COLLISION_RATIO = 0.95;
@@ -1070,7 +1324,570 @@
     applyEdgeMetrics();
     updateSharedTooltipWidth();
     updateActiveTooltipEdgeDistance();
+    resizeTriColorCanvas();
   });
+
+  function ensureExtraInviteContainer() {
+    if (extraInviteState.container && extraInviteState.container.parentNode) {
+      return extraInviteState.container;
+    }
+    const swarm = document.createElement('div');
+    swarm.id = 'loomInviteSwarm';
+    swarm.className = 'loom-invite-swarm';
+    document.body.appendChild(swarm);
+    extraInviteState.container = swarm;
+    return swarm;
+  }
+
+  function updatePinLightCountDisplay() {
+    if (debugPanelState.pinTotalEl) {
+      debugPanelState.pinTotalEl.textContent = String(extraInviteState.totalSpawned);
+    }
+    if (debugPanelState.pinActiveEl) {
+      debugPanelState.pinActiveEl.textContent = String(extraInviteState.activePins);
+    }
+  }
+
+  function updateDebugPeaksDisplay(times, source = 'idle') {
+    if (!debugPanelState.peakListEl) {
+      return;
+    }
+    if (!times || times.length === 0) {
+      debugPanelState.peakListEl.textContent = source === 'scanning' ? 'scanning…' : '—';
+      return;
+    }
+    debugPanelState.peakListEl.textContent = times.map((time) => `${time.toFixed(1)}s`).join(', ');
+  }
+
+  function resizeTriColorCanvas() {
+    if (!triColorState.canvas) {
+      return;
+    }
+    const dpr = window.devicePixelRatio || 1;
+    const width = window.innerWidth || document.documentElement.clientWidth || 1280;
+    const height = window.innerHeight || document.documentElement.clientHeight || 720;
+    triColorState.canvas.width = Math.floor(width * dpr);
+    triColorState.canvas.height = Math.floor(height * dpr);
+    triColorState.canvas.style.width = `${width}px`;
+    triColorState.canvas.style.height = `${height}px`;
+    if (triColorState.ctx) {
+      triColorState.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    if (triColorState.particles && triColorState.particles.length) {
+      triColorState.particles = createTriColorParticles();
+    }
+  }
+
+  function createTriColorParticles() {
+    const width = (triColorState.canvas?.width || window.innerWidth || 1280) / (window.devicePixelRatio || 1);
+    const height = (triColorState.canvas?.height || window.innerHeight || 720) / (window.devicePixelRatio || 1);
+    const palette = [
+      { base: [255, 30, 110], accent: [255, 163, 210] },
+      { base: [0, 168, 255], accent: [126, 214, 255] },
+      { base: [255, 182, 46], accent: [255, 227, 130] }
+    ];
+    const particleCount = Math.round(Math.max(width, height) / 18);
+    const radiusBase = Math.min(width, height) * 0.48;
+    const particles = [];
+    for (let i = 0; i < particleCount; i += 1) {
+      const tone = palette[i % palette.length];
+      particles.push({
+        angle: Math.random() * Math.PI * 2,
+        radius: radiusBase * (0.18 + Math.random() * 0.6),
+        speed: 0.25 + Math.random() * 0.6,
+        wobble: 0.4 + Math.random() * 0.4,
+        size: 12 + Math.random() * 14,
+        alpha: 0.45 + Math.random() * 0.4,
+        verticalScale: 0.55 + Math.random() * 0.25,
+        offset: Math.random() * Math.PI * 2,
+        baseColor: tone.base,
+        accentColor: tone.accent
+      });
+    }
+    return particles;
+  }
+
+  function renderTriColorParticles(timestamp) {
+    if (!triColorState.enabled || !triColorState.ctx) {
+      triColorState.animationId = null;
+      return;
+    }
+    if (triColorState.lastTimestamp === null) {
+      triColorState.lastTimestamp = timestamp;
+    }
+    const delta = Math.max(0.001, (timestamp - triColorState.lastTimestamp) / 1000);
+    triColorState.lastTimestamp = timestamp;
+    triColorState.time += delta;
+
+    const ctx = triColorState.ctx;
+    const width = triColorState.canvas.width / (window.devicePixelRatio || 1);
+    const height = triColorState.canvas.height / (window.devicePixelRatio || 1);
+    ctx.clearRect(0, 0, width, height);
+    ctx.globalCompositeOperation = 'lighter';
+
+    triColorState.particles.forEach((particle) => {
+      particle.angle += delta * particle.speed;
+      const wobble = Math.sin(triColorState.time * particle.wobble + particle.offset) * 0.18;
+      const x = width / 2 + Math.cos(particle.angle) * particle.radius;
+      const y = height / 2 + Math.sin(particle.angle) * particle.radius * (particle.verticalScale + wobble);
+      const pulse = 1 + Math.sin(triColorState.time * 1.4 + particle.offset) * 0.28;
+      const size = particle.size * pulse;
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, size * 2.6);
+      gradient.addColorStop(0, `rgba(255,255,255,${0.8 * particle.alpha})`);
+      gradient.addColorStop(0.38, `rgba(255,255,255,${0.26 * particle.alpha})`);
+      gradient.addColorStop(0.7, `rgba(${particle.accentColor[0]},${particle.accentColor[1]},${particle.accentColor[2]},${0.42 * particle.alpha})`);
+      gradient.addColorStop(1, `rgba(${particle.baseColor[0]},${particle.baseColor[1]},${particle.baseColor[2]},0)`);
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(x, y, size * 2.6, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.globalCompositeOperation = 'source-over';
+    triColorState.animationId = requestAnimationFrame(renderTriColorParticles);
+  }
+
+  function startTriColorLoop() {
+    if (!triColorState.enabled) {
+      return;
+    }
+    if (triColorState.animationId) {
+      cancelAnimationFrame(triColorState.animationId);
+    }
+    triColorState.lastTimestamp = null;
+    triColorState.animationId = requestAnimationFrame(renderTriColorParticles);
+  }
+
+  function initTriColorParticles() {
+    if (triColorState.canvas) {
+      resizeTriColorCanvas();
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.id = 'triColorParticles';
+    canvas.className = 'tri-color-particles';
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+    triColorState.canvas = canvas;
+    triColorState.ctx = ctx;
+    resizeTriColorCanvas();
+    triColorState.particles = createTriColorParticles();
+    triColorState.time = 0;
+    triColorState.enabled = true;
+    startTriColorLoop();
+  }
+
+  function setTriColorEnabled(enabled) {
+    triColorState.enabled = enabled;
+    if (!triColorState.canvas) {
+      if (enabled) {
+        initTriColorParticles();
+      }
+      return;
+    }
+    if (enabled) {
+      triColorState.canvas.style.display = 'block';
+      triColorState.lastTimestamp = null;
+      startTriColorLoop();
+    } else {
+      if (triColorState.animationId) {
+        cancelAnimationFrame(triColorState.animationId);
+        triColorState.animationId = null;
+      }
+      triColorState.canvas.style.display = 'none';
+      triColorState.lastTimestamp = null;
+    }
+  }
+
+  function cancelExtraInviteSchedule({ clearPins = true, keepActive = false } = {}) {
+    extraInviteState.timers.forEach((id) => clearTimeout(id));
+    extraInviteState.timers = [];
+    if (clearPins && extraInviteState.container) {
+      extraInviteState.container.innerHTML = '';
+      extraInviteState.activePins = 0;
+      updatePinLightCountDisplay();
+    }
+    if (!keepActive) {
+      extraInviteState.active = false;
+      extraInviteState.scheduled = false;
+      extraInviteState.upcomingTimes = [];
+      extraInviteState.startTime = 0;
+      updateDebugPeaksDisplay([], 'idle');
+    }
+  }
+
+  function spawnExtraInviteWave(waveIndex) {
+    if (!extraInviteState.active || !extraInviteState.allowSpawns || !noteAwaitingActivation) {
+      return;
+    }
+    const container = ensureExtraInviteContainer();
+    if (!container) {
+      return;
+    }
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 720;
+    const spawnX = viewportWidth + 24;
+    const edgeInset = Math.max(48, Math.min(160, viewportHeight * 0.12));
+    const spawnPoints = [
+      { y: edgeInset, colorClass: 'pin-cyan' },
+      { y: viewportHeight - edgeInset, colorClass: 'pin-yellow' }
+    ];
+
+    extraInviteState.totalSpawned += spawnPoints.length;
+    extraInviteState.activePins += spawnPoints.length;
+    updatePinLightCountDisplay();
+
+    spawnPoints.forEach((point, index) => {
+      const pin = document.createElement('div');
+      pin.className = `loom-invite-pin ${point.colorClass}`;
+      pin.style.left = `${spawnX}px`;
+      pin.style.top = `${point.y}px`;
+      container.appendChild(pin);
+
+      if (PREFERS_REDUCED_MOTION) {
+        pin.style.opacity = '0.85';
+        pin.style.transition = 'opacity 700ms ease-out';
+        requestAnimationFrame(() => {
+          pin.style.opacity = '0';
+        });
+        setTimeout(() => {
+          if (pin.parentNode) {
+            pin.parentNode.removeChild(pin);
+          }
+          extraInviteState.activePins = Math.max(0, extraInviteState.activePins - 1);
+          updatePinLightCountDisplay();
+        }, 740);
+        return;
+      }
+
+      const travelX = -0.55 * viewportWidth;
+      const centerY = viewportHeight / 2;
+      const verticalDistance = centerY - point.y;
+      const travelY = verticalDistance * 0.9 + (Math.random() - 0.5) * 80 + waveIndex * 18;
+      pin.style.setProperty('--pin-flight-x', `${travelX}px`);
+      pin.style.setProperty('--pin-flight-y', `${travelY}px`);
+      const duration = 2800 + Math.random() * 900;
+      pin.style.animation = `loomInvitePinFlight ${duration}ms cubic-bezier(0.22, 0.82, 0.1, 1) forwards`;
+      const cleanupDelay = duration + 120;
+      setTimeout(() => {
+        if (pin.parentNode) {
+          pin.parentNode.removeChild(pin);
+        }
+        extraInviteState.activePins = Math.max(0, extraInviteState.activePins - 1);
+        updatePinLightCountDisplay();
+      }, cleanupDelay);
+    });
+
+    if (extraInviteState.upcomingTimes.length) {
+      extraInviteState.upcomingTimes.shift();
+      updateDebugPeaksDisplay(extraInviteState.upcomingTimes, 'active');
+    }
+  }
+
+  function scheduleInviteWavesFromPeaks(times, sourceLabel) {
+    if (!extraInviteState.active) {
+      return;
+    }
+    const filtered = (times || []).filter((time) => Number.isFinite(time) && time >= 6);
+    if (!filtered.length) {
+      return;
+    }
+    cancelExtraInviteSchedule({ clearPins: false, keepActive: true });
+    extraInviteState.active = true;
+    extraInviteState.scheduled = true;
+    extraInviteState.upcomingTimes = filtered.slice();
+    updateDebugPeaksDisplay(extraInviteState.upcomingTimes, sourceLabel);
+    const baseTime = extraInviteState.startTime || performance.now();
+    if (!extraInviteState.startTime) {
+      extraInviteState.startTime = baseTime;
+    }
+    extraInviteState.timers = filtered.map((time, index) => {
+      const delay = Math.max(0, time * 1000 - (performance.now() - baseTime));
+      return setTimeout(() => spawnExtraInviteWave(index), delay);
+    });
+  }
+
+  async function getChantPeaks(force = false) {
+    if (!force && extraInviteState.peaks) {
+      return extraInviteState.peaks;
+    }
+    if (!force && extraInviteState.scanningPromise) {
+      return extraInviteState.scanningPromise;
+    }
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) {
+      extraInviteState.peaks = [];
+      return [];
+    }
+
+    const fetchPromise = fetch('./chant.mp3')
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return response.arrayBuffer();
+      })
+      .then(async (arrayBuffer) => {
+        let audioContext;
+        try {
+          audioContext = new AudioCtx();
+        } catch (contextError) {
+          console.warn('⚠️ Unable to initialise audio context for peak scan:', contextError);
+          return [];
+        }
+        try {
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+          const peaks = analyzeAudioPeaks(audioBuffer);
+          extraInviteState.peaks = peaks;
+          return peaks;
+        } finally {
+          audioContext.close().catch(() => {});
+        }
+      })
+      .catch((error) => {
+        console.warn('⚠️ Chant peak analysis failed:', error);
+        extraInviteState.peaks = [];
+        return [];
+      })
+      .finally(() => {
+        extraInviteState.scanningPromise = null;
+      });
+
+    extraInviteState.scanningPromise = fetchPromise;
+    return fetchPromise;
+  }
+
+  function analyzeAudioPeaks(audioBuffer) {
+    if (!audioBuffer) {
+      return [];
+    }
+    const channelData = audioBuffer.getChannelData(0);
+    const sampleRate = audioBuffer.sampleRate || 44100;
+    const windowSize = Math.floor(sampleRate * 0.45);
+    const hopSize = Math.max(1024, Math.floor(windowSize / 2));
+    const rmsValues = [];
+    let maxRms = 0;
+    let sumRms = 0;
+    let count = 0;
+
+    for (let i = 0; i < channelData.length; i += hopSize) {
+      let accumulator = 0;
+      const limit = Math.min(windowSize, channelData.length - i);
+      if (limit <= 0) {
+        continue;
+      }
+      for (let j = 0; j < limit; j += 1) {
+        const sample = channelData[i + j];
+        accumulator += sample * sample;
+      }
+      const rms = Math.sqrt(accumulator / limit);
+      rmsValues.push({ time: i / sampleRate, rms });
+      maxRms = Math.max(maxRms, rms);
+      sumRms += rms;
+      count += 1;
+    }
+
+    if (!count) {
+      return [];
+    }
+
+    const averageRms = sumRms / count;
+    const threshold = averageRms + (maxRms - averageRms) * 0.5;
+    const selected = [];
+    const minGapSeconds = 2.4;
+    rmsValues.forEach(({ time, rms }) => {
+      if (rms < threshold) {
+        return;
+      }
+      if (selected.some((existing) => Math.abs(existing - time) < minGapSeconds)) {
+        return;
+      }
+      selected.push(time);
+    });
+
+    selected.sort((a, b) => a - b);
+    return selected.slice(0, 8).map((value) => Number(value.toFixed(2)));
+  }
+
+  function scheduleExtraLoomInvites() {
+    if (!noteAwaitingActivation || !extraInviteState.allowSpawns) {
+      return;
+    }
+    if (extraInviteState.scheduled) {
+      return;
+    }
+    ensureExtraInviteContainer();
+    cancelExtraInviteSchedule({ clearPins: false, keepActive: true });
+    extraInviteState.active = true;
+    extraInviteState.scheduled = true;
+    extraInviteState.upcomingTimes = [];
+    extraInviteState.startTime = performance.now();
+
+    const fallbackTimes = [6, 10.5, 15.5];
+    extraInviteState.upcomingTimes = fallbackTimes.slice();
+    updateDebugPeaksDisplay(extraInviteState.upcomingTimes, 'fallback');
+    extraInviteState.timers = fallbackTimes.map((time, index) => {
+      const delay = Math.max(0, time * 1000 - (performance.now() - extraInviteState.startTime));
+      return setTimeout(() => spawnExtraInviteWave(index), delay);
+    });
+
+    getChantPeaks().then((peaks) => {
+      if (!extraInviteState.active) {
+        return;
+      }
+      scheduleInviteWavesFromPeaks(peaks, 'scan');
+    });
+  }
+
+  function handlePrimaryInviteCentered() {
+    const sidebar = refSidebar;
+    if (sidebar) {
+      if (sidebar.classList.contains('stage-float')) {
+        sidebar.classList.remove('stage-float');
+      }
+      sidebar.classList.add('stage-sweep');
+    }
+    scheduleExtraLoomInvites();
+  }
+
+  function createDebugPanel() {
+    if (debugPanelState.panel) {
+      return;
+    }
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'debug-panel-button';
+    button.textContent = 'Debug Panel';
+    button.setAttribute('aria-expanded', 'false');
+    document.body.appendChild(button);
+    debugPanelState.button = button;
+
+    const panel = document.createElement('div');
+    panel.className = 'debug-panel';
+    panel.innerHTML = `
+      <div class="debug-panel__header">
+        <span>Debug Controls</span>
+        <button type="button" class="debug-panel__close" aria-label="Close debug panel">×</button>
+      </div>
+      <div class="debug-panel__section">
+        <label class="debug-toggle">
+          <input type="checkbox" id="debugToggleLights" checked>
+          <span>Show light layers</span>
+        </label>
+        <label class="debug-toggle">
+          <input type="checkbox" id="debugToggleTriColor" checked>
+          <span>Tri-color particles</span>
+        </label>
+        <label class="debug-toggle">
+          <input type="checkbox" id="debugToggleInviteWaves" checked>
+          <span>Extra invite waves</span>
+        </label>
+      </div>
+      <div class="debug-panel__section debug-panel__stats">
+        <div>Total pin lights: <span id="debugPinTotal">0</span></div>
+        <div>Active pin lights: <span id="debugPinActive">0</span></div>
+      </div>
+      <div class="debug-panel__section debug-panel__stats">
+        <div>Invite pulses: <span id="debugPeakTimes">—</span></div>
+      </div>
+      <div class="debug-panel__section">
+        <button type="button" class="debug-panel__cta" id="debugRescanPeaks">Rescan audio peaks</button>
+      </div>
+    `;
+    document.body.appendChild(panel);
+
+    debugPanelState.panel = panel;
+    debugPanelState.closeBtn = panel.querySelector('.debug-panel__close');
+    debugPanelState.lightsToggle = panel.querySelector('#debugToggleLights');
+    debugPanelState.triToggle = panel.querySelector('#debugToggleTriColor');
+    debugPanelState.waveToggle = panel.querySelector('#debugToggleInviteWaves');
+    debugPanelState.pinTotalEl = panel.querySelector('#debugPinTotal');
+    debugPanelState.pinActiveEl = panel.querySelector('#debugPinActive');
+    debugPanelState.peakListEl = panel.querySelector('#debugPeakTimes');
+    debugPanelState.rescanBtn = panel.querySelector('#debugRescanPeaks');
+
+    button.addEventListener('click', () => {
+      const visible = !panel.classList.contains('visible');
+      panel.classList.toggle('visible', visible);
+      button.setAttribute('aria-expanded', visible ? 'true' : 'false');
+      if (visible) {
+        updatePinLightCountDisplay();
+        if (extraInviteState.upcomingTimes.length) {
+          updateDebugPeaksDisplay(extraInviteState.upcomingTimes, 'active');
+        }
+      }
+    });
+
+    if (debugPanelState.closeBtn) {
+      debugPanelState.closeBtn.addEventListener('click', () => {
+        panel.classList.remove('visible');
+        button.setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    if (debugPanelState.lightsToggle) {
+      debugPanelState.lightsToggle.addEventListener('change', (event) => {
+        if (event.target.checked) {
+          document.body.classList.remove('debug-hide-light-layers');
+        } else {
+          document.body.classList.add('debug-hide-light-layers');
+        }
+      });
+    }
+
+    if (debugPanelState.triToggle) {
+      debugPanelState.triToggle.addEventListener('change', (event) => {
+        const enabled = !!event.target.checked;
+        document.body.classList.toggle('debug-hide-tri-color', !enabled);
+        setTriColorEnabled(enabled);
+      });
+    }
+
+    if (debugPanelState.waveToggle) {
+      debugPanelState.waveToggle.addEventListener('change', (event) => {
+        const enabled = !!event.target.checked;
+        document.body.classList.toggle('debug-hide-invite-waves', !enabled);
+        extraInviteState.allowSpawns = enabled;
+        if (!enabled) {
+          cancelExtraInviteSchedule();
+        } else if (noteHasEnteredFrame && noteAwaitingActivation) {
+          scheduleExtraLoomInvites();
+        }
+      });
+    }
+
+    if (debugPanelState.rescanBtn) {
+      debugPanelState.rescanBtn.addEventListener('click', () => {
+        extraInviteState.peaks = null;
+        if (extraInviteState.scanningPromise) {
+          extraInviteState.scanningPromise = null;
+        }
+        updateDebugPeaksDisplay([], 'scanning');
+        getChantPeaks(true).then((peaks) => {
+          if (extraInviteState.active) {
+            cancelExtraInviteSchedule({ clearPins: true, keepActive: true });
+            if (extraInviteState.allowSpawns && noteAwaitingActivation) {
+              scheduleInviteWavesFromPeaks(peaks, 'scan');
+            }
+          } else {
+            const filtered = (peaks || []).filter((time) => Number.isFinite(time) && time >= 6);
+            extraInviteState.upcomingTimes = filtered.slice();
+            updateDebugPeaksDisplay(filtered, 'scan');
+          }
+        });
+      });
+    }
+
+    updatePinLightCountDisplay();
+  }
+
+  initTriColorParticles();
+  createDebugPanel();
 
   function createGlitchState() {
     return { stage: 'parody', nextIndex: 0 };
@@ -1381,6 +2198,10 @@
       noteEntryMonitorId = null;
     }
     noteEntryTickCount = 0;
+    if (noteEntryFallbackTimer) {
+      clearTimeout(noteEntryFallbackTimer);
+      noteEntryFallbackTimer = null;
+    }
   }
 
   function fadeChantToVolume(targetVolume, duration = CHANT_FADE_DURATION) {
@@ -1432,6 +2253,21 @@
     const RIGHT_THRESHOLD = 16;
     const REQUIRED_TICKS = 6;
 
+    if (noteEntryFallbackTimer) {
+      clearTimeout(noteEntryFallbackTimer);
+    }
+
+    noteEntryFallbackTimer = setTimeout(() => {
+      noteEntryFallbackTimer = null;
+      if (!noteHasEnteredFrame && noteAwaitingActivation) {
+        console.log('  ⚠️ Note entry fallback triggered - forcing center stage.');
+        noteHasEnteredFrame = true;
+        quickFadeInChant();
+        handlePrimaryInviteCentered();
+        stopNoteEntryMonitor();
+      }
+    }, 4500);
+
     const monitor = () => {
       const rect = sidebar.getBoundingClientRect();
       const distanceFromRight = window.innerWidth - rect.right;
@@ -1443,6 +2279,7 @@
           noteHasEnteredFrame = true;
           console.log('  ✅ Note fully entered frame (ticks satisfied).');
           quickFadeInChant();
+          handlePrimaryInviteCentered();
 
           stopNoteEntryMonitor();
           return;
@@ -1465,6 +2302,7 @@
       window.badBooleanTimeout = null;
     }
     stopNoteEntryMonitor();
+    cancelExtraInviteSchedule();
   }
 
   function startAiEnhancedScan() {
@@ -1529,6 +2367,8 @@
     if (!noteAwaitingActivation) {
       return;
     }
+
+    cancelExtraInviteSchedule();
 
     const sidebar = refSidebar;
     const ackBtn = refSidebarAck;
@@ -1650,6 +2490,8 @@
       return;
     }
 
+    cancelExtraInviteSchedule();
+
     const ackBtn = refSidebarAck;
 
     console.log('  💥💥💥 JARRING SWITCH TO BADBOOLEAN AD (click-triggered)!');
@@ -1704,6 +2546,8 @@
     const ackBtn = refSidebarAck;
     const h3 = sidebar.querySelector('h3');
     const paragraphs = sidebar.querySelectorAll('p');
+
+    cancelExtraInviteSchedule();
 
     sidebar.classList.remove('note-seed', 'note-hover');
     noteAwaitingActivation = false;
@@ -2606,6 +3450,7 @@
     refSidebarUrl.style.display = 'none';
     refSidebarUrl.textContent = '';
     refSidebarClose.style.display = 'block';
+    cancelExtraInviteSchedule();
 
     clearNoteStageTimeouts();
     stopChantAudio();
@@ -3417,6 +4262,9 @@
   function animateSidebarEntry() {
     console.log('🎪 🎭 MYTHIC SIDEBAR ENTRY SEQUENCE INITIATED 🎭 🎪');
     console.log(`💎 Preparing crystalline note with ${brickHoles.length} breach points.`);
+
+    cancelExtraInviteSchedule();
+    noteHasEnteredFrame = false;
 
     clearNoteStageTimeouts();
     stopChantAudio();
