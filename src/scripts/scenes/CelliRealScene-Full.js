@@ -142,7 +142,6 @@ export class CelliRealScene {
       ${this.templates.terminal}
       ${this.templates.notepad}
       ${this.templates.hud}
-      <div id="toast"></div>
       <input id="directEdit" />
     `;
     
@@ -637,26 +636,50 @@ export class CelliRealScene {
 
   _getSheetHTML() {
     return `
+<div id="sheetHeaderCard" class="sheet-header-card" style="display:none"></div>
 <div id="sheet" class="intro-centered" aria-label="2D Sheet" style="display:none">
   <div class="sheet-head">
     <div class="sheet-title-row" style="display:flex;align-items:center;justify-content:space-between;">
-      <div class="sheet-title" id="sheetTitle" style="font-family:Inter, system-ui; font-weight:600;">Array</div>
-      <div class="sheet-ctrls" style="display:flex;gap:6px;">
+      <div class="sheet-title-group" style="display:flex;align-items:center;gap:8px;">
+        <button class="layer-btn" id="prevArray" style="display:none" title="Previous array">◀</button>
+        <div class="sheet-title" id="sheetTitle" style="font-family:Inter, system-ui; font-weight:600;">Array</div>
+        <button class="layer-btn" id="nextArray" style="display:none" title="Next array">▶</button>
+      </div>
+      <div class="sheet-ctrls" style="display:flex;gap:6px;align-items:center;">
+        <button class="btn" id="copyAddress" title="Copy address">@</button>
+        <button class="btn" id="toggleAddressMode" title="Toggle Local/Absolute">A1a</button>
+        <button class="btn" id="viewToggleBtn" title="Toggle 3D View" style="width:36px;height:36px;padding:6px;display:flex;align-items:center;justify-content:center;">
+          <svg id="viewToggleIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
         <button class="btn" id="toggleFxPanel" title="Functions">Fx</button>
       </div>
     </div>
-    <div class="sheet-fx" style="display:flex; gap:6px; margin-top:6px;">
-      <div class="fx-wrap" style="flex:1;">
+    <div class="sheet-fx" style="display:flex; gap:6px; align-items:center; margin-top:6px;">
+      <div class="fx-wrap" style="flex:1; position:relative;">
+        <div id="fxHighlight" aria-hidden="true"></div>
         <input type="text" id="fx" placeholder='=ARRAY("Hello","World")' style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;font-family:'Roboto Mono',monospace">
       </div>
       <button class="btn primary" id="applyFx" title="Apply">✓</button>
     </div>
   </div>
-  <div class="sheet-body" style="flex:1;overflow:auto;margin-top:8px">
-    <table class="sheet">
-      <thead><tr id="cols"><th></th></tr></thead>
-      <tbody id="rows"></tbody>
-    </table>
+  <div class="sheet-body" style="flex:1;overflow:auto;margin-top:8px;position:relative;">
+    <div class="grid-wrap" style="flex:1;overflow:auto;">
+      <table class="sheet">
+        <thead><tr id="cols"><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="sheet-resizer" id="sheetResizer" title="Resize" style="display:none"></div>
+  <div id="fxPanel" class="fx-panel" style="display:none">
+    <div class="fx-head" style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="title">Functions</div>
+      <button class="btn" id="fxClose">Close</button>
+    </div>
+    <div class="fx-body" id="fxBody"></div>
   </div>
 </div>`;
   }
@@ -664,41 +687,48 @@ export class CelliRealScene {
   _getDPadHTML() {
     return `
 <div id="dpad" aria-label="D-Pad" style="display:none">
+  <div class="dp grab" title="Drag">☰</div>
   <div class="dp up" data-dir="up">↑</div>
+  <div class="dp depthUp desktop-only" data-dir="depthUp">⤴</div>
+  <div class="dp jump mobile-only" data-action="jump" style="display:none" title="Jump">⤴</div>
   <div class="dp left" data-dir="left">←</div>
-  <div class="dp center">Z</div>
-  <div class="dp right" data-dir="right">→</div>
+  <div class="dp center desktop-only" title="Arrow mapping" style="display:flex;align-items:center;justify-content:center;gap:6px;">
+    <span style="display:inline-block;width:16px;height:12px;border:2px solid #fff;border-radius:3px"></span>
+    <span id="depthMode">H</span>
+  </div>
+  <div class="dp center mobile-only" style="display:none;cursor:default;pointer-events:none;opacity:0.3">•</div>
+  <div class="dp depthDown desktop-only" data-dir="depthDown">⤵</div>
+  <div class="dp present" role="button" data-action="present" aria-pressed="false" title="Enter Present Mode">◎</div>
   <div class="dp down" data-dir="down">↓</div>
-  <div class="dp depthUp" data-dir="depthUp">↥</div>
-  <div class="dp depthDown" data-dir="depthDown">↧</div>
+  <div class="dp right" data-dir="right">→</div>
 </div>`;
   }
 
   _getTerminalHTML() {
     return `
-<div id="terminal-icon" class="ui-icon" title="Open Terminal" style="display:none;position:fixed;bottom:24px;right:24px">
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+<div id="terminal-icon" class="ui-icon" title="Open Celli_Log.txt" style="display:none;position:fixed;bottom:24px;right:24px;z-index:10001;">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
 </div>
-<div id="terminal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:700px;height:460px;background:rgba(17,24,39,.95);border:1px solid rgba(255,255,255,.12);border-radius:12px;z-index:10002;flex-direction:column;color:#e5e7eb">
-  <div class="win-header" style="background:rgba(255,255,255,.06);padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;justify-content:space-between">
+<div id="terminal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:720px;height:480px;background:rgba(17,24,39,0.95);border:1px solid rgba(255,255,255,0.12);border-radius:16px;z-index:10002;flex-direction:column;color:#e5e7eb;box-shadow:0 25px 60px rgba(15,23,42,0.4);backdrop-filter:blur(10px);">
+  <div class="win-header" style="background:rgba(255,255,255,0.06);padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.12);display:flex;justify-content:space-between;align-items:center;">
     <span>Terminal</span>
-    <div id="term-close" class="close" title="Close" style="width:20px;height:20px;background:#ef4444;border-radius:50%;cursor:pointer"></div>
+    <div id="term-close" class="close" title="Close"></div>
   </div>
-  <pre id="term" style="flex:1;padding:12px;overflow:auto;font-family:'Roboto Mono',monospace">Welcome to Cell.real terminal\n> </pre>
+  <pre id="term" style="flex:1;padding:18px;overflow:auto;font-family:'Roboto Mono',monospace;font-size:13px;line-height:1.45;background:rgba(15,23,42,0.65);margin:0;">Welcome to Cell.real terminal\n&gt; </pre>
 </div>`;
   }
 
   _getNotepadHTML() {
     return `
-<div id="notepad-icon" class="ui-icon" title="ty.txt" style="display:none;position:fixed;bottom:108px;right:24px">
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="18" rx="2"></rect></svg>
+<div id="notepad-icon" class="ui-icon" title="ty.txt" style="display:none;position:fixed;bottom:108px;right:24px;z-index:10001;">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M12 2v4"></path><path d="M16 2v4"></path><rect x="4" y="4" width="16" height="18" rx="2"></rect><path d="M12 12h.01"></path><path d="M16 16h.01"></path><path d="M8 12h.01"></path><path d="M8 16h.01"></path></svg>
 </div>
-<div id="pad" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:480px;height:360px;background:#fafafc;border:1px solid #e5e7eb;border-radius:20px;z-index:10002;flex-direction:column">
-  <div class="win-header" style="background:#f2f4f8;padding:8px 12px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;color:#111827">
+<div id="pad" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:520px;height:380px;background:#fafafc;border:1px solid #e5e7eb;border-radius:24px;z-index:10002;flex-direction:column;box-shadow:0 25px 60px rgba(15,23,42,0.25);">
+  <div class="win-header" style="background:#f2f4f8;padding:10px 16px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;color:#111827">
     <span>ty.txt — Notepad</span>
-    <div id="pad-close" class="close" title="Close" style="width:20px;height:20px;background:#ef4444;border-radius:50%;cursor:pointer"></div>
+    <div id="pad-close" class="close" title="Close"></div>
   </div>
-  <textarea id="note" style="flex:1;background:#fff;color:#111827;border:none;padding:18px;font-family:'Roboto Mono',monospace;resize:none">special thanks:
+  <textarea id="note" style="flex:1;background:#ffffff;color:#111827;border:none;padding:20px;font-family:'Roboto Mono',monospace;font-size:13px;line-height:1.5;resize:none">special thanks:
 - Stephen Lavelle (Increpare)
 - Arvi Teikari (Hempuli)
 - Jonathan Blow
@@ -707,12 +737,47 @@ export class CelliRealScene {
 
 Synthesize what you love, make what you can.
 
-"I don't love all of you, but I would if I could." — increpare, 'Stephen's Sausage Roll'</textarea>
+"I don't love all of you, but I would if I could." — increpare, 'Stephen's Sausage Roll'
+</textarea>
 </div>`;
   }
 
   _getHUDHTML() {
-    return `<!-- HUD is optional for celli-real scene -->`;
+    return `
+<div class="panel stack" id="hud" style="position:fixed;top:16px;left:16px;z-index:10001;padding:0;overflow:hidden;min-width:280px;max-width:340px;">
+  <div class="win-header" style="background:rgba(255,255,255,0.06);padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:space-between;">
+    <span>DEBUG CONSOLE</span>
+    <div id="debug-close" class="close" title="Hide"></div>
+  </div>
+  <div class="stack" style="padding:12px;gap:10px;">
+    <div class="sub">Click cells <span class="kbd">← ↑ ↓ →</span> move <span class="kbd">Enter</span> edit <span class="kbd">P</span> physics</div>
+    <div class="row" style="display:flex;flex-wrap:wrap;gap:8px;">
+      <button class="btn primary" id="centerHome">🏠 Home</button>
+      <button class="btn" id="viewMainframe">🖥 Mainframe</button>
+      <button class="btn" id="toggleGrid">Grid</button>
+      <button class="btn" id="toggleAxes">Axes</button>
+    </div>
+    <div class="row" style="display:flex;flex-wrap:wrap;gap:8px;">
+      <button class="btn good" id="physicsBtn">⚙ Physics</button>
+      <button class="btn" id="toggleChunks">🧱 Chunks</button>
+      <button class="btn warn" id="reset">↺ Reset</button>
+    </div>
+    <div class="row" style="display:flex;flex-wrap:wrap;gap:8px;">
+      <button class="btn" id="presentToggleBtn">🎞 Present: OFF</button>
+      <button class="btn" id="graphicsSettingsBtn">🎨 Graphics</button>
+      <button class="btn" id="oceanSettingsBtn">🌊 Ocean</button>
+    </div>
+    <label class="row" style="display:flex;align-items:center;justify-content:space-between;font-weight:600;">
+      <span>Crystal 2D Style</span>
+      <input type="checkbox" id="crystal2DToggle">
+    </label>
+    <div class="stack" style="gap:6px;font-size:12px;color:var(--muted, #6b7280);">
+      <span id="statusChip" class="chip">Booting…</span>
+      <span id="physChip" class="chip">Physics: OFF</span>
+      <span id="countChip" class="chip">Counts: --</span>
+    </div>
+  </div>
+</div>`;
   }
 }
 
