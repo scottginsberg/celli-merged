@@ -185,6 +185,10 @@ export class IntroSceneComplete {
       celliMoveToCornerStarted: false,
       celliMoveToCornerTime: 0,
       visiCalcShown: false,
+      celliGlitchStarted: false,
+      promptBaseText: '=',
+      hiddenInput: null,
+      yellowTransformationInProgress: false,
       
       // Animation state
       finalRollRotations: [0, 0, 0],
@@ -221,6 +225,280 @@ export class IntroSceneComplete {
 
     this.colorThemes = COLOR_THEMES;
     this.voxelSize = VOXEL_SIZE;
+  }
+
+  _focusHiddenInput() {
+    const hiddenInput = this.state.hiddenInput;
+    if (!hiddenInput) {
+      return;
+    }
+
+    hiddenInput.value = '';
+
+    try {
+      hiddenInput.focus({ preventScroll: true });
+    } catch (err) {
+      hiddenInput.focus();
+    }
+  }
+
+  _handleHiddenInputValue(value) {
+    if (!value) {
+      return;
+    }
+
+    for (const char of value) {
+      const key = char.toUpperCase();
+
+      if (key === 'T') {
+        this._handleTInput();
+        continue;
+      }
+
+      if (this._handleEndSequenceKey(key)) {
+        continue;
+      }
+
+      if (/^[A-Z0-9]$/.test(key)) {
+        this.state.inputText += key;
+        this._setPromptText(this.state.inputText);
+      }
+    }
+
+    if (this.state.hiddenInput) {
+      this.state.hiddenInput.value = '';
+    }
+  }
+
+  _handlePromptBackspace() {
+    if (this.state.inputText.length <= this.state.promptBaseText.length) {
+      return false;
+    }
+
+    this.state.inputText = this.state.inputText.slice(0, -1);
+    this.state.tEntered = false;
+
+    if (this.state.endSequence.length) {
+      this.state.endSequence = this.state.endSequence.slice(0, -1);
+    }
+
+    if (this.state.inputText.length <= this.state.promptBaseText.length) {
+      this.state.endSequence = '';
+    }
+
+    this._setPromptText(this.state.inputText);
+
+    if (this.state.hiddenInput) {
+      this.state.hiddenInput.value = '';
+    }
+
+    if (!this.state.burstAnimStarted) {
+      return true;
+    }
+
+    if (this.state.restoredLetters < this.state.lettersToRestore.length) {
+      this._restoreOneLetter();
+    }
+
+    return true;
+  }
+
+  _handleTInput() {
+    if (!this.state.celliGlitchStarted) {
+      this._triggerCelliGlitchRain();
+    }
+
+    if (this.state.tEntered) {
+      return;
+    }
+
+    this.state.tEntered = true;
+
+    if (this.state.inputText.length <= this.state.promptBaseText.length) {
+      this.state.inputText = `${this.state.promptBaseText}T`;
+    } else {
+      this.state.inputText += 'T';
+    }
+
+    this._setPromptText(this.state.inputText);
+
+    console.log('✨ T entered - triggering burst animation');
+
+    if (!this.state.burstAnimStarted) {
+      this.state.burstAnimStarted = true;
+      this._startBurstAnimation();
+    }
+  }
+
+  _handleEndSequenceKey(key) {
+    if (this.state.inputText !== this.state.promptBaseText || !this.state.allYellowTransformed) {
+      return false;
+    }
+
+    if (key === 'E' && this.state.endSequence === '') {
+      this.state.endSequence = 'E';
+      this.state.inputText = '=E';
+      this._setPromptText(this.state.inputText);
+      this._transformToMagenta();
+      console.log('🟥 Magenta phase triggered (E)');
+      return true;
+    }
+
+    if (key === 'N' && this.state.endSequence === 'E') {
+      this.state.endSequence = 'EN';
+      this.state.inputText = '=EN';
+      this._setPromptText(this.state.inputText);
+      this._transformToCyan();
+      console.log('🟦 Cyan phase triggered (N)');
+      return true;
+    }
+
+    if (key === 'D' && this.state.endSequence === 'EN') {
+      this.state.endSequence = 'END';
+      this.state.inputText = '=END';
+      this._setPromptText(this.state.inputText);
+      this._transformToGreenAndHell();
+      console.log('🟩 Green phase triggered (D) - HELL transform starting');
+      console.log('🎬 END sequence complete - starting transition');
+      this._startEndSequence();
+      return true;
+    }
+
+    return false;
+  }
+
+  _triggerCelliGlitchRain() {
+    if (this.state.celliGlitchStarted) {
+      return;
+    }
+
+    this.state.celliGlitchStarted = true;
+    this.state.restoredLetters = 0;
+    this.state.allYellowTransformed = false;
+    this.state.yellowTransformCompleteCount = 0;
+    this.state.endSequence = '';
+
+    this._playFritzSound();
+
+    this.state.voxels.forEach(voxel => {
+      const data = voxel.userData;
+      if (!data) {
+        return;
+      }
+
+      if (this._isVoxelPartOfT(data)) {
+        voxel.visible = true;
+        data.settled = true;
+        voxel.material.opacity = 0.85;
+        if (data.edges && data.edges.material) {
+          data.edges.material.opacity = 0.45;
+        }
+        return;
+      }
+
+      this.state.glitchedVoxelsStack.push(voxel);
+
+      data.glitched = true;
+      data.settled = false;
+      data.rainActive = true;
+      data.rainStart = this.state.totalTime + Math.random() * 0.25;
+      data.rainVelocity = 0.02 + Math.random() * 0.02;
+      data.rainDrift = (Math.random() - 0.5) * 0.015;
+      data.rainSpin = (Math.random() - 0.5) * 0.2;
+      data.rainFade = 0.035 + Math.random() * 0.03;
+
+      voxel.visible = true;
+      voxel.material.opacity = 0.8;
+      voxel.material.color.setRGB(0.6, 0.6, 0.66);
+
+      if (data.edges && data.edges.material) {
+        data.edges.material.opacity = 0.4;
+        data.edges.material.color.setRGB(0.62, 0.62, 0.7);
+      }
+    });
+  }
+
+  _isVoxelPartOfT(data) {
+    if (!data) return false;
+    if (data.gridX !== 4) return false;
+    if (data.gridY === 0) return true;
+    return data.gridCol === 2 && data.gridY >= 1 && data.gridY <= 4;
+  }
+
+  _glitchVoxelsToFlat(coverage = 1) {
+    const clamped = THREE.MathUtils.clamp(coverage, 0, 1);
+    const candidates = this.state.voxels.filter(voxel => {
+      const data = voxel.userData;
+      if (!data) return false;
+      if (!data.backspaceTransformed) return false;
+      return data.geometryType === 'rounded';
+    });
+
+    if (!candidates.length || clamped <= 0) {
+      return;
+    }
+
+    const total = Math.ceil(candidates.length * clamped);
+    const shuffled = [...candidates];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const startTime = this.state.totalTime;
+
+    shuffled.slice(0, total).forEach((voxel, idx) => {
+      const data = voxel.userData;
+      if (!data) return;
+
+      data.flattenState = 'toFlat';
+      data.flattenStartTime = startTime + idx * 0.05;
+      data.flattenDuration = 0.4 + Math.random() * 0.25;
+    });
+  }
+
+  _updateVoxelFlatten(voxel, data, dt) {
+    if (!data.flattenState) {
+      return;
+    }
+
+    const now = this.state.totalTime;
+
+    if (data.flattenState === 'toFlat') {
+      const elapsed = now - data.flattenStartTime;
+      if (elapsed < 0) {
+        return;
+      }
+
+      const duration = Math.max(data.flattenDuration, 0.01);
+      const progress = THREE.MathUtils.clamp(elapsed / duration, 0, 1);
+      const eased = progress * progress * (3 - 2 * progress);
+
+      const targetScaleZ = data.baseScale * 0.2;
+      voxel.scale.z = THREE.MathUtils.lerp(data.baseScale, targetScaleZ, eased);
+
+      const shimmer = 0.4 + Math.sin((now + data.backspacePulseOffset) * 8) * 0.2;
+      voxel.material.opacity = THREE.MathUtils.lerp(voxel.material.opacity, 0.55 + shimmer * 0.15, 0.08);
+      if (data.edges && data.edges.material) {
+        data.edges.material.opacity = THREE.MathUtils.lerp(data.edges.material.opacity, 0.25 + shimmer * 0.1, 0.1);
+      }
+
+      if (progress >= 1) {
+        this._applyFlatGeometry(voxel);
+        data.flattenState = 'flat';
+      }
+
+      return;
+    }
+
+    if (data.flattenState === 'flat') {
+      data.shimmerPhase = (data.shimmerPhase || 0) + (dt || 0.016) * 6;
+      const shimmer = 0.5 + Math.sin(data.shimmerPhase) * 0.15;
+      voxel.material.opacity = THREE.MathUtils.lerp(voxel.material.opacity, 0.6 + shimmer * 0.12, 0.08);
+      if (data.edges && data.edges.material) {
+        data.edges.material.opacity = THREE.MathUtils.lerp(data.edges.material.opacity, 0.2 + shimmer * 0.08, 0.1);
+      }
+    }
   }
 
   /**
@@ -544,7 +822,25 @@ export class IntroSceneComplete {
                 -0.03 - Math.random() * 0.02
               ),
               burstRotation: (Math.random() - 0.5) * 0.1,
-              patternIndex: 0
+              patternIndex: 0,
+              rainActive: false,
+              rainStart: 0,
+              rainVelocity: 0,
+              rainDrift: 0,
+              rainSpin: 0,
+              rainFade: 0.04,
+              restorePending: false,
+              restoreStartTime: 0,
+              restoreDelay: 0,
+              yellowPopActive: false,
+              yellowPopStart: 0,
+              neonPulseActive: false,
+              neonPulseStart: 0,
+              flattenState: null,
+              flattenStartTime: 0,
+              flattenDuration: 0,
+              shimmerPhase: Math.random() * Math.PI * 2,
+              geometryType: 'flat'
             };
 
             voxel.scale.set(celliScale, celliScale, celliScale);
@@ -615,7 +911,20 @@ export class IntroSceneComplete {
           baseColor: COLOR_THEMES.white.base.clone(),
           glowColor: COLOR_THEMES.white.glow.clone(),
           edgesBaseColor: COLOR_THEMES.white.edgeBase.clone(),
-          edgesGlowColor: COLOR_THEMES.white.edgeGlow.clone()
+          edgesGlowColor: COLOR_THEMES.white.edgeGlow.clone(),
+          glitched: false,
+          backspaceTransformed: false,
+          rainActive: false,
+          rainStart: 0,
+          rainVelocity: 0,
+          rainDrift: 0,
+          rainSpin: 0,
+          rainFade: 0.04,
+          flattenState: null,
+          flattenStartTime: 0,
+          flattenDuration: 0,
+          shimmerPhase: Math.random() * Math.PI * 2,
+          geometryType: 'flat'
         };
 
         voxel.scale.set(scale, scale, scale);
@@ -628,6 +937,84 @@ export class IntroSceneComplete {
 
     this.state.tVoxels = tVoxels;
     return tVoxels;
+  }
+
+  _createFlatVoxelGeometry() {
+    const size = this.voxelSize * 0.95;
+    return new THREE.BoxGeometry(size, size, this.voxelSize * 0.15);
+  }
+
+  _createRoundedVoxelGeometry() {
+    const size = this.voxelSize * 0.95;
+    return new RoundedBoxGeometry(size, size, this.voxelSize * 0.18, 5, this.voxelSize * 0.22);
+  }
+
+  _applyRoundedGeometry(voxel) {
+    if (!voxel || !voxel.userData) return;
+
+    const data = voxel.userData;
+    const previousEdges = data.edges;
+
+    if (voxel.geometry) {
+      voxel.geometry.dispose();
+    }
+
+    const roundedGeo = this._createRoundedVoxelGeometry();
+    voxel.geometry = roundedGeo;
+
+    if (previousEdges) {
+      voxel.remove(previousEdges);
+      if (previousEdges.geometry) previousEdges.geometry.dispose();
+      if (previousEdges.material) previousEdges.material.dispose();
+    }
+
+    const edgeMaterial = new THREE.LineBasicMaterial({
+      color: data.edgesGlowColor ? data.edgesGlowColor.clone() : new THREE.Color(0xffe2a1),
+      transparent: true,
+      opacity: previousEdges && previousEdges.material ? previousEdges.material.opacity : 0.5,
+      linewidth: 1
+    });
+
+    const roundedEdges = new THREE.LineSegments(new THREE.EdgesGeometry(roundedGeo), edgeMaterial);
+    voxel.add(roundedEdges);
+
+    data.edges = roundedEdges;
+    data.geometryType = 'rounded';
+    data.roundedApplied = true;
+  }
+
+  _applyFlatGeometry(voxel) {
+    if (!voxel || !voxel.userData) return;
+
+    const data = voxel.userData;
+    const previousEdges = data.edges;
+
+    if (voxel.geometry) {
+      voxel.geometry.dispose();
+    }
+
+    const flatGeo = this._createFlatVoxelGeometry();
+    voxel.geometry = flatGeo;
+
+    if (previousEdges) {
+      voxel.remove(previousEdges);
+      if (previousEdges.geometry) previousEdges.geometry.dispose();
+      if (previousEdges.material) previousEdges.material.dispose();
+    }
+
+    const edgeMaterial = new THREE.LineBasicMaterial({
+      color: data.edgesBaseColor ? data.edgesBaseColor.clone() : new THREE.Color(0x4a5d7c),
+      transparent: true,
+      opacity: 0.3,
+      linewidth: 1
+    });
+
+    const flatEdges = new THREE.LineSegments(new THREE.EdgesGeometry(flatGeo), edgeMaterial);
+    voxel.add(flatEdges);
+
+    data.edges = flatEdges;
+    data.geometryType = 'flat';
+    data.roundedApplied = false;
   }
 
   _applyPaletteToVoxel(voxel, palette) {
@@ -750,15 +1137,18 @@ export class IntroSceneComplete {
   _transformToMagenta() {
     this._setColorPhase('magenta');
     this._pulseVoxels(0.2);
+    this._glitchVoxelsToFlat(0.35);
   }
 
   _transformToCyan() {
     this._setColorPhase('cyan');
     this._pulseVoxels(0.25);
+    this._glitchVoxelsToFlat(0.65);
   }
 
   _transformToGreenAndHell() {
     this._setColorPhase('green');
+    this._glitchVoxelsToFlat(1);
     this._startHellTransform();
   }
 
@@ -844,13 +1234,59 @@ export class IntroSceneComplete {
     // Keyboard handler for doorway input
     this._keydownHandler = (e) => {
       if (!this.state.running) return;
-      
+
       if (this.state.doorwayOpened) {
         this._handleDoorwayInput(e);
       }
     };
     document.addEventListener('keydown', this._keydownHandler);
-    
+
+    const promptContainer = document.querySelector('.prompt-container');
+    if (promptContainer) {
+      this._promptClickHandler = () => {
+        if (!this.state.running || !this.state.doorwayOpened) {
+          return;
+        }
+
+        this.state.inputAttempted = true;
+
+        if (!this.state.celliGlitchStarted) {
+          this._triggerCelliGlitchRain();
+        }
+
+        this._focusHiddenInput();
+      };
+
+      promptContainer.addEventListener('click', this._promptClickHandler);
+    }
+
+    const hiddenInput = document.getElementById('hiddenInput');
+    if (hiddenInput) {
+      this.state.hiddenInput = hiddenInput;
+
+      this._hiddenBeforeInputHandler = (evt) => {
+        if (!this.state.running || !this.state.doorwayOpened) {
+          return;
+        }
+
+        if (evt.inputType === 'deleteContentBackward') {
+          evt.preventDefault();
+          this._handlePromptBackspace();
+        }
+      };
+
+      this._hiddenInputHandler = (evt) => {
+        if (!this.state.running || !this.state.doorwayOpened) {
+          return;
+        }
+
+        this._handleHiddenInputValue((evt.target.value || '').toUpperCase());
+      };
+
+      hiddenInput.addEventListener('beforeinput', this._hiddenBeforeInputHandler);
+      hiddenInput.addEventListener('input', this._hiddenInputHandler);
+    }
+
     // Skip button handler
     const skipBtn = document.getElementById('skipBtn');
     if (skipBtn) {
@@ -901,94 +1337,29 @@ export class IntroSceneComplete {
    */
   _handleDoorwayInput(e) {
     console.log('⌨️ Doorway input:', e.key);
-    
-    if (e.key === 't' || e.key === 'T') {
-      e.preventDefault();
-
-      if (!this.state.tEntered) {
-        this.state.tEntered = true;
-        if (this.state.inputText.length <= 1) {
-          this.state.inputText = `${this.state.inputText}T`;
-        } else {
-          this.state.inputText += 'T';
-        }
-        this._setPromptText(this.state.inputText);
-
-        console.log('✨ T entered - triggering burst animation');
-
-        if (!this.state.burstAnimStarted) {
-          this.state.burstAnimStarted = true;
-          this._startBurstAnimation();
-        }
-      }
-      return;
-    }
 
     if (e.key === 'Backspace') {
       e.preventDefault();
-
-      if (this.state.inputText.length > 1) {
-        this.state.inputText = this.state.inputText.slice(0, -1);
-        if (this.state.endSequence.length) {
-          this.state.endSequence = this.state.endSequence.slice(0, -1);
-        }
-        if (this.state.inputText.length <= 1) {
-          this.state.endSequence = '';
-        }
-        this._setPromptText(this.state.inputText);
-        return;
-      }
-
-      console.log('🔙 Backspace sequence starting');
-      if (!this.state.burstAnimStarted) {
-        return;
-      }
-      if (!this.state.celliBackspaceSequenceStarted) {
-        this.state.celliBackspaceSequenceStarted = true;
-        this.state.celliBackspaceSequenceTime = 0;
-      }
+      this._handlePromptBackspace();
       return;
     }
 
     const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
 
-    if (this.state.inputText === '=' && this.state.allYellowTransformed) {
-      if (this.state.endSequence === '' && key === 'E') {
-        e.preventDefault();
-        this.state.endSequence = 'E';
-        this.state.inputText = '=E';
-        this._setPromptText(this.state.inputText);
-        this._transformToMagenta();
-        console.log('🟥 Magenta phase triggered (E)');
-        return;
-      }
-
-      if (this.state.endSequence === 'E' && key === 'N') {
-        e.preventDefault();
-        this.state.endSequence = 'EN';
-        this.state.inputText = '=EN';
-        this._setPromptText(this.state.inputText);
-        this._transformToCyan();
-        console.log('🟦 Cyan phase triggered (N)');
-        return;
-      }
-
-      if (this.state.endSequence === 'EN' && key === 'D') {
-        e.preventDefault();
-        this.state.endSequence = 'END';
-        this.state.inputText = '=END';
-        this._setPromptText(this.state.inputText);
-        this._transformToGreenAndHell();
-        console.log('🟩 Green phase triggered (D) - HELL transform starting');
-        console.log('🎬 END sequence complete - starting transition');
-        this._startEndSequence();
-        return;
-      }
+    if (key === 'T') {
+      e.preventDefault();
+      this._handleTInput();
+      return;
     }
 
-    if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+    if (this._handleEndSequenceKey(key)) {
       e.preventDefault();
-      this.state.inputText += e.key.toUpperCase();
+      return;
+    }
+
+    if (key.length === 1 && /[A-Z0-9]/.test(key)) {
+      e.preventDefault();
+      this.state.inputText += key;
       this._setPromptText(this.state.inputText);
     }
   }
@@ -1206,7 +1577,7 @@ export class IntroSceneComplete {
     // Update CELLI voxels (starts at loomworksEnd)
     if (t >= cfg.loomworksEnd) {
       const celliTime = t - cfg.loomworksEnd;
-      this._updateVoxels(celliTime);
+      this._updateVoxels(celliTime, deltaTime);
     }
 
     // Update doorway (wait for voxels to settle)
@@ -1232,11 +1603,6 @@ export class IntroSceneComplete {
 
     // Update star particles
     this._updateStarParticles(deltaTime);
-
-    // Update backspace sequence
-    if (this.state.celliBackspaceSequenceStarted) {
-      this._updateBackspaceSequence(deltaTime);
-    }
 
     // Update move to corner sequence
     if (this.state.celliMoveToCornerStarted) {
@@ -1986,7 +2352,7 @@ export class IntroSceneComplete {
   /**
    * Update CELLI voxels
    */
-  _updateVoxels(celliTime) {
+  _updateVoxels(celliTime, deltaTime) {
     const hellActive = this.state.hellTransformActive;
     if (hellActive) {
       const elapsed = (performance.now() - this.state.hellTransformStart) / 1000;
@@ -1999,9 +2365,36 @@ export class IntroSceneComplete {
       this.state.hellProgress = 0;
     }
 
+    const dt = deltaTime || 0.016;
+    const now = this.state.totalTime;
+
     this.state.voxels.forEach(voxel => {
       const data = voxel.userData;
       const localTime = celliTime - data.dropDelay;
+
+      if (data.rainActive) {
+        if (now < data.rainStart) {
+          return;
+        }
+
+        voxel.visible = true;
+        data.rainVelocity += dt * 0.35;
+        voxel.position.y -= data.rainVelocity;
+        voxel.position.x += data.rainDrift;
+        voxel.rotation.z += data.rainSpin * dt * 6;
+
+        const fade = data.rainFade || 0.04;
+        voxel.material.opacity = Math.max(0, voxel.material.opacity - fade);
+        if (data.edges && data.edges.material) {
+          data.edges.material.opacity = Math.max(0, data.edges.material.opacity - fade * 1.2);
+        }
+
+        if (voxel.position.y < data.originalTargetY - 2 || voxel.material.opacity <= 0.05) {
+          voxel.visible = false;
+          data.rainActive = false;
+        }
+        return;
+      }
 
       if (data.burstActive) {
         voxel.visible = true;
@@ -2045,7 +2438,7 @@ export class IntroSceneComplete {
         if (!data.settled && voxel.position.y > data.targetY) {
           // Dropping
           voxel.position.y -= data.dropSpeed;
-          
+
           // Gradually increase opacity
           const newOpacity = Math.min(0.8, voxel.material.opacity + 0.05);
           voxel.material.opacity = newOpacity;
@@ -2074,9 +2467,13 @@ export class IntroSceneComplete {
 
           data.flickerPhase += 0.045;
           const flicker = 0.5 + 0.5 * Math.sin(data.flickerPhase + celliTime * 0.4);
-          const glowStrength = THREE.MathUtils.clamp(0.35 + flicker * 0.55, 0, 1);
+          let glowStrength = THREE.MathUtils.clamp(0.35 + flicker * 0.55, 0, 1);
 
-          const targetOpacity = 0.82 + glowStrength * 0.18;
+          if (data.backspaceTransformed && this.state.currentTheme === 'yellow') {
+            glowStrength = Math.min(1, glowStrength + 0.25);
+          }
+
+          const targetOpacity = 0.82 + glowStrength * (data.backspaceTransformed ? 0.28 : 0.18);
           voxel.material.opacity = THREE.MathUtils.lerp(voxel.material.opacity, targetOpacity, 0.08);
           voxel.material.needsUpdate = true;
 
@@ -2085,7 +2482,7 @@ export class IntroSceneComplete {
           }
 
           if (data.edges && data.edges.material) {
-            const edgeTargetOpacity = 0.6 + glowStrength * 0.35;
+            const edgeTargetOpacity = (data.backspaceTransformed ? 0.5 : 0.6) + glowStrength * (data.backspaceTransformed ? 0.4 : 0.35);
             data.edges.material.opacity = THREE.MathUtils.lerp(data.edges.material.opacity, edgeTargetOpacity, 0.1);
             data.edges.material.needsUpdate = true;
 
@@ -2103,6 +2500,8 @@ export class IntroSceneComplete {
           voxel.scale.setScalar(THREE.MathUtils.lerp(data.hellStartScale, data.hellTargetScale, eased));
         }
       }
+
+      this._updateVoxelFlatten(voxel, data, dt);
     });
 
     this._updateTVoxels();
@@ -2287,43 +2686,198 @@ export class IntroSceneComplete {
    * Restore one letter from backspace
    */
   _restoreOneLetter() {
-    if (this.state.restoredLetters >= this.state.lettersToRestore.length) return;
-    
+    if (this.state.restoredLetters >= this.state.lettersToRestore.length) {
+      return;
+    }
+
     const letterKey = this.state.lettersToRestore[this.state.restoredLetters];
     const letterVoxelsList = this.state.letterVoxels[letterKey];
-    
-    if (!letterVoxelsList) return;
-    
-    // Play fritz sound
+
+    if (!letterVoxelsList || letterVoxelsList.length === 0) {
+      this.state.restoredLetters += 1;
+      return;
+    }
+
     this._playFritzSound();
-    
-    // Restore voxels with flicker
+
     letterVoxelsList.forEach((voxel, idx) => {
-      setTimeout(() => {
+      const data = voxel.userData;
+      const delay = idx * 30;
+
+      window.setTimeout(() => {
+        if (!data) return;
+
         voxel.visible = true;
-        voxel.userData.glitched = false;
-        voxel.userData.burstActive = false;
-        voxel.userData.hellDrop = false;
-        voxel.userData.settled = true;
-        voxel.position.x = voxel.userData.originalTargetX;
-        voxel.position.y = voxel.userData.originalTargetY;
+        data.glitched = false;
+        data.rainActive = false;
+        data.burstActive = false;
+        data.hellDrop = false;
+        data.settled = false;
+        data.flattenState = null;
+        data.backspaceTransformed = false;
         voxel.rotation.z = 0;
-        voxel.material.opacity = 0.1;
-        if (voxel.userData.edges && voxel.userData.edges.material) {
-          voxel.userData.edges.material.opacity = 0.2;
+        voxel.position.set(data.originalTargetX, data.originalTargetY + 0.6, 0);
+        voxel.material.color.setRGB(0.2, 0.2, 0.2);
+        voxel.material.opacity = 0.2;
+        if (data.edges && data.edges.material) {
+          data.edges.material.opacity = 0.12;
         }
 
-        voxel.material.opacity = 0.75;
-        if (voxel.userData.edges && voxel.userData.edges.material) {
-          voxel.userData.edges.material.opacity = 0.35;
-        }
-      }, idx * 30);
+        let flickers = 0;
+        const maxFlickers = 6;
+        const flickerInterval = window.setInterval(() => {
+          flickers += 1;
+          const on = flickers % 2 === 1;
+          const brightness = on ? 0.9 : 0.35;
+          voxel.material.color.setRGB(brightness, brightness, brightness);
+          voxel.material.opacity = on ? 0.85 : 0.35;
+          if (data.edges && data.edges.material) {
+            data.edges.material.opacity = on ? 0.55 : 0.2;
+          }
+
+          if (flickers >= maxFlickers) {
+            window.clearInterval(flickerInterval);
+            voxel.position.y = data.originalTargetY;
+            voxel.material.color.setRGB(0.82, 0.82, 0.82);
+            voxel.material.opacity = 0.78;
+            if (data.edges && data.edges.material) {
+              data.edges.material.opacity = 0.32;
+            }
+            data.settled = true;
+          }
+        }, 70);
+      }, delay);
     });
 
-    if (this.state.restoredLetters >= this.state.lettersToRestore.length - 1) {
-      this.state.allYellowTransformed = true;
-      this._setColorPhase('yellow');
+    this.state.restoredLetters += 1;
+
+    if (this.state.restoredLetters >= this.state.lettersToRestore.length) {
+      window.setTimeout(() => {
+        this._restoreIAndTransform();
+      }, 800);
     }
+  }
+
+  _restoreIAndTransform() {
+    const iVoxels = this.state.letterVoxels.I || [];
+
+    if (iVoxels.length) {
+      this._playFritzSound();
+
+      iVoxels.forEach((voxel, idx) => {
+        const data = voxel.userData;
+        const delay = idx * 20;
+
+        window.setTimeout(() => {
+          if (!data) return;
+
+          voxel.visible = true;
+          data.glitched = false;
+          data.rainActive = false;
+          data.burstActive = false;
+          data.settled = true;
+          voxel.position.set(data.originalTargetX, data.originalTargetY, 0);
+          voxel.material.color.setRGB(0.82, 0.82, 0.82);
+          voxel.material.opacity = 0.78;
+          if (data.edges && data.edges.material) {
+            data.edges.material.opacity = 0.32;
+          }
+        }, delay);
+      });
+    }
+
+    window.setTimeout(() => {
+      this._startYellowTransformation();
+    }, 600);
+  }
+
+  _startYellowTransformation() {
+    if (this.state.yellowTransformationInProgress) {
+      return;
+    }
+
+    this.state.yellowTransformationInProgress = true;
+    this.state.yellowTransformCompleteCount = 0;
+    this.state.allYellowTransformed = false;
+
+    const totalVoxels = this.state.voxels.length || 1;
+
+    this.state.voxels.forEach((voxel, idx) => {
+      const data = voxel.userData;
+      const delay = idx * 15;
+
+      window.setTimeout(() => {
+        if (!data) return;
+
+        const baseScale = data.baseScale;
+        const shrinkStart = performance.now();
+        const shrinkDuration = 150;
+
+        const shrinkInterval = window.setInterval(() => {
+          const progress = (performance.now() - shrinkStart) / shrinkDuration;
+          if (progress >= 1) {
+            window.clearInterval(shrinkInterval);
+
+            this._applyRoundedGeometry(voxel);
+
+            const burstStart = performance.now();
+            const burstDuration = 300;
+
+            const burstInterval = window.setInterval(() => {
+              const burstProgress = (performance.now() - burstStart) / burstDuration;
+
+              if (burstProgress >= 1) {
+                window.clearInterval(burstInterval);
+
+                voxel.scale.set(baseScale, baseScale, baseScale);
+                voxel.material.color.setRGB(1.0, 0.95, 0.35);
+                voxel.material.opacity = 0.9;
+
+                if (data.edges && data.edges.material) {
+                  data.edges.material.color.setRGB(1.0, 0.9, 0.4);
+                  data.edges.material.opacity = 0.65;
+                }
+
+                if (data.baseColor) data.baseColor.setRGB(0.35, 0.24, 0.0);
+                if (data.glowColor) data.glowColor.setRGB(1.0, 0.92, 0.36);
+                if (data.edgesBaseColor) data.edgesBaseColor.setRGB(0.55, 0.36, 0.0);
+                if (data.edgesGlowColor) data.edgesGlowColor.setRGB(1.0, 0.9, 0.4);
+
+                data.backspaceTransformed = true;
+                data.settled = true;
+
+                this.state.yellowTransformCompleteCount += 1;
+
+                if (this.state.yellowTransformCompleteCount >= totalVoxels) {
+                  this.state.allYellowTransformed = true;
+                  this._setColorPhase('yellow');
+                  this.state.yellowTransformationInProgress = false;
+                }
+              } else {
+                const eased = Math.sin(THREE.MathUtils.clamp(burstProgress, 0, 1) * Math.PI);
+                const scale = THREE.MathUtils.lerp(baseScale * 0.5, baseScale * 1.15, eased);
+                voxel.scale.set(scale, scale, scale);
+
+                const r = THREE.MathUtils.lerp(0.85, 1.0, burstProgress);
+                const g = THREE.MathUtils.lerp(0.85, 0.95, burstProgress);
+                const b = THREE.MathUtils.lerp(0.8, 0.3, burstProgress);
+                voxel.material.color.setRGB(r, g, b);
+                voxel.material.opacity = THREE.MathUtils.lerp(0.4, 0.92, burstProgress);
+
+                if (data.edges && data.edges.material) {
+                  data.edges.material.opacity = THREE.MathUtils.lerp(0.2, 0.65, burstProgress);
+                }
+              }
+            }, 16);
+          } else {
+            const clamped = THREE.MathUtils.clamp(progress, 0, 1);
+            const scale = baseScale * THREE.MathUtils.lerp(1.0, 0.5, clamped);
+            voxel.scale.set(scale, scale, scale);
+            voxel.material.opacity = THREE.MathUtils.lerp(voxel.material.opacity, 0.4, 0.2);
+          }
+        }, 16);
+      }, delay);
+    });
   }
 
   /**
@@ -2492,6 +3046,19 @@ export class IntroSceneComplete {
     if (this._keydownHandler) {
       document.removeEventListener('keydown', this._keydownHandler);
     }
+    if (this._promptClickHandler) {
+      const promptContainer = document.querySelector('.prompt-container');
+      if (promptContainer) {
+        promptContainer.removeEventListener('click', this._promptClickHandler);
+      }
+    }
+    if (this.state.hiddenInput && this._hiddenBeforeInputHandler) {
+      this.state.hiddenInput.removeEventListener('beforeinput', this._hiddenBeforeInputHandler);
+    }
+    if (this.state.hiddenInput && this._hiddenInputHandler) {
+      this.state.hiddenInput.removeEventListener('input', this._hiddenInputHandler);
+    }
+    this.state.hiddenInput = null;
     if (this._skipClickHandler) {
       const skipBtn = document.getElementById('skipBtn');
       if (skipBtn) skipBtn.removeEventListener('click', this._skipClickHandler);
