@@ -5629,6 +5629,19 @@ function dockOffsetFor(host, port='east', pad=1.0){
 =========================== */
 // Provide a shared alias for Formula.valOf so all function impls can access it
 const valOf = Formula.valOf;
+let creditsSongAudio = null;
+
+function ensureCreditsSongAudio() {
+ if (creditsSongAudio) return creditsSongAudio;
+ try {
+  creditsSongAudio = new Audio('../../credits.mp3');
+  creditsSongAudio.preload = 'auto';
+ } catch (err) {
+  console.warn('SONG(): Failed to initialize credits.mp3 audio', err);
+  creditsSongAudio = null;
+ }
+ return creditsSongAudio;
+}
 // PURE BLOCK
 tag('ARRAY',["ACTION","BLOCK"], (anchor,arr,ast,tx)=>{
  if(!tx) throw new Error('ARRAY requires active transaction');
@@ -6496,6 +6509,19 @@ tag('TOAST',['ACTION'],(anchor,arr,ast)=>{
  showToast(message);
  setTimeout(()=>{ const toast=document.getElementById('toast'); if(toast) toast.style.display='none'; }, duration);
  // Silent: do not stamp anchor
+});
+tag('SONG',['ACTION'],()=>{
+ const audio = ensureCreditsSongAudio();
+ if(!audio) return;
+ try {
+  audio.currentTime = 0;
+  const playPromise = audio.play();
+  if(playPromise && typeof playPromise.then === 'function'){
+   playPromise.catch(err=>{ console.warn('SONG(): Unable to play credits.mp3', err); });
+  }
+ } catch(err){
+  console.warn('SONG(): Error playing credits.mp3', err);
+ }
 });
 // ONCLICK_WRAPPER(actionFormulaOrBlock, targetRef?) helper to add on_click meta easily
 tag('ONCLICK_WRAPPER',['ACTION'],(anchor,arr,ast)=>{

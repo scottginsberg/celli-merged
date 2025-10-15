@@ -1151,20 +1151,21 @@ console.error('âŒ Error playing audio buffer:', error);
  const glitchedVoxelsStack = []; // Track glitched voxels in order for restoration
  let lettersToRestore = ['C', 'E', 'L1', 'L2']; // Order of restoration on backspace
  let restoredLetters = 0;
- let endSequence = ''; // Track E, N, D input sequence
- let allYellowTransformed = false; // Track if all are yellow and transformed
- let yellowTransformCompleteCount = 0;
- let endColorState = 'yellow'; // Track current color state: yellow, magenta, cyan, green
- let endColorPrevState = 'yellow'; // Track previous color for transitions
- let endColorTransitionStart = 0; // When color transition started
- let snapTogetherStarted = false;
- let snapTogetherTime = 0;
- let visiCalcShown = false;
- let celliMoveToCornerStarted = false;
- let celliMoveToCornerTime = 0;
- let visiCalcGreenTransitionStarted = false; // Track when VisiCalc green transition begins
- let bowActive = false;
- let bowCurrentCenter = null;
+let endSequence = ''; // Track E, N, D input sequence
+let allYellowTransformed = false; // Track if all are yellow and transformed
+let yellowTransformCompleteCount = 0;
+let endColorState = 'yellow'; // Track current color state: yellow, magenta, cyan, green
+let endColorPrevState = 'yellow'; // Track previous color for transitions
+let endColorTransitionStart = 0; // When color transition started
+let snapTogetherStarted = false;
+let snapTogetherTime = 0;
+let visiCalcShown = false;
+let visicellAudio = null;
+let celliMoveToCornerStarted = false;
+let celliMoveToCornerTime = 0;
+let visiCalcGreenTransitionStarted = false; // Track when VisiCalc green transition begins
+let bowActive = false;
+let bowCurrentCenter = null;
  let bowTargetCenter = null;
  let bowCurrentRotation = 0;
  let bowTargetRotation = 0;
@@ -1206,6 +1207,39 @@ const SceneManager = {
    this.permissions.visicellClick = true;
    this.permissions.dolly = false;
   }
+
+   if (phase === 'visicell') {
+    if (!visicellAudio) {
+     try {
+      visicellAudio = new Audio('../../end.mp3');
+      visicellAudio.preload = 'auto';
+     } catch (err) {
+      console.warn('?? Failed to initialize end.mp3 audio', err);
+      visicellAudio = null;
+     }
+    }
+
+    if (visicellAudio) {
+     try {
+      visicellAudio.currentTime = 0;
+      const playPromise = visicellAudio.play();
+      if (playPromise && typeof playPromise.then === 'function') {
+       playPromise.catch(error => {
+        console.warn('?? Unable to play end.mp3 during VisiCell phase', error);
+       });
+      }
+     } catch (error) {
+      console.warn('?? Error playing end.mp3 during VisiCell phase', error);
+     }
+    }
+   } else if (visicellAudio) {
+    try {
+     visicellAudio.pause();
+     visicellAudio.currentTime = 0;
+    } catch (error) {
+     console.warn('?? Error stopping end.mp3 after VisiCell phase', error);
+    }
+   }
  },
  can(name) { return !!this.permissions[name]; }
 };
