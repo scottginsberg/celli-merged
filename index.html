@@ -464,17 +464,31 @@
    position: absolute;
    top: var(--invite-top, 50%);
    left: var(--invite-left, 50%);
-   transform: translate(-50%, -50%) scale(var(--invite-scale, 0.9)) rotate(var(--invite-tilt, -2deg));
+   transform:
+    translate(-50%, -50%)
+    translate(var(--string-offset-x, 0vw), calc(var(--string-offset-y, 0vh) + var(--string-wave-offset, 0px)))
+    scale(calc(var(--invite-scale, 0.9) + var(--chant-reactive, 0) * 0.08))
+    rotate(var(--invite-tilt, -2deg));
    opacity: 0;
-   transition: opacity 1.4s ease, transform 1.2s ease;
+   transition: transform 1.3s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.9s ease;
+   transition-delay: var(--string-entry-delay, 0ms);
    filter: drop-shadow(0 18px 42px rgba(12, 18, 45, 0.45));
    pointer-events: auto;
    cursor: pointer;
+   will-change: transform, opacity;
   }
 
   .loom-invite-clone.visible {
    opacity: 0.92;
-   transform: translate(-50%, -50%) scale(calc(var(--invite-scale, 0.9) + var(--chant-reactive, 0) * 0.08)) rotate(var(--invite-tilt, -2deg));
+  }
+
+  .loom-invite-clone.reduced-motion {
+   transition: none;
+   transform:
+    translate(-50%, -50%)
+    translate(0, 0)
+    scale(var(--invite-scale, 0.9))
+    rotate(var(--invite-tilt, -2deg));
   }
 
   .loom-invite-clone::before,
@@ -1234,6 +1248,28 @@
   const CHANT_TARGET_VOLUME = 0.7;
   const CHANT_FADE_DURATION = 3200;
   chantAudio.volume = 0;
+  const badBooleanAudio = new Audio('./badboolean.mp3');
+  badBooleanAudio.preload = 'none';
+
+  let chantBaseVolume = 0;
+  let chantProximityMultiplier = 1;
+
+  function applyChantVolume() {
+    const finalVolume = Math.max(0, Math.min(1, chantBaseVolume * chantProximityMultiplier));
+    chantAudio.volume = finalVolume;
+  }
+
+  function setChantBaseVolume(volume) {
+    chantBaseVolume = Math.max(0, Math.min(1, volume));
+    applyChantVolume();
+  }
+
+  function setChantProximityMultiplier(multiplier) {
+    chantProximityMultiplier = Math.max(0, Math.min(1, multiplier));
+    applyChantVolume();
+  }
+
+  applyChantVolume();
   document.documentElement.style.setProperty('--chant-reactive', '0');
 
   let chantAudioContext = null;
@@ -1246,6 +1282,28 @@
   let chantVisualizerWarned = false;
   let chantUnlockHandler = null;
 
+  let overlayActive = false;
+  let pointerX = window.innerWidth / 2;
+  let pointerY = window.innerHeight / 2;
+  const INVITE_PROXIMITY_RADIUS = 420;
+
+  let humContext = null;
+  let humGainNode = null;
+  let humOscPrimary = null;
+  let humOscSecondary = null;
+  let humFilterNode = null;
+  let humDistortionNode = null;
+  let humLfoOscillator = null;
+  let humLfoGain = null;
+  let humTargetLevel = 0;
+  let humCurrentLevel = 0;
+  let humLevelFrameId = null;
+  let humWhimperActive = false;
+  let humWhimperTimeout = null;
+
+  const stringInvites = new Set();
+  let stringInviteAnimationId = null;
+
   chantAudio.addEventListener('play', () => startChantVisualizer(6000));
   chantAudio.addEventListener('ended', () => {
     setLoomAudioStatus(false);
@@ -1257,6 +1315,326 @@
       stopChantVisualizer();
     }
   });
+
+  function makeDistortionCurve(amount = 0) {
+    const k = typeof amount === 'number' ? amount : 50;
+    const samples = 44100;
+    const curve = new Float32Array(samples);
+    const deg = Math.PI / 180;
+    for (let i = 0; i < samples; i += 1) {
+      const x = (i * 2) / samples - 1;
+      curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+    }
+    return curve;
+  }
+
+  function ensureHumEngine() {
+    if (humGainNode) {
+      return true;
+    }
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) {
+      return false;
+    }
+
+    try {
+      humContext = new AudioContext();
+    } catch (error) {
+      console.warn('⚠️ Unable to initialise hum engine:', error);
+      humContext = null;
+      return false;
+    }
+
+    humGainNode = humContext.createGain();
+    humGainNode.gain.value = 0;
+
+    humFilterNode = humContext.createBiquadFilter();
+    humFilterNode.type = 'lowpass';
+    humFilterNode.frequency.value = 420;
+    humFilterNode.Q.value = 8;
+
+    humDistortionNode = humContext.createWaveShaper();
+    humDistortionNode.curve = makeDistortionCurve(60);
+    humDistortionNode.oversample = '4x';
+
+    humFilterNode.connect(humDistortionNode);
+    humDistortionNode.connect(humGainNode);
+    humGainNode.connect(humContext.destination);
+
+    humOscPrimary = humContext.createOscillator();
+    humOscPrimary.type = 'sine';
+    humOscPrimary.frequency.value = 68;
+    humOscPrimary.connect(humFilterNode);
+    humOscPrimary.start();
+
+    humOscSecondary = humContext.createOscillator();
+    humOscSecondary.type = 'triangle';
+    humOscSecondary.frequency.value = 136;
+    const secondaryGain = humContext.createGain();
+    secondaryGain.gain.value = 0.28;
+    humOscSecondary.connect(secondaryGain);
+    secondaryGain.connect(humFilterNode);
+    humOscSecondary.start();
+
+    humLfoOscillator = humContext.createOscillator();
+    humLfoOscillator.type = 'sine';
+    humLfoOscillator.frequency.value = 2.2;
+    humLfoGain = humContext.createGain();
+    humLfoGain.gain.value = 35;
+    humLfoOscillator.connect(humLfoGain);
+    humLfoGain.connect(humFilterNode.frequency);
+    humLfoOscillator.start();
+
+    humCurrentLevel = 0;
+    humTargetLevel = 0;
+    return true;
+  }
+
+  function resumeHumContext() {
+    if (humContext && humContext.state === 'suspended' && typeof humContext.resume === 'function') {
+      humContext.resume().catch(() => {});
+    }
+  }
+
+  function updateHumTone(level) {
+    if (!humContext || !humFilterNode) {
+      return;
+    }
+    const now = humContext.currentTime;
+    const frequency = 360 + level * 820;
+    humFilterNode.frequency.setTargetAtTime(frequency, now, 0.3);
+    if (humOscSecondary) {
+      humOscSecondary.detune.setTargetAtTime(level * 18, now, 0.3);
+    }
+  }
+
+  function stepHumLevel() {
+    humLevelFrameId = null;
+    if (!humGainNode) {
+      return;
+    }
+
+    const target = humTargetLevel;
+    humCurrentLevel += (target - humCurrentLevel) * 0.12;
+    const shaped = Math.pow(Math.max(0, humCurrentLevel), 1.4);
+    humGainNode.gain.value = shaped * 0.6;
+
+    if (humContext && humLfoGain) {
+      humLfoGain.gain.setTargetAtTime(25 + shaped * 60, humContext.currentTime, 0.3);
+    }
+
+    if (Math.abs(target - humCurrentLevel) > 0.002 || target > 0.001) {
+      humLevelFrameId = requestAnimationFrame(stepHumLevel);
+    }
+  }
+
+  function setHumTargetLevel(level) {
+    const clamped = Math.max(0, Math.min(1, level));
+    humTargetLevel = clamped;
+
+    if (clamped > 0) {
+      if (!ensureHumEngine()) {
+        return;
+      }
+      resumeHumContext();
+    }
+
+    if (!humGainNode) {
+      return;
+    }
+
+    updateHumTone(clamped);
+
+    if (!humLevelFrameId) {
+      humLevelFrameId = requestAnimationFrame(stepHumLevel);
+    }
+  }
+
+  function resetHumState({ immediate = false } = {}) {
+    humWhimperActive = false;
+    humTargetLevel = 0;
+
+    if (immediate) {
+      humCurrentLevel = 0;
+      if (humLevelFrameId) {
+        cancelAnimationFrame(humLevelFrameId);
+        humLevelFrameId = null;
+      }
+      if (humGainNode) {
+        humGainNode.gain.value = 0;
+      }
+    } else {
+      setHumTargetLevel(0);
+    }
+
+    setChantProximityMultiplier(1);
+    resetStringWaveOffsets();
+  }
+
+  function triggerHumWhimperEffect() {
+    if (!ensureHumEngine()) {
+      return;
+    }
+
+    resumeHumContext();
+    humWhimperActive = true;
+    setHumTargetLevel(1);
+
+    if (humContext && humOscPrimary) {
+      const now = humContext.currentTime;
+      humOscPrimary.frequency.cancelScheduledValues(now);
+      humOscPrimary.frequency.setValueAtTime(68, now);
+      humOscPrimary.frequency.linearRampToValueAtTime(220, now + 0.35);
+      humOscPrimary.frequency.exponentialRampToValueAtTime(42, now + 0.9);
+    }
+
+    if (humContext && humFilterNode) {
+      const now = humContext.currentTime;
+      humFilterNode.frequency.cancelScheduledValues(now);
+      humFilterNode.frequency.setValueAtTime(420, now);
+      humFilterNode.frequency.linearRampToValueAtTime(1200, now + 0.3);
+      humFilterNode.frequency.exponentialRampToValueAtTime(260, now + 0.9);
+    }
+
+    if (humContext && humGainNode) {
+      const noiseDuration = 0.45;
+      const noiseBuffer = humContext.createBuffer(1, Math.ceil(humContext.sampleRate * noiseDuration), humContext.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < data.length; i += 1) {
+        const progress = i / data.length;
+        const envelope = Math.pow(1 - progress, 1.8);
+        data[i] = (Math.random() * 2 - 1) * envelope;
+      }
+
+      const noiseSource = humContext.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+      const noiseGain = humContext.createGain();
+      noiseGain.gain.value = 0.35;
+      const scratchFilter = humContext.createBiquadFilter();
+      scratchFilter.type = 'highpass';
+      scratchFilter.frequency.value = 380;
+      noiseSource.connect(scratchFilter);
+      scratchFilter.connect(noiseGain);
+      noiseGain.connect(humGainNode);
+      noiseSource.start();
+      noiseSource.stop(humContext.currentTime + noiseDuration);
+      noiseSource.onended = () => {
+        scratchFilter.disconnect();
+        noiseGain.disconnect();
+      };
+    }
+
+    if (humWhimperTimeout) {
+      clearTimeout(humWhimperTimeout);
+    }
+    humWhimperTimeout = window.setTimeout(() => {
+      humWhimperActive = false;
+      humWhimperTimeout = null;
+      evaluateInviteProximity();
+    }, 1100);
+  }
+
+  function registerStringInvite(invite, angle, index) {
+    if (!invite) {
+      return;
+    }
+    invite.dataset.wavePhase = String(angle);
+    invite.dataset.waveSeed = String(index);
+    invite.style.setProperty('--string-wave-offset', '0px');
+    stringInvites.add(invite);
+    startStringWaveLoop();
+  }
+
+  function startStringWaveLoop() {
+    if (stringInviteAnimationId) {
+      return;
+    }
+
+    const step = (timestamp) => {
+      stringInviteAnimationId = null;
+      if (!stringInvites.size) {
+        return;
+      }
+
+      const reactive = Math.max(0, Math.min(1, chantVisualizerLevel));
+      const amplitude = 6 + reactive * 22;
+
+      stringInvites.forEach((invite) => {
+        if (!invite.isConnected) {
+          stringInvites.delete(invite);
+          return;
+        }
+        const phase = parseFloat(invite.dataset.wavePhase || '0');
+        const seed = parseFloat(invite.dataset.waveSeed || '0');
+        const baseOsc = Math.sin(timestamp / 620 + phase) * amplitude;
+        const flutter = Math.cos(timestamp / (420 + seed * 55)) * amplitude * 0.35;
+        const blend = (baseOsc + flutter) * (0.25 + reactive * 0.75);
+        invite.style.setProperty('--string-wave-offset', `${blend.toFixed(2)}px`);
+      });
+
+      if (stringInvites.size) {
+        stringInviteAnimationId = requestAnimationFrame(step);
+      }
+    };
+
+    stringInviteAnimationId = requestAnimationFrame(step);
+  }
+
+  function resetStringWaveOffsets() {
+    stringInvites.forEach((invite) => {
+      if (invite.isConnected) {
+        invite.style.setProperty('--string-wave-offset', '0px');
+      }
+    });
+  }
+
+  function isInviteInteractable() {
+    if (!refSidebarAck) {
+      return false;
+    }
+    const rect = refSidebarAck.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      return false;
+    }
+    const style = window.getComputedStyle(refSidebarAck);
+    if (style.visibility === 'hidden' || style.display === 'none') {
+      return false;
+    }
+    const opacity = parseFloat(style.opacity || '1');
+    return opacity > 0.05;
+  }
+
+  function evaluateInviteProximity() {
+    if (humWhimperActive) {
+      return;
+    }
+
+    if (!overlayActive || !isInviteInteractable()) {
+      setHumTargetLevel(0);
+      setChantProximityMultiplier(1);
+      return;
+    }
+
+    const rect = refSidebarAck.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const dx = centerX - pointerX;
+    const dy = centerY - pointerY;
+    const distance = Math.hypot(dx, dy);
+    const closeness = Math.max(0, Math.min(1, 1 - (distance / INVITE_PROXIMITY_RADIUS)));
+
+    if (closeness > 0) {
+      ensureHumEngine();
+      resumeHumContext();
+    }
+
+    const humLevel = Math.pow(closeness, 1.4);
+    setHumTargetLevel(humLevel);
+
+    const damp = Math.max(0.1, 1 - closeness * 0.85);
+    setChantProximityMultiplier(damp);
+  }
 
   function initChantAnalyser() {
     if (chantAnalyser) {
@@ -1383,6 +1761,8 @@
     if (refSidebarAck) {
       refSidebarAck.classList.remove('audio-reactive');
     }
+
+    resetStringWaveOffsets();
   }
 
   function clearChantUnlockHandler() {
@@ -1494,6 +1874,16 @@
       ${LOOM_INVITE_EMBLEM}
     </div>
   `;
+
+  function getStringSpiralPosition(index = 0) {
+    const angle = 0.85 + index * 0.55;
+    const radius = Math.max(18, 44 - index * 1.2);
+    const centerX = 58;
+    const centerY = 50;
+    const x = Math.max(52, Math.min(92, centerX + Math.cos(angle) * radius));
+    const y = Math.max(18, Math.min(84, centerY + Math.sin(angle) * radius));
+    return { left: x, top: y, angle, radius };
+  }
 
   const triColorState = {
     canvas: null,
@@ -1612,6 +2002,21 @@
     updateSharedTooltipWidth();
     updateActiveTooltipEdgeDistance();
     resizeTriColorCanvas();
+  });
+
+  document.addEventListener('pointermove', (event) => {
+    pointerX = event.clientX;
+    pointerY = event.clientY;
+    evaluateInviteProximity();
+    resumeHumContext();
+  }, { passive: true });
+
+  window.addEventListener('scroll', () => {
+    evaluateInviteProximity();
+  }, { passive: true });
+
+  window.addEventListener('resize', () => {
+    evaluateInviteProximity();
   });
 
   function ensureExtraInviteContainer() {
@@ -1862,6 +2267,11 @@
       extraInviteState.container.innerHTML = '';
       extraInviteState.activePins = 0;
       extraInviteState.totalSpawned = 0;
+      stringInvites.clear();
+      if (stringInviteAnimationId) {
+        cancelAnimationFrame(stringInviteAnimationId);
+        stringInviteAnimationId = null;
+      }
       updatePinLightCountDisplay();
     }
     if (!keepActive) {
@@ -1874,7 +2284,7 @@
     }
   }
 
-  function createFloatingInvite({ left, top, scale = 0.9, tilt = 0, delay = 0 } = {}) {
+  function createFloatingInvite({ delay = 0 } = {}) {
     if (extraInviteState.totalSpawned >= MAX_FLOATING_INVITES) {
       return null;
     }
@@ -1882,21 +2292,31 @@
     if (!container) {
       return null;
     }
-    const clampedLeft = Math.min(88, Math.max(12, left));
-    const clampedTop = Math.min(84, Math.max(16, top));
+
+    const sequenceIndex = extraInviteState.totalSpawned;
+    const { left, top, angle } = getStringSpiralPosition(sequenceIndex);
+    const baseScale = Math.max(0.72, 0.95 - sequenceIndex * 0.02);
+    const tilt = `${(Math.sin(angle) * 6).toFixed(2)}deg`;
     const invite = document.createElement('div');
     invite.className = 'loom-invite-clone';
     invite.innerHTML = FLOATING_INVITE_TEMPLATE;
-    invite.style.setProperty('--invite-left', `${clampedLeft}%`);
-    invite.style.setProperty('--invite-top', `${clampedTop}%`);
-    invite.style.setProperty('--invite-scale', `${Math.max(0.6, scale)}`);
-    invite.style.setProperty('--invite-tilt', `${tilt}`);
+    invite.style.setProperty('--invite-left', `${left}%`);
+    invite.style.setProperty('--invite-top', `${top}%`);
+    invite.style.setProperty('--invite-scale', `${baseScale}`);
+    invite.style.setProperty('--invite-tilt', tilt);
     invite.style.setProperty('--invite-delay', `${Math.max(0, delay)}ms`);
+    const entryDelay = Math.max(0, delay + sequenceIndex * 110);
+    invite.style.setProperty('--string-entry-delay', `${entryDelay}ms`);
+    invite.style.setProperty('--string-offset-x', '46vw');
+    invite.style.setProperty('--string-offset-y', `${(Math.sin(angle) * 8 - 6).toFixed(2)}vh`);
+    invite.style.setProperty('--string-wave-offset', '0px');
     invite.setAttribute('role', 'button');
     invite.setAttribute('tabindex', '0');
     invite.setAttribute('aria-label', 'Open Loomworks invitation');
     if (PREFERS_REDUCED_MOTION) {
       invite.classList.add('reduced-motion');
+      invite.style.setProperty('--string-offset-x', '0vw');
+      invite.style.setProperty('--string-offset-y', '0vh');
     }
     const handleInviteActivation = (event) => {
       event.preventDefault();
@@ -1912,12 +2332,21 @@
       }
     });
     container.appendChild(invite);
+    if (!PREFERS_REDUCED_MOTION) {
+      registerStringInvite(invite, angle, sequenceIndex);
+    }
 
     const reveal = () => {
       invite.classList.add('visible');
+      requestAnimationFrame(() => {
+        invite.style.setProperty('--string-offset-x', '0vw');
+        invite.style.setProperty('--string-offset-y', '0vh');
+      });
     };
-    if (delay > 0) {
-      setTimeout(() => requestAnimationFrame(reveal), delay);
+    if (PREFERS_REDUCED_MOTION) {
+      invite.classList.add('visible');
+    } else if (entryDelay > 0) {
+      setTimeout(() => requestAnimationFrame(reveal), entryDelay);
     } else {
       requestAnimationFrame(reveal);
     }
@@ -1932,8 +2361,8 @@
     if (extraInviteState.totalSpawned > 0) {
       return;
     }
-    createFloatingInvite({ left: 32, top: 38, scale: 0.94, tilt: '-3deg', delay: 0 });
-    createFloatingInvite({ left: 68, top: 62, scale: 0.9, tilt: '2deg', delay: 220 });
+    createFloatingInvite({ delay: 0 });
+    createFloatingInvite({ delay: 320 });
   }
 
   function spawnExtraInviteWave(waveIndex) {
@@ -1948,15 +2377,8 @@
       spawnHoverInvitePair();
       extraInviteState.initialPairSpawned = true;
     } else {
-      const invitesThisWave = Math.min(4, 2 + Math.floor(waveIndex / 2));
-      for (let i = 0; i < invitesThisWave; i += 1) {
-        const jitter = (Math.random() - 0.5) * 6;
-        const left = 24 + Math.random() * 52;
-        const top = 24 + Math.random() * 52;
-        const scale = 0.78 + Math.random() * 0.28;
-        const delay = i * 160 + Math.random() * 180;
-        createFloatingInvite({ left, top, scale, tilt: `${jitter}deg`, delay });
-      }
+      const delay = 240 + waveIndex * 90;
+      createFloatingInvite({ delay });
     }
 
     if (extraInviteState.upcomingTimes.length) {
@@ -2645,11 +3067,11 @@
       chantFadeFrameId = null;
     }
 
-    const startVolume = chantAudio.volume;
+    const startVolume = chantBaseVolume;
     const delta = targetVolume - startVolume;
 
     if (duration <= 0 || Math.abs(delta) < 0.001) {
-      chantAudio.volume = targetVolume;
+      setChantBaseVolume(targetVolume);
       return;
     }
 
@@ -2657,13 +3079,14 @@
 
     function step(now) {
       const progress = Math.min((now - startTime) / duration, 1);
-      chantAudio.volume = startVolume + delta * progress;
+      const newBase = startVolume + delta * progress;
+      setChantBaseVolume(newBase);
 
       if (progress < 1) {
         chantFadeFrameId = requestAnimationFrame(step);
       } else {
         chantFadeFrameId = null;
-        chantAudio.volume = targetVolume;
+        setChantBaseVolume(targetVolume);
       }
     }
 
@@ -2768,7 +3191,7 @@
       console.warn('⚠️ Unable to reset chant audio time:', err);
     }
 
-    chantAudio.volume = 0;
+    setChantBaseVolume(0);
     const playPromise = chantAudio.play();
 
     if (playPromise && typeof playPromise.then === 'function') {
@@ -2794,7 +3217,10 @@
     stopChantVisualizer();
     chantAudio.pause();
     chantAudio.currentTime = 0;
-    chantAudio.volume = 0;
+    setChantBaseVolume(0);
+    setChantProximityMultiplier(1);
+    setHumTargetLevel(0);
+    resetStringWaveOffsets();
     setLoomAudioStatus(false);
   }
 
@@ -2818,9 +3244,18 @@
     const noteCrystal = ackBtn.querySelector('.ref-note-crystal');
     if (noteCrystal) {
       noteCrystal.classList.add('ref-note-crystal--hover');
+      const noteTitle = noteCrystal.querySelector('.ref-note-title');
+      const noteSub = noteCrystal.querySelector('.ref-note-sub');
+      if (noteTitle) {
+        noteTitle.textContent = 'You know what you want.';
+      }
+      if (noteSub) {
+        noteSub.textContent = 'And know who you are.';
+      }
     }
 
     triggerNoteHoverEffects();
+    evaluateInviteProximity();
 
     const rumbleTimeout = setTimeout(() => {
       sidebar.classList.add('stage-rumble');
@@ -2935,6 +3370,7 @@
 
     startAiEnhancedScan();
     console.log('  ✨ AI MESSAGE DISPLAYED WITH TWINKLE');
+    evaluateInviteProximity();
   }
 
   function activateFakeAd() {
@@ -2947,6 +3383,19 @@
     const ackBtn = refSidebarAck;
 
     console.log('  💥💥💥 JARRING SWITCH TO BADBOOLEAN AD (click-triggered)!');
+    fadeChantToVolume(0, 900);
+    triggerHumWhimperEffect();
+    try {
+      badBooleanAudio.currentTime = 0;
+      const adPlayPromise = badBooleanAudio.play();
+      if (adPlayPromise && typeof adPlayPromise.catch === 'function') {
+        adPlayPromise.catch((err) => {
+          console.warn('⚠️ badboolean audio playback blocked:', err);
+        });
+      }
+    } catch (error) {
+      console.warn('⚠️ Unable to play badboolean audio cue:', error);
+    }
 
     loomAiMessageActive = false;
     loomFakeAdActive = true;
@@ -2983,6 +3432,8 @@
     if (window.badBooleanTimeout) {
       clearTimeout(window.badBooleanTimeout);
     }
+
+    evaluateInviteProximity();
 
     const adTimeout = setTimeout(() => {
       console.log('  ⏱️ 5 seconds elapsed - transforming to alt LOOMWORKS invite');
@@ -3104,6 +3555,7 @@
 
       console.log(`✨ Unified hazy glass crystal LOOMWORKS invitation displayed (${versionLabel})`);
       updateTriColorFocus();
+      evaluateInviteProximity();
     }, 300);
   }
   
@@ -3925,11 +4377,15 @@
   function openOverlay() {
     overlay.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
+    overlayActive = true;
+    evaluateInviteProximity();
   }
-  
+
   function dismiss() {
     overlay.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+    overlayActive = false;
+    resetHumState({ immediate: true });
     hideSidebar();
     hideTooltip();
     resetImpacts();
@@ -3968,6 +4424,7 @@
     resetTriColorLayer();
     noteInteractionLocked = false;
     document.body.classList.remove('ref-note-centered');
+    resetHumState();
 
     clearNoteStageTimeouts();
     stopChantAudio();
@@ -4846,6 +5303,7 @@
     });
 
     playChantAudio();
+    evaluateInviteProximity();
 
     console.log('  💎 Crystalline note seeded - awaiting tap to awaken.');
   }
