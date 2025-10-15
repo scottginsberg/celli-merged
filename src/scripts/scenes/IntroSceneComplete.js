@@ -28,6 +28,17 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 
 const VOXEL_SIZE = 0.05;
 
+const INTRO_THEME_STORAGE_KEY = 'celli.introThemePreference';
+const INTRO_THEME_DEFAULT_KEY = 'theme1';
+const INTRO_THEME_FADE_IN = 2.5;
+const INTRO_THEME_FADE_OUT = 1.5;
+const INTRO_THEME_TARGET_VOLUME = 0.45;
+
+const INTRO_THEME_URLS = {
+  theme1: './theme1.mp3',
+  theme2: './theme2.mp3'
+};
+
 const LETTER_PATTERNS = {
   C: [
     [0, 1, 1, 1, 0],
@@ -176,6 +187,7 @@ export class IntroSceneComplete {
       skipShown: false,
       skipBowAnimated: false,
       musicStarted: false,
+      celliConstructionLogged: false,
       inputAttempted: false,
       inputText: '=STAR',
       tEntered: false,
@@ -185,7 +197,11 @@ export class IntroSceneComplete {
       celliMoveToCornerStarted: false,
       celliMoveToCornerTime: 0,
       visiCalcShown: false,
-      
+      themeBuffers: new Map(),
+      themeGainNode: null,
+      themeSource: null,
+      currentThemeKey: null,
+
       // Animation state
       finalRollRotations: [0, 0, 0],
       landingSounds: [false, false, false],
@@ -825,6 +841,163 @@ export class IntroSceneComplete {
   }
 
   /**
+   * Start intro theme based on stored preference
+   */
+  async _startIntroTheme() {
+    if (!this.state.audioCtx || this.state.musicStarted) {
+      return;
+    }
+
+    const preferredTheme = this._getPreferredThemeKey();
+    const themeUrl = this._getThemeUrl(preferredTheme);
+
+    if (!themeUrl) {
+      console.warn('⚠️ No intro theme URL configured for key:', preferredTheme);
+      return;
+    }
+
+    const buffer = await this._loadThemeBuffer(preferredTheme, themeUrl);
+    if (!buffer) {
+      return;
+    }
+
+    const ctx = this.state.audioCtx;
+    const source = ctx.createBufferSource();
+    const gainNode = ctx.createGain();
+
+    source.buffer = buffer;
+    source.loop = true;
+
+    gainNode.gain.setValueAtTime(0, ctx.currentTime);
+
+    source.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    try {
+      source.start();
+    } catch (error) {
+      console.warn('⚠️ Unable to start intro theme source:', error);
+      return;
+    }
+
+    const fadeDuration = Math.max(0, INTRO_THEME_FADE_IN);
+    if (fadeDuration === 0) {
+      gainNode.gain.setValueAtTime(INTRO_THEME_TARGET_VOLUME, ctx.currentTime);
+    } else {
+      gainNode.gain.linearRampToValueAtTime(INTRO_THEME_TARGET_VOLUME, ctx.currentTime + fadeDuration);
+    }
+
+    source.onended = () => {
+      if (this.state.themeSource === source) {
+        this.state.themeSource = null;
+        this.state.themeGainNode = null;
+        this.state.currentThemeKey = null;
+        this.state.musicStarted = false;
+      }
+    };
+
+    this.state.themeSource = source;
+    this.state.themeGainNode = gainNode;
+    this.state.currentThemeKey = preferredTheme;
+    this.state.musicStarted = true;
+  }
+
+  _getPreferredThemeKey() {
+    try {
+      const stored = window.localStorage?.getItem(INTRO_THEME_STORAGE_KEY);
+      if (stored && INTRO_THEME_URLS[stored]) {
+        return stored;
+      }
+    } catch (error) {
+      console.warn('⚠️ Unable to read intro theme preference:', error);
+    }
+
+    return INTRO_THEME_DEFAULT_KEY;
+  }
+
+  _getThemeUrl(themeKey) {
+    return INTRO_THEME_URLS[themeKey] || null;
+  }
+
+  async _loadThemeBuffer(themeKey, url) {
+    if (this.state.themeBuffers.has(themeKey)) {
+      return this.state.themeBuffers.get(themeKey);
+    }
+
+    const ctx = this.state.audioCtx;
+    if (!ctx) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      this.state.themeBuffers.set(themeKey, audioBuffer);
+      return audioBuffer;
+    } catch (error) {
+      console.warn(`⚠️ Failed to load intro theme "${themeKey}":`, error);
+      return null;
+    }
+  }
+
+  _stopIntroTheme(options = {}) {
+    const { fadeOutDuration = INTRO_THEME_FADE_OUT } = options;
+
+    if (!this.state.audioCtx || !this.state.themeSource || !this.state.themeGainNode) {
+      this.state.musicStarted = false;
+      return;
+    }
+
+    const ctx = this.state.audioCtx;
+    const source = this.state.themeSource;
+    const gainNode = this.state.themeGainNode;
+    const fade = Math.max(0, fadeOutDuration ?? 0);
+
+    try {
+      const now = ctx.currentTime;
+      gainNode.gain.cancelScheduledValues(now);
+      const currentValue = gainNode.gain.value ?? INTRO_THEME_TARGET_VOLUME;
+      gainNode.gain.setValueAtTime(currentValue, now);
+
+      if (fade > 0) {
+        gainNode.gain.linearRampToValueAtTime(0.0001, now + fade);
+        source.stop(now + fade + 0.05);
+      } else {
+        source.stop(now);
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to stop intro theme gracefully:', error);
+      try {
+        source.stop();
+      } catch (stopError) {
+        console.warn('⚠️ Forcing intro theme stop failed:', stopError);
+      }
+    }
+
+    this.state.themeSource = null;
+    this.state.themeGainNode = null;
+    this.state.currentThemeKey = null;
+    this.state.musicStarted = false;
+  }
+
+  _handleCelliConstructionComplete() {
+    try {
+      const existing = window.localStorage?.getItem(INTRO_THEME_STORAGE_KEY);
+      if (existing !== 'theme2') {
+        window.localStorage?.setItem(INTRO_THEME_STORAGE_KEY, 'theme2');
+        console.log('💾 CELLI construction complete – theme2 unlocked for future intros');
+      }
+    } catch (error) {
+      console.warn('⚠️ Unable to persist intro theme preference:', error);
+    }
+  }
+
+  /**
    * Setup event listeners
    */
   _setupEventListeners() {
@@ -1156,10 +1329,17 @@ export class IntroSceneComplete {
     // Start animation
     this.state.running = true;
     this.state.clock.start();
-    
+    this.state.celliConstructionLogged = false;
+
     // Resume audio context
     if (this.state.audioCtx && this.state.audioCtx.state === 'suspended') {
       await this.state.audioCtx.resume();
+    }
+
+    try {
+      await this._startIntroTheme();
+    } catch (error) {
+      console.warn('⚠️ Failed to start intro theme:', error);
     }
   }
 
@@ -1212,7 +1392,12 @@ export class IntroSceneComplete {
     // Update doorway (wait for voxels to settle)
     const celliAge = t - cfg.loomworksEnd;
     const allVoxelsSettled = celliAge > 5.0;
-    
+
+    if (allVoxelsSettled && !this.state.celliConstructionLogged) {
+      this.state.celliConstructionLogged = true;
+      this._handleCelliConstructionComplete();
+    }
+
     if (phase === 'doorway' && !this.state.doorwayShown && allVoxelsSettled) {
       const doorwayProgress = (t - cfg.celliEnd) / (cfg.doorwayEnd - cfg.celliEnd);
       if (doorwayProgress > 0.05) {
@@ -2477,6 +2662,7 @@ export class IntroSceneComplete {
   async stop() {
     console.log('⏹️ Stopping Complete Intro Scene');
     this.state.running = false;
+    this._stopIntroTheme();
   }
 
   /**
@@ -2515,7 +2701,9 @@ export class IntroSceneComplete {
       this.state.renderer.domElement.remove();
       this.state.renderer.dispose();
     }
-    
+
+    this._stopIntroTheme({ fadeOutDuration: 0 });
+
     if (this.state.audioCtx && this.state.audioCtx.state !== 'closed') {
       await this.state.audioCtx.close();
     }
