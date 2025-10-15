@@ -1208,6 +1208,9 @@
   const refSidebarAck = document.getElementById('refSidebarAck');
   const loomAudioStatus = document.getElementById('loomAudioStatus');
   const LOOM_AUDIO_STATUS_TEXT = 'Streaming CallYouByMyName.mp3';
+  const BETA_FOCUS_FORM_URL = './templates/componentized/beta-focus-form.html';
+  let betaFormRedirectListenerAttached = false;
+  let betaFormRedirectTimeoutId = null;
 
   function setLoomAudioStatus(isPlaying) {
     if (!loomAudioStatus) return;
@@ -3343,6 +3346,46 @@
     document.body.classList.remove('referrer-whiteout');
   }
 
+  function scheduleBetaFormRedirect(delay = 0) {
+    if (betaFormRedirectTimeoutId !== null) {
+      return;
+    }
+
+    const parsedDelay = Number(delay);
+    const safeDelay = Math.max(0, Number.isFinite(parsedDelay) ? parsedDelay : 0);
+    console.log(`🛣️ Scheduling redirect to beta focus form in ${safeDelay}ms`);
+    betaFormRedirectTimeoutId = window.setTimeout(() => {
+      console.log('➡️ Redirecting to beta focus form…');
+      try {
+        window.location.href = BETA_FOCUS_FORM_URL;
+      } catch (error) {
+        console.error('⚠️ Unable to redirect to beta focus form', error);
+      }
+    }, safeDelay);
+  }
+
+  function attachBetaFormRedirectListener(triangleElement) {
+    if (!triangleElement || betaFormRedirectListenerAttached) {
+      return;
+    }
+
+    betaFormRedirectListenerAttached = true;
+    const handleTriangleFlightEnd = (event) => {
+      if (event && event.animationName && event.animationName !== 'triangle-flight') {
+        return;
+      }
+
+      triangleElement.removeEventListener('animationend', handleTriangleFlightEnd);
+      scheduleBetaFormRedirect(350);
+    };
+
+    triangleElement.addEventListener('animationend', handleTriangleFlightEnd);
+
+    window.setTimeout(() => {
+      scheduleBetaFormRedirect(0);
+    }, 4200);
+  }
+
   function startGoldenHoldSequence() {
     if (postTermsSequenceStarted) {
       return;
@@ -3610,6 +3653,7 @@
     }
 
     triangleElement.classList.add('triangle-flight');
+    attachBetaFormRedirectListener(triangleElement);
     setTimeout(() => {
       triangleElement.classList.add('into-white');
     }, 900);
