@@ -106,6 +106,8 @@ const COLOR_THEMES = {
   }
 };
 
+const CONSTRUCTION_STORAGE_KEY = 'celli:introConstructionComplete';
+
 export class IntroSceneComplete {
   constructor() {
     this.state = {
@@ -189,6 +191,7 @@ export class IntroSceneComplete {
       promptBaseText: '=',
       hiddenInput: null,
       yellowTransformationInProgress: false,
+      constructionPersisted: false,
       
       // Animation state
       finalRollRotations: [0, 0, 0],
@@ -2852,6 +2855,7 @@ export class IntroSceneComplete {
                   this.state.allYellowTransformed = true;
                   this._setColorPhase('yellow');
                   this.state.yellowTransformationInProgress = false;
+                  this._markConstructionComplete();
                 }
               } else {
                 const eased = Math.sin(THREE.MathUtils.clamp(burstProgress, 0, 1) * Math.PI);
@@ -2878,6 +2882,26 @@ export class IntroSceneComplete {
         }, 16);
       }, delay);
     });
+  }
+
+  _markConstructionComplete() {
+    if (this.state.constructionPersisted) {
+      return;
+    }
+
+    this.state.constructionPersisted = true;
+
+    try {
+      window.localStorage?.setItem(CONSTRUCTION_STORAGE_KEY, 'true');
+    } catch (error) {
+      console.warn('⚠️ Failed to persist CELLI construction completion:', error);
+    }
+
+    try {
+      window.dispatchEvent(new CustomEvent('celli:construction-complete'));
+    } catch (error) {
+      console.warn('⚠️ Failed to dispatch construction completion event:', error);
+    }
   }
 
   /**

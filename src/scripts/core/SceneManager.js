@@ -18,7 +18,8 @@ export class SceneManager {
     this.hooks = {
       beforeTransition: [],
       afterTransition: [],
-      onSceneUpdate: []
+      onSceneUpdate: [],
+      onSceneStart: []
     };
   }
 
@@ -127,6 +128,18 @@ export class SceneManager {
       await scene.module.start(scene.state, options);
     }
     scene.active = true;
+
+    await this._callHooks('onSceneStart', { scene: sceneName, options });
+
+    if (typeof window !== 'undefined' && window.dispatchEvent) {
+      try {
+        window.dispatchEvent(new CustomEvent('celli:scene-started', {
+          detail: { scene: sceneName, options }
+        }));
+      } catch (error) {
+        console.warn('⚠️ Failed to dispatch scene-started event:', error);
+      }
+    }
   }
 
   /**
