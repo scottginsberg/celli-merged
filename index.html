@@ -407,22 +407,48 @@
    pointer-events: none;
   }
 
+  body.voxel-shatter-active #uiContainer,
+  body.voxel-shatter-active #celliRefOverlay,
+  body.voxel-shatter-active .celli-ref-mask,
+  body.voxel-shatter-active .celli-ref-panel {
+   opacity: 0;
+   pointer-events: none !important;
+   transition: opacity 0.4s ease;
+  }
+
   .tri-color-particles {
    position: fixed;
    inset: 0;
    width: 100vw;
    height: 100vh;
    pointer-events: none;
-   z-index: 2147483050;
+   z-index: 2147483000;
    mix-blend-mode: screen;
-   opacity: 0.55;
+   opacity: 0.48;
    transition: opacity 0.8s ease;
   }
 
   .tri-color-particles.tri-color-particles--foreground {
    z-index: 2147483525;
-   opacity: 0.82;
+   opacity: 0.78;
   }
+
+  .base-darkness {
+   position: fixed;
+   inset: 0;
+   background: radial-gradient(circle at center, rgba(8, 10, 18, 0.05) 0%, rgba(3, 5, 12, 0.85) 100%);
+   pointer-events: none;
+   z-index: 2147483380;
+   opacity: 0;
+   transition: opacity 0.9s ease, filter 1s ease;
+   filter: saturate(1);
+  }
+
+  .base-darkness.level-1 { opacity: 0.18; }
+  .base-darkness.level-2 { opacity: 0.32; }
+  .base-darkness.level-3 { opacity: 0.48; }
+  .base-darkness.level-4 { opacity: 0.65; }
+  .base-darkness.level-5 { opacity: 0.78; filter: saturate(1.1); }
 
   .loom-invite-swarm {
    position: fixed;
@@ -442,12 +468,13 @@
    opacity: 0;
    transition: opacity 1.4s ease, transform 1.2s ease;
    filter: drop-shadow(0 18px 42px rgba(12, 18, 45, 0.45));
-   pointer-events: none;
+   pointer-events: auto;
+   cursor: pointer;
   }
 
   .loom-invite-clone.visible {
-   opacity: 0.9;
-   transform: translate(-50%, -50%) scale(calc(var(--invite-scale, 0.9) + var(--chant-reactive, 0) * 0.12)) rotate(var(--invite-tilt, -2deg));
+   opacity: 0.92;
+   transform: translate(-50%, -50%) scale(calc(var(--invite-scale, 0.9) + var(--chant-reactive, 0) * 0.08)) rotate(var(--invite-tilt, -2deg));
   }
 
   .loom-invite-clone::before,
@@ -456,7 +483,7 @@
    position: absolute;
    inset: -22px -28px;
    border-radius: 28px;
-   background: radial-gradient(circle at 50% 20%, rgba(143, 180, 255, 0.12), transparent 60%);
+   background: radial-gradient(circle at 50% 18%, rgba(143, 180, 255, 0.16), transparent 60%);
    mix-blend-mode: screen;
    opacity: 0.65;
    transform: translateZ(0);
@@ -469,53 +496,80 @@
    filter: blur(18px);
   }
 
-  .loom-invite-clone .loom-invite-clone-card {
+  .loom-invite-clone-card,
+  .loom-invite-card {
    position: relative;
-   padding: 26px 32px;
-   width: min(320px, 55vw);
-   border-radius: 22px;
-   background: linear-gradient(135deg, rgba(102, 126, 234, 0.24), rgba(143, 180, 255, 0.14));
-   border: 1px solid rgba(143, 180, 255, 0.35);
-   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 14px rgba(102, 126, 234, 0.24);
+   border-radius: 24px;
+   background: linear-gradient(145deg, rgba(102, 126, 234, 0.32), rgba(143, 180, 255, 0.22), rgba(118, 75, 162, 0.28));
+   backdrop-filter: blur(18px) saturate(220%);
+   -webkit-backdrop-filter: blur(18px) saturate(220%);
+   border: 1px solid rgba(160, 190, 255, 0.4);
+   box-shadow: 0 24px 50px rgba(9, 12, 34, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.22);
    overflow: hidden;
-   backdrop-filter: blur(18px) saturate(180%);
   }
 
-  .loom-invite-clone .loom-invite-clone-card::before,
-  .loom-invite-clone .loom-invite-clone-card::after {
+  .loom-invite-card::after,
+  .loom-invite-clone-card::after {
    content: '';
    position: absolute;
-   inset: 0;
-   border-radius: inherit;
+   inset: 10% 6%;
+   border-radius: 20px;
+   background: radial-gradient(ellipse at 50% 0%, rgba(143, 180, 255, 0.35), transparent 65%);
+   opacity: 0.65;
+   mix-blend-mode: screen;
    pointer-events: none;
   }
 
-  .loom-invite-clone .loom-invite-clone-card::before {
-   background: linear-gradient(140deg, rgba(255, 255, 255, 0.12), rgba(143, 180, 255, 0.18));
-   opacity: 0.6;
+  .loom-invite-clone-card {
+   padding: 32px 36px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   min-width: 220px;
+   pointer-events: none;
   }
 
-  .loom-invite-clone .loom-invite-clone-card::after {
-   background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.35), transparent 55%);
-   opacity: 0.7;
+  .loom-invite-clone-card .loom-invite-emblem {
+   pointer-events: auto;
   }
 
-  .loom-invite-clone .loom-invite-clone-header {
-   font-size: 12px;
-   font-weight: 600;
-   letter-spacing: 0.38em;
+  .loom-invite-emblem {
+   position: relative;
+   z-index: 1;
+   display: grid;
+   gap: 8px;
+   justify-items: center;
+   text-align: center;
+   color: #f6f8ff;
+   font-family: "Inter", -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
    text-transform: uppercase;
-   color: rgba(201, 217, 255, 0.92);
-   text-align: center;
-   margin-bottom: 18px;
+   letter-spacing: 0.34em;
+   filter: drop-shadow(0 0 26px rgba(143, 180, 255, 0.45));
   }
 
-  .loom-invite-clone .loom-invite-clone-body {
+  .loom-invite-line {
+   margin: 0;
    font-size: 15px;
-   line-height: 1.6;
-   color: rgba(244, 247, 255, 0.95);
-   text-align: center;
-   letter-spacing: 0.04em;
+   font-weight: 500;
+   letter-spacing: 0.28em;
+   text-shadow: 0 0 18px rgba(143, 180, 255, 0.55);
+  }
+
+  .loom-invite-line--primary {
+   font-size: 16px;
+   letter-spacing: 0.34em;
+  }
+
+  .loom-invite-line--secondary {
+   font-size: 13px;
+   letter-spacing: 0.32em;
+   opacity: 0.88;
+  }
+
+  .loom-invite-line--tertiary {
+   font-size: 11px;
+   letter-spacing: 0.28em;
+   opacity: 0.76;
   }
 
   .loom-invite-clone .loom-invite-clone-body strong {
@@ -1097,6 +1151,7 @@
  
 <!-- Edge Impact Effects -->
 <div id="edgeImpact" class="edge-impact" aria-hidden="true"></div>
+<div id="baseDarkness" class="base-darkness" aria-hidden="true"></div>
 <div id="darkeningOverlay" class="darkening-overlay" aria-hidden="true"></div>
 <div id="lightBeam" class="light-beam" aria-hidden="true"></div>
 
@@ -1126,6 +1181,7 @@
 
  <!-- Referrer Glitch Overlay Logic -->
  <script type="module">
+  import { voxelShatter } from './src/scripts/effects/VoxelShatter.js';
   /*
     Celli Referrer Glitch Overlay
     - Triggers on Reddit / Hacker News arrivals, or manual URL input
@@ -1170,6 +1226,7 @@
   const customCursor = document.getElementById('customCursor');
   const refPanel = document.querySelector('.celli-ref-panel');
   const edgeImpact = document.getElementById('edgeImpact');
+  const baseDarkness = document.getElementById('baseDarkness');
   const darkeningOverlay = document.getElementById('darkeningOverlay');
   const lightBeam = document.getElementById('lightBeam');
   const chantAudio = new Audio('./chant.mp3');
@@ -1424,13 +1481,17 @@
 
   const MAX_FLOATING_INVITES = 24;
 
+  const LOOM_INVITE_EMBLEM = `
+    <div class="loom-invite-emblem">
+      <p class="loom-invite-line loom-invite-line--primary">.LOOMWORKS.</p>
+      <p class="loom-invite-line loom-invite-line--secondary">..A SPECIAL INVITATION..</p>
+      <p class="loom-invite-line loom-invite-line--tertiary">... A Beautiful Cell ...</p>
+    </div>
+  `;
+
   const FLOATING_INVITE_TEMPLATE = `
     <div class="loom-invite-clone-card">
-      <div class="loom-invite-clone-header">LOOMWORKS</div>
-      <div class="loom-invite-clone-body">
-        <strong>Invitation</strong>
-        <span>Celli Alpha Access</span>
-      </div>
+      ${LOOM_INVITE_EMBLEM}
     </div>
   `;
 
@@ -1442,7 +1503,9 @@
     time: 0,
     enabled: true,
     lastTimestamp: null,
-    pendingElevation: false
+    pendingElevation: false,
+    focusX: null,
+    focusY: null
   };
 
   const debugPanelState = {
@@ -1600,6 +1663,34 @@
     if (triColorState.particles && triColorState.particles.length) {
       triColorState.particles = createTriColorParticles();
     }
+    updateTriColorFocus();
+  }
+
+  function getInviteFocusPoint() {
+    const card = refSidebarAck?.querySelector('.loom-invite-card');
+    if (card) {
+      const rect = card.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      };
+    }
+    if (refSidebarAck) {
+      const rect = refSidebarAck.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      };
+    }
+    const fallbackWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
+    const fallbackHeight = window.innerHeight || document.documentElement.clientHeight || 720;
+    return { x: fallbackWidth / 2, y: fallbackHeight / 2 };
+  }
+
+  function updateTriColorFocus() {
+    const point = getInviteFocusPoint();
+    triColorState.focusX = point.x;
+    triColorState.focusY = point.y;
   }
 
   function createTriColorParticles() {
@@ -1610,22 +1701,29 @@
       { base: [0, 168, 255], accent: [126, 214, 255] },
       { base: [255, 182, 46], accent: [255, 227, 130] }
     ];
-    const particleCount = Math.round(Math.max(width, height) / 18);
-    const radiusBase = Math.min(width, height) * 0.48;
+    updateTriColorFocus();
+    const anchorX = Number.isFinite(triColorState.focusX) ? triColorState.focusX : width / 2;
+    const anchorY = Number.isFinite(triColorState.focusY) ? triColorState.focusY : height / 2;
+    const particleCount = Math.round(Math.max(width, height) / 24);
+    const radiusBase = Math.min(width, height) * 0.22;
+    const jitterX = radiusBase * 0.2;
+    const jitterY = radiusBase * 0.16;
     const particles = [];
     for (let i = 0; i < particleCount; i += 1) {
       const tone = palette[i % palette.length];
       particles.push({
         angle: Math.random() * Math.PI * 2,
-        radius: radiusBase * (0.18 + Math.random() * 0.6),
-        speed: 0.25 + Math.random() * 0.6,
-        wobble: 0.4 + Math.random() * 0.4,
-        size: 12 + Math.random() * 14,
-        alpha: 0.45 + Math.random() * 0.4,
-        verticalScale: 0.55 + Math.random() * 0.25,
+        radius: radiusBase * (0.32 + Math.random() * 0.28),
+        speed: 0.45 + Math.random() * 0.35,
+        wobble: 0.28 + Math.random() * 0.22,
+        size: 8 + Math.random() * 9,
+        alpha: 0.42 + Math.random() * 0.35,
+        verticalScale: 0.48 + Math.random() * 0.22,
         offset: Math.random() * Math.PI * 2,
         baseColor: tone.base,
-        accentColor: tone.accent
+        accentColor: tone.accent,
+        anchorX: anchorX + (Math.random() - 0.5) * jitterX,
+        anchorY: anchorY + (Math.random() - 0.5) * jitterY
       });
     }
     return particles;
@@ -1651,12 +1749,17 @@
     ctx.clearRect(0, 0, width, height);
     ctx.globalCompositeOperation = 'lighter';
 
+    const fallbackX = Number.isFinite(triColorState.focusX) ? triColorState.focusX : width / 2;
+    const fallbackY = Number.isFinite(triColorState.focusY) ? triColorState.focusY : height / 2;
+
     triColorState.particles.forEach((particle) => {
       particle.angle += delta * particle.speed;
       const wobble = Math.sin(triColorState.time * particle.wobble + particle.offset) * 0.18;
       const orbitRadius = particle.radius * (1 + reactiveLevel * 0.08);
-      const x = width / 2 + Math.cos(particle.angle) * orbitRadius;
-      const y = height / 2 + Math.sin(particle.angle) * orbitRadius * (particle.verticalScale + wobble);
+      const anchorX = Number.isFinite(particle.anchorX) ? particle.anchorX : fallbackX;
+      const anchorY = Number.isFinite(particle.anchorY) ? particle.anchorY : fallbackY;
+      const x = anchorX + Math.cos(particle.angle) * orbitRadius;
+      const y = anchorY + Math.sin(particle.angle) * orbitRadius * (particle.verticalScale + wobble);
       const pulse = 1 + Math.sin(triColorState.time * 1.4 + particle.offset) * 0.28;
       const size = particle.size * pulse * reactivePulse;
       const gradient = ctx.createRadialGradient(x, y, 0, x, y, size * 2.6);
@@ -1789,9 +1892,25 @@
     invite.style.setProperty('--invite-scale', `${Math.max(0.6, scale)}`);
     invite.style.setProperty('--invite-tilt', `${tilt}`);
     invite.style.setProperty('--invite-delay', `${Math.max(0, delay)}ms`);
+    invite.setAttribute('role', 'button');
+    invite.setAttribute('tabindex', '0');
+    invite.setAttribute('aria-label', 'Open Loomworks invitation');
     if (PREFERS_REDUCED_MOTION) {
       invite.classList.add('reduced-motion');
     }
+    const handleInviteActivation = (event) => {
+      event.preventDefault();
+      if (refSidebarAck) {
+        requestAnimationFrame(() => refSidebarAck.focus({ preventScroll: true }));
+        refSidebarAck.click();
+      }
+    };
+    invite.addEventListener('click', handleInviteActivation);
+    invite.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        handleInviteActivation(event);
+      }
+    });
     container.appendChild(invite);
 
     const reveal = () => {
@@ -2005,16 +2124,65 @@
 
   function handlePrimaryInviteCentered() {
     const sidebar = refSidebar;
-    if (sidebar) {
-      if (sidebar.classList.contains('stage-float')) {
-        sidebar.classList.remove('stage-float');
-      }
-      sidebar.classList.add('stage-sweep');
+    const finalizeCentering = () => {
+      scheduleExtraLoomInvites();
+      elevateTriColorLayer();
+      noteInteractionLocked = false;
+      document.body.classList.add('ref-note-centered');
+      updateTriColorFocus();
+    };
+
+    if (!sidebar) {
+      finalizeCentering();
+      return;
     }
-    scheduleExtraLoomInvites();
-    elevateTriColorLayer();
-    noteInteractionLocked = false;
-    document.body.classList.add('ref-note-centered');
+
+    if (sidebar.classList.contains('stage-float')) {
+      sidebar.classList.remove('stage-float');
+    }
+
+    try {
+      const rect = sidebar.getBoundingClientRect();
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 720;
+      const currentTransform = window.getComputedStyle(sidebar).transform;
+      const baseMatrix = currentTransform && currentTransform !== 'none'
+        ? new DOMMatrixReadOnly(currentTransform)
+        : new DOMMatrixReadOnly();
+      const targetX = viewportWidth / 2;
+      const targetY = viewportHeight / 2;
+      const sidebarCenterX = rect.left + rect.width / 2;
+      const sidebarCenterY = rect.top + rect.height / 2;
+      const deltaX = targetX - sidebarCenterX;
+      const deltaY = targetY - sidebarCenterY;
+      const targetMatrix = baseMatrix.translate(deltaX, deltaY);
+
+      const animation = sidebar.animate(
+        [
+          { transform: `matrix(${baseMatrix.a},${baseMatrix.b},${baseMatrix.c},${baseMatrix.d},${baseMatrix.e},${baseMatrix.f})` },
+          { transform: `matrix(${targetMatrix.a},${targetMatrix.b},${targetMatrix.c},${targetMatrix.d},${targetMatrix.e},${targetMatrix.f})` }
+        ],
+        { duration: 950, easing: 'cubic-bezier(0.33, 1, 0.68, 1)', fill: 'forwards' }
+      );
+
+      const complete = () => {
+        sidebar.classList.add('stage-sweep');
+        sidebar.style.transform = '';
+        finalizeCentering();
+      };
+
+      animation.addEventListener('finish', () => {
+        animation.commitStyles();
+        animation.cancel();
+        complete();
+      }, { once: true });
+
+      animation.addEventListener('cancel', complete, { once: true });
+    } catch (error) {
+      console.warn('⚠️ Smooth centering fallback engaged:', error);
+      sidebar.classList.add('stage-sweep');
+      finalizeCentering();
+    }
   }
 
   function createDebugPanel() {
@@ -2327,6 +2495,7 @@
   console.log('  overlay:', overlay ? '✓' : '✗');
   console.log('  refHeader:', refHeader ? '✓' : '✗');
   console.log('  edgeImpact:', edgeImpact ? '✓' : '✗');
+  console.log('  baseDarkness:', baseDarkness ? '✓' : '✗');
   console.log('  darkeningOverlay:', darkeningOverlay ? '✓' : '✗');
   console.log('  lightBeam:', lightBeam ? '✓' : '✗');
   console.log('  manualTrigger:', document.getElementById('manualTrigger') ? '✓' : '✗');
@@ -2879,12 +3048,10 @@
         <div class="loom-invite-stack">
           <div class="loom-invite-card" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">
           <!-- Header with crystal haze effect -->
-          <div style="padding: 28px 36px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(143, 180, 255, 0.15), rgba(118, 75, 162, 0.18)); border-bottom: 1px solid rgba(143, 180, 255, 0.3); backdrop-filter: blur(10px);">
-            <div style="font-size: 13px; font-weight: 500; color: #b4d0ff; letter-spacing: 4px; text-align: center; text-shadow: 0 0 15px rgba(143, 180, 255, 0.6), 0 0 30px rgba(102, 126, 234, 0.3);">
-              ...LOOMWORKS INVITES YOU...
-            </div>
+          <div style="padding: 32px 36px; display:flex; justify-content:center; background: linear-gradient(140deg, rgba(118, 75, 162, 0.28), rgba(102, 126, 234, 0.24), rgba(143, 180, 255, 0.22)); border-bottom: 1px solid rgba(143, 180, 255, 0.28); backdrop-filter: blur(14px);">
+            ${LOOM_INVITE_EMBLEM}
           </div>
-          
+
           <!-- Content -->
           <div style="padding: 36px; font-size: 15px; font-weight: 300; line-height: 1.9; color: #f8f9fa;">
             <div style="margin-bottom: 24px; font-weight: 400; font-size: 16px; color: #ffffff; letter-spacing: 0.4px; line-height: 1.6;">
@@ -2936,6 +3103,7 @@
       tosPhaseActive = true;
 
       console.log(`✨ Unified hazy glass crystal LOOMWORKS invitation displayed (${versionLabel})`);
+      updateTriColorFocus();
     }, 300);
   }
   
@@ -3236,6 +3404,14 @@
     const defaultInstructionText = holdInstruction ? holdInstruction.textContent : '';
     const holdDuration = 1600;
     let holdComplete = false;
+    let snapListener = null;
+
+    const getPointerPosition = (event) => {
+      if (event.touches && event.touches.length) {
+        return { x: event.touches[0].clientX, y: event.touches[0].clientY };
+      }
+      return { x: event.clientX, y: event.clientY };
+    };
 
     const startHold = (event) => {
       event.preventDefault();
@@ -3245,6 +3421,23 @@
 
       overlayElement.classList.add('holding');
       holdButton.classList.add('holding');
+
+      const { x, y } = getPointerPosition(event);
+      const rect = holdButton.getBoundingClientRect();
+      const dx = x - (rect.left + rect.width / 2);
+      const dy = y - (rect.top + rect.height / 2);
+      holdButton.style.setProperty('--cursor-dx', `${dx}px`);
+      holdButton.style.setProperty('--cursor-dy', `${dy}px`);
+      holdButton.classList.add('snapping-to-cursor');
+
+      if (!snapListener) {
+        snapListener = (evt) => {
+          if (evt.propertyName === 'transform' && holdButton.classList.contains('snapping-to-cursor')) {
+            holdButton.classList.add('cursor-synced');
+          }
+        };
+        holdButton.addEventListener('transitionend', snapListener);
+      }
 
       if (holdInstruction) {
         holdInstruction.textContent = 'Hold steady…';
@@ -3267,6 +3460,9 @@
 
       overlayElement.classList.remove('holding');
       holdButton.classList.remove('holding');
+      holdButton.classList.remove('snapping-to-cursor', 'cursor-synced');
+      holdButton.style.removeProperty('--cursor-dx');
+      holdButton.style.removeProperty('--cursor-dy');
 
       if (goldenHoldTimer) {
         clearTimeout(goldenHoldTimer);
@@ -3281,6 +3477,8 @@
     const finalizeHold = () => {
       overlayElement.classList.remove('holding');
       holdButton.classList.remove('holding');
+      holdButton.classList.remove('snapping-to-cursor');
+      holdButton.classList.add('cursor-synced');
 
       if (goldenHoldTimer) {
         clearTimeout(goldenHoldTimer);
@@ -3314,7 +3512,32 @@
       holdButton.removeEventListener('touchstart', startHold);
       window.removeEventListener('mouseup', cancelHold);
       window.removeEventListener('touchend', cancelHold);
+      if (snapListener) {
+        holdButton.removeEventListener('transitionend', snapListener);
+        snapListener = null;
+      }
+      holdButton.classList.remove('snapping-to-cursor', 'cursor-synced');
+      holdButton.style.removeProperty('--cursor-dx');
+      holdButton.style.removeProperty('--cursor-dy');
     };
+  }
+
+  async function runVoxelShatterSequence(sourceCanvas) {
+    if (!sourceCanvas) {
+      return false;
+    }
+    try {
+      await voxelShatter.startFromCanvas(sourceCanvas, { duration: 3400, burstDelay: 750 });
+      return true;
+    } catch (error) {
+      console.warn('⚠️ Voxel shatter failed, using fallback dust animation', error);
+      try {
+        voxelShatter.dispose();
+      } catch (disposeError) {
+        console.warn('⚠️ Unable to dispose voxel shatter scene cleanly', disposeError);
+      }
+      return false;
+    }
   }
 
   async function beginDustTransition(overlayElement, triangleElement) {
@@ -3352,30 +3575,38 @@
       overlayElement.style.visibility = previousVisibility || '';
     }
 
-    const whiteout = document.createElement('div');
-    whiteout.className = 'golden-whiteout';
-    overlayElement.appendChild(whiteout);
+    const voxelSuccess = captureCanvas ? await runVoxelShatterSequence(captureCanvas) : false;
 
-    if (captureCanvas) {
-      const dustCanvas = document.createElement('canvas');
-      dustCanvas.className = 'golden-dust-canvas';
-      overlayElement.appendChild(dustCanvas);
+    if (!voxelSuccess) {
+      const whiteout = document.createElement('div');
+      whiteout.className = 'golden-whiteout';
+      overlayElement.appendChild(whiteout);
 
-      runDustAnimation(captureCanvas, dustCanvas, whiteout, () => {
-        dustCanvas.classList.add('fade-out');
-        setTimeout(() => {
-          if (dustCanvas.parentNode) {
-            dustCanvas.parentNode.removeChild(dustCanvas);
-          }
-        }, 1600);
+      if (captureCanvas) {
+        const dustCanvas = document.createElement('canvas');
+        dustCanvas.className = 'golden-dust-canvas';
+        overlayElement.appendChild(dustCanvas);
+
+        runDustAnimation(captureCanvas, dustCanvas, whiteout, () => {
+          dustCanvas.classList.add('fade-out');
+          setTimeout(() => {
+            if (dustCanvas.parentNode) {
+              dustCanvas.parentNode.removeChild(dustCanvas);
+            }
+          }, 1600);
+          overlayElement.classList.add('dust-complete');
+          triangleElement.classList.add('into-white');
+          startWarpSequence(overlayElement, triangleElement);
+        });
+      } else {
         overlayElement.classList.add('dust-complete');
         triangleElement.classList.add('into-white');
-        startWarpSequence(overlayElement, triangleElement);
-      });
+        setTimeout(() => startWarpSequence(overlayElement, triangleElement), 600);
+      }
     } else {
       overlayElement.classList.add('dust-complete');
       triangleElement.classList.add('into-white');
-      setTimeout(() => startWarpSequence(overlayElement, triangleElement), 600);
+      startWarpSequence(overlayElement, triangleElement);
     }
 
     triangleElement.classList.add('triangle-flight');
@@ -3998,14 +4229,16 @@
   
   function createParticle(x, y, verticalBias) {
     const particle = document.createElement('div');
-    particle.className = 'impact-particle pixel-particle';
-    
-    // Pixelated sizes (4px, 6px, 8px blocks)
-    const sizeOptions = [4, 6, 8];
+    const shapes = ['impact-particle--circle', 'impact-particle--square', 'impact-particle--triangle'];
+    const shapeClass = shapes[Math.floor(Math.random() * shapes.length)];
+    particle.className = `impact-particle pixel-particle ${shapeClass}`;
+
+    // Compact radiant particles (3px-6px)
+    const sizeOptions = [3, 4, 5, 6];
     const size = sizeOptions[Math.floor(Math.random() * sizeOptions.length)];
     particle.style.width = size + 'px';
     particle.style.height = size + 'px';
-    
+
     // Specific pixel colors: cyan-ish blue, orange-ish yellow, magenta-ish red
     const colors = [
       '#00d4ff',  // slightly cyan blue
@@ -4019,7 +4252,12 @@
 
     particle.style.left = x + 'px';
     particle.style.top = y + 'px';
-    
+
+    const rotation = shapeClass === 'impact-particle--triangle'
+      ? (Math.random() - 0.5) * 120
+      : (Math.random() - 0.5) * 40;
+    particle.style.setProperty('--particle-rotation', `${rotation}deg`);
+
     // Random velocity (biased by vertical direction)
     // Wider spread angle for explosive effect
     const angleSpread = Math.PI * 0.8; // 144 degrees spread
@@ -4634,10 +4872,20 @@
       console.error('✗ darkeningOverlay element not found!');
       return;
     }
-    
+
     const level = Math.min(impactCount, 5);
     console.log(`  ✓ Darkening to level: ${level}`);
-    
+
+    if (baseDarkness) {
+      baseDarkness.classList.remove('level-1', 'level-2', 'level-3', 'level-4', 'level-5');
+      if (level > 0) {
+        baseDarkness.classList.add(`level-${level}`);
+        baseDarkness.style.opacity = '';
+      } else {
+        baseDarkness.style.opacity = '0';
+      }
+    }
+
     // Calculate target opacity
     const baseOpacity = level * 0.2; // 0.2, 0.4, 0.6, 0.8, 1.0
     const targetOpacity = isMobileViewport()
@@ -4704,12 +4952,16 @@
     clearNoteStageTimeouts();
     stopChantAudio();
     darkeningOverlay.classList.remove('level-1', 'level-2', 'level-3', 'level-4', 'level-5', 'flickering');
-    
+
     // Reset darkening opacity to 0
     if (darkeningOverlay) {
       darkeningOverlay.style.opacity = '0';
       darkeningOverlay.style.maskImage = 'none';
       darkeningOverlay.style.webkitMaskImage = 'none';
+    }
+    if (baseDarkness) {
+      baseDarkness.classList.remove('level-1', 'level-2', 'level-3', 'level-4', 'level-5');
+      baseDarkness.style.opacity = '0';
     }
     
     // Clear brick holes
