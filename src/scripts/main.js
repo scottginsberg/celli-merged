@@ -95,6 +95,307 @@ let sequenceUI = null;
 let experienceStarting = false;
 let experienceStarted = false;
 
+let rootVideoPlaylistCache = null;
+let rootVideoDiscoveryPromise = null;
+let videoPlaylistUI = null;
+let activeVideoPlaylist = null;
+
+const ROOT_VIDEO_FALLBACKS = [
+  'intro.mp4',
+  'intro2.mp4',
+  'intro3.mp4',
+  'intro4.mp4',
+  'intro5.mp4',
+  'intro6.mp4'
+];
+
+function normalizeRootMediaPath(path) {
+  if (!path) {
+    return null;
+  }
+
+  const trimmed = path.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('/')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('./')) {
+    return trimmed;
+  }
+
+  return `./${trimmed.replace(/^\.\//, '')}`;
+}
+
+function extractMp4CandidatesFromText(text) {
+  if (!text) {
+    return [];
+  }
+
+  const matches = new Set();
+  const mp4Regex = /(?:href\s*=\s*|src\s*=\s*)?"?([A-Za-z0-9_\-.\/\%]+\.mp4)"?/gi;
+  let match;
+
+  while ((match = mp4Regex.exec(text)) !== null) {
+    const candidate = normalizeRootMediaPath(match[1]);
+    if (candidate) {
+      matches.add(candidate);
+    }
+  }
+
+  return Array.from(matches);
+}
+
+async function discoverRootMp4s() {
+  if (rootVideoPlaylistCache) {
+    return rootVideoPlaylistCache;
+  }
+
+  if (rootVideoDiscoveryPromise) {
+    return rootVideoDiscoveryPromise;
+  }
+
+  const attemptFetch = async (url, options) => {
+    try {
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        console.warn('⚠️ Root MP4 discovery request failed', url, response.status);
+        return null;
+      }
+      return response;
+    } catch (error) {
+      console.warn('⚠️ Root MP4 discovery request error', url, error);
+      return null;
+    }
+  };
+
+  const collectFromSource = async (url) => {
+    const response = await attemptFetch(url, { headers: { 'Accept': 'text/plain, text/html;q=0.9,*/*;q=0.8' } });
+    if (!response) {
+      return [];
+    }
+
+    try {
+      const text = await response.text();
+      return extractMp4CandidatesFromText(text);
+    } catch (error) {
+      console.warn('⚠️ Failed to parse MP4 listing from source', url, error);
+      return [];
+    }
+  };
+
+  const validateCandidates = async (candidates) => {
+    const unique = Array.from(new Set(candidates));
+    if (!unique.length) {
+      return [];
+    }
+
+    const validated = [];
+
+    for (const candidate of unique) {
+      try {
+        const response = await fetch(candidate, { method: 'HEAD' });
+        if (response.ok || response.status === 405) {
+          validated.push(candidate);
+          continue;
+        }
+
+        console.warn('⚠️ MP4 candidate rejected (HTTP status)', candidate, response.status);
+      } catch (error) {
+        console.warn('⚠️ MP4 candidate HEAD request failed - assuming accessible', candidate, error);
+        // Assume accessible in offline/file contexts where HEAD may fail
+        validated.push(candidate);
+      }
+    }
+
+    return validated;
+  };
+
+  rootVideoDiscoveryPromise = (async () => {
+    const discovered = new Set();
+
+    const directoryCandidates = await collectFromSource('./');
+    directoryCandidates.forEach(candidate => discovered.add(candidate));
+
+    if (discovered.size === 0) {
+      const indexCandidates = await collectFromSource('./INDEX.txt');
+      indexCandidates.forEach(candidate => discovered.add(candidate));
+    }
+
+    if (discovered.size === 0) {
+      ROOT_VIDEO_FALLBACKS.forEach(candidate => {
+        const normalized = normalizeRootMediaPath(candidate);
+        if (normalized) {
+          discovered.add(normalized);
+        }
+      });
+    }
+
+    const validated = await validateCandidates(Array.from(discovered));
+    rootVideoPlaylistCache = validated;
+    return validated;
+  })()
+    .catch(error => {
+      console.error('❌ Failed to discover root MP4 playlist', error);
+      return [];
+    })
+    .finally(() => {
+      rootVideoDiscoveryPromise = null;
+    });
+
+  return rootVideoDiscoveryPromise;
+}
+
+function ensureVideoPlaylistUI() {
+  if (videoPlaylistUI) {
+    return videoPlaylistUI;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'rootVideoPlaylistOverlay';
+  overlay.style.cssText = 'position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.85); z-index:10000; padding:20px;';
+
+  const container = document.createElement('div');
+  container.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:12px; max-width:90vw;';
+
+  const title = document.createElement('h3');
+  title.textContent = 'Root Video Playlist';
+  title.style.cssText = 'color:#1abc9c; font-family:"Roboto Mono", monospace; letter-spacing:0.12em; text-transform:uppercase; font-size:16px;';
+
+  const subtitle = document.createElement('div');
+  subtitle.style.cssText = 'color:#f0f0f0; font-size:13px; font-family:"Roboto Mono", monospace; opacity:0.85; text-align:center;';
+
+  const video = document.createElement('video');
+  video.controls = true;
+  video.style.cssText = 'max-width:82vw; max-height:70vh; border:2px solid rgba(26,188,156,0.6); border-radius:10px; box-shadow:0 0 25px rgba(26,188,156,0.4); background:#000;';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = 'Close';
+  closeBtn.style.cssText = 'padding:8px 18px; background:#f39c12; border:none; border-radius:20px; color:#000; cursor:pointer; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; font-size:11px;';
+
+  const controls = document.createElement('div');
+  controls.style.cssText = 'display:flex; gap:12px; align-items:center; flex-wrap:wrap; justify-content:center;';
+  controls.appendChild(closeBtn);
+
+  container.appendChild(title);
+  container.appendChild(subtitle);
+  container.appendChild(video);
+  container.appendChild(controls);
+  overlay.appendChild(container);
+
+  overlay.addEventListener('click', event => {
+    if (event.target === overlay) {
+      closeVideoPlaylist();
+    }
+  });
+
+  closeBtn.addEventListener('click', () => {
+    closeVideoPlaylist();
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && overlay.style.display !== 'none') {
+      closeVideoPlaylist();
+    }
+  });
+
+  document.body.appendChild(overlay);
+  videoPlaylistUI = { overlay, container, title, subtitle, video, closeBtn };
+  return videoPlaylistUI;
+}
+
+function closeVideoPlaylist(options = {}) {
+  const { silent = false } = options;
+
+  if (!videoPlaylistUI) {
+    return;
+  }
+
+  if (activeVideoPlaylist) {
+    try {
+      videoPlaylistUI.video.pause();
+    } catch (error) {
+      console.warn('⚠️ Unable to pause playlist video', error);
+    }
+    videoPlaylistUI.video.removeAttribute('src');
+    videoPlaylistUI.video.load();
+    activeVideoPlaylist = null;
+  }
+
+  videoPlaylistUI.overlay.style.display = 'none';
+  if (!silent) {
+    showToast('Video playlist closed');
+  }
+}
+
+async function startRootVideoPlaylist() {
+  const playlist = await discoverRootMp4s();
+
+  if (!playlist.length) {
+    showToast('No MP4 files found in root');
+    console.warn('⚠️ No MP4 files discovered for playlist');
+    return;
+  }
+
+  if (activeVideoPlaylist) {
+    closeVideoPlaylist({ silent: true });
+  }
+
+  const ui = ensureVideoPlaylistUI();
+  const uniquePlaylist = Array.from(new Set(playlist));
+
+  let currentIndex = 0;
+
+  const updateSubtitle = (index) => {
+    const fileName = uniquePlaylist[index]?.split('/').pop() ?? 'unknown';
+    ui.subtitle.textContent = `Playing ${index + 1} / ${uniquePlaylist.length}: ${decodeURIComponent(fileName)}`;
+  };
+
+  const playAtIndex = (index) => {
+    if (index < 0 || index >= uniquePlaylist.length) {
+      closeVideoPlaylist({ silent: true });
+      return;
+    }
+
+    currentIndex = index;
+    const source = uniquePlaylist[index];
+    ui.video.src = source;
+    updateSubtitle(index);
+    ui.video.play().catch(error => {
+      console.error('❌ Failed to play video from playlist', source, error);
+      showToast(`Unable to play ${source}`);
+    });
+  };
+
+  ui.video.onended = () => {
+    if (currentIndex + 1 < uniquePlaylist.length) {
+      playAtIndex(currentIndex + 1);
+    } else {
+      showToast('Video playlist finished');
+      closeVideoPlaylist({ silent: true });
+    }
+  };
+
+  ui.overlay.style.display = 'flex';
+  activeVideoPlaylist = {
+    list: uniquePlaylist,
+    playAtIndex,
+    get current() {
+      return currentIndex;
+    }
+  };
+
+  playAtIndex(0);
+  showToast(`Playing ${uniquePlaylist.length} video${uniquePlaylist.length === 1 ? '' : 's'}…`);
+}
+
 async function startExperience(options = {}) {
   const { reason = 'manual' } = options;
 
@@ -245,6 +546,30 @@ function setupButtons() {
     console.log('✅ Test audio button initialized');
   }
 
+  const testVideoBtn = document.getElementById('testVideoBtn');
+  if (testVideoBtn) {
+    testVideoBtn.addEventListener('click', async () => {
+      console.log('🎞️ Test Video Playlist button clicked - discovering MP4 assets');
+      try {
+        await startRootVideoPlaylist();
+      } catch (error) {
+        console.error('❌ Failed to start video playlist', error);
+        showToast(`Video playlist failed: ${error.message || error}`);
+      }
+    });
+    console.log('✅ Test video playlist button initialized');
+  }
+
+  const flashSceneBtn = document.getElementById('flashSceneBtn');
+  if (flashSceneBtn) {
+    flashSceneBtn.addEventListener('click', () => {
+      console.log('⚡ Flash scene button clicked');
+      window.open('./flash.html', '_blank');
+      showToast('Opening Flash scene…');
+    });
+    console.log('✅ Flash scene button initialized');
+  }
+
   const sequenceBuilderBtn = document.getElementById('sequenceBuilderBtn');
   if (sequenceBuilderBtn) {
     sequenceBuilderBtn.addEventListener('click', () => {
@@ -319,9 +644,19 @@ function setupButtons() {
         return;
       }
 
+      const targetUrl = option.dataset.url;
+      if (targetUrl) {
+        console.log('🌐 Opening external scene URL:', targetUrl);
+        window.open(targetUrl, '_blank');
+        document.getElementById('sceneSelect')?.classList.remove('visible');
+        showToast('Opening scene in new window…');
+        return;
+      }
+
       const sceneName = option.dataset.scene;
       if (!sceneName) {
         console.warn('⚠️ Scene option clicked without data-scene attribute');
+        showToast('Scene target missing');
         return;
       }
 
