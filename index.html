@@ -413,8 +413,15 @@
    width: 100vw;
    height: 100vh;
    pointer-events: none;
-   z-index: 2147483750;
+   z-index: 2147483050;
    mix-blend-mode: screen;
+   opacity: 0.55;
+   transition: opacity 0.8s ease;
+  }
+
+  .tri-color-particles.tri-color-particles--foreground {
+   z-index: 2147483525;
+   opacity: 0.82;
   }
 
   .loom-invite-swarm {
@@ -423,8 +430,170 @@
    width: 100vw;
    height: 100vh;
    pointer-events: none;
-   z-index: 2147483780;
+   z-index: 2147483580;
    overflow: visible;
+  }
+
+  .loom-invite-clone {
+   position: absolute;
+   top: var(--invite-top, 50%);
+   left: var(--invite-left, 50%);
+   transform: translate(-50%, -50%) scale(var(--invite-scale, 0.9)) rotate(var(--invite-tilt, -2deg));
+   opacity: 0;
+   transition: opacity 1.4s ease, transform 1.2s ease;
+   filter: drop-shadow(0 18px 42px rgba(12, 18, 45, 0.45));
+   pointer-events: none;
+  }
+
+  .loom-invite-clone.visible {
+   opacity: 0.9;
+   transform: translate(-50%, -50%) scale(calc(var(--invite-scale, 0.9) + var(--chant-reactive, 0) * 0.12)) rotate(var(--invite-tilt, -2deg));
+  }
+
+  .loom-invite-clone::before,
+  .loom-invite-clone::after {
+   content: '';
+   position: absolute;
+   inset: -22px -28px;
+   border-radius: 28px;
+   background: radial-gradient(circle at 50% 20%, rgba(143, 180, 255, 0.12), transparent 60%);
+   mix-blend-mode: screen;
+   opacity: 0.65;
+   transform: translateZ(0);
+   pointer-events: none;
+  }
+
+  .loom-invite-clone::after {
+   inset: -12px -16px;
+   opacity: 0.85;
+   filter: blur(18px);
+  }
+
+  .loom-invite-clone .loom-invite-clone-card {
+   position: relative;
+   padding: 26px 32px;
+   width: min(320px, 55vw);
+   border-radius: 22px;
+   background: linear-gradient(135deg, rgba(102, 126, 234, 0.24), rgba(143, 180, 255, 0.14));
+   border: 1px solid rgba(143, 180, 255, 0.35);
+   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 14px rgba(102, 126, 234, 0.24);
+   overflow: hidden;
+   backdrop-filter: blur(18px) saturate(180%);
+  }
+
+  .loom-invite-clone .loom-invite-clone-card::before,
+  .loom-invite-clone .loom-invite-clone-card::after {
+   content: '';
+   position: absolute;
+   inset: 0;
+   border-radius: inherit;
+   pointer-events: none;
+  }
+
+  .loom-invite-clone .loom-invite-clone-card::before {
+   background: linear-gradient(140deg, rgba(255, 255, 255, 0.12), rgba(143, 180, 255, 0.18));
+   opacity: 0.6;
+  }
+
+  .loom-invite-clone .loom-invite-clone-card::after {
+   background: radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.35), transparent 55%);
+   opacity: 0.7;
+  }
+
+  .loom-invite-clone .loom-invite-clone-header {
+   font-size: 12px;
+   font-weight: 600;
+   letter-spacing: 0.38em;
+   text-transform: uppercase;
+   color: rgba(201, 217, 255, 0.92);
+   text-align: center;
+   margin-bottom: 18px;
+  }
+
+  .loom-invite-clone .loom-invite-clone-body {
+   font-size: 15px;
+   line-height: 1.6;
+   color: rgba(244, 247, 255, 0.95);
+   text-align: center;
+   letter-spacing: 0.04em;
+  }
+
+  .loom-invite-clone .loom-invite-clone-body strong {
+   display: block;
+   margin-bottom: 8px;
+   font-size: 16px;
+   letter-spacing: 0.08em;
+   color: rgba(255, 255, 255, 0.98);
+   text-shadow: 0 0 12px rgba(143, 180, 255, 0.55);
+  }
+
+  .loom-invite-clone .loom-invite-clone-body span {
+   display: block;
+   opacity: 0.75;
+   font-size: 13px;
+   letter-spacing: 0.06em;
+  }
+
+  .loom-invite-clone.visible .loom-invite-clone-card {
+   animation: loomInviteCloneDrift 8s ease-in-out var(--invite-delay, 0ms) infinite alternate;
+  }
+
+  @keyframes loomInviteCloneDrift {
+   0% {
+    transform: translateY(0) scale(1);
+    filter: saturate(1) brightness(1);
+   }
+   50% {
+    transform: translateY(-14px) scale(calc(1 + var(--chant-reactive, 0) * 0.08));
+    filter: saturate(1.05) brightness(calc(1.05 + var(--chant-reactive, 0) * 0.2));
+   }
+   100% {
+    transform: translateY(10px) scale(calc(1 + var(--chant-reactive, 0) * 0.12));
+    filter: saturate(1.1) brightness(calc(1.08 + var(--chant-reactive, 0) * 0.24));
+   }
+  }
+
+  .loom-invite-clone.reduced-motion .loom-invite-clone-card {
+   animation: none;
+  }
+
+  .ai-message-tri-icon {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 6px;
+   margin-bottom: 16px;
+  }
+
+  .ai-message-tri-icon span {
+   width: 18px;
+   height: 18px;
+   display: block;
+   background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.55));
+   clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+   opacity: 0.9;
+   filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.65));
+   transition: transform 0.35s ease, opacity 0.35s ease;
+  }
+
+  .ai-message-tri-icon span:nth-child(2) {
+   transform: translateY(-6px) scale(1.12);
+  }
+
+  .ai-message-tri-icon span:nth-child(1),
+  .ai-message-tri-icon span:nth-child(3) {
+   transform: translateY(3px) scale(0.86);
+  }
+
+  .ref-sidebar-btn.loom-invite-active.audio-reactive .ai-message-tri-icon span:nth-child(2) {
+   transform: translateY(calc(-6px - var(--chant-reactive, 0) * 8px)) scale(calc(1.12 + var(--chant-reactive, 0) * 0.3));
+   opacity: calc(0.9 + var(--chant-reactive, 0) * 0.1);
+  }
+
+  .ref-sidebar-btn.loom-invite-active.audio-reactive .ai-message-tri-icon span:nth-child(1),
+  .ref-sidebar-btn.loom-invite-active.audio-reactive .ai-message-tri-icon span:nth-child(3) {
+   transform: translateY(calc(3px + var(--chant-reactive, 0) * -4px)) scale(calc(0.86 + var(--chant-reactive, 0) * 0.18));
+   opacity: calc(0.85 + var(--chant-reactive, 0) * 0.12);
   }
 
   .loom-invite-pin {
@@ -998,11 +1167,12 @@
   let chantAnalyser = null;
   let chantAnalyserData = null;
   let chantVisualizerFrameId = null;
+  let chantVisualizerStartTimeout = null;
   let chantVisualizerLevel = 0;
   let chantVisualizerWarned = false;
   let chantUnlockHandler = null;
 
-  chantAudio.addEventListener('play', startChantVisualizer);
+  chantAudio.addEventListener('play', () => startChantVisualizer(6000));
   chantAudio.addEventListener('ended', () => {
     setLoomAudioStatus(false);
     stopChantVisualizer();
@@ -1073,7 +1243,25 @@
     chantVisualizerFrameId = requestAnimationFrame(updateChantVisualizer);
   }
 
-  function startChantVisualizer() {
+  function startChantVisualizer(delayMs = 0) {
+    if (chantVisualizerStartTimeout) {
+      clearTimeout(chantVisualizerStartTimeout);
+      chantVisualizerStartTimeout = null;
+    }
+
+    const activate = () => {
+      chantVisualizerStartTimeout = null;
+      activateChantVisualizer();
+    };
+
+    if (delayMs <= 0) {
+      activate();
+    } else {
+      chantVisualizerStartTimeout = window.setTimeout(activate, delayMs);
+    }
+  }
+
+  function activateChantVisualizer() {
     if (!lightBeam) {
       return;
     }
@@ -1102,6 +1290,10 @@
   }
 
   function stopChantVisualizer() {
+    if (chantVisualizerStartTimeout) {
+      clearTimeout(chantVisualizerStartTimeout);
+      chantVisualizerStartTimeout = null;
+    }
     if (chantVisualizerFrameId) {
       cancelAnimationFrame(chantVisualizerFrameId);
       chantVisualizerFrameId = null;
@@ -1194,6 +1386,7 @@
   let noteEntryFallbackTimer = null;
   let chantFadeFrameId = null;
   let noteStageTimeouts = [];
+  let noteInteractionLocked = false;
 
   const PREFERS_REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -1208,8 +1401,21 @@
     activePins: 0,
     totalSpawned: 0,
     upcomingTimes: [],
-    startTime: 0
+    startTime: 0,
+    initialPairSpawned: false
   };
+
+  const MAX_FLOATING_INVITES = 24;
+
+  const FLOATING_INVITE_TEMPLATE = `
+    <div class="loom-invite-clone-card">
+      <div class="loom-invite-clone-header">LOOMWORKS</div>
+      <div class="loom-invite-clone-body">
+        <strong>Invitation</strong>
+        <span>Celli Alpha Access</span>
+      </div>
+    </div>
+  `;
 
   const triColorState = {
     canvas: null,
@@ -1218,7 +1424,8 @@
     animationId: null,
     time: 0,
     enabled: true,
-    lastTimestamp: null
+    lastTimestamp: null,
+    pendingElevation: false
   };
 
   const debugPanelState = {
@@ -1422,27 +1629,33 @@
     const ctx = triColorState.ctx;
     const width = triColorState.canvas.width / (window.devicePixelRatio || 1);
     const height = triColorState.canvas.height / (window.devicePixelRatio || 1);
+    const reactiveLevel = Math.min(1, Math.max(0, chantVisualizerLevel || 0));
+    const reactivePulse = 1 + reactiveLevel * 0.45;
     ctx.clearRect(0, 0, width, height);
     ctx.globalCompositeOperation = 'lighter';
 
     triColorState.particles.forEach((particle) => {
       particle.angle += delta * particle.speed;
       const wobble = Math.sin(triColorState.time * particle.wobble + particle.offset) * 0.18;
-      const x = width / 2 + Math.cos(particle.angle) * particle.radius;
-      const y = height / 2 + Math.sin(particle.angle) * particle.radius * (particle.verticalScale + wobble);
+      const orbitRadius = particle.radius * (1 + reactiveLevel * 0.08);
+      const x = width / 2 + Math.cos(particle.angle) * orbitRadius;
+      const y = height / 2 + Math.sin(particle.angle) * orbitRadius * (particle.verticalScale + wobble);
       const pulse = 1 + Math.sin(triColorState.time * 1.4 + particle.offset) * 0.28;
-      const size = particle.size * pulse;
+      const size = particle.size * pulse * reactivePulse;
       const gradient = ctx.createRadialGradient(x, y, 0, x, y, size * 2.6);
-      gradient.addColorStop(0, `rgba(255,255,255,${0.8 * particle.alpha})`);
-      gradient.addColorStop(0.38, `rgba(255,255,255,${0.26 * particle.alpha})`);
-      gradient.addColorStop(0.7, `rgba(${particle.accentColor[0]},${particle.accentColor[1]},${particle.accentColor[2]},${0.42 * particle.alpha})`);
+      const baseAlpha = particle.alpha + reactiveLevel * 0.22;
+      gradient.addColorStop(0, `rgba(255,255,255,${0.8 * baseAlpha})`);
+      gradient.addColorStop(0.38, `rgba(255,255,255,${0.26 * baseAlpha})`);
+      gradient.addColorStop(0.7, `rgba(${particle.accentColor[0]},${particle.accentColor[1]},${particle.accentColor[2]},${(0.42 + reactiveLevel * 0.25) * baseAlpha})`);
       gradient.addColorStop(1, `rgba(${particle.baseColor[0]},${particle.baseColor[1]},${particle.baseColor[2]},0)`);
       ctx.fillStyle = gradient;
       ctx.beginPath();
       ctx.arc(x, y, size * 2.6, 0, Math.PI * 2);
+      ctx.globalAlpha = Math.min(1, baseAlpha);
       ctx.fill();
     });
 
+    ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     triColorState.animationId = requestAnimationFrame(renderTriColorParticles);
   }
@@ -1466,6 +1679,9 @@
     const canvas = document.createElement('canvas');
     canvas.id = 'triColorParticles';
     canvas.className = 'tri-color-particles';
+    if (triColorState.pendingElevation) {
+      canvas.classList.add('tri-color-particles--foreground');
+    }
     document.body.appendChild(canvas);
     const ctx = canvas.getContext('2d');
     if (!ctx) {
@@ -1490,6 +1706,9 @@
     }
     if (enabled) {
       triColorState.canvas.style.display = 'block';
+      if (triColorState.pendingElevation) {
+        triColorState.canvas.classList.add('tri-color-particles--foreground');
+      }
       triColorState.lastTimestamp = null;
       startTriColorLoop();
     } else {
@@ -1502,12 +1721,27 @@
     }
   }
 
+  function elevateTriColorLayer() {
+    triColorState.pendingElevation = true;
+    if (triColorState.canvas) {
+      triColorState.canvas.classList.add('tri-color-particles--foreground');
+    }
+  }
+
+  function resetTriColorLayer() {
+    triColorState.pendingElevation = false;
+    if (triColorState.canvas) {
+      triColorState.canvas.classList.remove('tri-color-particles--foreground');
+    }
+  }
+
   function cancelExtraInviteSchedule({ clearPins = true, keepActive = false } = {}) {
     extraInviteState.timers.forEach((id) => clearTimeout(id));
     extraInviteState.timers = [];
     if (clearPins && extraInviteState.container) {
       extraInviteState.container.innerHTML = '';
       extraInviteState.activePins = 0;
+      extraInviteState.totalSpawned = 0;
       updatePinLightCountDisplay();
     }
     if (!keepActive) {
@@ -1515,71 +1749,79 @@
       extraInviteState.scheduled = false;
       extraInviteState.upcomingTimes = [];
       extraInviteState.startTime = 0;
+      extraInviteState.initialPairSpawned = false;
       updateDebugPeaksDisplay([], 'idle');
     }
   }
 
-  function spawnExtraInviteWave(waveIndex) {
-    if (!extraInviteState.active || !extraInviteState.allowSpawns || !noteAwaitingActivation) {
-      return;
+  function createFloatingInvite({ left, top, scale = 0.9, tilt = 0, delay = 0 } = {}) {
+    if (extraInviteState.totalSpawned >= MAX_FLOATING_INVITES) {
+      return null;
     }
     const container = ensureExtraInviteContainer();
     if (!container) {
+      return null;
+    }
+    const clampedLeft = Math.min(88, Math.max(12, left));
+    const clampedTop = Math.min(84, Math.max(16, top));
+    const invite = document.createElement('div');
+    invite.className = 'loom-invite-clone';
+    invite.innerHTML = FLOATING_INVITE_TEMPLATE;
+    invite.style.setProperty('--invite-left', `${clampedLeft}%`);
+    invite.style.setProperty('--invite-top', `${clampedTop}%`);
+    invite.style.setProperty('--invite-scale', `${Math.max(0.6, scale)}`);
+    invite.style.setProperty('--invite-tilt', `${tilt}`);
+    invite.style.setProperty('--invite-delay', `${Math.max(0, delay)}ms`);
+    if (PREFERS_REDUCED_MOTION) {
+      invite.classList.add('reduced-motion');
+    }
+    container.appendChild(invite);
+
+    const reveal = () => {
+      invite.classList.add('visible');
+    };
+    if (delay > 0) {
+      setTimeout(() => requestAnimationFrame(reveal), delay);
+    } else {
+      requestAnimationFrame(reveal);
+    }
+
+    extraInviteState.totalSpawned += 1;
+    extraInviteState.activePins = extraInviteState.totalSpawned;
+    updatePinLightCountDisplay();
+    return invite;
+  }
+
+  function spawnHoverInvitePair() {
+    if (extraInviteState.totalSpawned > 0) {
       return;
     }
-    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 720;
-    const spawnX = viewportWidth + 24;
-    const edgeInset = Math.max(48, Math.min(160, viewportHeight * 0.12));
-    const spawnPoints = [
-      { y: edgeInset, colorClass: 'pin-cyan' },
-      { y: viewportHeight - edgeInset, colorClass: 'pin-yellow' }
-    ];
+    createFloatingInvite({ left: 32, top: 38, scale: 0.94, tilt: '-3deg', delay: 0 });
+    createFloatingInvite({ left: 68, top: 62, scale: 0.9, tilt: '2deg', delay: 220 });
+  }
 
-    extraInviteState.totalSpawned += spawnPoints.length;
-    extraInviteState.activePins += spawnPoints.length;
-    updatePinLightCountDisplay();
+  function spawnExtraInviteWave(waveIndex) {
+    if (!extraInviteState.active || !extraInviteState.allowSpawns) {
+      return;
+    }
+    if (extraInviteState.totalSpawned >= MAX_FLOATING_INVITES) {
+      return;
+    }
 
-    spawnPoints.forEach((point, index) => {
-      const pin = document.createElement('div');
-      pin.className = `loom-invite-pin ${point.colorClass}`;
-      pin.style.left = `${spawnX}px`;
-      pin.style.top = `${point.y}px`;
-      container.appendChild(pin);
-
-      if (PREFERS_REDUCED_MOTION) {
-        pin.style.opacity = '0.85';
-        pin.style.transition = 'opacity 700ms ease-out';
-        requestAnimationFrame(() => {
-          pin.style.opacity = '0';
-        });
-        setTimeout(() => {
-          if (pin.parentNode) {
-            pin.parentNode.removeChild(pin);
-          }
-          extraInviteState.activePins = Math.max(0, extraInviteState.activePins - 1);
-          updatePinLightCountDisplay();
-        }, 740);
-        return;
+    if (waveIndex === 0 && !extraInviteState.initialPairSpawned) {
+      spawnHoverInvitePair();
+      extraInviteState.initialPairSpawned = true;
+    } else {
+      const invitesThisWave = Math.min(4, 2 + Math.floor(waveIndex / 2));
+      for (let i = 0; i < invitesThisWave; i += 1) {
+        const jitter = (Math.random() - 0.5) * 6;
+        const left = 24 + Math.random() * 52;
+        const top = 24 + Math.random() * 52;
+        const scale = 0.78 + Math.random() * 0.28;
+        const delay = i * 160 + Math.random() * 180;
+        createFloatingInvite({ left, top, scale, tilt: `${jitter}deg`, delay });
       }
-
-      const travelX = -0.55 * viewportWidth;
-      const centerY = viewportHeight / 2;
-      const verticalDistance = centerY - point.y;
-      const travelY = verticalDistance * 0.9 + (Math.random() - 0.5) * 80 + waveIndex * 18;
-      pin.style.setProperty('--pin-flight-x', `${travelX}px`);
-      pin.style.setProperty('--pin-flight-y', `${travelY}px`);
-      const duration = 2800 + Math.random() * 900;
-      pin.style.animation = `loomInvitePinFlight ${duration}ms cubic-bezier(0.22, 0.82, 0.1, 1) forwards`;
-      const cleanupDelay = duration + 120;
-      setTimeout(() => {
-        if (pin.parentNode) {
-          pin.parentNode.removeChild(pin);
-        }
-        extraInviteState.activePins = Math.max(0, extraInviteState.activePins - 1);
-        updatePinLightCountDisplay();
-      }, cleanupDelay);
-    });
+    }
 
     if (extraInviteState.upcomingTimes.length) {
       extraInviteState.upcomingTimes.shift();
@@ -1726,6 +1968,7 @@
     extraInviteState.scheduled = true;
     extraInviteState.upcomingTimes = [];
     extraInviteState.startTime = performance.now();
+    extraInviteState.initialPairSpawned = false;
 
     const fallbackTimes = [6, 10.5, 15.5];
     extraInviteState.upcomingTimes = fallbackTimes.slice();
@@ -1752,6 +1995,9 @@
       sidebar.classList.add('stage-sweep');
     }
     scheduleExtraLoomInvites();
+    elevateTriColorLayer();
+    noteInteractionLocked = false;
+    document.body.classList.add('ref-note-centered');
   }
 
   function createDebugPanel() {
@@ -2156,6 +2402,9 @@
   let tosPhaseActive = false;
   
   refSidebarAck.addEventListener('click', () => {
+    if (noteInteractionLocked) {
+      return;
+    }
     if (noteAwaitingActivation) {
       console.log('🔔 Note activation tapped - beginning hover sequence');
       startNoteHoverSequence();
@@ -2461,9 +2710,26 @@
     loomAiMessageActive = true;
     loomFakeAdActive = false;
 
+    const heading = sidebar.querySelector('h3');
+    if (heading) {
+      heading.textContent = 'Observant. We knew you\'d notice us.';
+      heading.style.display = 'block';
+      heading.style.opacity = '1';
+      heading.style.fontSize = '16px';
+      heading.style.letterSpacing = '0.05em';
+      heading.style.fontWeight = '600';
+      heading.style.marginBottom = '18px';
+      heading.style.textAlign = 'center';
+      heading.style.color = '#f8f9fa';
+    }
+
     ackBtn.innerHTML = `
         <div class="ai-message" style="font-size: 15px; font-weight: 300; line-height: 1.8; color: #f8f9fa; text-align: center;padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">
-          <div style="font-size: 48px; margin-bottom: 16px;">✨</div>
+          <div class="ai-message-tri-icon" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
           <div style="font-weight: 500; margin-bottom: 14px; font-size: 18px; color: #8fb4ff; letter-spacing: 0.5px; text-shadow: 0 0 12px rgba(143, 180, 255, 0.4);">AI-Enhanced Content Discovery</div>
           <div style="opacity: 0.9; font-size: 14px;">Analyzing your browsing patterns to deliver personalized recommendations with unprecedented accuracy.</div>
           <div style="margin-top: 16px; font-size: 12px; opacity: 0.6; letter-spacing: 1px; color: #a0b0c0;">Powered by Celli: Where Data Comes to Life</div>
@@ -3451,6 +3717,9 @@
     refSidebarUrl.textContent = '';
     refSidebarClose.style.display = 'block';
     cancelExtraInviteSchedule();
+    resetTriColorLayer();
+    noteInteractionLocked = false;
+    document.body.classList.remove('ref-note-centered');
 
     clearNoteStageTimeouts();
     stopChantAudio();
@@ -3731,8 +4000,6 @@
     particle.style.boxShadow = `0 0 ${size}px ${color}`;
     particle.style.mixBlendMode = 'screen';
 
-    particle.style.zIndex = '2147483700';
-    
     particle.style.left = x + 'px';
     particle.style.top = y + 'px';
     
@@ -4269,6 +4536,9 @@
     clearNoteStageTimeouts();
     stopChantAudio();
     stopAiEnhancedScan();
+    resetTriColorLayer();
+    noteInteractionLocked = true;
+    document.body.classList.remove('ref-note-centered');
 
     const sidebar = refSidebar;
     const ackBtn = refSidebarAck;
