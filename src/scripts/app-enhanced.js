@@ -152,6 +152,26 @@ export async function startApp() {
 
   console.time('Celli startApp total time');
 
+  let loomworksHandled = false;
+  let loomworksFallbackTimer = null;
+
+  const handleLoomworksReveal = () => {
+    if (loomworksHandled) {
+      return;
+    }
+
+    loomworksHandled = true;
+    window.removeEventListener('celli:loomworks-ready', handleLoomworksReveal);
+    if (loomworksFallbackTimer) {
+      clearTimeout(loomworksFallbackTimer);
+      loomworksFallbackTimer = null;
+    }
+
+    console.log('🧵 Showing Loomworks system');
+    loomworksSystem.show(true);
+    loomworksSystem.startReveal();
+  };
+
   try {
     // Hide play overlay immediately to avoid duplicate UIs
     const play = document.getElementById('play');
@@ -219,24 +239,32 @@ export async function startApp() {
 
     // Show GUI elements (with config timings)
     const quoteDelay = configSystem.get('scene.introQuoteDelay') || 0;
-    const loomworksDelay = configSystem.get('scene.introLoomworksDelay') || 5000;
+    const loomworksFallbackDelay = configSystem.get('scene.introLoomworksDelay') || 12000;
 
     setTimeout(() => {
       console.log('🗨️ Showing quote system');
       quoteSystem.show(true);
     }, quoteDelay);
 
-    setTimeout(() => {
-      console.log('🧵 Showing Loomworks system');
-      loomworksSystem.show(true);
-      loomworksSystem.startReveal();
-    }, loomworksDelay);
+    window.addEventListener('celli:loomworks-ready', handleLoomworksReveal);
+
+    loomworksFallbackTimer = window.setTimeout(() => {
+      if (!loomworksHandled) {
+        console.warn('⚠️ Loomworks ready event not received in time; triggering fallback reveal.');
+        handleLoomworksReveal();
+      }
+    }, loomworksFallbackDelay);
 
     console.log('✅ App started successfully! Intro sequence playing...');
     console.log('🎛️ Press `Ctrl+Shift+T` or use tuning button to open tuning panel');
 
   } catch (error) {
     window.celliApp.initialized = false;
+    window.removeEventListener('celli:loomworks-ready', handleLoomworksReveal);
+    if (loomworksFallbackTimer) {
+      clearTimeout(loomworksFallbackTimer);
+      loomworksFallbackTimer = null;
+    }
     console.error('❌ Failed to start app:', error);
     alert(`Failed to start Celli: ${error.message}`);
     throw error;

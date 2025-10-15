@@ -786,6 +786,7 @@
   let chantVisualizerFrameId = null;
   let chantVisualizerLevel = 0;
   let chantVisualizerWarned = false;
+  let chantUnlockHandler = null;
 
   chantAudio.addEventListener('play', startChantVisualizer);
   chantAudio.addEventListener('ended', () => {
@@ -902,6 +903,36 @@
     if (refSidebarAck) {
       refSidebarAck.classList.remove('audio-reactive');
     }
+  }
+
+  function clearChantUnlockHandler() {
+    if (!chantUnlockHandler) {
+      return;
+    }
+
+    window.removeEventListener('pointerdown', chantUnlockHandler);
+    window.removeEventListener('keydown', chantUnlockHandler);
+    chantUnlockHandler = null;
+  }
+
+  function requestChantUnlockRetry() {
+    if (chantUnlockHandler) {
+      return;
+    }
+
+    chantUnlockHandler = async () => {
+      try {
+        await chantAudio.play();
+        setLoomAudioStatus(true);
+        clearChantUnlockHandler();
+      } catch (unlockError) {
+        console.warn('⚠️ Chant unlock attempt failed:', unlockError);
+      }
+    };
+
+    window.addEventListener('pointerdown', chantUnlockHandler);
+    window.addEventListener('keydown', chantUnlockHandler);
+    console.info('🔊 Awaiting user interaction to unlock chant audio…');
   }
 
   // Track impact hits for progressive darkening
@@ -1466,12 +1497,19 @@
 
     chantAudio.volume = 0;
     const playPromise = chantAudio.play();
-    setLoomAudioStatus(true);
-    if (playPromise && typeof playPromise.catch === 'function') {
-      playPromise.catch(err => {
+
+    if (playPromise && typeof playPromise.then === 'function') {
+      playPromise.then(() => {
+        setLoomAudioStatus(true);
+        clearChantUnlockHandler();
+      }).catch(err => {
         console.warn('⚠️ Chant playback blocked by browser:', err);
         setLoomAudioStatus(false);
+        requestChantUnlockRetry();
       });
+    } else {
+      setLoomAudioStatus(true);
+      clearChantUnlockHandler();
     }
   }
 
