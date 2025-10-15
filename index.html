@@ -27,6 +27,7 @@
  <link rel="stylesheet" href="src/styles/celli-real.css">
  <link rel="stylesheet" href="src/styles/referrer-overlay.css">
  <link rel="stylesheet" href="src/styles/recorder.css">
+ <link rel="stylesheet" href="src/styles/flash/flash-animator.css">
  
  <!-- Mythic Sidebar Entrance Animations -->
  <style>
@@ -724,6 +725,7 @@
   <button id="playBtn">Play</button>
   <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; justify-content:center; max-width:550px;">
    <button id="sceneSelectBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">Scene Select</button>
+   <button id="flashAnimatorBtn" style="font-size:12px; padding:10px 20px; opacity:0.7; background:#f39c12; color:#fff;">⚡ Flash Animator</button>
    <button id="testAudioBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">TEST Audio</button>
    <button id="testVideoBtn" style="font-size:12px; padding:10px 20px; opacity:0.8; background:#1abc9c;">🎞️ Test Video Playlist</button>
    <button id="flashSceneBtn" style="font-size:12px; padding:10px 20px; opacity:0.85; background:#f39c12;">⚡ Flash Scene</button>
@@ -940,6 +942,15 @@
    <button id="videoCloseBtn" style="padding:10px 20px; background:#e74c3c; border:none; border-radius:6px; color:white; cursor:pointer; font-weight:600;">✕ Close</button>
   </div>
  </div>
+</div>
+
+<!-- Flash Animator Overlay -->
+<div id="flashAnimatorOverlay" class="flash-animator-overlay" aria-hidden="true" tabindex="-1">
+ <div class="flash-animator-overlay__chrome">
+  <div class="flash-animator-overlay__title">⚡ Flash Animator <span style="opacity:0.7; font-weight:400;">(alpha)</span></div>
+  <button id="flashAnimatorCloseBtn" class="flash-animator-overlay__close">Close</button>
+ </div>
+ <div id="flashAnimatorRoot" class="flash-animator-root"></div>
 </div>
 
 <!-- Import map for ES modules -->
