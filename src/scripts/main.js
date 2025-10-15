@@ -24,6 +24,7 @@ import { permissionManager } from './systems/PermissionManager.js';
 import { inputSystem } from './systems/InputSystem.js';
 
 const DEFAULT_AUTOSTART = false;
+const ENFORCE_INTERACTIVE_START = true;
 
 let toastTimeoutId = null;
 
@@ -327,6 +328,33 @@ function openSequenceComposer() {
   console.log('🎬 Sequence Composer opened');
 }
 
+function emphasizePlayButton(reason) {
+  const playBtn = document.getElementById('playBtn');
+  if (!playBtn) {
+    console.warn('⚠️ Unable to emphasise play button - element not found.');
+    return;
+  }
+
+  playBtn.disabled = false;
+  playBtn.classList.add('attention');
+  playBtn.setAttribute('data-autostart-pending', 'true');
+  if (typeof playBtn.focus === 'function') {
+    try {
+      playBtn.focus({ preventScroll: false });
+    } catch (focusError) {
+      playBtn.focus();
+    }
+  }
+
+  console.log(`⏸️ Experience waiting for manual start (${reason}).`);
+  showToast('Press Play to launch the experience');
+
+  window.setTimeout(() => {
+    playBtn.classList.remove('attention');
+    playBtn.removeAttribute('data-autostart-pending');
+  }, 4000);
+}
+
 async function handleAutoStart() {
   const params = new URLSearchParams(window.location.search);
   const autostartParam = params.get('autostart');
@@ -335,7 +363,16 @@ async function handleAutoStart() {
   const shouldAutostart = explicitDisable ? false : (explicitEnable || DEFAULT_AUTOSTART);
 
   if (!shouldAutostart) {
-    console.log('⏸️ Autostart disabled via query parameter. Waiting for user interaction.');
+    console.log('⏸️ Autostart disabled or not requested. Waiting for user interaction.');
+    if (autostartParam !== null) {
+      emphasizePlayButton('autostart disabled');
+    }
+    return;
+  }
+
+  if (ENFORCE_INTERACTIVE_START) {
+    console.log('⏸️ Autostart request detected but interactive gating is enforced.');
+    emphasizePlayButton('interactive gating enforced');
     return;
   }
 
