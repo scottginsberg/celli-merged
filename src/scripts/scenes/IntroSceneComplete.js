@@ -1649,6 +1649,7 @@ export class IntroSceneComplete {
     const afterimage = this.state.afterimagePass;
     const film = this.state.filmPass;
     const tri = this.state.triMesh;
+    const celliAge = t - cfg.loomworksEnd;
 
     if (phase === 'roll') {
       bloom.strength = 0.4;
