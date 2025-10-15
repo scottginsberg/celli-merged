@@ -2091,9 +2091,15 @@
   background: #1a1a1a;
   border-radius: 50%;
   pointer-events: none;
-  z-index: 2147483700;
+  z-index: 2147482950;
   opacity: 0;
-  box-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+  mix-blend-mode: screen;
+  filter: brightness(calc(0.65 + var(--chant-reactive, 0) * 0.9));
+  transition: filter 0.25s ease;
+}
+
+.ref-note-centered .impact-particle {
+  z-index: 2147483540;
 }
 
 .impact-particle.active {
