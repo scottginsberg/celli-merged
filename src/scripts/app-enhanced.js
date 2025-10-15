@@ -29,14 +29,18 @@ import { configSystem } from './systems/ConfigSystem.js';
 import { sequenceEngine } from './systems/SequenceEngine.js';
 
 // Import initialization
-import { 
-  initializeSystems, 
-  preloadAssets, 
-  createPlayerTuningUI, 
-  initializeDebugCommands 
+import {
+  initializeSystems,
+  preloadAssets,
+  createPlayerTuningUI,
+  initializeDebugCommands
 } from './init.js';
 
-console.log('%c🎨 Celli - Enhanced Scene System Loading...', 
+const CONSTRUCTION_STORAGE_KEY = 'celli:introConstructionComplete';
+let constructionCompleteCache = null;
+let sceneHooksRegistered = false;
+
+console.log('%c🎨 Celli - Enhanced Scene System Loading...',
   'background: #8ab4ff; color: #000; font-size: 18px; padding: 10px; font-weight: bold;');
 
 // Make THREE globally available
@@ -214,6 +218,7 @@ export async function startApp() {
 
     // Setup sequence engine hooks
     setupSequenceHooks();
+    setupSceneHooks();
 
     // Create player tuning UI (if enabled)
     if (configSystem.get('debug.enablePlayerTuning') !== false) {
@@ -307,6 +312,58 @@ function setupSequenceHooks() {
   });
 
   console.log('🔗 Sequence engine hooks configured');
+}
+
+function hasConstructionCompleted() {
+  if (constructionCompleteCache !== null) {
+    return constructionCompleteCache;
+  }
+
+  try {
+    const stored = window.localStorage?.getItem(CONSTRUCTION_STORAGE_KEY);
+    constructionCompleteCache = stored === 'true';
+  } catch (error) {
+    constructionCompleteCache = false;
+    console.warn('⚠️ Unable to read construction completion flag:', error);
+  }
+
+  return constructionCompleteCache;
+}
+
+function setupSceneHooks() {
+  if (sceneHooksRegistered) {
+    return;
+  }
+  sceneHooksRegistered = true;
+
+  window.addEventListener('celli:construction-complete', () => {
+    constructionCompleteCache = true;
+    try {
+      window.localStorage?.setItem(CONSTRUCTION_STORAGE_KEY, 'true');
+    } catch (error) {
+      console.warn('⚠️ Failed to persist construction completion from event:', error);
+    }
+  });
+
+  sceneManager.on('onSceneStart', ({ scene }) => {
+    if (scene !== 'intro') {
+      return;
+    }
+
+    const hasCompleted = hasConstructionCompleted();
+    const themeKey = hasCompleted ? 'theme2' : 'theme1';
+    const themeUrl = hasCompleted ? './theme2.mp3' : './theme1.mp3';
+
+    audioSystem.playMusic({
+      key: `music:${themeKey}`,
+      url: themeUrl,
+      loop: true,
+      fadeInDuration: 2.4,
+      volume: 0.65
+    }).catch((error) => {
+      console.warn(`⚠️ Failed to start ${themeKey} music:`, error);
+    });
+  });
 }
 
 // ============================================================================

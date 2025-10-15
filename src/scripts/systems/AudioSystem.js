@@ -9,6 +9,12 @@ export class AudioSystem {
     this.animaleseCtx = null;
     this.audioBuffers = new Map();
     this.initialized = false;
+    this.musicState = {
+      source: null,
+      gain: null,
+      key: null,
+      volume: 1
+    };
   }
 
   /**
@@ -253,6 +259,100 @@ export class AudioSystem {
       console.error('Failed to play audio buffer:', error);
       return null;
     }
+  }
+
+  async playMusic({ key, url, loop = true, volume = 0.6, fadeInDuration = 1.8 } = {}) {
+    const ctx = this.ensureContext();
+    if (!ctx) return null;
+
+    const cacheKey = key || url;
+    if (!cacheKey) {
+      console.warn('AudioSystem.playMusic requires a key or url');
+      return null;
+    }
+
+    let buffer = this.audioBuffers.get(cacheKey);
+    if (!buffer) {
+      const resolvedUrl = url || cacheKey;
+      buffer = await this.loadAudioBuffer(resolvedUrl, cacheKey);
+    }
+
+    if (!buffer) {
+      return null;
+    }
+
+    this.stopMusic({ fadeOutDuration: 0.2 });
+
+    try {
+      const source = ctx.createBufferSource();
+      const gainNode = ctx.createGain();
+
+      source.buffer = buffer;
+      source.loop = loop;
+
+      const now = ctx.currentTime;
+      const duration = Math.max(0.05, fadeInDuration ?? 0);
+
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(volume, now + duration);
+
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      source.start(now);
+
+      this.musicState = {
+        source,
+        gain: gainNode,
+        key: cacheKey,
+        volume
+      };
+
+      source.onended = () => {
+        if (!source.loop && this.musicState.source === source) {
+          this.musicState = {
+            source: null,
+            gain: null,
+            key: null,
+            volume: 1
+          };
+        }
+      };
+
+      return source;
+    } catch (error) {
+      console.error('Failed to start music playback:', error);
+      return null;
+    }
+  }
+
+  stopMusic({ fadeOutDuration = 0.5 } = {}) {
+    const ctx = this.audioCtx;
+    const { source, gain } = this.musicState;
+
+    if (!ctx || !source || !gain) {
+      return;
+    }
+
+    const now = ctx.currentTime;
+    const duration = Math.max(0.05, fadeOutDuration ?? 0);
+
+    try {
+      const currentValue = gain.gain.value;
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(currentValue, now);
+      gain.gain.linearRampToValueAtTime(0, now + duration);
+      source.stop(now + duration);
+    } catch (error) {
+      console.warn('AudioSystem.stopMusic failed:', error);
+    }
+
+    this.musicState = {
+      source: null,
+      gain: null,
+      key: null,
+      volume: 1
+    };
   }
 
   /**
