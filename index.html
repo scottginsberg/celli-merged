@@ -1220,7 +1220,6 @@
   const refFeedbackLink = document.getElementById('refFeedbackLink');
   const LOOM_AUDIO_STATUS_TEXT = 'Streaming CallYouByMyName.mp3';
   const BETA_FOCUS_FORM_URL = './templates/componentized/beta-focus-form.html';
-  let betaFormRedirectListenerAttached = false;
   let betaFormRedirectTimeoutId = null;
 
   if (refFeedbackLink) {
@@ -1519,7 +1518,7 @@
     particles: [],
     animationId: null,
     time: 0,
-    enabled: true,
+    enabled: false,
     lastTimestamp: null,
     pendingElevation: false,
     focusX: null,
@@ -1810,6 +1809,16 @@
   }
 
   function initTriColorParticles() {
+    if (!triColorState.enabled) {
+      if (triColorState.canvas && triColorState.canvas.parentNode) {
+        triColorState.canvas.parentNode.removeChild(triColorState.canvas);
+      }
+      triColorState.canvas = null;
+      triColorState.ctx = null;
+      triColorState.particles = [];
+      return;
+    }
+
     if (triColorState.canvas) {
       resizeTriColorCanvas();
       return;
@@ -1856,6 +1865,12 @@
       }
       triColorState.canvas.style.display = 'none';
       triColorState.lastTimestamp = null;
+      if (triColorState.canvas.parentNode) {
+        triColorState.canvas.parentNode.removeChild(triColorState.canvas);
+      }
+      triColorState.canvas = null;
+      triColorState.ctx = null;
+      triColorState.particles = [];
     }
   }
 
@@ -2229,7 +2244,7 @@
           <span>Show light layers</span>
         </label>
         <label class="debug-toggle">
-          <input type="checkbox" id="debugToggleTriColor" checked>
+          <input type="checkbox" id="debugToggleTriColor">
           <span>Tri-color particles</span>
         </label>
         <label class="debug-toggle">
@@ -2335,7 +2350,11 @@
     updatePinLightCountDisplay();
   }
 
-  initTriColorParticles();
+  if (triColorState.enabled) {
+    initTriColorParticles();
+  } else {
+    setTriColorEnabled(false);
+  }
   createDebugPanel();
 
   function createGlitchState() {
@@ -3379,28 +3398,6 @@
     }, safeDelay);
   }
 
-  function attachBetaFormRedirectListener(triangleElement) {
-    if (!triangleElement || betaFormRedirectListenerAttached) {
-      return;
-    }
-
-    betaFormRedirectListenerAttached = true;
-    const handleTriangleFlightEnd = (event) => {
-      if (event && event.animationName && event.animationName !== 'triangle-flight') {
-        return;
-      }
-
-      triangleElement.removeEventListener('animationend', handleTriangleFlightEnd);
-      scheduleBetaFormRedirect(350);
-    };
-
-    triangleElement.addEventListener('animationend', handleTriangleFlightEnd);
-
-    window.setTimeout(() => {
-      scheduleBetaFormRedirect(0);
-    }, 4200);
-  }
-
   function startGoldenHoldSequence() {
     if (postTermsSequenceStarted) {
       return;
@@ -3580,6 +3577,74 @@
     };
   }
 
+  function fadeAndRemoveElement(element, removeFromDom = false) {
+    if (!element) {
+      return;
+    }
+
+    element.classList.add('referral-fade');
+    element.setAttribute('aria-hidden', 'true');
+
+    if (removeFromDom) {
+      window.setTimeout(() => {
+        if (element && element.parentNode) {
+          element.parentNode.removeChild(element);
+        }
+      }, 480);
+    }
+  }
+
+  function teardownReferralStageLayers() {
+    cancelExtraInviteSchedule();
+
+    document.querySelectorAll('.loom-invite-clone, .loom-invite-pin').forEach((node) => {
+      fadeAndRemoveElement(node, true);
+    });
+
+    const swarm = document.getElementById('loomInviteSwarm');
+    if (swarm) {
+      fadeAndRemoveElement(swarm, true);
+    }
+
+    if (refPanel) {
+      fadeAndRemoveElement(refPanel);
+    }
+
+    if (refSidebar) {
+      fadeAndRemoveElement(refSidebar);
+    }
+
+    if (darkeningOverlay) {
+      darkeningOverlay.classList.add('referral-fade');
+      darkeningOverlay.style.opacity = '0';
+    }
+
+    if (baseDarkness) {
+      baseDarkness.classList.add('referral-fade');
+      baseDarkness.style.opacity = '0';
+    }
+
+    document.querySelectorAll('.light-ray, .burst-beam, .darkening-hole').forEach((node) => {
+      fadeAndRemoveElement(node, true);
+    });
+
+    const tooltip = document.querySelector('.ref-tooltip');
+    if (tooltip) {
+      fadeAndRemoveElement(tooltip, true);
+    }
+
+    const fauxCursor = document.getElementById('customCursor');
+    if (fauxCursor) {
+      fadeAndRemoveElement(fauxCursor);
+    }
+
+    window.setTimeout(() => {
+      document.querySelectorAll('.referral-fade').forEach((node) => {
+        node.classList.add('referral-hidden');
+      });
+    }, 520);
+  }
+
   async function runVoxelShatterSequence(sourceCanvas) {
     if (!sourceCanvas) {
       return false;
@@ -3654,24 +3719,20 @@
           }, 1600);
           overlayElement.classList.add('dust-complete');
           triangleElement.classList.add('into-white');
-          startWarpSequence(overlayElement, triangleElement);
         });
+        teardownReferralStageLayers();
       } else {
+        teardownReferralStageLayers();
         overlayElement.classList.add('dust-complete');
         triangleElement.classList.add('into-white');
-        setTimeout(() => startWarpSequence(overlayElement, triangleElement), 600);
       }
     } else {
+      teardownReferralStageLayers();
       overlayElement.classList.add('dust-complete');
       triangleElement.classList.add('into-white');
-      startWarpSequence(overlayElement, triangleElement);
     }
 
-    triangleElement.classList.add('triangle-flight');
-    attachBetaFormRedirectListener(triangleElement);
-    setTimeout(() => {
-      triangleElement.classList.add('into-white');
-    }, 900);
+    startWarpSequence(overlayElement, triangleElement);
   }
 
   function runDustAnimation(sourceCanvas, targetCanvas, whiteoutElement, onComplete) {
@@ -3773,38 +3834,48 @@
     }
 
     overlayElement.classList.add('warp-drive');
+    overlayElement.classList.add('blackout-stage');
+    document.body.classList.add('referrer-blackout');
 
-    const existingTunnel = overlayElement.querySelector('.warp-tunnel');
-    if (!existingTunnel) {
-      const warpTunnel = document.createElement('div');
-      warpTunnel.className = 'warp-tunnel';
-      overlayElement.appendChild(warpTunnel);
-      requestAnimationFrame(() => warpTunnel.classList.add('active'));
+    window.requestAnimationFrame(() => {
+      overlayElement.classList.add('blackout-active');
+    });
+
+    let frameBurst = overlayElement.querySelector('.frame-burst');
+    if (!frameBurst) {
+      frameBurst = document.createElement('div');
+      frameBurst.className = 'frame-burst';
+      overlayElement.appendChild(frameBurst);
+      window.requestAnimationFrame(() => frameBurst.classList.add('active'));
     }
 
-    const warpStars = document.createElement('div');
-    warpStars.className = 'warp-stars';
-    overlayElement.appendChild(warpStars);
-    requestAnimationFrame(() => warpStars.classList.add('active'));
-
-    const depthLines = document.createElement('div');
-    depthLines.className = 'warp-depth-lines';
-    for (let i = 0; i < 7; i++) {
-      const span = document.createElement('span');
-      span.style.setProperty('--depth-index', i);
-      depthLines.appendChild(span);
+    let portal = overlayElement.querySelector('.beta-form-portal');
+    if (!portal) {
+      portal = document.createElement('div');
+      portal.className = 'beta-form-portal';
+      const glow = document.createElement('div');
+      glow.className = 'beta-form-portal__glow';
+      portal.appendChild(glow);
+      overlayElement.appendChild(portal);
+      window.requestAnimationFrame(() => portal.classList.add('active'));
+    } else {
+      window.requestAnimationFrame(() => portal.classList.add('active'));
     }
-    overlayElement.appendChild(depthLines);
-    requestAnimationFrame(() => depthLines.classList.add('active'));
 
     const trailSpans = triangleElement.querySelectorAll('.golden-trail-pack span');
     trailSpans.forEach((span, index) => {
       span.style.setProperty('--i', index);
     });
 
-    setTimeout(() => {
-      triangleElement.classList.add('warp-orientation');
-    }, 350);
+    triangleElement.classList.add('beta-card');
+    triangleElement.classList.add('into-white');
+    triangleElement.classList.add('triangle-flight');
+
+    window.setTimeout(() => {
+      triangleElement.classList.add('triangle-collapse-complete');
+    }, 1400);
+
+    scheduleBetaFormRedirect(1800);
   }
   
   // Magnetic cursor effect
