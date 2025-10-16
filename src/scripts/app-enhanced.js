@@ -16,6 +16,7 @@ import { sceneManager } from './core/SceneManager.js';
 import { IntroSceneComplete } from './scenes/IntroSceneComplete.js';
 import { VisiCalcScene } from './scenes/VisiCalcScene.js';
 import { CityScene } from './scenes/CityScene.js';
+import { CelliRealScene } from './scenes/CelliRealScene.js';
 
 // Import GUI systems
 import { quoteSystem } from './gui/QuoteSystem.js';
@@ -90,11 +91,14 @@ export function registerAllScenes() {
   // Register Complete Intro Scene (use this for faithful port)
   sceneManager.registerScene('intro', new IntroSceneComplete());
   
-  // Register VisiCalc Scene  
+  // Register VisiCalc Scene
   sceneManager.registerScene('visicalc', new VisiCalcScene());
-  
+
   // Register City Scene
   sceneManager.registerScene('city', new CityScene());
+
+  // Register CelliReal voxel world scene
+  sceneManager.registerScene('cellireal', new CelliRealScene());
   
   // TODO: Register more scenes as they're extracted
   // sceneManager.registerScene('end3', new End3Scene());

@@ -26,8 +26,73 @@ import { inputSystem } from './systems/InputSystem.js';
 
 const DEFAULT_AUTOSTART = false;
 const ENFORCE_INTERACTIVE_START = true;
+const SCENE_MODE_STORAGE_KEY = 'celli:sceneMode';
+const DEFAULT_SCENE_MODE = 'template';
+
+let currentSceneMode = DEFAULT_SCENE_MODE;
 
 let toastTimeoutId = null;
+
+function readStoredSceneMode() {
+  try {
+    const stored = window.localStorage?.getItem(SCENE_MODE_STORAGE_KEY);
+    if (stored === 'template' || stored === 'component') {
+      return stored;
+    }
+  } catch (error) {
+    console.warn('⚠️ Unable to read scene mode preference:', error);
+  }
+
+  return DEFAULT_SCENE_MODE;
+}
+
+function updateSceneModeButtons() {
+  const buttons = document.querySelectorAll('.mode-toggle');
+  buttons.forEach((button) => {
+    const buttonMode = button.dataset.mode;
+    const isActive = buttonMode === currentSceneMode;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    if (isActive) {
+      button.style.backgroundColor = '#4a7cff';
+      button.style.borderColor = '#6a9cff';
+      button.style.color = '#fff';
+    } else {
+      button.style.backgroundColor = '#2a2a2f';
+      button.style.borderColor = '#444';
+      button.style.color = '#ddd';
+    }
+  });
+}
+
+function setSceneMode(mode, { persist = true } = {}) {
+  if (mode !== 'template' && mode !== 'component') {
+    return;
+  }
+
+  currentSceneMode = mode;
+
+  if (persist) {
+    try {
+      window.localStorage?.setItem(SCENE_MODE_STORAGE_KEY, mode);
+    } catch (error) {
+      console.warn('⚠️ Unable to persist scene mode preference:', error);
+    }
+  }
+
+  updateSceneModeButtons();
+}
+
+function getSceneMode() {
+  return currentSceneMode;
+}
+
+function initializeSceneMode() {
+  currentSceneMode = readStoredSceneMode();
+  updateSceneModeButtons();
+}
+
+window.getCelliSceneMode = getSceneMode;
 
 function showToast(message, duration = 3000) {
   const toastEl = document.getElementById('toast');
@@ -104,6 +169,7 @@ let rootVideoPlaylistCache = null;
 let rootVideoDiscoveryPromise = null;
 let videoPlaylistUI = null;
 let activeVideoPlaylist = null;
+let voxelWorldRedirectInProgress = false;
 
 const ROOT_VIDEO_FALLBACKS = [
   'intro.mp4',
@@ -451,6 +517,28 @@ function setupButtons() {
         option.dataset.originalLocked = option.classList.contains('locked') ? 'true' : 'false';
       }
     });
+  }
+
+  const modeToggleButtons = Array.from(document.querySelectorAll('.mode-toggle'));
+  if (modeToggleButtons.length) {
+    initializeSceneMode();
+
+    modeToggleButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const mode = button.dataset.mode || DEFAULT_SCENE_MODE;
+        if (mode === getSceneMode()) {
+          return;
+        }
+
+        setSceneMode(mode);
+        const message = mode === 'component'
+          ? 'Component mode enabled — scenes will load inside the app.'
+          : 'Template mode enabled — scenes will open as standalone templates.';
+        showToast(message);
+      });
+    });
+  } else {
+    currentSceneMode = DEFAULT_SCENE_MODE;
   }
 
   // Play button - starts the app and begins intro sequence
@@ -809,6 +897,48 @@ async function handleAutoStart() {
     }
   }
 }
+
+window.addEventListener('celli:launchVoxelWorld', async (event) => {
+  if (voxelWorldRedirectInProgress) {
+    return;
+  }
+
+  voxelWorldRedirectInProgress = true;
+
+  const requestedMode = event?.detail?.mode;
+  const mode = (requestedMode === 'template' || requestedMode === 'component')
+    ? requestedMode
+    : getSceneMode();
+
+  if (mode === 'component') {
+    try {
+      if (!experienceStarted && !experienceStarting) {
+        await startExperience({ reason: 'voxel-world-request' });
+      }
+
+      const transitioned = await sceneManager.transitionTo('cellireal');
+      if (!transitioned) {
+        console.warn('⚠️ Scene manager refused to transition to cellireal');
+        showToast('Unable to launch voxel world scene.');
+      }
+    } catch (error) {
+      console.error('❌ Failed to launch voxel world scene:', error);
+      showToast(`Voxel world failed: ${error.message || error}`);
+    } finally {
+      voxelWorldRedirectInProgress = false;
+    }
+
+    return;
+  }
+
+  try {
+    window.location.href = './templates/componentized/cellireal-complete.html';
+    voxelWorldRedirectInProgress = false;
+  } catch (error) {
+    console.error('❌ Failed to redirect to voxel world template:', error);
+    voxelWorldRedirectInProgress = false;
+  }
+});
 
 window.addEventListener('error', (event) => {
   console.error('💥 Global error captured:', event.message, event.error);
