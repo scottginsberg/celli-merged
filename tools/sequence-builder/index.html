@@ -1791,6 +1791,7 @@
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
     
     // Import sequence builder core for auto-ingest
     let sequenceBuilder = null;
@@ -1811,6 +1812,37 @@
 
     console.log('🎬 Unified Sequence Builder Starting...');
 
+    let propLibrary = null;
+    try {
+      propLibrary = await import('../../src/assets/js/props/index.js');
+      const totalProps = propLibrary?.listProps?.()?.length ?? 0;
+      console.log(`✅ Prop library loaded (${totalProps} asset${totalProps === 1 ? '' : 's'})`);
+    } catch (error) {
+      console.warn('⚠️ Could not load prop library for builder viewport:', error);
+    }
+
+    let avatarFactory = null;
+    try {
+      const avatarModule = await import('../../src/scripts/systems/AvatarFactory.js');
+      avatarFactory = avatarModule?.AvatarFactory || avatarModule?.default || null;
+      if (avatarFactory) {
+        console.log('✅ AvatarFactory loaded');
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not load AvatarFactory:', error);
+    }
+
+    let arrayaFactory = null;
+    try {
+      const arrayaModule = await import('../../src/scripts/systems/ArrayaAvatarFactory.js');
+      arrayaFactory = arrayaModule?.ArrayaAvatarFactory || arrayaModule?.default || null;
+      if (arrayaFactory?.create) {
+        console.log('✅ ArrayaAvatarFactory loaded');
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not load ArrayaAvatarFactory:', error);
+    }
+
     let landingPageLibrary = [];
     try {
       const landingModule = await import('../../src/scripts/scenes/components/ReferrerLandingPages.js');
@@ -1823,9 +1855,11 @@
     // Scene Manager Data - Hierarchical scene entities
     const sceneData = {
       "Scene Objects": [
-        { 
-          name: "celli", 
+        {
+          id: "avatar.celli",
+          name: "celli",
           icon: "🔷",
+          previewId: "avatar:celli",
           components: [
             { name: "position", type: "vector3", path: "celli.transform.position" },
             { name: "rotation", type: "vector3", path: "celli.transform.rotation" },
@@ -1860,6 +1894,42 @@
             { name: "velocity", type: "vector3", path: "player.velocity" },
             { name: "health", type: "number", path: "player.health" },
             { name: "energy", type: "number", path: "player.energy" }
+          ]
+        },
+        {
+          id: "avatar.arraya",
+          name: "Arraya Avatar",
+          icon: "🪱",
+          previewId: "avatar:arraya",
+          components: [
+            { name: "position", type: "vector3", path: "arraya.transform.position" },
+            { name: "rotation", type: "vector3", path: "arraya.transform.rotation" },
+            { name: "scale", type: "vector3", path: "arraya.transform.scale" },
+            { name: "segments", type: "number", path: "arraya.userData.segmentCount" }
+          ]
+        },
+        {
+          id: "avatar.bob",
+          name: "Bob Avatar",
+          icon: "🟦",
+          previewId: "avatar:bob",
+          components: [
+            { name: "position", type: "vector3", path: "bob.transform.position" },
+            { name: "rotation", type: "vector3", path: "bob.transform.rotation" },
+            { name: "scale", type: "vector3", path: "bob.transform.scale" },
+            { name: "glow", type: "number", path: "bob.userData.glowAmount" }
+          ]
+        },
+        {
+          id: "avatar.palette",
+          name: "Pal-ette Avatar",
+          icon: "🟩",
+          previewId: "avatar:palette",
+          components: [
+            { name: "position", type: "vector3", path: "palette.transform.position" },
+            { name: "rotation", type: "vector3", path: "palette.transform.rotation" },
+            { name: "scale", type: "vector3", path: "palette.transform.scale" },
+            { name: "cellPulse", type: "number", path: "palette.userData.pulseStrength" }
           ]
         }
       ],
@@ -1957,6 +2027,48 @@
             { name: "scale", type: "vector3", path: "props.filmStrip.scale" },
             { name: "opacity", type: "number", path: "props.filmStrip.opacity" }
           ]
+        },
+        {
+          id: "chessPawn",
+          name: "Chess Pawn",
+          icon: "♟️",
+          previewId: "chessPawn",
+          description: "Storybook pawn token with a glowing collar and warm lacquer finish.",
+          tags: ["tabletop", "pawn", "board"],
+          components: [
+            { name: "position", type: "vector3", path: "props.chessPawn.position" },
+            { name: "rotation", type: "vector3", path: "props.chessPawn.rotation" },
+            { name: "scale", type: "vector3", path: "props.chessPawn.scale" },
+            { name: "visible", type: "boolean", path: "props.chessPawn.visible" }
+          ]
+        },
+        {
+          id: "dice",
+          name: "Dice",
+          icon: "🎲",
+          previewId: "dice",
+          description: "Beveled six-sided die with inset pips and specular rim highlight.",
+          tags: ["tabletop", "dice", "game"],
+          components: [
+            { name: "position", type: "vector3", path: "props.dice.position" },
+            { name: "rotation", type: "vector3", path: "props.dice.rotation" },
+            { name: "scale", type: "vector3", path: "props.dice.scale" },
+            { name: "visible", type: "boolean", path: "props.dice.visible" }
+          ]
+        },
+        {
+          id: "playingCard",
+          name: "Playing Card",
+          icon: "🂡",
+          previewId: "playingCard",
+          description: "Rounded card with diamond pip detailing and contrasting backer.",
+          tags: ["tabletop", "card", "deck"],
+          components: [
+            { name: "position", type: "vector3", path: "props.playingCard.position" },
+            { name: "rotation", type: "vector3", path: "props.playingCard.rotation" },
+            { name: "scale", type: "vector3", path: "props.playingCard.scale" },
+            { name: "visible", type: "boolean", path: "props.playingCard.visible" }
+          ]
         }
       ],
       "Landing Pages": landingPageLibrary.map(page => ({
@@ -1990,8 +2102,9 @@
 
     // ===== SCENE VIEWPORT MANAGER =====
     class SceneViewportManager {
-      constructor(canvas) {
+      constructor(canvas, options = {}) {
         this.canvas = canvas;
+        this.options = options;
         this.scene = null;
         this.camera = null;
         this.renderer = null;
@@ -2006,9 +2119,20 @@
         this.flatMaterialCache = new Map();
         this.lightingMode = 'default';
         this.flatLightingRig = null;
+        this.library = options.propLibrary || propLibrary || null;
+        this.avatarFactory = options.avatarFactory || avatarFactory || null;
+        this.arrayaFactory = options.arrayaFactory || arrayaFactory || null;
+        this.roundedBoxGeometry = options.roundedBoxGeometry || RoundedBoxGeometry;
+        this.sceneData = options.sceneData || sceneData;
+        this.previewRotation = options.previewRotation ?? Math.PI / 6;
+        this.previewSpacing = options.previewSpacing || { x: 1.2, z: 1.05 };
       }
 
       init() {
+        this.library = this.library || propLibrary || null;
+        this.avatarFactory = this.avatarFactory || avatarFactory || null;
+        this.arrayaFactory = this.arrayaFactory || arrayaFactory || null;
+
         // Try to get live scene from parent window
         const liveScene = this.getLiveScene();
 
@@ -2341,6 +2465,13 @@
         this.flatMaterialCache = new Map();
         this.lightingMode = 'default';
         this.flatLightingRig = null;
+        this.sceneData = meta.sceneData || sceneData;
+        this.library = meta.assetLibrary || propLibrary || null;
+        this.avatarFactory = meta.avatarFactory || avatarFactory || null;
+        this.arrayaFactory = meta.arrayaFactory || arrayaFactory || null;
+        this.roundedBoxGeometry = meta.roundedBoxGeometry || RoundedBoxGeometry;
+        this.previewRotation = meta.previewRotation ?? Math.PI / 6;
+        this.previewSpacing = meta.previewSpacing || { x: 1.2, z: 1.05 };
       }
 
       async init() {
@@ -2350,8 +2481,12 @@
         }
 
         try {
-          this.library = await import('../../src/assets/js/props/index.js');
-          console.log('🎨 Prop library loaded');
+          if (!this.library) {
+            this.library = await import('../../src/assets/js/props/index.js');
+            console.log('🎨 Prop library loaded');
+          } else {
+            console.log('🎨 Prop library injected');
+          }
         } catch (error) {
           console.warn('⚠️ Prop library could not be loaded:', error);
           this._updateMeta({
@@ -2437,22 +2572,28 @@
       }
 
       showProp(id, metaOverrides = {}) {
-        if (!this.library) {
-          this._updateMeta({
-            title: 'Prop library not loaded',
-            description: 'Assets could not be loaded. Check console for details.',
-            tags: ['error'],
-          });
-          return;
-        }
+        if (!this.scene) return;
 
-        const propDefinition = this.library.getPropDefinition?.(id);
-        const instance = this.library.createProp?.(id);
+        const stubNode = {
+          id: `preview-${id}`,
+          data: {
+            previewId: id,
+            previewSize: metaOverrides.previewSize || 2.4,
+            previewRotation: metaOverrides.rotationY ?? this.previewRotation,
+          }
+        };
+
+        const propDefinition = this.library?.getPropDefinition?.(id) || this._findSceneEntityMeta(id);
+        let instance = this.library?.createProp?.(id);
+
+        if (!instance) {
+          instance = this._buildAssetInstance(id, stubNode);
+        }
 
         if (!instance) {
           this._updateMeta({
             title: 'Preview unavailable',
-            description: 'This prop has not been implemented yet.',
+            description: 'This asset has not been implemented yet.',
             tags: ['todo'],
           });
           return;
@@ -2462,13 +2603,23 @@
           this._disposeCurrentProp();
         }
 
-        this.currentProp = instance;
-        this.scene.add(instance);
+        const container = this._wrapAssetForPreview(instance, stubNode, {
+          targetSize: stubNode.data.previewSize,
+          rotationY: stubNode.data.previewRotation,
+          baseOffsetY: 0,
+          maxScale: 3.2,
+        });
 
-        this._focusOnProp(instance);
+        container.position.set(0, 0, 0);
+        container.rotation.y = stubNode.data.previewRotation ?? this.previewRotation;
+
+        this.currentProp = container;
+        this.scene.add(container);
+
+        this._focusOnProp(container);
 
         this._updateMeta({
-          title: metaOverrides.title || propDefinition?.name || 'Prop Preview',
+          title: metaOverrides.title || propDefinition?.name || 'Asset Preview',
           description: metaOverrides.description || propDefinition?.description || '',
           tags: metaOverrides.tags || propDefinition?.tags || [],
         });
@@ -2549,8 +2700,15 @@
 
         if (marker.type === 'mesh' && marker.mesh) {
           this.scene.remove(marker.mesh);
-          marker.mesh.geometry?.dispose?.();
-          marker.mesh.material?.dispose?.();
+          marker.mesh.traverse((child) => {
+            if (!child.isMesh) return;
+            child.geometry?.dispose?.();
+            if (Array.isArray(child.material)) {
+              child.material.forEach((mat) => mat?.dispose?.());
+            } else {
+              child.material?.dispose?.();
+            }
+          });
         }
 
         if (marker.type === 'highlight') {
@@ -2596,6 +2754,11 @@
       }
 
       _createPreviewMesh(node, color) {
+        const marker = this._createAssetPreview(node?.data?.previewId, node, { color });
+        if (marker) {
+          return marker;
+        }
+
         const geometry = new THREE.BoxGeometry(0.35, 0.35, 0.35);
         const emissiveColor = new THREE.Color(color).multiplyScalar(0.35);
         const material = new THREE.MeshStandardMaterial({
@@ -2614,6 +2777,139 @@
 
         this.scene.add(mesh);
         return { type: 'mesh', mesh };
+      }
+
+      _createAssetPreview(previewId, node, options = {}) {
+        if (!this.scene) return null;
+
+        let id = previewId;
+        if (!id && node?.data?.entityName) {
+          const meta = this._findSceneEntityMeta(node.data.entityName);
+          id = meta?.previewId || meta?.id || id;
+        }
+
+        if (!id) return null;
+
+        const asset = this._buildAssetInstance(id, node);
+        if (!asset) return null;
+
+        const container = this._wrapAssetForPreview(asset, node, {
+          rotationY: options.rotationY ?? node?.data?.previewRotation ?? this.previewRotation,
+          targetSize: node?.data?.previewSize ?? 1.1,
+          baseOffsetY: 0,
+        });
+
+        const spacingX = this.previewSpacing?.x ?? 1.2;
+        const spacingZ = this.previewSpacing?.z ?? 1.0;
+        const row = Math.floor(this.previewGridIndex / 5);
+        const col = this.previewGridIndex % 5;
+        container.position.set(-2 + col * spacingX, 0, -1.8 - row * spacingZ);
+        container.userData.nodeId = node?.id;
+        container.userData.previewId = id;
+
+        this.previewGridIndex += 1;
+        this.scene.add(container);
+
+        return { type: 'mesh', mesh: container, previewId: id };
+      }
+
+      _buildAssetInstance(previewId, node) {
+        if (!previewId && node?.data?.entityName) {
+          const meta = this._findSceneEntityMeta(node.data.entityName);
+          previewId = meta?.previewId || meta?.id || previewId;
+        }
+
+        if (!previewId) return null;
+
+        if (previewId.startsWith('avatar:')) {
+          return this._createAvatarPreview(previewId, node);
+        }
+
+        const options = node?.data?.propOptions || {};
+        if (this.library?.createProp) {
+          const instance = this.library.createProp(previewId, options);
+          if (instance) {
+            return instance;
+          }
+        }
+
+        return null;
+      }
+
+      _wrapAssetForPreview(asset, node, options = {}) {
+        const container = new THREE.Group();
+        container.name = `PreviewContainer_${node?.id ?? 'asset'}`;
+        container.add(asset);
+
+        const box = new THREE.Box3().setFromObject(asset);
+        if (!isFinite(box.min.x) || !isFinite(box.max.x)) {
+          return container;
+        }
+
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
+        box.getSize(size);
+        box.getCenter(center);
+
+        asset.position.x -= center.x;
+        asset.position.z -= center.z;
+        asset.position.y -= box.min.y;
+
+        const targetSize = options.targetSize ?? node?.data?.previewSize ?? 1.1;
+        const maxDim = Math.max(size.x, size.y, size.z) || 1;
+        const maxScale = options.maxScale ?? 2.2;
+        const scale = Math.min(targetSize / maxDim, maxScale);
+        container.scale.setScalar(scale);
+
+        container.rotation.y = options.rotationY ?? node?.data?.previewRotation ?? this.previewRotation;
+        container.position.y = options.baseOffsetY ?? 0;
+        container.userData.nodeId = node?.id;
+
+        return container;
+      }
+
+      _findSceneEntityMeta(name) {
+        if (!name || !this.sceneData) return null;
+        const lower = name.toLowerCase();
+        for (const category of Object.keys(this.sceneData)) {
+          const entities = this.sceneData[category];
+          if (!Array.isArray(entities)) continue;
+          const match = entities.find((entity) => {
+            const entityName = entity.name?.toLowerCase();
+            const entityId = entity.id?.toLowerCase();
+            return entityName === lower || entityId === lower;
+          });
+          if (match) return match;
+        }
+        return null;
+      }
+
+      _createAvatarPreview(previewId) {
+        if (previewId === 'avatar:celli' && this.avatarFactory?.createCelli) {
+          const avatar = this.avatarFactory.createCelli(THREE, this.roundedBoxGeometry);
+          avatar.name = avatar.name || 'CelliAvatar';
+          return avatar;
+        }
+
+        if (previewId === 'avatar:bob' && this.avatarFactory?.createBob) {
+          const avatar = this.avatarFactory.createBob(THREE);
+          avatar.name = avatar.name || 'BobAvatar';
+          return avatar;
+        }
+
+        if (previewId === 'avatar:palette' && this.avatarFactory?.createPalette) {
+          const avatar = this.avatarFactory.createPalette(THREE);
+          avatar.name = avatar.name || 'PaletteAvatar';
+          return avatar;
+        }
+
+        if (previewId === 'avatar:arraya' && this.arrayaFactory?.create) {
+          const avatar = this.arrayaFactory.create(THREE);
+          avatar.name = avatar.name || 'ArrayaAvatar';
+          return avatar;
+        }
+
+        return null;
       }
 
       _highlightSceneObject(name, nodeId, color) {
@@ -2838,6 +3134,11 @@
       'clearNodePreviews',
       '_getNodeColor',
       '_createPreviewMesh',
+      '_createAssetPreview',
+      '_buildAssetInstance',
+      '_wrapAssetForPreview',
+      '_findSceneEntityMeta',
+      '_createAvatarPreview',
       '_highlightSceneObject',
       '_cacheOriginalMaterial',
       '_restoreOriginalMaterials',
@@ -3679,7 +3980,15 @@
 
         // Initialize scene viewport
         const canvas = document.getElementById('sceneCanvas');
-        this.viewportManager = new SceneViewportManager(canvas);
+        this.viewportManager = new SceneViewportManager(canvas, {
+          propLibrary,
+          avatarFactory,
+          arrayaFactory,
+          roundedBoxGeometry: RoundedBoxGeometry,
+          sceneData,
+          previewRotation: Math.PI / 6,
+          previewSpacing: { x: 1.2, z: 1.05 }
+        });
         this.viewportManager.init();
         window.viewportManager = this.viewportManager;
           console.log('✅ Scene viewport initialized');
@@ -3696,7 +4005,13 @@
         this.propPreviewer = new PropPreviewer(this.ui.propPreviewCanvas, {
           titleEl: this.ui.propPreviewTitle,
           descriptionEl: this.ui.propPreviewDescription,
-          tagsEl: this.ui.propPreviewTags
+          tagsEl: this.ui.propPreviewTags,
+          assetLibrary: propLibrary,
+          avatarFactory,
+          arrayaFactory,
+          roundedBoxGeometry: RoundedBoxGeometry,
+          sceneData,
+          previewSpacing: { x: 1.2, z: 1.05 }
         });
         await this.propPreviewer.init();
         window.propPreviewer = this.propPreviewer;
@@ -3947,6 +4262,9 @@
       
       _addObjectNode(entityName, category) {
         console.log(`Adding object node for: ${entityName} (${category})`);
+        const entities = sceneData[category] || [];
+        const entityMeta = entities.find(e => e.name === entityName);
+        const previewId = entityMeta?.previewId || entityMeta?.id || null;
         const baseData = {
           speaker: entityName,
           text: `Object node for ${entityName}`,
@@ -3955,7 +4273,12 @@
           duration: 1.5,
           nodeType: 'object',
           entityName,
-          category
+          category,
+          previewId,
+          entityId: entityMeta?.id || entityName,
+          icon: entityMeta?.icon,
+          description: entityMeta?.description,
+          propOptions: entityMeta?.defaultOptions || {}
         };
 
         if (this.nodeGraphManager) {

@@ -36,6 +36,42 @@ export const PROP_CATALOG = [
       cellCount: 4,
     },
   },
+  {
+    id: 'chessPawn',
+    name: 'Chess Pawn',
+    icon: '♟️',
+    description:
+      'Polished tabletop pawn with a luminous collar and storybook silhouette ready for board overlays.',
+    tags: ['tabletop', 'pawn', 'board'],
+    category: 'Tabletop',
+    defaultOptions: {
+      scale: 1,
+    },
+  },
+  {
+    id: 'dice',
+    name: 'Dice',
+    icon: '🎲',
+    description:
+      'Beveled six-sided die with inset pips and subtle edge bloom for tactile scene dressing.',
+    tags: ['tabletop', 'dice', 'games'],
+    category: 'Tabletop',
+    defaultOptions: {
+      scale: 1,
+    },
+  },
+  {
+    id: 'playingCard',
+    name: 'Playing Card',
+    icon: '🂡',
+    description:
+      'Rounded-edge playing card with a dual-tone backer and diamond pip detailing.',
+    tags: ['tabletop', 'card', 'games'],
+    category: 'Tabletop',
+    defaultOptions: {
+      scale: 1,
+    },
+  },
 ];
 
 export function findPropMeta(id) {
