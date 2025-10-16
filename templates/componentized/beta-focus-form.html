@@ -37,7 +37,90 @@
       display: grid;
       gap: clamp(1.5rem, 4vw, 2rem);
       box-shadow: 0 0 0 10px #000, 0 0 38px rgba(255, 255, 255, 0.16);
-      transition: transform 0.18s ease;
+      transition: transform 0.18s ease, border-color 0.6s ease;
+    }
+
+    .form-panel.fade-out {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .focus-form {
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .form-panel.fade-out .focus-form {
+      opacity: 0;
+      transform: scale(0.96);
+      pointer-events: none;
+    }
+
+    .visualizer-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(1.5rem, 4vw, 2.25rem);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.6s ease;
+      padding: clamp(1.5rem, 4vw, 2.5rem);
+      z-index: 2;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.75) 100%);
+    }
+
+    .visualizer-overlay.active {
+      opacity: 1;
+    }
+
+    .visualizer-selections {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .selection-burst {
+      position: relative;
+      padding: 0.75rem 1.5rem;
+      border: 2px solid rgba(255, 255, 255, 0.65);
+      color: #fff;
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 18px rgba(255, 255, 255, 0.2);
+      animation: selectionBurst 1.9s ease-out var(--burst-delay, 0ms) infinite;
+      backdrop-filter: blur(6px);
+    }
+
+    @keyframes selectionBurst {
+      0% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+      45% {
+        opacity: 1;
+        transform: translate3d(var(--burst-x, 0px), var(--burst-y, 0px), 0) scale(1.08);
+      }
+      70% {
+        opacity: 0.8;
+        transform: translate3d(calc(var(--burst-x, 0px) * 1.2), calc(var(--burst-y, 0px) * 1.2), 0) scale(0.94);
+      }
+      100% {
+        opacity: 0;
+        transform: translate3d(calc(var(--burst-x, 0px) * 1.6), calc(var(--burst-y, 0px) * 1.6), 0) scale(0.88);
+      }
+    }
+
+    #audioVisualizer {
+      width: min(100%, 480px);
+      height: clamp(160px, 36vw, 220px);
+      border: 2px solid rgba(255, 255, 255, 0.55);
+      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.18), rgba(0, 0, 0, 0.85));
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
     }
 
     .form-panel::before {
@@ -225,9 +308,13 @@
       <div class="encore-controls">
         <div id="audioStatus" class="status" role="status" aria-live="polite"></div>
       </div>
-      <footer>EA tracks will be added later.</footer>
+      <footer>EA.mp3, EA2.mp3, EA3.mp3, and E4.mp3 are ready to play.</footer>
     </form>
     <button type="button" id="escapeEncoreButton" class="escape-button" aria-live="polite" aria-label="Get me out of here!">Get me out of here!</button>
+    <div id="visualizerOverlay" class="visualizer-overlay" aria-hidden="true">
+      <div id="visualizerSelections" class="visualizer-selections"></div>
+      <canvas id="audioVisualizer" width="480" height="220" role="presentation"></canvas>
+    </div>
   </main>
   <script>
     (function () {
@@ -236,21 +323,195 @@
       const optionButtons = Array.from(document.querySelectorAll('.focus-option'));
       const statusEl = document.getElementById('audioStatus');
       const escapeButton = document.getElementById('escapeEncoreButton');
+      const overlay = document.getElementById('visualizerOverlay');
+      const overlaySelections = document.getElementById('visualizerSelections');
+      const visualizerCanvas = document.getElementById('audioVisualizer');
+      const visualizerCtx = visualizerCanvas ? visualizerCanvas.getContext('2d') : null;
 
-      const baseTrack = new Audio('EA.mp3');
-      const encoreTrack = new Audio('EA2.mp3');
-      const superEncoreTrack = new Audio('EA3.mp3');
+      const AUDIO_PATH_PREFIX = '../../';
 
-      [baseTrack, encoreTrack, superEncoreTrack].forEach((audio) => {
+      function createTrack(fileName) {
+        const audio = new Audio(`${AUDIO_PATH_PREFIX}${fileName}`);
         audio.preload = 'auto';
-      });
+        return audio;
+      }
 
-      const tracks = [baseTrack, encoreTrack, superEncoreTrack];
-      const encoreTracks = [encoreTrack, superEncoreTrack];
-      const encoreLabels = ['Encore — playing EA2.mp3…', 'Super Encore — playing EA3.mp3…'];
+      const baseTrack = createTrack('EA.mp3');
+      const encoreTrack = createTrack('EA2.mp3');
+      const superEncoreTrack = createTrack('EA3.mp3');
+      const finaleTrack = createTrack('E4.mp3');
+
+      const tracks = [baseTrack, encoreTrack, superEncoreTrack, finaleTrack];
+      const encoreTracks = [encoreTrack, superEncoreTrack, finaleTrack];
+      const encoreLabels = [
+        'Encore — playing EA2.mp3…',
+        'Super Encore — playing EA3.mp3…',
+        'Finale — playing E4.mp3…',
+      ];
+      const encoreEndMessages = [
+        'Encore complete — ready for one more?',
+        'Super Encore complete — finale ready?',
+        'Finale complete. Thank you!',
+      ];
+
+      const audioContextState = {
+        context: null,
+        analyser: null,
+        dataArray: null,
+        animationId: null,
+        destinationConnected: false,
+      };
+      const trackSourceNodes = new Map();
       const DEFAULT_ESCAPE_LABEL = 'Get me out of here!';
       const ENCORE_LABEL = 'ENCORE!';
       const NEAR_DISTANCE = 72;
+
+      function ensureAudioContext() {
+        if (!visualizerCanvas || !visualizerCtx) {
+          return null;
+        }
+
+        const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextCtor) {
+          return null;
+        }
+
+        if (!audioContextState.context) {
+          audioContextState.context = new AudioContextCtor();
+          audioContextState.analyser = audioContextState.context.createAnalyser();
+          audioContextState.analyser.fftSize = 256;
+          audioContextState.dataArray = new Uint8Array(audioContextState.analyser.frequencyBinCount);
+        }
+
+        if (!audioContextState.destinationConnected && audioContextState.analyser && audioContextState.context) {
+          audioContextState.analyser.connect(audioContextState.context.destination);
+          audioContextState.destinationConnected = true;
+        }
+
+        return audioContextState;
+      }
+
+      function resumeAudioContext() {
+        const state = ensureAudioContext();
+        if (!state || !state.context) {
+          return;
+        }
+
+        if (state.context.state === 'suspended') {
+          state.context.resume().catch((error) => {
+            console.warn('Unable to resume audio context', error);
+          });
+        }
+      }
+
+      function connectAudioSource(audio) {
+        const state = ensureAudioContext();
+        if (!state || !state.context || !state.analyser || trackSourceNodes.has(audio)) {
+          return;
+        }
+
+        try {
+          const source = state.context.createMediaElementSource(audio);
+          source.connect(state.analyser);
+          trackSourceNodes.set(audio, source);
+        } catch (error) {
+          console.warn('Unable to connect audio source', error);
+        }
+      }
+
+      function stopVisualizer() {
+        if (audioContextState.animationId) {
+          window.cancelAnimationFrame(audioContextState.animationId);
+          audioContextState.animationId = null;
+        }
+
+        if (visualizerCtx && visualizerCanvas) {
+          visualizerCtx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+        }
+      }
+
+      function startVisualizer(audio) {
+        const state = ensureAudioContext();
+        if (!state || !state.analyser || !visualizerCanvas || !visualizerCtx) {
+          return;
+        }
+
+        connectAudioSource(audio);
+        resumeAudioContext();
+
+        const cssWidth = visualizerCanvas.clientWidth || visualizerCanvas.width;
+        const cssHeight = visualizerCanvas.clientHeight || visualizerCanvas.height;
+        if (cssWidth && cssHeight) {
+          visualizerCanvas.width = cssWidth;
+          visualizerCanvas.height = cssHeight;
+        }
+
+        const bufferLength = state.analyser.frequencyBinCount;
+        const width = visualizerCanvas.width;
+        const height = visualizerCanvas.height;
+
+        function draw() {
+          state.animationId = window.requestAnimationFrame(draw);
+          state.analyser.getByteFrequencyData(state.dataArray);
+          visualizerCtx.clearRect(0, 0, width, height);
+
+          const barWidth = (width / bufferLength) * 1.5;
+          let x = 0;
+
+          for (let i = 0; i < bufferLength; i += 1) {
+            const value = state.dataArray[i] / 255;
+            const barHeight = value * height;
+            const hue = 200 + value * 140;
+            visualizerCtx.fillStyle = `hsla(${hue}, 85%, ${45 + value * 35}%, ${0.55 + value * 0.35})`;
+            visualizerCtx.fillRect(x, height - barHeight, barWidth, barHeight);
+            x += barWidth + 2;
+          }
+        }
+
+        window.cancelAnimationFrame(state.animationId);
+        draw();
+      }
+
+      function ensureOverlayActive() {
+        if (overlay) {
+          overlay.classList.add('active');
+        }
+      }
+
+      function createSelectionBurst(label, index) {
+        const burst = document.createElement('span');
+        burst.className = 'selection-burst';
+        burst.textContent = label;
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 32 + Math.random() * 60;
+        burst.style.setProperty('--burst-x', `${Math.cos(angle) * distance}px`);
+        burst.style.setProperty('--burst-y', `${Math.sin(angle) * distance}px`);
+        burst.style.setProperty('--burst-delay', `${index * 120}ms`);
+        return burst;
+      }
+
+      function showSelectionOverlay() {
+        if (!overlay) {
+          return;
+        }
+
+        ensureOverlayActive();
+
+        if (!overlaySelections) {
+          return;
+        }
+
+        overlaySelections.innerHTML = '';
+
+        const selectedButtons = optionButtons.filter((btn) => btn.classList.contains('selected'));
+        if (selectedButtons.length > 0) {
+          selectedButtons.forEach((btn, index) => {
+            overlaySelections.appendChild(createSelectionBurst(btn.textContent.trim(), index));
+          });
+        } else if (selectedOption) {
+          overlaySelections.appendChild(createSelectionBurst(selectedOption, 0));
+        }
+      }
 
       let selectedOption = null;
       let encoreIndex = 0;
@@ -272,6 +533,7 @@
       }
 
       function stopOtherTracks(except) {
+        stopVisualizer();
         tracks.forEach((audio) => {
           if (audio !== except) {
             audio.pause();
@@ -284,19 +546,22 @@
         });
       }
 
-      function handlePlaybackPromise(promise, label) {
+      function handlePlaybackPromise(promise, label, audio) {
         if (!promise || typeof promise.then !== 'function') {
           updateStatus(label);
+          startVisualizer(audio);
           return;
         }
 
         promise
           .then(() => {
             updateStatus(label);
+            startVisualizer(audio);
           })
           .catch((error) => {
             console.warn('Audio playback failed. Ensure EA tracks are available.', error);
-            updateStatus('Audio unavailable — please add the EA tracks.');
+            updateStatus('Audio unavailable — please add EA.mp3, EA2.mp3, EA3.mp3, and E4.mp3.');
+            stopVisualizer();
           });
       }
 
@@ -307,8 +572,10 @@
         } catch (error) {
           console.warn('Unable to reset selected audio time', error);
         }
+        ensureOverlayActive();
+        resumeAudioContext();
         const playback = audio.play();
-        handlePlaybackPromise(playback, label);
+        handlePlaybackPromise(playback, label, audio);
       }
 
       function updateEscapeLabel(near) {
@@ -381,6 +648,10 @@
 
           encoreIndex = 0;
           triggerPanelShake();
+          if (panel) {
+            panel.classList.add('fade-out');
+          }
+          showSelectionOverlay();
           playTrack(baseTrack, 'Playing EA.mp3…');
           updateStatus(`Playing EA.mp3 for “${selectedOption}”.`);
           showEscapeButton();
@@ -388,15 +659,15 @@
       }
 
       baseTrack.addEventListener('ended', () => {
+        stopVisualizer();
         updateStatus('Encore ready. Hover over the red button.');
       });
 
-      encoreTrack.addEventListener('ended', () => {
-        updateStatus('Encore complete — ready for one more?');
-      });
-
-      superEncoreTrack.addEventListener('ended', () => {
-        updateStatus('Super Encore complete. Thank you!');
+      [encoreTrack, superEncoreTrack, finaleTrack].forEach((track, index) => {
+        track.addEventListener('ended', () => {
+          stopVisualizer();
+          updateStatus(encoreEndMessages[index] || 'Encore complete.');
+        });
       });
 
       if (escapeButton) {
