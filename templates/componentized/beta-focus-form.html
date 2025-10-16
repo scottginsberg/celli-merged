@@ -7,6 +7,100 @@
   <style>
     :root {
       color-scheme: only dark;
+      --page-bg: #000;
+      --page-fg: #fff;
+      --panel-bg: #000;
+      --panel-border: #fff;
+      --panel-box-shadow: 6px 6px 0 #fff, 0 0 0 10px #000, 0 0 38px rgba(255, 255, 255, 0.16);
+      --panel-stripe: #fff;
+      --option-bg: #050505;
+      --option-fg: #fff;
+      --option-border: #fff;
+      --option-hover-bg: #fff;
+      --option-hover-fg: #000;
+      --submit-border: #fff;
+      --submit-bg: #fff;
+      --submit-fg: #000;
+      --submit-hover-bg: transparent;
+      --submit-hover-fg: #fff;
+      --status-fg: #c8c8c8;
+      --escape-border: #ff385b;
+      --escape-bg: #ff1f47;
+      --escape-fg: #fff;
+      --escape-hover-bg: #fff;
+      --escape-hover-fg: #ff1f47;
+      --submission-bg: radial-gradient(circle at top, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.9));
+      --submission-border: rgba(255, 255, 255, 0.14);
+      --submission-shadow: inset 0 0 32px rgba(255, 255, 255, 0.08), 0 0 80px rgba(91, 123, 255, 0.22);
+      --chip-border: #fff;
+      --chip-bg: #050505;
+      --chip-fg: #fff;
+      --chip-shadow: 0 14px 28px rgba(0, 0, 0, 0.45);
+      --tone-white-bg: #fff;
+      --tone-white-fg: #000;
+      --tone-white-border: #fff;
+      --tone-white-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45), 0 10px 26px rgba(255, 255, 255, 0.2);
+      --tone-blue-bg: #2846ff;
+      --tone-blue-fg: #f5f7ff;
+      --tone-blue-border: #9ab3ff;
+      --tone-blue-shadow: 0 0 0 1px rgba(154, 179, 255, 0.65), 0 12px 28px rgba(40, 70, 255, 0.32);
+      --tone-yellow-bg: #ff9d1c;
+      --tone-yellow-fg: #2a1400;
+      --tone-yellow-border: #ffd28a;
+      --tone-yellow-shadow: 0 0 0 1px rgba(255, 210, 138, 0.7), 0 12px 28px rgba(255, 157, 28, 0.32);
+      --tone-magenta-bg: #ff185f;
+      --tone-magenta-fg: #fff3f8;
+      --tone-magenta-border: #ff7aa5;
+      --tone-magenta-shadow: 0 0 0 1px rgba(255, 122, 165, 0.65), 0 12px 28px rgba(255, 24, 95, 0.32);
+    }
+
+    body.inverted {
+      color-scheme: only light;
+      --page-bg: #fff;
+      --page-fg: #000;
+      --panel-bg: #fff;
+      --panel-border: #000;
+      --panel-box-shadow: 6px 6px 0 #000, 0 0 0 10px #fff, 0 0 38px rgba(0, 0, 0, 0.16);
+      --panel-stripe: #000;
+      --option-bg: #f7f7f7;
+      --option-fg: #000;
+      --option-border: #000;
+      --option-hover-bg: #000;
+      --option-hover-fg: #fff;
+      --submit-border: #000;
+      --submit-bg: #000;
+      --submit-fg: #fff;
+      --submit-hover-bg: transparent;
+      --submit-hover-fg: #000;
+      --status-fg: #454545;
+      --escape-border: #ff385b;
+      --escape-bg: #ff1f47;
+      --escape-fg: #fff;
+      --escape-hover-bg: #000;
+      --escape-hover-fg: #ff1f47;
+      --submission-bg: radial-gradient(circle at top, rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.9));
+      --submission-border: rgba(0, 0, 0, 0.16);
+      --submission-shadow: inset 0 0 32px rgba(0, 0, 0, 0.06), 0 0 80px rgba(0, 210, 255, 0.2);
+      --chip-border: #000;
+      --chip-bg: #f7f7f7;
+      --chip-fg: #000;
+      --chip-shadow: 0 14px 28px rgba(0, 0, 0, 0.25);
+      --tone-white-bg: #000;
+      --tone-white-fg: #fff;
+      --tone-white-border: #000;
+      --tone-white-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 12px 28px rgba(0, 0, 0, 0.25);
+      --tone-blue-bg: #00d8ff;
+      --tone-blue-fg: #002b38;
+      --tone-blue-border: #5ef0ff;
+      --tone-blue-shadow: 0 0 0 1px rgba(94, 240, 255, 0.6), 0 12px 28px rgba(0, 216, 255, 0.35);
+      --tone-yellow-bg: #fffb3d;
+      --tone-yellow-fg: #2b2600;
+      --tone-yellow-border: #fffda0;
+      --tone-yellow-shadow: 0 0 0 1px rgba(255, 253, 160, 0.65), 0 12px 28px rgba(255, 251, 61, 0.35);
+      --tone-magenta-bg: #ff39ff;
+      --tone-magenta-fg: #280028;
+      --tone-magenta-border: #ff8cff;
+      --tone-magenta-shadow: 0 0 0 1px rgba(255, 140, 255, 0.65), 0 12px 28px rgba(255, 57, 255, 0.35);
     }
 
     * {
@@ -19,9 +113,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #000;
+      background: var(--page-bg);
       font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: #fff;
+      color: var(--page-fg);
       letter-spacing: 0.08em;
     }
 
@@ -32,11 +126,11 @@
     .form-panel {
       position: relative;
       padding: clamp(2.5rem, 6vw, 3.5rem) clamp(1.5rem, 6vw, 3rem) clamp(2.25rem, 6vw, 3.25rem);
-      border: 4px solid #fff;
-      background: #000;
+      border: 4px solid var(--panel-border);
+      background: var(--panel-bg);
       display: grid;
       gap: clamp(1.5rem, 4vw, 2rem);
-      box-shadow: 6px 6px 0 #fff, 0 0 0 10px #000, 0 0 38px rgba(255, 255, 255, 0.16);
+      box-shadow: var(--panel-box-shadow);
       transition: transform 0.18s ease, opacity 0.25s ease, filter 0.25s ease;
     }
 
@@ -57,7 +151,7 @@
       position: absolute;
       inset: clamp(1.25rem, 4vw, 2rem) clamp(1.25rem, 4vw, 2rem) auto clamp(1.25rem, 4vw, 2rem);
       height: 6px;
-      background: #fff;
+      background: var(--panel-stripe);
     }
 
     h1 {
@@ -82,9 +176,9 @@
     }
 
     .focus-option {
-      border: 2px solid #fff;
-      background: #050505;
-      color: #fff;
+      border: 2px solid var(--option-border);
+      background: var(--option-bg);
+      color: var(--option-fg);
       padding: 0.85rem 1.25rem;
       font-size: clamp(0.95rem, 2.4vw, 1.05rem);
       text-transform: uppercase;
@@ -97,8 +191,8 @@
 
     .focus-option:hover:not(.active-selection),
     .focus-option:focus-visible:not(.active-selection) {
-      background: #fff;
-      color: #000;
+      background: var(--option-hover-bg);
+      color: var(--option-hover-fg);
       transform: translateY(-3px);
       outline: none;
     }
@@ -112,31 +206,31 @@
     }
 
     .focus-option.tone-white {
-      background: #fff;
-      color: #000;
-      border-color: #fff;
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4), 0 8px 24px rgba(255, 255, 255, 0.18);
+      background: var(--tone-white-bg);
+      color: var(--tone-white-fg);
+      border-color: var(--tone-white-border);
+      box-shadow: var(--tone-white-shadow);
     }
 
     .focus-option.tone-blue {
-      background: #1b46ff;
-      color: #f4f7ff;
-      border-color: #7ea2ff;
-      box-shadow: 0 0 0 1px rgba(126, 162, 255, 0.6), 0 8px 24px rgba(30, 70, 255, 0.28);
+      background: var(--tone-blue-bg);
+      color: var(--tone-blue-fg);
+      border-color: var(--tone-blue-border);
+      box-shadow: var(--tone-blue-shadow);
     }
 
     .focus-option.tone-yellow {
-      background: #ffe066;
-      color: #1a1200;
-      border-color: #fff6b0;
-      box-shadow: 0 0 0 1px rgba(255, 240, 160, 0.7), 0 8px 24px rgba(255, 224, 102, 0.28);
+      background: var(--tone-yellow-bg);
+      color: var(--tone-yellow-fg);
+      border-color: var(--tone-yellow-border);
+      box-shadow: var(--tone-yellow-shadow);
     }
 
     .focus-option.tone-magenta {
-      background: #ff2f7d;
-      color: #fff6fb;
-      border-color: #ff89bc;
-      box-shadow: 0 0 0 1px rgba(255, 137, 188, 0.65), 0 8px 24px rgba(255, 47, 125, 0.28);
+      background: var(--tone-magenta-bg);
+      color: var(--tone-magenta-fg);
+      border-color: var(--tone-magenta-border);
+      box-shadow: var(--tone-magenta-shadow);
     }
 
     .form-actions {
@@ -145,9 +239,9 @@
     }
 
     .submit-button {
-      border: 3px solid #fff;
-      background: #fff;
-      color: #000;
+      border: 3px solid var(--submit-border);
+      background: var(--submit-bg);
+      color: var(--submit-fg);
       padding: 0.85rem 2.5rem;
       font-size: clamp(0.95rem, 2.4vw, 1.05rem);
       text-transform: uppercase;
@@ -159,8 +253,8 @@
 
     .submit-button:hover,
     .submit-button:focus-visible {
-      background: transparent;
-      color: #fff;
+      background: var(--submit-hover-bg);
+      color: var(--submit-hover-fg);
       transform: translateY(-3px);
       outline: none;
     }
@@ -177,16 +271,16 @@
       letter-spacing: 0.18em;
       text-transform: uppercase;
       text-align: center;
-      color: #c8c8c8;
+      color: var(--status-fg);
     }
 
     .escape-button {
       position: absolute;
       top: clamp(0.75rem, 3vw, 1.5rem);
       right: clamp(0.75rem, 3vw, 1.5rem);
-      border: 3px solid #ff385b;
-      background: #ff1f47;
-      color: #fff;
+      border: 3px solid var(--escape-border);
+      background: var(--escape-bg);
+      color: var(--escape-fg);
       padding: 0.6rem 1.35rem;
       text-transform: uppercase;
       letter-spacing: 0.18em;
@@ -205,8 +299,8 @@
 
     .escape-button:hover,
     .escape-button:focus-visible {
-      background: #fff;
-      color: #ff1f47;
+      background: var(--escape-hover-bg);
+      color: var(--escape-hover-fg);
       transform: translateY(-2px);
       outline: none;
     }
@@ -215,9 +309,9 @@
       position: absolute;
       inset: clamp(1.75rem, 5vw, 2.5rem);
       border-radius: clamp(1.5rem, 4vw, 2.25rem);
-      background: radial-gradient(circle at top, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.9));
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      box-shadow: inset 0 0 32px rgba(255, 255, 255, 0.08), 0 0 80px rgba(91, 123, 255, 0.22);
+      background: var(--submission-bg);
+      border: 1px solid var(--submission-border);
+      box-shadow: var(--submission-shadow);
       display: grid;
       grid-template-rows: auto 1fr;
       gap: clamp(1.25rem, 3vw, 1.75rem);
@@ -250,13 +344,13 @@
       justify-content: center;
       min-width: clamp(9rem, 24vw, 12.5rem);
       padding: 0.85rem 1.75rem;
-      border: 2px solid #fff;
-      background: #050505;
-      color: #fff;
+      border: 2px solid var(--chip-border);
+      background: var(--chip-bg);
+      color: var(--chip-fg);
       text-transform: uppercase;
       letter-spacing: 0.18em;
       font-weight: 600;
-      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.45);
+      box-shadow: var(--chip-shadow);
       filter: saturate(1.08);
       cursor: default;
       user-select: none;
@@ -515,6 +609,7 @@
       let selectionSteps = 0;
       let encoreIndex = 0;
       let escapeLabelState = DEFAULT_ESCAPE_LABEL;
+      let isInverted = false;
 
       let audioContext = null;
       let analyser = null;
@@ -642,6 +737,49 @@
         }
         const index = ((rawIndex % COLOR_SEQUENCE.length) + COLOR_SEQUENCE.length) % COLOR_SEQUENCE.length;
         return COLOR_SEQUENCE[index];
+      }
+
+      function getButtonColorKey(button) {
+        if (!button) {
+          return 'base';
+        }
+        for (let i = 0; i < COLOR_SEQUENCE.length; i += 1) {
+          const toneClass = COLOR_SEQUENCE[i];
+          if (button.classList.contains(toneClass)) {
+            return toneClass;
+          }
+        }
+        return 'base';
+      }
+
+      function setInversionState(nextState) {
+        if (isInverted === nextState) {
+          return;
+        }
+        isInverted = nextState;
+        if (document && document.body) {
+          document.body.classList.toggle('inverted', isInverted);
+        }
+      }
+
+      function evaluateInversionTrigger() {
+        if (!optionButtons.length) {
+          setInversionState(false);
+          return;
+        }
+
+        const counts = new Map();
+        optionButtons.forEach((button) => {
+          const key = getButtonColorKey(button);
+          counts.set(key, (counts.get(key) || 0) + 1);
+        });
+
+        const expectedMajority = optionButtons.length - 1;
+        const values = Array.from(counts.values());
+        const shouldInvert =
+          values.length === 2 && values.includes(expectedMajority) && values.includes(1);
+
+        setInversionState(shouldInvert);
       }
 
       function updateSubmissionExperienceContent() {
@@ -895,6 +1033,7 @@
             triggerPanelShake();
             updateSelectionStatus(`Removed ${value}`);
             refreshSubmissionExperience();
+            evaluateInversionTrigger();
             return;
           }
 
@@ -908,6 +1047,7 @@
           triggerPanelShake();
           updateSelectionStatus(`Added ${value}`);
           refreshSubmissionExperience();
+          evaluateInversionTrigger();
         });
       });
 
@@ -981,6 +1121,7 @@
       updateSelectionStatus();
       updateEscapeLabel(false);
       ensureVisualizerCanvasSize();
+      evaluateInversionTrigger();
     })();
   </script>
 </body>
