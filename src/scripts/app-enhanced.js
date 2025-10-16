@@ -38,6 +38,13 @@ import {
 } from './init.js';
 
 const CONSTRUCTION_STORAGE_KEY = 'celli:introConstructionComplete';
+const INTRO_THEME_STORAGE_KEY = 'celli:introThemePreference';
+const INTRO_THEME_DEFAULT = 'theme1';
+const INTRO_THEME_SECONDARY = 'theme2';
+const INTRO_THEME_SOURCES = {
+  [INTRO_THEME_DEFAULT]: './theme1.mp3',
+  [INTRO_THEME_SECONDARY]: './theme2.mp3'
+};
 let constructionCompleteCache = null;
 let sceneHooksRegistered = false;
 
@@ -347,6 +354,12 @@ function setupSceneHooks() {
     } catch (error) {
       console.warn('⚠️ Failed to persist construction completion from event:', error);
     }
+
+    try {
+      window.localStorage?.setItem(INTRO_THEME_STORAGE_KEY, INTRO_THEME_SECONDARY);
+    } catch (error) {
+      console.warn('⚠️ Failed to persist intro theme preference from construction event:', error);
+    }
   });
 
   sceneManager.on('onSceneStart', ({ scene }) => {
@@ -355,8 +368,23 @@ function setupSceneHooks() {
     }
 
     const hasCompleted = hasConstructionCompleted();
-    const themeKey = hasCompleted ? 'theme2' : 'theme1';
-    const themeUrl = hasCompleted ? './theme2.mp3' : './theme1.mp3';
+    let themeKey = INTRO_THEME_DEFAULT;
+
+    try {
+      const stored = window.localStorage?.getItem(INTRO_THEME_STORAGE_KEY);
+      if (stored === INTRO_THEME_DEFAULT || stored === INTRO_THEME_SECONDARY) {
+        themeKey = stored;
+      } else if (hasCompleted) {
+        themeKey = INTRO_THEME_SECONDARY;
+      }
+    } catch (error) {
+      console.warn('⚠️ Unable to read intro theme preference for music playback:', error);
+      if (hasCompleted) {
+        themeKey = INTRO_THEME_SECONDARY;
+      }
+    }
+
+    const themeUrl = INTRO_THEME_SOURCES[themeKey] || INTRO_THEME_SOURCES[INTRO_THEME_DEFAULT];
 
     audioSystem.playMusic({
       key: `music:${themeKey}`,

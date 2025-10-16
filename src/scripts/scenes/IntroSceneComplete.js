@@ -107,6 +107,14 @@ const COLOR_THEMES = {
 };
 
 const CONSTRUCTION_STORAGE_KEY = 'celli:introConstructionComplete';
+const INTRO_THEME_STORAGE_KEY = 'celli:introThemePreference';
+const INTRO_THEME_DEFAULT = 'theme1';
+const INTRO_THEME_SECONDARY = 'theme2';
+const INTRO_THEME_SOURCES = {
+  [INTRO_THEME_DEFAULT]: './theme1.mp3',
+  [INTRO_THEME_SECONDARY]: './theme2.mp3'
+};
+const INTRO_AUDIO_LOOP_DELAY_MS = 4000;
 
 export class IntroSceneComplete {
   constructor() {
@@ -225,6 +233,15 @@ export class IntroSceneComplete {
       synthOsc3: null,
       introAudio: null,
       introAudioSource: '',
+      introAudioTheme: INTRO_THEME_DEFAULT,
+      introAudioShouldAutoFlip: false,
+      introAudioBuffers: {},
+      introAudioReverseBuffers: {},
+      introAudioLoadingPromises: {},
+      introAudioCurrentSource: null,
+      introAudioGainNode: null,
+      introAudioLoopTimeout: null,
+      introAudioPlayCount: 0,
 
       // Color theme
       currentTheme: 'white'
@@ -1427,56 +1444,248 @@ export class IntroSceneComplete {
   }
 
   _selectIntroAudioSource() {
-    let shouldUseAlternate = false;
-
+    let storedPreference = null;
     try {
-      const stored = window.localStorage?.getItem(CONSTRUCTION_STORAGE_KEY);
-      shouldUseAlternate = stored === 'true';
+      storedPreference = window.localStorage?.getItem(INTRO_THEME_STORAGE_KEY) || null;
     } catch (error) {
-      console.warn('⚠️ Unable to read intro completion state for audio selection:', error);
+      console.warn('⚠️ Unable to read intro theme preference:', error);
+      storedPreference = null;
     }
 
-    return shouldUseAlternate ? './intro2.mp3' : './intro.mp3';
+    const hasStoredTheme = storedPreference === INTRO_THEME_DEFAULT || storedPreference === INTRO_THEME_SECONDARY;
+    let theme = hasStoredTheme ? storedPreference : INTRO_THEME_DEFAULT;
+
+    if (!hasStoredTheme) {
+      const constructionComplete = this._readConstructionCompletionFlag();
+      if (constructionComplete) {
+        theme = INTRO_THEME_SECONDARY;
+      }
+      this.state.introAudioShouldAutoFlip = !constructionComplete;
+    } else {
+      this.state.introAudioShouldAutoFlip = false;
+    }
+
+    if (theme !== INTRO_THEME_DEFAULT && theme !== INTRO_THEME_SECONDARY) {
+      theme = INTRO_THEME_DEFAULT;
+    }
+
+    this.state.introAudioTheme = theme;
+    const source = INTRO_THEME_SOURCES[theme] || INTRO_THEME_SOURCES[INTRO_THEME_DEFAULT];
+    this.state.introAudioSource = source;
+    return { theme, source };
   }
 
-  _setupIntroAudio() {
-    if (this.state.introAudio) {
-      return this.state.introAudio;
+  async _setupIntroAudio() {
+    if (!this.state.audioCtx) {
+      this._initAudio();
     }
 
-    try {
-      const source = this._selectIntroAudioSource();
-      const audio = new Audio(source);
-      audio.preload = 'auto';
-      audio.volume = 0.7;
-      this.state.introAudio = audio;
-      this.state.introAudioSource = source;
-      return audio;
-    } catch (error) {
-      console.warn('⚠️ Failed to initialize intro audio element:', error);
-      this.state.introAudio = null;
-      this.state.introAudioSource = '';
+    if (!this.state.audioCtx) {
       return null;
     }
+
+    const selection = this._selectIntroAudioSource();
+    if (!selection || !selection.source) {
+      return null;
+    }
+
+    const { theme, source } = selection;
+    const buffer = await this._loadIntroAudioBuffer(theme, source);
+    if (!buffer) {
+      return null;
+    }
+
+    return { theme, buffer };
   }
 
-  _playIntroAudio() {
-    const audio = this._setupIntroAudio();
-    if (!audio) {
+  async _playIntroAudio() {
+    const setup = await this._setupIntroAudio();
+    if (!setup) {
       return;
     }
 
-    try {
-      audio.currentTime = 0;
-    } catch (error) {
-      console.warn('⚠️ Unable to reset intro audio playback position:', error);
+    const { theme, buffer } = setup;
+
+    this._stopIntroAudioPlayback();
+
+    let playbackBuffer = buffer;
+    this.state.introAudioPlayCount = (this.state.introAudioPlayCount || 0) + 1;
+    const playCount = this.state.introAudioPlayCount;
+    const shouldReverse = playCount % 3 === 0;
+
+    if (shouldReverse) {
+      playbackBuffer = this._getReversedIntroAudioBuffer(theme, buffer);
     }
 
-    const playback = audio.play();
-    if (playback && typeof playback.catch === 'function') {
-      playback.catch(error => {
-        console.warn('⚠️ Intro audio playback was blocked:', error);
+    try {
+      const sourceNode = this.state.audioCtx.createBufferSource();
+      sourceNode.buffer = playbackBuffer;
+
+      const gainNode = this.state.audioCtx.createGain();
+      gainNode.gain.value = 0.7;
+
+      sourceNode.connect(gainNode);
+      gainNode.connect(this.state.audioCtx.destination);
+
+      sourceNode.onended = () => {
+        this.state.introAudioCurrentSource = null;
+        if (this.state.introAudioGainNode) {
+          try {
+            this.state.introAudioGainNode.disconnect();
+          } catch (error) {
+            console.warn('⚠️ Failed to disconnect intro audio gain node:', error);
+          }
+          this.state.introAudioGainNode = null;
+        }
+
+        if (this.state.running) {
+          this._scheduleNextIntroAudioPlayback();
+        }
+      };
+
+      this.state.introAudioCurrentSource = sourceNode;
+      this.state.introAudioGainNode = gainNode;
+
+      sourceNode.start(0);
+
+      if (this.state.introAudioShouldAutoFlip) {
+        try {
+          window.localStorage?.setItem(INTRO_THEME_STORAGE_KEY, INTRO_THEME_SECONDARY);
+        } catch (error) {
+          console.warn('⚠️ Unable to persist intro theme auto-flip preference:', error);
+        }
+        this.state.introAudioShouldAutoFlip = false;
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to start intro audio playback:', error);
+    }
+  }
+
+  _readConstructionCompletionFlag() {
+    if (this.state.constructionPersisted) {
+      return true;
+    }
+
+    try {
+      return window.localStorage?.getItem(CONSTRUCTION_STORAGE_KEY) === 'true';
+    } catch (error) {
+      console.warn('⚠️ Unable to read construction completion flag:', error);
+      return false;
+    }
+  }
+
+  async _loadIntroAudioBuffer(theme, source) {
+    if (!this.state.audioCtx || !source) {
+      return null;
+    }
+
+    if (this.state.introAudioBuffers?.[theme]) {
+      return this.state.introAudioBuffers[theme];
+    }
+
+    if (!this.state.introAudioLoadingPromises) {
+      this.state.introAudioLoadingPromises = {};
+    }
+
+    if (!this.state.introAudioLoadingPromises[theme]) {
+      this.state.introAudioLoadingPromises[theme] = fetch(source)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Failed to fetch intro audio source ${source} (${response.status})`);
+          }
+          return response.arrayBuffer();
+        })
+        .then(data => new Promise((resolve, reject) => {
+          this.state.audioCtx.decodeAudioData(data, resolve, reject);
+        }))
+        .then(buffer => {
+          this.state.introAudioBuffers[theme] = buffer;
+          return buffer;
+        })
+        .catch(error => {
+          console.warn(`⚠️ Unable to load intro audio buffer for ${theme}:`, error);
+          return null;
+        })
+        .finally(() => {
+          delete this.state.introAudioLoadingPromises[theme];
+        });
+    }
+
+    return this.state.introAudioLoadingPromises[theme];
+  }
+
+  _getReversedIntroAudioBuffer(theme, buffer) {
+    if (!this.state.audioCtx || !buffer) {
+      return buffer;
+    }
+
+    if (!this.state.introAudioReverseBuffers) {
+      this.state.introAudioReverseBuffers = {};
+    }
+
+    if (this.state.introAudioReverseBuffers[theme]) {
+      return this.state.introAudioReverseBuffers[theme];
+    }
+
+    const reversed = this.state.audioCtx.createBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+
+    for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
+      const original = buffer.getChannelData(channel);
+      const target = reversed.getChannelData(channel);
+      const length = original.length;
+
+      for (let i = 0; i < length; i += 1) {
+        target[i] = original[length - 1 - i];
+      }
+    }
+
+    this.state.introAudioReverseBuffers[theme] = reversed;
+    return reversed;
+  }
+
+  _scheduleNextIntroAudioPlayback() {
+    if (this.state.introAudioLoopTimeout) {
+      clearTimeout(this.state.introAudioLoopTimeout);
+    }
+
+    if (!this.state.running) {
+      return;
+    }
+
+    this.state.introAudioLoopTimeout = window.setTimeout(() => {
+      this._playIntroAudio().catch(error => {
+        console.warn('⚠️ Failed to start intro audio loop playback:', error);
       });
+    }, INTRO_AUDIO_LOOP_DELAY_MS);
+  }
+
+  _stopIntroAudioPlayback() {
+    if (this.state.introAudioLoopTimeout) {
+      clearTimeout(this.state.introAudioLoopTimeout);
+      this.state.introAudioLoopTimeout = null;
+    }
+
+    if (this.state.introAudioCurrentSource) {
+      try {
+        this.state.introAudioCurrentSource.stop(0);
+      } catch (error) {
+        console.warn('⚠️ Failed to stop intro audio source:', error);
+      }
+      try {
+        this.state.introAudioCurrentSource.disconnect();
+      } catch (error) {
+        console.warn('⚠️ Failed to disconnect intro audio source:', error);
+      }
+      this.state.introAudioCurrentSource = null;
+    }
+
+    if (this.state.introAudioGainNode) {
+      try {
+        this.state.introAudioGainNode.disconnect();
+      } catch (error) {
+        console.warn('⚠️ Failed to disconnect intro audio gain node during stop:', error);
+      }
+      this.state.introAudioGainNode = null;
     }
   }
 
@@ -1796,7 +2005,8 @@ export class IntroSceneComplete {
     console.log('✅ UI elements initialized for intro sequence');
 
     // Start animation
-    this._playIntroAudio();
+    this.state.introAudioPlayCount = 0;
+    await this._playIntroAudio();
     this.state.running = true;
     this.state.clock.start();
 
@@ -3326,6 +3536,12 @@ export class IntroSceneComplete {
     }
 
     try {
+      window.localStorage?.setItem(INTRO_THEME_STORAGE_KEY, INTRO_THEME_SECONDARY);
+    } catch (error) {
+      console.warn('⚠️ Failed to persist intro theme preference during construction completion:', error);
+    }
+
+    try {
       window.dispatchEvent(new CustomEvent('celli:construction-complete'));
     } catch (error) {
       console.warn('⚠️ Failed to dispatch construction completion event:', error);
@@ -3483,6 +3699,7 @@ export class IntroSceneComplete {
   async stop() {
     console.log('⏹️ Stopping Complete Intro Scene');
     this.state.running = false;
+    this._stopIntroAudioPlayback();
   }
 
   /**
@@ -3517,15 +3734,12 @@ export class IntroSceneComplete {
       if (skipBtn) skipBtn.removeEventListener('click', this._skipClickHandler);
     }
 
-    if (this.state.introAudio) {
-      try {
-        this.state.introAudio.pause();
-      } catch (error) {
-        console.warn('⚠️ Failed to pause intro audio during destroy:', error);
-      }
-      this.state.introAudio = null;
-      this.state.introAudioSource = '';
-    }
+    this._stopIntroAudioPlayback();
+    this.state.introAudio = null;
+    this.state.introAudioSource = '';
+    this.state.introAudioBuffers = {};
+    this.state.introAudioReverseBuffers = {};
+    this.state.introAudioLoadingPromises = {};
 
     // Cleanup resources
     if (this.state.scene) {
