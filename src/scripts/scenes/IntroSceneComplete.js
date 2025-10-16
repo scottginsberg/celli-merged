@@ -184,6 +184,7 @@ export class IntroSceneComplete {
       burstAnimStarted: false,
       celliBackspaceSequenceStarted: false,
       celliBackspaceSequenceTime: 0,
+      celliBackspaceTarget: 0,
       celliMoveToCornerStarted: false,
       celliMoveToCornerTime: 0,
       visiCalcShown: false,
@@ -334,7 +335,12 @@ export class IntroSceneComplete {
       return true;
     }
 
-    this._syncRestoredLettersWithPrompt();
+    if (!this.state.celliBackspaceSequenceStarted) {
+      this.state.celliBackspaceSequenceStarted = true;
+      this.state.celliBackspaceSequenceTime = 0;
+    }
+
+    this._updateBackspaceTargetFromPrompt();
 
     return true;
   }
@@ -440,6 +446,9 @@ export class IntroSceneComplete {
     this.state.yellowTransformCompleteCount = 0;
     this.state.endSequence = '';
     this.state.voxelRedirectDispatched = false;
+    this.state.celliBackspaceSequenceStarted = false;
+    this.state.celliBackspaceSequenceTime = 0;
+    this.state.celliBackspaceTarget = 0;
 
     this._playFritzSound();
 
@@ -469,6 +478,9 @@ export class IntroSceneComplete {
       data.rainDrift = (Math.random() - 0.5) * 0.015;
       data.rainSpin = (Math.random() - 0.5) * 0.2;
       data.rainFade = 0.035 + Math.random() * 0.03;
+      data.hellDropPhase = null;
+      data.hellRespawnAt = 0;
+      data.hellReturnVelocity = 0;
 
       voxel.visible = true;
       voxel.material.opacity = 0.8;
@@ -903,7 +915,10 @@ export class IntroSceneComplete {
               flattenStartTime: 0,
               flattenDuration: 0,
               shimmerPhase: Math.random() * Math.PI * 2,
-              geometryType: 'flat'
+              geometryType: 'flat',
+              hellDropPhase: null,
+              hellRespawnAt: 0,
+              hellReturnVelocity: 0
             };
 
             voxel.scale.set(celliScale, celliScale, celliScale);
@@ -1114,7 +1129,7 @@ export class IntroSceneComplete {
     });
   }
 
-  _computePatternPositions(pattern, letterIndex, totalLetters, spacing, offsetY = 0) {
+  _computePatternPositions(pattern, letterIndex, totalLetters, spacing, offsetY = 0, includeMeta = false) {
     const positions = [];
     const startX = -(totalLetters * spacing) / 2 + spacing / 2;
     const letterX = startX + letterIndex * spacing;
@@ -1127,7 +1142,11 @@ export class IntroSceneComplete {
 
         const x = letterX + (colIdx - 2) * this.voxelSize * 1.2;
         const y = (2 - rowIdx) * this.voxelSize * 1.2 + 0.35 + offsetY;
-        positions.push({ x, y });
+        if (includeMeta) {
+          positions.push({ x, y, row: rowIdx, col: colIdx });
+        } else {
+          positions.push({ x, y });
+        }
       });
     });
 
@@ -1154,6 +1173,144 @@ export class IntroSceneComplete {
     });
   }
 
+  _assignHellTargetsToH(positions) {
+    if (!positions || !positions.length) {
+      return;
+    }
+
+    const cPool = [...(this.state.letterVoxels.C || [])];
+    const iPool = [...(this.state.letterVoxels.I || [])];
+
+    if (!cPool.length && !iPool.length) {
+      return;
+    }
+
+    const assigned = new Set();
+
+    const takeVoxel = (pool, predicate) => {
+      if (!pool.length) return null;
+      if (typeof predicate === 'function') {
+        const idx = pool.findIndex(predicate);
+        if (idx !== -1) {
+          return pool.splice(idx, 1)[0];
+        }
+      }
+      return pool.shift();
+    };
+
+    const activateVoxelForHell = (voxel, pos) => {
+      if (!voxel || !voxel.userData) {
+        return;
+      }
+
+      const data = voxel.userData;
+      const target = { x: pos.x, y: pos.y };
+
+      voxel.visible = true;
+      data.hellStart = { x: voxel.position.x, y: voxel.position.y };
+      data.hellTarget = target;
+      data.hellStartScale = voxel.scale.x;
+      data.hellTargetScale = data.baseScale;
+      data.targetX = target.x;
+      data.targetY = target.y;
+      data.settled = false;
+      data.hellRespawnAt = 0;
+      data.hellReturnVelocity = 0;
+
+      const isOriginalCVertical = data.letterIdx === 0 && data.gridCol === 0;
+
+      if (!isOriginalCVertical) {
+        data.hellDrop = true;
+        data.hellDropPhase = 'fall';
+        data.dropVelocity = -0.025 - Math.random() * 0.02;
+      } else {
+        data.hellDrop = false;
+        data.hellDropPhase = null;
+      }
+    };
+
+    const leftPositions = positions
+      .filter(pos => pos.col === 0)
+      .sort((a, b) => a.row - b.row);
+
+    leftPositions.forEach(pos => {
+      let voxel = takeVoxel(cPool, v => v.userData.gridCol === 0 && v.userData.gridRow === pos.row);
+      if (!voxel) voxel = takeVoxel(cPool, v => v.userData.gridCol === 0);
+      if (!voxel) voxel = takeVoxel(iPool, v => v.userData.gridCol === 2 && v.userData.gridRow === pos.row);
+      if (!voxel) voxel = takeVoxel(iPool, v => v.userData.gridCol === 2);
+      if (!voxel) voxel = takeVoxel(iPool);
+      if (!voxel) voxel = takeVoxel(cPool);
+
+      if (voxel) {
+        activateVoxelForHell(voxel, pos);
+        assigned.add(pos);
+      }
+    });
+
+    const crossPositions = positions
+      .filter(pos => pos.row === 2 && pos.col > 0 && pos.col < 4)
+      .sort((a, b) => a.col - b.col);
+
+    crossPositions.forEach(pos => {
+      let voxel = takeVoxel(cPool, v => v.userData.gridRow === 0 && v.userData.gridCol === pos.col);
+      if (!voxel) voxel = takeVoxel(cPool, v => v.userData.gridRow === 4 && v.userData.gridCol === pos.col);
+      if (!voxel) voxel = takeVoxel(cPool);
+      if (!voxel) voxel = takeVoxel(iPool, v => v.userData.gridRow === 2);
+      if (!voxel) voxel = takeVoxel(iPool);
+      if (!voxel) voxel = takeVoxel(cPool);
+
+      if (voxel) {
+        activateVoxelForHell(voxel, pos);
+        assigned.add(pos);
+      }
+    });
+
+    const rightPositions = positions
+      .filter(pos => pos.col === 4)
+      .sort((a, b) => a.row - b.row);
+
+    rightPositions.forEach(pos => {
+      let voxel = takeVoxel(iPool, v => v.userData.gridCol === 2 && v.userData.gridRow === pos.row);
+      if (!voxel) voxel = takeVoxel(iPool, v => v.userData.gridRow === pos.row);
+      if (!voxel) voxel = takeVoxel(iPool);
+      if (!voxel) voxel = takeVoxel(cPool);
+
+      if (voxel) {
+        activateVoxelForHell(voxel, pos);
+        assigned.add(pos);
+      }
+    });
+
+    positions.forEach(pos => {
+      if (assigned.has(pos)) {
+        return;
+      }
+
+      let voxel = takeVoxel(cPool) || takeVoxel(iPool);
+      if (!voxel) {
+        return;
+      }
+
+      activateVoxelForHell(voxel, pos);
+      assigned.add(pos);
+    });
+
+    const markForVanish = (voxel) => {
+      if (!voxel || !voxel.userData) return;
+      const data = voxel.userData;
+      data.hellDrop = true;
+      data.hellDropPhase = 'fall';
+      data.dropVelocity = -0.025 - Math.random() * 0.02;
+      data.hellTarget = null;
+      data.settled = false;
+      data.hellRespawnAt = 0;
+      data.hellReturnVelocity = 0;
+    };
+
+    cPool.forEach(markForVanish);
+    iPool.forEach(markForVanish);
+  }
+
   _startHellTransform() {
     if (this.state.hellTransformActive) {
       return;
@@ -1162,14 +1319,13 @@ export class IntroSceneComplete {
     const hellSpacing = 0.36;
     const totalLetters = 4;
 
-    const hPositions = this._computePatternPositions(LETTER_PATTERNS.H, 0, totalLetters, hellSpacing);
-    const ePositions = this._computePatternPositions(LETTER_PATTERNS.E, 1, totalLetters, hellSpacing);
-    const l1Positions = this._computePatternPositions(LETTER_PATTERNS.L, 2, totalLetters, hellSpacing);
-    const l2Positions = this._computePatternPositions(LETTER_PATTERNS.L, 3, totalLetters, hellSpacing);
+    const hPositions = this._computePatternPositions(LETTER_PATTERNS.H, 0, totalLetters, hellSpacing, 0, true);
+    const ePositions = this._computePatternPositions(LETTER_PATTERNS.E, 1, totalLetters, hellSpacing).map(({ x, y }) => ({ x, y }));
+    const l1Positions = this._computePatternPositions(LETTER_PATTERNS.L, 2, totalLetters, hellSpacing).map(({ x, y }) => ({ x, y }));
+    const l2Positions = this._computePatternPositions(LETTER_PATTERNS.L, 3, totalLetters, hellSpacing).map(({ x, y }) => ({ x, y }));
 
-    if (this.state.letterVoxels.C) {
-      this._assignHellTargets(this.state.letterVoxels.C, hPositions);
-    }
+    this._assignHellTargetsToH(hPositions);
+
     if (this.state.letterVoxels.E) {
       this._assignHellTargets(this.state.letterVoxels.E, ePositions);
     }
@@ -1178,13 +1334,6 @@ export class IntroSceneComplete {
     }
     if (this.state.letterVoxels.L2) {
       this._assignHellTargets(this.state.letterVoxels.L2, l2Positions);
-    }
-
-    if (this.state.letterVoxels.I) {
-      this.state.letterVoxels.I.forEach(voxel => {
-        voxel.userData.hellDrop = true;
-        voxel.userData.dropVelocity = -0.025 - Math.random() * 0.02;
-      });
     }
 
     this.state.tRevealActive = false;
@@ -1641,7 +1790,7 @@ export class IntroSceneComplete {
     const skipBtn = document.getElementById('skipBtn');
     if (skipBtn) {
       skipBtn.classList.remove('hidden');
-      skipBtn.classList.remove('bow-shape', 'rounded-bow', 'illuminating');
+      skipBtn.classList.remove('bow-shape', 'rounded-bow', 'illuminating', 'bow-docked');
     }
     
     console.log('✅ UI elements initialized for intro sequence');
@@ -1726,6 +1875,11 @@ export class IntroSceneComplete {
 
     // Update star particles
     this._updateStarParticles(deltaTime);
+
+    // Update backspace-driven restoration
+    if (this.state.celliBackspaceSequenceStarted) {
+      this._updateBackspaceSequence(deltaTime);
+    }
 
     // Update move to corner sequence
     if (this.state.celliMoveToCornerStarted) {
@@ -1952,6 +2106,9 @@ export class IntroSceneComplete {
         const skipBtn = document.getElementById('skipBtn');
         if (skipBtn) {
           skipBtn.classList.add('bow-shape');
+          window.requestAnimationFrame(() => {
+            skipBtn.classList.add('bow-docked');
+          });
           setTimeout(() => skipBtn.classList.add('rounded-bow'), 400);
           setTimeout(() => skipBtn.classList.add('illuminating'), 800);
         }
@@ -2541,18 +2698,93 @@ export class IntroSceneComplete {
       }
 
       if (data.hellDrop) {
-        if (!data.dropVelocity) {
-          data.dropVelocity = -0.02 - Math.random() * 0.02;
+        if (!data.hellDropPhase) {
+          data.hellDropPhase = 'fall';
         }
-        voxel.position.y += data.dropVelocity;
-        voxel.material.opacity = Math.max(0, voxel.material.opacity - 0.03);
-        if (data.edges && data.edges.material) {
-          data.edges.material.opacity = Math.max(0, data.edges.material.opacity - 0.04);
+
+        if (data.hellDropPhase === 'fall') {
+          if (!data.dropVelocity) {
+            data.dropVelocity = -0.02 - Math.random() * 0.02;
+          }
+
+          voxel.position.y += data.dropVelocity;
+          voxel.material.opacity = Math.max(0, voxel.material.opacity - 0.03);
+          if (data.edges && data.edges.material) {
+            data.edges.material.opacity = Math.max(0, data.edges.material.opacity - 0.04);
+          }
+
+          if (voxel.position.y < data.originalTargetY - 2.5) {
+            voxel.visible = false;
+            data.dropVelocity = 0;
+
+            if (data.hellTarget) {
+              data.hellDropPhase = 'waiting';
+              data.hellRespawnAt = this.state.totalTime + 0.18 + Math.random() * 0.25;
+            } else {
+              data.hellDropPhase = 'vanish';
+            }
+          }
+
+          return;
         }
-        if (voxel.position.y < data.originalTargetY - 2.5) {
+
+        if (data.hellDropPhase === 'waiting') {
+          if (this.state.totalTime < data.hellRespawnAt) {
+            return;
+          }
+
+          const target = data.hellTarget || { x: data.originalTargetX, y: data.originalTargetY };
+          voxel.visible = true;
+          voxel.position.x = target.x;
+          voxel.position.y = target.y + 3.2;
+          voxel.material.opacity = 0;
+          if (data.edges && data.edges.material) {
+            data.edges.material.opacity = 0;
+          }
+
+          data.hellReturnVelocity = 0;
+          data.hellDropPhase = 'return';
+          return;
+        }
+
+        if (data.hellDropPhase === 'return') {
+          const target = data.hellTarget || { x: data.originalTargetX, y: data.originalTargetY };
+          data.hellReturnVelocity = Math.min((data.hellReturnVelocity || 0) + dt * 0.18, 0.085);
+          voxel.position.y = Math.max(target.y, voxel.position.y - data.hellReturnVelocity);
+          voxel.material.opacity = Math.min(0.82, voxel.material.opacity + 0.06);
+          if (data.edges && data.edges.material) {
+            data.edges.material.opacity = Math.min(0.45, data.edges.material.opacity + 0.05);
+          }
+
+          if (voxel.position.y <= target.y + 0.01) {
+            voxel.position.y = target.y;
+            voxel.position.x = target.x;
+            voxel.material.opacity = 0.78;
+            if (data.edges && data.edges.material) {
+              data.edges.material.opacity = 0.32;
+            }
+
+            data.settled = true;
+            data.hellDrop = false;
+            data.hellDropPhase = null;
+            data.hellReturnVelocity = 0;
+            data.hellRespawnAt = 0;
+            data.hellStart = { x: target.x, y: target.y };
+            data.hellTarget = target;
+          }
+
+          return;
+        }
+
+        if (data.hellDropPhase === 'vanish') {
           voxel.visible = false;
-          data.hellDrop = false;
+          voxel.material.opacity = 0;
+          if (data.edges && data.edges.material) {
+            data.edges.material.opacity = 0;
+          }
+          return;
         }
+
         return;
       }
 
@@ -2616,7 +2848,7 @@ export class IntroSceneComplete {
           }
         }
 
-        if (hellActive && data.hellTarget && data.hellStart) {
+        if (hellActive && data.hellTarget && data.hellStart && !data.hellDropPhase) {
           const progress = this.state.hellProgress;
           const eased = progress * progress * (3 - 2 * progress);
           voxel.position.x = THREE.MathUtils.lerp(data.hellStart.x, data.hellTarget.x, eased);
@@ -2800,19 +3032,32 @@ export class IntroSceneComplete {
    * Update backspace sequence
    */
   _updateBackspaceSequence(dt) {
+    if (!this.state.celliBackspaceSequenceStarted) {
+      return;
+    }
+
+    if (!Array.isArray(this.state.lettersToRestore) || !this.state.lettersToRestore.length) {
+      return;
+    }
+
+    const target = Math.min(this.state.celliBackspaceTarget, this.state.lettersToRestore.length);
+
+    if (this.state.restoredLetters >= target) {
+      this.state.celliBackspaceSequenceTime = Math.min(this.state.celliBackspaceSequenceTime, 0.5);
+      return;
+    }
+
     this.state.celliBackspaceSequenceTime += dt;
-    
-    // Restore letters one by one
-    const interval = 0.5; // Restore one letter every 0.5 seconds
-    const letterIndex = Math.floor(this.state.celliBackspaceSequenceTime / interval);
-    
-    if (letterIndex > this.state.restoredLetters && letterIndex < this.state.lettersToRestore.length) {
-      this.state.restoredLetters = letterIndex;
+
+    const interval = 0.5;
+
+    while (this.state.celliBackspaceSequenceTime >= interval && this.state.restoredLetters < target) {
+      this.state.celliBackspaceSequenceTime -= interval;
       this._restoreOneLetter();
     }
   }
 
-  _syncRestoredLettersWithPrompt() {
+  _updateBackspaceTargetFromPrompt() {
     const suffix = (this.state.inputText || '').slice(this.state.promptBaseText.length).toUpperCase();
     const totalLetters = Array.isArray(this.state.lettersToRestore)
       ? this.state.lettersToRestore.length
@@ -2854,19 +3099,8 @@ export class IntroSceneComplete {
       }
     }
 
-    this._restoreLettersToTarget(target);
-  }
-
-  _restoreLettersToTarget(targetCount) {
-    if (!Array.isArray(this.state.lettersToRestore)) {
-      return;
-    }
-
-    const clampedTarget = Math.min(Math.max(targetCount, 0), this.state.lettersToRestore.length);
-
-    while (this.state.restoredLetters < clampedTarget) {
-      this._restoreOneLetter();
-    }
+    const clampedTarget = Math.min(Math.max(target, 0), this.state.lettersToRestore.length);
+    this.state.celliBackspaceTarget = clampedTarget;
   }
 
   /**
@@ -2899,6 +3133,9 @@ export class IntroSceneComplete {
         data.rainActive = false;
         data.burstActive = false;
         data.hellDrop = false;
+        data.hellDropPhase = null;
+        data.hellRespawnAt = 0;
+        data.hellReturnVelocity = 0;
         data.settled = false;
         data.flattenState = null;
         data.backspaceTransformed = false;
@@ -2939,6 +3176,9 @@ export class IntroSceneComplete {
     this.state.restoredLetters += 1;
 
     if (this.state.restoredLetters >= this.state.lettersToRestore.length) {
+      this.state.celliBackspaceSequenceStarted = false;
+      this.state.celliBackspaceSequenceTime = 0;
+      this.state.celliBackspaceTarget = this.state.restoredLetters;
       window.setTimeout(() => {
         this._restoreIAndTransform();
       }, 800);
@@ -2963,6 +3203,10 @@ export class IntroSceneComplete {
           data.rainActive = false;
           data.burstActive = false;
           data.settled = true;
+          data.hellDrop = false;
+          data.hellDropPhase = null;
+          data.hellRespawnAt = 0;
+          data.hellReturnVelocity = 0;
           voxel.position.set(data.originalTargetX, data.originalTargetY, 0);
           voxel.material.color.setRGB(0.82, 0.82, 0.82);
           voxel.material.opacity = 0.78;
