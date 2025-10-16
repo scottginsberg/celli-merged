@@ -242,67 +242,41 @@
     }
 
     .selection-chip {
+      --chip-delay: 0s;
+      --chip-rise-duration: 0.72s;
       position: relative;
-      padding: 0.6rem 1.25rem;
-      border-radius: 999px;
-      font-size: clamp(0.85rem, 2.2vw, 0.95rem);
-      letter-spacing: 0.18em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: clamp(9rem, 24vw, 12.5rem);
+      padding: 0.85rem 1.75rem;
+      border: 2px solid #fff;
+      background: #050505;
+      color: #fff;
       text-transform: uppercase;
+      letter-spacing: 0.18em;
       font-weight: 600;
-      backdrop-filter: blur(12px);
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(68, 100, 255, 0.28));
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      box-shadow: 0 12px 32px rgba(20, 28, 80, 0.55);
-      overflow: hidden;
-      animation: chip-enter 0.7s cubic-bezier(0.26, 0.96, 0.26, 0.99) forwards;
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.45);
+      filter: saturate(1.08);
+      cursor: default;
+      user-select: none;
+      pointer-events: none;
+      transform: translateY(32px) scale(0.92);
+      opacity: 0;
+      animation-name: chip-rise, chip-bob;
+      animation-duration: var(--chip-rise-duration), 3.8s;
+      animation-timing-function: cubic-bezier(0.2, 0.95, 0.26, 1), ease-in-out;
+      animation-delay: var(--chip-delay), calc(var(--chip-delay) + var(--chip-rise-duration));
+      animation-fill-mode: forwards, both;
     }
 
     .selection-chip::after {
       content: "";
       position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
-      opacity: 0;
-      transform: scale(0.2);
-      animation: chip-burst 1.35s cubic-bezier(0.12, 0.72, 0.18, 0.99) forwards;
-    }
-
-    .selection-chip .chip-fragments {
-      position: absolute;
-      inset: -0.2rem;
+      inset: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      opacity: 0.45;
       pointer-events: none;
-    }
-
-    .selection-chip .chip-fragments span {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 6px;
-      height: 6px;
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 0.85;
-      box-shadow:
-        10px 0 0 0 currentColor,
-        -10px 0 0 0 currentColor,
-        0 10px 0 0 currentColor,
-        0 -10px 0 0 currentColor;
-      filter: drop-shadow(0 0 4px currentColor);
-      animation: fragment-burst 1.4s ease-out forwards;
-    }
-
-    .selection-chip .chip-fragments span:nth-child(1) {
-      color: #ff4f88;
-      animation-delay: 0.05s;
-    }
-
-    .selection-chip .chip-fragments span:nth-child(2) {
-      color: #3da9ff;
-      animation-delay: 0.12s;
-    }
-
-    .selection-chip .chip-fragments span:nth-child(3) {
-      color: #ffd166;
-      animation-delay: 0.18s;
     }
 
     .selection-visualizer {
@@ -322,50 +296,30 @@
       display: block;
     }
 
-    @keyframes chip-enter {
+    @keyframes chip-rise {
       0% {
         opacity: 0;
-        transform: translateY(12px) scale(0.95);
+        transform: translateY(32px) scale(0.92);
+      }
+      65% {
+        opacity: 1;
+        transform: translateY(-6px) scale(1.02);
       }
       100% {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateY(-12px) scale(1);
       }
     }
 
-    @keyframes chip-burst {
+    @keyframes chip-bob {
       0% {
-        opacity: 0.75;
-        transform: scale(0.4);
+        transform: translateY(-12px) scale(1);
       }
-      40% {
-        opacity: 0.22;
-        transform: scale(1.8);
+      50% {
+        transform: translateY(-18px) scale(1.01);
       }
       100% {
-        opacity: 0;
-        transform: scale(2.6);
-      }
-    }
-
-    @keyframes fragment-burst {
-      0% {
-        opacity: 0.95;
-        transform: translate(-50%, -50%) scale(0.6);
-        filter: drop-shadow(0 0 4px currentColor);
-      }
-      45% {
-        opacity: 1;
-        transform: translate(calc(-50% - 16px), calc(-50% - 12px)) scale(1.4);
-      }
-      70% {
-        opacity: 0.85;
-        transform: translate(calc(-50% + 22px), calc(-50% + 18px)) scale(1.1);
-      }
-      100% {
-        opacity: 0;
-        transform: translate(calc(-50% + 60px), calc(-50% - 50px)) scale(0.5);
-        filter: drop-shadow(0 0 0 currentColor);
+        transform: translateY(-12px) scale(1);
       }
     }
 
@@ -385,7 +339,8 @@
       }
 
       .selection-chip {
-        padding: 0.55rem 1rem;
+        min-width: clamp(7.5rem, 72vw, 11rem);
+        padding: 0.65rem 1.1rem;
         font-size: clamp(0.78rem, 4vw, 0.9rem);
       }
     }
@@ -466,10 +421,76 @@
       const selectionVisualizer = document.getElementById('selectionVisualizer');
       const selectionVisualizerCtx = selectionVisualizer ? selectionVisualizer.getContext('2d') : null;
 
-      const baseTrack = new Audio('EA.mp3');
-      const encoreTrack = new Audio('EA2.mp3');
-      const superEncoreTrack = new Audio('EA3.mp3');
-      const finaleTrack = new Audio('E4.mp3');
+      function buildTrackCandidates(fileName) {
+        const sanitized = (fileName || '').replace(/^\/+/, '');
+        const candidates = [];
+        const seen = new Set();
+
+        function addCandidate(path) {
+          if (!path) {
+            return;
+          }
+          const normalized = path.replace(/\\/g, '/');
+          if (seen.has(normalized)) {
+            return;
+          }
+          seen.add(normalized);
+          candidates.push(path);
+        }
+
+        addCandidate(fileName);
+        addCandidate(sanitized);
+        addCandidate(`./${sanitized}`);
+        addCandidate(`/${sanitized}`);
+
+        const pathSegments = window.location.pathname.split('/').filter(Boolean);
+        for (let depth = 1; depth <= pathSegments.length + 2; depth += 1) {
+          addCandidate(`${'../'.repeat(depth)}${sanitized}`);
+        }
+
+        return candidates;
+      }
+
+      function createAudioTrack(fileName) {
+        const candidates = buildTrackCandidates(fileName);
+        const audio = new Audio();
+        audio.preload = 'auto';
+        audio.crossOrigin = 'anonymous';
+        let candidateIndex = 0;
+
+        const tryNextSource = () => {
+          if (candidateIndex >= candidates.length) {
+            console.warn(`Unable to resolve audio source for ${fileName}. Tried:`, candidates);
+            audio.removeEventListener('error', handleError);
+            return;
+          }
+          const candidate = candidates[candidateIndex];
+          candidateIndex += 1;
+          audio.src = candidate;
+          audio.load();
+        };
+
+        const handleError = () => {
+          if (audio.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+            tryNextSource();
+          }
+        };
+
+        const handleCanPlay = () => {
+          audio.removeEventListener('error', handleError);
+        };
+
+        audio.addEventListener('error', handleError);
+        audio.addEventListener('canplay', handleCanPlay, { once: true });
+
+        tryNextSource();
+        return audio;
+      }
+
+      const baseTrack = createAudioTrack('EA.mp3');
+      const encoreTrack = createAudioTrack('EA2.mp3');
+      const superEncoreTrack = createAudioTrack('EA3.mp3');
+      const finaleTrack = createAudioTrack('E4.mp3');
 
       const tracks = [baseTrack, encoreTrack, superEncoreTrack, finaleTrack];
       tracks.forEach((audio) => {
@@ -614,34 +635,50 @@
         activeVisualizerTrack = null;
       }
 
-      function updateSubmissionExperienceContent(selections) {
+      function getToneClass(button) {
+        const rawIndex = toneByButton.get(button);
+        if (typeof rawIndex !== 'number') {
+          return COLOR_SEQUENCE[0];
+        }
+        const index = ((rawIndex % COLOR_SEQUENCE.length) + COLOR_SEQUENCE.length) % COLOR_SEQUENCE.length;
+        return COLOR_SEQUENCE[index];
+      }
+
+      function updateSubmissionExperienceContent() {
         if (!selectionCloud) {
           return;
         }
         selectionCloud.innerHTML = '';
-        if (!Array.isArray(selections) || !selections.length) {
+        if (!selectionOrder.length) {
           return;
         }
         const fragment = document.createDocumentFragment();
-        selections.forEach((value, index) => {
+        selectionOrder.forEach((button, index) => {
+          if (!button) {
+            return;
+          }
+          const value = button.dataset.value || button.textContent.trim();
           const chip = document.createElement('div');
-          chip.className = 'selection-chip';
-          chip.style.animationDelay = `${index * 0.08}s`;
+          chip.className = 'selection-chip focus-option';
+          chip.setAttribute('aria-hidden', 'true');
+          chip.setAttribute('role', 'presentation');
+          chip.setAttribute('tabindex', '-1');
           chip.textContent = value;
-          const fragments = document.createElement('div');
-          fragments.className = 'chip-fragments';
-          fragments.innerHTML = '<span></span><span></span><span></span>';
-          chip.appendChild(fragments);
+          const toneClass = getToneClass(button);
+          if (toneClass) {
+            chip.classList.add(toneClass);
+          }
+          chip.style.setProperty('--chip-delay', `${index * 0.08}s`);
           fragment.appendChild(chip);
         });
         selectionCloud.appendChild(fragment);
       }
 
-      function showSubmissionExperience(selections) {
+      function showSubmissionExperience() {
         if (!selectionExperience) {
           return;
         }
-        updateSubmissionExperienceContent(selections);
+        updateSubmissionExperienceContent();
         selectionExperience.classList.add('visible');
         selectionExperience.setAttribute('aria-hidden', 'false');
         if (panel) {
@@ -669,12 +706,11 @@
         if (!panel || !panel.classList.contains('submitted')) {
           return;
         }
-        const active = getActiveSelections();
-        if (!active.length) {
+        if (!selectionOrder.length) {
           hideSubmissionExperience();
           return;
         }
-        updateSubmissionExperienceContent(active);
+        updateSubmissionExperienceContent();
       }
 
       function updateStatus(message) {
@@ -787,7 +823,7 @@
         }
 
         if (panel && panel.classList.contains('submitted')) {
-          updateSubmissionExperienceContent(active);
+          updateSubmissionExperienceContent();
         }
 
         const historyText = selectionHistory.length ? ` | History: ${selectionHistory.join(' → ')}` : '';
@@ -889,7 +925,7 @@
           triggerPanelShake();
           const activeSelections = getActiveSelections();
           const playbackLabel = `Playing EA.mp3 for ${activeSelections.join(', ')} — Steps ${selectionSteps}`;
-          showSubmissionExperience(activeSelections);
+          showSubmissionExperience();
           playTrack(baseTrack, playbackLabel);
           showEscapeButton();
         });
