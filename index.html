@@ -433,6 +433,99 @@
    opacity: 0.78;
   }
 
+  .tri-color-burst {
+   position: fixed;
+   width: 120px;
+   height: 120px;
+   transform: translate(-50%, -50%);
+   pointer-events: none;
+   z-index: 2147483526;
+   display: grid;
+   place-items: center;
+   mix-blend-mode: screen;
+   filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.42));
+   animation: tri-burst-fade 1.2s ease-out forwards;
+  }
+
+  .tri-color-burst::after {
+   content: '';
+   position: absolute;
+   inset: -40%;
+   border-radius: 50%;
+   background: radial-gradient(circle, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
+   animation: tri-burst-flare 1.2s ease-out forwards;
+  }
+
+  .tri-color-burst span {
+   width: 10px;
+   height: 10px;
+   border-radius: 2px;
+   opacity: 0;
+   background: currentColor;
+   box-shadow:
+    14px -6px 0 -2px currentColor,
+    -16px 8px 0 -2px currentColor,
+    6px 18px 0 -2px currentColor,
+    -12px -16px 0 -2px currentColor;
+   filter: drop-shadow(0 0 6px currentColor);
+   animation: tri-burst-launch 0.95s cubic-bezier(0.2, 0.85, 0.25, 1) forwards;
+  }
+
+  .tri-color-burst span:nth-child(1) {
+   color: #ff4f88;
+   animation-delay: 0s;
+  }
+
+  .tri-color-burst span:nth-child(2) {
+   color: #3da9ff;
+   animation-delay: 0.05s;
+  }
+
+  .tri-color-burst span:nth-child(3) {
+   color: #ffd166;
+   animation-delay: 0.1s;
+  }
+
+  @keyframes tri-burst-launch {
+   0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.4) rotate(0deg);
+   }
+   35% {
+    opacity: 1;
+    transform: translate3d(24px, -26px, 0) scale(1.25) rotate(18deg);
+   }
+   75% {
+    opacity: 0.85;
+    transform: translate3d(-32px, 22px, 0) scale(0.9) rotate(-22deg);
+   }
+   100% {
+    opacity: 0;
+    transform: translate3d(64px, -54px, 0) scale(0.4) rotate(32deg);
+   }
+  }
+
+  @keyframes tri-burst-fade {
+   0% { opacity: 1; }
+   60% { opacity: 0.9; }
+   100% { opacity: 0; }
+  }
+
+  @keyframes tri-burst-flare {
+   0% {
+    opacity: 0.55;
+    transform: scale(0.4);
+   }
+   40% {
+    opacity: 0.25;
+    transform: scale(1.1);
+   }
+   100% {
+    opacity: 0;
+    transform: scale(1.8);
+   }
+  }
+
   .base-darkness {
    position: fixed;
    inset: 0;
@@ -1253,6 +1346,49 @@
   chantAudio.volume = 0;
   document.documentElement.style.setProperty('--chant-reactive', '0');
 
+  function createCaseInsensitiveAudio(basePath) {
+    const audio = new Audio();
+    audio.preload = 'auto';
+    const lastSlash = basePath.lastIndexOf('/');
+    const directory = lastSlash >= 0 ? basePath.slice(0, lastSlash + 1) : '';
+    const filename = lastSlash >= 0 ? basePath.slice(lastSlash + 1) : basePath;
+    const stem = filename.replace(/\.mp3$/i, '');
+    const variants = Array.from(new Set([
+      `${directory}${stem}.mp3`,
+      `${directory}${stem}.MP3`,
+      `${directory}${stem}.Mp3`,
+      `${directory}${stem}.mP3`,
+      `${directory}${stem.toLowerCase()}.mp3`,
+      `${directory}${stem.toUpperCase()}.mp3`,
+      `${directory}${stem.charAt(0).toUpperCase()}${stem.slice(1)}.mp3`
+    ]));
+    let attempt = 0;
+    const handleError = () => {
+      attempt += 1;
+      if (attempt < variants.length) {
+        audio.src = variants[attempt];
+      } else {
+        audio.removeEventListener('error', handleError);
+      }
+    };
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('loadeddata', () => {
+      audio.removeEventListener('error', handleError);
+    }, { once: true });
+    audio.src = variants[attempt];
+    return audio;
+  }
+
+  const badBooleanTrack = createCaseInsensitiveAudio('./badboolean.mp3');
+  badBooleanTrack.loop = true;
+  badBooleanTrack.volume = 0.82;
+
+  const chimeAudio = new Audio('./end.mp3');
+  chimeAudio.preload = 'auto';
+
+  let scratchContext = null;
+  let scratchGlitchPromise = Promise.resolve();
+
   let chantAudioContext = null;
   let chantAudioSource = null;
   let chantAnalyser = null;
@@ -1262,6 +1398,84 @@
   let chantVisualizerLevel = 0;
   let chantVisualizerWarned = false;
   let chantUnlockHandler = null;
+
+  function stopBadBooleanTrack() {
+    try {
+      badBooleanTrack.pause();
+      badBooleanTrack.currentTime = 0;
+    } catch (error) {
+      console.warn('Unable to reset BadBoolean track', error);
+    }
+  }
+
+  function playBadBooleanTrack() {
+    const playback = badBooleanTrack.play();
+    if (playback && typeof playback.catch === 'function') {
+      playback.catch((error) => {
+        console.warn('BadBoolean audio playback failed:', error);
+      });
+    }
+  }
+
+  function playRecordScratchGlitch(duration = 0.65) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      return Promise.resolve();
+    }
+    if (!scratchContext) {
+      scratchContext = new AudioContextClass();
+    } else if (scratchContext.state === 'suspended') {
+      scratchContext.resume().catch(() => {});
+    }
+    return new Promise((resolve) => {
+      try {
+        const ctx = scratchContext;
+        const frames = Math.max(1, Math.floor(ctx.sampleRate * duration));
+        const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < frames; i += 1) {
+          const t = i / frames;
+          const noise = (Math.random() * 2 - 1) * (1 - t);
+          const chirp = Math.sin(2 * Math.PI * (420 + t * 900) * (i / ctx.sampleRate));
+          data[i] = (noise * 0.55) + (chirp * Math.pow(1 - t, 0.35));
+        }
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 1800;
+        filter.Q.value = 5.5;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        source.addEventListener('ended', resolve);
+        source.start();
+        source.stop(ctx.currentTime + duration + 0.05);
+      } catch (error) {
+        console.warn('Record scratch synthesis failed:', error);
+        resolve();
+      }
+    });
+  }
+
+  function startBadBooleanAdAudio() {
+    stopChantAudio();
+    stopBadBooleanTrack();
+    scratchGlitchPromise = playRecordScratchGlitch().then(() => {
+      playBadBooleanTrack();
+    });
+  }
+
+  function playAdDismissChime() {
+    const playback = chimeAudio.play();
+    if (playback && typeof playback.catch === 'function') {
+      playback.catch((error) => console.warn('Chime playback failed:', error));
+    }
+  }
 
   chantAudio.addEventListener('play', () => startChantVisualizer(6000));
   chantAudio.addEventListener('ended', () => {
@@ -1886,6 +2100,43 @@
     if (triColorState.canvas) {
       triColorState.canvas.classList.remove('tri-color-particles--foreground');
     }
+  }
+
+  function ensureTriColorActive() {
+    if (!triColorState.enabled) {
+      triColorState.enabled = true;
+    }
+    if (!triColorState.canvas) {
+      initTriColorParticles();
+    } else {
+      setTriColorEnabled(true);
+    }
+  }
+
+  function spawnTriColorBurst(point, scale = 1) {
+    if (!point || typeof point.x !== 'number' || typeof point.y !== 'number') {
+      return;
+    }
+    const burst = document.createElement('div');
+    burst.className = 'tri-color-burst';
+    burst.style.left = `${point.x}px`;
+    burst.style.top = `${point.y}px`;
+    burst.style.transform = `translate(-50%, -50%) scale(${Math.max(0.6, scale)})`;
+    burst.appendChild(document.createElement('span'));
+    burst.appendChild(document.createElement('span'));
+    burst.appendChild(document.createElement('span'));
+    document.body.appendChild(burst);
+    setTimeout(() => {
+      if (burst.parentNode) {
+        burst.remove();
+      }
+    }, 1300);
+  }
+
+  function triggerTriColorBurst(scale = 1) {
+    ensureTriColorActive();
+    const point = getInviteFocusPoint();
+    spawnTriColorBurst(point, scale);
   }
 
   function cancelExtraInviteSchedule({ clearPins = true, keepActive = false } = {}) {
@@ -2858,6 +3109,7 @@
     }
 
     triggerNoteHoverEffects();
+    triggerTriColorBurst(1.1);
 
     const rumbleTimeout = setTimeout(() => {
       sidebar.classList.add('stage-rumble');
@@ -2933,6 +3185,9 @@
     loomAiMessageActive = true;
     loomFakeAdActive = false;
 
+    ensureTriColorActive();
+    triggerTriColorBurst(0.9);
+
     const heading = sidebar.querySelector('h3');
     if (heading) {
       heading.textContent = 'Observant. We knew you\'d notice us.';
@@ -2989,7 +3244,11 @@
     loomFakeAdActive = true;
     markInviteActive(false);
 
+    triggerTriColorBurst(1.35);
+    startBadBooleanAdAudio();
+
     ackBtn.style.transition = 'all 0.1s ease-out';
+    ackBtn.style.willChange = 'transform, opacity';
 
     ackBtn.innerHTML = `
         <div style="font-size: 20px; font-weight: 900; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 2px; color: #ff0080; animation: pulse 0.5s infinite;">
@@ -3046,6 +3305,12 @@
     stopAiEnhancedScan();
     clearNoteStageTimeouts();
 
+    const wasAdActive = !badBooleanTrack.paused;
+    stopBadBooleanTrack();
+    if (wasAdActive) {
+      scratchGlitchPromise.finally(() => playAdDismissChime());
+    }
+
     // Clear any pending timeout
     if (window.badBooleanTimeout) {
       clearTimeout(window.badBooleanTimeout);
@@ -3060,6 +3325,7 @@
     // Quick fade transition
     ackBtn.style.transition = 'all 0.3s ease-out';
     ackBtn.style.opacity = '0';
+    ackBtn.style.willChange = 'transform, opacity';
     
     // Transform entire sidebar into unified hazy glass crystal
     sidebar.style.background = 'linear-gradient(135deg, rgba(15, 25, 45, 0.65), rgba(25, 35, 55, 0.75), rgba(20, 30, 50, 0.7))';
@@ -3070,7 +3336,10 @@
     sidebar.style.padding = '0';
     sidebar.style.overflow = 'hidden';
     sidebar.style.boxShadow = '0 8px 40px rgba(0, 0, 0, 0.5), 0 0 80px rgba(102, 126, 234, 0.25), inset 0 2px 0 rgba(255, 255, 255, 0.15), inset 0 -2px 20px rgba(102, 126, 234, 0.1)';
-    
+
+    ensureTriColorActive();
+    triggerTriColorBurst(isAltVersion ? 1.45 : 1.2);
+
     // Choose opening text based on version
     const openingText = isAltVersion 
       ? 'The willpower. I wouldn\'t have been so strong. The things we do to fill the nulls in our heart. You\'re exactly who we need.'
@@ -4101,6 +4370,7 @@
 
     clearNoteStageTimeouts();
     stopChantAudio();
+    stopBadBooleanTrack();
     noteAwaitingActivation = false;
     noteHoverSequenceStarted = false;
     loomAiMessageActive = false;
@@ -4983,14 +5253,18 @@
   function transformToAltLoomworksInvite() {
     const sidebar = refSidebar;
     const ackBtn = refSidebarAck;
-    
+
     console.log('⏱️ User waited 5 seconds - showing WILLPOWER version');
-    
+
     // Shrink and fade the ad
     ackBtn.style.transition = 'all 0.5s ease-out';
     ackBtn.style.transform = 'scale(0.3)';
     ackBtn.style.opacity = '0';
-    
+
+    scratchGlitchPromise.finally(() => playAdDismissChime());
+    stopBadBooleanTrack();
+    triggerTriColorBurst(1.3);
+
     setTimeout(() => {
       // Show alt LOOMWORKS invitation (willpower version)
       showLoomworksInvite(true); // Pass true for alt/willpower version
