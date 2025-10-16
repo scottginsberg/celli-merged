@@ -3024,3 +3024,150 @@ body.referrer-whiteout {
   }
 }
 
+@media (max-width: 720px) {
+  .celli-ref-panel {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .ref-header {
+    padding: 18px 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .ref-logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .ref-meta {
+    flex: 1 1 100%;
+  }
+
+  .ref-list {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .ref-list.reddit-style {
+    padding: 0;
+  }
+
+  .reddit-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .reddit-post {
+    margin: 0 0 12px;
+    border-radius: 14px;
+    padding: 12px;
+  }
+
+  .hn-wrap {
+    width: 100%;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .hn-content {
+    padding: 10px 12px;
+  }
+
+  .twitter-feed {
+    max-width: none;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 12px;
+  }
+
+  .twitter-tweet {
+    margin: 0 0 12px;
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .facebook-feed {
+    margin: 0;
+    border-radius: 0;
+    padding: 12px;
+  }
+
+  .facebook-post {
+    margin: 0 0 12px;
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .ref-list.linkedin-style {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .linkedin-sidebar,
+  .linkedin-right {
+    width: 100%;
+  }
+
+  .linkedin-sidebar .linkedin-card,
+  .linkedin-right .linkedin-card {
+    margin: 0;
+    border-radius: 18px;
+    padding: 18px;
+  }
+
+  .ref-sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 82vh;
+    border-radius: 24px 24px 0 0;
+    transform: translateY(108%);
+    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.55);
+  }
+
+  .ref-sidebar.active {
+    transform: translateY(0);
+  }
+
+  .ref-sidebar-close {
+    top: 16px;
+    right: 18px;
+  }
+
+  .ref-sidebar h3 {
+    font-size: 18px;
+    padding: 18px 18px 0;
+    text-align: center;
+  }
+
+  .ref-sidebar-btn {
+    margin: 0 18px 24px;
+    padding: 22px 18px;
+    border-radius: 20px;
+  }
+
+  .loom-invite-card,
+  .loom-invite-clone-card {
+    border-radius: 22px;
+  }
+
+  .ai-message {
+    padding: 32px 24px !important;
+  }
+
+  .ref-tooltip {
+    font-size: 11px;
+    max-width: min(280px, 80vw);
+  }
+}
+

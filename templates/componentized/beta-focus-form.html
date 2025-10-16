@@ -37,7 +37,19 @@
       display: grid;
       gap: clamp(1.5rem, 4vw, 2rem);
       box-shadow: 6px 6px 0 #fff, 0 0 0 10px #000, 0 0 38px rgba(255, 255, 255, 0.16);
-      transition: transform 0.18s ease;
+      transition: transform 0.18s ease, opacity 0.25s ease, filter 0.25s ease;
+    }
+
+    .form-panel.submitting {
+      opacity: 0.85;
+      filter: saturate(1.2);
+    }
+
+    .form-panel.submitted {
+      opacity: 0.35;
+      transform: scale(0.98);
+      filter: blur(1px) saturate(1.4);
+      pointer-events: none;
     }
 
     .form-panel::before {
@@ -199,6 +211,185 @@
       outline: none;
     }
 
+    .submission-experience {
+      position: absolute;
+      inset: clamp(1.75rem, 5vw, 2.5rem);
+      border-radius: clamp(1.5rem, 4vw, 2.25rem);
+      background: radial-gradient(circle at top, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.9));
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: inset 0 0 32px rgba(255, 255, 255, 0.08), 0 0 80px rgba(91, 123, 255, 0.22);
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: clamp(1.25rem, 3vw, 1.75rem);
+      padding: clamp(1.35rem, 3.5vw, 2rem) clamp(1.25rem, 3vw, 1.85rem);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.45s ease;
+    }
+
+    .submission-experience.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .selection-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: clamp(0.65rem, 2vw, 0.9rem);
+      position: relative;
+      min-height: clamp(2.5rem, 7vw, 3.5rem);
+    }
+
+    .selection-chip {
+      position: relative;
+      padding: 0.6rem 1.25rem;
+      border-radius: 999px;
+      font-size: clamp(0.85rem, 2.2vw, 0.95rem);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 600;
+      backdrop-filter: blur(12px);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(68, 100, 255, 0.28));
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 12px 32px rgba(20, 28, 80, 0.55);
+      overflow: hidden;
+      animation: chip-enter 0.7s cubic-bezier(0.26, 0.96, 0.26, 0.99) forwards;
+    }
+
+    .selection-chip::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
+      opacity: 0;
+      transform: scale(0.2);
+      animation: chip-burst 1.35s cubic-bezier(0.12, 0.72, 0.18, 0.99) forwards;
+    }
+
+    .selection-chip .chip-fragments {
+      position: absolute;
+      inset: -0.2rem;
+      pointer-events: none;
+    }
+
+    .selection-chip .chip-fragments span {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 6px;
+      height: 6px;
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0.85;
+      box-shadow:
+        10px 0 0 0 currentColor,
+        -10px 0 0 0 currentColor,
+        0 10px 0 0 currentColor,
+        0 -10px 0 0 currentColor;
+      filter: drop-shadow(0 0 4px currentColor);
+      animation: fragment-burst 1.4s ease-out forwards;
+    }
+
+    .selection-chip .chip-fragments span:nth-child(1) {
+      color: #ff4f88;
+      animation-delay: 0.05s;
+    }
+
+    .selection-chip .chip-fragments span:nth-child(2) {
+      color: #3da9ff;
+      animation-delay: 0.12s;
+    }
+
+    .selection-chip .chip-fragments span:nth-child(3) {
+      color: #ffd166;
+      animation-delay: 0.18s;
+    }
+
+    .selection-visualizer {
+      width: 100%;
+      height: clamp(140px, 28vh, 220px);
+      border-radius: clamp(1.1rem, 3vw, 1.65rem);
+      background: linear-gradient(135deg, rgba(19, 26, 56, 0.9), rgba(12, 20, 44, 0.92));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 0 26px rgba(14, 24, 48, 0.9), 0 0 46px rgba(67, 105, 255, 0.2);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .selection-visualizer canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    @keyframes chip-enter {
+      0% {
+        opacity: 0;
+        transform: translateY(12px) scale(0.95);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes chip-burst {
+      0% {
+        opacity: 0.75;
+        transform: scale(0.4);
+      }
+      40% {
+        opacity: 0.22;
+        transform: scale(1.8);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(2.6);
+      }
+    }
+
+    @keyframes fragment-burst {
+      0% {
+        opacity: 0.95;
+        transform: translate(-50%, -50%) scale(0.6);
+        filter: drop-shadow(0 0 4px currentColor);
+      }
+      45% {
+        opacity: 1;
+        transform: translate(calc(-50% - 16px), calc(-50% - 12px)) scale(1.4);
+      }
+      70% {
+        opacity: 0.85;
+        transform: translate(calc(-50% + 22px), calc(-50% + 18px)) scale(1.1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(calc(-50% + 60px), calc(-50% - 50px)) scale(0.5);
+        filter: drop-shadow(0 0 0 currentColor);
+      }
+    }
+
+    @media (max-width: 640px) {
+      main {
+        width: min(100%, 92vw);
+      }
+
+      .form-panel {
+        padding: clamp(2rem, 7vw, 2.75rem) clamp(1.25rem, 7vw, 2rem) clamp(2rem, 7vw, 2.75rem);
+      }
+
+      .submission-experience {
+        inset: clamp(1.1rem, 4vw, 1.5rem);
+        padding: clamp(1rem, 4vw, 1.5rem);
+        gap: clamp(1rem, 4vw, 1.5rem);
+      }
+
+      .selection-chip {
+        padding: 0.55rem 1rem;
+        font-size: clamp(0.78rem, 4vw, 0.9rem);
+      }
+    }
+
     .form-panel.shake {
       animation: shake 0.4s ease;
     }
@@ -254,6 +445,12 @@
       </div>
       <footer>EA tracks will be added later.</footer>
     </form>
+    <div id="submissionExperience" class="submission-experience" aria-hidden="true">
+      <div id="selectionCloud" class="selection-cloud"></div>
+      <div class="selection-visualizer">
+        <canvas id="selectionVisualizer" width="600" height="240" aria-hidden="true"></canvas>
+      </div>
+    </div>
     <button type="button" id="escapeEncoreButton" class="escape-button" aria-live="polite" aria-label="Get me out of here!">Get me out of here!</button>
   </main>
   <script>
@@ -264,17 +461,28 @@
       const statusEl = document.getElementById('audioStatus');
       const escapeButton = document.getElementById('escapeEncoreButton');
 
+      const selectionExperience = document.getElementById('submissionExperience');
+      const selectionCloud = document.getElementById('selectionCloud');
+      const selectionVisualizer = document.getElementById('selectionVisualizer');
+      const selectionVisualizerCtx = selectionVisualizer ? selectionVisualizer.getContext('2d') : null;
+
       const baseTrack = new Audio('EA.mp3');
       const encoreTrack = new Audio('EA2.mp3');
       const superEncoreTrack = new Audio('EA3.mp3');
+      const finaleTrack = new Audio('E4.mp3');
 
-      [baseTrack, encoreTrack, superEncoreTrack].forEach((audio) => {
+      const tracks = [baseTrack, encoreTrack, superEncoreTrack, finaleTrack];
+      tracks.forEach((audio) => {
         audio.preload = 'auto';
+        audio.crossOrigin = 'anonymous';
       });
 
-      const tracks = [baseTrack, encoreTrack, superEncoreTrack];
-      const encoreTracks = [encoreTrack, superEncoreTrack];
-      const encoreLabels = ['Encore — playing EA2.mp3…', 'Super Encore — playing EA3.mp3…'];
+      const encoreTracks = [encoreTrack, superEncoreTrack, finaleTrack];
+      const encoreLabels = [
+        'Encore — playing EA2.mp3…',
+        'Super Encore — playing EA3.mp3…',
+        'Finale — playing E4.mp3…'
+      ];
       const DEFAULT_ESCAPE_LABEL = 'Get me out of here!';
       const ENCORE_LABEL = 'ENCORE!';
       const NEAR_DISTANCE = 72;
@@ -286,6 +494,188 @@
       let selectionSteps = 0;
       let encoreIndex = 0;
       let escapeLabelState = DEFAULT_ESCAPE_LABEL;
+
+      let audioContext = null;
+      let analyser = null;
+      let analyserData = null;
+      let analyserGain = null;
+      const mediaSourceMap = new WeakMap();
+      let visualizerFrameId = null;
+      let activeVisualizerTrack = null;
+
+      function ensureVisualizerCanvasSize() {
+        if (!selectionVisualizer || !selectionVisualizerCtx) {
+          return;
+        }
+        const dpr = window.devicePixelRatio || 1;
+        const displayWidth = selectionVisualizer.clientWidth || selectionVisualizer.width;
+        const displayHeight = selectionVisualizer.clientHeight || selectionVisualizer.height;
+        const targetWidth = Math.max(1, Math.round(displayWidth * dpr));
+        const targetHeight = Math.max(1, Math.round(displayHeight * dpr));
+        if (selectionVisualizer.width !== targetWidth || selectionVisualizer.height !== targetHeight) {
+          selectionVisualizer.width = targetWidth;
+          selectionVisualizer.height = targetHeight;
+        }
+        selectionVisualizerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function ensureAudioEngine() {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          return false;
+        }
+        if (!audioContext) {
+          audioContext = new AudioContextClass();
+          analyser = audioContext.createAnalyser();
+          analyser.fftSize = 256;
+          analyser.smoothingTimeConstant = 0.78;
+          analyserData = new Uint8Array(analyser.frequencyBinCount);
+          analyserGain = audioContext.createGain();
+          analyserGain.gain.value = 1;
+          analyser.connect(analyserGain);
+          analyserGain.connect(audioContext.destination);
+        } else if (audioContext.state === 'suspended') {
+          audioContext.resume().catch(() => {});
+        }
+        return true;
+      }
+
+      function attachAudioToAnalyser(audio) {
+        if (!ensureAudioEngine() || !audioContext || !analyser) {
+          return;
+        }
+        let source = mediaSourceMap.get(audio);
+        if (!source) {
+          source = audioContext.createMediaElementSource(audio);
+          source.connect(analyser);
+          mediaSourceMap.set(audio, source);
+        }
+      }
+
+      function renderVisualizer() {
+        if (!selectionVisualizerCtx || !analyser || !analyserData) {
+          visualizerFrameId = null;
+          return;
+        }
+        if (activeVisualizerTrack && (activeVisualizerTrack.paused || activeVisualizerTrack.ended)) {
+          stopVisualizerIfIdle();
+          return;
+        }
+
+        ensureVisualizerCanvasSize();
+        analyser.getByteFrequencyData(analyserData);
+
+        const width = selectionVisualizer.clientWidth || selectionVisualizer.width;
+        const height = selectionVisualizer.clientHeight || selectionVisualizer.height;
+        selectionVisualizerCtx.clearRect(0, 0, width, height);
+
+        const barCount = 48;
+        const step = Math.max(1, Math.floor(analyserData.length / barCount));
+        const barWidth = width / barCount;
+
+        for (let i = 0; i < barCount; i += 1) {
+          const dataIndex = Math.min(analyserData.length - 1, i * step);
+          const magnitude = analyserData[dataIndex] / 255;
+          const eased = Math.pow(magnitude, 1.5);
+          const barHeight = (height - 16) * eased;
+          const x = i * barWidth;
+          const y = height - barHeight - 8;
+          const hue = 210 + (i / barCount) * 70;
+          selectionVisualizerCtx.fillStyle = `hsla(${hue.toFixed(1)}, 88%, ${48 + eased * 26}%, ${0.25 + eased * 0.5})`;
+          selectionVisualizerCtx.fillRect(x + 2, y, Math.max(2, barWidth - 4), barHeight + 8);
+        }
+
+        visualizerFrameId = requestAnimationFrame(renderVisualizer);
+      }
+
+      function startVisualizerFor(audio) {
+        if (!selectionVisualizer || !selectionVisualizerCtx) {
+          return;
+        }
+        attachAudioToAnalyser(audio);
+        activeVisualizerTrack = audio;
+        ensureVisualizerCanvasSize();
+        if (!visualizerFrameId) {
+          visualizerFrameId = requestAnimationFrame(renderVisualizer);
+        }
+      }
+
+      function stopVisualizerIfIdle() {
+        if (activeVisualizerTrack && !activeVisualizerTrack.paused && !activeVisualizerTrack.ended) {
+          return;
+        }
+        if (visualizerFrameId) {
+          cancelAnimationFrame(visualizerFrameId);
+          visualizerFrameId = null;
+        }
+        if (selectionVisualizerCtx && selectionVisualizer) {
+          selectionVisualizerCtx.clearRect(0, 0, selectionVisualizer.width, selectionVisualizer.height);
+        }
+        activeVisualizerTrack = null;
+      }
+
+      function updateSubmissionExperienceContent(selections) {
+        if (!selectionCloud) {
+          return;
+        }
+        selectionCloud.innerHTML = '';
+        if (!Array.isArray(selections) || !selections.length) {
+          return;
+        }
+        const fragment = document.createDocumentFragment();
+        selections.forEach((value, index) => {
+          const chip = document.createElement('div');
+          chip.className = 'selection-chip';
+          chip.style.animationDelay = `${index * 0.08}s`;
+          chip.textContent = value;
+          const fragments = document.createElement('div');
+          fragments.className = 'chip-fragments';
+          fragments.innerHTML = '<span></span><span></span><span></span>';
+          chip.appendChild(fragments);
+          fragment.appendChild(chip);
+        });
+        selectionCloud.appendChild(fragment);
+      }
+
+      function showSubmissionExperience(selections) {
+        if (!selectionExperience) {
+          return;
+        }
+        updateSubmissionExperienceContent(selections);
+        selectionExperience.classList.add('visible');
+        selectionExperience.setAttribute('aria-hidden', 'false');
+        if (panel) {
+          panel.classList.add('submitting');
+          requestAnimationFrame(() => panel.classList.add('submitted'));
+        }
+      }
+
+      function hideSubmissionExperience() {
+        if (selectionExperience) {
+          selectionExperience.classList.remove('visible');
+          selectionExperience.setAttribute('aria-hidden', 'true');
+        }
+        if (selectionCloud) {
+          selectionCloud.innerHTML = '';
+        }
+        if (panel) {
+          panel.classList.remove('submitting');
+          panel.classList.remove('submitted');
+        }
+        stopVisualizerIfIdle();
+      }
+
+      function refreshSubmissionExperience() {
+        if (!panel || !panel.classList.contains('submitted')) {
+          return;
+        }
+        const active = getActiveSelections();
+        if (!active.length) {
+          hideSubmissionExperience();
+          return;
+        }
+        updateSubmissionExperienceContent(active);
+      }
 
       function updateStatus(message) {
         if (statusEl) {
@@ -313,33 +703,44 @@
             }
           }
         });
+        if (!except || except.paused) {
+          stopVisualizerIfIdle();
+        }
       }
 
-      function handlePlaybackPromise(promise, label) {
+      function handlePlaybackPromise(promise, label, audio) {
         if (!promise || typeof promise.then !== 'function') {
           updateStatus(label);
+          if (audio) {
+            startVisualizerFor(audio);
+          }
           return;
         }
 
         promise
           .then(() => {
             updateStatus(label);
+            if (audio) {
+              startVisualizerFor(audio);
+            }
           })
           .catch((error) => {
             console.warn('Audio playback failed. Ensure EA tracks are available.', error);
             updateStatus('Audio unavailable — please add the EA tracks.');
+            stopVisualizerIfIdle();
           });
       }
 
       function playTrack(audio, label) {
         stopOtherTracks(audio);
+        ensureAudioEngine();
         try {
           audio.currentTime = 0;
         } catch (error) {
           console.warn('Unable to reset selected audio time', error);
         }
         const playback = audio.play();
-        handlePlaybackPromise(playback, label);
+        handlePlaybackPromise(playback, label, audio);
       }
 
       function applyTone(button, toneIndex) {
@@ -371,6 +772,7 @@
       function updateSelectionStatus(extraMessage) {
         const active = getActiveSelections();
         if (!active.length) {
+          hideSubmissionExperience();
           const historyText = selectionHistory.length ? `History: ${selectionHistory.join(' → ')}` : '';
           if (extraMessage) {
             const suffix = historyText ? ` | ${historyText}` : '';
@@ -382,6 +784,10 @@
             updateStatus('Pick a focus to start the track.');
           }
           return;
+        }
+
+        if (panel && panel.classList.contains('submitted')) {
+          updateSubmissionExperienceContent(active);
         }
 
         const historyText = selectionHistory.length ? ` | History: ${selectionHistory.join(' → ')}` : '';
@@ -452,6 +858,7 @@
             }
             triggerPanelShake();
             updateSelectionStatus(`Removed ${value}`);
+            refreshSubmissionExperience();
             return;
           }
 
@@ -464,6 +871,7 @@
           cycleExistingTones();
           triggerPanelShake();
           updateSelectionStatus(`Added ${value}`);
+          refreshSubmissionExperience();
         });
       });
 
@@ -481,6 +889,7 @@
           triggerPanelShake();
           const activeSelections = getActiveSelections();
           const playbackLabel = `Playing EA.mp3 for ${activeSelections.join(', ')} — Steps ${selectionSteps}`;
+          showSubmissionExperience(activeSelections);
           playTrack(baseTrack, playbackLabel);
           showEscapeButton();
         });
@@ -488,14 +897,22 @@
 
       baseTrack.addEventListener('ended', () => {
         updateStatus('Encore ready. Hover over the red button.');
+        stopVisualizerIfIdle();
       });
 
       encoreTrack.addEventListener('ended', () => {
         updateStatus('Encore complete — ready for one more?');
+        stopVisualizerIfIdle();
       });
 
       superEncoreTrack.addEventListener('ended', () => {
-        updateStatus('Super Encore complete. Thank you!');
+        updateStatus('Super Encore complete. Finale unlocked.');
+        stopVisualizerIfIdle();
+      });
+
+      finaleTrack.addEventListener('ended', () => {
+        updateStatus('Finale complete. Thank you for your focus!');
+        stopVisualizerIfIdle();
       });
 
       if (escapeButton) {
@@ -515,8 +932,19 @@
       document.addEventListener('pointermove', handlePointerProximity);
       document.addEventListener('pointerdown', handlePointerProximity);
 
+      window.addEventListener('resize', ensureVisualizerCanvasSize);
+      tracks.forEach((audio) => {
+        audio.addEventListener('pause', () => {
+          if (audio !== activeVisualizerTrack || audio.ended || audio.currentTime === 0) {
+            stopVisualizerIfIdle();
+          }
+        });
+      });
+
+      hideSubmissionExperience();
       updateSelectionStatus();
       updateEscapeLabel(false);
+      ensureVisualizerCanvasSize();
     })();
   </script>
 </body>
