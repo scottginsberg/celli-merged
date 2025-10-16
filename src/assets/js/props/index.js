@@ -2,12 +2,18 @@ import * as THREE from 'three';
 import { createFilmCameraProp } from './FilmCameraProp.js';
 import { createFilmReelProp } from './FilmReelProp.js';
 import { createFilmStripProp } from './FilmStripProp.js';
+import { createChessPawnProp } from './ChessPawnProp.js';
+import { createDiceProp } from './DiceProp.js';
+import { createPlayingCardProp } from './PlayingCardProp.js';
 import { PROP_CATALOG } from './propCatalog.js';
 
 const FACTORIES = {
   filmCamera: createFilmCameraProp,
   filmReel: createFilmReelProp,
   filmStrip: createFilmStripProp,
+  chessPawn: createChessPawnProp,
+  dice: createDiceProp,
+  playingCard: createPlayingCardProp,
 };
 
 const PROP_DEFINITIONS = PROP_CATALOG.reduce((definitions, meta) => {
