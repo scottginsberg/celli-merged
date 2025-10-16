@@ -119,6 +119,56 @@
       letter-spacing: 0.08em;
     }
 
+    .pre-form-video-overlay {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .pre-form-video-overlay video {
+      max-width: min(90vw, 1200px);
+      max-height: 90vh;
+      width: 100%;
+      background: #000;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+    }
+
+    .pre-form-video-overlay__message {
+      color: #f5f7ff;
+      font-size: 0.9rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      opacity: 0.85;
+      text-align: center;
+    }
+
+    .pre-form-video-overlay__start {
+      padding: 0.75rem 1.85rem;
+      border: 2px solid rgba(255, 255, 255, 0.75);
+      background: rgba(0, 0, 0, 0.65);
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.28em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .pre-form-video-overlay__start:hover,
+    .pre-form-video-overlay__start:focus-visible {
+      background: rgba(255, 255, 255, 0.92);
+      color: #000;
+      border-color: rgba(255, 255, 255, 0.92);
+      outline: none;
+    }
+
     main {
       width: min(520px, 92vw);
     }
@@ -503,8 +553,24 @@
     <button type="button" id="escapeEncoreButton" class="escape-button" aria-live="polite" aria-label="Get me out of here!">Get me out of here!</button>
   </main>
   <script>
-    (function () {
+    (async function () {
       const panel = document.getElementById('betaFocusPanel');
+      if (panel) {
+        panel.style.visibility = 'hidden';
+        panel.setAttribute('aria-hidden', 'true');
+      }
+
+      try {
+        await playPreFormVideos();
+      } catch (error) {
+        console.warn('⚠️ Pre-form video sequence failed:', error);
+      }
+
+      if (panel) {
+        panel.style.visibility = '';
+        panel.removeAttribute('aria-hidden');
+      }
+
       const form = document.getElementById('betaFocusForm');
       const optionButtons = Array.from(document.querySelectorAll('.focus-option'));
       const statusEl = document.getElementById('audioStatus');
@@ -543,6 +609,211 @@
         }
 
         return candidates;
+      }
+
+      async function playPreFormVideos() {
+        const sequence = [
+          { file: 'intro7.mp4', label: 'intro7.mp4' },
+          { file: 'intro3.mp4', label: 'intro3.mp4' }
+        ];
+
+        if (!Array.isArray(sequence) || sequence.length === 0) {
+          return;
+        }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'pre-form-video-overlay';
+
+        const video = document.createElement('video');
+        video.playsInline = true;
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+        video.controls = false;
+        video.preload = 'auto';
+        video.crossOrigin = 'anonymous';
+
+        const message = document.createElement('div');
+        message.className = 'pre-form-video-overlay__message';
+        message.textContent = 'Preparing form sequence…';
+
+        overlay.append(video, message);
+        document.body.appendChild(overlay);
+
+        try {
+          for (const { file, label } of sequence) {
+            const candidates = buildTrackCandidates(file);
+            const resolved = await resolveVideoSource(video, candidates, file);
+            if (!resolved) {
+              console.warn(`⚠️ Skipping ${file} — unable to resolve source`, candidates);
+              continue;
+            }
+
+            try {
+              video.currentTime = 0;
+            } catch (_) {
+              // Ignore seek errors before playback starts
+            }
+
+            message.textContent = `Playing ${label || file}…`;
+            await playVideoElement(video, overlay, message);
+            await waitForVideoEnd(video);
+            video.pause();
+            message.textContent = 'Preparing form sequence…';
+          }
+        } finally {
+          video.pause();
+          if (overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+          }
+        }
+      }
+
+      async function resolveVideoSource(video, candidates, label) {
+        if (!video || !Array.isArray(candidates)) {
+          return null;
+        }
+
+        for (const candidate of candidates) {
+          try {
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+          } catch (_) {
+            // Ignore reset errors
+          }
+
+          try {
+            await loadVideoCandidate(video, candidate);
+            console.log(`🎬 Loaded ${label} from ${candidate}`);
+            return candidate;
+          } catch (error) {
+            console.warn(`⚠️ Failed to load ${label} from ${candidate}:`, error);
+          }
+        }
+
+        return null;
+      }
+
+      function loadVideoCandidate(video, src) {
+        return new Promise((resolve, reject) => {
+          const cleanup = () => {
+            video.removeEventListener('loadeddata', onLoaded);
+            video.removeEventListener('error', onError);
+          };
+
+          const onLoaded = () => {
+            cleanup();
+            resolve();
+          };
+
+          const onError = () => {
+            cleanup();
+            reject(new Error(`Unable to load ${src}`));
+          };
+
+          try {
+            video.addEventListener('loadeddata', onLoaded, { once: true });
+            video.addEventListener('error', onError, { once: true });
+            video.src = src;
+            video.load();
+          } catch (error) {
+            cleanup();
+            reject(error);
+          }
+        });
+      }
+
+      async function playVideoElement(video, overlay, messageEl) {
+        // Attempt playback until it starts or a non-blocking error occurs
+        for (;;) {
+          try {
+            const playAttempt = video.play();
+            if (playAttempt && typeof playAttempt.then === 'function') {
+              await playAttempt;
+            }
+            return;
+          } catch (error) {
+            if (error && error.name === 'NotAllowedError') {
+              await requireUserGesture(video, overlay, messageEl);
+            } else {
+              throw error;
+            }
+          }
+        }
+      }
+
+      function requireUserGesture(video, overlay, messageEl) {
+        return new Promise((resolve) => {
+          let prompt = overlay.querySelector('.pre-form-video-overlay__start');
+          if (!prompt) {
+            prompt = document.createElement('button');
+            prompt.type = 'button';
+            prompt.className = 'pre-form-video-overlay__start';
+            prompt.textContent = 'Tap to continue';
+            overlay.appendChild(prompt);
+          }
+
+          const handleClick = () => {
+            prompt.disabled = true;
+            const attempt = video.play();
+            if (attempt && typeof attempt.then === 'function') {
+              attempt.then(() => {
+                prompt.removeEventListener('click', handleClick);
+                prompt.remove();
+                if (messageEl) {
+                  messageEl.textContent = 'Playing pre-form video…';
+                }
+                resolve();
+              }).catch((error) => {
+                console.warn('⚠️ Video playback blocked after user gesture:', error);
+                prompt.disabled = false;
+                if (messageEl) {
+                  messageEl.textContent = 'Tap to continue the form sequence';
+                }
+              });
+            } else {
+              prompt.removeEventListener('click', handleClick);
+              prompt.remove();
+              if (messageEl) {
+                messageEl.textContent = 'Playing pre-form video…';
+              }
+              resolve();
+            }
+          };
+
+          prompt.disabled = false;
+          prompt.addEventListener('click', handleClick);
+          if (messageEl) {
+            messageEl.textContent = 'Tap to continue the form sequence';
+          }
+          try {
+            prompt.focus({ preventScroll: true });
+          } catch (_) {
+            prompt.focus();
+          }
+        });
+      }
+
+      function waitForVideoEnd(video) {
+        return new Promise((resolve) => {
+          const cleanup = () => {
+            video.removeEventListener('ended', onEnded);
+            video.removeEventListener('error', onError);
+          };
+
+          const onEnded = () => {
+            cleanup();
+            resolve();
+          };
+
+          const onError = () => {
+            cleanup();
+            resolve();
+          };
+
+          video.addEventListener('ended', onEnded, { once: true });
+          video.addEventListener('error', onError, { once: true });
+        });
       }
 
       function createAudioTrack(fileName) {

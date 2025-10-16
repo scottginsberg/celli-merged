@@ -27,6 +27,8 @@ import { inputSystem } from './systems/InputSystem.js';
 const DEFAULT_AUTOSTART = false;
 const ENFORCE_INTERACTIVE_START = true;
 const SCENE_MODE_STORAGE_KEY = 'celli:sceneMode';
+const CONSTRUCTION_STORAGE_KEY = 'celli:introConstructionComplete';
+const INTRO_THEME_STORAGE_KEY = 'celli:introThemePreference';
 const DEFAULT_SCENE_MODE = 'template';
 
 let currentSceneMode = DEFAULT_SCENE_MODE;
@@ -637,6 +639,22 @@ function setupButtons() {
       }
     });
     console.log('✅ Test audio button initialized');
+  }
+
+  const resetThemeBtn = document.getElementById('resetThemeBtn');
+  if (resetThemeBtn) {
+    resetThemeBtn.addEventListener('click', () => {
+      try {
+        window.localStorage?.removeItem(INTRO_THEME_STORAGE_KEY);
+        window.localStorage?.removeItem(CONSTRUCTION_STORAGE_KEY);
+        console.log('🔄 Intro theme preference reset');
+        showToast('Intro theme preference reset');
+      } catch (error) {
+        console.warn('⚠️ Failed to reset intro theme preference:', error);
+        showToast('Unable to reset intro theme preference');
+      }
+    });
+    console.log('✅ Intro theme reset button initialized');
   }
 
   const testVideoBtn = document.getElementById('testVideoBtn');
