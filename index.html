@@ -1121,7 +1121,8 @@
    
    <div class="ref-footer">
     <div class="ref-sub">Looks unstable — try "recreate" for another pass.</div>
-    <div style="display: flex; gap: 8px;">
+    <div class="ref-controls">
+     <a id="refFeedbackLink" class="btn ref-feedback-link" href="./templates/componentized/beta-focus-form.html" target="_blank" rel="noopener">Feedback form</a>
      <button id="refReset" class="btn" style="background: #3498db;">↻ Reset</button>
      <button id="refRecreate" class="btn">Recreate</button>
      <button id="refDismiss" class="btn">Dismiss</button>
@@ -1211,10 +1212,15 @@
   const refSidebarUrl = document.getElementById('refSidebarUrl');
   const refSidebarAck = document.getElementById('refSidebarAck');
   const loomAudioStatus = document.getElementById('loomAudioStatus');
+  const refFeedbackLink = document.getElementById('refFeedbackLink');
   const LOOM_AUDIO_STATUS_TEXT = 'Streaming CallYouByMyName.mp3';
   const BETA_FOCUS_FORM_URL = './templates/componentized/beta-focus-form.html';
   let betaFormRedirectListenerAttached = false;
   let betaFormRedirectTimeoutId = null;
+
+  if (refFeedbackLink) {
+    refFeedbackLink.href = BETA_FOCUS_FORM_URL;
+  }
 
   function setLoomAudioStatus(isPlaying) {
     if (!loomAudioStatus) return;
