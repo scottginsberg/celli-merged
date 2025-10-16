@@ -38,8 +38,10 @@ import {
 } from './init.js';
 
 const CONSTRUCTION_STORAGE_KEY = 'celli:introConstructionComplete';
+const INTRO_THEME_STORAGE_KEY = 'celli:introThemeState';
 let constructionCompleteCache = null;
 let sceneHooksRegistered = false;
+let introThemeStateCache = null;
 
 console.log('%c🎨 Celli - Enhanced Scene System Loading...',
   'background: #8ab4ff; color: #000; font-size: 18px; padding: 10px; font-weight: bold;');
@@ -79,6 +81,86 @@ function stopAnimationLoop() {
     clock.stop();
     console.log('⏹️ Animation loop stopped');
   }
+}
+
+function getIntroThemeState() {
+  if (introThemeStateCache) {
+    return introThemeStateCache;
+  }
+
+  let storedState = null;
+  try {
+    const raw = window.localStorage?.getItem(INTRO_THEME_STORAGE_KEY);
+    if (raw) {
+      storedState = JSON.parse(raw);
+    }
+  } catch (error) {
+    console.warn('⚠️ Unable to read intro theme state:', error);
+  }
+
+  const state = storedState && typeof storedState === 'object'
+    ? {
+        firstPlayConsumed: Boolean(storedState.firstPlayConsumed),
+        defaultTheme: storedState.defaultTheme === 'theme2' ? 'theme2' : 'theme1'
+      }
+    : {
+        firstPlayConsumed: false,
+        defaultTheme: 'theme1'
+      };
+
+  introThemeStateCache = state;
+  return state;
+}
+
+function saveIntroThemeState(nextState) {
+  const state = {
+    firstPlayConsumed: Boolean(nextState.firstPlayConsumed),
+    defaultTheme: nextState.defaultTheme === 'theme2' ? 'theme2' : 'theme1'
+  };
+
+  introThemeStateCache = state;
+
+  try {
+    window.localStorage?.setItem(INTRO_THEME_STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.warn('⚠️ Unable to persist intro theme state:', error);
+  }
+
+  return state;
+}
+
+function selectIntroTheme() {
+  const state = { ...getIntroThemeState() };
+  let theme = 'theme1';
+
+  if (!state.firstPlayConsumed) {
+    theme = 'theme1';
+    state.firstPlayConsumed = true;
+    state.defaultTheme = 'theme2';
+    saveIntroThemeState(state);
+  } else {
+    theme = state.defaultTheme === 'theme2' ? 'theme2' : 'theme1';
+    saveIntroThemeState(state);
+  }
+
+  return {
+    theme,
+    url: `./${theme}.mp3`
+  };
+}
+
+function setIntroThemeDefault(theme) {
+  const normalized = theme === 'theme2' ? 'theme2' : 'theme1';
+  const state = { ...getIntroThemeState() };
+
+  if (state.defaultTheme !== normalized) {
+    state.defaultTheme = normalized;
+    saveIntroThemeState(state);
+  }
+}
+
+function resetIntroThemeStateCache() {
+  introThemeStateCache = null;
 }
 
 // ============================================================================
@@ -347,6 +429,17 @@ function setupSceneHooks() {
     } catch (error) {
       console.warn('⚠️ Failed to persist construction completion from event:', error);
     }
+    setIntroThemeDefault('theme2');
+  });
+
+  window.addEventListener('celli:intro-theme-reset', () => {
+    resetIntroThemeStateCache();
+  });
+
+  window.addEventListener('storage', (event) => {
+    if (event.key === INTRO_THEME_STORAGE_KEY) {
+      resetIntroThemeStateCache();
+    }
   });
 
   sceneManager.on('onSceneStart', ({ scene }) => {
@@ -355,8 +448,11 @@ function setupSceneHooks() {
     }
 
     const hasCompleted = hasConstructionCompleted();
-    const themeKey = hasCompleted ? 'theme2' : 'theme1';
-    const themeUrl = hasCompleted ? './theme2.mp3' : './theme1.mp3';
+    if (hasCompleted) {
+      setIntroThemeDefault('theme2');
+    }
+
+    const { theme: themeKey, url: themeUrl } = selectIntroTheme();
 
     audioSystem.playMusic({
       key: `music:${themeKey}`,

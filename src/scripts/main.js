@@ -28,6 +28,7 @@ const DEFAULT_AUTOSTART = false;
 const ENFORCE_INTERACTIVE_START = true;
 const SCENE_MODE_STORAGE_KEY = 'celli:sceneMode';
 const DEFAULT_SCENE_MODE = 'template';
+const INTRO_THEME_STORAGE_KEY = 'celli:introThemeState';
 
 let currentSceneMode = DEFAULT_SCENE_MODE;
 
@@ -691,6 +692,33 @@ function setupButtons() {
       showToast('Opening Test Runner…');
     });
     console.log('✅ Test Runner button initialized');
+  }
+
+  const resetIntroThemeBtn = document.getElementById('resetIntroThemeBtn');
+  if (resetIntroThemeBtn) {
+    resetIntroThemeBtn.addEventListener('click', () => {
+      console.log('🧹 Reset Intro Theme button clicked');
+      let cleared = false;
+
+      try {
+        window.localStorage?.removeItem(INTRO_THEME_STORAGE_KEY);
+        cleared = true;
+      } catch (error) {
+        console.warn('⚠️ Unable to clear intro theme state:', error);
+        showToast('Unable to reset intro theme state');
+      }
+
+      try {
+        window.dispatchEvent(new CustomEvent('celli:intro-theme-reset'));
+      } catch (error) {
+        console.warn('⚠️ Failed to dispatch intro theme reset event:', error);
+      }
+
+      if (cleared) {
+        showToast('Intro theme selection reset');
+      }
+    });
+    console.log('✅ Reset intro theme button initialized');
   }
 
   if (sceneOptionsContainer) {

@@ -422,7 +422,8 @@
   </style>
 </head>
 <body>
-  <main id="betaFocusPanel" class="form-panel" aria-labelledby="betaFocusHeading">
+  <template id="betaFocusTemplate">
+    <main id="betaFocusPanel" class="form-panel" aria-labelledby="betaFocusHeading">
     <form id="betaFocusForm" class="focus-form" novalidate>
       <h1 id="betaFocusHeading">Before we get started…</h1>
       <p class="prompt">Is there anything we should focus on first for our beta release?</p>
@@ -452,499 +453,734 @@
       </div>
     </div>
     <button type="button" id="escapeEncoreButton" class="escape-button" aria-live="polite" aria-label="Get me out of here!">Get me out of here!</button>
-  </main>
+    </main>
+  </template>
   <script>
     (function () {
-      const panel = document.getElementById('betaFocusPanel');
-      const form = document.getElementById('betaFocusForm');
-      const optionButtons = Array.from(document.querySelectorAll('.focus-option'));
-      const statusEl = document.getElementById('audioStatus');
-      const escapeButton = document.getElementById('escapeEncoreButton');
-
-      const selectionExperience = document.getElementById('submissionExperience');
-      const selectionCloud = document.getElementById('selectionCloud');
-      const selectionVisualizer = document.getElementById('selectionVisualizer');
-      const selectionVisualizerCtx = selectionVisualizer ? selectionVisualizer.getContext('2d') : null;
-
-      const baseTrack = new Audio('EA.mp3');
-      const encoreTrack = new Audio('EA2.mp3');
-      const superEncoreTrack = new Audio('EA3.mp3');
-      const finaleTrack = new Audio('E4.mp3');
-
-      const tracks = [baseTrack, encoreTrack, superEncoreTrack, finaleTrack];
-      tracks.forEach((audio) => {
-        audio.preload = 'auto';
-        audio.crossOrigin = 'anonymous';
-      });
-
-      const encoreTracks = [encoreTrack, superEncoreTrack, finaleTrack];
-      const encoreLabels = [
-        'Encore — playing EA2.mp3…',
-        'Super Encore — playing EA3.mp3…',
-        'Finale — playing E4.mp3…'
-      ];
-      const DEFAULT_ESCAPE_LABEL = 'Get me out of here!';
-      const ENCORE_LABEL = 'ENCORE!';
-      const NEAR_DISTANCE = 72;
-
-      const COLOR_SEQUENCE = ['tone-white', 'tone-blue', 'tone-yellow', 'tone-magenta'];
-      const selectionOrder = [];
-      const toneByButton = new Map();
-      const selectionHistory = [];
-      let selectionSteps = 0;
-      let encoreIndex = 0;
-      let escapeLabelState = DEFAULT_ESCAPE_LABEL;
-
-      let audioContext = null;
-      let analyser = null;
-      let analyserData = null;
-      let analyserGain = null;
-      const mediaSourceMap = new WeakMap();
-      let visualizerFrameId = null;
-      let activeVisualizerTrack = null;
-
-      function ensureVisualizerCanvasSize() {
-        if (!selectionVisualizer || !selectionVisualizerCtx) {
-          return;
+      function ensureFormMounted() {
+        if (document.getElementById('betaFocusPanel')) {
+          return true;
         }
-        const dpr = window.devicePixelRatio || 1;
-        const displayWidth = selectionVisualizer.clientWidth || selectionVisualizer.width;
-        const displayHeight = selectionVisualizer.clientHeight || selectionVisualizer.height;
-        const targetWidth = Math.max(1, Math.round(displayWidth * dpr));
-        const targetHeight = Math.max(1, Math.round(displayHeight * dpr));
-        if (selectionVisualizer.width !== targetWidth || selectionVisualizer.height !== targetHeight) {
-          selectionVisualizer.width = targetWidth;
-          selectionVisualizer.height = targetHeight;
-        }
-        selectionVisualizerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      }
 
-      function ensureAudioEngine() {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) {
+        const template = document.getElementById('betaFocusTemplate');
+        if (!template) {
+          console.warn('⚠️ Beta focus form template missing.');
           return false;
         }
-        if (!audioContext) {
-          audioContext = new AudioContextClass();
-          analyser = audioContext.createAnalyser();
-          analyser.fftSize = 256;
-          analyser.smoothingTimeConstant = 0.78;
-          analyserData = new Uint8Array(analyser.frequencyBinCount);
-          analyserGain = audioContext.createGain();
-          analyserGain.gain.value = 1;
-          analyser.connect(analyserGain);
-          analyserGain.connect(audioContext.destination);
-        } else if (audioContext.state === 'suspended') {
-          audioContext.resume().catch(() => {});
-        }
+
+        const fragment = template.content.cloneNode(true);
+        template.parentNode.insertBefore(fragment, template);
         return true;
       }
 
-      function attachAudioToAnalyser(audio) {
-        if (!ensureAudioEngine() || !audioContext || !analyser) {
+      function initializeBetaFocusForm() {
+        const panel = document.getElementById('betaFocusPanel');
+        const form = document.getElementById('betaFocusForm');
+
+        if (!panel || !form) {
+          console.warn('⚠️ Beta focus form elements unavailable for initialization.');
           return;
         }
-        let source = mediaSourceMap.get(audio);
-        if (!source) {
-          source = audioContext.createMediaElementSource(audio);
-          source.connect(analyser);
-          mediaSourceMap.set(audio, source);
+
+        if (panel.dataset.initialized === 'true') {
+          return;
         }
+        panel.dataset.initialized = 'true';
+
+            const optionButtons = Array.from(document.querySelectorAll('.focus-option'));
+            const statusEl = document.getElementById('audioStatus');
+            const escapeButton = document.getElementById('escapeEncoreButton');
+
+            const selectionExperience = document.getElementById('submissionExperience');
+            const selectionCloud = document.getElementById('selectionCloud');
+            const selectionVisualizer = document.getElementById('selectionVisualizer');
+            const selectionVisualizerCtx = selectionVisualizer ? selectionVisualizer.getContext('2d') : null;
+
+            const baseTrack = new Audio('EA.mp3');
+            const encoreTrack = new Audio('EA2.mp3');
+            const superEncoreTrack = new Audio('EA3.mp3');
+            const finaleTrack = new Audio('E4.mp3');
+
+            const tracks = [baseTrack, encoreTrack, superEncoreTrack, finaleTrack];
+            tracks.forEach((audio) => {
+              audio.preload = 'auto';
+              audio.crossOrigin = 'anonymous';
+            });
+
+            const encoreTracks = [encoreTrack, superEncoreTrack, finaleTrack];
+            const encoreLabels = [
+              'Encore — playing EA2.mp3…',
+              'Super Encore — playing EA3.mp3…',
+              'Finale — playing E4.mp3…'
+            ];
+            const DEFAULT_ESCAPE_LABEL = 'Get me out of here!';
+            const ENCORE_LABEL = 'ENCORE!';
+            const NEAR_DISTANCE = 72;
+
+            const COLOR_SEQUENCE = ['tone-white', 'tone-blue', 'tone-yellow', 'tone-magenta'];
+            const selectionOrder = [];
+            const toneByButton = new Map();
+            const selectionHistory = [];
+            let selectionSteps = 0;
+            let encoreIndex = 0;
+            let escapeLabelState = DEFAULT_ESCAPE_LABEL;
+
+            let audioContext = null;
+            let analyser = null;
+            let analyserData = null;
+            let analyserGain = null;
+            const mediaSourceMap = new WeakMap();
+            let visualizerFrameId = null;
+            let activeVisualizerTrack = null;
+
+            function ensureVisualizerCanvasSize() {
+              if (!selectionVisualizer || !selectionVisualizerCtx) {
+                return;
+              }
+              const dpr = window.devicePixelRatio || 1;
+              const displayWidth = selectionVisualizer.clientWidth || selectionVisualizer.width;
+              const displayHeight = selectionVisualizer.clientHeight || selectionVisualizer.height;
+              const targetWidth = Math.max(1, Math.round(displayWidth * dpr));
+              const targetHeight = Math.max(1, Math.round(displayHeight * dpr));
+              if (selectionVisualizer.width !== targetWidth || selectionVisualizer.height !== targetHeight) {
+                selectionVisualizer.width = targetWidth;
+                selectionVisualizer.height = targetHeight;
+              }
+              selectionVisualizerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+
+            function ensureAudioEngine() {
+              const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+              if (!AudioContextClass) {
+                return false;
+              }
+              if (!audioContext) {
+                audioContext = new AudioContextClass();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                analyser.smoothingTimeConstant = 0.78;
+                analyserData = new Uint8Array(analyser.frequencyBinCount);
+                analyserGain = audioContext.createGain();
+                analyserGain.gain.value = 1;
+                analyser.connect(analyserGain);
+                analyserGain.connect(audioContext.destination);
+              } else if (audioContext.state === 'suspended') {
+                audioContext.resume().catch(() => {});
+              }
+              return true;
+            }
+
+            function attachAudioToAnalyser(audio) {
+              if (!ensureAudioEngine() || !audioContext || !analyser) {
+                return;
+              }
+              let source = mediaSourceMap.get(audio);
+              if (!source) {
+                source = audioContext.createMediaElementSource(audio);
+                source.connect(analyser);
+                mediaSourceMap.set(audio, source);
+              }
+            }
+
+            function renderVisualizer() {
+              if (!selectionVisualizerCtx || !analyser || !analyserData) {
+                visualizerFrameId = null;
+                return;
+              }
+              if (activeVisualizerTrack && (activeVisualizerTrack.paused || activeVisualizerTrack.ended)) {
+                stopVisualizerIfIdle();
+                return;
+              }
+
+              ensureVisualizerCanvasSize();
+              analyser.getByteFrequencyData(analyserData);
+
+              const width = selectionVisualizer.clientWidth || selectionVisualizer.width;
+              const height = selectionVisualizer.clientHeight || selectionVisualizer.height;
+              selectionVisualizerCtx.clearRect(0, 0, width, height);
+
+              const barCount = 48;
+              const step = Math.max(1, Math.floor(analyserData.length / barCount));
+              const barWidth = width / barCount;
+
+              for (let i = 0; i < barCount; i += 1) {
+                const dataIndex = Math.min(analyserData.length - 1, i * step);
+                const magnitude = analyserData[dataIndex] / 255;
+                const eased = Math.pow(magnitude, 1.5);
+                const barHeight = (height - 16) * eased;
+                const x = i * barWidth;
+                const y = height - barHeight - 8;
+                const hue = 210 + (i / barCount) * 70;
+                selectionVisualizerCtx.fillStyle = `hsla(${hue.toFixed(1)}, 88%, ${48 + eased * 26}%, ${0.25 + eased * 0.5})`;
+                selectionVisualizerCtx.fillRect(x + 2, y, Math.max(2, barWidth - 4), barHeight + 8);
+              }
+
+              visualizerFrameId = requestAnimationFrame(renderVisualizer);
+            }
+
+            function startVisualizerFor(audio) {
+              if (!selectionVisualizer || !selectionVisualizerCtx) {
+                return;
+              }
+              attachAudioToAnalyser(audio);
+              activeVisualizerTrack = audio;
+              ensureVisualizerCanvasSize();
+              if (!visualizerFrameId) {
+                visualizerFrameId = requestAnimationFrame(renderVisualizer);
+              }
+            }
+
+            function stopVisualizerIfIdle() {
+              if (activeVisualizerTrack && !activeVisualizerTrack.paused && !activeVisualizerTrack.ended) {
+                return;
+              }
+              if (visualizerFrameId) {
+                cancelAnimationFrame(visualizerFrameId);
+                visualizerFrameId = null;
+              }
+              if (selectionVisualizerCtx && selectionVisualizer) {
+                selectionVisualizerCtx.clearRect(0, 0, selectionVisualizer.width, selectionVisualizer.height);
+              }
+              activeVisualizerTrack = null;
+            }
+
+            function updateSubmissionExperienceContent(selections) {
+              if (!selectionCloud) {
+                return;
+              }
+              selectionCloud.innerHTML = '';
+              if (!Array.isArray(selections) || !selections.length) {
+                return;
+              }
+              const fragment = document.createDocumentFragment();
+              selections.forEach((value, index) => {
+                const chip = document.createElement('div');
+                chip.className = 'selection-chip';
+                chip.style.animationDelay = `${index * 0.08}s`;
+                chip.textContent = value;
+                const fragments = document.createElement('div');
+                fragments.className = 'chip-fragments';
+                fragments.innerHTML = '<span></span><span></span><span></span>';
+                chip.appendChild(fragments);
+                fragment.appendChild(chip);
+              });
+              selectionCloud.appendChild(fragment);
+            }
+
+            function showSubmissionExperience(selections) {
+              if (!selectionExperience) {
+                return;
+              }
+              updateSubmissionExperienceContent(selections);
+              selectionExperience.classList.add('visible');
+              selectionExperience.setAttribute('aria-hidden', 'false');
+              if (panel) {
+                panel.classList.add('submitting');
+                requestAnimationFrame(() => panel.classList.add('submitted'));
+              }
+            }
+
+            function hideSubmissionExperience() {
+              if (selectionExperience) {
+                selectionExperience.classList.remove('visible');
+                selectionExperience.setAttribute('aria-hidden', 'true');
+              }
+              if (selectionCloud) {
+                selectionCloud.innerHTML = '';
+              }
+              if (panel) {
+                panel.classList.remove('submitting');
+                panel.classList.remove('submitted');
+              }
+              stopVisualizerIfIdle();
+            }
+
+            function refreshSubmissionExperience() {
+              if (!panel || !panel.classList.contains('submitted')) {
+                return;
+              }
+              const active = getActiveSelections();
+              if (!active.length) {
+                hideSubmissionExperience();
+                return;
+              }
+              updateSubmissionExperienceContent(active);
+            }
+
+            function updateStatus(message) {
+              if (statusEl) {
+                statusEl.textContent = message || '';
+              }
+            }
+
+            function triggerPanelShake() {
+              if (!panel) {
+                return;
+              }
+              panel.classList.remove('shake');
+              void panel.offsetWidth;
+              panel.classList.add('shake');
+            }
+
+            function stopOtherTracks(except) {
+              tracks.forEach((audio) => {
+                if (audio !== except) {
+                  audio.pause();
+                  try {
+                    audio.currentTime = 0;
+                  } catch (error) {
+                    console.warn('Unable to reset audio time', error);
+                  }
+                }
+              });
+              if (!except || except.paused) {
+                stopVisualizerIfIdle();
+              }
+            }
+
+            function handlePlaybackPromise(promise, label, audio) {
+              if (!promise || typeof promise.then !== 'function') {
+                updateStatus(label);
+                if (audio) {
+                  startVisualizerFor(audio);
+                }
+                return;
+              }
+
+              promise
+                .then(() => {
+                  updateStatus(label);
+                  if (audio) {
+                    startVisualizerFor(audio);
+                  }
+                })
+                .catch((error) => {
+                  console.warn('Audio playback failed. Ensure EA tracks are available.', error);
+                  updateStatus('Audio unavailable — please add the EA tracks.');
+                  stopVisualizerIfIdle();
+                });
+            }
+
+            function playTrack(audio, label) {
+              stopOtherTracks(audio);
+              ensureAudioEngine();
+              try {
+                audio.currentTime = 0;
+              } catch (error) {
+                console.warn('Unable to reset selected audio time', error);
+              }
+              const playback = audio.play();
+              handlePlaybackPromise(playback, label, audio);
+            }
+
+            function applyTone(button, toneIndex) {
+              const index = ((toneIndex % COLOR_SEQUENCE.length) + COLOR_SEQUENCE.length) % COLOR_SEQUENCE.length;
+              COLOR_SEQUENCE.forEach((cls) => button.classList.remove(cls));
+              button.classList.add(COLOR_SEQUENCE[index]);
+              toneByButton.set(button, index);
+            }
+
+            function clearTone(button) {
+              COLOR_SEQUENCE.forEach((cls) => button.classList.remove(cls));
+              toneByButton.delete(button);
+            }
+
+            function cycleExistingTones() {
+              if (selectionOrder.length <= 1) {
+                return;
+              }
+              selectionOrder.slice(0, -1).forEach((btn) => {
+                const currentIndex = toneByButton.get(btn) ?? 0;
+                applyTone(btn, currentIndex + 1);
+              });
+            }
+
+            function getActiveSelections() {
+              return selectionOrder.map((btn) => btn.dataset.value || btn.textContent.trim());
+            }
+
+            function updateSelectionStatus(extraMessage) {
+              const active = getActiveSelections();
+              if (!active.length) {
+                hideSubmissionExperience();
+                const historyText = selectionHistory.length ? `History: ${selectionHistory.join(' → ')}` : '';
+                if (extraMessage) {
+                  const suffix = historyText ? ` | ${historyText}` : '';
+                  updateStatus(`${extraMessage} — Steps ${selectionSteps}${suffix}`);
+                } else if (selectionSteps > 0) {
+                  const suffix = historyText ? ` | ${historyText}` : '';
+                  updateStatus(`Steps ${selectionSteps}${suffix}`);
+                } else {
+                  updateStatus('Pick a focus to start the track.');
+                }
+                return;
+              }
+
+              if (panel && panel.classList.contains('submitted')) {
+                updateSubmissionExperienceContent(active);
+              }
+
+              const historyText = selectionHistory.length ? ` | History: ${selectionHistory.join(' → ')}` : '';
+              const extraText = extraMessage ? ` — ${extraMessage}` : '';
+              updateStatus(`Steps ${selectionSteps}: ${active.join(' • ')}${historyText}${extraText}`);
+            }
+
+            function updateEscapeLabel(near) {
+              const nextLabel = near ? ENCORE_LABEL : DEFAULT_ESCAPE_LABEL;
+              if (!escapeButton || escapeLabelState === nextLabel) {
+                return;
+              }
+
+              escapeLabelState = nextLabel;
+              escapeButton.textContent = nextLabel;
+              escapeButton.setAttribute('aria-label', nextLabel);
+            }
+
+            function showEscapeButton() {
+              if (!escapeButton) {
+                return;
+              }
+              escapeButton.classList.add('visible');
+              updateEscapeLabel(false);
+            }
+
+            function isPointerNearButton(x, y) {
+              if (!escapeButton || !escapeButton.classList.contains('visible')) {
+                return false;
+              }
+
+              const rect = escapeButton.getBoundingClientRect();
+              const withinX = x >= rect.left - NEAR_DISTANCE && x <= rect.right + NEAR_DISTANCE;
+              const withinY = y >= rect.top - NEAR_DISTANCE && y <= rect.bottom + NEAR_DISTANCE;
+              return withinX && withinY;
+            }
+
+            function handlePointerProximity(event) {
+              if (!event || !('clientX' in event) || !escapeButton || !escapeButton.classList.contains('visible')) {
+                return;
+              }
+
+              const near = isPointerNearButton(event.clientX, event.clientY);
+              updateEscapeLabel(near);
+            }
+
+            function playNextEncoreTrack() {
+              const track = encoreTracks[encoreIndex % encoreTracks.length];
+              const label = encoreLabels[encoreIndex % encoreLabels.length];
+              encoreIndex = (encoreIndex + 1) % encoreTracks.length;
+              triggerPanelShake();
+              playTrack(track, label);
+            }
+
+            optionButtons.forEach((button) => {
+              button.setAttribute('aria-pressed', 'false');
+              button.addEventListener('click', () => {
+                const value = button.dataset.value || button.textContent.trim();
+                const isActive = button.classList.contains('active-selection');
+
+                if (isActive) {
+                  button.classList.remove('active-selection');
+                  button.setAttribute('aria-pressed', 'false');
+                  clearTone(button);
+                  const index = selectionOrder.indexOf(button);
+                  if (index >= 0) {
+                    selectionOrder.splice(index, 1);
+                  }
+                  triggerPanelShake();
+                  updateSelectionStatus(`Removed ${value}`);
+                  refreshSubmissionExperience();
+                  return;
+                }
+
+                selectionSteps += 1;
+                selectionHistory.push(value);
+                button.classList.add('active-selection');
+                button.setAttribute('aria-pressed', 'true');
+                applyTone(button, 0);
+                selectionOrder.push(button);
+                cycleExistingTones();
+                triggerPanelShake();
+                updateSelectionStatus(`Added ${value}`);
+                refreshSubmissionExperience();
+              });
+            });
+
+            if (form) {
+              form.addEventListener('submit', (event) => {
+                event.preventDefault();
+
+                if (!selectionOrder.length) {
+                  triggerPanelShake();
+                  updateStatus('Choose an option before submitting.');
+                  return;
+                }
+
+                encoreIndex = 0;
+                triggerPanelShake();
+                const activeSelections = getActiveSelections();
+                const playbackLabel = `Playing EA.mp3 for ${activeSelections.join(', ')} — Steps ${selectionSteps}`;
+                showSubmissionExperience(activeSelections);
+                playTrack(baseTrack, playbackLabel);
+                showEscapeButton();
+              });
+            }
+
+            baseTrack.addEventListener('ended', () => {
+              updateStatus('Encore ready. Hover over the red button.');
+              stopVisualizerIfIdle();
+            });
+
+            encoreTrack.addEventListener('ended', () => {
+              updateStatus('Encore complete — ready for one more?');
+              stopVisualizerIfIdle();
+            });
+
+            superEncoreTrack.addEventListener('ended', () => {
+              updateStatus('Super Encore complete. Finale unlocked.');
+              stopVisualizerIfIdle();
+            });
+
+            finaleTrack.addEventListener('ended', () => {
+              updateStatus('Finale complete. Thank you for your focus!');
+              stopVisualizerIfIdle();
+            });
+
+            if (escapeButton) {
+              escapeButton.addEventListener('click', () => {
+                if (!escapeButton.classList.contains('visible')) {
+                  return;
+                }
+                playNextEncoreTrack();
+              });
+
+              escapeButton.addEventListener('pointerenter', () => updateEscapeLabel(true));
+              escapeButton.addEventListener('pointerleave', () => updateEscapeLabel(false));
+              escapeButton.addEventListener('focus', () => updateEscapeLabel(true));
+              escapeButton.addEventListener('blur', () => updateEscapeLabel(false));
+            }
+
+            document.addEventListener('pointermove', handlePointerProximity);
+            document.addEventListener('pointerdown', handlePointerProximity);
+
+            window.addEventListener('resize', ensureVisualizerCanvasSize);
+            tracks.forEach((audio) => {
+              audio.addEventListener('pause', () => {
+                if (audio !== activeVisualizerTrack || audio.ended || audio.currentTime === 0) {
+                  stopVisualizerIfIdle();
+                }
+              });
+            });
+
+            hideSubmissionExperience();
+            updateSelectionStatus();
+            updateEscapeLabel(false);
+            ensureVisualizerCanvasSize();
+    
       }
 
-      function renderVisualizer() {
-        if (!selectionVisualizerCtx || !analyser || !analyserData) {
-          visualizerFrameId = null;
-          return;
-        }
-        if (activeVisualizerTrack && (activeVisualizerTrack.paused || activeVisualizerTrack.ended)) {
-          stopVisualizerIfIdle();
-          return;
+      function playIntroSequence() {
+        const playlist = ['./intro7.mp4', './intro3.mp4'];
+
+        if (!playlist.length) {
+          return Promise.resolve();
         }
 
-        ensureVisualizerCanvasSize();
-        analyser.getByteFrequencyData(analyserData);
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.inset = '0';
+        container.style.background = '#000';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.alignItems = 'center';
+        container.style.justifyContent = 'center';
+        container.style.gap = '18px';
+        container.style.zIndex = '9999';
 
-        const width = selectionVisualizer.clientWidth || selectionVisualizer.width;
-        const height = selectionVisualizer.clientHeight || selectionVisualizer.height;
-        selectionVisualizerCtx.clearRect(0, 0, width, height);
+        const video = document.createElement('video');
+        video.style.maxWidth = '90vw';
+        video.style.maxHeight = '80vh';
+        video.style.border = '3px solid #fff';
+        video.style.boxShadow = '0 24px 60px rgba(0, 0, 0, 0.65)';
+        video.style.background = '#000';
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
+        video.playsInline = true;
+        video.autoplay = true;
+        video.controls = false;
+        video.loop = false;
+        video.muted = true;
 
-        const barCount = 48;
-        const step = Math.max(1, Math.floor(analyserData.length / barCount));
-        const barWidth = width / barCount;
+        const label = document.createElement('div');
+        label.style.color = '#fff';
+        label.style.fontSize = '0.8rem';
+        label.style.letterSpacing = '0.22em';
+        label.style.textTransform = 'uppercase';
+        label.style.textAlign = 'center';
+        label.textContent = 'Loading intro videos…';
 
-        for (let i = 0; i < barCount; i += 1) {
-          const dataIndex = Math.min(analyserData.length - 1, i * step);
-          const magnitude = analyserData[dataIndex] / 255;
-          const eased = Math.pow(magnitude, 1.5);
-          const barHeight = (height - 16) * eased;
-          const x = i * barWidth;
-          const y = height - barHeight - 8;
-          const hue = 210 + (i / barCount) * 70;
-          selectionVisualizerCtx.fillStyle = `hsla(${hue.toFixed(1)}, 88%, ${48 + eased * 26}%, ${0.25 + eased * 0.5})`;
-          selectionVisualizerCtx.fillRect(x + 2, y, Math.max(2, barWidth - 4), barHeight + 8);
-        }
+        const controlsRow = document.createElement('div');
+        controlsRow.style.display = 'flex';
+        controlsRow.style.gap = '12px';
+        controlsRow.style.flexWrap = 'wrap';
+        controlsRow.style.justifyContent = 'center';
 
-        visualizerFrameId = requestAnimationFrame(renderVisualizer);
-      }
+        const startButton = document.createElement('button');
+        startButton.textContent = 'Tap to start intro videos';
+        startButton.style.display = 'none';
+        startButton.style.padding = '0.6rem 1.4rem';
+        startButton.style.border = '2px solid #fff';
+        startButton.style.background = '#fff';
+        startButton.style.color = '#000';
+        startButton.style.textTransform = 'uppercase';
+        startButton.style.fontWeight = '700';
+        startButton.style.letterSpacing = '0.18em';
+        startButton.style.cursor = 'pointer';
 
-      function startVisualizerFor(audio) {
-        if (!selectionVisualizer || !selectionVisualizerCtx) {
-          return;
-        }
-        attachAudioToAnalyser(audio);
-        activeVisualizerTrack = audio;
-        ensureVisualizerCanvasSize();
-        if (!visualizerFrameId) {
-          visualizerFrameId = requestAnimationFrame(renderVisualizer);
-        }
-      }
+        const skipButton = document.createElement('button');
+        skipButton.textContent = 'Skip';
+        skipButton.style.padding = '0.5rem 1.2rem';
+        skipButton.style.border = '2px solid #888';
+        skipButton.style.background = 'transparent';
+        skipButton.style.color = '#bbb';
+        skipButton.style.textTransform = 'uppercase';
+        skipButton.style.fontSize = '0.7rem';
+        skipButton.style.letterSpacing = '0.2em';
+        skipButton.style.cursor = 'pointer';
 
-      function stopVisualizerIfIdle() {
-        if (activeVisualizerTrack && !activeVisualizerTrack.paused && !activeVisualizerTrack.ended) {
-          return;
-        }
-        if (visualizerFrameId) {
-          cancelAnimationFrame(visualizerFrameId);
-          visualizerFrameId = null;
-        }
-        if (selectionVisualizerCtx && selectionVisualizer) {
-          selectionVisualizerCtx.clearRect(0, 0, selectionVisualizer.width, selectionVisualizer.height);
-        }
-        activeVisualizerTrack = null;
-      }
+        controlsRow.appendChild(startButton);
+        controlsRow.appendChild(skipButton);
 
-      function updateSubmissionExperienceContent(selections) {
-        if (!selectionCloud) {
-          return;
-        }
-        selectionCloud.innerHTML = '';
-        if (!Array.isArray(selections) || !selections.length) {
-          return;
-        }
-        const fragment = document.createDocumentFragment();
-        selections.forEach((value, index) => {
-          const chip = document.createElement('div');
-          chip.className = 'selection-chip';
-          chip.style.animationDelay = `${index * 0.08}s`;
-          chip.textContent = value;
-          const fragments = document.createElement('div');
-          fragments.className = 'chip-fragments';
-          fragments.innerHTML = '<span></span><span></span><span></span>';
-          chip.appendChild(fragments);
-          fragment.appendChild(chip);
-        });
-        selectionCloud.appendChild(fragment);
-      }
+        container.appendChild(video);
+        container.appendChild(label);
+        container.appendChild(controlsRow);
+        document.body.appendChild(container);
 
-      function showSubmissionExperience(selections) {
-        if (!selectionExperience) {
-          return;
-        }
-        updateSubmissionExperienceContent(selections);
-        selectionExperience.classList.add('visible');
-        selectionExperience.setAttribute('aria-hidden', 'false');
-        if (panel) {
-          panel.classList.add('submitting');
-          requestAnimationFrame(() => panel.classList.add('submitted'));
-        }
-      }
+        return new Promise((resolve) => {
+          let index = 0;
+          let resolved = false;
 
-      function hideSubmissionExperience() {
-        if (selectionExperience) {
-          selectionExperience.classList.remove('visible');
-          selectionExperience.setAttribute('aria-hidden', 'true');
-        }
-        if (selectionCloud) {
-          selectionCloud.innerHTML = '';
-        }
-        if (panel) {
-          panel.classList.remove('submitting');
-          panel.classList.remove('submitted');
-        }
-        stopVisualizerIfIdle();
-      }
-
-      function refreshSubmissionExperience() {
-        if (!panel || !panel.classList.contains('submitted')) {
-          return;
-        }
-        const active = getActiveSelections();
-        if (!active.length) {
-          hideSubmissionExperience();
-          return;
-        }
-        updateSubmissionExperienceContent(active);
-      }
-
-      function updateStatus(message) {
-        if (statusEl) {
-          statusEl.textContent = message || '';
-        }
-      }
-
-      function triggerPanelShake() {
-        if (!panel) {
-          return;
-        }
-        panel.classList.remove('shake');
-        void panel.offsetWidth;
-        panel.classList.add('shake');
-      }
-
-      function stopOtherTracks(except) {
-        tracks.forEach((audio) => {
-          if (audio !== except) {
-            audio.pause();
+          const cleanup = () => {
+            if (resolved) {
+              return;
+            }
+            resolved = true;
             try {
-              audio.currentTime = 0;
+              video.pause();
             } catch (error) {
-              console.warn('Unable to reset audio time', error);
+              console.warn('⚠️ Unable to pause intro video during cleanup:', error);
             }
-          }
-        });
-        if (!except || except.paused) {
-          stopVisualizerIfIdle();
-        }
-      }
+            container.remove();
+            resolve();
+          };
 
-      function handlePlaybackPromise(promise, label, audio) {
-        if (!promise || typeof promise.then !== 'function') {
-          updateStatus(label);
-          if (audio) {
-            startVisualizerFor(audio);
-          }
-          return;
-        }
+          const playlistLength = playlist.length;
 
-        promise
-          .then(() => {
-            updateStatus(label);
-            if (audio) {
-              startVisualizerFor(audio);
+          const sourceName = (src) => {
+            try {
+              return decodeURIComponent((src || '').split('/').pop() || src);
+            } catch (error) {
+              return src;
             }
-          })
-          .catch((error) => {
-            console.warn('Audio playback failed. Ensure EA tracks are available.', error);
-            updateStatus('Audio unavailable — please add the EA tracks.');
-            stopVisualizerIfIdle();
+          };
+
+          const showManualStart = (message) => {
+            startButton.textContent = message;
+            startButton.style.display = 'inline-flex';
+            startButton.disabled = false;
+            video.controls = true;
+          };
+
+          const handlePlaybackStart = () => {
+            const name = sourceName(playlist[index]);
+            label.textContent = `Playing ${name} (${index + 1}/${playlistLength})`;
+            startButton.style.display = 'none';
+            startButton.disabled = false;
+          };
+
+          const playAtIndex = (nextIndex) => {
+            if (nextIndex >= playlistLength) {
+              cleanup();
+              return;
+            }
+
+            index = nextIndex;
+            const source = playlist[index];
+            const name = sourceName(source);
+            label.textContent = `Loading ${name} (${index + 1}/${playlistLength})…`;
+            startButton.style.display = 'none';
+            startButton.disabled = false;
+            video.controls = false;
+            video.muted = true;
+            video.src = source;
+
+            const playPromise = video.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+              playPromise.then(() => {
+                handlePlaybackStart();
+              }).catch((error) => {
+                console.warn(`⚠️ Autoplay blocked for ${source}:`, error);
+                showManualStart(`Tap to play ${name}`);
+              });
+            } else {
+              handlePlaybackStart();
+            }
+          };
+
+          startButton.addEventListener('click', () => {
+            startButton.disabled = true;
+            video.muted = false;
+            const manualPromise = video.play();
+            if (manualPromise && typeof manualPromise.then === 'function') {
+              manualPromise.then(() => {
+                handlePlaybackStart();
+              }).catch((error) => {
+                console.warn('⚠️ Manual playback failed:', error);
+                startButton.disabled = false;
+                startButton.textContent = 'Retry';
+              });
+            } else {
+              handlePlaybackStart();
+            }
           });
+
+          skipButton.addEventListener('click', () => {
+            console.log('⏭️ Intro video sequence skipped by user');
+            cleanup();
+          });
+
+          video.addEventListener('ended', () => {
+            playAtIndex(index + 1);
+          });
+
+          video.addEventListener('error', (event) => {
+            console.warn(`⚠️ Error playing ${playlist[index] || 'intro video'}`, event);
+            playAtIndex(index + 1);
+          });
+
+          playAtIndex(0);
+        });
       }
 
-      function playTrack(audio, label) {
-        stopOtherTracks(audio);
-        ensureAudioEngine();
+      async function bootstrap() {
         try {
-          audio.currentTime = 0;
+          await playIntroSequence();
         } catch (error) {
-          console.warn('Unable to reset selected audio time', error);
+          console.warn('⚠️ Intro video sequence encountered an issue:', error);
         }
-        const playback = audio.play();
-        handlePlaybackPromise(playback, label, audio);
-      }
 
-      function applyTone(button, toneIndex) {
-        const index = ((toneIndex % COLOR_SEQUENCE.length) + COLOR_SEQUENCE.length) % COLOR_SEQUENCE.length;
-        COLOR_SEQUENCE.forEach((cls) => button.classList.remove(cls));
-        button.classList.add(COLOR_SEQUENCE[index]);
-        toneByButton.set(button, index);
-      }
-
-      function clearTone(button) {
-        COLOR_SEQUENCE.forEach((cls) => button.classList.remove(cls));
-        toneByButton.delete(button);
-      }
-
-      function cycleExistingTones() {
-        if (selectionOrder.length <= 1) {
-          return;
-        }
-        selectionOrder.slice(0, -1).forEach((btn) => {
-          const currentIndex = toneByButton.get(btn) ?? 0;
-          applyTone(btn, currentIndex + 1);
-        });
-      }
-
-      function getActiveSelections() {
-        return selectionOrder.map((btn) => btn.dataset.value || btn.textContent.trim());
-      }
-
-      function updateSelectionStatus(extraMessage) {
-        const active = getActiveSelections();
-        if (!active.length) {
-          hideSubmissionExperience();
-          const historyText = selectionHistory.length ? `History: ${selectionHistory.join(' → ')}` : '';
-          if (extraMessage) {
-            const suffix = historyText ? ` | ${historyText}` : '';
-            updateStatus(`${extraMessage} — Steps ${selectionSteps}${suffix}`);
-          } else if (selectionSteps > 0) {
-            const suffix = historyText ? ` | ${historyText}` : '';
-            updateStatus(`Steps ${selectionSteps}${suffix}`);
-          } else {
-            updateStatus('Pick a focus to start the track.');
-          }
+        if (!ensureFormMounted()) {
           return;
         }
 
-        if (panel && panel.classList.contains('submitted')) {
-          updateSubmissionExperienceContent(active);
+        initializeBetaFocusForm();
+      }
+
+      bootstrap().catch((error) => {
+        console.error('❌ Beta focus sequence bootstrap failed:', error);
+        if (ensureFormMounted()) {
+          initializeBetaFocusForm();
         }
-
-        const historyText = selectionHistory.length ? ` | History: ${selectionHistory.join(' → ')}` : '';
-        const extraText = extraMessage ? ` — ${extraMessage}` : '';
-        updateStatus(`Steps ${selectionSteps}: ${active.join(' • ')}${historyText}${extraText}`);
-      }
-
-      function updateEscapeLabel(near) {
-        const nextLabel = near ? ENCORE_LABEL : DEFAULT_ESCAPE_LABEL;
-        if (!escapeButton || escapeLabelState === nextLabel) {
-          return;
-        }
-
-        escapeLabelState = nextLabel;
-        escapeButton.textContent = nextLabel;
-        escapeButton.setAttribute('aria-label', nextLabel);
-      }
-
-      function showEscapeButton() {
-        if (!escapeButton) {
-          return;
-        }
-        escapeButton.classList.add('visible');
-        updateEscapeLabel(false);
-      }
-
-      function isPointerNearButton(x, y) {
-        if (!escapeButton || !escapeButton.classList.contains('visible')) {
-          return false;
-        }
-
-        const rect = escapeButton.getBoundingClientRect();
-        const withinX = x >= rect.left - NEAR_DISTANCE && x <= rect.right + NEAR_DISTANCE;
-        const withinY = y >= rect.top - NEAR_DISTANCE && y <= rect.bottom + NEAR_DISTANCE;
-        return withinX && withinY;
-      }
-
-      function handlePointerProximity(event) {
-        if (!event || !('clientX' in event) || !escapeButton || !escapeButton.classList.contains('visible')) {
-          return;
-        }
-
-        const near = isPointerNearButton(event.clientX, event.clientY);
-        updateEscapeLabel(near);
-      }
-
-      function playNextEncoreTrack() {
-        const track = encoreTracks[encoreIndex % encoreTracks.length];
-        const label = encoreLabels[encoreIndex % encoreLabels.length];
-        encoreIndex = (encoreIndex + 1) % encoreTracks.length;
-        triggerPanelShake();
-        playTrack(track, label);
-      }
-
-      optionButtons.forEach((button) => {
-        button.setAttribute('aria-pressed', 'false');
-        button.addEventListener('click', () => {
-          const value = button.dataset.value || button.textContent.trim();
-          const isActive = button.classList.contains('active-selection');
-
-          if (isActive) {
-            button.classList.remove('active-selection');
-            button.setAttribute('aria-pressed', 'false');
-            clearTone(button);
-            const index = selectionOrder.indexOf(button);
-            if (index >= 0) {
-              selectionOrder.splice(index, 1);
-            }
-            triggerPanelShake();
-            updateSelectionStatus(`Removed ${value}`);
-            refreshSubmissionExperience();
-            return;
-          }
-
-          selectionSteps += 1;
-          selectionHistory.push(value);
-          button.classList.add('active-selection');
-          button.setAttribute('aria-pressed', 'true');
-          applyTone(button, 0);
-          selectionOrder.push(button);
-          cycleExistingTones();
-          triggerPanelShake();
-          updateSelectionStatus(`Added ${value}`);
-          refreshSubmissionExperience();
-        });
       });
-
-      if (form) {
-        form.addEventListener('submit', (event) => {
-          event.preventDefault();
-
-          if (!selectionOrder.length) {
-            triggerPanelShake();
-            updateStatus('Choose an option before submitting.');
-            return;
-          }
-
-          encoreIndex = 0;
-          triggerPanelShake();
-          const activeSelections = getActiveSelections();
-          const playbackLabel = `Playing EA.mp3 for ${activeSelections.join(', ')} — Steps ${selectionSteps}`;
-          showSubmissionExperience(activeSelections);
-          playTrack(baseTrack, playbackLabel);
-          showEscapeButton();
-        });
-      }
-
-      baseTrack.addEventListener('ended', () => {
-        updateStatus('Encore ready. Hover over the red button.');
-        stopVisualizerIfIdle();
-      });
-
-      encoreTrack.addEventListener('ended', () => {
-        updateStatus('Encore complete — ready for one more?');
-        stopVisualizerIfIdle();
-      });
-
-      superEncoreTrack.addEventListener('ended', () => {
-        updateStatus('Super Encore complete. Finale unlocked.');
-        stopVisualizerIfIdle();
-      });
-
-      finaleTrack.addEventListener('ended', () => {
-        updateStatus('Finale complete. Thank you for your focus!');
-        stopVisualizerIfIdle();
-      });
-
-      if (escapeButton) {
-        escapeButton.addEventListener('click', () => {
-          if (!escapeButton.classList.contains('visible')) {
-            return;
-          }
-          playNextEncoreTrack();
-        });
-
-        escapeButton.addEventListener('pointerenter', () => updateEscapeLabel(true));
-        escapeButton.addEventListener('pointerleave', () => updateEscapeLabel(false));
-        escapeButton.addEventListener('focus', () => updateEscapeLabel(true));
-        escapeButton.addEventListener('blur', () => updateEscapeLabel(false));
-      }
-
-      document.addEventListener('pointermove', handlePointerProximity);
-      document.addEventListener('pointerdown', handlePointerProximity);
-
-      window.addEventListener('resize', ensureVisualizerCanvasSize);
-      tracks.forEach((audio) => {
-        audio.addEventListener('pause', () => {
-          if (audio !== activeVisualizerTrack || audio.ended || audio.currentTime === 0) {
-            stopVisualizerIfIdle();
-          }
-        });
-      });
-
-      hideSubmissionExperience();
-      updateSelectionStatus();
-      updateEscapeLabel(false);
-      ensureVisualizerCanvasSize();
     })();
   </script>
 </body>
