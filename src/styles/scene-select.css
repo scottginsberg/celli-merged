@@ -136,4 +136,61 @@
   box-shadow: 0 0 12px rgba(255, 100, 100, 0.3);
 }
 
+@media (max-width: 720px) {
+  .scene-menu {
+    width: calc(100% - 32px);
+    max-width: none;
+    padding: 28px 20px;
+    border-radius: 16px;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+
+  .scene-menu h2 {
+    font-size: 20px;
+    letter-spacing: 0.12em;
+  }
+
+  .scene-menu p {
+    font-size: 12px;
+    margin-bottom: 18px;
+  }
+
+  .scene-option {
+    font-size: 13px;
+    padding: 14px 16px;
+    margin: 10px 0;
+  }
+
+  .scene-option:hover {
+    transform: none;
+  }
+
+  .scene-controls {
+    flex-direction: column;
+  }
+
+  .scene-controls button {
+    width: 100%;
+    min-width: unset;
+  }
+}
+
+@media (max-width: 480px) {
+  .scene-menu {
+    padding: 24px 18px;
+    border-width: 1px;
+  }
+
+  .scene-option {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  .scene-controls button {
+    font-size: 11px;
+    padding: 10px 12px;
+  }
+}
+
 
