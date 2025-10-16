@@ -192,7 +192,8 @@ export class IntroSceneComplete {
       hiddenInput: null,
       yellowTransformationInProgress: false,
       constructionPersisted: false,
-      
+      voxelRedirectDispatched: false,
+
       // Animation state
       finalRollRotations: [0, 0, 0],
       landingSounds: [false, false, false],
@@ -221,6 +222,8 @@ export class IntroSceneComplete {
       synthOsc1: null,
       synthOsc2: null,
       synthOsc3: null,
+      introAudio: null,
+      introAudioSource: '',
 
       // Color theme
       currentTheme: 'white'
@@ -243,12 +246,44 @@ export class IntroSceneComplete {
     } catch (err) {
       hiddenInput.focus();
     }
+
+    try {
+      const length = hiddenInput.value.length;
+      hiddenInput.setSelectionRange(length, length);
+    } catch (error) {
+      // Some mobile browsers do not support programmatic selection on hidden inputs
+    }
+  }
+
+  _isTouchPrimaryDevice() {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    if (window.matchMedia) {
+      try {
+        if (window.matchMedia('(pointer: coarse)').matches) {
+          return true;
+        }
+      } catch (error) {
+        // Ignore matchMedia failures and fall back to heuristic detection
+      }
+    }
+
+    const nav = window.navigator;
+    return !!(
+      ('ontouchstart' in window) ||
+      (nav && typeof nav.maxTouchPoints === 'number' && nav.maxTouchPoints > 0) ||
+      (nav && typeof nav.msMaxTouchPoints === 'number' && nav.msMaxTouchPoints > 0)
+    );
   }
 
   _handleHiddenInputValue(value) {
     if (!value) {
       return;
     }
+
+    this.state.inputAttempted = true;
 
     for (const char of value) {
       const key = char.toUpperCase();
@@ -299,9 +334,7 @@ export class IntroSceneComplete {
       return true;
     }
 
-    if (this.state.restoredLetters < this.state.lettersToRestore.length) {
-      this._restoreOneLetter();
-    }
+    this._syncRestoredLettersWithPrompt();
 
     return true;
   }
@@ -324,6 +357,8 @@ export class IntroSceneComplete {
     }
 
     this._setPromptText(this.state.inputText);
+
+    this._triggerVoxelWorldRedirect();
 
     console.log('✨ T entered - triggering burst animation');
 
@@ -370,6 +405,30 @@ export class IntroSceneComplete {
     return false;
   }
 
+  _triggerVoxelWorldRedirect() {
+    if (this.state.voxelRedirectDispatched) {
+      return;
+    }
+
+    const suffix = (this.state.inputText || '').slice(this.state.promptBaseText.length).toUpperCase();
+    if (suffix !== 'START') {
+      return;
+    }
+
+    this.state.voxelRedirectDispatched = true;
+
+    try {
+      const modeGetter = typeof window.getCelliSceneMode === 'function' ? window.getCelliSceneMode : null;
+      const mode = modeGetter ? modeGetter() : undefined;
+      window.dispatchEvent(new CustomEvent('celli:launchVoxelWorld', {
+        detail: { mode }
+      }));
+    } catch (error) {
+      console.warn('⚠️ Failed to dispatch voxel world launch event:', error);
+      this.state.voxelRedirectDispatched = false;
+    }
+  }
+
   _triggerCelliGlitchRain() {
     if (this.state.celliGlitchStarted) {
       return;
@@ -380,10 +439,11 @@ export class IntroSceneComplete {
     this.state.allYellowTransformed = false;
     this.state.yellowTransformCompleteCount = 0;
     this.state.endSequence = '';
+    this.state.voxelRedirectDispatched = false;
 
     this._playFritzSound();
 
-    this.state.voxels.forEach(voxel => {
+      this.state.voxels.forEach(voxel => {
       const data = voxel.userData;
       if (!data) {
         return;
@@ -1217,6 +1277,60 @@ export class IntroSceneComplete {
     }
   }
 
+  _selectIntroAudioSource() {
+    let shouldUseAlternate = false;
+
+    try {
+      const stored = window.localStorage?.getItem(CONSTRUCTION_STORAGE_KEY);
+      shouldUseAlternate = stored === 'true';
+    } catch (error) {
+      console.warn('⚠️ Unable to read intro completion state for audio selection:', error);
+    }
+
+    return shouldUseAlternate ? './intro2.mp3' : './intro.mp3';
+  }
+
+  _setupIntroAudio() {
+    if (this.state.introAudio) {
+      return this.state.introAudio;
+    }
+
+    try {
+      const source = this._selectIntroAudioSource();
+      const audio = new Audio(source);
+      audio.preload = 'auto';
+      audio.volume = 0.7;
+      this.state.introAudio = audio;
+      this.state.introAudioSource = source;
+      return audio;
+    } catch (error) {
+      console.warn('⚠️ Failed to initialize intro audio element:', error);
+      this.state.introAudio = null;
+      this.state.introAudioSource = '';
+      return null;
+    }
+  }
+
+  _playIntroAudio() {
+    const audio = this._setupIntroAudio();
+    if (!audio) {
+      return;
+    }
+
+    try {
+      audio.currentTime = 0;
+    } catch (error) {
+      console.warn('⚠️ Unable to reset intro audio playback position:', error);
+    }
+
+    const playback = audio.play();
+    if (playback && typeof playback.catch === 'function') {
+      playback.catch(error => {
+        console.warn('⚠️ Intro audio playback was blocked:', error);
+      });
+    }
+  }
+
   /**
    * Setup event listeners
    */
@@ -1246,9 +1360,13 @@ export class IntroSceneComplete {
 
     const promptContainer = document.querySelector('.prompt-container');
     if (promptContainer) {
-      this._promptClickHandler = () => {
+      this._promptClickHandler = (event) => {
         if (!this.state.running || !this.state.doorwayOpened) {
           return;
+        }
+
+        if (event && typeof event.preventDefault === 'function') {
+          event.preventDefault();
         }
 
         this.state.inputAttempted = true;
@@ -1261,6 +1379,7 @@ export class IntroSceneComplete {
       };
 
       promptContainer.addEventListener('click', this._promptClickHandler);
+      promptContainer.addEventListener('touchstart', this._promptClickHandler, { passive: false });
     }
 
     const hiddenInput = document.getElementById('hiddenInput');
@@ -1526,11 +1645,12 @@ export class IntroSceneComplete {
     }
     
     console.log('✅ UI elements initialized for intro sequence');
-    
+
     // Start animation
+    this._playIntroAudio();
     this.state.running = true;
     this.state.clock.start();
-    
+
     // Resume audio context
     if (this.state.audioCtx && this.state.audioCtx.state === 'suspended') {
       await this.state.audioCtx.resume();
@@ -2614,10 +2734,16 @@ export class IntroSceneComplete {
    * Open doorway portal (expand it)
    */
   _openDoorway() {
-        this.state.doorwayOpened = true;
+    this.state.doorwayOpened = true;
     const doorway = document.getElementById('doorway');
     if (doorway) {
       doorway.classList.add('open');
+    }
+
+    if (this._isTouchPrimaryDevice()) {
+      window.setTimeout(() => {
+        this._focusHiddenInput();
+      }, 60);
     }
   }
 
@@ -2682,6 +2808,63 @@ export class IntroSceneComplete {
     
     if (letterIndex > this.state.restoredLetters && letterIndex < this.state.lettersToRestore.length) {
       this.state.restoredLetters = letterIndex;
+      this._restoreOneLetter();
+    }
+  }
+
+  _syncRestoredLettersWithPrompt() {
+    const suffix = (this.state.inputText || '').slice(this.state.promptBaseText.length).toUpperCase();
+    const totalLetters = Array.isArray(this.state.lettersToRestore)
+      ? this.state.lettersToRestore.length
+      : 0;
+
+    if (totalLetters === 0) {
+      return;
+    }
+
+    let target = 0;
+
+    switch (suffix) {
+      case 'STAR':
+        target = 0;
+        break;
+      case 'STA':
+        target = 1;
+        break;
+      case 'ST':
+        target = 2;
+        break;
+      case 'S':
+        target = 3;
+        break;
+      case '':
+        target = totalLetters;
+        break;
+      default: {
+        const baseWord = 'STAR';
+
+        if (baseWord.startsWith(suffix)) {
+          const missing = baseWord.length - suffix.length;
+          target = Math.max(0, Math.min(totalLetters, totalLetters - missing));
+        } else {
+          const removed = Math.max(0, Math.min(baseWord.length, baseWord.length - suffix.length));
+          target = Math.max(0, Math.min(totalLetters, removed));
+        }
+        break;
+      }
+    }
+
+    this._restoreLettersToTarget(target);
+  }
+
+  _restoreLettersToTarget(targetCount) {
+    if (!Array.isArray(this.state.lettersToRestore)) {
+      return;
+    }
+
+    const clampedTarget = Math.min(Math.max(targetCount, 0), this.state.lettersToRestore.length);
+
+    while (this.state.restoredLetters < clampedTarget) {
       this._restoreOneLetter();
     }
   }
@@ -3075,6 +3258,7 @@ export class IntroSceneComplete {
       const promptContainer = document.querySelector('.prompt-container');
       if (promptContainer) {
         promptContainer.removeEventListener('click', this._promptClickHandler);
+        promptContainer.removeEventListener('touchstart', this._promptClickHandler);
       }
     }
     if (this.state.hiddenInput && this._hiddenBeforeInputHandler) {
@@ -3088,7 +3272,17 @@ export class IntroSceneComplete {
       const skipBtn = document.getElementById('skipBtn');
       if (skipBtn) skipBtn.removeEventListener('click', this._skipClickHandler);
     }
-    
+
+    if (this.state.introAudio) {
+      try {
+        this.state.introAudio.pause();
+      } catch (error) {
+        console.warn('⚠️ Failed to pause intro audio during destroy:', error);
+      }
+      this.state.introAudio = null;
+      this.state.introAudioSource = '';
+    }
+
     // Cleanup resources
     if (this.state.scene) {
       this.state.scene.traverse(obj => {

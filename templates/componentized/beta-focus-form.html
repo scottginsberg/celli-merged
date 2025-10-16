@@ -94,35 +94,42 @@
       transform: translateY(0);
     }
 
-    .encore-controls {
-      display: grid;
-      gap: 0.75rem;
-      justify-items: center;
+    .focus-option.selected {
+      background: #fff;
+      color: #000;
+      transform: translateY(-3px);
     }
 
-    .encore-button {
-      display: none;
+    .form-actions {
+      display: flex;
+      justify-content: center;
+    }
+
+    .submit-button {
       border: 3px solid #fff;
       background: #fff;
       color: #000;
-      padding: 0.75rem 2rem;
+      padding: 0.85rem 2.5rem;
+      font-size: clamp(0.95rem, 2.4vw, 1.05rem);
       text-transform: uppercase;
-      letter-spacing: 0.18em;
+      letter-spacing: 0.2em;
       font-weight: 700;
       cursor: pointer;
       transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
     }
 
-    .encore-button.visible {
-      display: inline-flex;
+    .submit-button:hover,
+    .submit-button:focus-visible {
+      background: transparent;
+      color: #fff;
+      transform: translateY(-3px);
+      outline: none;
     }
 
-    .encore-button:hover,
-    .encore-button:focus-visible {
-      transform: scale(1.05);
-      background: #000;
-      color: #fff;
-      outline: none;
+    .encore-controls {
+      display: grid;
+      gap: 0.75rem;
+      justify-items: center;
     }
 
     .status {
@@ -132,6 +139,37 @@
       text-transform: uppercase;
       text-align: center;
       color: #c8c8c8;
+    }
+
+    .escape-button {
+      position: absolute;
+      top: clamp(0.75rem, 3vw, 1.5rem);
+      right: clamp(0.75rem, 3vw, 1.5rem);
+      border: 3px solid #ff385b;
+      background: #ff1f47;
+      color: #fff;
+      padding: 0.6rem 1.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-weight: 800;
+      cursor: pointer;
+      display: none;
+      transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+      box-shadow: 0 8px 28px rgba(255, 24, 72, 0.35);
+    }
+
+    .escape-button.visible {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .escape-button:hover,
+    .escape-button:focus-visible {
+      background: #fff;
+      color: #ff1f47;
+      transform: translateY(-2px);
+      outline: none;
     }
 
     .form-panel.shake {
@@ -166,44 +204,57 @@
   </style>
 </head>
 <body>
-  <main id="betaFocusPanel" class="form-panel" role="form" aria-labelledby="betaFocusHeading">
-    <h1 id="betaFocusHeading">Before we get started…</h1>
-    <p class="prompt">Is there anything we should focus on first for our beta release?</p>
-    <div class="options" role="group" aria-label="Beta focus options">
-      <button type="button" class="focus-option">Level Editor</button>
-      <button type="button" class="focus-option">Story Mode</button>
-      <button type="button" class="focus-option">Cute Stuff</button>
-      <button type="button" class="focus-option">Musical Numbers</button>
-      <button type="button" class="focus-option">Boss Fights</button>
-      <button type="button" class="focus-option">Puzzles</button>
-      <button type="button" class="focus-option">Riddles</button>
-      <button type="button" class="focus-option">Clues</button>
-      <button type="button" class="focus-option">Celli Dance Party</button>
-    </div>
-    <div class="encore-controls">
-      <div id="audioStatus" class="status" role="status" aria-live="polite"></div>
-      <button type="button" id="encoreButton" class="encore-button">Encore</button>
-      <button type="button" id="superEncoreButton" class="encore-button">Super Encore</button>
-    </div>
-    <footer>EA tracks will be added later.</footer>
+  <main id="betaFocusPanel" class="form-panel" aria-labelledby="betaFocusHeading">
+    <form id="betaFocusForm" class="focus-form" novalidate>
+      <h1 id="betaFocusHeading">Before we get started…</h1>
+      <p class="prompt">Is there anything we should focus on first for our beta release?</p>
+      <div class="options" role="group" aria-label="Beta focus options">
+        <button type="button" class="focus-option" data-value="Level Editor">Level Editor</button>
+        <button type="button" class="focus-option" data-value="Story Mode">Story Mode</button>
+        <button type="button" class="focus-option" data-value="Cute Stuff">Cute Stuff</button>
+        <button type="button" class="focus-option" data-value="Musical Numbers">Musical Numbers</button>
+        <button type="button" class="focus-option" data-value="Boss Fights">Boss Fights</button>
+        <button type="button" class="focus-option" data-value="Puzzles">Puzzles</button>
+        <button type="button" class="focus-option" data-value="Riddles">Riddles</button>
+        <button type="button" class="focus-option" data-value="Clues">Clues</button>
+        <button type="button" class="focus-option" data-value="Celli Dance Party">Celli Dance Party</button>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="submit-button">Submit</button>
+      </div>
+      <div class="encore-controls">
+        <div id="audioStatus" class="status" role="status" aria-live="polite"></div>
+      </div>
+      <footer>EA tracks will be added later.</footer>
+    </form>
+    <button type="button" id="escapeEncoreButton" class="escape-button" aria-live="polite" aria-label="Get me out of here!">Get me out of here!</button>
   </main>
   <script>
     (function () {
       const panel = document.getElementById('betaFocusPanel');
+      const form = document.getElementById('betaFocusForm');
       const optionButtons = Array.from(document.querySelectorAll('.focus-option'));
-      const encoreButton = document.getElementById('encoreButton');
-      const superEncoreButton = document.getElementById('superEncoreButton');
       const statusEl = document.getElementById('audioStatus');
+      const escapeButton = document.getElementById('escapeEncoreButton');
 
       const baseTrack = new Audio('EA.mp3');
       const encoreTrack = new Audio('EA2.mp3');
       const superEncoreTrack = new Audio('EA3.mp3');
 
-      baseTrack.preload = 'auto';
-      encoreTrack.preload = 'auto';
-      superEncoreTrack.preload = 'auto';
+      [baseTrack, encoreTrack, superEncoreTrack].forEach((audio) => {
+        audio.preload = 'auto';
+      });
 
       const tracks = [baseTrack, encoreTrack, superEncoreTrack];
+      const encoreTracks = [encoreTrack, superEncoreTrack];
+      const encoreLabels = ['Encore — playing EA2.mp3…', 'Super Encore — playing EA3.mp3…'];
+      const DEFAULT_ESCAPE_LABEL = 'Get me out of here!';
+      const ENCORE_LABEL = 'ENCORE!';
+      const NEAR_DISTANCE = 72;
+
+      let selectedOption = null;
+      let encoreIndex = 0;
+      let escapeLabelState = DEFAULT_ESCAPE_LABEL;
 
       function updateStatus(message) {
         if (statusEl) {
@@ -211,8 +262,10 @@
         }
       }
 
-      function resetPanelAnimation() {
-        if (!panel) return;
+      function triggerPanelShake() {
+        if (!panel) {
+          return;
+        }
         panel.classList.remove('shake');
         void panel.offsetWidth;
         panel.classList.add('shake');
@@ -224,8 +277,8 @@
             audio.pause();
             try {
               audio.currentTime = 0;
-            } catch (err) {
-              console.warn('Unable to reset audio time', err);
+            } catch (error) {
+              console.warn('Unable to reset audio time', error);
             }
           }
         });
@@ -251,53 +304,120 @@
         stopOtherTracks(audio);
         try {
           audio.currentTime = 0;
-        } catch (err) {
-          console.warn('Unable to reset selected audio time', err);
+        } catch (error) {
+          console.warn('Unable to reset selected audio time', error);
         }
         const playback = audio.play();
         handlePlaybackPromise(playback, label);
       }
 
-      baseTrack.addEventListener('ended', () => {
-        if (encoreButton) {
-          encoreButton.classList.add('visible');
+      function updateEscapeLabel(near) {
+        const nextLabel = near ? ENCORE_LABEL : DEFAULT_ESCAPE_LABEL;
+        if (!escapeButton || escapeLabelState === nextLabel) {
+          return;
         }
-        updateStatus('Encore unlocked. Ready?');
-      });
 
-      encoreTrack.addEventListener('ended', () => {
-        if (superEncoreButton) {
-          superEncoreButton.classList.add('visible');
+        escapeLabelState = nextLabel;
+        escapeButton.textContent = nextLabel;
+        escapeButton.setAttribute('aria-label', nextLabel);
+      }
+
+      function showEscapeButton() {
+        if (!escapeButton) {
+          return;
         }
-        updateStatus('Super Encore unlocked.');
-      });
+        escapeButton.classList.add('visible');
+        updateEscapeLabel(false);
+      }
 
-      superEncoreTrack.addEventListener('ended', () => {
-        updateStatus('Encore complete. Thank you!');
-      });
+      function isPointerNearButton(x, y) {
+        if (!escapeButton || !escapeButton.classList.contains('visible')) {
+          return false;
+        }
+
+        const rect = escapeButton.getBoundingClientRect();
+        const withinX = x >= rect.left - NEAR_DISTANCE && x <= rect.right + NEAR_DISTANCE;
+        const withinY = y >= rect.top - NEAR_DISTANCE && y <= rect.bottom + NEAR_DISTANCE;
+        return withinX && withinY;
+      }
+
+      function handlePointerProximity(event) {
+        if (!event || !('clientX' in event) || !escapeButton || !escapeButton.classList.contains('visible')) {
+          return;
+        }
+
+        const near = isPointerNearButton(event.clientX, event.clientY);
+        updateEscapeLabel(near);
+      }
+
+      function playNextEncoreTrack() {
+        const track = encoreTracks[encoreIndex % encoreTracks.length];
+        const label = encoreLabels[encoreIndex % encoreLabels.length];
+        encoreIndex = (encoreIndex + 1) % encoreTracks.length;
+        triggerPanelShake();
+        playTrack(track, label);
+      }
 
       optionButtons.forEach((button) => {
         button.addEventListener('click', () => {
-          resetPanelAnimation();
-          playTrack(baseTrack, 'Playing EA.mp3…');
+          selectedOption = button.dataset.value || button.textContent.trim();
+          optionButtons.forEach((btn) => {
+            btn.classList.toggle('selected', btn === button);
+          });
+          triggerPanelShake();
+          updateStatus(`Selected: ${selectedOption}`);
         });
       });
 
-      if (encoreButton) {
-        encoreButton.addEventListener('click', () => {
-          resetPanelAnimation();
-          playTrack(encoreTrack, 'Encore — playing EA2.mp3…');
+      if (form) {
+        form.addEventListener('submit', (event) => {
+          event.preventDefault();
+
+          if (!selectedOption) {
+            triggerPanelShake();
+            updateStatus('Choose an option before submitting.');
+            return;
+          }
+
+          encoreIndex = 0;
+          triggerPanelShake();
+          playTrack(baseTrack, 'Playing EA.mp3…');
+          updateStatus(`Playing EA.mp3 for “${selectedOption}”.`);
+          showEscapeButton();
         });
       }
 
-      if (superEncoreButton) {
-        superEncoreButton.addEventListener('click', () => {
-          resetPanelAnimation();
-          playTrack(superEncoreTrack, 'Super Encore — playing EA3.mp3…');
+      baseTrack.addEventListener('ended', () => {
+        updateStatus('Encore ready. Hover over the red button.');
+      });
+
+      encoreTrack.addEventListener('ended', () => {
+        updateStatus('Encore complete — ready for one more?');
+      });
+
+      superEncoreTrack.addEventListener('ended', () => {
+        updateStatus('Super Encore complete. Thank you!');
+      });
+
+      if (escapeButton) {
+        escapeButton.addEventListener('click', () => {
+          if (!escapeButton.classList.contains('visible')) {
+            return;
+          }
+          playNextEncoreTrack();
         });
+
+        escapeButton.addEventListener('pointerenter', () => updateEscapeLabel(true));
+        escapeButton.addEventListener('pointerleave', () => updateEscapeLabel(false));
+        escapeButton.addEventListener('focus', () => updateEscapeLabel(true));
+        escapeButton.addEventListener('blur', () => updateEscapeLabel(false));
       }
+
+      document.addEventListener('pointermove', handlePointerProximity);
+      document.addEventListener('pointerdown', handlePointerProximity);
 
       updateStatus('Pick a focus to start the track.');
+      updateEscapeLabel(false);
     })();
   </script>
 </body>
