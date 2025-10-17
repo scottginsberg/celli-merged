@@ -1034,7 +1034,7 @@
             <button type="button" class="focus-option" data-value="Adult Interactions">Adult Interactions</button>
           </div>
           <div class="open-zone">
-            <button type="button" id="startSequenceButton" class="start-button" disabled aria-disabled="true">Start</button>
+            <button type="button" id="startSequenceButton" class="start-button" aria-disabled="false">Submit</button>
           </div>
         </div>
         <footer>EA tracks will be added later.</footer>
@@ -1103,9 +1103,11 @@
       const wordleMessageEl = document.getElementById('wordlePuzzleMessage');
       const startButton = document.getElementById('startSequenceButton');
       const wordleFocusQueueEl = document.getElementById('wordleFocusQueue');
+      const wordleFrame = document.querySelector('.focus-frame--wordle');
       const wordleFocusSlots = wordleFocusQueueEl
         ? Array.from(wordleFocusQueueEl.querySelectorAll('.wordle-focus-slot'))
         : [];
+      const MINIMUM_SELECTIONS = 5;
       const wordleRows = [];
       const wordleGuesses = [];
       const wordleFocusQueue = new Array(WORDLE_WORD_LENGTH).fill('');
@@ -1116,13 +1118,24 @@
       let wordlePuzzleDisplayed = false;
       let firstTrackCompleted = false;
       let sequencePlaying = false;
+      let wordleFeaturesRevealed = false;
 
+      if (wordleFocusQueueEl) {
+        wordleFocusQueueEl.hidden = true;
+        wordleFocusQueueEl.setAttribute('aria-hidden', 'true');
+      }
+      if (wordleFrame) {
+        wordleFrame.hidden = true;
+        wordleFrame.setAttribute('aria-hidden', 'true');
+      }
+      if (wordlePuzzleEl) {
+        wordlePuzzleEl.classList.remove('visible');
+        wordlePuzzleEl.setAttribute('aria-hidden', 'true');
+      }
       if (wordleBoardEl) {
-        initializeWordleBoard();
-        activateWordlePuzzle({ initial: true });
+        wordleBoardEl.innerHTML = '';
       }
 
-      renderWordleFocusQueue();
       updateStartButtonState();
 
       function initializeWordleBoard() {
@@ -1184,10 +1197,14 @@
         if (!startButton) {
           return;
         }
-        const unlocked = wordlePuzzleSolved || firstTrackCompleted;
-        const disabled = !unlocked || sequencePlaying;
+        const unlocked = wordleFeaturesRevealed ? wordlePuzzleSolved || firstTrackCompleted : true;
+        const disabled = sequencePlaying || !unlocked;
         startButton.disabled = disabled;
         startButton.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+        const label = wordleFeaturesRevealed ? 'Start' : 'Submit';
+        if (startButton.textContent !== label) {
+          startButton.textContent = label;
+        }
       }
 
       function resetWordlePuzzleState() {
@@ -1243,6 +1260,28 @@
         }
         updateStartButtonState();
         renderWordleFocusQueue();
+      }
+
+      function revealWordleFeatures() {
+        if (wordleFeaturesRevealed) {
+          return;
+        }
+
+        if (wordleFocusQueueEl) {
+          wordleFocusQueueEl.hidden = false;
+          wordleFocusQueueEl.setAttribute('aria-hidden', 'false');
+        }
+        if (wordleFrame) {
+          wordleFrame.hidden = false;
+          wordleFrame.setAttribute('aria-hidden', 'false');
+        }
+        if (wordleBoardEl) {
+          initializeWordleBoard();
+        }
+        wordleFeaturesRevealed = true;
+        activateWordlePuzzle({ initial: true });
+        renderWordleFocusQueue();
+        updateStartButtonState();
       }
 
       function sanitizeFocusValue(button) {
@@ -2459,6 +2498,7 @@
             updateSelectionStatus(`Removed ${value}`);
             refreshSubmissionExperience();
             evaluateInversionTrigger();
+            updateStartButtonState();
             return;
           }
 
@@ -2473,6 +2513,7 @@
           updateSelectionStatus(`Added ${value}`);
           refreshSubmissionExperience();
           evaluateInversionTrigger();
+          updateStartButtonState();
         });
       });
 
@@ -2481,12 +2522,13 @@
           if (startButton.disabled) {
             return;
           }
-          if (!selectionOrder.length) {
+          if (selectionOrder.length < MINIMUM_SELECTIONS) {
             triggerPanelShake();
-            updateStatus('Choose an option before starting.');
+            updateStatus(`Pick at least ${MINIMUM_SELECTIONS} focus areas before submitting.`);
             return;
           }
 
+          revealWordleFeatures();
           encoreIndex = 0;
           triggerPanelShake();
           const activeSelections = getActiveSelections();
