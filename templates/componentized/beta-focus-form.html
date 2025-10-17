@@ -1241,6 +1241,40 @@
       }
     }
 
+    @media (max-width: 720px) {
+      body {
+        align-items: flex-start;
+        justify-content: center;
+        padding: clamp(1rem, 6vw, 2.5rem) 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+
+      main {
+        height: auto;
+        min-height: 100vh;
+        max-height: none;
+        width: min(100%, 92vw);
+        margin-inline: auto;
+      }
+
+      .form-panel {
+        height: auto;
+        max-height: none;
+        overflow: visible;
+        grid-template-rows: auto;
+      }
+
+      .focus-form {
+        grid-template-rows: auto auto minmax(0, 1fr);
+      }
+
+      .options-shell {
+        min-height: auto;
+        overflow: visible;
+      }
+    }
+
     .form-panel.shake {
       animation: shake 0.4s ease;
     }
