@@ -119,6 +119,10 @@
       letter-spacing: 0.08em;
     }
 
+    .pre-form-video-overlay--skippable {
+      cursor: pointer;
+    }
+
     .pre-form-video-overlay {
       position: fixed;
       inset: 0;
@@ -129,6 +133,7 @@
       z-index: 9999;
       flex-direction: column;
       gap: 1.5rem;
+      outline: none;
     }
 
     .pre-form-video-overlay video {
@@ -147,6 +152,19 @@
       text-transform: uppercase;
       opacity: 0.85;
       text-align: center;
+    }
+
+    .pre-form-video-overlay__skip-hint {
+      color: #c7d1ff;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      opacity: 0.75;
+      text-align: center;
+    }
+
+    .pre-form-video-overlay__skip-hint[hidden] {
+      display: none !important;
     }
 
     .pre-form-video-overlay__start {
@@ -194,6 +212,87 @@
       transform: scale(0.98);
       filter: blur(1px) saturate(1.4);
       pointer-events: none;
+    }
+
+    .focus-form.focus-form--hidden {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .esrb-card-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(1.5rem, 6vw, 3rem);
+      background: var(--panel-bg);
+      color: var(--page-fg);
+      z-index: 10;
+      opacity: 0;
+      transform: scale(0.96);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .esrb-card-overlay.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .esrb-card-overlay.fade-out {
+      opacity: 0;
+      transform: scale(1.02);
+    }
+
+    .esrb-card {
+      position: relative;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      align-items: center;
+      justify-items: center;
+      width: min(320px, 100%);
+      aspect-ratio: 3 / 4;
+      background: #fff;
+      color: #000;
+      border: 6px solid currentColor;
+      padding: 1.25rem 1.5rem;
+      text-transform: uppercase;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
+    }
+
+    .esrb-card__banner,
+    .esrb-card__footer {
+      font-size: clamp(0.9rem, 2.6vw, 1.1rem);
+      letter-spacing: 0.28em;
+      text-align: center;
+    }
+
+    .esrb-card__rating {
+      position: relative;
+      font-size: clamp(7rem, 18vw, 10rem);
+      font-weight: 800;
+      letter-spacing: -0.08em;
+      line-height: 1;
+    }
+
+    .esrb-card__rating::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: -6%;
+      right: -6%;
+      height: 0.18em;
+      background: currentColor;
+      transform: rotate(-18deg);
+      transform-origin: center;
+      border-radius: 999px;
+      box-shadow: 0 0 0 2px #fff;
+    }
+
+    @media (max-width: 520px) {
+      .esrb-card {
+        width: min(260px, 100%);
+      }
     }
 
     .form-panel::before {
@@ -549,6 +648,9 @@
   <script>
     (async function () {
       const panel = document.getElementById('betaFocusPanel');
+      const form = document.getElementById('betaFocusForm');
+      let postIntroCardPromise = null;
+
       if (panel) {
         panel.style.visibility = 'hidden';
         panel.setAttribute('aria-hidden', 'true');
@@ -563,9 +665,17 @@
       if (panel) {
         panel.style.visibility = '';
         panel.removeAttribute('aria-hidden');
+        postIntroCardPromise = showEsrbCard(panel, form);
       }
 
-      const form = document.getElementById('betaFocusForm');
+      if (postIntroCardPromise) {
+        try {
+          await postIntroCardPromise;
+        } catch (error) {
+          console.warn('⚠️ ESRB card display interrupted:', error);
+        }
+      }
+
       const optionButtons = Array.from(document.querySelectorAll('.focus-option'));
       const statusEl = document.getElementById('audioStatus');
       const escapeButton = document.getElementById('escapeEncoreButton');
@@ -615,6 +725,9 @@
 
         const overlay = document.createElement('div');
         overlay.className = 'pre-form-video-overlay';
+        overlay.tabIndex = -1;
+        overlay.setAttribute('role', 'presentation');
+        overlay.setAttribute('aria-live', 'off');
 
         const video = document.createElement('video');
         video.playsInline = true;
@@ -628,8 +741,94 @@
         message.className = 'pre-form-video-overlay__message';
         message.textContent = 'Preparing form sequence…';
 
-        overlay.append(video, message);
+        const skipHint = document.createElement('div');
+        skipHint.className = 'pre-form-video-overlay__skip-hint';
+        skipHint.textContent = 'Tap or click anywhere to skip';
+        skipHint.hidden = true;
+
+        overlay.append(video, message, skipHint);
         document.body.appendChild(overlay);
+
+        function createSkipController() {
+          if (!overlay.isConnected) {
+            return {
+              promise: Promise.resolve(),
+              cleanup() {}
+            };
+          }
+
+          let resolved = false;
+          let resolveSkip;
+          const skipPromise = new Promise((resolve) => {
+            resolveSkip = resolve;
+          });
+          let cleaned = false;
+
+          function cleanup() {
+            if (cleaned) {
+              return;
+            }
+            cleaned = true;
+            overlay.removeEventListener('pointerdown', handlePointerDown, true);
+            overlay.removeEventListener('keydown', handleKeyDown);
+            overlay.classList.remove('pre-form-video-overlay--skippable');
+          }
+
+          function handlePointerDown(event) {
+            if (event && event.target && event.target.closest('.pre-form-video-overlay__start')) {
+              return;
+            }
+            if (resolved) {
+              return;
+            }
+            resolved = true;
+            if (message) {
+              message.textContent = 'Skipping…';
+            }
+            if (skipHint) {
+              skipHint.hidden = true;
+            }
+            try {
+              video.pause();
+            } catch (_) {
+              // Ignore pause errors
+            }
+            cleanup();
+            if (typeof resolveSkip === 'function') {
+              resolveSkip('skip');
+            }
+          }
+
+          function handleKeyDown(event) {
+            if (!event) {
+              return;
+            }
+            if (event.target && event.target.closest('.pre-form-video-overlay__start')) {
+              return;
+            }
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              handlePointerDown(event);
+            }
+          }
+
+          overlay.classList.add('pre-form-video-overlay--skippable');
+          overlay.addEventListener('pointerdown', handlePointerDown, { capture: true });
+          overlay.addEventListener('keydown', handleKeyDown);
+
+          if (!overlay.contains(document.activeElement)) {
+            try {
+              overlay.focus({ preventScroll: true });
+            } catch (_) {
+              overlay.focus();
+            }
+          }
+
+          return {
+            promise: skipPromise,
+            cleanup
+          };
+        }
 
         try {
           for (const { file, label } of sequence) {
@@ -646,9 +845,17 @@
               // Ignore seek errors before playback starts
             }
 
-            message.textContent = `Playing ${label || file}…`;
             await playVideoElement(video, overlay, message);
-            await waitForVideoEnd(video);
+            message.textContent = `${label || file} — tap or click anywhere to skip`;
+            if (skipHint) {
+              skipHint.hidden = false;
+            }
+            const skipController = createSkipController();
+            await Promise.race([waitForVideoEnd(video), skipController.promise]);
+            skipController.cleanup();
+            if (skipHint) {
+              skipHint.hidden = true;
+            }
             video.pause();
             message.textContent = 'Preparing form sequence…';
           }
@@ -805,6 +1012,94 @@
 
           video.addEventListener('ended', onEnded, { once: true });
           video.addEventListener('error', onError, { once: true });
+        });
+      }
+
+      function showEsrbCard(panelEl, formEl) {
+        if (!panelEl) {
+          if (formEl) {
+            formEl.classList.remove('focus-form--hidden');
+            formEl.removeAttribute('aria-hidden');
+          }
+          return Promise.resolve();
+        }
+
+        return new Promise((resolve) => {
+          const overlay = document.createElement('div');
+          overlay.className = 'esrb-card-overlay';
+          overlay.setAttribute('role', 'presentation');
+          overlay.setAttribute('aria-hidden', 'true');
+          overlay.innerHTML = `
+            <div class="esrb-card" role="presentation" aria-hidden="true">
+              <div class="esrb-card__banner">NOT FOR</div>
+              <div class="esrb-card__rating" aria-hidden="true">E</div>
+              <div class="esrb-card__footer">EVERYONE</div>
+            </div>
+          `;
+
+          if (formEl) {
+            formEl.classList.add('focus-form--hidden');
+            formEl.setAttribute('aria-hidden', 'true');
+          }
+
+          let finished = false;
+          let fadeTimer = null;
+          let cleanupTimer = null;
+
+          function cleanup() {
+            if (finished) {
+              return;
+            }
+            finished = true;
+            clearTimeout(fadeTimer);
+            clearTimeout(cleanupTimer);
+            overlay.removeEventListener('transitionend', handleTransitionEnd);
+            overlay.removeEventListener('click', handleAccelerateFade);
+            if (overlay.parentNode) {
+              overlay.parentNode.removeChild(overlay);
+            }
+            if (formEl) {
+              formEl.classList.remove('focus-form--hidden');
+              formEl.removeAttribute('aria-hidden');
+              const firstOption = formEl.querySelector('.focus-option');
+              if (firstOption) {
+                try {
+                  firstOption.focus({ preventScroll: true });
+                } catch (_) {
+                  firstOption.focus();
+                }
+              }
+            }
+            resolve();
+          }
+
+          function handleTransitionEnd(event) {
+            if (event.target === overlay && overlay.classList.contains('fade-out')) {
+              cleanup();
+            }
+          }
+
+          function handleAccelerateFade() {
+            overlay.classList.add('fade-out');
+          }
+
+          panelEl.appendChild(overlay);
+
+          requestAnimationFrame(() => {
+            overlay.classList.add('visible');
+          });
+
+          overlay.addEventListener('transitionend', handleTransitionEnd);
+          overlay.addEventListener('click', handleAccelerateFade, { once: true });
+
+          const displayDuration = 2000;
+          const cleanupBuffer = 700;
+          fadeTimer = setTimeout(() => {
+            overlay.classList.add('fade-out');
+          }, displayDuration);
+          cleanupTimer = setTimeout(() => {
+            cleanup();
+          }, displayDuration + cleanupBuffer);
         });
       }
 
