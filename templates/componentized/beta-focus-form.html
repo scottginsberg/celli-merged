@@ -416,20 +416,25 @@
     }
 
     .options.visualizer-active {
-      grid-template-columns: 1fr;
-      gap: clamp(0.45rem, 1.8vw, 0.6rem);
-      padding-right: 0;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-auto-rows: minmax(0, 1fr);
+      gap: clamp(0.35rem, 1.6vw, 0.55rem);
+      padding: 0;
+      align-items: stretch;
+      align-content: stretch;
     }
 
     .options.visualizer-active .focus-option {
       --option-translate: 0px;
       --visualizer-scale-y: 1;
       --visualizer-scale-x: var(--visualizer-scale);
-      padding: 0.45rem 1.1rem;
-      min-height: 1.75rem;
-      border-radius: 999px;
+      padding: 0.3rem 1.1rem;
+      min-height: 1.25rem;
+      border-radius: clamp(0.1rem, 0.6vw, 0.2rem);
       transform-origin: left center;
       justify-content: flex-start;
+      width: 100%;
+      height: 100%;
     }
 
     .form-actions {
@@ -462,6 +467,7 @@
       display: grid;
       gap: 0.75rem;
       justify-items: center;
+      margin-top: clamp(1rem, 3vw, 1.5rem);
     }
 
     .wordle-puzzle {
@@ -599,7 +605,7 @@
     }
 
     .escape-button.visible {
-      display: inline-flex;
+      display: flex;
       align-items: center;
       justify-content: center;
     }
@@ -640,22 +646,24 @@
     }
 
     .selection-cloud {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
       gap: clamp(0.65rem, 2vw, 0.9rem);
       position: relative;
       min-height: clamp(2.5rem, 7vw, 3.5rem);
+      justify-items: stretch;
+      align-items: stretch;
     }
 
     .selection-chip {
       --chip-delay: 0s;
       --chip-rise-duration: 0.72s;
       position: relative;
-      display: inline-flex;
+      display: flex;
       align-items: center;
       justify-content: center;
-      min-width: clamp(9rem, 24vw, 12.5rem);
+      width: 100%;
+      min-width: 0;
       padding: 0.85rem 1.75rem;
       border: 2px solid var(--chip-border);
       background: var(--chip-bg);
@@ -728,10 +736,22 @@
         gap: clamp(1rem, 4vw, 1.5rem);
       }
 
+      .selection-cloud {
+        grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+      }
+
       .selection-chip {
-        min-width: clamp(7.5rem, 72vw, 11rem);
         padding: 0.65rem 1.1rem;
         font-size: clamp(0.78rem, 4vw, 0.9rem);
+      }
+
+      .options.visualizer-active {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      }
+
+      .options.visualizer-active .focus-option {
+        padding: 0.25rem 0.9rem;
+        min-height: 1.1rem;
       }
     }
 
@@ -796,9 +816,6 @@
       <div class="form-actions">
         <button type="submit" class="submit-button">Submit</button>
       </div>
-      <div class="encore-controls">
-        <div id="audioStatus" class="status" role="status" aria-live="polite"></div>
-      </div>
       <footer>EA tracks will be added later.</footer>
     </form>
     <div id="submissionExperience" class="submission-experience" aria-hidden="true">
@@ -809,6 +826,9 @@
         <div class="wordle-board" role="grid" aria-label="Focus guessing puzzle"></div>
       </div>
       <p id="wordlePuzzleMessage" class="wordle-puzzle__message" aria-live="polite"></p>
+    </div>
+    <div class="encore-controls">
+      <div id="audioStatus" class="status" role="status" aria-live="polite"></div>
     </div>
     <button type="button" id="escapeEncoreButton" class="escape-button" aria-live="polite" aria-label="Get me out of here!">Get me out of here!</button>
   </main>
