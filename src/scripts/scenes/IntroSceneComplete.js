@@ -241,6 +241,7 @@ export class IntroSceneComplete {
       introAudioCurrentSource: null,
       introAudioGainNode: null,
       introAudioLoopTimeout: null,
+      introAudioLoopScheduled: false,
       introAudioPlayCount: 0,
 
       // Color theme
@@ -258,6 +259,19 @@ export class IntroSceneComplete {
     }
 
     hiddenInput.value = '';
+
+    // Ensure the input is positioned within the viewport so mobile browsers
+    // will reliably open the on-screen keyboard. Inputs that sit far offscreen
+    // (e.g. at -9999px) are ignored by iOS and some Android builds.
+    hiddenInput.style.position = 'fixed';
+    hiddenInput.style.top = '50%';
+    hiddenInput.style.left = '50%';
+    hiddenInput.style.width = '1px';
+    hiddenInput.style.height = '1px';
+    hiddenInput.style.transform = 'translate(-50%, -50%)';
+    hiddenInput.style.opacity = '0';
+    hiddenInput.style.pointerEvents = 'none';
+    hiddenInput.style.fontSize = '16px';
 
     try {
       hiddenInput.focus({ preventScroll: true });
@@ -1609,13 +1623,22 @@ export class IntroSceneComplete {
   _scheduleNextIntroAudioPlayback() {
     if (this.state.introAudioLoopTimeout) {
       clearTimeout(this.state.introAudioLoopTimeout);
+      this.state.introAudioLoopTimeout = null;
     }
 
-    if (!this.state.running) {
+    if (!this.state.running || this.state.introAudioLoopScheduled) {
       return;
     }
 
+    this.state.introAudioLoopScheduled = true;
     this.state.introAudioLoopTimeout = window.setTimeout(() => {
+      this.state.introAudioLoopTimeout = null;
+      this.state.introAudioLoopScheduled = false;
+
+      if (!this.state.running || this.state.introAudioCurrentSource) {
+        return;
+      }
+
       this._playIntroAudio().catch(error => {
         console.warn('⚠️ Failed to start intro audio loop playback:', error);
       });
@@ -1627,6 +1650,7 @@ export class IntroSceneComplete {
       clearTimeout(this.state.introAudioLoopTimeout);
       this.state.introAudioLoopTimeout = null;
     }
+    this.state.introAudioLoopScheduled = false;
 
     const currentSource = this.state.introAudioCurrentSource;
     if (currentSource) {
