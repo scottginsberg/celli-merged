@@ -520,7 +520,7 @@
       grid-template-rows: minmax(0, 1fr) auto;
       align-content: start;
       gap: clamp(0.75rem, 2.4vw, 1.05rem);
-      padding: clamp(0.85rem, 2.8vw, 1.2rem) clamp(0.5rem, 2vw, 0.85rem) clamp(1.25rem, 4vw, 2rem);
+      padding: clamp(0.85rem, 2.8vw, 1.2rem) clamp(0.5rem, 2vw, 0.85rem) clamp(0.75rem, 2.4vw, 1.2rem);
       height: 100%;
       min-height: 0;
       overflow: hidden;
@@ -533,12 +533,12 @@
       align-items: stretch;
       justify-items: stretch;
       padding-right: clamp(0.25rem, 1vw, 0.45rem);
-      padding-bottom: clamp(0.5rem, 2vh, 1rem);
+      padding-bottom: clamp(0.25rem, 1.2vh, 0.6rem);
       overflow-y: auto;
       scrollbar-color: #000 #fff;
       scrollbar-width: thin;
       min-height: 0;
-      height: min(100%, clamp(13.5rem, 52vh, 20rem));
+      height: min(100%, clamp(15rem, 56vh, 22rem));
       overscroll-behavior: contain;
     }
 
@@ -678,8 +678,8 @@
       position: static;
       display: flex;
       justify-content: center;
-      padding-top: clamp(0.75rem, 2.6vw, 1.2rem);
-      margin-top: clamp(0.5rem, 2vw, 0.85rem);
+      padding-top: 0;
+      margin-top: 0;
       pointer-events: auto;
       min-height: 0;
       background: none;
@@ -1050,7 +1050,7 @@
     <form id="betaFocusForm" class="focus-form" novalidate>
       <section class="focus-frame focus-frame--intake" aria-labelledby="betaFocusHeading">
         <h1 id="betaFocusHeading">Before we get started…</h1>
-        <p class="prompt">Is there anything we should focus on first for our beta release?</p>
+        <p class="prompt">Celli's always looking to the future! What should we add for our beta release? Your absolute MUST HAVE features for a spreadsheet.</p>
       </section>
       <section class="focus-frame focus-frame--options" aria-label="Focus picker">
         <div class="options-shell">
@@ -1873,7 +1873,6 @@
             clearTimeout(fadeTimer);
             clearTimeout(cleanupTimer);
             overlay.removeEventListener('transitionend', handleTransitionEnd);
-            overlay.removeEventListener('click', handleAccelerateFade);
             if (overlay.parentNode) {
               overlay.parentNode.removeChild(overlay);
             }
@@ -1898,10 +1897,6 @@
             }
           }
 
-          function handleAccelerateFade() {
-            overlay.classList.add('fade-out');
-          }
-
           panelEl.appendChild(overlay);
 
           requestAnimationFrame(() => {
@@ -1909,7 +1904,6 @@
           });
 
           overlay.addEventListener('transitionend', handleTransitionEnd);
-          overlay.addEventListener('click', handleAccelerateFade, { once: true });
 
           const displayDuration = 2000;
           const cleanupBuffer = 700;
