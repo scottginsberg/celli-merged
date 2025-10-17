@@ -465,6 +465,99 @@
       justify-items: center;
     }
 
+    .wordle-puzzle {
+      display: none;
+      margin-top: 1.35rem;
+      padding: clamp(1rem, 3vw, 1.4rem) clamp(1rem, 3vw, 1.6rem) clamp(1.25rem, 3.5vw, 1.75rem);
+      border-radius: clamp(1.1rem, 3vw, 1.5rem);
+      background: rgba(12, 14, 22, 0.68);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 18px 48px rgba(8, 0, 26, 0.4);
+      backdrop-filter: blur(6px);
+      color: var(--status-fg);
+    }
+
+    .wordle-puzzle.visible {
+      display: grid;
+      gap: clamp(0.75rem, 2.5vw, 1.15rem);
+    }
+
+    .wordle-puzzle__title {
+      margin: 0;
+      font-size: clamp(0.95rem, 2.6vw, 1.15rem);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      font-weight: 800;
+      color: var(--submit-hover-fg);
+    }
+
+    .wordle-puzzle__message {
+      margin: 0;
+      font-size: clamp(0.75rem, 2.3vw, 0.85rem);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.8);
+      min-height: 1.3em;
+    }
+
+    .wordle-board {
+      display: grid;
+      gap: clamp(0.35rem, 2vw, 0.55rem);
+    }
+
+    .wordle-row {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: clamp(0.28rem, 1.6vw, 0.45rem);
+    }
+
+    .wordle-cell {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 1 / 1;
+      border-radius: clamp(0.35rem, 2vw, 0.55rem);
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      background: rgba(6, 8, 14, 0.72);
+      font-size: clamp(0.95rem, 3vw, 1.25rem);
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+
+    .wordle-cell.filled {
+      border-color: rgba(255, 255, 255, 0.35);
+      transform: scale(1.04);
+    }
+
+    .wordle-cell.correct {
+      background: #2ec27e;
+      border-color: #8ff0a4;
+      color: #041d0f;
+      transform: scale(1.05);
+    }
+
+    .wordle-cell.present {
+      background: #f6d32d;
+      border-color: #f8e45c;
+      color: #1c1400;
+      transform: scale(1.03);
+    }
+
+    .wordle-cell.absent {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.18);
+      color: rgba(255, 255, 255, 0.55);
+      transform: scale(1);
+    }
+
+    .wordle-puzzle.wordle-puzzle--solved {
+      box-shadow: 0 0 0 2px rgba(46, 194, 126, 0.45), 0 18px 48px rgba(8, 0, 26, 0.4);
+    }
+
     .status {
       min-height: 1.2em;
       font-size: 0.75rem;
@@ -489,6 +582,7 @@
       display: none;
       transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
       box-shadow: 0 8px 28px rgba(255, 24, 72, 0.35);
+      z-index: 4;
     }
 
     .escape-button.visible {
@@ -698,6 +792,13 @@
     <div id="submissionExperience" class="submission-experience" aria-hidden="true">
       <div id="selectionCloud" class="selection-cloud"></div>
     </div>
+    <div id="wordlePuzzle" class="wordle-puzzle" aria-hidden="true" aria-live="polite">
+      <div class="wordle-puzzle__header">
+        <h2 class="wordle-puzzle__title">Focus Guess</h2>
+        <p id="wordlePuzzleMessage" class="wordle-puzzle__message"></p>
+      </div>
+      <div class="wordle-board" role="grid" aria-label="Focus guessing puzzle"></div>
+    </div>
     <button type="button" id="escapeEncoreButton" class="escape-button" aria-live="polite" aria-label="Get me out of here!">Get me out of here!</button>
   </main>
   <script>
@@ -738,6 +839,237 @@
 
       const selectionExperience = document.getElementById('submissionExperience');
       const selectionCloud = document.getElementById('selectionCloud');
+
+      const WORDLE_ANSWER = 'CELLI';
+      const WORDLE_WORD_LENGTH = WORDLE_ANSWER.length;
+      const WORDLE_MAX_ATTEMPTS = 6;
+      const wordlePuzzleEl = document.getElementById('wordlePuzzle');
+      const wordleBoardEl = wordlePuzzleEl ? wordlePuzzleEl.querySelector('.wordle-board') : null;
+      const wordleMessageEl = document.getElementById('wordlePuzzleMessage');
+      const wordleRows = [];
+      const wordleGuesses = [];
+      let wordlePuzzleActive = false;
+      let wordlePuzzleSolved = false;
+      let wordleCurrentRowIndex = 0;
+      let wordleLetterStep = 0;
+      let wordlePuzzleDisplayed = false;
+
+      if (wordleBoardEl) {
+        initializeWordleBoard();
+      }
+
+      function initializeWordleBoard() {
+        if (!wordleBoardEl) {
+          return;
+        }
+        wordleBoardEl.innerHTML = '';
+        wordleRows.length = 0;
+        wordleGuesses.length = 0;
+        for (let attempt = 0; attempt < WORDLE_MAX_ATTEMPTS; attempt += 1) {
+          const rowEl = document.createElement('div');
+          rowEl.className = 'wordle-row';
+          rowEl.setAttribute('role', 'row');
+          const cells = [];
+          for (let column = 0; column < WORDLE_WORD_LENGTH; column += 1) {
+            const cell = document.createElement('div');
+            cell.className = 'wordle-cell';
+            cell.setAttribute('role', 'gridcell');
+            rowEl.appendChild(cell);
+            cells.push(cell);
+          }
+          wordleBoardEl.appendChild(rowEl);
+          wordleRows.push(cells);
+          wordleGuesses.push(new Array(WORDLE_WORD_LENGTH).fill(''));
+        }
+      }
+
+      function resetWordlePuzzleState() {
+        wordleCurrentRowIndex = 0;
+        wordleLetterStep = 0;
+        wordlePuzzleSolved = false;
+        wordleGuesses.forEach((guess, rowIndex) => {
+          const cells = wordleRows[rowIndex];
+          for (let column = 0; column < WORDLE_WORD_LENGTH; column += 1) {
+            if (guess) {
+              guess[column] = '';
+            }
+            if (cells && cells[column]) {
+              const cell = cells[column];
+              cell.textContent = '';
+              cell.classList.remove('filled', 'correct', 'present', 'absent');
+            }
+          }
+        });
+        if (wordlePuzzleEl) {
+          wordlePuzzleEl.classList.remove('wordle-puzzle--solved');
+        }
+      }
+
+      function setWordleMessage(message) {
+        if (wordleMessageEl) {
+          wordleMessageEl.textContent = message || '';
+        }
+      }
+
+      function activateWordlePuzzle() {
+        if (!wordlePuzzleEl) {
+          return;
+        }
+        if (!wordlePuzzleDisplayed) {
+          resetWordlePuzzleState();
+          wordlePuzzleEl.classList.add('visible');
+          wordlePuzzleEl.setAttribute('aria-hidden', 'false');
+          wordlePuzzleDisplayed = true;
+        }
+        if (!wordlePuzzleSolved && wordleCurrentRowIndex < WORDLE_MAX_ATTEMPTS) {
+          wordlePuzzleActive = true;
+          setWordleMessage('The track has started — build the secret word with your focus picks. Sixth pick submits.');
+        } else if (wordlePuzzleSolved) {
+          setWordleMessage('Encore secret cracked! CELLI!');
+        }
+      }
+
+      function sanitizeFocusValue(button) {
+        if (!button) {
+          return '';
+        }
+        const raw = button.dataset && button.dataset.value ? button.dataset.value : button.textContent || '';
+        return raw.replace(/[^a-zA-Z]/g, '');
+      }
+
+      function deriveWordleLetter(button, columnIndex) {
+        const sanitized = sanitizeFocusValue(button);
+        if (!sanitized) {
+          return '';
+        }
+        if (columnIndex < sanitized.length) {
+          return sanitized.charAt(columnIndex).toUpperCase();
+        }
+        return '';
+      }
+
+      function evaluateWordleGuess(letters) {
+        const result = new Array(WORDLE_WORD_LENGTH).fill('absent');
+        const remaining = {};
+        for (let index = 0; index < WORDLE_WORD_LENGTH; index += 1) {
+          const letter = WORDLE_ANSWER.charAt(index);
+          remaining[letter] = (remaining[letter] || 0) + 1;
+        }
+
+        for (let index = 0; index < WORDLE_WORD_LENGTH; index += 1) {
+          const guessLetter = letters[index];
+          const answerLetter = WORDLE_ANSWER.charAt(index);
+          if (guessLetter && guessLetter === answerLetter) {
+            result[index] = 'correct';
+            remaining[guessLetter] -= 1;
+          }
+        }
+
+        for (let index = 0; index < WORDLE_WORD_LENGTH; index += 1) {
+          if (result[index] === 'correct') {
+            continue;
+          }
+          const guessLetter = letters[index];
+          if (!guessLetter) {
+            result[index] = 'absent';
+            continue;
+          }
+          if (remaining[guessLetter] > 0) {
+            result[index] = 'present';
+            remaining[guessLetter] -= 1;
+          } else {
+            result[index] = 'absent';
+          }
+        }
+
+        return result;
+      }
+
+      function submitWordleGuess() {
+        if (!wordlePuzzleActive || wordlePuzzleSolved || wordleCurrentRowIndex >= WORDLE_MAX_ATTEMPTS) {
+          return;
+        }
+
+        const guess = wordleGuesses[wordleCurrentRowIndex] || [];
+        if (!guess.length || guess.some((letter) => !letter)) {
+          setWordleMessage('Need five focus picks before submitting your guess.');
+          return;
+        }
+
+        const rowCells = wordleRows[wordleCurrentRowIndex];
+        const evaluation = evaluateWordleGuess(guess);
+        evaluation.forEach((state, index) => {
+          const cell = rowCells && rowCells[index];
+          if (!cell) {
+            return;
+          }
+          cell.classList.remove('filled', 'correct', 'present', 'absent');
+          cell.classList.add(state || 'absent');
+        });
+
+        const guessWord = guess.join('');
+        if (guessWord === WORDLE_ANSWER) {
+          wordlePuzzleSolved = true;
+          wordlePuzzleActive = false;
+          if (wordlePuzzleEl) {
+            wordlePuzzleEl.classList.add('wordle-puzzle--solved');
+          }
+          setWordleMessage('Encore secret cracked! CELLI!');
+        } else {
+          const attemptsLeft = WORDLE_MAX_ATTEMPTS - wordleCurrentRowIndex - 1;
+          if (attemptsLeft <= 0) {
+            setWordleMessage('Out of guesses — the answer was CELLI.');
+            wordlePuzzleActive = false;
+          } else if (attemptsLeft === 1) {
+            setWordleMessage('Not quite. 1 try left — start a new guess.');
+          } else {
+            setWordleMessage(`Not quite. ${attemptsLeft} tries left — start a new guess.`);
+          }
+        }
+
+        wordleCurrentRowIndex += 1;
+        wordleLetterStep = 0;
+        if (!wordlePuzzleSolved && wordleCurrentRowIndex >= WORDLE_MAX_ATTEMPTS) {
+          wordlePuzzleActive = false;
+        }
+      }
+
+      function handleWordleFocusClick(button) {
+        if (!wordlePuzzleActive || !button || wordlePuzzleSolved || wordleCurrentRowIndex >= WORDLE_MAX_ATTEMPTS) {
+          return;
+        }
+
+        if (wordleLetterStep < WORDLE_WORD_LENGTH) {
+          const letterIndex = wordleLetterStep;
+          const derived = deriveWordleLetter(button, letterIndex);
+          const letter = derived || '?';
+          const rowCells = wordleRows[wordleCurrentRowIndex];
+          if (!rowCells || !rowCells[letterIndex]) {
+            return;
+          }
+
+          rowCells[letterIndex].textContent = letter;
+          rowCells[letterIndex].classList.remove('correct', 'present', 'absent');
+          rowCells[letterIndex].classList.add('filled');
+          if (wordleGuesses[wordleCurrentRowIndex]) {
+            wordleGuesses[wordleCurrentRowIndex][letterIndex] = letter;
+          }
+          wordleLetterStep += 1;
+
+          const rawLabel = (button.dataset && button.dataset.value ? button.dataset.value : button.textContent || '').trim();
+          const focusLabel = rawLabel || 'Focus';
+          if (letter === '?') {
+            setWordleMessage(`"${focusLabel}" had no letter ${letterIndex + 1} — slot filled with ?. Pick another focus.`);
+          } else if (wordleLetterStep === WORDLE_WORD_LENGTH) {
+            setWordleMessage(`"${focusLabel}" gave ${letter} for slot ${letterIndex + 1}. One more focus submits your guess.`);
+          } else {
+            setWordleMessage(`"${focusLabel}" gave ${letter} for slot ${letterIndex + 1}. Keep picking focuses.`);
+          }
+          return;
+        }
+
+        submitWordleGuess();
+      }
 
       function buildTrackCandidates(fileName) {
         const sanitized = (fileName || '').replace(/^\/+/, '');
@@ -1636,6 +1968,10 @@
             if (audio) {
               resetAudioVolume(audio);
             }
+            if (escapeButton) {
+              escapeButton.disabled = false;
+              updateEscapeLabel(false);
+            }
           });
       }
 
@@ -1651,7 +1987,12 @@
         resetAudioVolume(audio);
         audio.volume = 0;
         const playback = audio.play();
-        handlePlaybackPromise(playback, label, audio, () => fadeInAudio(audio));
+        handlePlaybackPromise(playback, label, audio, () => {
+          fadeInAudio(audio);
+          if (audio === baseTrack) {
+            activateWordlePuzzle();
+          }
+        });
       }
 
       function applyTone(button, toneIndex) {
@@ -1754,6 +2095,10 @@
         const label = encoreLabels[encoreIndex % encoreLabels.length];
         encoreIndex = (encoreIndex + 1) % encoreTracks.length;
         triggerPanelShake();
+        if (escapeButton) {
+          escapeButton.disabled = true;
+          updateEscapeLabel(false);
+        }
         playTrack(track, label);
       }
 
@@ -1763,6 +2108,7 @@
           const value = button.dataset.value || button.textContent.trim();
           const isActive = button.classList.contains('active-selection');
           playStrumPreview();
+          handleWordleFocusClick(button);
 
           if (isActive) {
             button.classList.remove('active-selection');
@@ -1824,16 +2170,28 @@
 
       encoreTrack.addEventListener('ended', () => {
         updateStatus('Encore complete — ready for one more?');
+        if (escapeButton) {
+          escapeButton.disabled = false;
+          updateEscapeLabel(false);
+        }
         stopVisualizerIfIdle(true);
       });
 
       superEncoreTrack.addEventListener('ended', () => {
         updateStatus('Super Encore complete. Finale unlocked.');
+        if (escapeButton) {
+          escapeButton.disabled = false;
+          updateEscapeLabel(false);
+        }
         stopVisualizerIfIdle(true);
       });
 
       finaleTrack.addEventListener('ended', () => {
         updateStatus('Finale complete. Thank you for your focus!');
+        if (escapeButton) {
+          escapeButton.disabled = false;
+          updateEscapeLabel(false);
+        }
         stopVisualizerIfIdle(true);
       });
 
