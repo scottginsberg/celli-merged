@@ -209,6 +209,50 @@
             z-index: 200000;
             padding: 0;
         }
+        .flash-video-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 4000;
+        }
+        .flash-video-window {
+            width: min(720px, 90vw);
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, #f8f8f8 0%, #e2e2e2 40%, #cfcfcf 100%);
+            border: 3px solid #9d9d9d;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.55);
+        }
+        .flash-video-window .flash-titlebar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            background: linear-gradient(to bottom, #ffffff 0%, #d6d6d6 100%);
+            border-bottom: 1px solid #9d9d9d;
+        }
+        .flash-video-window .flash-titlebar span {
+            letter-spacing: 0.08em;
+        }
+        .flash-video-window .flash-titlebar button {
+            background: #e0605c;
+            border: 1px solid #a03834;
+            color: #fff;
+            font-size: 10px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .flash-video-window video {
+            width: 100%;
+            background: #000;
+        }
         /* Ensure 3D canvas renders at high z-index for arms to appear over timeline */
         body.fps-mode #canvas-container canvas {
             position: relative;
@@ -274,6 +318,47 @@
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+        .timeline-icon-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px solid #777;
+            border-radius: 4px;
+            background: linear-gradient(to bottom, #fefefe 0%, #dcdcdc 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: inset 0 1px 0 #fff;
+        }
+        .timeline-icon-btn:hover {
+            background: linear-gradient(to bottom, #ffffff 0%, #ececec 100%);
+        }
+        .timeline-icon-btn:active {
+            background: linear-gradient(to bottom, #d0d0d0 0%, #b0b0b0 100%);
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+        }
+        .timeline-icon-btn .venn-icon {
+            position: relative;
+            width: 18px;
+            height: 14px;
+        }
+        .timeline-icon-btn .venn-icon::before,
+        .timeline-icon-btn .venn-icon::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid #555;
+            background: rgba(255,255,255,0.8);
+        }
+        .timeline-icon-btn .venn-icon::before {
+            left: 0;
+        }
+        .timeline-icon-btn .venn-icon::after {
+            right: 0;
         }
         .playback-controls {
             display: flex;
@@ -500,6 +585,9 @@
                     <div class="play-btn">▶</div>
                     <div class="play-btn">⏭</div>
                 </div>
+                <button id="onion-skin-btn" class="timeline-icon-btn" title="Onion Skin Preview">
+                    <div class="venn-icon"></div>
+                </button>
                 <span style="margin-right: 8px;">Timeline</span>
                 <select id="weapon-select" style="font-size: 11px; padding: 2px 4px; margin-right: 8px;">
                     <option value="mouse" selected>Mouse Cursor</option>
@@ -3701,7 +3789,15 @@
                 }
             }
         });
-        
+
+        const onionSkinBtn = document.getElementById('onion-skin-btn');
+        if (onionSkinBtn) {
+            onionSkinBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                showFlashVideo('Key 2.mp4', 'ONION SKIN REFERENCE');
+            });
+        }
+
         // FPS mode toggle
         document.getElementById('fps-btn').addEventListener('click', () => {
             fpsMode = !fpsMode;
@@ -4336,6 +4432,73 @@
             }
         }
         
+        function showFlashVideo(src, title) {
+            if (!src) return;
+
+            const existingOverlay = document.querySelector('.flash-video-overlay');
+            if (existingOverlay) {
+                existingOverlay.remove();
+            }
+
+            const overlay = document.createElement('div');
+            overlay.className = 'flash-video-overlay';
+
+            const windowEl = document.createElement('div');
+            windowEl.className = 'flash-video-window';
+
+            const titleBar = document.createElement('div');
+            titleBar.className = 'flash-titlebar';
+
+            const titleText = document.createElement('span');
+            titleText.textContent = (title || 'ONION SKIN').toUpperCase();
+
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '×';
+            closeBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                fadeOutOverlay();
+            });
+
+            titleBar.appendChild(titleText);
+            titleBar.appendChild(closeBtn);
+
+            const video = document.createElement('video');
+            video.controls = true;
+            video.autoplay = true;
+            video.src = src;
+            video.style.background = '#000';
+
+            const fallback = document.createElement('div');
+            fallback.style.cssText = 'padding: 24px; font-weight: bold; text-align: center; letter-spacing: 0.12em; display: none;';
+            fallback.textContent = 'UNABLE TO LOAD KEY 2.MP4';
+
+            const fadeOutOverlay = () => {
+                overlay.style.transition = 'opacity 3s ease';
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.remove(), 3000);
+            };
+
+            video.addEventListener('ended', fadeOutOverlay, { once: true });
+            video.addEventListener('error', () => {
+                video.style.display = 'none';
+                fallback.style.display = 'block';
+                setTimeout(fadeOutOverlay, 500);
+            }, { once: true });
+
+            windowEl.appendChild(titleBar);
+            windowEl.appendChild(video);
+            windowEl.appendChild(fallback);
+            overlay.appendChild(windowEl);
+
+            overlay.addEventListener('click', (event) => {
+                if (event.target === overlay) {
+                    fadeOutOverlay();
+                }
+            });
+
+            document.body.appendChild(overlay);
+        }
+
         // Initialize pose
         updatePose(0, 0);
         animate();
