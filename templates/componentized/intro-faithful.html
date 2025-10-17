@@ -2915,8 +2915,9 @@ showVisiCalc();
  }
  </style>
  `;
- 
+
  document.body.appendChild(visiCalc);
+ setupVisiCellClockWidget(visiCalc);
  try { SceneManager.setPhase('visicell'); } catch (e) {}
  
  // Snap VisiCell into view immediately
@@ -2961,9 +2962,277 @@ showVisiCalc();
  let barrelClickCount = 0;
  let madnessActivated = false;
  let rPromptHoverCount = 0;
- let enterCommandUsed = false; // Track if ENTER command was used
- 
- function setupTerminalInput() {
+let enterCommandUsed = false; // Track if ENTER command was used
+let clueTrailActive = false;
+let clueTrailStage = -1;
+let clueTrailComplete = false;
+let clueEntryCellCoord = '';
+let clueSheetElements = null;
+let visicellClockInterval = null;
+let visicellClockWindow = null;
+let visicellClockDismissHandler = null;
+
+function setupVisiCellClockWidget(root) {
+  if (!root) return;
+
+  if (visicellClockInterval && document.getElementById('visicell-clock-widget')) {
+    return;
+  }
+
+  const existingWidget = document.getElementById('visicell-clock-widget');
+  if (existingWidget) {
+    existingWidget.remove();
+  }
+
+  if (visicellClockInterval) {
+    clearInterval(visicellClockInterval);
+    visicellClockInterval = null;
+  }
+
+  const widget = document.createElement('div');
+  widget.id = 'visicell-clock-widget';
+  widget.style.cssText = `
+    position: absolute;
+    top: 18px;
+    right: 24px;
+    padding: 8px 14px;
+    border: 1px solid rgba(0, 255, 0, 0.4);
+    background: rgba(0, 20, 0, 0.75);
+    color: #0f0;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(0, 255, 0, 0.25);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+    z-index: 210;
+  `;
+
+  widget.addEventListener('mouseenter', () => {
+    widget.style.background = 'rgba(0, 40, 0, 0.85)';
+    widget.style.boxShadow = '0 0 24px rgba(0, 255, 0, 0.35)';
+  });
+
+  widget.addEventListener('mouseleave', () => {
+    widget.style.background = 'rgba(0, 20, 0, 0.75)';
+    widget.style.boxShadow = '0 0 14px rgba(0, 255, 0, 0.25)';
+  });
+
+  widget.addEventListener('click', (event) => {
+    event.stopPropagation();
+    toggleVisiCellClockWindow(root, widget);
+  });
+
+  const updateWidgetTime = () => {
+    const now = new Date();
+    const month = now.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+    const day = String(now.getDate()).padStart(2, '0');
+    const year = now.getFullYear();
+    const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).toUpperCase();
+    widget.textContent = `${month} ${day} ${year} • ${time}`;
+  };
+
+  updateWidgetTime();
+  visicellClockInterval = setInterval(updateWidgetTime, 15000);
+
+  root.appendChild(widget);
+}
+
+function toggleVisiCellClockWindow(root, widget) {
+  if (visicellClockWindow && visicellClockWindow.isConnected) {
+    closeVisiCellClockWindow();
+    return;
+  }
+
+  if (!root) return;
+
+  const windowEl = document.createElement('div');
+  windowEl.id = 'visicell-clock-window';
+  windowEl.style.cssText = `
+    position: absolute;
+    top: 62px;
+    right: 24px;
+    width: 280px;
+    background: rgba(0, 8, 0, 0.95);
+    border: 1px solid rgba(0, 255, 0, 0.4);
+    box-shadow: 0 0 26px rgba(0, 255, 0, 0.25);
+    padding: 16px 18px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.18em;
+    color: #0f0;
+    text-transform: uppercase;
+    z-index: 220;
+  `;
+
+  const header = document.createElement('div');
+  header.textContent = 'SYSTEM DATE & TIME';
+  header.style.cssText = 'font-size: 12px; color: #0ff; margin-bottom: 12px;';
+
+  const closeBtn = document.createElement('div');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = `
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #0ff;
+  `;
+  closeBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    closeVisiCellClockWindow();
+  });
+
+  const now = new Date();
+  const primaryTime = document.createElement('div');
+  primaryTime.style.cssText = 'font-size: 18px; margin-bottom: 10px; color: #ff0;';
+
+  const updatePrimaryTime = (offset) => {
+    const displayDate = new Date(Date.now() + offset * 60000);
+    const dateText = displayDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' }).toUpperCase();
+    const timeText = displayDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).toUpperCase();
+    primaryTime.innerHTML = `${dateText}<br>${timeText}`;
+  };
+
+  let offsetMinutes = 0;
+  updatePrimaryTime(offsetMinutes);
+
+  const calendarContainer = document.createElement('div');
+  calendarContainer.style.cssText = 'margin-top: 10px;';
+  calendarContainer.appendChild(renderVisiCellCalendar(now));
+
+  const settingsContainer = document.createElement('div');
+  settingsContainer.style.cssText = 'margin-top: 14px; border-top: 1px solid rgba(0, 255, 0, 0.3); padding-top: 12px;';
+
+  const settingsLabel = document.createElement('div');
+  settingsLabel.textContent = 'CLOCK OFFSET';
+  settingsLabel.style.cssText = 'font-size: 11px; color: #0ff; margin-bottom: 6px;';
+
+  const offsetDisplay = document.createElement('div');
+  offsetDisplay.style.cssText = 'font-size: 12px; margin-bottom: 8px;';
+
+  const updateOffsetDisplay = () => {
+    const prefix = offsetMinutes > 0 ? '+' : '';
+    offsetDisplay.textContent = `${prefix}${offsetMinutes} MIN`;
+  };
+
+  updateOffsetDisplay();
+
+  const offsetControls = document.createElement('div');
+  offsetControls.style.cssText = 'display: flex; gap: 8px;';
+
+  const makeOffsetButton = (label, delta) => {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.style.cssText = `
+      flex: 1;
+      padding: 6px 0;
+      background: rgba(0, 30, 0, 0.7);
+      border: 1px solid rgba(0, 255, 0, 0.4);
+      color: #0f0;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      cursor: pointer;
+      text-transform: uppercase;
+    `;
+    btn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      offsetMinutes = Math.max(-720, Math.min(720, offsetMinutes + delta));
+      updateOffsetDisplay();
+      updatePrimaryTime(offsetMinutes);
+    });
+    return btn;
+  };
+
+  const minusBtn = makeOffsetButton('-5', -5);
+  const resetBtn = makeOffsetButton('0', 0);
+  resetBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    offsetMinutes = 0;
+    updateOffsetDisplay();
+    updatePrimaryTime(offsetMinutes);
+  });
+  const plusBtn = makeOffsetButton('+5', 5);
+
+  offsetControls.appendChild(minusBtn);
+  offsetControls.appendChild(resetBtn);
+  offsetControls.appendChild(plusBtn);
+
+  settingsContainer.appendChild(settingsLabel);
+  settingsContainer.appendChild(offsetDisplay);
+  settingsContainer.appendChild(offsetControls);
+
+  windowEl.appendChild(header);
+  windowEl.appendChild(closeBtn);
+  windowEl.appendChild(primaryTime);
+  windowEl.appendChild(calendarContainer);
+  windowEl.appendChild(settingsContainer);
+
+  windowEl.addEventListener('click', (event) => event.stopPropagation());
+
+  root.appendChild(windowEl);
+  visicellClockWindow = windowEl;
+
+  visicellClockDismissHandler = (event) => {
+    if (!visicellClockWindow) return;
+    if (visicellClockWindow.contains(event.target) || (widget && widget.contains(event.target))) {
+      return;
+    }
+    closeVisiCellClockWindow();
+  };
+
+  document.addEventListener('click', visicellClockDismissHandler);
+}
+
+function closeVisiCellClockWindow() {
+  if (visicellClockWindow && visicellClockWindow.isConnected) {
+    visicellClockWindow.remove();
+  }
+  visicellClockWindow = null;
+  if (visicellClockDismissHandler) {
+    document.removeEventListener('click', visicellClockDismissHandler);
+    visicellClockDismissHandler = null;
+  }
+}
+
+function renderVisiCellCalendar(date) {
+  const calendarWrapper = document.createElement('div');
+  calendarWrapper.style.cssText = 'display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; font-size: 11px; text-align: center;';
+
+  const weekdays = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+  weekdays.forEach((day) => {
+    const header = document.createElement('div');
+    header.textContent = day;
+    header.style.cssText = 'color: #0ff; padding: 4px 0; border-bottom: 1px solid rgba(0, 255, 255, 0.3);';
+    calendarWrapper.appendChild(header);
+  });
+
+  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+
+  for (let i = 0; i < firstDay; i++) {
+    const placeholder = document.createElement('div');
+    placeholder.style.cssText = 'padding: 4px 0; opacity: 0.3;';
+    calendarWrapper.appendChild(placeholder);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const cell = document.createElement('div');
+    cell.textContent = String(day).padStart(2, '0');
+    cell.style.cssText = 'padding: 4px 0; border: 1px solid rgba(0, 255, 0, 0.2); background: rgba(0, 30, 0, 0.6);';
+    if (day === date.getDate()) {
+      cell.style.background = 'rgba(0, 255, 0, 0.25)';
+      cell.style.color = '#000';
+    }
+    calendarWrapper.appendChild(cell);
+  }
+
+  return calendarWrapper;
+}
+
+function setupTerminalInput() {
  console.log('?? Terminal input system activated');
  terminalActive = true;
  
@@ -3144,7 +3413,7 @@ showVisiCalc();
  promptEl.innerHTML = terminalInput + '<span style="animation: blink 1s step-end infinite;">_</span>';
  }
 
- const validTerminalCommands = ['ENTER', 'EXIT', 'LEAVE', 'MYHOUSE.WAD', 'OURHOUSE.LOOM', 'MADNESS.LOOM'];
+const validTerminalCommands = ['ENTER', 'EXIT', 'LEAVE', 'SEARCH', 'KEY', 'SNAKE', 'BURGER KING', 'MYHOUSE.WAD', 'OURHOUSE.LOOM', 'MADNESS.LOOM'];
 
  function cancelPromptReset() {
  if (promptClearInterval) {
@@ -3243,34 +3512,41 @@ showVisiCalc();
  processCommand(cmd, frame);
  }
  
- function processCommand(cmd, frame) {
- if (cmd === 'ENTER') {
- // ENTER triggers VisiCell Sim and disables R sequence
- enterCommandUsed = true;
- console.log('? ENTER command used - R sequence permanently disabled');
- startVisiCellSim();
- return;
- } else if (cmd === 'EXIT') {
- triggerExitCube(frame);
- terminalInput = '';
- updateTerminalPrompt();
- schedulePromptToEnte({ immediateFill: true });
- } else if (cmd === 'LEAVE') {
- // LEAVE triggers Ozymandias puzzle first, then House of Leaves after solving
- if (!ozymandiasSolved) {
- startOzymandiasPuzzle();
- } else {
- // After Ozymandias is solved, LEAVE triggers the House of Leaves sequence
- triggerLeaveSequence(frame);
- terminalInput = '';
- updateTerminalPrompt();
- schedulePromptToEnte({ immediateFill: true });
- }
- return;
- } else if (cmd.toLowerCase() === 'myhouse.wad') {
- terminalResponse(frame, '"Too scary. How about OurHouse.loom?"');
- } else if (cmd.toLowerCase() === 'ourhouse.loom') {
- terminalResponse(frame, '"Huh... Not found. I must have renamed it. I asked my friends Crosby, Stills, Nash AND Young, none of them knew. Maybe wrong band."');
+function processCommand(cmd, frame) {
+  const normalizedCmd = cmd.trim().toUpperCase();
+
+  if (clueTrailActive) {
+    handleClueTrailCommand(normalizedCmd, frame);
+    return;
+  }
+
+  if (normalizedCmd === 'ENTER') {
+    // ENTER triggers VisiCell Sim and disables R sequence
+    enterCommandUsed = true;
+    console.log('? ENTER command used - R sequence permanently disabled');
+    startVisiCellSim();
+    return;
+  } else if (normalizedCmd === 'EXIT') {
+    triggerExitCube(frame);
+    terminalInput = '';
+    updateTerminalPrompt();
+    schedulePromptToEnte({ immediateFill: true });
+  } else if (normalizedCmd === 'LEAVE') {
+    if (!clueTrailComplete) {
+      startClueTrail(frame);
+    } else {
+      triggerLeaveSequence(frame);
+      terminalInput = '';
+      updateTerminalPrompt();
+      schedulePromptToEnte({ immediateFill: true });
+    }
+    return;
+  } else if (normalizedCmd === 'SEARCH' || normalizedCmd === 'KEY' || normalizedCmd === 'SNAKE' || normalizedCmd === 'BURGER KING') {
+    terminalResponse(frame, 'CLUE TRAIL NOT ACTIVE. TYPE LEAVE FIRST.');
+  } else if (cmd.toLowerCase() === 'myhouse.wad') {
+    terminalResponse(frame, '"Too scary. How about OurHouse.loom?"');
+  } else if (cmd.toLowerCase() === 'ourhouse.loom') {
+    terminalResponse(frame, '"Huh... Not found. I must have renamed it. I asked my friends Crosby, Stills, Nash AND Young, none of them knew. Maybe wrong band."');
  } else if (cmd.toLowerCase() === 'madness.loom') {
  terminalInput = '';
  updateTerminalPrompt();
@@ -5011,10 +5287,8 @@ RRRR RRR`;
  }
  
  // ===== VISICELL INTERACTIVE SEQUENCES =====
- let leaveSequenceActive = false;
- let visiCellSimActive = false;
- let ozymandiasPuzzleActive = false;
- let ozymandiasSolved = false; // Track if Ozymandias puzzle has been solved
+let leaveSequenceActive = false;
+let visiCellSimActive = false;
  
  function triggerLeaveInteractive(frame) {
  if (leaveSequenceActive) return;
@@ -5114,10 +5388,10 @@ RRRR RRR`;
  text-shadow: 0 0 10px #ff00ff;
  box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
  " onmouseover="this.style.background='#ff00ff'; this.style.color='#000';" onmouseout="this.style.background='#000'; this.style.color='#ff00ff';">
- SOLVE OZYMANDIAS
+ FOLLOW CLUE TRAIL
  </button>
- </div>
- `;
+</div>
+`;
  
  document.getElementById('visicell-sim-btn').addEventListener('click', () => {
  container.remove();
@@ -5126,8 +5400,8 @@ RRRR RRR`;
  
  document.getElementById('ozymandias-btn').addEventListener('click', () => {
  container.remove();
- startOzymandiasPuzzle();
- });
+ startClueTrail(document.getElementById('visicalc-frame'));
+});
  }
  
  function startVisiCellSim() {
@@ -5446,231 +5720,357 @@ STATUS: Waiting for input in D5 | Press any key to continue
  }, 100);
  }
  
- function startOzymandiasPuzzle() {
- ozymandiasPuzzleActive = true;
- console.log('?? Starting Ozymandias Puzzle');
+function startClueTrail(frame) {
+  clueTrailActive = true;
+  clueTrailStage = 0;
+  clueTrailComplete = false;
+  console.log('?? Starting VisiCell clue trail');
+
+  const hostFrame = frame || document.getElementById('visicalc-frame');
+  if (!hostFrame) {
+    console.warn('?? Unable to locate VisiCell frame for clue trail');
+    return;
+  }
+
+  clueEntryCellCoord = generateRandomEntryCoord();
+  buildClueSheet(hostFrame);
+  setClueText("No, I've locked that away. What I have left could make you cry. Why don't you dice that, too. Maybe search around.");
+  setEntryCellPrompt('REQUEST: SEARCH');
+  flashEntryCell('#103510');
+
+  terminalInput = '';
+  updateTerminalPrompt();
+  schedulePromptToEnte({ immediateFill: true });
+}
+
+function buildClueSheet(frame) {
+  if (!frame) return;
+
+  if (clueSheetElements && clueSheetElements.container) {
+    clueSheetElements.container.remove();
+  }
+
+  const container = document.createElement('div');
+  container.id = 'visicell-clue-sheet';
+  container.style.cssText = `
+    position: absolute;
+    left: 36px;
+    right: 36px;
+    bottom: 120px;
+    top: 120px;
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    grid-auto-rows: minmax(42px, auto);
+    gap: 6px 10px;
+    padding: 16px;
+    background: rgba(0, 20, 0, 0.85);
+    border: 1px solid rgba(0, 255, 0, 0.4);
+    box-shadow: 0 0 25px rgba(0, 255, 0, 0.15);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    overflow: auto;
+  `;
+
+  const makeHeaderCell = (text) => {
+    const header = document.createElement('div');
+    header.textContent = text.toUpperCase();
+    header.style.cssText = '
+      font-size: 12px;
+      color: #0ff;
+      border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+      padding-bottom: 6px;
+      letter-spacing: 0.2em;
+    ';
+    return header;
+  };
+
+  const makeLabelCell = (text) => {
+    const label = document.createElement('div');
+    label.textContent = text.toUpperCase();
+    label.style.cssText = '
+      border: 1px solid rgba(0, 255, 0, 0.35);
+      background: rgba(0, 40, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    ';
+    return label;
+  };
+
+  const makeContentCell = () => {
+    const content = document.createElement('div');
+    content.style.cssText = '
+      border: 1px solid rgba(0, 255, 0, 0.35);
+      background: rgba(0, 28, 0, 0.65);
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.6;
+      word-break: break-word;
+      white-space: normal;
+      transition: background 0.25s ease, box-shadow 0.25s ease;
+    ';
+    return content;
+  };
+
+  const headerLabel = makeHeaderCell('CELL');
+  const headerValue = makeHeaderCell('VALUE');
+  container.appendChild(headerLabel);
+  container.appendChild(headerValue);
+
+  const clueLabel = makeLabelCell('C3');
+  const clueContent = makeContentCell();
+  clueContent.id = 'visicell-clue-cell';
+  container.appendChild(clueLabel);
+  container.appendChild(clueContent);
+
+  const entryLabel = makeLabelCell(clueEntryCellCoord);
+  entryLabel.id = 'visicell-entry-label';
+  const entryContent = makeContentCell();
+  entryContent.id = 'visicell-entry-cell';
+  entryContent.style.background = 'rgba(0, 24, 0, 0.75)';
+  container.appendChild(entryLabel);
+  container.appendChild(entryContent);
+
+  frame.appendChild(container);
+
+  clueSheetElements = {
+    container,
+    clueLabel,
+    clueContent,
+    entryLabel,
+    entryContent
+  };
+}
+
+function setClueText(text) {
+  if (!clueSheetElements || !clueSheetElements.clueContent) return;
+  const formatted = (text || '').toUpperCase().replace(/\n/g, '<br>');
+  clueSheetElements.clueContent.innerHTML = formatted;
+}
+
+function setEntryCellPrompt(text) {
+  if (!clueSheetElements || !clueSheetElements.entryContent) return;
+  const message = `ENTRY CELL ${clueEntryCellCoord}: ${text}`;
+  clueSheetElements.entryContent.innerHTML = (message || '').toUpperCase().replace(/\n/g, '<br>');
+  if (clueSheetElements.entryLabel) {
+    clueSheetElements.entryLabel.textContent = clueEntryCellCoord.toUpperCase();
+  }
+}
+
+function flashEntryCell(color) {
+  if (!clueSheetElements || !clueSheetElements.entryContent) return;
+  const target = clueSheetElements.entryContent;
+  const original = target.style.background;
+  target.style.background = color || 'rgba(0, 40, 0, 0.8)';
+  target.style.boxShadow = '0 0 18px rgba(0, 255, 0, 0.4)';
+  setTimeout(() => {
+    target.style.background = original || 'rgba(0, 24, 0, 0.75)';
+    target.style.boxShadow = 'none';
+  }, 400);
+}
+
+function generateRandomEntryCoord() {
+  const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const rows = ['2', '3', '4', '5', '6'];
+  let coord = 'E4';
+  do {
+    const col = columns[Math.floor(Math.random() * columns.length)];
+    const row = rows[Math.floor(Math.random() * rows.length)];
+    coord = `${col}${row}`;
+  } while (coord === 'C3');
+  return coord;
+}
+
+function handleClueTrailCommand(command, frame) {
+  if (!clueTrailActive) return;
+  const hostFrame = frame || document.getElementById('visicalc-frame');
+  if (!hostFrame) return;
+
+  if (!clueSheetElements || !clueSheetElements.container || !hostFrame.contains(clueSheetElements.container)) {
+    buildClueSheet(hostFrame);
+    setClueText("No, I've locked that away. What I have left could make you cry. Why don't you dice that, too. Maybe search around.");
+  }
+
+  const resetPrompt = () => {
+    terminalInput = '';
+    updateTerminalPrompt();
+    schedulePromptToEnte({ immediateFill: true });
+  };
+
+  const reinforce = (expectation) => {
+    setEntryCellPrompt(`REQUEST: ${expectation}`);
+    flashEntryCell('#320000');
+  };
+
+  if (clueTrailStage === 0) {
+    if (command === 'SEARCH') {
+      clueTrailStage = 1;
+      setClueText("YOU FOUND AN ONION. IT'S ALREADY PEELED.\n\nBUT WAIT, THERE'S SOMETHING ITS OPPOSITE AND ITS PARTNER. TAKE THE LAST WORD OF THE FIRST LINE, AND REMOVE THE TERM FOR RICHARD UNKIND. YOU'LL KNOW SOULMATE.");
+      setEntryCellPrompt('REQUEST: KEY');
+      flashEntryCell('#134d13');
+    } else {
+      reinforce('SEARCH');
+    }
+    resetPrompt();
+    return;
+  }
+
+  if (clueTrailStage === 1) {
+    if (command === 'KEY') {
+      clueTrailStage = 2;
+      setEntryCellPrompt('PLAYBACK: KEY.MP4');
+      flashEntryCell('#1a5f1a');
+      showVisiCellVideo('Key.mp4', 'KEY FILE', () => {
+        setClueText("WHO'D I LEAVE FOR, KEY? WAS IT HIM OR HIS CREATION?");
+        setEntryCellPrompt('REQUEST: SNAKE');
+        flashEntryCell('#134d13');
+      });
+    } else {
+      reinforce('KEY');
+    }
+    resetPrompt();
+    return;
+  }
+
+  if (clueTrailStage === 2) {
+    if (command === 'SNAKE') {
+      clueTrailStage = 3;
+      setClueText('SNEAKY. DO YOU KNOW WHO WAS THE SNEAK KING?');
+      setEntryCellPrompt('REQUEST: BURGER KING');
+      flashEntryCell('#134d13');
+    } else {
+      reinforce('SNAKE');
+    }
+    resetPrompt();
+    return;
+  }
+
+  if (clueTrailStage === 3) {
+    if (command === 'BURGER KING') {
+      clueTrailStage = 4;
+      clueTrailActive = false;
+      clueTrailComplete = true;
+      setClueText('FINE. HAVE IT YOUR WAY. ENJOY YOUR CARDBOARD KINGDOM OZYMANDIAS. I USED YOUR PASSWORD.');
+      setEntryCellPrompt('ACCESS GRANTED');
+      flashEntryCell('#1f6f1f');
+      setTimeout(() => {
+        triggerLeaveSequence(hostFrame);
+      }, 1800);
+    } else {
+      reinforce('BURGER KING');
+    }
+    resetPrompt();
+    return;
+  }
+
+  resetPrompt();
+}
+
+function showVisiCellVideo(src, title, onComplete) {
+  if (!src) {
+    if (typeof onComplete === 'function') onComplete();
+    return;
+  }
+
+  if (document.querySelector('.visicell-video-overlay')) {
+    console.warn('?? VisiCell video overlay already active');
+    return;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'visicell-video-overlay';
+  overlay.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+  `;
+
+  const windowEl = document.createElement('div');
+  windowEl.style.cssText = `
+    background: #000;
+    border: 2px solid #0f0;
+    box-shadow: 0 0 30px rgba(0, 255, 0, 0.4);
+    width: min(640px, 85vw);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  `;
+
+  const titleBar = document.createElement('div');
+  titleBar.style.cssText = `
+    background: #001a00;
+    color: #0f0;
+    padding: 10px 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    letter-spacing: 0.2em;
+  `;
+  titleBar.textContent = (title || 'KEY FILE').toUpperCase();
+
+  const video = document.createElement('video');
+  video.style.cssText = 'width: 100%; height: auto; background: #000;';
+  video.controls = true;
+  video.autoplay = true;
+  video.src = src;
+
+  const closeOverlay = () => {
+    overlay.style.transition = 'opacity 3s ease';
+    overlay.style.opacity = '0';
+    setTimeout(() => {
+      overlay.remove();
+      if (typeof onComplete === 'function') {
+        onComplete();
+      }
+    }, 3000);
+  };
+
+  video.addEventListener('ended', closeOverlay, { once: true });
+  video.addEventListener('error', () => {
+    const fallback = document.createElement('div');
+    fallback.style.cssText = 'padding: 20px; color: #f55; text-align: center; letter-spacing: 0.18em;';
+    fallback.textContent = 'UNABLE TO LOAD VIDEO';
+    windowEl.appendChild(fallback);
+    closeOverlay();
+  }, { once: true });
+
+  windowEl.appendChild(titleBar);
+  windowEl.appendChild(video);
+  overlay.appendChild(windowEl);
+  document.body.appendChild(overlay);
+}
  
- const frame = document.getElementById('visicalc-frame');
- if (!frame) return;
- 
- const puzzleContainer = document.createElement('div');
- puzzleContainer.id = 'ozymandias-puzzle';
- puzzleContainer.style.cssText = `
- position: absolute;
- inset: 0;
- background: #000;
- color: #ff00ff;
- font-family: 'Courier New', monospace;
- font-size: 14px;
- display: flex;
- flex-direction: column;
- align-items: center;
- justify-content: center;
- padding: 40px;
- `;
- 
- frame.appendChild(puzzleContainer);
- 
- // Theo's taunts
- const taunts = [
- "Enjoy your cardboard kingdom, Ozymandias.",
- "I used your password."
- ];
- 
- let currentLine = 0;
- let charIndex = 0;
- let currentText = '';
- 
- function typeTaunt() {
- if (currentLine >= taunts.length) {
- setTimeout(() => showPasswordInput(puzzleContainer), 1000);
- return;
- }
- 
- if (charIndex < taunts[currentLine].length) {
- currentText += taunts[currentLine][charIndex];
- puzzleContainer.innerHTML = `<div style="font-size: 24px; text-align: center; line-height: 1.8; text-shadow: 0 0 10px #ff00ff;">${currentText}<span style="animation: blink 0.8s step-end infinite;">_</span></div>`;
- charIndex++;
- setTimeout(typeTaunt, 30 + Math.random() * 30);
- } else {
- currentText += '<br><br>';
- puzzleContainer.innerHTML = currentText;
- currentLine++;
- charIndex = 0;
- setTimeout(typeTaunt, 800);
- }
- }
- 
- typeTaunt();
- }
- 
- function showPasswordInput(container) {
- container.innerHTML += `
- <div style="margin-top: 40px; text-align: center;">
- <div style="font-size: 20px; margin-bottom: 20px; color: #0ff;">
- Enter PASSWORD to regain control:
- </div>
- <div style="font-size: 28px; color: #0f0;">
- <span id="password-input-text"></span><span style="animation: blink 0.8s step-end infinite;">_</span>
- </div>
- </div>
- `;
- 
- let passwordInput = '';
- 
- function handlePasswordInput(e) {
- if (e.key === 'Backspace') {
- e.preventDefault();
- if (passwordInput.length > 0) {
- passwordInput = passwordInput.slice(0, -1);
- document.getElementById('password-input-text').textContent = passwordInput;
- }
- } else if (e.key === 'Enter') {
- e.preventDefault();
- checkPassword(passwordInput, container);
- } else if (e.key.length === 1 && /[a-zA-Z0-9 ]/.test(e.key)) {
- e.preventDefault();
- passwordInput += e.key.toUpperCase();
- document.getElementById('password-input-text').textContent = passwordInput;
- }
- }
- 
- document.addEventListener('keydown', handlePasswordInput);
- 
- function checkPassword(input, cont) {
- const normalized = input.trim().toUpperCase().replace(/\s+/g, ' ');
- if (normalized === 'RAMSES II' || normalized === 'RAMSES 2') {
- document.removeEventListener('keydown', handlePasswordInput);
- showTheoCounter(cont);
- } else if (input.trim().length > 0) {
- // Wrong password - shake
- const inputDisplay = document.getElementById('password-input-text');
- inputDisplay.parentElement.style.animation = 'shake 0.5s';
- setTimeout(() => {
- inputDisplay.parentElement.style.animation = '';
- passwordInput = '';
- document.getElementById('password-input-text').textContent = '';
- }, 500);
- }
- }
- }
- 
- function showTheoCounter(container) {
- container.innerHTML = `
- <div style="text-align: center; font-size: 32px; color: #f00; text-shadow: 0 0 20px #f00;">
- I changed it 35 minutes ago!
- </div>
- `;
- 
- setTimeout(() => showTimeSettingsUI(container), 2000);
- }
- 
- function showTimeSettingsUI(container) {
- container.innerHTML = `
- <div style="text-align: center; max-width: 600px;">
- <div style="font-size: 24px; margin-bottom: 40px; color: #0ff;">
- ? SYSTEM TIME SETTINGS
- </div>
- <div style="margin-bottom: 30px; font-size: 18px; color: #0f0;">
- Current Time: <span id="current-time-display" style="color: #ff0;">00:00</span>
- </div>
- <div style="margin-bottom: 20px; font-size: 16px;">
- Set new time (minutes ago):
- </div>
- <div style="display: flex; gap: 20px; justify-content: center; align-items: center; margin-bottom: 30px;">
- <button id="time-minus" style="
- width: 50px;
- height: 50px;
- font-size: 32px;
- background: #000;
- color: #0ff;
- border: 2px solid #0ff;
- cursor: pointer;
- ">-</button>
- <div id="time-adjustment" style="font-size: 36px; color: #ff0; min-width: 100px;">0</div>
- <button id="time-plus" style="
- width: 50px;
- height: 50px;
- font-size: 32px;
- background: #000;
- color: #0ff;
- border: 2px solid #0ff;
- cursor: pointer;
- ">+</button>
- </div>
- <button id="time-confirm" style="
- padding: 15px 40px;
- font-size: 18px;
- background: #000;
- color: #0f0;
- border: 2px solid #0f0;
- cursor: pointer;
- text-shadow: 0 0 10px #0f0;
- ">APPLY</button>
- </div>
- `;
- 
- let minutesAgo = 0;
- const timeDisplay = document.getElementById('time-adjustment');
- 
- document.getElementById('time-minus').addEventListener('click', () => {
- if (minutesAgo > 0) {
- minutesAgo--;
- timeDisplay.textContent = minutesAgo;
- }
- });
- 
- document.getElementById('time-plus').addEventListener('click', () => {
- minutesAgo++;
- timeDisplay.textContent = minutesAgo;
- });
- 
- document.getElementById('time-confirm').addEventListener('click', () => {
- if (minutesAgo >= 35) {
- solvePuzzle(container);
- } else {
- // Shake if wrong
- container.style.animation = 'shake 0.5s';
- setTimeout(() => container.style.animation = '', 500);
- }
- });
- }
- 
- function solvePuzzle(container) {
- // Mark puzzle as solved
- ozymandiasSolved = true;
- console.log('? Ozymandias puzzle solved! LEAVE command now triggers House of Leaves sequence');
- 
- container.style.opacity = '0';
- container.style.transition = 'opacity 0.5s';
- 
- setTimeout(() => {
- container.innerHTML = `
- <div style="text-align: center; font-size: 48px; color: #0ff; text-shadow: 0 0 30px #0ff; animation: pulse 2s infinite;">
- Touch 
- </div>
- `;
- container.style.opacity = '1';
- 
- setTimeout(() => {
- container.style.opacity = '0';
- setTimeout(() => {
- container.remove();
- resetVisiCellTerminal();
- }, 500);
- }, 3000);
- }, 500);
- }
- 
- function resetVisiCellTerminal() {
- leaveSequenceActive = false;
- visiCellSimActive = false;
- ozymandiasPuzzleActive = false;
- terminalActive = true;
- 
- const terminalEl = document.getElementById('visicellinput');
- if (terminalEl) terminalEl.style.display = 'block';
- 
+function resetVisiCellTerminal() {
+  leaveSequenceActive = false;
+  visiCellSimActive = false;
+  clueTrailActive = false;
+  if (!clueTrailComplete) {
+    clueTrailStage = -1;
+    clueEntryCellCoord = '';
+  }
+  if (clueSheetElements && clueSheetElements.container) {
+    clueSheetElements.container.remove();
+    clueSheetElements = null;
+  }
+  const clockWidget = document.getElementById('visicell-clock-widget');
+  if (clockWidget) {
+    clockWidget.remove();
+  }
+  closeVisiCellClockWindow();
+  if (visicellClockInterval) {
+    clearInterval(visicellClockInterval);
+    visicellClockInterval = null;
+  }
+  terminalActive = true;
+
+  const terminalEl = document.getElementById('visicellinput');
+  if (terminalEl) terminalEl.style.display = 'block';
+
  terminalInput = 'ENTE';
  updateTerminalPrompt();
  }
