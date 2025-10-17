@@ -24,6 +24,42 @@
       --submit-hover-bg: transparent;
       --submit-hover-fg: #fff;
       --status-fg: #c8c8c8;
+      --start-disabled-bg: rgba(255, 255, 255, 0.08);
+      --start-disabled-fg: rgba(255, 255, 255, 0.38);
+      --start-disabled-border: rgba(255, 255, 255, 0.18);
+      --wordle-queue-bg: rgba(0, 0, 0, 0.65);
+      --wordle-queue-border: rgba(255, 255, 255, 0.35);
+      --wordle-queue-text: var(--option-fg);
+      --wordle-queue-empty-shadow: inset -4px -4px 0 rgba(255, 255, 255, 0.12);
+      --wordle-queue-filled-bg: rgba(255, 255, 255, 0.08);
+      --wordle-queue-filled-shadow: inset -4px -4px 0 rgba(255, 255, 255, 0.18);
+      --wordle-queue-active-border: var(--submit-border);
+      --wordle-queue-solved-border: #2ec27e;
+      --wordle-queue-solved-bg: rgba(46, 194, 126, 0.12);
+      --wordle-queue-solved-text: #9ef5c6;
+      --wordle-queue-solved-shadow: inset -4px -4px 0 rgba(46, 194, 126, 0.25);
+      --wordle-surface-bg: #050505;
+      --wordle-surface-border: var(--panel-border);
+      --wordle-surface-shadow: 0 0 0 4px rgba(0, 0, 0, 0.85);
+      --wordle-cell-bg: rgba(0, 0, 0, 0.82);
+      --wordle-cell-border: rgba(255, 255, 255, 0.28);
+      --wordle-cell-text: rgba(255, 255, 255, 0.95);
+      --wordle-cell-shadow: inset -4px -4px 0 rgba(255, 255, 255, 0.08);
+      --wordle-cell-filled-bg: rgba(255, 255, 255, 0.18);
+      --wordle-cell-filled-border: rgba(255, 255, 255, 0.6);
+      --wordle-cell-filled-shadow: inset -4px -4px 0 rgba(255, 255, 255, 0.2);
+      --wordle-cell-correct-bg: #2ec27e;
+      --wordle-cell-correct-border: #8ff0a4;
+      --wordle-cell-correct-fg: #041d0f;
+      --wordle-cell-correct-shadow: inset -4px -4px 0 rgba(46, 194, 126, 0.35);
+      --wordle-cell-present-bg: #f6d32d;
+      --wordle-cell-present-border: #f8e45c;
+      --wordle-cell-present-fg: #1c1400;
+      --wordle-cell-present-shadow: inset -4px -4px 0 rgba(246, 211, 45, 0.35);
+      --wordle-cell-absent-bg: rgba(255, 255, 255, 0.08);
+      --wordle-cell-absent-border: rgba(255, 255, 255, 0.18);
+      --wordle-cell-absent-fg: rgba(255, 255, 255, 0.55);
+      --wordle-cell-absent-shadow: inset -4px -4px 0 rgba(255, 255, 255, 0.12);
       --escape-border: #ff385b;
       --escape-bg: #ff1f47;
       --escape-fg: #fff;
@@ -73,6 +109,42 @@
       --submit-hover-bg: transparent;
       --submit-hover-fg: #000;
       --status-fg: #454545;
+      --start-disabled-bg: rgba(0, 0, 0, 0.08);
+      --start-disabled-fg: rgba(0, 0, 0, 0.48);
+      --start-disabled-border: rgba(0, 0, 0, 0.22);
+      --wordle-queue-bg: rgba(255, 255, 255, 0.65);
+      --wordle-queue-border: rgba(0, 0, 0, 0.35);
+      --wordle-queue-text: var(--option-fg);
+      --wordle-queue-empty-shadow: inset -4px -4px 0 rgba(0, 0, 0, 0.12);
+      --wordle-queue-filled-bg: rgba(0, 0, 0, 0.08);
+      --wordle-queue-filled-shadow: inset -4px -4px 0 rgba(0, 0, 0, 0.18);
+      --wordle-queue-active-border: var(--submit-border);
+      --wordle-queue-solved-border: #009e5a;
+      --wordle-queue-solved-bg: rgba(0, 158, 90, 0.12);
+      --wordle-queue-solved-text: #015c36;
+      --wordle-queue-solved-shadow: inset -4px -4px 0 rgba(0, 158, 90, 0.18);
+      --wordle-surface-bg: #fafafa;
+      --wordle-surface-border: var(--panel-border);
+      --wordle-surface-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
+      --wordle-cell-bg: rgba(0, 0, 0, 0.08);
+      --wordle-cell-border: rgba(0, 0, 0, 0.35);
+      --wordle-cell-text: #111;
+      --wordle-cell-shadow: inset -4px -4px 0 rgba(0, 0, 0, 0.06);
+      --wordle-cell-filled-bg: rgba(0, 0, 0, 0.18);
+      --wordle-cell-filled-border: rgba(0, 0, 0, 0.65);
+      --wordle-cell-filled-shadow: inset -4px -4px 0 rgba(0, 0, 0, 0.18);
+      --wordle-cell-correct-bg: #009e5a;
+      --wordle-cell-correct-border: #00d285;
+      --wordle-cell-correct-fg: #01291a;
+      --wordle-cell-correct-shadow: inset -4px -4px 0 rgba(0, 158, 90, 0.28);
+      --wordle-cell-present-bg: #ffcf2f;
+      --wordle-cell-present-border: #ffde6b;
+      --wordle-cell-present-fg: #2a1c00;
+      --wordle-cell-present-shadow: inset -4px -4px 0 rgba(194, 152, 0, 0.28);
+      --wordle-cell-absent-bg: rgba(0, 0, 0, 0.08);
+      --wordle-cell-absent-border: rgba(0, 0, 0, 0.18);
+      --wordle-cell-absent-fg: rgba(0, 0, 0, 0.55);
+      --wordle-cell-absent-shadow: inset -4px -4px 0 rgba(0, 0, 0, 0.08);
       --escape-border: #ff385b;
       --escape-bg: #ff1f47;
       --escape-fg: #fff;
@@ -188,7 +260,10 @@
     }
 
     main {
-      width: min(520px, 92vw);
+      position: relative;
+      display: grid;
+      gap: clamp(1.5rem, 4vw, 2.4rem);
+      width: min(620px, 94vw);
     }
 
     .form-panel {
@@ -200,6 +275,74 @@
       gap: clamp(1.5rem, 4vw, 2rem);
       box-shadow: var(--panel-box-shadow);
       transition: transform 0.18s ease, opacity 0.25s ease, filter 0.25s ease;
+    }
+
+    .focus-form {
+      display: grid;
+      gap: clamp(1.35rem, 4vw, 1.85rem);
+    }
+
+    .focus-frame {
+      display: grid;
+      gap: clamp(0.75rem, 2.6vw, 1.15rem);
+    }
+
+    .focus-frame--intake {
+      justify-items: center;
+      text-align: center;
+    }
+
+    .focus-frame--options {
+      display: grid;
+      gap: clamp(0.85rem, 2.8vw, 1.35rem);
+    }
+
+    .focus-frame--wordle {
+      display: grid;
+      gap: clamp(0.9rem, 2.8vw, 1.45rem);
+    }
+
+    .wordle-focus-queue {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: clamp(0.35rem, 2.4vw, 0.65rem);
+      width: 100%;
+    }
+
+    .wordle-focus-slot {
+      border: 2px solid var(--wordle-queue-border);
+      background: var(--wordle-queue-bg);
+      color: var(--wordle-queue-text);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 700;
+      font-size: clamp(0.72rem, 3vw, 0.85rem);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.6rem 0.45rem;
+      min-height: clamp(2.4rem, 8vw, 3rem);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+      border-radius: 0;
+      box-shadow: var(--wordle-queue-empty-shadow);
+    }
+
+    .wordle-focus-slot--filled {
+      background: var(--wordle-queue-filled-bg);
+      box-shadow: var(--wordle-queue-filled-shadow);
+    }
+
+    .wordle-focus-queue--active .wordle-focus-slot {
+      border-color: var(--wordle-queue-active-border);
+    }
+
+    .wordle-focus-queue--solved .wordle-focus-slot {
+      border-color: var(--wordle-queue-solved-border);
+      background: var(--wordle-queue-solved-bg);
+      color: var(--wordle-queue-solved-text);
+      box-shadow: var(--wordle-queue-solved-shadow);
     }
 
     .form-panel.submitting {
@@ -318,31 +461,39 @@
       text-transform: uppercase;
     }
 
+    .options-shell {
+      position: relative;
+      min-height: clamp(20rem, 58vh, 32rem);
+      overflow-y: auto;
+      padding: clamp(0.85rem, 2.8vw, 1.2rem) clamp(0.5rem, 2vw, 0.85rem) clamp(4.5rem, 8vw, 5.5rem);
+      display: grid;
+      align-content: start;
+      gap: clamp(0.75rem, 2.4vw, 1.05rem);
+      scrollbar-color: #000 #fff;
+      scrollbar-width: thin;
+    }
+
+    .options-shell::-webkit-scrollbar {
+      width: 6px;
+      background: #fff;
+    }
+
+    .options-shell::-webkit-scrollbar-track {
+      background: #fff;
+    }
+
+    .options-shell::-webkit-scrollbar-thumb {
+      background: #000;
+      border-radius: 0;
+    }
+
     .options {
       display: grid;
       gap: clamp(0.65rem, 2vw, 0.85rem);
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       align-items: stretch;
       justify-items: stretch;
-      max-height: clamp(16rem, 52vh, 22rem);
-      overflow-y: auto;
-      padding-right: 0.35rem;
-      scrollbar-color: #000 #fff;
-      scrollbar-width: thin;
-    }
-
-    .options::-webkit-scrollbar {
-      width: 6px;
-      background: #fff;
-    }
-
-    .options::-webkit-scrollbar-track {
-      background: #fff;
-    }
-
-    .options::-webkit-scrollbar-thumb {
-      background: #000;
-      border-radius: 999px;
+      padding-right: clamp(0.25rem, 1vw, 0.45rem);
     }
 
     .focus-option {
@@ -351,32 +502,55 @@
       --visualizer-scale-x: 1;
       --visualizer-scale-y: var(--visualizer-scale);
       --visualizer-saturate: 1;
-      border: 2px solid var(--option-border);
-      background: var(--option-bg);
-      color: var(--option-fg);
+      --focus-tile-bg: var(--option-bg);
+      --focus-tile-fg: var(--option-fg);
+      --focus-tile-border: var(--option-border);
+      --focus-tile-shadow: none;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--focus-tile-border);
+      background: transparent;
+      color: var(--focus-tile-fg);
       padding: 0.85rem 1.25rem;
       font-size: clamp(0.95rem, 2.4vw, 1.05rem);
       text-transform: uppercase;
       letter-spacing: 0.16em;
       font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       cursor: pointer;
-      transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease,
-        filter 0.22s ease;
-      position: relative;
+      transition: transform 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      transform: translateY(var(--option-translate));
       transform-origin: center bottom;
-      transform: translateY(var(--option-translate)) scaleX(var(--visualizer-scale-x)) scaleY(var(--visualizer-scale-y));
+      border-radius: 0;
+      overflow: hidden;
+      isolation: isolate;
+      box-shadow: var(--focus-tile-shadow);
+    }
+
+    .focus-option::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--focus-tile-bg);
+      transform-origin: center bottom;
+      transform: scaleX(var(--visualizer-scale-x)) scaleY(var(--visualizer-scale-y));
+      transition: transform 0.22s ease, background 0.18s ease, filter 0.22s ease;
       filter: saturate(var(--visualizer-saturate));
+      z-index: -1;
     }
 
     .focus-option:hover:not(.active-selection),
     .focus-option:focus-visible:not(.active-selection) {
-      background: var(--option-hover-bg);
-      color: var(--option-hover-fg);
       --option-translate: -3px;
       outline: none;
+      color: var(--option-hover-fg);
+      border-color: var(--option-hover-fg);
+    }
+
+    .focus-option:hover:not(.active-selection)::before,
+    .focus-option:focus-visible:not(.active-selection)::before {
+      background: var(--option-hover-bg);
     }
 
     .focus-option:active {
@@ -388,38 +562,38 @@
     }
 
     .focus-option.tone-white {
-      background: var(--tone-white-bg);
-      color: var(--tone-white-fg);
-      border-color: var(--tone-white-border);
-      box-shadow: var(--tone-white-shadow);
+      --focus-tile-bg: var(--tone-white-bg);
+      --focus-tile-fg: var(--tone-white-fg);
+      --focus-tile-border: var(--tone-white-border);
+      --focus-tile-shadow: var(--tone-white-shadow);
     }
 
     .focus-option.tone-blue {
-      background: var(--tone-blue-bg);
-      color: var(--tone-blue-fg);
-      border-color: var(--tone-blue-border);
-      box-shadow: var(--tone-blue-shadow);
+      --focus-tile-bg: var(--tone-blue-bg);
+      --focus-tile-fg: var(--tone-blue-fg);
+      --focus-tile-border: var(--tone-blue-border);
+      --focus-tile-shadow: var(--tone-blue-shadow);
     }
 
     .focus-option.tone-yellow {
-      background: var(--tone-yellow-bg);
-      color: var(--tone-yellow-fg);
-      border-color: var(--tone-yellow-border);
-      box-shadow: var(--tone-yellow-shadow);
+      --focus-tile-bg: var(--tone-yellow-bg);
+      --focus-tile-fg: var(--tone-yellow-fg);
+      --focus-tile-border: var(--tone-yellow-border);
+      --focus-tile-shadow: var(--tone-yellow-shadow);
     }
 
     .focus-option.tone-magenta {
-      background: var(--tone-magenta-bg);
-      color: var(--tone-magenta-fg);
-      border-color: var(--tone-magenta-border);
-      box-shadow: var(--tone-magenta-shadow);
+      --focus-tile-bg: var(--tone-magenta-bg);
+      --focus-tile-fg: var(--tone-magenta-fg);
+      --focus-tile-border: var(--tone-magenta-border);
+      --focus-tile-shadow: var(--tone-magenta-shadow);
     }
 
     .options.visualizer-active {
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       grid-auto-rows: minmax(0, 1fr);
       gap: clamp(0.35rem, 1.6vw, 0.55rem);
-      padding: 0;
+      padding-right: 0;
       align-items: stretch;
       align-content: stretch;
     }
@@ -430,19 +604,34 @@
       --visualizer-scale-x: var(--visualizer-scale);
       padding: 0.3rem 1.1rem;
       min-height: 1.25rem;
-      border-radius: clamp(0.1rem, 0.6vw, 0.2rem);
       transform-origin: left center;
       justify-content: flex-start;
       width: 100%;
       height: 100%;
     }
 
-    .form-actions {
-      display: flex;
-      justify-content: center;
+    .options.visualizer-active .focus-option::before {
+      transform-origin: left center;
     }
 
-    .submit-button {
+    .open-zone {
+      position: sticky;
+      bottom: clamp(0.75rem, 3vw, 1.35rem);
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+      padding-top: clamp(1rem, 3vw, 1.6rem);
+      min-height: clamp(3.5rem, 11vw, 4.75rem);
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0));
+      z-index: 2;
+    }
+
+    body.inverted .open-zone {
+      background: linear-gradient(to top, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0));
+    }
+
+    .start-button {
+      pointer-events: auto;
       border: 3px solid var(--submit-border);
       background: var(--submit-bg);
       color: var(--submit-fg);
@@ -452,15 +641,26 @@
       letter-spacing: 0.2em;
       font-weight: 700;
       cursor: pointer;
-      transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
+      border-radius: 0;
+      transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
     }
 
-    .submit-button:hover,
-    .submit-button:focus-visible {
+    .start-button:hover,
+    .start-button:focus-visible {
       background: var(--submit-hover-bg);
       color: var(--submit-hover-fg);
       transform: translateY(-3px);
       outline: none;
+    }
+
+    .start-button[disabled],
+    .start-button[aria-disabled="true"] {
+      cursor: not-allowed;
+      background: var(--start-disabled-bg);
+      color: var(--start-disabled-fg);
+      border-color: var(--start-disabled-border);
+      transform: none;
+      box-shadow: none;
     }
 
     .encore-controls {
@@ -471,39 +671,35 @@
     }
 
     .wordle-puzzle {
-      display: none;
-      margin-top: 1.35rem;
-      padding: clamp(1rem, 3vw, 1.4rem) clamp(1rem, 3vw, 1.6rem) clamp(1.25rem, 3.5vw, 1.75rem);
-      border-radius: clamp(1.1rem, 3vw, 1.5rem);
-      background: rgba(12, 14, 22, 0.68);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 18px 48px rgba(8, 0, 26, 0.4);
-      backdrop-filter: blur(6px);
+      display: grid;
+      gap: clamp(0.75rem, 2.4vw, 1.2rem);
+      padding: clamp(1.1rem, 3.2vw, 1.6rem);
+      border: 3px solid var(--wordle-surface-border);
+      background: var(--wordle-surface-bg);
+      box-shadow: var(--wordle-surface-shadow);
       color: var(--status-fg);
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.98);
+      transition: opacity 0.3s ease, transform 0.3s ease;
     }
 
     .wordle-puzzle.visible {
-      display: grid;
-      gap: clamp(0.6rem, 2vw, 0.95rem);
+      opacity: 1;
+      pointer-events: auto;
+      transform: none;
     }
 
     .wordle-board-container {
-      position: relative;
       display: grid;
-      max-height: clamp(12rem, 48vh, 18rem);
-      overflow-y: auto;
-      padding-right: clamp(0.15rem, 1vw, 0.35rem);
-      mask-image: linear-gradient(to bottom, transparent 0, black 0.75rem, black calc(100% - 0.75rem), transparent 100%);
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 0.75rem, black calc(100% - 0.75rem), transparent 100%);
+      gap: clamp(0.35rem, 1.8vw, 0.6rem);
+      border: 2px solid var(--wordle-surface-border);
+      padding: clamp(0.65rem, 2vw, 1rem);
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0));
     }
 
-    .wordle-board-container::-webkit-scrollbar {
-      width: 0.4rem;
-    }
-
-    .wordle-board-container::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.25);
-      border-radius: 999px;
+    body.inverted .wordle-board-container {
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0));
     }
 
     .wordle-board {
@@ -531,50 +727,52 @@
     }
 
     .wordle-cell {
-      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
       aspect-ratio: 1 / 1;
-      border-radius: clamp(0.35rem, 2vw, 0.55rem);
-      border: 2px solid rgba(255, 255, 255, 0.18);
-      background: rgba(6, 8, 14, 0.72);
+      border-radius: 0;
+      border: 2px solid var(--wordle-cell-border);
+      background: var(--wordle-cell-bg);
+      color: var(--wordle-cell-text);
       font-size: clamp(0.95rem, 3vw, 1.25rem);
       font-weight: 800;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.95);
-      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+      box-shadow: var(--wordle-cell-shadow);
+      transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
     }
 
     .wordle-cell.filled {
-      border-color: rgba(255, 255, 255, 0.35);
-      transform: scale(1.04);
+      background: var(--wordle-cell-filled-bg);
+      border-color: var(--wordle-cell-filled-border);
+      box-shadow: var(--wordle-cell-filled-shadow);
     }
 
     .wordle-cell.correct {
-      background: #2ec27e;
-      border-color: #8ff0a4;
-      color: #041d0f;
-      transform: scale(1.05);
+      background: var(--wordle-cell-correct-bg);
+      border-color: var(--wordle-cell-correct-border);
+      color: var(--wordle-cell-correct-fg);
+      box-shadow: var(--wordle-cell-correct-shadow);
     }
 
     .wordle-cell.present {
-      background: #f6d32d;
-      border-color: #f8e45c;
-      color: #1c1400;
-      transform: scale(1.03);
+      background: var(--wordle-cell-present-bg);
+      border-color: var(--wordle-cell-present-border);
+      color: var(--wordle-cell-present-fg);
+      box-shadow: var(--wordle-cell-present-shadow);
     }
 
     .wordle-cell.absent {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.18);
-      color: rgba(255, 255, 255, 0.55);
-      transform: scale(1);
+      background: var(--wordle-cell-absent-bg);
+      border-color: var(--wordle-cell-absent-border);
+      color: var(--wordle-cell-absent-fg);
+      box-shadow: var(--wordle-cell-absent-shadow);
     }
 
     .wordle-puzzle.wordle-puzzle--solved {
-      box-shadow: 0 0 0 2px rgba(46, 194, 126, 0.45), 0 18px 48px rgba(8, 0, 26, 0.4);
+      border-color: var(--wordle-cell-correct-border);
+      box-shadow: var(--wordle-surface-shadow), 0 0 0 3px rgba(46, 194, 126, 0.35);
     }
 
     .status {
@@ -730,6 +928,11 @@
         padding: clamp(2rem, 7vw, 2.75rem) clamp(1.25rem, 7vw, 2rem) clamp(2rem, 7vw, 2.75rem);
       }
 
+      .options-shell {
+        min-height: clamp(24rem, 62vh, 34rem);
+        padding-bottom: clamp(5.5rem, 10vw, 6.5rem);
+      }
+
       .submission-experience {
         inset: clamp(1.1rem, 4vw, 1.5rem);
         padding: clamp(1rem, 4vw, 1.5rem);
@@ -789,46 +992,67 @@
 <body>
   <main id="betaFocusPanel" class="form-panel" aria-labelledby="betaFocusHeading">
     <form id="betaFocusForm" class="focus-form" novalidate>
-      <h1 id="betaFocusHeading">Before we get started…</h1>
-      <p class="prompt">Is there anything we should focus on first for our beta release?</p>
-      <div class="options" role="group" aria-label="Beta focus options">
-        <button type="button" class="focus-option" data-value="Level Editor">Level Editor</button>
-        <button type="button" class="focus-option" data-value="Story Mode">Story Mode</button>
-        <button type="button" class="focus-option" data-value="Cute Stuff">Cute Stuff</button>
-        <button type="button" class="focus-option" data-value="Musical Numbers">Musical Numbers</button>
-        <button type="button" class="focus-option" data-value="Boss Fights">Boss Fights</button>
-        <button type="button" class="focus-option" data-value="Puzzles">Puzzles</button>
-        <button type="button" class="focus-option" data-value="Riddles">Riddles</button>
-        <button type="button" class="focus-option" data-value="Clues">Clues</button>
-        <button type="button" class="focus-option" data-value="Celli Dance Party">Celli Dance Party</button>
-        <button type="button" class="focus-option" data-value="Functions">Functions</button>
-        <button type="button" class="focus-option" data-value="Dysfunction">Dysfunction</button>
-        <button type="button" class="focus-option" data-value="Mini Games">Mini Games</button>
-        <button type="button" class="focus-option" data-value="Macro Games">Macro Games</button>
-        <button type="button" class="focus-option" data-value="Bugs">Bugs</button>
-        <button type="button" class="focus-option" data-value="Worms">Worms</button>
-        <button type="button" class="focus-option" data-value="Hell">Hell</button>
-        <button type="button" class="focus-option" data-value="Hands">Hands</button>
-        <button type="button" class="focus-option" data-value="Gore">Gore</button>
-        <button type="button" class="focus-option" data-value="Violence">Violence</button>
-        <button type="button" class="focus-option" data-value="Adult Interactions">Adult Interactions</button>
-      </div>
-      <div class="form-actions">
-        <button type="submit" class="submit-button">Submit</button>
-      </div>
-      <footer>EA tracks will be added later.</footer>
+      <section class="focus-frame focus-frame--intake" aria-labelledby="betaFocusHeading">
+        <h1 id="betaFocusHeading">Before we get started…</h1>
+        <p class="prompt">Is there anything we should focus on first for our beta release?</p>
+        <div
+          id="wordleFocusQueue"
+          class="wordle-focus-queue"
+          role="list"
+          aria-live="polite"
+          aria-label="Focus picks queued for the CELLI puzzle"
+        >
+          <div class="wordle-focus-slot" role="listitem" data-index="0" aria-label="Focus 1: waiting"></div>
+          <div class="wordle-focus-slot" role="listitem" data-index="1" aria-label="Focus 2: waiting"></div>
+          <div class="wordle-focus-slot" role="listitem" data-index="2" aria-label="Focus 3: waiting"></div>
+          <div class="wordle-focus-slot" role="listitem" data-index="3" aria-label="Focus 4: waiting"></div>
+          <div class="wordle-focus-slot" role="listitem" data-index="4" aria-label="Focus 5: waiting"></div>
+        </div>
+      </section>
+      <section class="focus-frame focus-frame--options" aria-label="Focus picker">
+        <div class="options-shell">
+          <div class="options" role="group" aria-label="Beta focus options">
+            <button type="button" class="focus-option" data-value="Level Editor">Level Editor</button>
+            <button type="button" class="focus-option" data-value="Story Mode">Story Mode</button>
+            <button type="button" class="focus-option" data-value="Cute Stuff">Cute Stuff</button>
+            <button type="button" class="focus-option" data-value="Musical Numbers">Musical Numbers</button>
+            <button type="button" class="focus-option" data-value="Boss Fights">Boss Fights</button>
+            <button type="button" class="focus-option" data-value="Puzzles">Puzzles</button>
+            <button type="button" class="focus-option" data-value="Riddles">Riddles</button>
+            <button type="button" class="focus-option" data-value="Clues">Clues</button>
+            <button type="button" class="focus-option" data-value="Celli Dance Party">Celli Dance Party</button>
+            <button type="button" class="focus-option" data-value="Functions">Functions</button>
+            <button type="button" class="focus-option" data-value="Dysfunction">Dysfunction</button>
+            <button type="button" class="focus-option" data-value="Mini Games">Mini Games</button>
+            <button type="button" class="focus-option" data-value="Macro Games">Macro Games</button>
+            <button type="button" class="focus-option" data-value="Bugs">Bugs</button>
+            <button type="button" class="focus-option" data-value="Worms">Worms</button>
+            <button type="button" class="focus-option" data-value="Hell">Hell</button>
+            <button type="button" class="focus-option" data-value="Hands">Hands</button>
+            <button type="button" class="focus-option" data-value="Gore">Gore</button>
+            <button type="button" class="focus-option" data-value="Violence">Violence</button>
+            <button type="button" class="focus-option" data-value="Adult Interactions">Adult Interactions</button>
+          </div>
+          <div class="open-zone">
+            <button type="button" id="startSequenceButton" class="start-button" disabled aria-disabled="true">Start</button>
+          </div>
+        </div>
+        <footer>EA tracks will be added later.</footer>
+      </section>
     </form>
+    <section class="focus-frame focus-frame--wordle" aria-label="CELLI puzzle">
+      <div id="wordlePuzzle" class="wordle-puzzle" aria-hidden="true">
+        <div class="wordle-board-container">
+          <div class="wordle-board" role="grid" aria-label="Focus guessing puzzle"></div>
+        </div>
+        <p id="wordlePuzzleMessage" class="wordle-puzzle__message" aria-live="polite"></p>
+      </div>
+      <div class="encore-controls">
+        <div id="audioStatus" class="status" role="status" aria-live="polite"></div>
+      </div>
+    </section>
     <div id="submissionExperience" class="submission-experience" aria-hidden="true">
       <div id="selectionCloud" class="selection-cloud"></div>
-    </div>
-    <div id="wordlePuzzle" class="wordle-puzzle" aria-hidden="true">
-      <div class="wordle-board-container">
-        <div class="wordle-board" role="grid" aria-label="Focus guessing puzzle"></div>
-      </div>
-      <p id="wordlePuzzleMessage" class="wordle-puzzle__message" aria-live="polite"></p>
-    </div>
-    <div class="encore-controls">
-      <div id="audioStatus" class="status" role="status" aria-live="polite"></div>
     </div>
     <button type="button" id="escapeEncoreButton" class="escape-button" aria-live="polite" aria-label="Get me out of here!">Get me out of here!</button>
   </main>
@@ -877,17 +1101,29 @@
       const wordlePuzzleEl = document.getElementById('wordlePuzzle');
       const wordleBoardEl = wordlePuzzleEl ? wordlePuzzleEl.querySelector('.wordle-board') : null;
       const wordleMessageEl = document.getElementById('wordlePuzzleMessage');
+      const startButton = document.getElementById('startSequenceButton');
+      const wordleFocusQueueEl = document.getElementById('wordleFocusQueue');
+      const wordleFocusSlots = wordleFocusQueueEl
+        ? Array.from(wordleFocusQueueEl.querySelectorAll('.wordle-focus-slot'))
+        : [];
       const wordleRows = [];
       const wordleGuesses = [];
+      const wordleFocusQueue = new Array(WORDLE_WORD_LENGTH).fill('');
       let wordlePuzzleActive = false;
       let wordlePuzzleSolved = false;
       let wordleCurrentRowIndex = 0;
       let wordleLetterStep = 0;
       let wordlePuzzleDisplayed = false;
+      let firstTrackCompleted = false;
+      let sequencePlaying = false;
 
       if (wordleBoardEl) {
         initializeWordleBoard();
+        activateWordlePuzzle({ initial: true });
       }
+
+      renderWordleFocusQueue();
+      updateStartButtonState();
 
       function initializeWordleBoard() {
         if (!wordleBoardEl) {
@@ -914,6 +1150,46 @@
         }
       }
 
+      function renderWordleFocusQueue() {
+        if (!wordleFocusSlots.length) {
+          return;
+        }
+        let hasContent = false;
+        wordleFocusSlots.forEach((slot, index) => {
+          const raw = wordleFocusQueue[index] || '';
+          const label = raw.trim();
+          const display = label ? label.toUpperCase() : '';
+          slot.textContent = display;
+          slot.title = label;
+          slot.classList.toggle('wordle-focus-slot--filled', Boolean(label));
+          slot.setAttribute('aria-label', label ? `Focus ${index + 1}: ${label}` : `Focus ${index + 1}: waiting`);
+          if (label) {
+            hasContent = true;
+          }
+        });
+        if (wordleFocusQueueEl) {
+          wordleFocusQueueEl.classList.toggle('wordle-focus-queue--active', hasContent);
+          wordleFocusQueueEl.classList.toggle('wordle-focus-queue--solved', wordlePuzzleSolved);
+        }
+      }
+
+      function clearWordleFocusQueue() {
+        for (let index = 0; index < wordleFocusQueue.length; index += 1) {
+          wordleFocusQueue[index] = '';
+        }
+        renderWordleFocusQueue();
+      }
+
+      function updateStartButtonState() {
+        if (!startButton) {
+          return;
+        }
+        const unlocked = wordlePuzzleSolved || firstTrackCompleted;
+        const disabled = !unlocked || sequencePlaying;
+        startButton.disabled = disabled;
+        startButton.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+      }
+
       function resetWordlePuzzleState() {
         wordleCurrentRowIndex = 0;
         wordleLetterStep = 0;
@@ -934,6 +1210,8 @@
         if (wordlePuzzleEl) {
           wordlePuzzleEl.classList.remove('wordle-puzzle--solved');
         }
+        clearWordleFocusQueue();
+        updateStartButtonState();
       }
 
       function setWordleMessage(message) {
@@ -942,10 +1220,11 @@
         }
       }
 
-      function activateWordlePuzzle() {
+      function activateWordlePuzzle(options = {}) {
         if (!wordlePuzzleEl) {
           return;
         }
+        const initialActivation = options && typeof options === 'object' && options.initial;
         if (!wordlePuzzleDisplayed) {
           resetWordlePuzzleState();
           wordlePuzzleEl.classList.add('visible');
@@ -954,10 +1233,16 @@
         }
         if (!wordlePuzzleSolved && wordleCurrentRowIndex < WORDLE_MAX_ATTEMPTS) {
           wordlePuzzleActive = true;
-          setWordleMessage('The track has started — build the secret word with your focus picks. Sixth pick submits.');
+          if (initialActivation) {
+            setWordleMessage('Queue five focus picks to unlock START. Sixth tap submits your guess.');
+          } else {
+            setWordleMessage('The track has started — build the secret word with your focus picks. Sixth pick submits.');
+          }
         } else if (wordlePuzzleSolved) {
           setWordleMessage('Encore secret cracked! CELLI!');
         }
+        updateStartButtonState();
+        renderWordleFocusQueue();
       }
 
       function sanitizeFocusValue(button) {
@@ -1046,6 +1331,8 @@
             wordlePuzzleEl.classList.add('wordle-puzzle--solved');
           }
           setWordleMessage('Encore secret cracked! CELLI!');
+          renderWordleFocusQueue();
+          updateStartButtonState();
         } else {
           const attemptsLeft = WORDLE_MAX_ATTEMPTS - wordleCurrentRowIndex - 1;
           if (attemptsLeft <= 0) {
@@ -1062,6 +1349,11 @@
         wordleLetterStep = 0;
         if (!wordlePuzzleSolved && wordleCurrentRowIndex >= WORDLE_MAX_ATTEMPTS) {
           wordlePuzzleActive = false;
+        }
+        if (wordlePuzzleSolved) {
+          renderWordleFocusQueue();
+        } else {
+          clearWordleFocusQueue();
         }
       }
 
@@ -1089,6 +1381,8 @@
 
           const rawLabel = (button.dataset && button.dataset.value ? button.dataset.value : button.textContent || '').trim();
           const focusLabel = rawLabel || 'Focus';
+          wordleFocusQueue[letterIndex] = focusLabel;
+          renderWordleFocusQueue();
           if (letter === '?') {
             setWordleMessage(`"${focusLabel}" had no letter ${letterIndex + 1} — slot filled with ?. Pick another focus.`);
           } else if (wordleLetterStep === WORDLE_WORD_LENGTH) {
@@ -1967,11 +2261,15 @@
               console.warn('Unable to reset audio time', error);
             }
             resetAudioVolume(audio);
+            if (audio === baseTrack) {
+              sequencePlaying = false;
+            }
           }
         });
         if (!except || except.paused) {
           stopVisualizerIfIdle(true);
         }
+        updateStartButtonState();
       }
 
       function handlePlaybackPromise(promise, label, audio, onSuccess) {
@@ -2003,10 +2301,18 @@
               escapeButton.disabled = false;
               updateEscapeLabel(false);
             }
+            if (audio === baseTrack) {
+              sequencePlaying = false;
+              updateStartButtonState();
+            }
           });
       }
 
       function playTrack(audio, label) {
+        if (audio === baseTrack) {
+          sequencePlaying = true;
+          updateStartButtonState();
+        }
         stopOtherTracks(audio);
         ensureAudioEngine();
         stopStrumPreview();
@@ -2064,7 +2370,7 @@
             const suffix = historyText ? ` | ${historyText}` : '';
             updateStatus(`Steps ${selectionSteps}${suffix}`);
           } else {
-            updateStatus('Pick a focus to start the track.');
+            updateStatus('Pick a focus to crack the CELLI code.');
           }
           return;
         }
@@ -2170,13 +2476,14 @@
         });
       });
 
-      if (form) {
-        form.addEventListener('submit', (event) => {
-          event.preventDefault();
-
+      if (startButton) {
+        startButton.addEventListener('click', () => {
+          if (startButton.disabled) {
+            return;
+          }
           if (!selectionOrder.length) {
             triggerPanelShake();
-            updateStatus('Choose an option before submitting.');
+            updateStatus('Choose an option before starting.');
             return;
           }
 
@@ -2185,6 +2492,8 @@
           const activeSelections = getActiveSelections();
           const playbackLabel = `Playing EA.mp3 for ${activeSelections.join(', ')} — Steps ${selectionSteps}`;
           showSubmissionExperience();
+          sequencePlaying = true;
+          updateStartButtonState();
           playTrack(baseTrack, playbackLabel);
           showEscapeButton();
         });
@@ -2197,6 +2506,9 @@
           updateEscapeLabel(false);
         }
         stopVisualizerIfIdle(true);
+        sequencePlaying = false;
+        firstTrackCompleted = true;
+        updateStartButtonState();
       });
 
       encoreTrack.addEventListener('ended', () => {
