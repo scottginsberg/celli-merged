@@ -14,6 +14,7 @@
  */
 
 import * as THREE from 'three';
+import { audioSystem } from '../systems/AudioSystem.js';
 
 export class VisiCalcScene {
   constructor() {
@@ -651,6 +652,8 @@ export class VisiCalcScene {
 
     this.state.running = true;
 
+    this._silenceExternalAudio();
+
     if (!this.state.endAudio) {
       try {
         this.state.endAudio = new Audio('./end.mp3');
@@ -764,6 +767,36 @@ export class VisiCalcScene {
     
     if (this.state.container) {
       this.state.container.remove();
+    }
+  }
+
+  /**
+   * Silence any background music that doesn't belong to VisiCell
+   */
+  _silenceExternalAudio() {
+    try {
+      if (audioSystem && typeof audioSystem.stopMusic === 'function') {
+        audioSystem.stopMusic({ fadeOutDuration: 0.2 });
+      }
+    } catch (error) {
+      console.warn('⚠️ Unable to stop background music before VisiCalc', error);
+    }
+
+    if (typeof window !== 'undefined') {
+      try {
+        if (typeof window.celliStopSongAudio === 'function') {
+          window.celliStopSongAudio({ resetTime: true });
+        } else if (window.celliSongAudioElement && typeof window.celliSongAudioElement.pause === 'function') {
+          window.celliSongAudioElement.pause();
+          window.celliSongAudioElement.currentTime = 0;
+        }
+
+        if (window.dispatchEvent) {
+          window.dispatchEvent(new CustomEvent('celli:visicell-audio-muted'));
+        }
+      } catch (error) {
+        console.warn('⚠️ Unable to silence legacy audio before VisiCalc', error);
+      }
     }
   }
 }
