@@ -322,11 +322,35 @@
     .options {
       display: grid;
       gap: clamp(0.65rem, 2vw, 0.85rem);
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      align-items: stretch;
+      justify-items: stretch;
+      max-height: clamp(16rem, 52vh, 22rem);
+      overflow-y: auto;
+      padding-right: 0.35rem;
+      scrollbar-color: #000 #fff;
+      scrollbar-width: thin;
+    }
+
+    .options::-webkit-scrollbar {
+      width: 6px;
+      background: #fff;
+    }
+
+    .options::-webkit-scrollbar-track {
+      background: #fff;
+    }
+
+    .options::-webkit-scrollbar-thumb {
+      background: #000;
+      border-radius: 999px;
     }
 
     .focus-option {
       --option-translate: 0px;
       --visualizer-scale: 1;
+      --visualizer-scale-x: 1;
+      --visualizer-scale-y: var(--visualizer-scale);
       --visualizer-saturate: 1;
       border: 2px solid var(--option-border);
       background: var(--option-bg);
@@ -336,12 +360,15 @@
       text-transform: uppercase;
       letter-spacing: 0.16em;
       font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
       transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease,
         filter 0.22s ease;
       position: relative;
       transform-origin: center bottom;
-      transform: translateY(var(--option-translate)) scaleY(var(--visualizer-scale));
+      transform: translateY(var(--option-translate)) scaleX(var(--visualizer-scale-x)) scaleY(var(--visualizer-scale-y));
       filter: saturate(var(--visualizer-saturate));
     }
 
@@ -387,6 +414,23 @@
       color: var(--tone-magenta-fg);
       border-color: var(--tone-magenta-border);
       box-shadow: var(--tone-magenta-shadow);
+    }
+
+    .options.visualizer-active {
+      grid-template-columns: 1fr;
+      gap: clamp(0.45rem, 1.8vw, 0.6rem);
+      padding-right: 0;
+    }
+
+    .options.visualizer-active .focus-option {
+      --option-translate: 0px;
+      --visualizer-scale-y: 1;
+      --visualizer-scale-x: var(--visualizer-scale);
+      padding: 0.45rem 1.1rem;
+      min-height: 1.75rem;
+      border-radius: 999px;
+      transform-origin: left center;
+      justify-content: flex-start;
     }
 
     .form-actions {
@@ -631,6 +675,17 @@
         <button type="button" class="focus-option" data-value="Riddles">Riddles</button>
         <button type="button" class="focus-option" data-value="Clues">Clues</button>
         <button type="button" class="focus-option" data-value="Celli Dance Party">Celli Dance Party</button>
+        <button type="button" class="focus-option" data-value="Functions">Functions</button>
+        <button type="button" class="focus-option" data-value="Dysfunction">Dysfunction</button>
+        <button type="button" class="focus-option" data-value="Mini Games">Mini Games</button>
+        <button type="button" class="focus-option" data-value="Macro Games">Macro Games</button>
+        <button type="button" class="focus-option" data-value="Bugs">Bugs</button>
+        <button type="button" class="focus-option" data-value="Worms">Worms</button>
+        <button type="button" class="focus-option" data-value="Hell">Hell</button>
+        <button type="button" class="focus-option" data-value="Hands">Hands</button>
+        <button type="button" class="focus-option" data-value="Gore">Gore</button>
+        <button type="button" class="focus-option" data-value="Violence">Violence</button>
+        <button type="button" class="focus-option" data-value="Adult Interactions">Adult Interactions</button>
       </div>
       <div class="form-actions">
         <button type="submit" class="submit-button">Submit</button>
@@ -677,6 +732,7 @@
       }
 
       const optionButtons = Array.from(document.querySelectorAll('.focus-option'));
+      const optionsContainer = document.querySelector('.options');
       const statusEl = document.getElementById('audioStatus');
       const escapeButton = document.getElementById('escapeEncoreButton');
 
@@ -1261,6 +1317,9 @@
         if (!optionButtons.length) {
           return;
         }
+        if (optionsContainer) {
+          optionsContainer.classList.add('visualizer-active');
+        }
         attachAudioToAnalyser(audio);
         activeVisualizerTrack = audio;
         if (!visualizerFrameId) {
@@ -1282,6 +1341,9 @@
           button.style.removeProperty('--visualizer-scale');
           button.style.removeProperty('--visualizer-saturate');
         });
+        if (optionsContainer) {
+          optionsContainer.classList.remove('visualizer-active');
+        }
         activeVisualizerTrack = null;
       }
 
