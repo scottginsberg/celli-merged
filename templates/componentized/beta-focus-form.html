@@ -1913,6 +1913,55 @@
         trifoldPanel.append(trifoldContent, closePanelButton);
 
         let trifoldOpen = false;
+        const pausedMediaElements = new Set();
+
+        function isMediaElementPlaying(media) {
+          if (!media || media === trifoldAudio) {
+            return false;
+          }
+          const { paused, ended } = media;
+          if (typeof paused !== 'boolean') {
+            return false;
+          }
+          return paused === false && ended === false;
+        }
+
+        function pauseOtherMediaForTrifold() {
+          pausedMediaElements.clear();
+          const mediaElements = Array.from(document.querySelectorAll('audio, video'));
+          mediaElements.forEach((media) => {
+            if (!isMediaElementPlaying(media)) {
+              return;
+            }
+            pausedMediaElements.add(media);
+            try {
+              media.pause();
+            } catch (error) {
+              console.warn('⚠️ Unable to pause media element for trifold panel:', error);
+            }
+          });
+        }
+
+        function resumePausedMediaForTrifold() {
+          if (!pausedMediaElements.size) {
+            return;
+          }
+          pausedMediaElements.forEach((media) => {
+            if (!media || media === trifoldAudio) {
+              return;
+            }
+            if (!media.isConnected) {
+              return;
+            }
+            const playback = media.play();
+            if (playback && typeof playback.catch === 'function') {
+              playback.catch((error) => {
+                console.warn('⚠️ Unable to resume media element after trifold panel:', error);
+              });
+            }
+          });
+          pausedMediaElements.clear();
+        }
 
         function closeTrifoldPanel({ silent } = {}) {
           if (!trifoldOpen) {
@@ -1935,6 +1984,7 @@
               // ignore
             }
           }
+          resumePausedMediaForTrifold();
         }
 
         function openTrifoldPanel() {
@@ -1942,18 +1992,27 @@
             return;
           }
           trifoldOpen = true;
+          pauseOtherMediaForTrifold();
           trifoldPanel.hidden = false;
           trifoldPanel.setAttribute('aria-hidden', 'false');
           trifoldPanel.classList.add('is-open');
           trifoldButton.setAttribute('aria-expanded', 'true');
           try {
+            trifoldAudio.load();
+          } catch (_) {
+            // ignore
+          }
+          try {
             trifoldAudio.currentTime = 0;
           } catch (_) {
             // ignore
           }
-          trifoldAudio.play().catch((error) => {
-            console.warn('⚠️ Unable to play trifold audio:', error);
-          });
+          const playback = trifoldAudio.play();
+          if (playback && typeof playback.catch === 'function') {
+            playback.catch((error) => {
+              console.warn('⚠️ Unable to play trifold audio:', error);
+            });
+          }
           try {
             trifoldPanel.focus({ preventScroll: true });
           } catch (_) {
