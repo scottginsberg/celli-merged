@@ -498,7 +498,7 @@ animation: skipCenterPulse 2.2s ease-in-out infinite, idleBloomIncrease 3s ease-
  </div>
  
  <!-- Hidden input for mobile keyboard -->
- <input id="hiddenInput" type="text" style="position:absolute; left:-9999px; opacity:0;" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text" enterkeyhint="done" />
+  <input id="hiddenInput" type="text" style="position:fixed; top:50%; left:50%; width:1px; height:1px; transform:translate(-50%, -50%); opacity:0; pointer-events:none; font-size:16px;" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text" enterkeyhint="done" />
  
  <audio id="chime" preload="auto">
  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=" type="audio/wav">
@@ -3289,7 +3289,7 @@ function setupTerminalInput() {
  const hiddenInput = document.createElement('input');
  hiddenInput.type = 'text';
  hiddenInput.id = 'visicell-mobile-input';
- hiddenInput.style.cssText = 'position: absolute; left: -9999px; opacity: 0; pointer-events: none;';
+ hiddenInput.style.cssText = 'position: fixed; top: 50%; left: 50%; width: 1px; height: 1px; transform: translate(-50%, -50%); opacity: 0; pointer-events: none; font-size: 16px;';
  hiddenInput.autocomplete = 'off';
  hiddenInput.autocapitalize = 'characters';
  document.body.appendChild(hiddenInput);
