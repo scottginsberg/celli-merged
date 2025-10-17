@@ -553,6 +553,10 @@
    overflow: visible;
   }
 
+  .loom-invite-swarm.has-active-invites {
+   pointer-events: auto;
+  }
+
   .loom-invite-clone {
    position: absolute;
    top: var(--invite-top, 50%);
@@ -1396,7 +1400,7 @@
   }
 
   const badBooleanTrack = createCaseInsensitiveAudio('./badboolean.mp3');
-  badBooleanTrack.loop = true;
+  badBooleanTrack.loop = false;
   badBooleanTrack.volume = 0.82;
 
   const chimeAudio = new Audio('./end.mp3');
@@ -1404,6 +1408,8 @@
 
   let scratchContext = null;
   let scratchGlitchPromise = Promise.resolve();
+  let badBooleanEndListener = null;
+  let badBooleanErrorListener = null;
 
   let chantAudioContext = null;
   let chantAudioSource = null;
@@ -1422,6 +1428,7 @@
     } catch (error) {
       console.warn('Unable to reset BadBoolean track', error);
     }
+    clearBadBooleanCompletionListeners();
   }
 
   function playBadBooleanTrack() {
@@ -1429,8 +1436,12 @@
     if (playback && typeof playback.catch === 'function') {
       playback.catch((error) => {
         console.warn('BadBoolean audio playback failed:', error);
+        handleBadBooleanCompletion('playback blocked');
       });
+    } else if (!playback) {
+      handleBadBooleanCompletion('playback unavailable');
     }
+    return playback;
   }
 
   function playRecordScratchGlitch(duration = 0.65) {
@@ -1709,6 +1720,31 @@
   let noteStageTimeouts = [];
   let noteInteractionLocked = false;
 
+  function clearBadBooleanCompletionListeners() {
+    if (badBooleanEndListener) {
+      badBooleanTrack.removeEventListener('ended', badBooleanEndListener);
+      badBooleanEndListener = null;
+    }
+    if (badBooleanErrorListener) {
+      badBooleanTrack.removeEventListener('error', badBooleanErrorListener);
+      badBooleanErrorListener = null;
+    }
+  }
+
+  function handleBadBooleanCompletion(reason = 'completed') {
+    clearBadBooleanCompletionListeners();
+    if (window.badBooleanTimeout) {
+      clearTimeout(window.badBooleanTimeout);
+      window.badBooleanTimeout = null;
+    }
+    const adTimeout = setTimeout(() => {
+      console.log(`  ⏱️ BadBoolean ${reason} + 4 seconds - transforming to alt LOOMWORKS invite`);
+      transformToAltLoomworksInvite();
+    }, 4000);
+    window.badBooleanTimeout = adTimeout;
+    noteStageTimeouts.push(adTimeout);
+  }
+
   const PREFERS_REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const extraInviteState = {
@@ -1884,7 +1920,21 @@
     swarm.className = 'loom-invite-swarm';
     document.body.appendChild(swarm);
     extraInviteState.container = swarm;
+    updateInviteContainerInteractivity();
     return swarm;
+  }
+
+  function updateInviteContainerInteractivity() {
+    const container = extraInviteState.container;
+    if (!container) {
+      return;
+    }
+    const hasActiveInvites = Boolean(container.querySelector('.loom-invite-clone, .loom-invite-pin'));
+    if (hasActiveInvites) {
+      container.classList.add('has-active-invites');
+    } else {
+      container.classList.remove('has-active-invites');
+    }
   }
 
   function updatePinLightCountDisplay() {
@@ -2204,6 +2254,7 @@
       extraInviteState.activePins = 0;
       extraInviteState.totalSpawned = 0;
       updatePinLightCountDisplay();
+      updateInviteContainerInteractivity();
     }
     if (!keepActive) {
       extraInviteState.active = false;
@@ -2253,6 +2304,7 @@
       }
     });
     container.appendChild(invite);
+    updateInviteContainerInteractivity();
 
     const reveal = () => {
       invite.classList.add('visible');
@@ -3078,6 +3130,7 @@
   function clearNoteStageTimeouts() {
     noteStageTimeouts.forEach(id => clearTimeout(id));
     noteStageTimeouts = [];
+    clearBadBooleanCompletionListeners();
     if (window.badBooleanTimeout) {
       clearTimeout(window.badBooleanTimeout);
       window.badBooleanTimeout = null;
@@ -3315,7 +3368,6 @@
     markInviteActive(false);
 
     triggerTriColorBurst(1.35);
-    startBadBooleanAdAudio();
 
     ackBtn.style.transition = 'all 0.1s ease-out';
     ackBtn.style.willChange = 'transform, opacity';
@@ -3344,19 +3396,28 @@
     ackBtn.setAttribute('aria-label', 'Open the Loomworks invitation');
 
     console.log('  🎪🎪🎪 BADBOOLEAN AD ACTIVE! 🎪🎪🎪');
-    console.log('  ⏰ Starting 5-second timeout for alt LOOMWORKS invite');
+    console.log('  🎵 Waiting for BadBoolean track to finish before scheduling invite transform');
 
+    clearBadBooleanCompletionListeners();
     if (window.badBooleanTimeout) {
       clearTimeout(window.badBooleanTimeout);
+      window.badBooleanTimeout = null;
     }
 
-    const adTimeout = setTimeout(() => {
-      console.log('  ⏱️ 5 seconds elapsed - transforming to alt LOOMWORKS invite');
-      transformToAltLoomworksInvite();
-    }, 5000);
+    badBooleanEndListener = () => {
+      console.log('  🎶 BadBoolean playback complete - starting 4 second post-roll timer');
+      handleBadBooleanCompletion('playback complete');
+    };
 
-    window.badBooleanTimeout = adTimeout;
-    noteStageTimeouts.push(adTimeout);
+    badBooleanErrorListener = () => {
+      console.warn('  ⚠️ BadBoolean playback error - forcing fallback transition');
+      handleBadBooleanCompletion('playback error');
+    };
+
+    badBooleanTrack.addEventListener('ended', badBooleanEndListener, { once: true });
+    badBooleanTrack.addEventListener('error', badBooleanErrorListener, { once: true });
+
+    startBadBooleanAdAudio();
   }
 
   function showLoomworksInvite(isAltVersion = false) {
@@ -3930,6 +3991,9 @@
       window.setTimeout(() => {
         if (element && element.parentNode) {
           element.parentNode.removeChild(element);
+          if (element.classList && (element.classList.contains('loom-invite-clone') || element.classList.contains('loom-invite-pin'))) {
+            updateInviteContainerInteractivity();
+          }
         }
       }, 480);
     }
