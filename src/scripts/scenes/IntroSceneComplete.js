@@ -391,43 +391,6 @@ export class IntroSceneComplete {
     }
   }
 
-  _handleEndSequenceKey(key) {
-    if (this.state.inputText !== this.state.promptBaseText || !this.state.allYellowTransformed) {
-      return false;
-    }
-
-    if (key === 'E' && this.state.endSequence === '') {
-      this.state.endSequence = 'E';
-      this.state.inputText = '=E';
-      this._setPromptText(this.state.inputText);
-      this._transformToMagenta();
-      console.log('🟥 Magenta phase triggered (E)');
-      return true;
-    }
-
-    if (key === 'N' && this.state.endSequence === 'E') {
-      this.state.endSequence = 'EN';
-      this.state.inputText = '=EN';
-      this._setPromptText(this.state.inputText);
-      this._transformToCyan();
-      console.log('🟦 Cyan phase triggered (N)');
-      return true;
-    }
-
-    if (key === 'D' && this.state.endSequence === 'EN') {
-      this.state.endSequence = 'END';
-      this.state.inputText = '=END';
-      this._setPromptText(this.state.inputText);
-      this._transformToGreenAndHell();
-      console.log('🟩 Green phase triggered (D) - HELL transform starting');
-      console.log('🎬 END sequence complete - starting transition');
-      this._startEndSequence();
-      return true;
-    }
-
-    return false;
-  }
-
   _triggerVoxelWorldRedirect() {
     if (this.state.voxelRedirectDispatched) {
       return;
@@ -1665,23 +1628,44 @@ export class IntroSceneComplete {
       this.state.introAudioLoopTimeout = null;
     }
 
-    if (this.state.introAudioCurrentSource) {
+    const currentSource = this.state.introAudioCurrentSource;
+    if (currentSource) {
       try {
-        this.state.introAudioCurrentSource.stop(0);
+        currentSource.onended = null;
+      } catch (error) {
+        console.warn('⚠️ Failed to clear intro audio onended callback:', error);
+      }
+
+      try {
+        const stopAt = this.state.audioCtx ? this.state.audioCtx.currentTime : 0;
+        currentSource.stop(stopAt);
       } catch (error) {
         console.warn('⚠️ Failed to stop intro audio source:', error);
       }
       try {
-        this.state.introAudioCurrentSource.disconnect();
+        currentSource.disconnect();
       } catch (error) {
         console.warn('⚠️ Failed to disconnect intro audio source:', error);
       }
       this.state.introAudioCurrentSource = null;
     }
 
-    if (this.state.introAudioGainNode) {
+    const gainNode = this.state.introAudioGainNode;
+    if (gainNode) {
       try {
-        this.state.introAudioGainNode.disconnect();
+        const now = this.state.audioCtx ? this.state.audioCtx.currentTime : 0;
+        if (gainNode.gain && typeof gainNode.gain.cancelScheduledValues === 'function') {
+          gainNode.gain.cancelScheduledValues(now);
+        }
+        if (gainNode.gain && typeof gainNode.gain.setTargetAtTime === 'function') {
+          gainNode.gain.setTargetAtTime(0, now, 0.05);
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to cancel intro audio gain automation:', error);
+      }
+
+      try {
+        gainNode.disconnect();
       } catch (error) {
         console.warn('⚠️ Failed to disconnect intro audio gain node during stop:', error);
       }
@@ -1818,6 +1802,8 @@ export class IntroSceneComplete {
   _handleDoorwayInput(e) {
     console.log('⌨️ Doorway input:', e.key);
 
+    this.state.inputAttempted = true;
+
     if (e.key === 'Backspace') {
       e.preventDefault();
       this._handlePromptBackspace();
@@ -1842,6 +1828,52 @@ export class IntroSceneComplete {
       this.state.inputText += key;
       this._setPromptText(this.state.inputText);
     }
+  }
+
+  _handleEndSequenceKey(rawKey) {
+    const key = (rawKey || '').toUpperCase();
+    const isEndKey = key === 'E' || key === 'N' || key === 'D';
+
+    if (!isEndKey) {
+      return false;
+    }
+
+    if (!this.state.allYellowTransformed) {
+      return true;
+    }
+
+    const suffix = (this.state.inputText || '').slice(this.state.promptBaseText.length).toUpperCase();
+
+    if (key === 'E' && this.state.endSequence === '' && suffix.length === 0) {
+      this.state.endSequence = 'E';
+      this.state.inputText = `${this.state.promptBaseText}E`;
+      this._setPromptText(this.state.inputText);
+      this._transformToMagenta();
+      console.log('🟥 Magenta phase triggered (E)');
+      return true;
+    }
+
+    if (key === 'N' && this.state.endSequence === 'E' && suffix === 'E') {
+      this.state.endSequence = 'EN';
+      this.state.inputText = `${this.state.promptBaseText}EN`;
+      this._setPromptText(this.state.inputText);
+      this._transformToCyan();
+      console.log('🟦 Cyan phase triggered (N)');
+      return true;
+    }
+
+    if (key === 'D' && this.state.endSequence === 'EN' && suffix === 'EN') {
+      this.state.endSequence = 'END';
+      this.state.inputText = `${this.state.promptBaseText}END`;
+      this._setPromptText(this.state.inputText);
+      this._transformToGreenAndHell();
+      console.log('🟩 Green phase triggered (D) - HELL transform starting');
+      console.log('🎬 END sequence complete - starting transition');
+      this._startEndSequence();
+      return true;
+    }
+
+    return true;
   }
 
   /**
@@ -2986,20 +3018,29 @@ export class IntroSceneComplete {
           return;
         }
 
-        if (data.hellDropPhase === 'vanish') {
-          voxel.visible = false;
-          voxel.material.opacity = 0;
-          if (data.edges && data.edges.material) {
-            data.edges.material.opacity = 0;
-          }
-          return;
+      if (data.hellDropPhase === 'vanish') {
+        voxel.visible = false;
+        voxel.material.opacity = 0;
+        if (data.edges && data.edges.material) {
+          data.edges.material.opacity = 0;
         }
-
         return;
       }
 
-      if (localTime > 0) {
-        voxel.visible = true;
+      return;
+    }
+
+    if (data.glitched) {
+      voxel.visible = false;
+      voxel.material.opacity = 0;
+      if (data.edges && data.edges.material) {
+        data.edges.material.opacity = 0;
+      }
+      return;
+    }
+
+    if (localTime > 0) {
+      voxel.visible = true;
 
         if (!data.settled && voxel.position.y > data.targetY) {
           // Dropping
