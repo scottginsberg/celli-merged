@@ -208,6 +208,233 @@
       flex-direction: column;
       gap: 1.5rem;
       outline: none;
+      padding: 1.25rem;
+    }
+
+    .pre-form-trifold-button {
+      position: absolute;
+      top: 1.25rem;
+      right: 1.25rem;
+      width: 64px;
+      height: 64px;
+      border: none;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .pre-form-trifold-button:focus-visible {
+      outline: 3px solid rgba(255, 255, 255, 0.8);
+      outline-offset: 2px;
+    }
+
+    .pre-form-trifold-button__square {
+      grid-area: 1 / 1 / 3 / 3;
+      background: #00d8ff;
+      border-radius: 16px;
+      position: relative;
+    }
+
+    .pre-form-trifold-button__triangle {
+      grid-area: 1 / 1 / 2 / 2;
+      width: 0;
+      height: 0;
+      border-left: 0 solid transparent;
+      border-right: 28px solid transparent;
+      border-bottom: 28px solid #fffb3d;
+      margin: 10px 0 0 10px;
+    }
+
+    .pre-form-trifold-button__circle {
+      grid-area: 2 / 2 / 3 / 3;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #ff1f47;
+      justify-self: end;
+      align-self: end;
+      margin: 0 10px 10px 0;
+      box-shadow: 0 0 12px rgba(255, 31, 71, 0.6);
+    }
+
+    .pre-form-trifold-button__square::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.25), 0 12px 22px rgba(0, 216, 255, 0.35);
+    }
+
+    .pre-form-trifold-panel {
+      position: absolute;
+      top: 50%;
+      right: min(8vw, 120px);
+      transform: translateY(-50%) scale(0.9);
+      transform-origin: center right;
+      background: transparent;
+      display: none;
+      border-radius: 18px;
+      box-shadow: 0 40px 120px rgba(0, 0, 0, 0.65);
+      overflow: hidden;
+      min-width: min(90vw, 420px);
+      max-width: min(95vw, 460px);
+      pointer-events: auto;
+    }
+
+    .pre-form-trifold-panel.is-open {
+      display: block;
+      animation: trifold-open 320ms ease forwards;
+    }
+
+    @keyframes trifold-open {
+      0% {
+        opacity: 0;
+        transform: translateY(-50%) scale(0.7) rotateY(-18deg);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+      }
+    }
+
+    .pre-form-trifold-panel__content {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      position: relative;
+      isolation: isolate;
+    }
+
+    .pre-form-trifold-panel__fold {
+      padding: 1.5rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #002b38;
+    }
+
+    .pre-form-trifold-panel__fold--left {
+      background: linear-gradient(135deg, rgba(0, 216, 255, 0.95), rgba(0, 79, 104, 0.9));
+      color: #e5faff;
+    }
+
+    .pre-form-trifold-panel__fold--center {
+      background: linear-gradient(135deg, rgba(255, 251, 61, 0.95), rgba(255, 193, 35, 0.9));
+      color: #2b2600;
+    }
+
+    .pre-form-trifold-panel__fold--right {
+      background: linear-gradient(135deg, rgba(255, 31, 71, 0.92), rgba(162, 12, 35, 0.9));
+      color: #ffeef2;
+    }
+
+    .pre-form-trifold-panel__heading {
+      font-size: 0.68rem;
+      letter-spacing: 0.28em;
+      opacity: 0.8;
+    }
+
+    .pre-form-trifold-panel__links {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .pre-form-trifold-panel__link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.18);
+      color: inherit;
+      text-transform: none;
+      letter-spacing: 0.08em;
+      cursor: default;
+    }
+
+    .pre-form-trifold-panel__link .pre-form-trifold-panel__link-label {
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      font-size: 0.68rem;
+    }
+
+    .pre-form-trifold-panel__link-note {
+      font-size: 0.55rem;
+      letter-spacing: 0.18em;
+      opacity: 0.75;
+    }
+
+    .pre-form-trifold-panel__close {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      background: rgba(0, 0, 0, 0.38);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      border-radius: 999px;
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .pre-form-trifold-panel__close:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 620px) {
+      .pre-form-trifold-button {
+        width: 54px;
+        height: 54px;
+      }
+
+      .pre-form-trifold-button__triangle {
+        border-right-width: 22px;
+        border-bottom-width: 22px;
+        margin: 8px 0 0 8px;
+      }
+
+      .pre-form-trifold-button__circle {
+        width: 18px;
+        height: 18px;
+        margin: 0 8px 8px 0;
+      }
+
+      .pre-form-trifold-panel {
+        right: 50%;
+        transform: translate(50%, -50%) scale(0.9);
+      }
+
+      .pre-form-trifold-panel.is-open {
+        transform: translate(50%, -50%) scale(1);
+      }
+
+      @keyframes trifold-open {
+        0% {
+          opacity: 0;
+          transform: translate(50%, -50%) scale(0.72) rotateY(-18deg);
+        }
+
+        100% {
+          opacity: 1;
+          transform: translate(50%, -50%) scale(1);
+        }
+      }
     }
 
     .pre-form-video-overlay video {
@@ -1546,6 +1773,198 @@
         video.preload = 'auto';
         video.crossOrigin = 'anonymous';
 
+        const trifoldAudio = new Audio();
+        trifoldAudio.preload = 'none';
+        trifoldAudio.src = 'trifold.mp3';
+
+        const trifoldButton = document.createElement('button');
+        trifoldButton.type = 'button';
+        trifoldButton.className = 'pre-form-trifold-button';
+        trifoldButton.setAttribute('aria-label', 'Open community connections panel');
+        trifoldButton.setAttribute('aria-haspopup', 'dialog');
+        trifoldButton.setAttribute('aria-expanded', 'false');
+        trifoldButton.setAttribute('title', 'Community connections');
+
+        const trifoldSquare = document.createElement('span');
+        trifoldSquare.className = 'pre-form-trifold-button__square';
+        const trifoldTriangle = document.createElement('span');
+        trifoldTriangle.className = 'pre-form-trifold-button__triangle';
+        const trifoldCircle = document.createElement('span');
+        trifoldCircle.className = 'pre-form-trifold-button__circle';
+
+        trifoldButton.append(trifoldSquare, trifoldTriangle, trifoldCircle);
+
+        const trifoldPanel = document.createElement('div');
+        trifoldPanel.className = 'pre-form-trifold-panel';
+        trifoldPanel.setAttribute('role', 'dialog');
+        trifoldPanel.setAttribute('aria-modal', 'true');
+        trifoldPanel.setAttribute('aria-label', 'Community connections');
+        trifoldPanel.hidden = true;
+        trifoldPanel.setAttribute('aria-hidden', 'true');
+        trifoldPanel.tabIndex = -1;
+
+        const trifoldContent = document.createElement('div');
+        trifoldContent.className = 'pre-form-trifold-panel__content';
+
+        const folds = [
+          {
+            className: 'pre-form-trifold-panel__fold pre-form-trifold-panel__fold--left',
+            heading: 'Stay Tuned',
+            description: 'We are building the beta community hub.'
+          },
+          {
+            className: 'pre-form-trifold-panel__fold pre-form-trifold-panel__fold--center',
+            heading: 'Reddit',
+            linkLabel: 'Reddit',
+            placeholder: 'https://www.reddit.com',
+            note: 'Default destination placeholder'
+          },
+          {
+            className: 'pre-form-trifold-panel__fold pre-form-trifold-panel__fold--right',
+            heading: 'Twitter',
+            linkLabel: 'Twitter',
+            placeholder: 'https://twitter.com',
+            note: 'Default destination placeholder'
+          }
+        ];
+
+        for (const fold of folds) {
+          const foldEl = document.createElement('section');
+          foldEl.className = fold.className;
+
+          const headingEl = document.createElement('h2');
+          headingEl.className = 'pre-form-trifold-panel__heading';
+          headingEl.textContent = fold.heading;
+          foldEl.appendChild(headingEl);
+
+          if (fold.description) {
+            const descriptionEl = document.createElement('p');
+            descriptionEl.textContent = fold.description;
+            foldEl.appendChild(descriptionEl);
+          }
+
+          if (fold.linkLabel) {
+            const linksEl = document.createElement('div');
+            linksEl.className = 'pre-form-trifold-panel__links';
+
+            const linkEl = document.createElement('a');
+            linkEl.className = 'pre-form-trifold-panel__link';
+            linkEl.href = '#';
+            linkEl.setAttribute('data-default-href', fold.placeholder);
+            linkEl.setAttribute('role', 'button');
+            linkEl.setAttribute('aria-disabled', 'true');
+
+            const labelEl = document.createElement('span');
+            labelEl.className = 'pre-form-trifold-panel__link-label';
+            labelEl.textContent = fold.linkLabel;
+
+            const noteEl = document.createElement('span');
+            noteEl.className = 'pre-form-trifold-panel__link-note';
+            noteEl.textContent = fold.note || 'Placeholder link';
+
+            linkEl.append(labelEl, noteEl);
+            linksEl.appendChild(linkEl);
+            foldEl.appendChild(linksEl);
+          }
+
+          trifoldContent.appendChild(foldEl);
+        }
+
+        const closePanelButton = document.createElement('button');
+        closePanelButton.type = 'button';
+        closePanelButton.className = 'pre-form-trifold-panel__close';
+        closePanelButton.setAttribute('aria-label', 'Close community connections panel');
+        closePanelButton.innerHTML = '&times;';
+
+        trifoldPanel.append(trifoldContent, closePanelButton);
+
+        let trifoldOpen = false;
+
+        function closeTrifoldPanel({ silent } = {}) {
+          if (!trifoldOpen) {
+            return;
+          }
+          trifoldOpen = false;
+          trifoldPanel.classList.remove('is-open');
+          trifoldPanel.hidden = true;
+          trifoldPanel.setAttribute('aria-hidden', 'true');
+          trifoldButton.setAttribute('aria-expanded', 'false');
+          if (!silent) {
+            try {
+              trifoldAudio.pause();
+            } catch (_) {
+              // ignore
+            }
+            try {
+              trifoldAudio.currentTime = 0;
+            } catch (_) {
+              // ignore
+            }
+          }
+        }
+
+        function openTrifoldPanel() {
+          if (trifoldOpen) {
+            return;
+          }
+          trifoldOpen = true;
+          trifoldPanel.hidden = false;
+          trifoldPanel.setAttribute('aria-hidden', 'false');
+          trifoldPanel.classList.add('is-open');
+          trifoldButton.setAttribute('aria-expanded', 'true');
+          try {
+            trifoldAudio.currentTime = 0;
+          } catch (_) {
+            // ignore
+          }
+          trifoldAudio.play().catch((error) => {
+            console.warn('⚠️ Unable to play trifold audio:', error);
+          });
+          try {
+            trifoldPanel.focus({ preventScroll: true });
+          } catch (_) {
+            trifoldPanel.focus();
+          }
+        }
+
+        trifoldButton.addEventListener('click', (event) => {
+          event.stopPropagation();
+          if (trifoldOpen) {
+            closeTrifoldPanel();
+          } else {
+            openTrifoldPanel();
+          }
+        });
+
+        closePanelButton.addEventListener('click', (event) => {
+          event.stopPropagation();
+          closeTrifoldPanel();
+          try {
+            trifoldButton.focus({ preventScroll: true });
+          } catch (_) {
+            trifoldButton.focus();
+          }
+        });
+
+        trifoldPanel.addEventListener('click', (event) => {
+          if (event.target === trifoldPanel) {
+            event.stopPropagation();
+            closeTrifoldPanel();
+          }
+        });
+
+        trifoldPanel.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') {
+            event.stopPropagation();
+            closeTrifoldPanel();
+            try {
+              trifoldButton.focus({ preventScroll: true });
+            } catch (_) {
+              trifoldButton.focus();
+            }
+          }
+        });
+
         const message = document.createElement('div');
         message.className = 'pre-form-video-overlay__message';
         message.textContent = 'Preparing form sequence…';
@@ -1555,7 +1974,7 @@
         skipHint.textContent = 'Tap or click anywhere to skip';
         skipHint.hidden = true;
 
-        overlay.append(video, message, skipHint);
+        overlay.append(trifoldButton, trifoldPanel, video, message, skipHint);
         document.body.appendChild(overlay);
 
         function createSkipController() {
@@ -1584,13 +2003,20 @@
           }
 
           function handlePointerDown(event) {
-            if (event && event.target && event.target.closest('.pre-form-video-overlay__start')) {
+            if (
+              event &&
+              event.target &&
+              event.target.closest(
+                '.pre-form-video-overlay__start, .pre-form-trifold-button, .pre-form-trifold-panel'
+              )
+            ) {
               return;
             }
             if (resolved) {
               return;
             }
             resolved = true;
+            closeTrifoldPanel();
             if (message) {
               message.textContent = 'Skipping…';
             }
@@ -1612,7 +2038,12 @@
             if (!event) {
               return;
             }
-            if (event.target && event.target.closest('.pre-form-video-overlay__start')) {
+            if (
+              event.target &&
+              event.target.closest(
+                '.pre-form-video-overlay__start, .pre-form-trifold-button, .pre-form-trifold-panel'
+              )
+            ) {
               return;
             }
             if (event.key === 'Enter' || event.key === ' ') {
@@ -1670,6 +2101,12 @@
           }
         } finally {
           video.pause();
+          closeTrifoldPanel({ silent: true });
+          try {
+            trifoldAudio.pause();
+          } catch (_) {
+            // ignore
+          }
           if (overlay.parentNode) {
             overlay.parentNode.removeChild(overlay);
           }
