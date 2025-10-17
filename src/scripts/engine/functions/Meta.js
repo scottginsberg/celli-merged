@@ -20,12 +20,33 @@ function ensureSongAudio() {
   try {
     songAudioElement = new Audio('./credits.mp3');
     songAudioElement.preload = 'auto';
+    if (typeof window !== 'undefined') {
+      window.celliSongAudioElement = songAudioElement;
+    }
   } catch (error) {
     console.warn('[Meta] Failed to initialize credits.mp3 audio element', error);
     songAudioElement = null;
+    if (typeof window !== 'undefined') {
+      delete window.celliSongAudioElement;
+    }
   }
 
   return songAudioElement;
+}
+
+function stopSongAudio({ resetTime = true } = {}) {
+  if (!songAudioElement) {
+    return;
+  }
+
+  try {
+    songAudioElement.pause();
+    if (resetTime) {
+      songAudioElement.currentTime = 0;
+    }
+  } catch (error) {
+    console.warn('[Meta] Failed to stop credits.mp3 audio element', error);
+  }
 }
 
 // Note: Functions use window.Store, window.Actions, window.Formula, window.Scene, window.UI at runtime
@@ -552,5 +573,6 @@ tag('NOTE',['ACTION'],(anchor,arr,ast)=>{
 if(typeof window !== 'undefined'){
   window.normalizeActionFormula = normalizeActionFormula;
   window.executeActionFormula = executeActionFormula;
+  window.celliStopSongAudio = stopSongAudio;
 }
 
