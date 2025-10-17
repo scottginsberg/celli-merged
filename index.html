@@ -1238,7 +1238,21 @@
     <p>You clicked a link and reality started to break down. The glitch is spreading...</p>
     <div id="refSidebarUrl" class="ref-sidebar-url" style="display:none"></div>
     <p style="font-size:12px;opacity:.7">This reconstructed page is unstable. Each click destabilizes it further.</p>
-    <button id="refSidebarAck" class="ref-sidebar-btn">Acknowledge Glitch</button>
+    <button id="refSidebarAck" class="ref-sidebar-btn loom-invite-base" type="button" aria-label="Open Loomworks invitation">
+      <div class="loom-invite-stack loom-invite-stack--base">
+        <div class="loom-invite-card loom-invite-card--base">
+          <div class="loom-invite-emblem">
+            <p class="loom-invite-line loom-invite-line--primary">.LOOMWORKS.</p>
+            <p class="loom-invite-line loom-invite-line--secondary">..A SPECIAL INVITATION..</p>
+            <p class="loom-invite-line loom-invite-line--tertiary">... A Beautiful Cell ...</p>
+          </div>
+          <div class="loom-invite-card__content">
+            <strong class="loom-invite-card__headline">Claim your Loomworks access</strong>
+            <span class="loom-invite-card__subline">Tap to open the crystalline invitation.</span>
+          </div>
+        </div>
+      </div>
+    </button>
     <div id="loomAudioStatus" class="loom-audio-status" aria-hidden="true">Streaming CallYouByMyName.mp3</div>
    </div>
   </div>
@@ -1721,11 +1735,25 @@
     </div>
   `;
 
+  const BASE_INVITE_TEMPLATE = `
+    <div class="loom-invite-stack loom-invite-stack--base">
+      <div class="loom-invite-card loom-invite-card--base">
+        ${LOOM_INVITE_EMBLEM}
+        <div class="loom-invite-card__content">
+          <strong class="loom-invite-card__headline">Claim your Loomworks access</strong>
+          <span class="loom-invite-card__subline">Tap to open the crystalline invitation.</span>
+        </div>
+      </div>
+    </div>
+  `;
+
   const FLOATING_INVITE_TEMPLATE = `
     <div class="loom-invite-clone-card">
       ${LOOM_INVITE_EMBLEM}
     </div>
   `;
+
+  const TRI_COLOR_PARTICLES_ALLOWED = false;
 
   const triColorState = {
     canvas: null,
@@ -1879,6 +1907,9 @@
   }
 
   function resizeTriColorCanvas() {
+    if (!TRI_COLOR_PARTICLES_ALLOWED) {
+      return;
+    }
     if (!triColorState.canvas) {
       return;
     }
@@ -1926,6 +1957,10 @@
   }
 
   function createTriColorParticles() {
+    if (!TRI_COLOR_PARTICLES_ALLOWED) {
+      updateTriColorFocus();
+      return [];
+    }
     const width = (triColorState.canvas?.width || window.innerWidth || 1280) / (window.devicePixelRatio || 1);
     const height = (triColorState.canvas?.height || window.innerHeight || 720) / (window.devicePixelRatio || 1);
     const palette = [
@@ -1962,7 +1997,10 @@
   }
 
   function renderTriColorParticles(timestamp) {
-    if (!triColorState.enabled || !triColorState.ctx) {
+    if (!TRI_COLOR_PARTICLES_ALLOWED || !triColorState.enabled || !triColorState.ctx) {
+      if (TRI_COLOR_PARTICLES_ALLOWED === false && triColorState.animationId) {
+        cancelAnimationFrame(triColorState.animationId);
+      }
       triColorState.animationId = null;
       return;
     }
@@ -2013,7 +2051,7 @@
   }
 
   function startTriColorLoop() {
-    if (!triColorState.enabled) {
+    if (!TRI_COLOR_PARTICLES_ALLOWED || !triColorState.enabled) {
       return;
     }
     if (triColorState.animationId) {
@@ -2023,14 +2061,22 @@
     triColorState.animationId = requestAnimationFrame(renderTriColorParticles);
   }
 
+  function destroyTriColorCanvas() {
+    if (triColorState.animationId) {
+      cancelAnimationFrame(triColorState.animationId);
+      triColorState.animationId = null;
+    }
+    if (triColorState.canvas && triColorState.canvas.parentNode) {
+      triColorState.canvas.parentNode.removeChild(triColorState.canvas);
+    }
+    triColorState.canvas = null;
+    triColorState.ctx = null;
+    triColorState.particles = [];
+  }
+
   function initTriColorParticles() {
-    if (!triColorState.enabled) {
-      if (triColorState.canvas && triColorState.canvas.parentNode) {
-        triColorState.canvas.parentNode.removeChild(triColorState.canvas);
-      }
-      triColorState.canvas = null;
-      triColorState.ctx = null;
-      triColorState.particles = [];
+    if (!TRI_COLOR_PARTICLES_ALLOWED || !triColorState.enabled) {
+      destroyTriColorCanvas();
       return;
     }
 
@@ -2059,6 +2105,11 @@
   }
 
   function setTriColorEnabled(enabled) {
+    if (!TRI_COLOR_PARTICLES_ALLOWED) {
+      triColorState.enabled = false;
+      destroyTriColorCanvas();
+      return;
+    }
     triColorState.enabled = enabled;
     if (!triColorState.canvas) {
       if (enabled) {
@@ -2074,22 +2125,15 @@
       triColorState.lastTimestamp = null;
       startTriColorLoop();
     } else {
-      if (triColorState.animationId) {
-        cancelAnimationFrame(triColorState.animationId);
-        triColorState.animationId = null;
-      }
-      triColorState.canvas.style.display = 'none';
-      triColorState.lastTimestamp = null;
-      if (triColorState.canvas.parentNode) {
-        triColorState.canvas.parentNode.removeChild(triColorState.canvas);
-      }
-      triColorState.canvas = null;
-      triColorState.ctx = null;
-      triColorState.particles = [];
+      destroyTriColorCanvas();
     }
   }
 
   function elevateTriColorLayer() {
+    if (!TRI_COLOR_PARTICLES_ALLOWED) {
+      triColorState.pendingElevation = true;
+      return;
+    }
     triColorState.pendingElevation = true;
     if (triColorState.canvas) {
       triColorState.canvas.classList.add('tri-color-particles--foreground');
@@ -2097,6 +2141,11 @@
   }
 
   function resetTriColorLayer() {
+    if (!TRI_COLOR_PARTICLES_ALLOWED) {
+      triColorState.pendingElevation = false;
+      destroyTriColorCanvas();
+      return;
+    }
     triColorState.pendingElevation = false;
     if (triColorState.canvas) {
       triColorState.canvas.classList.remove('tri-color-particles--foreground');
@@ -2104,6 +2153,12 @@
   }
 
   function ensureTriColorActive() {
+    if (!TRI_COLOR_PARTICLES_ALLOWED) {
+      triColorState.enabled = false;
+      updateTriColorFocus();
+      destroyTriColorCanvas();
+      return;
+    }
     if (!triColorState.enabled) {
       triColorState.enabled = true;
     }
@@ -2608,6 +2663,7 @@
     setTriColorEnabled(false);
   }
   createDebugPanel();
+  renderBaseLoomInvite();
 
   function createGlitchState() {
     return { stage: 'parody', nextIndex: 0 };
@@ -3174,7 +3230,19 @@
       refSidebarAck.classList.add('loom-invite-active');
     } else {
       refSidebarAck.classList.remove('loom-invite-active');
+      refSidebarAck.classList.remove('loom-invite-base');
     }
+  }
+
+  function renderBaseLoomInvite() {
+    if (!refSidebarAck) {
+      return;
+    }
+    refSidebarAck.classList.add('loom-invite-base');
+    refSidebarAck.innerHTML = BASE_INVITE_TEMPLATE;
+    refSidebarAck.removeAttribute('style');
+    refSidebarAck.setAttribute('aria-label', 'Open Loomworks invitation');
+    markInviteActive(true);
   }
 
   function revealAiMessage() {
@@ -3295,6 +3363,8 @@
     const ackBtn = refSidebarAck;
     const h3 = sidebar.querySelector('h3');
     const paragraphs = sidebar.querySelectorAll('p');
+
+    ackBtn.classList.remove('loom-invite-base');
 
     cancelExtraInviteSchedule();
 
@@ -4381,23 +4451,7 @@
     markInviteActive(false);
 
     // Reset button to original state
-    const ackBtn = refSidebarAck;
-    ackBtn.innerHTML = 'Acknowledge Glitch';
-    ackBtn.style.background = '';
-    ackBtn.style.backdropFilter = '';
-    ackBtn.style.webkitBackdropFilter = '';
-    ackBtn.style.padding = '';
-    ackBtn.style.fontSize = '';
-    ackBtn.style.animation = '';
-    ackBtn.style.border = '';
-    ackBtn.style.boxShadow = '';
-    ackBtn.style.opacity = '1';
-    ackBtn.style.transition = '';
-    ackBtn.style.borderRadius = '';
-    ackBtn.style.transform = '';
-    ackBtn.style.cursor = '';
-    ackBtn.style.backgroundSize = '';
-    ackBtn.setAttribute('aria-label', 'Acknowledge glitch');
+    renderBaseLoomInvite();
 
     // Reset sidebar content visibility
     const h3 = refSidebar.querySelector('h3');
