@@ -476,29 +476,14 @@
 
     .options-shell {
       position: relative;
-      overflow-y: auto;
-      padding: clamp(0.85rem, 2.8vw, 1.2rem) clamp(0.5rem, 2vw, 0.85rem) clamp(4.5rem, 8vw, 5.5rem);
       display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
       align-content: start;
       gap: clamp(0.75rem, 2.4vw, 1.05rem);
-      scrollbar-color: #000 #fff;
-      scrollbar-width: thin;
+      padding: clamp(0.85rem, 2.8vw, 1.2rem) clamp(0.5rem, 2vw, 0.85rem) clamp(2rem, 6vw, 3rem);
       height: 100%;
       min-height: 0;
-    }
-
-    .options-shell::-webkit-scrollbar {
-      width: 6px;
-      background: #fff;
-    }
-
-    .options-shell::-webkit-scrollbar-track {
-      background: #fff;
-    }
-
-    .options-shell::-webkit-scrollbar-thumb {
-      background: #000;
-      border-radius: 0;
+      overflow: hidden;
     }
 
     .options {
@@ -508,6 +493,24 @@
       align-items: stretch;
       justify-items: stretch;
       padding-right: clamp(0.25rem, 1vw, 0.45rem);
+      overflow-y: auto;
+      scrollbar-color: #000 #fff;
+      scrollbar-width: thin;
+      min-height: 0;
+    }
+
+    .options::-webkit-scrollbar {
+      width: 6px;
+      background: #fff;
+    }
+
+    .options::-webkit-scrollbar-track {
+      background: #fff;
+    }
+
+    .options::-webkit-scrollbar-thumb {
+      background: #000;
+      border-radius: 0;
     }
 
     .focus-option {
@@ -635,7 +638,7 @@
       justify-content: center;
       pointer-events: none;
       padding-top: clamp(1rem, 3vw, 1.6rem);
-      min-height: clamp(3.5rem, 11vw, 4.75rem);
+      min-height: clamp(2.85rem, 9vw, 3.75rem);
       background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0));
       z-index: 2;
     }
@@ -1024,6 +1027,11 @@
             <button type="button" class="focus-option" data-value="Celli Dance Party">Celli Dance Party</button>
             <button type="button" class="focus-option" data-value="Functions">Functions</button>
             <button type="button" class="focus-option" data-value="Dysfunction">Dysfunction</button>
+            <button type="button" class="focus-option" data-value="Gags">Gags</button>
+            <button type="button" class="focus-option" data-value="Jokes">Jokes</button>
+            <button type="button" class="focus-option" data-value="Laughs">Laughs</button>
+            <button type="button" class="focus-option" data-value="Gasps">Gasps</button>
+            <button type="button" class="focus-option" data-value="Tears">Tears</button>
             <button type="button" class="focus-option" data-value="Mini Games">Mini Games</button>
             <button type="button" class="focus-option" data-value="Macro Games">Macro Games</button>
             <button type="button" class="focus-option" data-value="Bugs">Bugs</button>
