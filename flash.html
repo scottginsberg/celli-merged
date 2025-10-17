@@ -275,6 +275,52 @@
             align-items: center;
             gap: 8px;
         }
+        #onion-skin-btn {
+            padding: 4px 8px;
+            margin-right: 8px;
+            background: #f0f0f0;
+            border: 1px solid #999;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #onion-skin-btn:hover {
+            background: #ffffff;
+        }
+        #onion-skin-btn .venn-icon {
+            position: relative;
+            width: 18px;
+            height: 16px;
+        }
+        #onion-skin-btn .venn-circle {
+            position: absolute;
+            top: 2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            opacity: 0.85;
+        }
+        #onion-skin-btn .venn-circle.left {
+            left: 0;
+            background: rgba(102, 153, 255, 0.8);
+            border: 1px solid #4a70b2;
+        }
+        #onion-skin-btn .venn-circle.right {
+            right: 0;
+            background: rgba(255, 153, 102, 0.8);
+            border: 1px solid #c26b3d;
+        }
+        #onion-skin-btn .venn-intersection {
+            position: absolute;
+            top: 2px;
+            left: 3px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.45);
+            border: 1px solid rgba(160, 160, 160, 0.4);
+        }
         .playback-controls {
             display: flex;
             gap: 4px;
@@ -372,6 +418,46 @@
         }
         .frame-cell:hover {
             background: #e8f4ff;
+        }
+        #flash-video-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(30, 30, 30, 0.72);
+            z-index: 5000;
+        }
+        .flash-video-window {
+            width: 520px;
+            max-width: 90vw;
+            background: linear-gradient(to bottom, #fdfdfd 0%, #d6d6d6 100%);
+            border: 2px solid #666;
+            box-shadow: 0 16px 30px rgba(0, 0, 0, 0.45);
+            display: flex;
+            flex-direction: column;
+        }
+        .flash-video-title {
+            background: linear-gradient(to bottom, #ffffff 0%, #cfcfcf 100%);
+            border-bottom: 1px solid #888;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 0.14em;
+            color: #1b1b1b;
+            text-transform: uppercase;
+            text-align: center;
+        }
+        .flash-video-body {
+            background: #202020;
+            padding: 12px;
+            border-top: 1px solid #aaa;
+        }
+        .flash-video-body video {
+            width: 100%;
+            display: block;
+            background: #000;
+            border: 1px solid #000;
         }
     </style>
 </head>
@@ -508,6 +594,13 @@
                 <span style="flex: 1;"></span>
                 <button id="rehumanize-btn" style="padding: 4px 12px; margin-right: 8px; background: #f0f0f0; border: 1px solid #999; cursor: pointer; font-size: 11px; font-weight: bold;">REHUMANIZE</button>
                 <button id="fps-btn" style="padding: 4px 12px; margin-right: 8px; background: #f0f0f0; border: 1px solid #999; cursor: pointer; font-size: 11px; font-weight: bold;">FPS</button>
+                <button id="onion-skin-btn" aria-label="Onion Skin" title="Onion Skin">
+                    <span class="venn-icon" aria-hidden="true">
+                        <span class="venn-circle left"></span>
+                        <span class="venn-circle right"></span>
+                        <span class="venn-intersection"></span>
+                    </span>
+                </button>
                 <span style="font-weight: normal;">Frame: 1</span>
             </div>
             <div class="timeline-content">
@@ -634,6 +727,15 @@
     
     <!-- Rehumanize text crawl overlay -->
     <div id="rehumanize-overlay"></div>
+
+    <div id="flash-video-overlay" role="dialog" aria-label="Onion Skin Video" aria-hidden="true">
+        <div class="flash-video-window">
+            <div class="flash-video-title">ONION SKIN REVIEW</div>
+            <div class="flash-video-body">
+                <video id="flash-video-player" controls playsinline></video>
+            </div>
+        </div>
+    </div>
 
     <script type="importmap">
     {
@@ -3884,7 +3986,97 @@
                 startRehumanizeCrawl();
             }
         });
-        
+
+        const onionSkinButton = document.getElementById('onion-skin-btn');
+        const flashVideoOverlay = document.getElementById('flash-video-overlay');
+        const flashVideoPlayer = document.getElementById('flash-video-player');
+        let flashVideoHideTimeout = null;
+
+        function hideFlashVideoOverlay() {
+            if (!flashVideoOverlay || !flashVideoPlayer) return;
+            if (flashVideoHideTimeout) {
+                clearTimeout(flashVideoHideTimeout);
+            }
+            flashVideoOverlay.style.transition = 'opacity 3s ease';
+            flashVideoOverlay.style.opacity = '0';
+            flashVideoOverlay.setAttribute('aria-hidden', 'true');
+            flashVideoHideTimeout = setTimeout(() => {
+                flashVideoOverlay.style.display = 'none';
+                flashVideoOverlay.style.opacity = '';
+                flashVideoOverlay.style.transition = '';
+                flashVideoPlayer.pause();
+                flashVideoPlayer.removeAttribute('src');
+                flashVideoPlayer.load();
+                flashVideoHideTimeout = null;
+            }, 3000);
+        }
+
+        function showFlashVideoPopup(source) {
+            if (!flashVideoOverlay || !flashVideoPlayer) return;
+
+            if (flashVideoHideTimeout) {
+                clearTimeout(flashVideoHideTimeout);
+                flashVideoHideTimeout = null;
+            }
+
+            if (flashVideoOverlay.style.display === 'flex' && flashVideoOverlay.style.opacity === '1') {
+                return;
+            }
+
+            flashVideoPlayer.pause();
+            flashVideoPlayer.removeAttribute('src');
+            flashVideoPlayer.load();
+
+            flashVideoOverlay.style.display = 'flex';
+            flashVideoOverlay.style.opacity = '0';
+            flashVideoOverlay.style.transition = 'opacity 0.3s ease';
+            flashVideoOverlay.setAttribute('aria-hidden', 'false');
+
+            requestAnimationFrame(() => {
+                flashVideoOverlay.style.opacity = '1';
+            });
+
+            flashVideoPlayer.setAttribute('src', source);
+            flashVideoPlayer.load();
+
+            const overlayClick = (event) => {
+                if (event.target === flashVideoOverlay) {
+                    cleanup();
+                    hideFlashVideoOverlay();
+                }
+            };
+
+            function cleanup() {
+                flashVideoPlayer.removeEventListener('ended', finishPlayback);
+                flashVideoPlayer.removeEventListener('error', finishPlayback);
+                flashVideoOverlay.removeEventListener('click', overlayClick);
+            }
+
+            function finishPlayback() {
+                cleanup();
+                hideFlashVideoOverlay();
+            }
+
+            flashVideoPlayer.addEventListener('ended', finishPlayback);
+            flashVideoPlayer.addEventListener('error', finishPlayback);
+            flashVideoOverlay.addEventListener('click', overlayClick);
+
+            const playPromise = flashVideoPlayer.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+                playPromise.catch(() => {
+                    cleanup();
+                    hideFlashVideoOverlay();
+                });
+            }
+        }
+
+        if (onionSkinButton) {
+            onionSkinButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                showFlashVideoPopup('Key 2.mp4');
+            });
+        }
+
         // Color picker event handlers
         document.getElementById('fill-color-picker').addEventListener('input', (e) => {
             const hexColor = e.target.value;

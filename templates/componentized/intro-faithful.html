@@ -2916,16 +2916,23 @@ showVisiCalc();
  </style>
  `;
  
- document.body.appendChild(visiCalc);
- try { SceneManager.setPhase('visicell'); } catch (e) {}
+  document.body.appendChild(visiCalc);
+  ensureVisiCellEnhancementStyles();
+  try { SceneManager.setPhase('visicell'); } catch (e) {}
  
  // Snap VisiCell into view immediately
  visiCalc.style.opacity = '1';
  
- const frame = document.getElementById('visicalc-frame');
- if (frame) {
- frame.style.opacity = '1';
- }
+  const frame = document.getElementById('visicalc-frame');
+  if (frame) {
+   frame.style.opacity = '1';
+   const asciiGrid = frame.querySelector('div[style*="white-space: pre"]');
+   if (asciiGrid) {
+    asciiGrid.id = 'visicell-initial-grid';
+   }
+  }
+
+  createVisiCellClockWidget();
  
  // Immediately show all content (override animations)
  const allAnimated = visiCalc.querySelectorAll('[style*="animation"]');
@@ -2960,8 +2967,12 @@ showVisiCalc();
  let clickWarningCount = 0;
  let barrelClickCount = 0;
  let madnessActivated = false;
- let rPromptHoverCount = 0;
- let enterCommandUsed = false; // Track if ENTER command was used
+let rPromptHoverCount = 0;
+let enterCommandUsed = false; // Track if ENTER command was used
+let clueTrailActive = false;
+let clueStage = 0;
+let clueTrailData = null;
+let visiCellClockInterval = null;
  
  function setupTerminalInput() {
  console.log('?? Terminal input system activated');
@@ -3144,7 +3155,7 @@ showVisiCalc();
  promptEl.innerHTML = terminalInput + '<span style="animation: blink 1s step-end infinite;">_</span>';
  }
 
- const validTerminalCommands = ['ENTER', 'EXIT', 'LEAVE', 'MYHOUSE.WAD', 'OURHOUSE.LOOM', 'MADNESS.LOOM'];
+ const validTerminalCommands = ['ENTER', 'EXIT', 'LEAVE', 'MYHOUSE.WAD', 'OURHOUSE.LOOM', 'MADNESS.LOOM', 'SEARCH', 'KEY', 'SNAKE', 'BURGER KING'];
 
  function cancelPromptReset() {
  if (promptClearInterval) {
@@ -3158,7 +3169,7 @@ showVisiCalc();
  promptResetting = false;
  }
 
- function schedulePromptToEnte({ immediateFill = false } = {}) {
+function schedulePromptToEnte({ immediateFill = false } = {}) {
  if (!terminalActive) return;
 
  cancelPromptReset();
@@ -3205,12 +3216,661 @@ showVisiCalc();
  updateTerminalPrompt();
  startFill();
  }
+}
+
+function ensureVisiCellEnhancementStyles() {
+ if (document.getElementById('visicell-enhancements-style')) return;
+ const style = document.createElement('style');
+ style.id = 'visicell-enhancements-style';
+ style.textContent = `
+#visicell-clock-button {
+ position: absolute;
+ top: 12px;
+ right: 18px;
+ padding: 6px 12px;
+ border: 1px solid #0f0;
+ background: rgba(0, 0, 0, 0.92);
+ color: #0f0;
+ cursor: pointer;
+ font-size: 12px;
+ letter-spacing: 0.18em;
+ box-shadow: 0 0 10px rgba(0, 255, 0, 0.35);
+ transition: background 0.3s ease, box-shadow 0.3s ease;
+ text-transform: uppercase;
+}
+#visicell-clock-button:hover {
+ background: rgba(0, 40, 0, 0.95);
+ box-shadow: 0 0 14px rgba(0, 255, 0, 0.55);
+}
+#visicell-clock-window {
+ position: absolute;
+ top: 52px;
+ right: 18px;
+ width: 260px;
+ border: 1px solid #0f0;
+ background: rgba(0, 0, 0, 0.95);
+ padding: 14px 16px 16px;
+ display: none;
+ flex-direction: column;
+ gap: 12px;
+ letter-spacing: 0.12em;
+ box-shadow: 0 0 16px rgba(0, 255, 0, 0.35);
+ text-transform: uppercase;
+}
+.visicell-clock-title {
+ font-weight: bold;
+ text-align: center;
+ border-bottom: 1px solid #0f0;
+ padding-bottom: 6px;
+}
+.visicell-clock-time {
+ font-size: 16px;
+ text-align: center;
+ color: #ff0;
+}
+.visicell-clock-detail {
+ font-size: 12px;
+ text-align: center;
+ color: #0ff;
+}
+.visicell-clock-controls {
+ font-size: 11px;
+ text-align: center;
+}
+.visicell-clock-adjust {
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ gap: 12px;
+}
+#visicell-clock-minus,
+#visicell-clock-plus {
+ width: 42px;
+ height: 28px;
+ border: 1px solid #0f0;
+ background: #001100;
+ color: #0f0;
+ cursor: pointer;
+ font-size: 14px;
+ letter-spacing: 0.1em;
+ text-transform: uppercase;
+}
+#visicell-clock-minus:hover,
+#visicell-clock-plus:hover {
+ background: #003300;
+}
+#visicell-clock-offset {
+ min-width: 60px;
+ text-align: center;
+ color: #ff0;
+ font-size: 13px;
+}
+.visicell-clock-calendar-label {
+ text-align: center;
+ font-size: 11px;
+}
+.visicell-calendar-grid {
+ display: grid;
+ grid-template-columns: repeat(7, 1fr);
+ gap: 4px;
+ font-size: 10px;
+}
+.visicell-calendar-cell {
+ border: 1px solid rgba(0, 255, 0, 0.25);
+ padding: 4px 0;
+ text-align: center;
+ background: rgba(0, 20, 0, 0.7);
+ color: #0f0;
+}
+.visicell-calendar-header {
+ background: rgba(0, 40, 0, 0.8);
+ font-weight: bold;
+}
+.visicell-calendar-empty {
+ background: rgba(0, 10, 0, 0.4);
+ border-style: dashed;
+}
+.visicell-calendar-today {
+ border-color: #ff0;
+ color: #ff0;
+ box-shadow: 0 0 8px rgba(255, 255, 0, 0.35);
+}
+#visicell-clue-wrapper {
+ margin-top: 18px;
+ display: inline-block;
+ border: 1px solid #0f0;
+ background: rgba(0, 0, 0, 0.92);
+ padding: 12px 16px 16px;
+ box-shadow: 0 0 18px rgba(0, 255, 0, 0.25);
+ text-transform: uppercase;
+ letter-spacing: 0.14em;
+}
+#visicell-clue-wrapper h3 {
+ margin: 0 0 10px 0;
+ font-size: 13px;
+ text-align: center;
+ color: #0ff;
+}
+.visicell-clue-grid {
+ display: grid;
+ grid-template-columns: 60px repeat(4, 150px);
+ grid-auto-rows: minmax(42px, auto);
+ border-top: 1px solid #0f0;
+ border-left: 1px solid #0f0;
+}
+.visicell-grid-cell {
+ border-right: 1px solid #0f0;
+ border-bottom: 1px solid #0f0;
+ padding: 6px 8px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ text-align: center;
+ white-space: normal;
+ word-break: break-word;
+}
+.visicell-grid-cell-header {
+ background: rgba(0, 32, 0, 0.85);
+ font-weight: bold;
+}
+.visicell-entry-cell {
+ background: rgba(8, 40, 8, 0.88);
+ box-shadow: inset 0 0 12px rgba(0, 255, 0, 0.35);
+}
+.visicell-grid-clue {
+ background: rgba(0, 24, 0, 0.85);
+}
+.visicell-entry-message div,
+.visicell-clue-message div,
+.visicell-status-message div {
+ margin: 2px 0;
+}
+.visicell-entry-message,
+.visicell-clue-message,
+.visicell-status-message {
+ width: 100%;
+}
+.visicell-status-cell {
+ background: rgba(0, 16, 0, 0.8);
+}
+#visicell-video-overlay {
+ position: fixed;
+ inset: 0;
+ background: rgba(0, 0, 0, 0.82);
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ z-index: 2000;
+ text-transform: uppercase;
+}
+.visicell-video-window {
+ width: 420px;
+ max-width: 90vw;
+ border: 2px solid #0f0;
+ background: #000;
+ padding: 16px;
+ box-shadow: 0 0 24px rgba(0, 255, 0, 0.35);
+ display: flex;
+ flex-direction: column;
+ gap: 12px;
+}
+.visicell-video-title {
+ text-align: center;
+ font-size: 14px;
+ letter-spacing: 0.18em;
+ color: #0ff;
+ border-bottom: 1px solid #0f0;
+ padding-bottom: 6px;
+}
+.visicell-video-window video {
+ width: 100%;
+ border: 1px solid #0f0;
+ background: #000;
+}
+`;
+ document.head.appendChild(style);
+}
+
+function createVisiCellClockWidget() {
+ const frame = document.getElementById('visicalc-frame');
+ if (!frame || document.getElementById('visicell-clock-button')) return;
+
+ const widget = document.createElement('div');
+ widget.id = 'visicell-clock-button';
+ frame.appendChild(widget);
+
+ const panel = document.createElement('div');
+ panel.id = 'visicell-clock-window';
+ panel.innerHTML = `
+  <div class="visicell-clock-title">SYSTEM CLOCK</div>
+  <div id="visicell-clock-time" class="visicell-clock-time"></div>
+  <div id="visicell-clock-detail" class="visicell-clock-detail"></div>
+  <div class="visicell-clock-controls">ADJUST OFFSET (MINUTES)</div>
+  <div class="visicell-clock-adjust">
+   <button id="visicell-clock-minus" type="button">-5</button>
+   <div id="visicell-clock-offset">+0</div>
+   <button id="visicell-clock-plus" type="button">+5</button>
+  </div>
+  <div class="visicell-clock-calendar-label">MONTH OVERVIEW</div>
+  <div id="visicell-calendar-grid" class="visicell-calendar-grid"></div>
+ `;
+ frame.appendChild(panel);
+
+ let offsetMinutes = 0;
+ const timeDisplay = panel.querySelector('#visicell-clock-time');
+ const detailDisplay = panel.querySelector('#visicell-clock-detail');
+ const offsetDisplay = panel.querySelector('#visicell-clock-offset');
+ const calendarDisplay = panel.querySelector('#visicell-calendar-grid');
+ const minusButton = panel.querySelector('#visicell-clock-minus');
+ const plusButton = panel.querySelector('#visicell-clock-plus');
+
+ const updateDisplays = () => {
+  const now = new Date(Date.now() + offsetMinutes * 60000);
+  const label = formatVisiCellClockDisplay(now);
+  widget.textContent = label;
+  if (timeDisplay) {
+   timeDisplay.textContent = label;
+  }
+  if (detailDisplay) {
+   const seconds = String(now.getSeconds()).padStart(2, '0');
+   detailDisplay.textContent = `${label}:${seconds}`;
+  }
+  if (offsetDisplay) {
+   offsetDisplay.textContent = offsetMinutes >= 0 ? `+${offsetMinutes}` : `${offsetMinutes}`;
+  }
+  renderVisiCellCalendar(calendarDisplay, now);
+ };
+
+ widget.addEventListener('click', (event) => {
+  event.stopPropagation();
+  const isVisible = panel.style.display === 'flex';
+  panel.style.display = isVisible ? 'none' : 'flex';
+  if (!isVisible) {
+   updateDisplays();
+  }
+ });
+
+ minusButton.addEventListener('click', (event) => {
+  event.stopPropagation();
+  offsetMinutes -= 5;
+  updateDisplays();
+ });
+
+ plusButton.addEventListener('click', (event) => {
+  event.stopPropagation();
+  offsetMinutes += 5;
+  updateDisplays();
+ });
+
+ panel.addEventListener('click', (event) => event.stopPropagation());
+
+ if (visiCellClockInterval) {
+  clearInterval(visiCellClockInterval);
+ }
+ visiCellClockInterval = setInterval(updateDisplays, 1000);
+ updateDisplays();
+}
+
+function formatVisiCellClockDisplay(date) {
+ const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+ const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+ const dayName = dayNames[date.getDay()];
+ const day = String(date.getDate()).padStart(2, '0');
+ const month = monthNames[date.getMonth()];
+ const year = date.getFullYear();
+ const hours = String(date.getHours()).padStart(2, '0');
+ const minutes = String(date.getMinutes()).padStart(2, '0');
+ return `${dayName} ${day} ${month} ${year} ${hours}:${minutes}`;
+}
+
+function renderVisiCellCalendar(container, referenceDate) {
+ if (!container) return;
+ const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+ const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+ const year = referenceDate.getFullYear();
+ const month = referenceDate.getMonth();
+ const firstDay = new Date(year, month, 1).getDay();
+ const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+ let html = '';
+ dayNames.forEach(name => {
+  html += `<div class="visicell-calendar-cell visicell-calendar-header">${name}</div>`;
+ });
+
+ for (let i = 0; i < firstDay; i++) {
+  html += '<div class="visicell-calendar-cell visicell-calendar-empty"></div>';
  }
 
- function isValidTerminalPrefix(value) {
+ for (let day = 1; day <= daysInMonth; day++) {
+  const dayValue = String(day).padStart(2, '0');
+  const isToday = day === referenceDate.getDate();
+  const todayClass = isToday ? ' visicell-calendar-today' : '';
+  html += `<div class="visicell-calendar-cell${todayClass}">${dayValue}</div>`;
+ }
+
+ container.innerHTML = html;
+ const calendarLabel = container.previousElementSibling;
+ if (calendarLabel && calendarLabel.classList.contains('visicell-clock-calendar-label')) {
+  calendarLabel.textContent = `${monthNames[month]} ${year}`;
+ }
+}
+
+function startClueTrail(frame) {
+ clueTrailActive = true;
+ clueStage = 0;
+ if (!frame) {
+  frame = document.getElementById('visicalc-frame');
+ }
+ const existingWrapper = document.getElementById('visicell-clue-wrapper');
+ if (existingWrapper) {
+  existingWrapper.remove();
+ }
+ const initialGrid = document.getElementById('visicell-initial-grid');
+ if (initialGrid) {
+  initialGrid.style.display = 'none';
+ }
+ createOrResetClueGrid(frame);
+ updateClueStageDisplay({ resetEntry: true });
+}
+
+function createOrResetClueGrid(frame) {
+ if (!frame) return;
+ ensureVisiCellEnhancementStyles();
+
+ const wrapper = document.createElement('div');
+ wrapper.id = 'visicell-clue-wrapper';
+
+ const heading = document.createElement('h3');
+ heading.textContent = 'VISICELL CLUE TRAIL';
+ wrapper.appendChild(heading);
+
+ const grid = document.createElement('div');
+ grid.className = 'visicell-clue-grid';
+ wrapper.appendChild(grid);
+
+ const columns = ['A', 'B', 'C', 'D'];
+ const rows = [1, 2, 3, 4];
+
+ const createHeaderCell = (text) => {
+  const cell = document.createElement('div');
+  cell.className = 'visicell-grid-cell visicell-grid-cell-header';
+  cell.textContent = text;
+  return cell;
+ };
+
+ grid.appendChild(createHeaderCell(''));
+ columns.forEach(letter => {
+  grid.appendChild(createHeaderCell(letter));
+ });
+
+ const dataCells = [];
+
+ rows.forEach(rowNumber => {
+  const rowHeader = createHeaderCell(String(rowNumber).padStart(2, '0'));
+  grid.appendChild(rowHeader);
+
+  columns.forEach(letter => {
+   const cell = document.createElement('div');
+   cell.className = 'visicell-grid-cell';
+   cell.dataset.row = rowNumber;
+   cell.dataset.col = letter;
+   grid.appendChild(cell);
+   dataCells.push({ row: rowNumber, col: letter, element: cell });
+  });
+ });
+
+ const entryCellIndex = Math.floor(Math.random() * dataCells.length);
+ const entryCell = dataCells[entryCellIndex];
+ let clueCell = dataCells.find((cell, index) => index !== entryCellIndex);
+ if (!clueCell) {
+  clueCell = entryCell;
+ }
+ let statusCell = dataCells.find(cell => cell !== entryCell && cell !== clueCell);
+ if (!statusCell) {
+  statusCell = clueCell;
+ }
+
+ entryCell.element.classList.add('visicell-entry-cell');
+ clueCell.element.classList.add('visicell-grid-clue');
+ statusCell.element.classList.add('visicell-status-cell');
+
+ const entryMessageEl = document.createElement('div');
+ entryMessageEl.className = 'visicell-entry-message';
+ entryCell.element.appendChild(entryMessageEl);
+
+ const clueMessageEl = document.createElement('div');
+ clueMessageEl.className = 'visicell-clue-message';
+ clueCell.element.appendChild(clueMessageEl);
+
+ const statusMessageEl = document.createElement('div');
+ statusMessageEl.className = 'visicell-status-message';
+ statusCell.element.appendChild(statusMessageEl);
+
+ frame.appendChild(wrapper);
+
+ clueTrailData = {
+  wrapper,
+  entryMessageEl,
+  clueMessageEl,
+  statusMessageEl,
+  entryCoord: `${entryCell.col}${entryCell.row}`
+ };
+}
+
+function setClueMessage(message) {
+ if (!clueTrailData || !clueTrailData.clueMessageEl) return;
+ const normalized = Array.isArray(message) ? message.join('\n') : message;
+ const safeMessage = (normalized || '').toUpperCase().replace(/\n/g, '<br>');
+ clueTrailData.clueMessageEl.innerHTML = safeMessage;
+}
+
+function setStatusMessage(message) {
+ if (!clueTrailData || !clueTrailData.statusMessageEl) return;
+ const normalized = Array.isArray(message) ? message.join('\n') : message;
+ const safeMessage = (normalized || '').toUpperCase().replace(/\n/g, '<br>');
+ clueTrailData.statusMessageEl.innerHTML = safeMessage;
+}
+
+function setEntryMessage(lines = []) {
+ if (!clueTrailData || !clueTrailData.entryMessageEl) return;
+ const items = Array.isArray(lines) ? lines : [lines];
+ const fragments = [`<div>ENTRY ${clueTrailData.entryCoord}</div>`];
+ items.forEach(line => {
+  if (typeof line === 'string' && line.trim().length > 0) {
+   fragments.push(`<div>${line.toUpperCase()}</div>`);
+  } else {
+   fragments.push('<div>&nbsp;</div>');
+  }
+ });
+ clueTrailData.entryMessageEl.innerHTML = fragments.join('');
+}
+
+function updateClueStageDisplay({ resetEntry = false } = {}) {
+ switch (clueStage) {
+  case 0:
+   setClueMessage("NO, I'VE LOCKED THAT AWAY. WHAT I HAVE LEFT COULD MAKE YOU CRY. WHY DON'T YOU DICE THAT, TOO. MAYBE SEARCH AROUND.");
+   setStatusMessage('AWAITING: SEARCH');
+   if (resetEntry) {
+    setEntryMessage(['AWAITING INPUT']);
+   }
+   break;
+  case 1:
+   setClueMessage("YOU FOUND AN ONION. IT'S ALREADY PEELED.\n\nBUT WAIT, THERE'S SOMETHING ITS OPPOSITE AND ITS PARTNER. TAKE THE LAST WORD OF THE FIRST LINE, AND REMOVE THE TERM FOR RICHARD UNKIND. YOU'LL KNOW SOULMATE.");
+   setStatusMessage('AWAITING: KEY');
+   if (resetEntry) {
+    setEntryMessage(['RECORDED: SEARCH', 'AWAITING KEY']);
+   }
+   break;
+  case 2:
+   setClueMessage("WHO'D I LEAVE FOR, KEY? WAS IT HIM OR HIS CREATION?");
+   setStatusMessage('AWAITING: SNAKE');
+   if (resetEntry) {
+    setEntryMessage(['RECORDED: KEY', 'AWAITING SNAKE']);
+   }
+   break;
+  case 3:
+   setClueMessage('SNEAKY. DO YOU KNOW WHO WAS THE SNEAK KING?');
+   setStatusMessage('AWAITING: BURGER KING');
+   if (resetEntry) {
+    setEntryMessage(['RECORDED: SNAKE', 'AWAITING BURGER KING']);
+   }
+   break;
+  case 4:
+   setClueMessage('FINE. HAVE IT YOUR WAY. ENJOY YOUR CARDBOARD KINGDOM OZYMANDIAS. I USED YOUR PASSWORD.');
+   setStatusMessage('TRAIL COMPLETE.');
+   if (resetEntry) {
+    setEntryMessage(['RECORDED: BURGER KING', 'NO FURTHER INPUT.']);
+   }
+   break;
+ }
+}
+
+function handleClueCommand(command) {
+ if (!clueTrailActive || !clueTrailData) return false;
+
+ const normalized = command.trim();
+
+ if (normalized === 'LEAVE') {
+  setStatusMessage('CLUE TRAIL ACTIVE. FOLLOW THE GRID.');
+  return true;
+ }
+
+ if (clueStage === 0) {
+  if (normalized === 'SEARCH') {
+   clueStage = 1;
+   updateClueStageDisplay();
+   setStatusMessage('ENTRY ACCEPTED: SEARCH | AWAITING KEY');
+   setEntryMessage(['RECORDED: SEARCH', 'AWAITING KEY']);
+  } else {
+   setStatusMessage(`ENTRY REFUSED: ${normalized || 'NULL'} | EXPECTED SEARCH`);
+   setEntryMessage(['AWAITING SEARCH']);
+  }
+  return true;
+ }
+
+ if (clueStage === 1) {
+  if (normalized === 'KEY') {
+   clueStage = 2;
+   showVisiCellVideoPopup('Key.mp4', { title: 'KEY VIDEO' });
+   updateClueStageDisplay();
+   setStatusMessage('ENTRY ACCEPTED: KEY | AWAITING SNAKE');
+   setEntryMessage(['RECORDED: KEY', 'AWAITING SNAKE']);
+  } else {
+   setStatusMessage(`ENTRY REFUSED: ${normalized || 'NULL'} | EXPECTED KEY`);
+   setEntryMessage(['STILL SEEKING KEY']);
+  }
+  return true;
+ }
+
+ if (clueStage === 2) {
+  if (normalized === 'SNAKE') {
+   clueStage = 3;
+   updateClueStageDisplay();
+   setStatusMessage('ENTRY ACCEPTED: SNAKE | AWAITING BURGER KING');
+   setEntryMessage(['RECORDED: SNAKE', 'AWAITING BURGER KING']);
+  } else {
+   setStatusMessage(`ENTRY REFUSED: ${normalized || 'NULL'} | EXPECTED SNAKE`);
+   setEntryMessage(['SEEK THE CREATION']);
+  }
+  return true;
+ }
+
+ if (clueStage === 3) {
+  if (normalized === 'BURGER KING') {
+   clueStage = 4;
+   clueTrailActive = false;
+   updateClueStageDisplay({ resetEntry: true });
+  } else {
+   setStatusMessage(`ENTRY REFUSED: ${normalized || 'NULL'} | EXPECTED BURGER KING`);
+   setEntryMessage(['AWAITING BURGER KING']);
+  }
+  return true;
+ }
+
+ if (clueStage >= 4) {
+  setStatusMessage('TRAIL COMPLETE. NO FURTHER INPUT.');
+  setEntryMessage(['NO FURTHER INPUT.']);
+  return true;
+ }
+
+ return false;
+}
+
+function resetTerminalAfterCommand() {
+ terminalInput = '';
+ updateTerminalPrompt();
+ schedulePromptToEnte({ immediateFill: true });
+}
+
+function showVisiCellVideoPopup(source, { title = 'VISICELL MEDIA' } = {}) {
+ ensureVisiCellEnhancementStyles();
+ const existing = document.getElementById('visicell-video-overlay');
+ if (existing) {
+  existing.remove();
+ }
+
+ const overlay = document.createElement('div');
+ overlay.id = 'visicell-video-overlay';
+
+ const windowEl = document.createElement('div');
+ windowEl.className = 'visicell-video-window';
+
+ const titleEl = document.createElement('div');
+ titleEl.className = 'visicell-video-title';
+ titleEl.textContent = (title || 'VISICELL MEDIA').toUpperCase();
+
+ const videoEl = document.createElement('video');
+ videoEl.src = source;
+ videoEl.controls = true;
+ videoEl.autoplay = true;
+ videoEl.setAttribute('playsinline', '');
+
+ windowEl.appendChild(titleEl);
+ windowEl.appendChild(videoEl);
+ overlay.appendChild(windowEl);
+ document.body.appendChild(overlay);
+
+ const fadeAway = () => {
+  overlay.style.transition = 'opacity 3s ease';
+  overlay.style.opacity = '0';
+  setTimeout(() => {
+   if (overlay.parentNode) {
+    overlay.remove();
+   }
+  }, 3000);
+ };
+
+ const safeFade = () => {
+  if (!overlay.classList.contains('visicell-video-fading')) {
+   overlay.classList.add('visicell-video-fading');
+   fadeAway();
+  }
+ };
+
+ overlay.addEventListener('click', (event) => {
+  if (event.target === overlay) {
+   safeFade();
+  }
+ });
+
+ videoEl.addEventListener('ended', safeFade, { once: true });
+ videoEl.addEventListener('error', safeFade, { once: true });
+
+ const playPromise = videoEl.play();
+ if (playPromise && typeof playPromise.then === 'function') {
+  playPromise.catch(() => safeFade());
+ }
+
+ setTimeout(() => {
+  if (!videoEl.paused) return;
+  safeFade();
+ }, 45000);
+}
+
+function isValidTerminalPrefix(value) {
  if (!value) return true;
  return validTerminalCommands.some(cmd => cmd.startsWith(value));
- }
+}
 
  function evaluateTerminalInputDrift() {
  if (!terminalActive || promptResetting) return;
@@ -3243,49 +3903,63 @@ showVisiCalc();
  processCommand(cmd, frame);
  }
  
- function processCommand(cmd, frame) {
- if (cmd === 'ENTER') {
- // ENTER triggers VisiCell Sim and disables R sequence
- enterCommandUsed = true;
- console.log('? ENTER command used - R sequence permanently disabled');
- startVisiCellSim();
- return;
- } else if (cmd === 'EXIT') {
- triggerExitCube(frame);
- terminalInput = '';
- updateTerminalPrompt();
- schedulePromptToEnte({ immediateFill: true });
- } else if (cmd === 'LEAVE') {
- // LEAVE triggers Ozymandias puzzle first, then House of Leaves after solving
- if (!ozymandiasSolved) {
- startOzymandiasPuzzle();
- } else {
- // After Ozymandias is solved, LEAVE triggers the House of Leaves sequence
- triggerLeaveSequence(frame);
- terminalInput = '';
- updateTerminalPrompt();
- schedulePromptToEnte({ immediateFill: true });
+function processCommand(cmd, frame) {
+ const normalized = cmd.trim().toUpperCase();
+
+ if (!normalized) {
+  resetTerminalAfterCommand();
+  return;
  }
- return;
+
+ if (!clueTrailActive && normalized === 'LEAVE') {
+  startClueTrail(frame);
+  resetTerminalAfterCommand();
+  return;
+ }
+
+ if (clueTrailActive) {
+  const handled = handleClueCommand(normalized);
+  if (handled) {
+   resetTerminalAfterCommand();
+   return;
+  }
+ }
+
+ if (!clueTrailActive && (normalized === 'SEARCH' || normalized === 'KEY' || normalized === 'SNAKE' || normalized === 'BURGER KING')) {
+  terminalResponse(frame, 'CLUE TRAIL LOCKED. ENTER LEAVE.');
+  return;
+ }
+
+ if (normalized === 'ENTER') {
+  // ENTER triggers VisiCell Sim and disables R sequence
+  enterCommandUsed = true;
+  console.log('? ENTER command used - R sequence permanently disabled');
+  startVisiCellSim();
+  return;
+ } else if (normalized === 'EXIT') {
+  triggerExitCube(frame);
+  resetTerminalAfterCommand();
+ } else if (normalized === 'LEAVE') {
+  setStatusMessage('CLUE TRAIL ACTIVE. FOLLOW THE GRID.');
+  resetTerminalAfterCommand();
+  return;
  } else if (cmd.toLowerCase() === 'myhouse.wad') {
- terminalResponse(frame, '"Too scary. How about OurHouse.loom?"');
+  terminalResponse(frame, '"TOO SCARY. HOW ABOUT OURHOUSE.LOOM?"');
  } else if (cmd.toLowerCase() === 'ourhouse.loom') {
- terminalResponse(frame, '"Huh... Not found. I must have renamed it. I asked my friends Crosby, Stills, Nash AND Young, none of them knew. Maybe wrong band."');
+  terminalResponse(frame, '"HUH... NOT FOUND. I MUST HAVE RENAMED IT. I ASKED MY FRIENDS CROSBY, STILLS, NASH AND YOUNG, NONE OF THEM KNEW. MAYBE WRONG BAND."');
  } else if (cmd.toLowerCase() === 'madness.loom') {
- terminalInput = '';
- updateTerminalPrompt();
- schedulePromptToEnte({ immediateFill: true });
- triggerVictory(frame);
+  resetTerminalAfterCommand();
+  triggerVictory(frame);
  } else {
- terminalResponse(frame, `Command not recognized: ${cmd}`);
+  terminalResponse(frame, `COMMAND NOT RECOGNIZED: ${normalized}`);
  }
- }
+}
  
  function terminalResponse(frame, message) {
  if (!frame) return;
  const responseDiv = document.createElement('div');
  responseDiv.style.cssText = 'margin-top: 10px; color: #0f0; font-family: "Courier New", monospace; font-size: 13px;';
- responseDiv.textContent = message;
+ responseDiv.textContent = (message || '').toUpperCase();
  frame.appendChild(responseDiv);
 
  // Reset input
