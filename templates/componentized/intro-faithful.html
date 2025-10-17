@@ -2964,10 +2964,53 @@ showVisiCalc();
  let rPromptHoverCount = 0;
 let enterCommandUsed = false; // Track if ENTER command was used
 let clueTrailActive = false;
-let clueTrailStage = -1;
 let clueTrailComplete = false;
 let clueEntryCellCoord = '';
 let clueSheetElements = null;
+let clueTrailPromptLocked = false;
+let clueTrailProgress = new Set();
+
+const clueTrailStepsConfig = [
+  {
+    command: 'SEARCH',
+    gridCoord: 'D5',
+    gridText: "YOU FOUND AN ONION. IT'S ALREADY PEELED. BUT WAIT, THERE'S SOMETHING ITS OPPOSITE AND ITS PARTNER. TAKE THE LAST WORD OF THE FIRST LINE, AND REMOVE THE TERM FOR RICHARD UNKIND. YOU'LL KNOW SOULMATE.",
+    onExecute: () => {
+      setClueText("YOU FOUND AN ONION. IT'S ALREADY PEELED.\n\nBUT WAIT, THERE'S SOMETHING ITS OPPOSITE AND ITS PARTNER. TAKE THE LAST WORD OF THE FIRST LINE, AND REMOVE THE TERM FOR RICHARD UNKIND. YOU'LL KNOW SOULMATE.");
+    }
+  },
+  {
+    command: 'KEY',
+    gridCoord: 'D6',
+    gridText: 'KEY FILE LOCATED: KEY.MP4',
+    onExecute: () => {
+      clueTrailPromptLocked = true;
+      setEntryCellPrompt('PLAYBACK: KEY.MP4');
+      flashEntryCell('#1a5f1a');
+      showVisiCellVideo('Key.mp4', 'KEY FILE', () => {
+        setClueText("WHO'D I LEAVE FOR, KEY? WAS IT HIM OR HIS CREATION?");
+        clueTrailPromptLocked = false;
+        refreshEntryPrompt();
+      });
+    }
+  },
+  {
+    command: 'SNAKE',
+    gridCoord: 'D7',
+    gridText: 'IDENTIFIED: SNEAK KING',
+    onExecute: () => {
+      setClueText('SNEAKY. DO YOU KNOW WHO WAS THE SNEAK KING?');
+    }
+  },
+  {
+    command: 'BURGER KING',
+    gridCoord: 'D8',
+    gridText: 'PASSWORD ACCEPTED. ACCESS GRANTED.',
+    onExecute: () => {
+      setClueText('FINE. HAVE IT YOUR WAY. ENJOY YOUR CARDBOARD KINGDOM OZYMANDIAS. I USED YOUR PASSWORD.');
+    }
+  }
+];
 let visicellClockInterval = null;
 let visicellClockWindow = null;
 let visicellClockDismissHandler = null;
@@ -5722,8 +5765,9 @@ STATUS: Waiting for input in D5 | Press any key to continue
  
 function startClueTrail(frame) {
   clueTrailActive = true;
-  clueTrailStage = 0;
   clueTrailComplete = false;
+  clueTrailPromptLocked = false;
+  clueTrailProgress.clear();
   console.log('?? Starting VisiCell clue trail');
 
   const hostFrame = frame || document.getElementById('visicalc-frame');
@@ -5735,8 +5779,8 @@ function startClueTrail(frame) {
   clueEntryCellCoord = generateRandomEntryCoord();
   buildClueSheet(hostFrame);
   setClueText("No, I've locked that away. What I have left could make you cry. Why don't you dice that, too. Maybe search around.");
-  setEntryCellPrompt('REQUEST: SEARCH');
-  flashEntryCell('#103510');
+  setEntryInstruction(`ROUTE RESPONSES THROUGH ${clueEntryCellCoord}. TYPE COMMANDS THERE.`);
+  refreshEntryPrompt();
 
   terminalInput = '';
   updateTerminalPrompt();
@@ -5825,6 +5869,13 @@ function buildClueSheet(frame) {
   container.appendChild(clueLabel);
   container.appendChild(clueContent);
 
+  const instructionLabel = makeLabelCell('C4');
+  instructionLabel.id = 'visicell-instruction-label';
+  const instructionContent = makeContentCell();
+  instructionContent.id = 'visicell-entry-instruction';
+  container.appendChild(instructionLabel);
+  container.appendChild(instructionContent);
+
   const entryLabel = makeLabelCell(clueEntryCellCoord);
   entryLabel.id = 'visicell-entry-label';
   const entryContent = makeContentCell();
@@ -5833,21 +5884,46 @@ function buildClueSheet(frame) {
   container.appendChild(entryLabel);
   container.appendChild(entryContent);
 
+  const stepRows = new Map();
+  clueTrailStepsConfig.forEach(step => {
+    const stepLabel = makeLabelCell(step.gridCoord);
+    const stepContent = makeContentCell();
+    stepContent.innerHTML = 'AWAITING INPUT';
+    container.appendChild(stepLabel);
+    container.appendChild(stepContent);
+    stepRows.set(step.command, { label: stepLabel, content: stepContent });
+  });
+
   frame.appendChild(container);
 
   clueSheetElements = {
     container,
     clueLabel,
     clueContent,
+    instructionLabel,
+    instructionContent,
     entryLabel,
-    entryContent
+    entryContent,
+    stepRows
   };
+
+  clueTrailStepsConfig.forEach(step => {
+    if (clueTrailProgress.has(step.command)) {
+      setClueRowText(step.command, step.gridText);
+    }
+  });
 }
 
 function setClueText(text) {
   if (!clueSheetElements || !clueSheetElements.clueContent) return;
   const formatted = (text || '').toUpperCase().replace(/\n/g, '<br>');
   clueSheetElements.clueContent.innerHTML = formatted;
+}
+
+function setEntryInstruction(text) {
+  if (!clueSheetElements || !clueSheetElements.instructionContent) return;
+  const formatted = (text || '').toUpperCase().replace(/\n/g, '<br>');
+  clueSheetElements.instructionContent.innerHTML = formatted;
 }
 
 function setEntryCellPrompt(text) {
@@ -5871,6 +5947,81 @@ function flashEntryCell(color) {
   }, 400);
 }
 
+function setClueRowText(command, text) {
+  if (!clueSheetElements || !clueSheetElements.stepRows) return;
+  const row = clueSheetElements.stepRows.get(command);
+  if (!row || !row.content) return;
+  const formatted = (text || '').toUpperCase().replace(/\n/g, '<br>');
+  row.content.innerHTML = formatted || 'AWAITING INPUT';
+}
+
+function flashClueRow(command, color) {
+  if (!clueSheetElements || !clueSheetElements.stepRows) return;
+  const row = clueSheetElements.stepRows.get(command);
+  if (!row || !row.content) return;
+  const target = row.content;
+  const originalBg = target.style.background;
+  const originalShadow = target.style.boxShadow;
+  target.style.background = color || 'rgba(0, 32, 0, 0.75)';
+  target.style.boxShadow = '0 0 18px rgba(0, 255, 0, 0.35)';
+  setTimeout(() => {
+    target.style.background = originalBg || 'rgba(0, 28, 0, 0.65)';
+    target.style.boxShadow = originalShadow || 'none';
+  }, 400);
+}
+
+function getRemainingClueCommands() {
+  return clueTrailStepsConfig
+    .map(step => step.command)
+    .filter(command => !clueTrailProgress.has(command));
+}
+
+function formatCommandList(commands) {
+  if (!commands || commands.length === 0) return '';
+  if (commands.length === 1) return commands[0];
+  if (commands.length === 2) return `${commands[0]} OR ${commands[1]}`;
+  const allButLast = commands.slice(0, -1).join(', ');
+  const last = commands[commands.length - 1];
+  return `${allButLast}, OR ${last}`;
+}
+
+function refreshEntryPrompt({ flash = true } = {}) {
+  if ((!clueTrailActive && !clueTrailComplete) || clueTrailPromptLocked) return;
+  const remaining = getRemainingClueCommands();
+  if (remaining.length === 0) {
+    setEntryCellPrompt('ACCESS GRANTED');
+    if (flash) flashEntryCell('#1f6f1f');
+    return;
+  }
+
+  const expectation = `REQUEST: ${formatCommandList(remaining)}`;
+  setEntryCellPrompt(expectation);
+  if (flash) flashEntryCell('#134d13');
+}
+
+function checkClueTrailCompletion(hostFrame) {
+  const remaining = getRemainingClueCommands();
+  if (remaining.length > 0) {
+    return;
+  }
+
+  if (clueTrailComplete) {
+    return;
+  }
+
+  clueTrailComplete = true;
+  clueTrailActive = false;
+
+  if (!clueTrailPromptLocked) {
+    setEntryCellPrompt('ACCESS GRANTED');
+    flashEntryCell('#1f6f1f');
+  }
+
+  setTimeout(() => {
+    triggerLeaveSequence(hostFrame);
+  }, 1800);
+}
+
 function generateRandomEntryCoord() {
   const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
   const rows = ['2', '3', '4', '5', '6'];
@@ -5891,6 +6042,8 @@ function handleClueTrailCommand(command, frame) {
   if (!clueSheetElements || !clueSheetElements.container || !hostFrame.contains(clueSheetElements.container)) {
     buildClueSheet(hostFrame);
     setClueText("No, I've locked that away. What I have left could make you cry. Why don't you dice that, too. Maybe search around.");
+    setEntryInstruction(`ROUTE RESPONSES THROUGH ${clueEntryCellCoord}. TYPE COMMANDS THERE.`);
+    refreshEntryPrompt({ flash: false });
   }
 
   const resetPrompt = () => {
@@ -5899,70 +6052,35 @@ function handleClueTrailCommand(command, frame) {
     schedulePromptToEnte({ immediateFill: true });
   };
 
-  const reinforce = (expectation) => {
-    setEntryCellPrompt(`REQUEST: ${expectation}`);
-    flashEntryCell('#320000');
-  };
-
-  if (clueTrailStage === 0) {
-    if (command === 'SEARCH') {
-      clueTrailStage = 1;
-      setClueText("YOU FOUND AN ONION. IT'S ALREADY PEELED.\n\nBUT WAIT, THERE'S SOMETHING ITS OPPOSITE AND ITS PARTNER. TAKE THE LAST WORD OF THE FIRST LINE, AND REMOVE THE TERM FOR RICHARD UNKIND. YOU'LL KNOW SOULMATE.");
-      setEntryCellPrompt('REQUEST: KEY');
-      flashEntryCell('#134d13');
-    } else {
-      reinforce('SEARCH');
+  const step = clueTrailStepsConfig.find(item => item.command === command);
+  if (!step) {
+    const remaining = getRemainingClueCommands();
+    if (remaining.length > 0) {
+      setEntryCellPrompt(`VALID INPUTS: ${formatCommandList(remaining)}`);
+      flashEntryCell('#320000');
     }
     resetPrompt();
     return;
   }
 
-  if (clueTrailStage === 1) {
-    if (command === 'KEY') {
-      clueTrailStage = 2;
-      setEntryCellPrompt('PLAYBACK: KEY.MP4');
-      flashEntryCell('#1a5f1a');
-      showVisiCellVideo('Key.mp4', 'KEY FILE', () => {
-        setClueText("WHO'D I LEAVE FOR, KEY? WAS IT HIM OR HIS CREATION?");
-        setEntryCellPrompt('REQUEST: SNAKE');
-        flashEntryCell('#134d13');
-      });
-    } else {
-      reinforce('KEY');
-    }
+  if (clueTrailProgress.has(step.command)) {
+    flashClueRow(step.command, '#1a5f1a');
+    refreshEntryPrompt({ flash: false });
     resetPrompt();
     return;
   }
 
-  if (clueTrailStage === 2) {
-    if (command === 'SNAKE') {
-      clueTrailStage = 3;
-      setClueText('SNEAKY. DO YOU KNOW WHO WAS THE SNEAK KING?');
-      setEntryCellPrompt('REQUEST: BURGER KING');
-      flashEntryCell('#134d13');
-    } else {
-      reinforce('SNAKE');
-    }
-    resetPrompt();
-    return;
+  clueTrailProgress.add(step.command);
+  setClueRowText(step.command, step.gridText);
+  flashClueRow(step.command, '#1a5f1a');
+
+  if (typeof step.onExecute === 'function') {
+    step.onExecute(hostFrame);
   }
 
-  if (clueTrailStage === 3) {
-    if (command === 'BURGER KING') {
-      clueTrailStage = 4;
-      clueTrailActive = false;
-      clueTrailComplete = true;
-      setClueText('FINE. HAVE IT YOUR WAY. ENJOY YOUR CARDBOARD KINGDOM OZYMANDIAS. I USED YOUR PASSWORD.');
-      setEntryCellPrompt('ACCESS GRANTED');
-      flashEntryCell('#1f6f1f');
-      setTimeout(() => {
-        triggerLeaveSequence(hostFrame);
-      }, 1800);
-    } else {
-      reinforce('BURGER KING');
-    }
-    resetPrompt();
-    return;
+  checkClueTrailCompletion(hostFrame);
+  if (!clueTrailPromptLocked && !clueTrailComplete) {
+    refreshEntryPrompt();
   }
 
   resetPrompt();
@@ -6049,10 +6167,11 @@ function resetVisiCellTerminal() {
   leaveSequenceActive = false;
   visiCellSimActive = false;
   clueTrailActive = false;
+  clueTrailPromptLocked = false;
   if (!clueTrailComplete) {
-    clueTrailStage = -1;
     clueEntryCellCoord = '';
   }
+  clueTrailProgress.clear();
   if (clueSheetElements && clueSheetElements.container) {
     clueSheetElements.container.remove();
     clueSheetElements = null;
