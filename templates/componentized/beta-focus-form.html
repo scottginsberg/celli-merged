@@ -208,10 +208,9 @@
     }
 
     .form-panel.submitted {
-      opacity: 0.35;
+      opacity: 0.65;
       transform: scale(0.98);
-      filter: blur(1px) saturate(1.4);
-      pointer-events: none;
+      filter: saturate(1.2);
     }
 
     .focus-form.focus-form--hidden {
@@ -479,29 +478,31 @@
 
     .wordle-puzzle.visible {
       display: grid;
-      gap: clamp(0.75rem, 2.5vw, 1.15rem);
+      gap: clamp(0.6rem, 2vw, 0.95rem);
     }
 
-    .wordle-puzzle__title {
-      margin: 0;
-      font-size: clamp(0.95rem, 2.6vw, 1.15rem);
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      font-weight: 800;
-      color: var(--submit-hover-fg);
+    .wordle-board-container {
+      position: relative;
+      display: grid;
+      max-height: clamp(12rem, 48vh, 18rem);
+      overflow-y: auto;
+      padding-right: clamp(0.15rem, 1vw, 0.35rem);
+      mask-image: linear-gradient(to bottom, transparent 0, black 0.75rem, black calc(100% - 0.75rem), transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 0.75rem, black calc(100% - 0.75rem), transparent 100%);
     }
 
-    .wordle-puzzle__message {
-      margin: 0;
-      font-size: clamp(0.75rem, 2.3vw, 0.85rem);
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.8);
-      min-height: 1.3em;
+    .wordle-board-container::-webkit-scrollbar {
+      width: 0.4rem;
+    }
+
+    .wordle-board-container::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 999px;
     }
 
     .wordle-board {
       display: grid;
+      grid-auto-rows: minmax(0, 1fr);
       gap: clamp(0.35rem, 2vw, 0.55rem);
     }
 
@@ -509,6 +510,18 @@
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: clamp(0.28rem, 1.6vw, 0.45rem);
+    }
+
+    .wordle-puzzle__message {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
     .wordle-cell {
@@ -624,7 +637,6 @@
 
     .submission-experience.visible {
       opacity: 1;
-      pointer-events: auto;
     }
 
     .selection-cloud {
@@ -792,12 +804,11 @@
     <div id="submissionExperience" class="submission-experience" aria-hidden="true">
       <div id="selectionCloud" class="selection-cloud"></div>
     </div>
-    <div id="wordlePuzzle" class="wordle-puzzle" aria-hidden="true" aria-live="polite">
-      <div class="wordle-puzzle__header">
-        <h2 class="wordle-puzzle__title">Focus Guess</h2>
-        <p id="wordlePuzzleMessage" class="wordle-puzzle__message"></p>
+    <div id="wordlePuzzle" class="wordle-puzzle" aria-hidden="true">
+      <div class="wordle-board-container">
+        <div class="wordle-board" role="grid" aria-label="Focus guessing puzzle"></div>
       </div>
-      <div class="wordle-board" role="grid" aria-label="Focus guessing puzzle"></div>
+      <p id="wordlePuzzleMessage" class="wordle-puzzle__message" aria-live="polite"></p>
     </div>
     <button type="button" id="escapeEncoreButton" class="escape-button" aria-live="polite" aria-label="Get me out of here!">Get me out of here!</button>
   </main>
