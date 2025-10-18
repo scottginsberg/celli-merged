@@ -183,7 +183,7 @@ function resumeFullSequenceIfNeeded() {
     console.log('🔗 Resuming Full Sequence at referrer stage');
     if (typeof window.triggerOverlay === 'function') {
       try {
-        window.triggerOverlay('https://www.reddit.com/r/all');
+        window.triggerOverlay('linkedin');
       } catch (error) {
         console.warn('⚠️ Unable to resume referrer overlay for Full Sequence:', error);
       }
@@ -804,7 +804,7 @@ function setupButtons() {
 
       try {
         if (typeof window.triggerOverlay === 'function') {
-          window.triggerOverlay('https://www.reddit.com/r/all');
+          window.triggerOverlay('linkedin');
         } else {
           console.warn('⚠️ Full Sequence overlay trigger unavailable.');
           showToast('Unable to start Full Sequence — overlay unavailable');
