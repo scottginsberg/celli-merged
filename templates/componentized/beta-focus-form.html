@@ -823,9 +823,8 @@
 
     .focus-option {
       --option-translate: 0px;
-      --visualizer-scale: 1;
       --visualizer-scale-x: 1;
-      --visualizer-scale-y: var(--visualizer-scale);
+      --visualizer-scale-y: 1;
       --visualizer-saturate: 1;
       --focus-tile-bg: var(--option-bg);
       --focus-tile-fg: var(--option-fg);
@@ -927,8 +926,6 @@
 
     .options.visualizer-active .focus-option {
       --option-translate: 0px;
-      --visualizer-scale-y: 1;
-      --visualizer-scale-x: var(--visualizer-scale);
       padding: 0.3rem 1.1rem;
       min-height: 1.25rem;
       transform-origin: left center;
@@ -943,7 +940,7 @@
 
     .wordle-selection-tiles.visualizer-active .wordle-selection-tile {
       --visualizer-scale-y: 1;
-      --visualizer-scale-x: var(--visualizer-scale);
+      --visualizer-scale-x: 1;
     }
 
     .wordle-selection-tiles.visualizer-active .wordle-selection-tile::before {
@@ -951,7 +948,7 @@
     }
 
     .wordle-selection-tiles.visualizer-breakaway {
-      transform: translateY(-10px);
+      transform: none;
       gap: clamp(0.75rem, 3vw, 1.35rem);
     }
 
@@ -1596,7 +1593,6 @@
       let firstTrackCompleted = false;
       let sequencePlaying = false;
       let wordleFeaturesRevealed = false;
-      const VISUALIZER_BREAKAWAY_DELAY_MS = 46000;
       let visualizerBreakawayTimeoutId = null;
       let visualizerBreakawayActive = false;
 
@@ -1761,10 +1757,7 @@
       }
 
       function scheduleVisualizerBreakaway() {
-        cancelVisualizerBreakawayTimer();
-        visualizerBreakawayActive = false;
-        updateVisualizerBreakawayClass();
-        visualizerBreakawayTimeoutId = window.setTimeout(triggerVisualizerBreakaway, VISUALIZER_BREAKAWAY_DELAY_MS);
+        deactivateVisualizerBreakaway();
       }
 
       function setInitialOptionButtonsEnabled(enabled) {
@@ -2895,7 +2888,8 @@
       const mediaSourceMap = new WeakMap();
       let visualizerFrameId = null;
       let activeVisualizerTrack = null;
-      const tileScaleState = new WeakMap();
+      const tileWidthState = new WeakMap();
+      const tileHeightState = new WeakMap();
       const tileSaturationState = new WeakMap();
 
       function ensureAudioEngine() {
@@ -2972,19 +2966,25 @@
           const magnitude = analyserData[dataIndex] / 255;
           const eased = Math.pow(magnitude, 1.35);
           const isBreakawayTile = breakawayTargets ? breakawayTargets.has(button) : false;
-          const scaleBoost = isBreakawayTile ? 1.85 : 1.2;
+          const widthBoost = isBreakawayTile ? 1.85 : 1.2;
+          const heightDrop = isBreakawayTile ? 0.65 : 0.45;
           const saturationBoost = isBreakawayTile ? 1.15 : 0.6;
-          const targetScale = 1 + eased * scaleBoost;
+          const targetWidth = 1 + eased * widthBoost;
+          const targetHeight = Math.max(0.45, 1 - eased * heightDrop);
           const targetSaturation = 1 + eased * saturationBoost;
 
-          const currentScale = tileScaleState.get(button) ?? 1;
+          const currentWidth = tileWidthState.get(button) ?? 1;
+          const currentHeight = tileHeightState.get(button) ?? 1;
           const currentSaturation = tileSaturationState.get(button) ?? 1;
-          const nextScale = currentScale + (targetScale - currentScale) * 0.25;
+          const nextWidth = currentWidth + (targetWidth - currentWidth) * 0.25;
+          const nextHeight = currentHeight + (targetHeight - currentHeight) * 0.3;
           const nextSaturation = currentSaturation + (targetSaturation - currentSaturation) * 0.3;
 
-          tileScaleState.set(button, nextScale);
+          tileWidthState.set(button, nextWidth);
+          tileHeightState.set(button, nextHeight);
           tileSaturationState.set(button, nextSaturation);
-          button.style.setProperty('--visualizer-scale', nextScale.toFixed(3));
+          button.style.setProperty('--visualizer-scale-x', nextWidth.toFixed(3));
+          button.style.setProperty('--visualizer-scale-y', nextHeight.toFixed(3));
           button.style.setProperty('--visualizer-saturate', nextSaturation.toFixed(3));
         });
 
@@ -3023,9 +3023,11 @@
         }
         const allButtons = [...optionButtons, ...wordleSelectionButtons];
         allButtons.forEach((button) => {
-          tileScaleState.delete(button);
+          tileWidthState.delete(button);
+          tileHeightState.delete(button);
           tileSaturationState.delete(button);
-          button.style.removeProperty('--visualizer-scale');
+          button.style.removeProperty('--visualizer-scale-x');
+          button.style.removeProperty('--visualizer-scale-y');
           button.style.removeProperty('--visualizer-saturate');
         });
         if (optionsContainer) {
@@ -3127,7 +3129,18 @@
         stopStrumPreview();
         resetAudioVolume(strumPreviewTrack);
         try {
-          strumPreviewTrack.currentTime = 0;
+          const cueTime = (() => {
+            const fallback = 2;
+            const duration = Number.isFinite(strumPreviewTrack.duration)
+              ? strumPreviewTrack.duration
+              : Number.NaN;
+            if (Number.isFinite(duration)) {
+              const safeDuration = Math.max(0, duration - 0.25);
+              return Math.min(fallback, safeDuration);
+            }
+            return fallback;
+          })();
+          strumPreviewTrack.currentTime = cueTime;
         } catch (error) {
           console.warn('Unable to prime strum preview audio', error);
         }
