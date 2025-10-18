@@ -272,15 +272,6 @@
    100% { background-position: 0% 50%; }
   }
   
-  /* Hide real cursor when faux cursor is active */
-  body.faux-cursor-active {
-   cursor: none !important;
-  }
-  
-  body.faux-cursor-active * {
-   cursor: none !important;
-  }
-  
   /* Checkbox container hover effect */
   #tosCheckboxContainer:hover {
    border-color: rgba(143, 180, 255, 0.6) !important;
@@ -1271,9 +1262,7 @@
    </div>
   </div>
   
-  <!-- Custom Cursor -->
-  <div id="customCursor" class="custom-cursor"></div>
- </div>
+</div>
  
  <!-- Tooltip -->
  <div id="refTooltip" class="ref-tooltip">
@@ -1362,7 +1351,6 @@
 
   const refTooltip = document.getElementById('refTooltip');
   const refTooltipText = refTooltip ? refTooltip.querySelector('.ref-tooltip-text') : null;
-  const customCursor = document.getElementById('customCursor');
   const refPanel = document.querySelector('.celli-ref-panel');
   const edgeImpact = document.getElementById('edgeImpact');
   const baseDarkness = document.getElementById('baseDarkness');
@@ -1412,6 +1400,21 @@
   badBooleanTrack.loop = false;
   badBooleanTrack.volume = 0.82;
 
+  let holdWhirContext = null;
+  let holdWhirOscillator = null;
+  let holdWhirGain = null;
+  let holdWhirFilter = null;
+  let holdWhirLfo = null;
+  let holdWhirLfoGain = null;
+
+  let badBooleanContext = null;
+  let badBooleanSource = null;
+  let badBooleanAnalyser = null;
+  let badBooleanAnalyserData = null;
+  let badBooleanFrameId = null;
+  let badBooleanWaveChars = [];
+  let badBooleanPartyActive = false;
+
   let scratchContext = null;
   let scratchGlitchPromise = Promise.resolve();
   let badBooleanEndListener = null;
@@ -1435,6 +1438,7 @@
       console.warn('Unable to reset BadBoolean track', error);
     }
     clearBadBooleanCompletionListeners();
+    stopBadBooleanVisualizer();
   }
 
   function playBadBooleanTrack() {
@@ -1495,6 +1499,142 @@
     });
   }
 
+  function ensureBadBooleanAnalyser() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      return false;
+    }
+
+    if (!badBooleanContext) {
+      badBooleanContext = new AudioContextClass();
+    }
+
+    if (badBooleanContext.state === 'suspended') {
+      badBooleanContext.resume().catch(() => {});
+    }
+
+    if (!badBooleanSource) {
+      try {
+        badBooleanSource = badBooleanContext.createMediaElementSource(badBooleanTrack);
+      } catch (error) {
+        console.warn('⚠️ Unable to create BadBoolean media source:', error);
+        return false;
+      }
+    }
+
+    if (!badBooleanAnalyser) {
+      badBooleanAnalyser = badBooleanContext.createAnalyser();
+      badBooleanAnalyser.fftSize = 256;
+      badBooleanAnalyser.smoothingTimeConstant = 0.78;
+      badBooleanSource.connect(badBooleanAnalyser);
+      badBooleanAnalyser.connect(badBooleanContext.destination);
+      badBooleanAnalyserData = new Uint8Array(badBooleanAnalyser.frequencyBinCount);
+    }
+
+    return true;
+  }
+
+  function applyBadBooleanWave(container) {
+    badBooleanWaveChars = [];
+    if (!container) {
+      return;
+    }
+
+    const lines = container.querySelectorAll('[data-wave-line]');
+    lines.forEach((line) => {
+      const rawText = line.dataset.waveRaw || line.textContent || '';
+      line.dataset.waveRaw = rawText;
+      line.textContent = '';
+      const wrapper = document.createElement('span');
+      wrapper.className = 'badboolean-wave-line';
+      Array.from(rawText).forEach((character) => {
+        const span = document.createElement('span');
+        span.className = 'badboolean-wave-char';
+        span.textContent = character === ' ' ? '\u00A0' : character;
+        wrapper.appendChild(span);
+        badBooleanWaveChars.push({ element: span, boost: parseFloat(line.dataset.waveBoost || '1') });
+      });
+      line.appendChild(wrapper);
+    });
+  }
+
+  function updateBadBooleanVisualizer() {
+    if (!badBooleanAnalyser || !badBooleanAnalyserData) {
+      badBooleanFrameId = requestAnimationFrame(updateBadBooleanVisualizer);
+      return;
+    }
+
+    badBooleanAnalyser.getByteFrequencyData(badBooleanAnalyserData);
+    const length = badBooleanWaveChars.length || 1;
+    for (let i = 0; i < length; i += 1) {
+      const charRecord = badBooleanWaveChars[i];
+      if (!charRecord || !charRecord.element) {
+        continue;
+      }
+      const binIndex = Math.min(badBooleanAnalyserData.length - 1, Math.floor((i / length) * badBooleanAnalyserData.length));
+      const raw = badBooleanAnalyserData[binIndex] / 255;
+      const emphasis = Math.pow(raw, 1.4);
+      const boost = Number.isFinite(charRecord.boost) ? charRecord.boost : 1;
+      const level = Math.min(1, emphasis * (0.9 + boost * 0.55));
+      charRecord.element.style.setProperty('--wave-level', level.toFixed(3));
+      if (level > 0.25) {
+        const hue = Math.max(0, 300 - (level * 180));
+        charRecord.element.style.color = `hsl(${hue.toFixed(0)}, 100%, ${(60 + level * 20).toFixed(1)}%)`;
+      } else {
+        charRecord.element.style.color = '';
+      }
+    }
+
+    badBooleanFrameId = requestAnimationFrame(updateBadBooleanVisualizer);
+  }
+
+  function startBadBooleanVisualizer() {
+    if (!ensureBadBooleanAnalyser()) {
+      return;
+    }
+
+    if (!badBooleanWaveChars.length && refSidebarAck) {
+      applyBadBooleanWave(refSidebarAck);
+    }
+
+    if (refSidebar) {
+      refSidebar.classList.add('badboolean-party');
+    }
+    if (refSidebarAck) {
+      refSidebarAck.classList.add('badboolean-party');
+    }
+
+    if (!badBooleanFrameId) {
+      badBooleanFrameId = requestAnimationFrame(updateBadBooleanVisualizer);
+    }
+
+    badBooleanPartyActive = true;
+  }
+
+  function stopBadBooleanVisualizer() {
+    if (badBooleanFrameId) {
+      cancelAnimationFrame(badBooleanFrameId);
+      badBooleanFrameId = null;
+    }
+
+    badBooleanWaveChars.forEach((record) => {
+      if (record?.element) {
+        record.element.style.setProperty('--wave-level', '0');
+        record.element.style.color = '';
+      }
+    });
+    badBooleanWaveChars = [];
+
+    if (refSidebar) {
+      refSidebar.classList.remove('badboolean-party');
+    }
+    if (refSidebarAck) {
+      refSidebarAck.classList.remove('badboolean-party');
+    }
+
+    badBooleanPartyActive = false;
+  }
+
   function startBadBooleanAdAudio() {
     stopChantAudio();
     stopBadBooleanTrack();
@@ -1502,6 +1642,10 @@
       playBadBooleanTrack();
     });
   }
+
+  badBooleanTrack.addEventListener('play', () => {
+    startBadBooleanVisualizer();
+  });
 
   chantAudio.addEventListener('play', () => startChantVisualizer(6000));
   chantAudio.addEventListener('ended', () => {
@@ -1819,6 +1963,7 @@
 
   const TOOLTIP_ANIMATION_DURATION = 700;
   const TOOLTIP_COLLISION_RATIO = 0.95;
+  const TOOLTIP_CHARGE_DURATION = 260;
 
   function clampSize(value, min, max) {
     return Math.min(Math.max(value, min), max);
@@ -1889,7 +2034,7 @@
     const metrics = getTooltipMetrics();
     const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1280;
 
-    document.querySelectorAll('.ref-tooltip.morphing').forEach((tooltip) => {
+    document.querySelectorAll('.ref-tooltip.morphing, .ref-tooltip.charging').forEach((tooltip) => {
       const storedWidth = parseFloat(tooltip.dataset.tooltipWidth || '0');
       const storedLeft = parseFloat(tooltip.dataset.initialLeft || '0');
       const tooltipWidth = storedWidth || metrics.tooltipWidth;
@@ -3376,26 +3521,33 @@
     ackBtn.style.justifyContent = '';
 
     ackBtn.innerHTML = `
-        <div style="font-size: 20px; font-weight: 900; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 2px; color: #ff0080; animation: pulse 0.5s infinite;">
-          ARE YOU A TOTAL ZERO?
+        <div class="badboolean-banner" style="padding: 28px 20px; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center;">
+          <div class="badboolean-topline" data-wave-line data-wave-boost="0.9" style="font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #ff4acb; text-shadow: 0 0 16px rgba(255, 54, 204, 0.6);">
+            ARE YOU A TOTAL ZERO?
+          </div>
+          <div class="badboolean-subline" data-wave-line data-wave-boost="0.8" style="font-size: 16px; font-weight: 700; color: #f5ff7d; text-shadow: 0 0 12px rgba(0,0,0,0.8);">
+            💋 SINGLES IN YOUR AREA 💋
+          </div>
+          <div class="badboolean-mainline" data-wave-line data-wave-boost="1.5" style="font-size: 28px; font-weight: 900; letter-spacing: 3px; color: #61f8ff; text-shadow: 0 0 18px rgba(97,248,255,0.9);">
+            BADBOOLEAN.COM
+          </div>
+          <div class="badboolean-tagline" data-wave-line data-wave-boost="0.6" style="font-size: 14px; font-weight: 500; color: #ff92d0; font-style: italic;">
+            True love never felt so false.
+          </div>
+          <div class="badboolean-footer" data-wave-line data-wave-boost="0.85" style="font-size: 12px; font-weight: 700; color: #ff5cff;">
+            🔥 CLICK HERE NOW!!! 🔥
+          </div>
+          <div class="badboolean-twist" data-wave-line data-wave-boost="0.4" style="font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.78); text-transform: uppercase; letter-spacing: 0.18em;">
+            * compatibility test completed — you passed.
+          </div>
         </div>
-        <div style="font-size: 16px; margin-bottom: 10px; color: #ffff00; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
-          💋 SINGLES IN YOUR AREA 💋
-        </div>
-        <div style="font-size: 26px; font-weight: 900; color: #00ff00; text-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00; letter-spacing: 3px; animation: pulse 0.8s infinite;">
-          BADBOOLEAN.COM
-        </div>
-        <div style="font-size: 14px; margin-top: 10px; color: #ff69b4; font-style: italic; font-weight: 500; opacity: 0.9;">
-          True love never felt so false.
-        </div>
-        <div style="font-size: 12px; margin-top: 8px; color: #ff00ff; font-weight: 600;">🔥 CLICK HERE NOW!!! 🔥</div>
       `;
-    ackBtn.style.background = 'linear-gradient(135deg, #ff0080 0%, #ff8c00 25%, #ffff00 50%, #00ff00 75%, #ff0080 100%)';
-    ackBtn.style.backgroundSize = '200% 200%';
+    ackBtn.style.background = 'linear-gradient(135deg, rgba(255, 0, 128, 0.92) 0%, rgba(255, 140, 0, 0.82) 30%, rgba(0, 255, 204, 0.72) 65%, rgba(120, 50, 255, 0.85) 100%)';
+    ackBtn.style.backgroundSize = '280% 280%';
     ackBtn.style.border = '3px solid #ff00ff';
-    ackBtn.style.boxShadow = '0 0 20px #ff0080, 0 0 40px #00ff00, inset 0 0 20px rgba(255,255,255,0.3)';
-    ackBtn.style.animation = 'pulse 0.5s infinite, rainbow-shift 3s ease infinite';
-    ackBtn.style.padding = '30px 20px';
+    ackBtn.style.boxShadow = '0 0 22px #ff4acb, 0 0 48px rgba(0,255,204,0.65), inset 0 0 20px rgba(255,255,255,0.35)';
+    ackBtn.style.animation = 'rainbow-shift 3s ease infinite';
+    ackBtn.style.padding = '0';
     ackBtn.setAttribute('aria-label', 'Open the Loomworks invitation');
 
     console.log('  🎪🎪🎪 BADBOOLEAN AD ACTIVE! 🎪🎪🎪');
@@ -3421,6 +3573,8 @@
     badBooleanTrack.addEventListener('error', badBooleanErrorListener, { once: true });
 
     startBadBooleanAdAudio();
+    applyBadBooleanWave(ackBtn);
+    startBadBooleanVisualizer();
   }
 
   function showLoomworksInvite(isAltVersion = false) {
@@ -3627,118 +3781,35 @@
     const checkbox = document.getElementById('tosCheckbox');
     const container = document.getElementById('tosCheckboxContainer');
     if (!checkbox || !container) return;
-    
-    console.log('🧲 Magnetic checkbox activated - hiding real cursor');
-    
-    // Hide real cursor
-    document.body.classList.add('faux-cursor-active');
-    
-    // Create faux cursor
-    let fauxCursor = document.getElementById('fauxCursor');
-    if (!fauxCursor) {
-      fauxCursor = document.createElement('div');
-      fauxCursor.id = 'fauxCursor';
-      fauxCursor.style.cssText = `
-        position: fixed;
-        width: 24px;
-        height: 24px;
-        border: 3px solid rgba(255, 255, 255, 0.9);
-        border-radius: 50%;
-        pointer-events: none;
-        z-index: 100000;
-        background: radial-gradient(circle, rgba(102, 126, 234, 0.6), transparent);
-        box-shadow: 0 0 20px rgba(102, 126, 234, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.3);
-        transform-origin: center center;
-        transform: translate(-50%, -50%);
-      `;
-      document.body.appendChild(fauxCursor);
-      console.log('  🎯 Faux cursor element created');
-    }
-    
-    fauxCursor.style.display = 'block';
-    console.log('  👁️ Faux cursor visible, real cursor hidden');
-    
-    // Track real mouse position - initialize with current position
-    let mouseX = window.innerWidth / 2;
-    let mouseY = window.innerHeight / 2;
-    
-    const mouseMoveHandler = (e) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-    };
-    
-    // Add event listener and store reference for cleanup
-    document.addEventListener('mousemove', mouseMoveHandler);
-    window.fauxCursorMouseHandler = mouseMoveHandler;
-    
-    console.log(`  📍 Initial mouse position: (${mouseX}, ${mouseY})`);
-    
-    // Animate faux cursor toward checkbox with smooth interpolation
-    let currentFauxX = mouseX;
-    let currentFauxY = mouseY;
-    let animationId;
-    let frameCount = 0;
-    
-    const animateFauxCursor = () => {
-      frameCount++;
-      
-      // Get checkbox position
-      const checkboxRect = checkbox.getBoundingClientRect();
-      if (!checkboxRect || checkboxRect.width === 0) {
-        // Checkbox not visible yet, retry
-        animationId = requestAnimationFrame(animateFauxCursor);
-        return;
-      }
-      
-      const targetX = checkboxRect.left + checkboxRect.width / 2;
-      const targetY = checkboxRect.top + checkboxRect.height / 2;
-      
-      // Calculate gravitational pull from real mouse to checkbox
-      const dx = targetX - mouseX;
-      const dy = targetY - mouseY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      // Strong magnetic effect within 600px
-      let desiredFauxX = mouseX;
-      let desiredFauxY = mouseY;
-      
-      if (distance < 600) {
-        const strength = 1 - (distance / 600);
-        const pullStrength = 0.85; // Very strong pull (85% toward checkbox)
-        desiredFauxX = mouseX + (dx * strength * pullStrength);
-        desiredFauxY = mouseY + (dy * strength * pullStrength);
-        
-        // Scale and glow faux cursor based on proximity
-        const scale = 1 + (strength * 0.8);
-        const glow = 20 + (strength * 40);
-        fauxCursor.style.transform = `translate(-50%, -50%) scale(${scale})`;
-        fauxCursor.style.boxShadow = `0 0 ${glow}px rgba(102, 126, 234, ${0.8 + strength * 0.2}), inset 0 0 10px rgba(255, 255, 255, ${0.3 + strength * 0.4})`;
-        
-        // Log every 60 frames for debugging
-        if (frameCount % 60 === 0) {
-          console.log(`  🧲 Mouse:(${mouseX.toFixed(0)},${mouseY.toFixed(0)}) Checkbox:(${targetX.toFixed(0)},${targetY.toFixed(0)}) Distance:${distance.toFixed(0)}px Strength:${(strength * 100).toFixed(0)}%`);
-          console.log(`  🎯 Faux:(${currentFauxX.toFixed(0)},${currentFauxY.toFixed(0)}) Desired:(${desiredFauxX.toFixed(0)},${desiredFauxY.toFixed(0)})`);
-        }
-      } else {
-        fauxCursor.style.transform = 'translate(-50%, -50%) scale(1)';
-        fauxCursor.style.boxShadow = '0 0 20px rgba(102, 126, 234, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.3)';
-      }
-      
-      // Smooth interpolation for cursor position
-      currentFauxX += (desiredFauxX - currentFauxX) * 0.15;
-      currentFauxY += (desiredFauxY - currentFauxY) * 0.15;
-      
-      fauxCursor.style.left = currentFauxX + 'px';
-      fauxCursor.style.top = currentFauxY + 'px';
-      
-      animationId = requestAnimationFrame(animateFauxCursor);
-    };
-    
-    console.log('  🚀 Starting faux cursor animation loop');
-    animateFauxCursor();
 
-    // Store animation ID for cleanup
-    window.fauxCursorAnimationId = animationId;
+    console.log('🧲 Magnetic checkbox activated - emphasizing invite path');
+
+    container.style.transition = 'transform 0.25s ease, box-shadow 0.25s ease';
+
+    const updateMagneticHighlight = (clientX, clientY) => {
+      const rect = container.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const dx = centerX - clientX;
+      const dy = centerY - clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const range = Math.max(rect.width, rect.height) * 4;
+      const strength = Math.max(0, Math.min(1, 1 - distance / range));
+      const pullX = dx * strength * -0.2;
+      const pullY = dy * strength * -0.2;
+      container.style.transform = `translate(${pullX}px, ${pullY}px) scale(${1 + strength * 0.06})`;
+      container.style.boxShadow = `0 0 ${18 + strength * 28}px rgba(143, 180, 255, ${0.28 + strength * 0.45})`;
+    };
+
+    const pointerHandler = (event) => {
+      const clientX = event.clientX ?? (event.touches && event.touches[0]?.clientX) ?? window.innerWidth / 2;
+      const clientY = event.clientY ?? (event.touches && event.touches[0]?.clientY) ?? window.innerHeight / 2;
+      updateMagneticHighlight(clientX, clientY);
+    };
+
+    document.addEventListener('mousemove', pointerHandler);
+    window.fauxCursorMouseHandler = pointerHandler;
+    updateMagneticHighlight(window.innerWidth / 2, window.innerHeight / 2);
   }
 
   function attachTosAcceptanceHandler() {
@@ -3840,6 +3911,140 @@
     }, safeDelay);
   }
 
+  function startHoldWhir() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      return;
+    }
+
+    if (!holdWhirContext) {
+      holdWhirContext = new AudioContextClass();
+    } else if (holdWhirContext.state === 'suspended') {
+      holdWhirContext.resume().catch(() => {});
+    }
+
+    const ctx = holdWhirContext;
+    const now = ctx.currentTime;
+
+    stopHoldWhir(false);
+
+    holdWhirOscillator = ctx.createOscillator();
+    holdWhirOscillator.type = 'sawtooth';
+
+    holdWhirFilter = ctx.createBiquadFilter();
+    holdWhirFilter.type = 'bandpass';
+    holdWhirFilter.frequency.setValueAtTime(180, now);
+    holdWhirFilter.frequency.exponentialRampToValueAtTime(520, now + 2.8);
+    holdWhirFilter.Q.setValueAtTime(5.2, now);
+
+    holdWhirGain = ctx.createGain();
+    holdWhirGain.gain.setValueAtTime(0.0001, now);
+    holdWhirGain.gain.exponentialRampToValueAtTime(0.3, now + 0.6);
+    holdWhirGain.gain.linearRampToValueAtTime(0.36, now + 2.4);
+
+    holdWhirOscillator.frequency.setValueAtTime(110, now);
+    holdWhirOscillator.frequency.exponentialRampToValueAtTime(360, now + 2.6);
+
+    holdWhirLfo = ctx.createOscillator();
+    holdWhirLfo.type = 'sine';
+    holdWhirLfo.frequency.setValueAtTime(6, now);
+    holdWhirLfoGain = ctx.createGain();
+    holdWhirLfoGain.gain.setValueAtTime(26, now);
+
+    holdWhirLfo.connect(holdWhirLfoGain);
+    holdWhirLfoGain.connect(holdWhirFilter.frequency);
+
+    holdWhirOscillator.connect(holdWhirFilter);
+    holdWhirFilter.connect(holdWhirGain);
+    holdWhirGain.connect(ctx.destination);
+
+    holdWhirOscillator.start();
+    holdWhirLfo.start();
+  }
+
+  function triggerHoldClick() {
+    if (!holdWhirContext) {
+      return;
+    }
+
+    const ctx = holdWhirContext;
+    const now = ctx.currentTime;
+    const clickOsc = ctx.createOscillator();
+    const clickGain = ctx.createGain();
+    clickOsc.type = 'square';
+    clickOsc.frequency.setValueAtTime(880, now);
+    clickOsc.frequency.exponentialRampToValueAtTime(220, now + 0.16);
+    clickGain.gain.setValueAtTime(0.0001, now);
+    clickGain.gain.exponentialRampToValueAtTime(0.42, now + 0.015);
+    clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+    clickOsc.connect(clickGain);
+    clickGain.connect(ctx.destination);
+    clickOsc.start(now);
+    clickOsc.stop(now + 0.2);
+  }
+
+  function stopHoldWhir(playClick = false) {
+    if (!holdWhirContext) {
+      if (playClick) {
+        triggerHoldClick();
+      }
+      return;
+    }
+
+    const ctx = holdWhirContext;
+    const now = ctx.currentTime;
+
+    if (holdWhirGain) {
+      try {
+        const current = holdWhirGain.gain.value || 0.0001;
+        holdWhirGain.gain.cancelScheduledValues(now);
+        holdWhirGain.gain.setValueAtTime(Math.max(current, 0.0001), now);
+        holdWhirGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+      } catch (error) {
+        console.warn('Unable to fade hold whir gain', error);
+      }
+    }
+
+    if (holdWhirOscillator) {
+      try {
+        holdWhirOscillator.stop(now + 0.24);
+      } catch (error) {
+        console.warn('Unable to stop hold oscillator', error);
+      }
+      holdWhirOscillator.disconnect();
+      holdWhirOscillator = null;
+    }
+
+    if (holdWhirLfo) {
+      try {
+        holdWhirLfo.stop(now + 0.24);
+      } catch (error) {
+        console.warn('Unable to stop hold LFO', error);
+      }
+      holdWhirLfo.disconnect();
+      holdWhirLfo = null;
+    }
+
+    if (holdWhirLfoGain) {
+      holdWhirLfoGain.disconnect();
+      holdWhirLfoGain = null;
+    }
+
+    if (holdWhirFilter) {
+      holdWhirFilter.disconnect();
+      holdWhirFilter = null;
+    }
+
+    if (holdWhirGain) {
+      holdWhirGain.disconnect();
+      holdWhirGain = null;
+    }
+
+    if (playClick) {
+      triggerHoldClick();
+    }
+  }
+
   function startGoldenHoldSequence() {
     if (postTermsSequenceStarted) {
       return;
@@ -3848,30 +4053,26 @@
     postTermsSequenceStarted = true;
 
     stopMagneticCursor();
-    document.body.classList.remove('faux-cursor-active');
-
-    const fauxCursor = document.getElementById('fauxCursor');
-    if (fauxCursor) {
-      fauxCursor.style.display = 'none';
-    }
-
-    if (window.fauxCursorAnimationId) {
-      cancelAnimationFrame(window.fauxCursorAnimationId);
-      window.fauxCursorAnimationId = null;
-    }
-
     if (window.fauxCursorMouseHandler) {
       document.removeEventListener('mousemove', window.fauxCursorMouseHandler);
       window.fauxCursorMouseHandler = null;
+    }
+
+    const checkboxContainer = document.getElementById('tosCheckboxContainer');
+    if (checkboxContainer) {
+      checkboxContainer.style.transform = '';
+      checkboxContainer.style.boxShadow = '';
     }
 
     const overlayElement = document.createElement('div');
     overlayElement.className = 'golden-ascension-overlay';
     overlayElement.innerHTML = `
       <div class="golden-content">
-        <div class="golden-instruction">Click &amp; hold to finalize acceptance</div>
+        <div class="golden-instruction">Click &amp; hold for 3 seconds to finalize acceptance</div>
         <div class="golden-hold-wrapper">
           <div class="golden-hold-button">
+            <div class="golden-invite-shell">${BASE_INVITE_TEMPLATE}</div>
+            <div class="golden-hold-energy" aria-hidden="true"></div>
             <span class="golden-label">CLICK + HOLD</span>
             <div class="golden-trail-pack">
               <span style="--i:0"></span>
@@ -3899,7 +4100,7 @@
 
     const holdInstruction = overlayElement.querySelector('.golden-instruction');
     const defaultInstructionText = holdInstruction ? holdInstruction.textContent : '';
-    const holdDuration = 1600;
+    const holdDuration = 3000;
     let holdComplete = false;
     let snapListener = null;
 
@@ -3917,7 +4118,8 @@
       }
 
       overlayElement.classList.add('holding');
-      holdButton.classList.add('holding');
+      holdButton.classList.add('holding', 'primed', 'charging');
+      startHoldWhir();
 
       const { x, y } = getPointerPosition(event);
       const rect = holdButton.getBoundingClientRect();
@@ -3937,7 +4139,7 @@
       }
 
       if (holdInstruction) {
-        holdInstruction.textContent = 'Hold steady…';
+        holdInstruction.textContent = 'Stabilizing the Loom invite…';
       }
 
       if (goldenHoldTimer) {
@@ -3956,10 +4158,11 @@
       }
 
       overlayElement.classList.remove('holding');
-      holdButton.classList.remove('holding');
-      holdButton.classList.remove('snapping-to-cursor', 'cursor-synced');
+      holdButton.classList.remove('holding', 'primed', 'charging', 'charged');
+      holdButton.classList.remove('snapping-to-cursor', 'cursor-synced', 'holding', 'primed', 'charging', 'charged');
       holdButton.style.removeProperty('--cursor-dx');
       holdButton.style.removeProperty('--cursor-dy');
+      stopHoldWhir(false);
 
       if (goldenHoldTimer) {
         clearTimeout(goldenHoldTimer);
@@ -3973,9 +4176,10 @@
 
     const finalizeHold = () => {
       overlayElement.classList.remove('holding');
-      holdButton.classList.remove('holding');
+      holdButton.classList.remove('holding', 'charging', 'primed');
       holdButton.classList.remove('snapping-to-cursor');
       holdButton.classList.add('cursor-synced');
+      holdButton.classList.add('charged');
 
       if (goldenHoldTimer) {
         clearTimeout(goldenHoldTimer);
@@ -3994,6 +4198,8 @@
       }
 
       holdButton.style.removeProperty('--cursor-scale');
+
+      stopHoldWhir(true);
 
       overlayElement.classList.add('hold-complete');
       holdButton.classList.add('morphing');
@@ -4024,6 +4230,7 @@
       holdButton.classList.remove('snapping-to-cursor', 'cursor-synced');
       holdButton.style.removeProperty('--cursor-dx');
       holdButton.style.removeProperty('--cursor-dy');
+      stopHoldWhir(false);
     };
   }
 
@@ -4084,11 +4291,6 @@
     const tooltip = document.querySelector('.ref-tooltip');
     if (tooltip) {
       fadeAndRemoveElement(tooltip, true);
-    }
-
-    const fauxCursor = document.getElementById('customCursor');
-    if (fauxCursor) {
-      fadeAndRemoveElement(fauxCursor);
     }
 
     window.setTimeout(() => {
@@ -4337,33 +4539,34 @@
   // Magnetic cursor effect
   let magneticActive = false;
   let cursorX = 0, cursorY = 0;
-  let targetX = 0, targetY = 0;
   
   function startMagneticCursor() {
     magneticActive = true;
     refPanel.classList.add('magnetic-active');
-    customCursor.classList.add('active');
+    if (refSidebarAck) {
+      refSidebarAck.classList.add('magnetic-highlight');
+    }
   }
-  
+
   function stopMagneticCursor() {
     magneticActive = false;
     refPanel.classList.remove('magnetic-active');
-    customCursor.classList.remove('active');
-    refSidebarAck.style.transform = 'scale(1)';
-    refSidebarAck.style.boxShadow = 'none';
+    if (refSidebarAck) {
+      refSidebarAck.classList.remove('magnetic-highlight');
+      refSidebarAck.style.transform = 'translate(0, 0) scale(1)';
+      refSidebarAck.style.boxShadow = 'none';
+    }
   }
-  
+
   // Track mouse position
   overlay.addEventListener('mousemove', (e) => {
     cursorX = e.clientX;
     cursorY = e.clientY;
-    
+
     if (!magneticActive || !refSidebar.classList.contains('active')) {
-      customCursor.style.left = cursorX + 'px';
-      customCursor.style.top = cursorY + 'px';
       return;
     }
-    
+
     const btnRect = refSidebarAck.getBoundingClientRect();
     const btnCenterX = btnRect.left + btnRect.width / 2;
     const btnCenterY = btnRect.top + btnRect.height / 2;
@@ -4377,22 +4580,14 @@
       const strength = 1 - (distance / 300);
       const pullX = dx * strength * 0.4;
       const pullY = dy * strength * 0.4;
-      
-      targetX = cursorX + pullX;
-      targetY = cursorY + pullY;
-      
+
       const scale = 1 + strength * 0.2;
-      refSidebarAck.style.transform = `scale(${scale})`;
+      refSidebarAck.style.transform = `translate(${pullX * -0.05}px, ${pullY * -0.05}px) scale(${scale})`;
       refSidebarAck.style.boxShadow = `0 0 ${strength * 25}px rgba(255,255,255,${strength * 0.6})`;
     } else {
-      targetX = cursorX;
-      targetY = cursorY;
-      refSidebarAck.style.transform = 'scale(1)';
+      refSidebarAck.style.transform = 'translate(0, 0) scale(1)';
       refSidebarAck.style.boxShadow = 'none';
     }
-    
-    customCursor.style.left = targetX + 'px';
-    customCursor.style.top = targetY + 'px';
   });
   
   async function triggerOverlay(url) {
@@ -4585,26 +4780,19 @@
     tosPhaseActive = false;
     
     // Remove faux cursor
-    const fauxCursor = document.getElementById('fauxCursor');
-    if (fauxCursor) {
-      fauxCursor.style.display = 'none';
-    }
-    
-    // Restore real cursor
-    document.body.classList.remove('faux-cursor-active');
-    
     // Cancel faux cursor animation
-    if (window.fauxCursorAnimationId) {
-      cancelAnimationFrame(window.fauxCursorAnimationId);
-      window.fauxCursorAnimationId = null;
-    }
-    
     // Remove mouse handler
     if (window.fauxCursorMouseHandler) {
       document.removeEventListener('mousemove', window.fauxCursorMouseHandler);
       window.fauxCursorMouseHandler = null;
     }
-    
+
+    const checkboxContainer = document.getElementById('tosCheckboxContainer');
+    if (checkboxContainer) {
+      checkboxContainer.style.transform = '';
+      checkboxContainer.style.boxShadow = '';
+    }
+
     // Reset sidebar styling
     const sidebar = refSidebar;
     sidebar.style.background = '';
@@ -5651,47 +5839,57 @@
     console.log('🔄 Impact effects reset - all content restored');
   }
   
-  function morphTooltipToSidebar(tooltipElement, sourceElement) {
-    // Animate towards the sidebar (right edge of screen)
-    tooltipElement.classList.add('morphing');
-    
-    console.log('🚀 Tooltip animation started');
-    const COLLISION_TIME = Math.round(TOOLTIP_ANIMATION_DURATION * TOOLTIP_COLLISION_RATIO);
-    console.log(`  Animation: ${TOOLTIP_ANIMATION_DURATION}ms total, collision at ~${Math.round(TOOLTIP_COLLISION_RATIO * 100)}% keyframe = ${COLLISION_TIME}ms`);
+  function morphTooltipToSidebar(tooltipElement, sourceElement, options = {}) {
+    const chargeDuration = Math.max(0, options.chargeDuration ?? TOOLTIP_CHARGE_DURATION);
 
-    // CSS transform animations don't update getBoundingClientRect().
-    // Timing is based on the animation duration; collision happens near 95%.
-    
-    // Trigger effects at exact collision moment
-          setTimeout(() => {
-      console.log(`💥💥💥 COLLISION AT EDGE! (${COLLISION_TIME}ms)`);
-      console.log(`  Triggering: edgeImpact, particles, darkening, HN glitch, BRICK BREAK`);
-      
-      // Get tooltip Y position for brick breaking
-      const tooltipRect = tooltipElement.getBoundingClientRect();
-      const impactY = tooltipRect.top + (tooltipRect.height / 2);
-      
-      console.log(`  📍 Tooltip rect:`, tooltipRect);
-      console.log(`  📍 Impact Y position: ${impactY}px`);
-      
-      triggerEdgeImpact();
-      createImpactParticles(tooltipElement);
-      const postId = getPostIdForElement(sourceElement);
-      if (postId) {
-        console.log(`  🔢 Impact postId: ${postId}`);
-      }
-      createBrickHole(impactY, postId); // Create hole in darkening wall
-    }, COLLISION_TIME);
-    
-    // Cleanup and remove this specific tooltip after animation completes
-    setTimeout(() => {
-      tooltipElement.classList.remove('active', 'morphing');
+    tooltipElement.classList.remove('morphing');
+    tooltipElement.classList.add('charging');
+    updateActiveTooltipEdgeDistance();
+
+    console.log('🚀 Tooltip animation primed');
+    const collisionTime = Math.round(TOOLTIP_ANIMATION_DURATION * TOOLTIP_COLLISION_RATIO);
+    const totalCollisionDelay = chargeDuration + collisionTime;
+    console.log(`  Animation: ${TOOLTIP_ANIMATION_DURATION}ms flight + ${chargeDuration}ms charge, collision in ${totalCollisionDelay}ms`);
+
+    const beginFlight = () => {
+      tooltipElement.classList.remove('charging');
+      tooltipElement.classList.add('morphing');
+      updateActiveTooltipEdgeDistance();
+
       setTimeout(() => {
-        if (tooltipElement.parentNode) {
-          tooltipElement.parentNode.removeChild(tooltipElement);
+        console.log(`💥💥💥 COLLISION AT EDGE! (${totalCollisionDelay}ms)`);
+        console.log(`  Triggering: edgeImpact, particles, darkening, HN glitch, BRICK BREAK`);
+
+        const tooltipRect = tooltipElement.getBoundingClientRect();
+        const impactY = tooltipRect.top + (tooltipRect.height / 2);
+
+        console.log(`  📍 Tooltip rect:`, tooltipRect);
+        console.log(`  📍 Impact Y position: ${impactY}px`);
+
+        triggerEdgeImpact();
+        createImpactParticles(tooltipElement);
+        const postId = getPostIdForElement(sourceElement);
+        if (postId) {
+          console.log(`  🔢 Impact postId: ${postId}`);
         }
-      }, 100);
-    }, 750);
+        createBrickHole(impactY, postId);
+      }, collisionTime);
+
+      setTimeout(() => {
+        tooltipElement.classList.remove('active', 'morphing');
+        setTimeout(() => {
+          if (tooltipElement.parentNode) {
+            tooltipElement.parentNode.removeChild(tooltipElement);
+          }
+        }, 100);
+      }, TOOLTIP_ANIMATION_DURATION + 100);
+    };
+
+    if (chargeDuration > 0) {
+      setTimeout(beginFlight, chargeDuration);
+    } else {
+      beginFlight();
+    }
   }
   
   function onLinkClick(e, url) {
@@ -5704,30 +5902,37 @@
     const linkElement = e.currentTarget || e.target;
     const activeUrl = getCurrentLink(linkElement, url);
     const platform = detectPlatformFromElement(linkElement);
+    const sidebarRevealDelay = TOOLTIP_ANIMATION_DURATION + TOOLTIP_CHARGE_DURATION + 200;
+
+    const launchTooltip = () => {
+      const flyingTooltip = createFlyingTooltip(activeUrl, linkElement);
+      morphTooltipToSidebar(flyingTooltip, linkElement, { chargeDuration: TOOLTIP_CHARGE_DURATION });
+    };
 
     if (isPostLink(linkElement)) {
       sendHeartsAndPrayers(linkElement, platform);
+      launchTooltip();
       runGlitchOnce();
       jitterList(400);
-      triggerEdgeImpact();
-      if (impactCount > 0 && impactCount <= 3) {
-        setTimeout(() => showSidebar(activeUrl, true), 500);
-      }
+      setTimeout(() => {
+        if (impactCount > 0 && impactCount <= 3) {
+          showSidebar(activeUrl, true);
+        }
+      }, sidebarRevealDelay);
       return;
     }
 
-    const flyingTooltip = createFlyingTooltip(activeUrl, linkElement);
-
-    // Animate this specific tooltip independently
-    morphTooltipToSidebar(flyingTooltip, linkElement);
+    launchTooltip();
     runGlitchOnce();
     jitterList(400);
 
     // Show sidebar with impact effect after tooltip splats into edge
     // (Only show after first few impacts - not on every link click)
-    if (impactCount > 0 && impactCount <= 3) {
-      setTimeout(() => showSidebar(activeUrl, true), 500);
-    }
+    setTimeout(() => {
+      if (impactCount > 0 && impactCount <= 3) {
+        showSidebar(activeUrl, true);
+      }
+    }, sidebarRevealDelay);
   }
   
   function renderItems(items, platformType) {

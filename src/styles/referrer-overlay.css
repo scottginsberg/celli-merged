@@ -342,6 +342,15 @@ body.referrer-blackout {
   animation: splatToEdge 0.7s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
 }
 
+.ref-tooltip.charging {
+  animation: tooltipChargePrep 0.28s ease-in-out alternate infinite;
+}
+
+.ref-tooltip.charging .ref-tooltip-bullet {
+  animation: tooltipChargePulse 0.28s ease-in-out alternate infinite;
+  box-shadow: 0 0 12px rgba(132, 192, 255, 0.65), 0 0 26px rgba(255, 255, 255, 0.18);
+}
+
 @keyframes splatToEdge {
   0% {
     transform: translate(0, 0) scale(1, 1) rotate(0deg);
@@ -388,6 +397,48 @@ body.referrer-blackout {
   100% {
     transform: translate(calc(var(--edge-distance) * 1.08), 0) scale(0.1, 2.5) rotate(0deg);
     opacity: 0;
+  }
+}
+
+@keyframes tooltipChargePrep {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(0, -2px) scale(1.03);
+  }
+}
+
+@keyframes tooltipChargePulse {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.55);
+  }
+}
+
+@keyframes badBooleanClubSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes badBooleanLightSweep {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) translate(-20%, -20%);
+  }
+  40% {
+    opacity: 0.75;
+    transform: scale(1.1) translate(20%, 20%);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4) translate(40%, 40%);
   }
 }
 
@@ -1677,6 +1728,30 @@ body.referrer-blackout {
   opacity: .9;
 }
 
+.ref-sidebar.badboolean-party {
+  position: relative;
+  overflow: hidden;
+  animation: badBooleanClubSpin 9s linear infinite;
+}
+
+.ref-sidebar.badboolean-party::before,
+.ref-sidebar.badboolean-party::after {
+  content: '';
+  position: absolute;
+  inset: -45%;
+  background: conic-gradient(from 0deg, rgba(255, 0, 204, 0.18), rgba(0, 255, 204, 0.14), rgba(255, 255, 0, 0.12), rgba(255, 0, 204, 0.18));
+  mix-blend-mode: screen;
+  pointer-events: none;
+  opacity: 0.55;
+  animation: badBooleanClubSpin 6s linear infinite;
+}
+
+.ref-sidebar.badboolean-party::after {
+  animation-direction: reverse;
+  animation-duration: 8s;
+  opacity: 0.35;
+}
+
 .ref-sidebar-btn {
   background: transparent;
   color: inherit;
@@ -1692,6 +1767,46 @@ body.referrer-blackout {
   overflow: visible;
   display: block;
   text-align: left;
+}
+
+.ref-sidebar-btn.magnetic-highlight {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.2s ease;
+}
+
+.ref-sidebar-btn.badboolean-party {
+  overflow: hidden;
+  position: relative;
+}
+
+.ref-sidebar-btn.badboolean-party::before,
+.ref-sidebar-btn.badboolean-party::after {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.12), transparent 60%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: badBooleanLightSweep 2.6s ease-in-out infinite;
+}
+
+.ref-sidebar-btn.badboolean-party::after {
+  animation-delay: 1.3s;
+}
+
+.badboolean-wave-line {
+  display: inline-flex;
+  gap: 0.08em;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.badboolean-wave-char {
+  display: inline-block;
+  --wave-level: 0;
+  transform: translateY(calc(var(--wave-level) * -14px)) scaleY(calc(1 + var(--wave-level) * 0.6));
+  transition: transform 0.1s ease, text-shadow 0.16s ease, color 0.2s ease;
+  text-shadow: 0 0 calc(18px * var(--wave-level) + 2px) rgba(255, 255, 255, 0.7);
 }
 
 .ref-sidebar-btn:focus-visible {
@@ -2097,40 +2212,6 @@ body.referrer-blackout {
 }
 
 /* === Custom Cursor for Magnetic Effect === */
-.celli-ref-panel.magnetic-active {
-  cursor: none;
-}
-
-.custom-cursor {
-  position: fixed;
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, .8);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 2147485000;
-  transition: all .1s ease-out;
-  transform: translate(-50%, -50%);
-  mix-blend-mode: difference;
-  display: none;
-}
-
-.custom-cursor.active {
-  display: block;
-}
-
-.custom-cursor::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 4px;
-  height: 4px;
-  background: rgba(255, 255, 255, .8);
-  border-radius: 50%;
-}
-
 @keyframes bounceIn {
   0% {
     transform: translateY(-50%) scale(0.3);
@@ -2695,20 +2776,64 @@ body.referrer-blackout {
   width: min(360px, 80vw);
   height: clamp(104px, 30vw, 150px);
   border-radius: clamp(26px, 14vw, 42px);
-  background: linear-gradient(135deg, rgba(255, 233, 142, 1) 0%, rgba(255, 204, 69, 1) 50%, rgba(255, 170, 45, 0.95) 100%);
-  box-shadow: 0 12px 40px rgba(255, 190, 60, 0.45), inset 0 1px 12px rgba(255, 255, 255, 0.8);
+  background: linear-gradient(135deg, rgba(22, 24, 32, 0.96) 0%, rgba(5, 6, 12, 0.98) 52%, rgba(0, 0, 0, 1) 100%);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.62), inset 0 1px 14px rgba(255, 255, 255, 0.06);
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
   padding: clamp(12px, 3vw, 24px);
-  transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), clip-path 0.85s cubic-bezier(0.77, 0, 0.175, 1), border-radius 0.6s ease, width 0.6s ease, height 0.6s ease, background 0.6s ease, box-shadow 0.6s ease, opacity 0.35s ease;
+  transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), clip-path 0.85s cubic-bezier(0.77, 0, 0.175, 1), border-radius 0.6s ease, width 0.6s ease, height 0.6s ease, background 0.6s ease, box-shadow 0.6s ease, opacity 0.35s ease, filter 0.6s ease;
   transform: translate3d(var(--cursor-dx, 0), var(--cursor-dy, 0), 0) scale(var(--cursor-scale, 1));
   clip-path: inset(0% round clamp(26px, 14vw, 42px));
   cursor: pointer;
-  filter: drop-shadow(0 0 35px rgba(255, 201, 68, 0.8));
+  filter: drop-shadow(0 0 38px rgba(8, 10, 20, 0.78));
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+.golden-hold-button.primed,
+.golden-hold-button.holding {
+  background: linear-gradient(125deg, rgba(4, 5, 8, 1) 0%, rgba(0, 0, 0, 0.98) 100%);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.78), inset 0 0 28px rgba(0, 0, 0, 0.6);
+  filter: drop-shadow(0 0 48px rgba(12, 14, 22, 0.92));
+}
+
+.golden-hold-button.charged {
+  filter: drop-shadow(0 0 62px rgba(28, 42, 98, 0.55));
+}
+
+.golden-hold-button .golden-invite-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  transition: filter 0.45s ease, opacity 0.45s ease, transform 0.45s ease;
+}
+
+.golden-hold-button .golden-invite-stack {
+  transform: scale(0.94);
+  filter: drop-shadow(0 16px 36px rgba(32, 46, 84, 0.4));
+  transition: filter 0.45s ease, transform 0.45s ease, opacity 0.45s ease;
+}
+
+.golden-hold-button.charging .golden-invite-stack {
+  filter: drop-shadow(0 20px 40px rgba(102, 166, 255, 0.45));
+  transform: scale(0.96) rotate(-0.8deg);
+}
+
+.golden-hold-button.primed .golden-invite-shell {
+  opacity: 0.35;
+  filter: saturate(0.7) brightness(0.85);
+  transform: scale(0.96);
+}
+
+.golden-hold-button.charged .golden-invite-shell {
+  opacity: 0.18;
+  transform: scale(0.94);
 }
 
 .golden-hold-button.dimension-locked {
@@ -2737,10 +2862,51 @@ body.referrer-blackout {
   font-size: clamp(13px, 3.6vw, 16px);
   font-weight: 600;
   letter-spacing: 0.26em;
-  color: rgba(110, 72, 0, 0.9);
-  text-shadow: 0 0 10px rgba(255, 240, 178, 0.6);
+  color: rgba(168, 198, 255, 0.82);
+  text-shadow: 0 0 12px rgba(142, 182, 255, 0.65);
   transition: opacity 0.4s ease;
   pointer-events: none;
+}
+
+.golden-hold-button .golden-hold-energy {
+  position: absolute;
+  inset: -22%;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.82);
+  background: radial-gradient(circle at center, rgba(120, 190, 255, 0.22) 0%, transparent 62%);
+  mix-blend-mode: screen;
+  transition: opacity 0.45s ease, transform 0.6s ease, filter 0.6s ease;
+}
+
+.golden-hold-button .golden-hold-energy::before,
+.golden-hold-button .golden-hold-energy::after {
+  content: '';
+  position: absolute;
+  inset: 12% 6%;
+  border-radius: 58%;
+  border: 2px solid rgba(122, 180, 255, 0.28);
+  opacity: 0.5;
+  mix-blend-mode: screen;
+  animation: holdEnergySpin 2.8s linear infinite;
+}
+
+.golden-hold-button .golden-hold-energy::after {
+  inset: 6% 12%;
+  border-color: rgba(90, 160, 255, 0.18);
+  animation-direction: reverse;
+  animation-duration: 3.2s;
+}
+
+.golden-hold-button.charging .golden-hold-energy {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.golden-hold-button.charged .golden-hold-energy {
+  opacity: 1;
+  transform: scale(1.08);
+  filter: blur(1.5px);
 }
 
 .golden-trail-pack {
@@ -2761,7 +2927,12 @@ body.referrer-blackout {
   display: block;
   width: 0;
   height: 2px;
-  background: linear-gradient(to left, rgba(255, 213, 82, 0), rgba(255, 213, 82, 0.8));
+  background: linear-gradient(to left, rgba(36, 40, 70, 0), rgba(108, 168, 255, 0.82));
+}
+
+.golden-hold-button.charging .golden-trail-pack span {
+  animation: trailCharge 1.2s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 45ms);
 }
 
 .golden-ascension-overlay.holding .golden-hold-button {
@@ -2770,6 +2941,16 @@ body.referrer-blackout {
 
 .golden-ascension-overlay.holding .golden-instruction {
   opacity: 0.65;
+}
+
+.golden-hold-button.charging .golden-label {
+  color: rgba(178, 210, 255, 0.9);
+  letter-spacing: 0.32em;
+  text-shadow: 0 0 16px rgba(144, 188, 255, 0.7);
+}
+
+.golden-hold-button.charged .golden-label {
+  opacity: 0;
 }
 
 .golden-hold-button.morphing {
@@ -3141,6 +3322,36 @@ body.referrer-whiteout {
     clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
     border-radius: 6px;
     transform: translate3d(0, -14px, 0) scale(0.94);
+  }
+}
+
+@keyframes holdEnergySpin {
+  0% {
+    transform: rotate(0deg) scale(0.94);
+    opacity: 0.4;
+  }
+  50% {
+    transform: rotate(180deg) scale(1.08);
+    opacity: 0.75;
+  }
+  100% {
+    transform: rotate(360deg) scale(0.94);
+    opacity: 0.4;
+  }
+}
+
+@keyframes trailCharge {
+  0% {
+    width: 0;
+    opacity: 0.1;
+  }
+  40% {
+    width: 140px;
+    opacity: 0.55;
+  }
+  100% {
+    width: 220px;
+    opacity: 0;
   }
 }
 
