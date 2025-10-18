@@ -18,6 +18,7 @@ export class VoxelShatter {
     this.voxelMesh = null;
     this.whitePlane = null;
     this.flatPlane = null;
+    this.blackoutLayer = null;
     this.animationFrame = null;
     this.clock = null;
     this.resolve = null;
@@ -47,11 +48,23 @@ export class VoxelShatter {
       inset: 0;
       z-index: 2147483900;
       pointer-events: none;
-      background: transparent;
+      background: #000;
     `;
     document.body.appendChild(container);
 
+    const blackoutLayer = document.createElement('div');
+    blackoutLayer.className = 'voxel-shatter-blackout';
+    blackoutLayer.style.cssText = `
+      position: absolute;
+      inset: 0;
+      background: #000;
+      pointer-events: none;
+      z-index: 0;
+    `;
+    container.appendChild(blackoutLayer);
+
     this.container = container;
+    this.blackoutLayer = blackoutLayer;
     document.body.classList.add('voxel-shatter-active');
 
     await this.#setupRenderer(container);
@@ -74,6 +87,11 @@ export class VoxelShatter {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(renderer.domElement);
+    if (renderer.domElement) {
+      renderer.domElement.style.position = 'relative';
+      renderer.domElement.style.zIndex = '1';
+      renderer.domElement.style.pointerEvents = 'none';
+    }
     this.renderer = renderer;
 
     window.addEventListener('resize', this.#handleResize, { passive: true });
@@ -306,6 +324,7 @@ export class VoxelShatter {
     this.voxelMesh = null;
     this.whitePlane = null;
     this.flatPlane = null;
+    this.blackoutLayer = null;
     this.animationFrame = null;
     this.clock = null;
     this.resolve = null;

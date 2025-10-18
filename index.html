@@ -540,7 +540,7 @@
    width: 100vw;
    height: 100vh;
    pointer-events: none;
-   z-index: 2147483580;
+   z-index: 2147483605;
    overflow: visible;
   }
 
@@ -558,6 +558,7 @@
    filter: drop-shadow(0 18px 42px rgba(12, 18, 45, 0.45));
    pointer-events: auto;
    cursor: pointer;
+   z-index: 1;
   }
 
   .loom-invite-clone.visible {
@@ -749,6 +750,7 @@
    transform: translate3d(0, 0, 0) scale(0.7);
    will-change: transform, opacity;
    pointer-events: none;
+   z-index: 2;
   }
 
   .loom-invite-pin.pin-yellow {
@@ -4882,7 +4884,7 @@
       triangleElement.classList.add('triangle-collapse-complete');
     }, 1400);
 
-    scheduleBetaFormRedirect(1000);
+    scheduleBetaFormRedirect(0);
   }
   
   // Magnetic cursor effect
