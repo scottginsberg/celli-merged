@@ -391,6 +391,7 @@ document.addEventListener('click', function(e){
  <button class="btn" id="presentToggleBtn">?? Present: OFF</button>
  <button class="btn" id="graphicsSettingsBtn">??? Graphic Settings</button>
  <button class="btn" id="oceanSettingsBtn">?? Ocean Backdrop</button>
+ <button class="btn" id="oceanSpottedBtn">🔦 Spotted</button>
  </div>
 
  <label class="row" style="padding:0 12px 6px; justify-content:space-between; align-items:center; font-weight:600;">
@@ -9770,6 +9771,7 @@ const Scene = (()=>{
  floaters:[],
  voxelStructures:[],
  lighthousePositions:[],
+ beamSequence:null,
  baseHeight:-6,
  time:0,
  presentActive:false
@@ -10506,10 +10508,18 @@ const Scene = (()=>{
  mainRenderer.render(new THREE.Scene().add(new THREE.Mesh(post.fsQuad, post.raysMat)), post.screenCam);
  
  // Generate lighthouse beams
- post.lighthouseMat.uniforms.lighthouseCount.value = Math.min(state.lighthousePositions.length, 4);
- for(let i=0; i<Math.min(state.lighthousePositions.length,4); i++){
- const pos = state.lighthousePositions[i].clone().project(mainCamera);
- post.lighthouseMat.uniforms.lighthousePos.value[i].set(pos.x*0.5+0.5, pos.y*0.5+0.5, pos.z);
+ const seq = state.beamSequence && state.beamSequence.active ? state.beamSequence : null;
+ const sourceList = seq && seq.overrides ? seq.overrides : state.lighthousePositions;
+ const beamCount = Math.min(sourceList ? sourceList.length : 0, 4);
+ post.lighthouseMat.uniforms.lighthouseCount.value = beamCount;
+ for(let i=0; i<beamCount; i++){
+ const worldPos = (seq && seq.overrides && seq.overrides[i]) ? seq.overrides[i] : state.lighthousePositions[i];
+ if(!worldPos){
+  post.lighthouseMat.uniforms.lighthousePos.value[i].set(0.5, 0.5, 0);
+  continue;
+ }
+ const proj = worldPos.clone().project(mainCamera);
+ post.lighthouseMat.uniforms.lighthousePos.value[i].set(proj.x*0.5+0.5, proj.y*0.5+0.5, proj.z);
  }
  mainRenderer.setRenderTarget(post.rtLighthouse);
  mainRenderer.render(new THREE.Scene().add(new THREE.Mesh(post.fsQuad, post.lighthouseMat)), post.screenCam);
@@ -10666,11 +10676,108 @@ const Scene = (()=>{
  }
 
 
- function update(dt){
+ function startSpotlightSweep(targetProvider, options={}){
+ ensureGroup();
+ const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() * 0.001 : Date.now() / 1000;
+ const focusDelay = Math.max(0, options.focusDelay ?? 10);
+ const lockDuration = Math.max(0.5, options.lockDuration ?? 2.5);
+ const count = Math.min(state.lighthousePositions.length || 0, MAX_LIGHTHOUSE_BEACONS);
+ const beams = [];
+ for(let i=0; i<count; i++){
+  const origin = state.lighthousePositions[i] ? state.lighthousePositions[i].clone() : new THREE.Vector3();
+  beams.push({
+   origin,
+   radius: THREE.MathUtils.randFloat(60, 140),
+   height: THREE.MathUtils.randFloat(12, 32),
+   speed: THREE.MathUtils.randFloat(0.25, 0.55) + i * 0.05,
+   phase: Math.random() * Math.PI * 2,
+   verticalSpeed: THREE.MathUtils.randFloat(0.2, 0.5),
+   verticalAmp: THREE.MathUtils.randFloat(3, 12),
+   lastPos: origin.clone()
+  });
+ }
+ state.beamSequence = {
+  active: true,
+  start: now,
+  focusDelay,
+  lockDuration,
+  beams,
+  overrides: new Array(count).fill(null),
+  targetProvider: typeof targetProvider === 'function' ? targetProvider : null,
+  lockOffsets: beams.map((_, idx)=> new THREE.Vector3((idx - (count-1)/2) * 5, 12 + idx * 3, (idx % 2 === 0 ? -4 : 4))),
+  focusStart: null,
+  locked: false
+ };
+ needsRender = true;
+ return state.beamSequence;
+}
+
+function updateSpotlightSequence(){
+ const seq = state.beamSequence;
+ if(!seq || !seq.active) return;
+ const count = seq.beams?.length || 0;
+ if(count === 0){
+  seq.overrides = [];
+  return;
+ }
+ const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() * 0.001 : Date.now() / 1000;
+ if(seq.locked){
+  if(seq.targetProvider){
+   const target = seq.targetProvider();
+   if(target){
+    seq.overrides = seq.overrides || new Array(count);
+    for(let i=0; i<count; i++){
+     const offset = seq.lockOffsets?.[i] || new THREE.Vector3();
+     seq.overrides[i] = target.clone().add(offset);
+    }
+   }
+  }
+  needsRender = true;
+  return;
+ }
+ const elapsed = now - seq.start;
+ seq.overrides = seq.overrides || new Array(count);
+ if(elapsed >= seq.focusDelay){
+  if(!seq.focusStart){
+   seq.focusStart = now;
+   seq.startOverrides = seq.overrides.map(o=> o ? o.clone() : null);
+  }
+  const t = seq.lockDuration > 0 ? Math.min(1, (now - seq.focusStart) / seq.lockDuration) : 1;
+  const target = seq.targetProvider ? seq.targetProvider() : null;
+  for(let i=0; i<count; i++){
+   const beam = seq.beams[i];
+   const startPos = seq.startOverrides?.[i] || beam.lastPos || beam.origin.clone();
+   const offset = seq.lockOffsets?.[i] || new THREE.Vector3();
+   const endPos = target ? target.clone().add(offset) : beam.origin.clone();
+   const pos = startPos.clone().lerp(endPos, t);
+   seq.overrides[i] = pos;
+   beam.lastPos = pos;
+  }
+  if(t >= 1){
+   seq.locked = true;
+  }
+ } else {
+  for(let i=0; i<count; i++){
+   const beam = seq.beams[i];
+   const ang = beam.phase + elapsed * beam.speed;
+   const vert = Math.sin(elapsed * beam.verticalSpeed + beam.phase) * beam.verticalAmp;
+   const pos = beam.origin.clone();
+   pos.x += Math.cos(ang) * beam.radius;
+   pos.z += Math.sin(ang) * beam.radius;
+   pos.y += beam.height + vert;
+   seq.overrides[i] = pos;
+   beam.lastPos = pos;
+  }
+ }
+ needsRender = true;
+}
+
+function update(dt){
  if(!state.group) return;
  if(!state.settings.enabled) {
  state.presentActive=false;
  state.group.visible=false;
+ state.beamSequence = null;
  return;
  }
  const active=updateVisibility();
@@ -10683,6 +10790,7 @@ const Scene = (()=>{
  updateBuoy();
  updateGrid();
  updateFloaters(delta);
+ updateSpotlightSequence();
  }
 
  function updateVisibility(){
@@ -10760,6 +10868,7 @@ const Scene = (()=>{
  refreshVisibility:updateVisibility,
  renderWithPost:renderOceanWithPost,
  resizePost:resizePostTargets,
+ startSpotlightSweep,
  recreateGrid
  };
  })();
@@ -10847,6 +10956,7 @@ async function ensureRapierWorld(){
  };
  let depGroup=null, depVis=false; // dependency graph overlay
 let ziplineState = { active: false, line: null, direction: new THREE.Vector3(), progress: 0, velocity: 0, length: 1, accel: 0.002, start: new THREE.Vector3(), end: new THREE.Vector3() };
+let spottedState = null;
 let physicsCameraConfig = { mode:'free', distance:10, allowRotation:false };
  let wasGroundedLastFrame = false;
  let cachedPlayerPos = new THREE.Vector3(0, 0, 0); // Cache to avoid Rapier aliasing issues - initialize with valid coords
@@ -16394,6 +16504,7 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  
  // Update avatars every frame for continuous camera tracking
  const sel = Store.getState().selection;
+ updateSpottedSequence(deltaSec);
  if(sel) updateAvatars(sel);
 
  if(selectionCelli?.visible){
@@ -19047,9 +19158,143 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  ensureArrayaAvatar();
  }
 
- function updateAvatars(sel){
+ function getAvatarWorldPosition(applyFloatOffset=false){
+ try{
+  if(spottedState?.locked && spottedState.lockPosition){
+   const pos = spottedState.lockPosition.clone();
+   if(applyFloatOffset && spottedState.floatOffset){
+    pos.y += spottedState.floatOffset;
+   }
+   return pos;
+  }
+  if(Store.getState().scene.physics && playerBody){
+   const t = playerBody.translation();
+   return new THREE.Vector3(t.x, t.y + 0.6, t.z);
+  }
+ }catch{}
+ try{
+  if(celli){
+   const pos = celli.position.clone();
+   if(applyFloatOffset && spottedState?.floatOffset){
+    pos.y += spottedState.floatOffset;
+   }
+   return pos;
+  }
+  if(arrayaAvatar?.group?.visible){
+   return arrayaAvatar.group.position.clone();
+  }
+ }catch{}
+ try{
+  const sel = Store.getState().selection;
+  if(sel?.arrayId){
+   const arr = Store.getState().arrays[sel.arrayId];
+   const focus = sel.focus || {x:0,y:0,z:0};
+   if(arr){
+    const pos = worldPos(arr, focus.x, focus.y, focus.z);
+    const perch = arrayVoxelScale(arr);
+    const base = new THREE.Vector3(pos.x, pos.y + perch, pos.z);
+    if(applyFloatOffset && spottedState?.floatOffset){
+     base.y += spottedState.floatOffset;
+    }
+    return base;
+   }
+  }
+ }catch{}
+ return new THREE.Vector3();
+}
+
+function startSpottedSequence(){
+ if(spottedState?.active){
+  return spottedState;
+ }
+ const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() * 0.001 : Date.now() / 1000;
+ const basePos = getAvatarWorldPosition(false);
+ spottedState = {
+  active: true,
+  startTime: now,
+  focusDelay: 10,
+  locked: false,
+  lockTime: null,
+  lockPosition: basePos.clone(),
+  floatOffset: 0,
+  floatSpeed: 1.4,
+  floatMax: 18,
+  audio: null,
+  audioStarted: false,
+  physicsDisabled: false
+ };
+ try{ arrayaAvatar?.setVisible(false); }catch{}
+ if(celli){
+  celli.visible = true;
+  celli.scale.set(0.7,0.7,0.7);
+ }
+ if(OceanBackdrop.startSpotlightSweep){
+  try{ OceanBackdrop.startSpotlightSweep(()=> getAvatarWorldPosition(true), { focusDelay: spottedState.focusDelay }); }catch{}
+ }
+ needsRender = true;
+ return spottedState;
+}
+
+function updateSpottedSequence(deltaSec){
+ if(!spottedState?.active) return;
+ const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() * 0.001 : Date.now() / 1000;
+ if(!spottedState.locked){
+  const elapsed = now - spottedState.startTime;
+  if(elapsed >= spottedState.focusDelay){
+   spottedState.locked = true;
+   spottedState.lockTime = now;
+   spottedState.lockPosition = getAvatarWorldPosition(false);
+   spottedState.floatOffset = 0;
+   if(Store.getState().scene.physics && !spottedState.physicsDisabled){
+    spottedState.physicsDisabled = true;
+    try{ togglePhysicsMode()?.catch(()=>{}); }catch{}
+   }
+   try{ arrayaAvatar?.setVisible(false); }catch{}
+   if(celli){
+    celli.visible = true;
+    celli.scale.set(0.7,0.7,0.7);
+   }
+  }
+ }
+ if(spottedState.locked){
+  const elapsed = now - (spottedState.lockTime || now);
+  const rise = Math.min(spottedState.floatMax, elapsed * spottedState.floatSpeed);
+  const bob = Math.sin(elapsed * 2.2) * 0.45;
+  spottedState.floatOffset = rise + bob;
+  if(!spottedState.audioStarted){
+   spottedState.audioStarted = true;
+   if(typeof Audio !== 'undefined'){
+    try{
+     const audio = new Audio('spotted.mp3');
+     spottedState.audio = audio;
+     audio.play().catch(()=>{});
+    }catch{}
+   }
+  }
+ }
+ needsRender = true;
+}
+
+function updateAvatars(sel){
  // Don't update avatars during swap animation
  if(swapAnimating) return;
+ 
+ if(spottedState?.locked && celli){
+  try{ arrayaAvatar?.setVisible(false); }catch{}
+  const base = spottedState.lockPosition ? spottedState.lockPosition.clone() : getAvatarWorldPosition(false);
+  if(base){
+   base.y += spottedState.floatOffset || 0;
+   celli.position.copy(base);
+  }
+  celli.visible = true;
+  celli.scale.set(0.7,0.7,0.7);
+  const look = new THREE.Vector3().subVectors(camera.position, celli.position);
+  look.y = 0;
+  if(look.lengthSq() > 1e-6){
+   celli.rotation.y = Math.atan2(look.x, look.z);
+  }
+  return;
+ }
  
  const physicsMode = Store.getState().scene.physics;
  
@@ -21341,7 +21586,7 @@ function parseBounceMeta(meta){
  }
  }
 
- return {init, renderArray, renderChunk, renderLayer, updateFocus, centerOnArray, syncVisibility, setGridVisible, setAxesVisible, rebuildCollidersForArray, debounceColliderRebuild, setHighlightMode, setCameraLock, setViewMode, initAvatars, updateAvatars, addTimedPreview, handleJump, spawnPlayerAt, getCamera:()=>camera, getControls:()=>controls, updateValueSprite, setArrayOffset, reconcileAllArrays, setupRenderer, setupLighting, addConnection, removeConnection, createArraySnapshot, worldPos, getScene:()=>scene, getLayerMesh:(key)=>layerMeshes.get(key), rotateArrayAround, cellWorldPos, startDatafallDelete, updateDeleteEffects, removeArrayGraphics, refreshArray, hydrateAll, updateArrayLabelPlacement, dockOffsetFor, Chunk, ChunkManager, localPos, createCellMaterial, GEO_VOXEL, getCell:getCellFast, captureCamera, restoreCamera, updateCellColor:(arrId, coord)=>updateCellColor(arrId, coord), togglePresentMode, isPresentEnabled, getGraphicsSettings, updateGraphicsSettings, setOceanEnabled, updateOceanSettings, getOceanSettings, upsertCellLight, removeCellLight, refreshLightsForArray, togglePhysicsMode, setPhysicsDebugAll, setPhysicsCamera, resetContactCache, setPhysicsSpawn, isPhysicsInputCaptured:()=>syncPhysicsInputCapture(), facingFromCamera, triggerCelliDerez, celliDerezState, getViewAxisForArray:(arrOrFrame, observer)=>{
+ return {init, renderArray, renderChunk, renderLayer, updateFocus, centerOnArray, syncVisibility, setGridVisible, setAxesVisible, rebuildCollidersForArray, debounceColliderRebuild, setHighlightMode, setCameraLock, setViewMode, initAvatars, updateAvatars, addTimedPreview, handleJump, spawnPlayerAt, getCamera:()=>camera, getControls:()=>controls, updateValueSprite, setArrayOffset, reconcileAllArrays, setupRenderer, setupLighting, addConnection, removeConnection, createArraySnapshot, worldPos, getScene:()=>scene, getLayerMesh:(key)=>layerMeshes.get(key), rotateArrayAround, cellWorldPos, startDatafallDelete, updateDeleteEffects, removeArrayGraphics, refreshArray, hydrateAll, updateArrayLabelPlacement, dockOffsetFor, Chunk, ChunkManager, localPos, createCellMaterial, GEO_VOXEL, getCell:getCellFast, captureCamera, restoreCamera, updateCellColor:(arrId, coord)=>updateCellColor(arrId, coord), startSpottedSequence, togglePresentMode, isPresentEnabled, getGraphicsSettings, updateGraphicsSettings, setOceanEnabled, updateOceanSettings, getOceanSettings, upsertCellLight, removeCellLight, refreshLightsForArray, togglePhysicsMode, setPhysicsDebugAll, setPhysicsCamera, resetContactCache, setPhysicsSpawn, isPhysicsInputCaptured:()=>syncPhysicsInputCapture(), facingFromCamera, triggerCelliDerez, celliDerezState, getViewAxisForArray:(arrOrFrame, observer)=>{
  try{
  if(!arrOrFrame) return null;
  const frame = arrOrFrame.matrixWorld ? arrOrFrame : (arrOrFrame._frame || null);
@@ -21364,7 +21609,7 @@ const UI = (()=>{
  focusChip:document.getElementById('focusChip'), inspect:document.getElementById('inspect'),
  centerHome:document.getElementById('centerHome'), viewMainframe:document.getElementById('viewMainframe'),
  toggleGrid:document.getElementById('toggleGrid'), toggleAxes:document.getElementById('toggleAxes'),
-  presentToggle:document.getElementById('presentToggleBtn'), graphicsSettingsBtn:document.getElementById('graphicsSettingsBtn'), oceanSettingsBtn:document.getElementById('oceanSettingsBtn'), crystalToggle:document.getElementById('crystal2DToggle'),
+  presentToggle:document.getElementById('presentToggleBtn'), graphicsSettingsBtn:document.getElementById('graphicsSettingsBtn'), oceanSettingsBtn:document.getElementById('oceanSettingsBtn'), oceanSpottedBtn:document.getElementById('oceanSpottedBtn'), crystalToggle:document.getElementById('crystal2DToggle'),
   celliCollapse:document.getElementById('celliCollapseBtn'),
   physicsBtn:document.getElementById('physicsBtn'), reset:document.getElementById('reset'),
  status:document.getElementById('statusChip'),
@@ -21963,15 +22208,35 @@ const UI = (()=>{
  graphicsClose.addEventListener('click',(e)=>{ e.preventDefault(); hideGraphicsPanel(); });
  }
  if(els.oceanSettingsBtn){
- els.oceanSettingsBtn.onclick=()=>{ 
+ els.oceanSettingsBtn.onclick=()=>{
  // Auto-enable ocean when opening settings
  Actions.setOceanEnabled(true);
  if(!(Scene.isPresentEnabled ? Scene.isPresentEnabled() : false)){
  Actions.togglePresentMode();
  syncPresentUI(true);
  }
- toggleOceanPanel(); 
+ toggleOceanPanel();
  };
+ }
+ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
+ els.oceanSpottedBtn._wired = true;
+ els.oceanSpottedBtn.addEventListener('click',()=>{
+ try{
+ Actions.setOceanEnabled(true);
+ if(!(Scene.isPresentEnabled ? Scene.isPresentEnabled() : false)){
+ Actions.togglePresentMode();
+ syncPresentUI(true);
+ }
+ const started = Scene.startSpottedSequence?.();
+ if(!started){
+ console.warn('Spotted sequence could not start (already active?)');
+ showToast?.('Spotlight already tracking Celli.');
+ }
+ }catch(err){
+ console.warn('Failed to trigger spotted sequence', err);
+ showToast?.('Unable to trigger spotted sequence.');
+ }
+ });
  }
  if(oceanClose && !oceanClose._wired){
  oceanClose._wired = true;
