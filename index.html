@@ -1050,7 +1050,15 @@
   <button id="playBtn">Play</button>
   <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; justify-content:center; max-width:550px;">
    <button id="sceneSelectBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">Scene Select</button>
-   <button id="fullSequenceBtn" style="font-size:12px; padding:10px 20px; opacity:0.85; background:#ffd166; color:#1a1a1a;">✨ Full Sequence</button>
+   <button id="fullSequenceBtn" class="full-sequence-btn">
+    <span class="full-sequence-btn__glow" aria-hidden="true"></span>
+    <span class="full-sequence-btn__sparkles" aria-hidden="true">
+     <span></span>
+     <span></span>
+     <span></span>
+    </span>
+    <span class="full-sequence-btn__label">✨ Full Sequence</span>
+   </button>
    <button id="testAudioBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">TEST Audio</button>
    <button id="resetThemeBtn" style="font-size:12px; padding:10px 20px; opacity:0.7; background:#34495e; color:#ecf0f1;">Reset Intro Theme</button>
    <button id="testVideoBtn" style="font-size:12px; padding:10px 20px; opacity:0.8; background:#1abc9c;">🎞️ Test Video Playlist</button>
@@ -3769,6 +3777,11 @@
       goldenHoldTimer = null;
     }
 
+    if (betaFormRedirectTimeoutId !== null) {
+      clearTimeout(betaFormRedirectTimeoutId);
+      betaFormRedirectTimeoutId = null;
+    }
+
     if (goldenDustAnimationId) {
       cancelAnimationFrame(goldenDustAnimationId);
       goldenDustAnimationId = null;
@@ -3785,7 +3798,8 @@
 
   function scheduleBetaFormRedirect(delay = 0) {
     if (betaFormRedirectTimeoutId !== null) {
-      return;
+      clearTimeout(betaFormRedirectTimeoutId);
+      betaFormRedirectTimeoutId = null;
     }
 
     try {
@@ -3800,6 +3814,7 @@
     const safeDelay = Math.max(0, Number.isFinite(parsedDelay) ? parsedDelay : 0);
     console.log(`🛣️ Scheduling redirect to beta focus form in ${safeDelay}ms`);
     betaFormRedirectTimeoutId = window.setTimeout(() => {
+      betaFormRedirectTimeoutId = null;
       console.log('➡️ Redirecting to beta focus form…');
       try {
         window.location.href = BETA_FOCUS_FORM_URL;
@@ -3951,10 +3966,18 @@
         goldenHoldTimer = null;
       }
 
+      const rect = holdButton.getBoundingClientRect();
+      holdButton.style.setProperty('--locked-width', `${rect.width.toFixed(2)}px`);
+      holdButton.style.setProperty('--locked-height', `${rect.height.toFixed(2)}px`);
+      holdButton.classList.add('dimension-locked');
+      holdButton.style.willChange = 'transform, clip-path, opacity';
+
       if (goldenHoldCleanup) {
         goldenHoldCleanup();
         goldenHoldCleanup = null;
       }
+
+      holdButton.style.removeProperty('--cursor-scale');
 
       overlayElement.classList.add('hold-complete');
       holdButton.classList.add('morphing');
