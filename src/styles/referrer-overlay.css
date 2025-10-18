@@ -6,6 +6,10 @@
   --ref-light-beam-width: 900px;
   --ref-light-beam-height: 400px;
   --ref-light-beam-blur: 15px;
+  --ref-light-beam-center-x: 50vw;
+  --ref-light-beam-center-y: 50vh;
+  --ref-light-beam-target-width: var(--ref-light-beam-width, 900px);
+  --ref-light-beam-target-height: var(--ref-light-beam-height, 400px);
   --ref-light-ray-width: 800px;
   --ref-light-ray-height: 60px;
   --ref-light-ray-blur: 20px;
@@ -21,6 +25,23 @@
 
 .celli-ref-overlay[aria-hidden="false"] {
   display: block;
+}
+
+.celli-ref-overlay.blackout-stage {
+  background: #000;
+  transition: background 0.6s ease;
+}
+
+.celli-ref-overlay.blackout-stage .celli-ref-mask,
+.celli-ref-overlay.blackout-stage .celli-ref-panel {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+.celli-ref-overlay.blackout-stage.blackout-active .celli-ref-mask,
+.celli-ref-overlay.blackout-stage.blackout-active .celli-ref-panel {
+  visibility: hidden;
 }
 
 .celli-ref-mask {
@@ -40,6 +61,10 @@
   overflow: visible; /* Allow flash effects to extend beyond */
   display: flex;
   flex-direction: column;
+  align-items: center;
+  padding: clamp(16px, 3vw, 32px);
+  gap: clamp(12px, 2vw, 20px);
+  isolation: isolate;
   z-index: 2147483200; /* Keep reconstructed layout beneath global shadow */
 }
 
@@ -67,6 +92,12 @@ body.referrer-blackout {
   padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, .06);
   /* Header always visible now - only HN bar hides */
+}
+
+.celli-ref-panel > .ref-header,
+.celli-ref-panel > .ref-list,
+.celli-ref-panel > .ref-footer {
+  width: min(960px, 100%);
 }
 
 .ref-logo {
@@ -144,6 +175,9 @@ body.referrer-blackout {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   position: relative;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 960px;
 }
 
 /* === Link Tooltip === */
@@ -1767,6 +1801,7 @@ body.referrer-blackout {
   overflow: visible;
   display: block;
   text-align: left;
+  z-index: 2;
 }
 
 .ref-sidebar-btn.magnetic-highlight {
@@ -1807,6 +1842,47 @@ body.referrer-blackout {
   transform: translateY(calc(var(--wave-level) * -14px)) scaleY(calc(1 + var(--wave-level) * 0.6));
   transition: transform 0.1s ease, text-shadow 0.16s ease, color 0.2s ease;
   text-shadow: 0 0 calc(18px * var(--wave-level) + 2px) rgba(255, 255, 255, 0.7);
+}
+
+.badboolean-ambient {
+  position: absolute;
+  inset: -8%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  filter: blur(0.4px);
+}
+
+.badboolean-ambient.is-active {
+  opacity: 0.65;
+}
+
+.badboolean-ambient__char {
+  position: absolute;
+  top: var(--ambient-top, 50%);
+  left: var(--ambient-left, 50%);
+  transform: translate(-50%, -50%) rotate(var(--ambient-rotation, 0deg));
+  font-family: 'Roboto Mono', ui-monospace, monospace;
+  font-size: clamp(11px, 3.2vw, 18px);
+  letter-spacing: 0.08em;
+  color: rgba(182, 225, 255, 0.24);
+  text-shadow: 0 0 12px rgba(143, 180, 255, 0.45);
+  animation: badBooleanAmbientFloat var(--ambient-duration, 6s) ease-in-out infinite;
+  mix-blend-mode: screen;
+  opacity: var(--ambient-opacity, 0.6);
+}
+
+@keyframes badBooleanAmbientFloat {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--ambient-rotation, 0deg));
+  }
+  50% {
+    transform: translate(calc(-50% + var(--ambient-drift-x, 6px)), calc(-50% + var(--ambient-drift-y, -4px))) rotate(calc(var(--ambient-rotation, 0deg) + 6deg));
+  }
+  100% {
+    transform: translate(calc(-50% + var(--ambient-drift-x, 6px) * -1), calc(-50% + var(--ambient-drift-y, -4px) * -1)) rotate(calc(var(--ambient-rotation, 0deg) - 6deg));
+  }
 }
 
 .ref-sidebar-btn:focus-visible {
@@ -2232,7 +2308,9 @@ body.referrer-blackout {
 .tos-checkbox {
   margin-top: clamp(12px, 3.2vw, 20px);
   display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 14px;
   cursor: pointer;
   padding: clamp(16px, 3.6vw, 22px) clamp(18px, 4.2vw, 26px);
@@ -2282,6 +2360,7 @@ body.referrer-blackout {
   cursor: pointer;
   accent-color: #667eea;
   border-radius: 4px;
+  margin: 0;
 }
 
 .tos-checkbox label {
@@ -2291,6 +2370,7 @@ body.referrer-blackout {
   font-weight: 400;
   color: #e8ecf0;
   letter-spacing: 0.04em;
+  text-align: center;
 }
 
 .tos-checkbox:focus-within {
@@ -2312,6 +2392,19 @@ body.referrer-blackout {
 
   .tos-label {
     letter-spacing: 0.14em;
+  }
+
+  .badboolean-ambient {
+    inset: -12%;
+  }
+
+  .badboolean-ambient__char {
+    font-size: clamp(10px, 4vw, 16px);
+  }
+
+  .badboolean-wave-char {
+    transform: translateY(calc(var(--wave-level) * -8px)) scaleY(calc(1 + var(--wave-level) * 0.3));
+    text-shadow: 0 0 calc(12px * var(--wave-level) + 1px) rgba(255, 255, 255, 0.6);
   }
 }
 
@@ -2602,11 +2695,11 @@ body.referrer-blackout {
 /* Light Beam from Center */
 .light-beam {
   position: fixed;
-  right: calc(var(--ref-edge-offset, 80px) * -1); /* Extend beyond edge */
-  top: 50%;
-  transform: translateY(-50%);
-  width: var(--ref-light-beam-width, 900px);
-  height: var(--ref-light-beam-height, 400px);
+  left: var(--ref-light-beam-center-x, 50vw);
+  top: var(--ref-light-beam-center-y, 50vh);
+  transform: translate(-50%, -50%);
+  width: var(--ref-light-beam-target-width, var(--ref-light-beam-width, 900px));
+  height: var(--ref-light-beam-target-height, var(--ref-light-beam-height, 400px));
   pointer-events: none;
   z-index: 2147483550;
   opacity: 0;
@@ -2627,22 +2720,42 @@ body.referrer-blackout {
 .light-beam.audio-reactive {
   animation: none;
   opacity: calc(0.35 + var(--chant-reactive, 0) * 0.65);
-  transform: translateY(-50%) scaleX(calc(1 + var(--chant-reactive, 0) * 0.45)) scaleY(calc(1 + var(--chant-reactive, 0) * 0.08));
+  transform: translate(-50%, -50%) scaleX(calc(1 + var(--chant-reactive, 0) * 0.45)) scaleY(calc(1 + var(--chant-reactive, 0) * 0.08));
   filter: blur(calc(var(--ref-light-beam-blur, 15px) * (1 + var(--chant-reactive, 0) * 0.18)));
+}
+
+#videoPlayerOverlay[data-active="inline"] {
+  align-items: flex-start;
+  padding-top: clamp(32px, 10vh, 80px);
+}
+
+#videoPlayerOverlay .beta-form-inline {
+  border: 0;
+  width: min(940px, 92vw);
+  height: min(620px, 82vh);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  background: #000;
+  transition: box-shadow 0.4s ease;
+}
+
+#videoPlayerOverlay .beta-form-inline:hover,
+#videoPlayerOverlay .beta-form-inline:focus {
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.6);
 }
 
 @keyframes beamPulse {
   0% {
     opacity: 0.6;
-    transform: translateY(-50%) scaleX(1);
+    transform: translate(-50%, -50%) scaleX(1);
   }
   50% {
     opacity: 0.9;
-    transform: translateY(-50%) scaleX(1.2);
+    transform: translate(-50%, -50%) scaleX(1.2);
   }
   100% {
     opacity: 0.6;
-    transform: translateY(-50%) scaleX(1);
+    transform: translate(-50%, -50%) scaleX(1);
   }
 }
 
@@ -2706,6 +2819,9 @@ body.referrer-blackout {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 960px;
 }
 
 .ref-footer .ref-controls {
@@ -3700,6 +3816,22 @@ body.referrer-whiteout {
   .ref-sidebar {
     width: clamp(260px, 90vw, 340px);
     margin: 0 auto;
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -55%) scale(0.96);
+    opacity: 0;
+    transition: transform 0.45s cubic-bezier(.68, -.55, .265, 1.55), opacity 0.35s ease;
+  }
+
+  .ref-sidebar.active {
+    right: auto;
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+
+  :root {
+    --ref-light-beam-target-width: clamp(420px, 120vw, 640px);
+    --ref-light-beam-target-height: clamp(260px, 60vh, 380px);
   }
 
   .edge-impact {
@@ -3731,13 +3863,6 @@ body.referrer-whiteout {
       rgba(0, 0, 0, 0.32) 70%,
       transparent 100%
     );
-  }
-
-  .light-beam {
-    right: -48vw;
-    width: 135vw;
-    height: 320px;
-    filter: blur(24px);
   }
 
   .burst-beam {
@@ -3784,10 +3909,9 @@ body.referrer-whiteout {
     width: 120vw;
   }
 
-  .light-beam {
-    right: -55vw;
-    width: 150vw;
-    height: 280px;
+  :root {
+    --ref-light-beam-target-width: clamp(340px, 140vw, 520px);
+    --ref-light-beam-target-height: clamp(220px, 62vh, 320px);
   }
 
   .burst-beam {

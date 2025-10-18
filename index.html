@@ -1276,8 +1276,8 @@
 <div id="lightBeam" class="light-beam" aria-hidden="true"></div>
 
 <!-- Video Player Overlay -->
-<div id="videoPlayerOverlay" style="position:fixed; inset:0; background:#000; z-index:30000; display:none; flex-direction:column; align-items:center; justify-content:center;">
- <div style="position:relative; width:90vw; height:90vh; display:flex; align-items:center; justify-content:center;">
+ <div id="videoPlayerOverlay" style="position:fixed; inset:0; background:#000; z-index:30000; display:none; flex-direction:column; align-items:center; justify-content:center;">
+  <div id="betaVideoStage" data-beta-stage="video" style="position:relative; width:90vw; height:90vh; display:flex; align-items:center; justify-content:center;">
   <video id="introVideo" style="display:none;" crossorigin="anonymous"></video>
   <canvas id="videoCanvas" style="max-width:100%; max-height:100%; object-fit:contain;"></canvas>
   <div style="position:absolute; bottom:20px; right:20px; display:flex; gap:10px;">
@@ -1331,6 +1331,8 @@
   const LOOM_AUDIO_STATUS_TEXT = 'Streaming CallYouByMyName.mp3';
   const BETA_FOCUS_FORM_URL = './templates/componentized/beta-focus-form.html';
   let betaFormRedirectTimeoutId = null;
+  let betaFallbackCheckTimeoutId = null;
+  let betaVideoSequenceStarted = false;
 
   if (refFeedbackLink) {
     refFeedbackLink.href = BETA_FOCUS_FORM_URL;
@@ -1406,6 +1408,9 @@
   let badBooleanAnalyserData = null;
   let badBooleanFrameId = null;
   let badBooleanWaveChars = [];
+  let badBooleanAmbientContainer = null;
+  let badBooleanAmbientChars = [];
+  let badBooleanAmbientShuffleId = null;
   let badBooleanPartyActive = false;
 
   let scratchContext = null;
@@ -1432,6 +1437,7 @@
     }
     clearBadBooleanCompletionListeners();
     stopBadBooleanVisualizer();
+    teardownBadBooleanAmbient();
   }
 
   function playBadBooleanTrack() {
@@ -1549,6 +1555,126 @@
       });
       line.appendChild(wrapper);
     });
+
+    buildBadBooleanAmbient();
+  }
+
+  function ensureBadBooleanAmbientContainer() {
+    if (!refSidebar) {
+      return null;
+    }
+
+    if (badBooleanAmbientContainer && badBooleanAmbientContainer.isConnected) {
+      return badBooleanAmbientContainer;
+    }
+
+    const container = document.createElement('div');
+    container.className = 'badboolean-ambient';
+    refSidebar.insertBefore(container, refSidebar.firstChild || null);
+    badBooleanAmbientContainer = container;
+    return container;
+  }
+
+  function randomizeAmbientChar(span) {
+    if (!span) {
+      return;
+    }
+
+    const left = Math.random() * 100;
+    const top = Math.random() * 100;
+    const rotation = (Math.random() * 48) - 24;
+    const duration = (6 + Math.random() * 6).toFixed(2);
+    const opacity = (0.28 + Math.random() * 0.45).toFixed(2);
+    const driftX = (Math.random() * 24 - 12).toFixed(2);
+    const driftY = (Math.random() * 20 - 10).toFixed(2);
+
+    span.style.setProperty('--ambient-left', `${left}%`);
+    span.style.setProperty('--ambient-top', `${top}%`);
+    span.style.setProperty('--ambient-rotation', `${rotation}deg`);
+    span.style.setProperty('--ambient-duration', `${duration}s`);
+    span.style.setProperty('--ambient-opacity', opacity);
+    span.style.setProperty('--ambient-drift-x', `${driftX}px`);
+    span.style.setProperty('--ambient-drift-y', `${driftY}px`);
+  }
+
+  function scheduleBadBooleanAmbientShuffle() {
+    if (badBooleanAmbientShuffleId) {
+      clearTimeout(badBooleanAmbientShuffleId);
+      badBooleanAmbientShuffleId = null;
+    }
+
+    if (!badBooleanAmbientChars.length) {
+      return;
+    }
+
+    badBooleanAmbientShuffleId = window.setTimeout(() => {
+      badBooleanAmbientShuffleId = null;
+      badBooleanAmbientChars.forEach(randomizeAmbientChar);
+      scheduleBadBooleanAmbientShuffle();
+    }, 4200);
+  }
+
+  function buildBadBooleanAmbient() {
+    const container = ensureBadBooleanAmbientContainer();
+    if (!container) {
+      return;
+    }
+
+    if (badBooleanAmbientShuffleId) {
+      clearTimeout(badBooleanAmbientShuffleId);
+      badBooleanAmbientShuffleId = null;
+    }
+
+    container.classList.remove('is-active');
+    container.innerHTML = '';
+    badBooleanAmbientChars = [];
+
+    if (!badBooleanWaveChars.length) {
+      return;
+    }
+
+    const characters = badBooleanWaveChars
+      .map(record => (record.element ? record.element.textContent : ''))
+      .filter(Boolean);
+
+    if (!characters.length) {
+      return;
+    }
+
+    const ambientTotal = Math.min(42, Math.max(12, characters.length * 2));
+    for (let i = 0; i < ambientTotal; i += 1) {
+      const span = document.createElement('span');
+      span.className = 'badboolean-ambient__char';
+      const sourceChar = characters[i % characters.length];
+      span.textContent = sourceChar || '•';
+      randomizeAmbientChar(span);
+      container.appendChild(span);
+      badBooleanAmbientChars.push(span);
+    }
+
+    requestAnimationFrame(() => {
+      container.classList.add('is-active');
+    });
+
+    scheduleBadBooleanAmbientShuffle();
+  }
+
+  function teardownBadBooleanAmbient() {
+    if (badBooleanAmbientShuffleId) {
+      clearTimeout(badBooleanAmbientShuffleId);
+      badBooleanAmbientShuffleId = null;
+    }
+
+    if (badBooleanAmbientContainer) {
+      badBooleanAmbientContainer.classList.remove('is-active');
+      badBooleanAmbientContainer.innerHTML = '';
+      if (badBooleanAmbientContainer.parentNode) {
+        badBooleanAmbientContainer.parentNode.removeChild(badBooleanAmbientContainer);
+      }
+    }
+
+    badBooleanAmbientContainer = null;
+    badBooleanAmbientChars = [];
   }
 
   function updateBadBooleanVisualizer() {
@@ -1981,6 +2107,7 @@
   }
 
   let edgeMetrics = computeEdgeMetrics();
+  let lightBeamUpdateFrameId = null;
 
   function getEdgeMetrics() {
     if (!edgeMetrics) {
@@ -2002,6 +2129,7 @@
     rootStyle.setProperty('--ref-light-ray-height', `${edgeMetrics.lightRayHeight}px`);
     const rayBlur = Math.max(8, edgeMetrics.lightRayHeight * 2.4);
     rootStyle.setProperty('--ref-light-ray-blur', `${Math.round(rayBlur)}px`);
+    updateLightBeamFocus();
   }
 
   function getTooltipMetrics() {
@@ -2035,6 +2163,56 @@
       const distanceToEdge = Math.max(0, viewportWidth - edgePadding - (initialLeft + tooltipWidth));
       tooltip.style.setProperty('--edge-distance', `${distanceToEdge}px`);
     });
+  }
+
+  function updateLightBeamFocus(preferredTarget = null) {
+    if (!lightBeam) {
+      return;
+    }
+
+    if (lightBeamUpdateFrameId) {
+      cancelAnimationFrame(lightBeamUpdateFrameId);
+      lightBeamUpdateFrameId = null;
+    }
+
+    lightBeamUpdateFrameId = requestAnimationFrame(() => {
+      lightBeamUpdateFrameId = null;
+      const candidate = preferredTarget && typeof preferredTarget.getBoundingClientRect === 'function'
+        ? preferredTarget
+        : document.querySelector('.loom-invite-card--tos')
+          || document.querySelector('.ref-sidebar .loom-invite-card')
+          || refSidebarAck;
+
+      if (!candidate || typeof candidate.getBoundingClientRect !== 'function') {
+        resetLightBeamFocus();
+        return;
+      }
+
+      const rect = candidate.getBoundingClientRect();
+      if (!rect || rect.width <= 0 || rect.height <= 0) {
+        return;
+      }
+
+      const centerX = rect.left + (rect.width / 2);
+      const centerY = rect.top + (rect.height / 2);
+      const viewportWidth = window.innerWidth || rect.width;
+      const viewportHeight = window.innerHeight || rect.height;
+      const width = Math.min(rect.width * 1.32, viewportWidth * 1.05);
+      const height = Math.min(rect.height * 1.56, viewportHeight * 0.9);
+      const rootStyle = document.documentElement.style;
+      rootStyle.setProperty('--ref-light-beam-center-x', `${centerX}px`);
+      rootStyle.setProperty('--ref-light-beam-center-y', `${centerY}px`);
+      rootStyle.setProperty('--ref-light-beam-target-width', `${Math.max(width, rect.width * 1.12)}px`);
+      rootStyle.setProperty('--ref-light-beam-target-height', `${Math.max(height, rect.height * 1.32)}px`);
+    });
+  }
+
+  function resetLightBeamFocus() {
+    const rootStyle = document.documentElement.style;
+    rootStyle.removeProperty('--ref-light-beam-center-x');
+    rootStyle.removeProperty('--ref-light-beam-center-y');
+    rootStyle.removeProperty('--ref-light-beam-target-width');
+    rootStyle.removeProperty('--ref-light-beam-target-height');
   }
 
   applyEdgeMetrics();
@@ -3433,6 +3611,8 @@
     refSidebarAck.removeAttribute('style');
     refSidebarAck.setAttribute('aria-label', 'Open Loomworks invitation');
     markInviteActive(true);
+    updateLightBeamFocus(refSidebarAck.querySelector('.loom-invite-card'));
+    teardownBadBooleanAmbient();
   }
 
   function revealAiMessage() {
@@ -3508,9 +3688,10 @@
     ackBtn.style.transition = 'all 0.1s ease-out';
     ackBtn.style.willChange = 'transform, opacity';
     ackBtn.style.textAlign = 'center';
-    ackBtn.style.display = 'block';
-    ackBtn.style.alignItems = '';
-    ackBtn.style.justifyContent = '';
+    ackBtn.style.display = 'flex';
+    ackBtn.style.flexDirection = 'column';
+    ackBtn.style.alignItems = 'center';
+    ackBtn.style.justifyContent = 'center';
 
     ackBtn.innerHTML = `
         <div class="badboolean-banner" style="padding: 28px 20px; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center;">
@@ -3567,6 +3748,7 @@
     startBadBooleanAdAudio();
     applyBadBooleanWave(ackBtn);
     startBadBooleanVisualizer();
+    updateLightBeamFocus(refSidebarAck);
   }
 
   function showLoomworksInvite(isAltVersion = false) {
@@ -3649,7 +3831,7 @@
               </div>
               <div id="tosCheckboxContainer" class="tos-checkbox">
                 <input type="checkbox" id="tosCheckbox">
-                <label for="tosCheckbox">I accept the terms</label>
+                <label for="tosCheckbox">Accept Me. Hold Me.</label>
               </div>
             </div>
           </div>
@@ -3690,6 +3872,7 @@
 
       console.log(`✨ Unified hazy glass crystal LOOMWORKS invitation displayed (${versionLabel})`);
       updateTriColorFocus();
+      updateLightBeamFocus(document.querySelector('.loom-invite-card--tos'));
     }, 300);
   }
   
@@ -3989,6 +4172,7 @@
       clearTimeout(betaFormRedirectTimeoutId);
       betaFormRedirectTimeoutId = null;
     }
+    clearBetaFallbackTimeout();
 
     if (goldenDustAnimationId) {
       cancelAnimationFrame(goldenDustAnimationId);
@@ -3998,11 +4182,12 @@
     const overlayElement = document.getElementById('celliRefOverlay');
     if (overlayElement) {
       overlayElement.classList.remove('tos-ascension', 'tos-hold-shaking', 'dust-phase', 'dust-complete', 'warp-drive', 'blackout-stage', 'blackout-active');
-      overlayElement.querySelectorAll('.golden-whiteout, .golden-dust-canvas, .frame-burst, .beta-form-portal').forEach((node) => {
+      overlayElement.querySelectorAll('.golden-whiteout, .golden-dust-canvas, .frame-burst, .beta-form-portal, .beta-form-inline').forEach((node) => {
         if (node && node.parentNode) {
           node.parentNode.removeChild(node);
         }
       });
+      overlayElement.removeAttribute('data-active');
     }
 
     const tosCard = document.querySelector('.loom-invite-card--tos');
@@ -4010,9 +4195,28 @@
       tosCard.classList.remove('morphing', 'tos-morphing', 'beta-card', 'triangle-flight', 'into-frame', 'triangle-collapse-complete', 'tos-locked');
     }
 
+    const videoStage = document.getElementById('betaVideoStage');
+    if (videoStage) {
+      videoStage.style.display = '';
+    }
+
+    const introVideo = document.getElementById('introVideo');
+    if (introVideo) {
+      try {
+        introVideo.pause();
+      } catch (error) {
+        console.warn('⚠️ Unable to pause intro video during cleanup:', error);
+      }
+      introVideo.removeAttribute('src');
+      introVideo.load();
+      introVideo.style.display = 'none';
+    }
+
     goldenHoldOverlay = null;
     postTermsSequenceStarted = false;
     document.body.classList.remove('referrer-whiteout');
+    delete document.body.dataset.betaRedirectComplete;
+    betaVideoSequenceStarted = false;
   }
 
   function scheduleBetaFormRedirect(delay = 0) {
@@ -4036,11 +4240,174 @@
       betaFormRedirectTimeoutId = null;
       console.log('➡️ Redirecting to beta focus form…');
       try {
+        document.body.dataset.betaRedirectComplete = 'pending';
         window.location.href = BETA_FOCUS_FORM_URL;
       } catch (error) {
         console.error('⚠️ Unable to redirect to beta focus form', error);
+        launchBetaFormVideoSequence();
       }
     }, safeDelay);
+
+    scheduleBetaFallbackCheck(safeDelay);
+  }
+
+  function clearBetaFallbackTimeout() {
+    if (betaFallbackCheckTimeoutId !== null) {
+      clearTimeout(betaFallbackCheckTimeoutId);
+      betaFallbackCheckTimeoutId = null;
+    }
+  }
+
+  function scheduleBetaFallbackCheck(baseDelay) {
+    clearBetaFallbackTimeout();
+    const fallbackDelay = Math.max(1200, baseDelay + 1000);
+    betaFallbackCheckTimeoutId = window.setTimeout(() => {
+      betaFallbackCheckTimeoutId = null;
+      if (document.body.dataset.betaRedirectComplete === 'true') {
+        return;
+      }
+      console.warn('⚠️ Beta redirect stalled – launching inline fallback sequence.');
+      launchBetaFormVideoSequence();
+    }, fallbackDelay);
+  }
+
+  function showInlineBetaForm() {
+    const overlay = document.getElementById('videoPlayerOverlay');
+    if (!overlay) {
+      return;
+    }
+
+    document.body.dataset.betaRedirectComplete = 'true';
+
+    const video = document.getElementById('introVideo');
+    if (video) {
+      try {
+        video.pause();
+      } catch (error) {
+        console.warn('⚠️ Unable to pause intro video for inline form:', error);
+      }
+    }
+
+    const stage = document.getElementById('betaVideoStage');
+    if (stage) {
+      stage.style.display = 'none';
+    }
+
+    let frame = overlay.querySelector('.beta-form-inline');
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.className = 'beta-form-inline';
+      frame.setAttribute('title', 'Celli Beta Focus Form');
+      frame.setAttribute('loading', 'lazy');
+      overlay.appendChild(frame);
+    }
+
+    if (!frame.getAttribute('src')) {
+      frame.src = BETA_FOCUS_FORM_URL;
+    }
+
+    overlay.setAttribute('data-active', 'inline');
+  }
+
+  function launchBetaFormVideoSequence() {
+    if (betaVideoSequenceStarted) {
+      return;
+    }
+
+    betaVideoSequenceStarted = true;
+    document.body.dataset.betaRedirectComplete = 'true';
+    clearBetaFallbackTimeout();
+
+    if (betaFormRedirectTimeoutId !== null) {
+      clearTimeout(betaFormRedirectTimeoutId);
+      betaFormRedirectTimeoutId = null;
+    }
+
+    const overlay = document.getElementById('videoPlayerOverlay');
+    const video = document.getElementById('introVideo');
+    const canvas = document.getElementById('videoCanvas');
+    const stage = document.getElementById('betaVideoStage');
+    if (!overlay || !video) {
+      try {
+        window.location.href = BETA_FOCUS_FORM_URL;
+      } catch (error) {
+        console.error('⚠️ Fallback navigation failed:', error);
+      }
+      return;
+    }
+
+    if (stage) {
+      stage.style.display = 'flex';
+    }
+
+    overlay.style.display = 'flex';
+    overlay.style.opacity = '0';
+    overlay.setAttribute('data-active', 'video');
+    requestAnimationFrame(() => {
+      overlay.style.transition = 'opacity 0.45s ease';
+      overlay.style.opacity = '1';
+    });
+
+    if (canvas) {
+      canvas.style.display = 'none';
+    }
+
+    video.style.display = 'block';
+    video.controls = true;
+    video.loop = false;
+    video.muted = false;
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
+    if (!video.getAttribute('src')) {
+      video.src = './intro7.mp4';
+    }
+
+    const handleVideoEnded = () => {
+      video.removeEventListener('ended', handleVideoEnded);
+      showInlineBetaForm();
+    };
+
+    const handleVideoError = (event) => {
+      console.warn('⚠️ Beta intro video failed:', event);
+      video.removeEventListener('error', handleVideoError);
+      video.removeEventListener('ended', handleVideoEnded);
+      showInlineBetaForm();
+    };
+
+    video.addEventListener('ended', handleVideoEnded);
+    video.addEventListener('error', handleVideoError);
+
+    const playPromise = video.play();
+    if (playPromise && typeof playPromise.then === 'function') {
+      playPromise.catch((error) => {
+        console.warn('⚠️ Beta intro video playback blocked:', error);
+        handleVideoError(error);
+      });
+    } else {
+      showInlineBetaForm();
+    }
+
+    const closeBtn = document.getElementById('videoCloseBtn');
+    if (closeBtn && !closeBtn.dataset.bound) {
+      closeBtn.dataset.bound = 'true';
+      closeBtn.addEventListener('click', () => {
+        try {
+          video.pause();
+        } catch (error) {
+          console.warn('⚠️ Unable to pause beta intro video:', error);
+        }
+        overlay.style.display = 'flex';
+        overlay.style.opacity = '1';
+        showInlineBetaForm();
+      });
+    }
+
+    // Ensure the form is accessible even if the video stalls.
+    window.setTimeout(() => {
+      if (!overlay.querySelector('.beta-form-inline') && (video.paused || video.ended || video.readyState === 0)) {
+        showInlineBetaForm();
+      }
+    }, 5000);
   }
 
   function startHoldWhir() {
@@ -4244,6 +4611,8 @@
       fadeAndRemoveElement(node, true);
     });
 
+    resetLightBeamFocus();
+
     const swarm = document.getElementById('loomInviteSwarm');
     if (swarm) {
       fadeAndRemoveElement(swarm, true);
@@ -4319,8 +4688,6 @@
     const html2CanvasReady = await ensureHtml2CanvasLoaded();
 
     if (html2CanvasReady && typeof html2canvas !== 'undefined') {
-      const previousVisibility = overlayElement.style.visibility;
-      overlayElement.style.visibility = 'hidden';
       await new Promise((resolve) => requestAnimationFrame(resolve));
       try {
         captureCanvas = await html2canvas(document.body, {
@@ -4333,7 +4700,6 @@
       } catch (err) {
         console.warn('⚠️ html2canvas capture failed', err);
       }
-      overlayElement.style.visibility = previousVisibility || '';
     }
 
     const voxelSuccess = captureCanvas ? await runVoxelShatterSequence(captureCanvas) : false;
@@ -4516,7 +4882,7 @@
       triangleElement.classList.add('triangle-collapse-complete');
     }, 1400);
 
-    scheduleBetaFormRedirect(1800);
+    scheduleBetaFormRedirect(1000);
   }
   
   // Magnetic cursor effect
@@ -4689,14 +5055,17 @@
   function openOverlay() {
     overlay.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
+    updateLightBeamFocus();
   }
-  
+
   function dismiss() {
     overlay.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
     hideSidebar();
     hideTooltip();
     resetImpacts();
+    resetLightBeamFocus();
+    clearBetaFallbackTimeout();
   }
   
   function showSidebar(url, withImpact = false) {
@@ -4721,6 +5090,7 @@
     triggerBurstLight();
 
     setTimeout(() => startMagneticCursor(), 800);
+    updateLightBeamFocus();
   }
   
   function hideSidebar() {
