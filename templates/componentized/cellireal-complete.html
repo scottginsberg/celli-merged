@@ -10222,23 +10222,39 @@ const Scene = (()=>{
  // Lighthouse beams shader
  const lighthouseMat = new THREE.ShaderMaterial({
  uniforms: {
- lighthousePos:{value:[new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3()]},
- lighthouseCount:{value:0},
- beamSize:{value:0.08}
+  lighthouseOrigin:{value:[new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3()]},
+  lighthouseTarget:{value:[new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3()]},
+  lighthouseCount:{value:0},
+  beamSize:{value:0.08}
  },
  vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position,1.); }`,
  fragmentShader: `
  varying vec2 vUv;
- uniform vec3 lighthousePos[4];
+ uniform vec3 lighthouseOrigin[4];
+ uniform vec3 lighthouseTarget[4];
  uniform int lighthouseCount;
  uniform float beamSize;
+ vec2 closestPoint(vec2 p, vec2 a, vec2 b){
+  vec2 ap = p - a;
+  vec2 ab = b - a;
+  float denom = dot(ab, ab);
+  float t = denom > 0.0 ? clamp(dot(ap, ab) / denom, 0.0, 1.0) : 0.0;
+  return a + ab * t;
+ }
  void main(){
  float brightness = 0.0;
  for(int i=0; i<4; i++){
  if(i >= lighthouseCount) break;
- vec2 pos = lighthousePos[i].xy;
- float dist = length(vUv - pos);
- brightness += smoothstep(beamSize, beamSize * 0.3, dist);
+ vec2 origin = lighthouseOrigin[i].xy;
+ vec2 target = lighthouseTarget[i].xy;
+ vec2 closest = closestPoint(vUv, origin, target);
+ float segLen = length(target - origin);
+ float along = segLen > 0.0 ? clamp(length(closest - origin) / segLen, 0.0, 1.0) : 0.0;
+ float dist = length(vUv - closest);
+ float headDist = length(vUv - target);
+ float body = smoothstep(beamSize, beamSize * 0.15, dist);
+ float head = smoothstep(beamSize * 0.8, beamSize * 0.2, headDist);
+ brightness += body * mix(0.5, 1.0, along) + head * 0.45;
  }
  gl_FragColor = vec4(vec3(brightness), 1.0);
  }`,
@@ -10509,17 +10525,22 @@ const Scene = (()=>{
  
  // Generate lighthouse beams
  const seq = state.beamSequence && state.beamSequence.active ? state.beamSequence : null;
- const sourceList = seq && seq.overrides ? seq.overrides : state.lighthousePositions;
- const beamCount = Math.min(sourceList ? sourceList.length : 0, 4);
+ const originList = seq && seq.origins && seq.origins.length ? seq.origins : state.lighthousePositions;
+ const targetList = seq && seq.targets ? seq.targets : null;
+ const beamCount = Math.min(originList ? originList.length : 0, 4);
  post.lighthouseMat.uniforms.lighthouseCount.value = beamCount;
  for(let i=0; i<beamCount; i++){
- const worldPos = (seq && seq.overrides && seq.overrides[i]) ? seq.overrides[i] : state.lighthousePositions[i];
- if(!worldPos){
-  post.lighthouseMat.uniforms.lighthousePos.value[i].set(0.5, 0.5, 0);
+ const origin = originList[i];
+ const target = (targetList && targetList[i]) ? targetList[i] : origin;
+ if(!origin){
+  post.lighthouseMat.uniforms.lighthouseOrigin.value[i].set(0.5, 0.5, 0);
+  post.lighthouseMat.uniforms.lighthouseTarget.value[i].set(0.5, 0.5, 0);
   continue;
  }
- const proj = worldPos.clone().project(mainCamera);
- post.lighthouseMat.uniforms.lighthousePos.value[i].set(proj.x*0.5+0.5, proj.y*0.5+0.5, proj.z);
+ const originProj = origin.clone().project(mainCamera);
+ post.lighthouseMat.uniforms.lighthouseOrigin.value[i].set(originProj.x*0.5+0.5, originProj.y*0.5+0.5, originProj.z);
+ const targetProj = target ? target.clone().project(mainCamera) : originProj;
+ post.lighthouseMat.uniforms.lighthouseTarget.value[i].set(targetProj.x*0.5+0.5, targetProj.y*0.5+0.5, targetProj.z);
  }
  mainRenderer.setRenderTarget(post.rtLighthouse);
  mainRenderer.render(new THREE.Scene().add(new THREE.Mesh(post.fsQuad, post.lighthouseMat)), post.screenCam);
@@ -10684,17 +10705,30 @@ const Scene = (()=>{
  const count = Math.min(state.lighthousePositions.length || 0, MAX_LIGHTHOUSE_BEACONS);
  const beams = [];
  for(let i=0; i<count; i++){
-  const origin = state.lighthousePositions[i] ? state.lighthousePositions[i].clone() : new THREE.Vector3();
-  beams.push({
-   origin,
-   radius: THREE.MathUtils.randFloat(60, 140),
-   height: THREE.MathUtils.randFloat(12, 32),
-   speed: THREE.MathUtils.randFloat(0.25, 0.55) + i * 0.05,
-   phase: Math.random() * Math.PI * 2,
-   verticalSpeed: THREE.MathUtils.randFloat(0.2, 0.5),
-   verticalAmp: THREE.MathUtils.randFloat(3, 12),
-   lastPos: origin.clone()
-  });
+ const origin = state.lighthousePositions[i] ? state.lighthousePositions[i].clone() : new THREE.Vector3();
+ const baseDir = new THREE.Vector3(
+  THREE.MathUtils.randFloat(-0.35, 0.35),
+  -1,
+  THREE.MathUtils.randFloat(-0.35, 0.35)
+ ).normalize();
+ const sweepAngle = THREE.MathUtils.degToRad(THREE.MathUtils.randFloat(18, 36));
+ const scanAxis = new THREE.Vector3(0, 1, 0);
+ const beamLength = THREE.MathUtils.randFloat(90, 160);
+ const horizontalReach = THREE.MathUtils.randFloat(45, 110);
+ const initialTarget = origin.clone().add(baseDir.clone().multiplyScalar(beamLength * 0.6));
+ beams.push({
+  origin,
+  radius: horizontalReach,
+  length: beamLength,
+  speed: THREE.MathUtils.randFloat(0.25, 0.55) + i * 0.05,
+  phase: Math.random() * Math.PI * 2,
+  verticalSpeed: THREE.MathUtils.randFloat(0.2, 0.5),
+  verticalAmp: THREE.MathUtils.randFloat(3, 12),
+  sweepAngle,
+  scanAxis,
+  baseDir,
+  lastTarget: initialTarget
+ });
  }
  state.beamSequence = {
   active: true,
@@ -10702,12 +10736,15 @@ const Scene = (()=>{
   focusDelay,
   lockDuration,
   beams,
-  overrides: new Array(count).fill(null),
+  targets: beams.map(b=> b.lastTarget ? b.lastTarget.clone() : b.origin.clone()),
+  origins: beams.map(b=>b.origin.clone()),
   targetProvider: typeof targetProvider === 'function' ? targetProvider : null,
   lockOffsets: beams.map((_, idx)=> new THREE.Vector3((idx - (count-1)/2) * 5, 12 + idx * 3, (idx % 2 === 0 ? -4 : 4))),
   focusStart: null,
+  startTargets: null,
   locked: false
  };
+ state.beamSequence.overrides = state.beamSequence.targets;
  needsRender = true;
  return state.beamSequence;
 }
@@ -10717,56 +10754,71 @@ function updateSpotlightSequence(){
  if(!seq || !seq.active) return;
  const count = seq.beams?.length || 0;
  if(count === 0){
-  seq.overrides = [];
+  seq.targets = [];
+  seq.overrides = seq.targets;
   return;
  }
  const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() * 0.001 : Date.now() / 1000;
  if(seq.locked){
-  if(seq.targetProvider){
-   const target = seq.targetProvider();
-   if(target){
-    seq.overrides = seq.overrides || new Array(count);
+ if(seq.targetProvider){
+  const target = seq.targetProvider();
+  if(target){
+   seq.targets = seq.targets || new Array(count);
+    seq.overrides = seq.targets;
     for(let i=0; i<count; i++){
      const offset = seq.lockOffsets?.[i] || new THREE.Vector3();
-     seq.overrides[i] = target.clone().add(offset);
+     const finalTarget = target.clone().add(offset);
+     seq.targets[i] = finalTarget;
+     if(seq.beams[i]) seq.beams[i].lastTarget = finalTarget;
     }
    }
   }
   needsRender = true;
   return;
  }
- const elapsed = now - seq.start;
- seq.overrides = seq.overrides || new Array(count);
+const elapsed = now - seq.start;
+seq.targets = seq.targets || new Array(count);
+ seq.overrides = seq.targets;
  if(elapsed >= seq.focusDelay){
   if(!seq.focusStart){
    seq.focusStart = now;
-   seq.startOverrides = seq.overrides.map(o=> o ? o.clone() : null);
+   seq.startTargets = seq.targets.map(o=> o ? o.clone() : null);
   }
   const t = seq.lockDuration > 0 ? Math.min(1, (now - seq.focusStart) / seq.lockDuration) : 1;
   const target = seq.targetProvider ? seq.targetProvider() : null;
   for(let i=0; i<count; i++){
    const beam = seq.beams[i];
-   const startPos = seq.startOverrides?.[i] || beam.lastPos || beam.origin.clone();
+   const startPos = seq.startTargets?.[i] || beam?.lastTarget || beam?.origin?.clone?.() || new THREE.Vector3();
    const offset = seq.lockOffsets?.[i] || new THREE.Vector3();
-   const endPos = target ? target.clone().add(offset) : beam.origin.clone();
+   const endPos = target ? target.clone().add(offset) : (beam?.origin?.clone?.() || new THREE.Vector3());
    const pos = startPos.clone().lerp(endPos, t);
-   seq.overrides[i] = pos;
-   beam.lastPos = pos;
+   seq.targets[i] = pos;
+   if(beam) beam.lastTarget = pos;
   }
   if(t >= 1){
    seq.locked = true;
   }
  } else {
+  seq.startTargets = null;
   for(let i=0; i<count; i++){
    const beam = seq.beams[i];
+   if(!beam) continue;
    const ang = beam.phase + elapsed * beam.speed;
-   const vert = Math.sin(elapsed * beam.verticalSpeed + beam.phase) * beam.verticalAmp;
+   const sweep = Math.sin(ang) * beam.sweepAngle;
+   const rotation = new THREE.Matrix4().makeRotationAxis(beam.scanAxis, sweep);
+   const dir = beam.baseDir.clone().applyMatrix4(rotation).normalize();
+   const horizontalDir = new THREE.Vector3(dir.x, 0, dir.z);
+   if(horizontalDir.lengthSq() < 1e-6){
+    horizontalDir.set(Math.cos(ang), 0, Math.sin(ang));
+   }
+   horizontalDir.normalize().multiplyScalar(beam.radius);
+   const vertOsc = Math.sin(elapsed * beam.verticalSpeed + beam.phase) * beam.verticalAmp;
    const pos = beam.origin.clone();
-   pos.x += Math.cos(ang) * beam.radius;
-   pos.z += Math.sin(ang) * beam.radius;
-   pos.y += beam.height + vert;
-   seq.overrides[i] = pos;
-   beam.lastPos = pos;
+   pos.x += horizontalDir.x;
+   pos.z += horizontalDir.z;
+   pos.y += dir.y * beam.length + vertOsc;
+   seq.targets[i] = pos;
+   beam.lastTarget = pos;
   }
  }
  needsRender = true;
@@ -19203,6 +19255,82 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  return new THREE.Vector3();
 }
 
+const audioSourceCache = new Map();
+
+function resolveAudioSourceCaseInsensitive(fileName, basePaths){
+ if(typeof Audio === 'undefined') return Promise.reject(new Error('Audio API unavailable'));
+ const dirs = Array.isArray(basePaths) && basePaths.length ? basePaths : ['', './', '../', '../../', '../../../', '/'];
+ const variants = new Set([
+  fileName,
+  fileName.toLowerCase(),
+  fileName.toUpperCase(),
+  fileName.replace(/\.mp3$/i, '.mp3'),
+  fileName.replace(/\.mp3$/i, '.MP3'),
+  fileName.replace(/^(.)/, (_, c)=>c.toUpperCase())
+ ]);
+ const key = fileName.toLowerCase();
+ const cached = audioSourceCache.get(key);
+ if(cached){
+  const audio = new Audio();
+  audio.src = cached;
+  try{ audio.load?.(); }catch{}
+  return Promise.resolve(audio);
+ }
+ const candidates = [];
+ dirs.forEach(dir=>{
+  const prefix = (!dir || dir.endsWith('/')) ? dir : `${dir}/`;
+  variants.forEach(name=>{ candidates.push(`${prefix}${name}`); });
+ });
+ const audio = new Audio();
+ let index = 0;
+ return new Promise((resolve, reject)=>{
+  function tryNext(){
+   if(index >= candidates.length){
+    reject(new Error('Audio source not found'));
+    return;
+   }
+   const src = candidates[index++];
+   let settled = false;
+   const cleanup = ()=>{
+    audio.removeEventListener('canplaythrough', onLoad);
+    audio.removeEventListener('loadeddata', onLoad);
+    audio.removeEventListener('error', onError);
+   };
+   const onLoad = ()=>{
+    if(settled) return;
+    settled = true;
+    cleanup();
+    audioSourceCache.set(key, src);
+    resolve(audio);
+   };
+   const onError = ()=>{
+    if(settled) return;
+    cleanup();
+    tryNext();
+   };
+   audio.addEventListener('canplaythrough', onLoad, {once:true});
+   audio.addEventListener('loadeddata', onLoad, {once:true});
+   audio.addEventListener('error', onError, {once:true});
+   audio.src = src;
+   try{ audio.load(); }catch(e){ onError(e); }
+  }
+  tryNext();
+ });
+}
+
+function playSpottedAudio(){
+ if(!spottedState || spottedState.audio || spottedState.audioLoading) return;
+ spottedState.audioLoading = true;
+ resolveAudioSourceCaseInsensitive('spotted.mp3').then(audio=>{
+  spottedState.audio = audio;
+  spottedState.audioLoading = false;
+  const playPromise = audio.play();
+  if(playPromise?.catch){ playPromise.catch(()=>{}); }
+ }).catch(()=>{
+  spottedState.audioLoading = false;
+ });
+}
+
 function startSpottedSequence(){
  if(spottedState?.active){
   return spottedState;
@@ -19220,6 +19348,7 @@ function startSpottedSequence(){
   floatSpeed: 1.4,
   floatMax: 18,
   audio: null,
+  audioLoading: false,
   audioStarted: false,
   physicsDisabled: false
  };
@@ -19265,9 +19394,7 @@ function updateSpottedSequence(deltaSec){
    spottedState.audioStarted = true;
    if(typeof Audio !== 'undefined'){
     try{
-     const audio = new Audio('spotted.mp3');
-     spottedState.audio = audio;
-     audio.play().catch(()=>{});
+     playSpottedAudio();
     }catch{}
    }
   }
