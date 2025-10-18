@@ -13,6 +13,9 @@
 import * as THREE from 'three';
 import { ExecutionEnvironment } from './components/ExecutionEnvironment.js';
 
+const EXECUTION_ENV_MODE_STORAGE_KEY = 'fullhand_mode';
+const EXECUTION_ENV_DEFAULT_MODE = 'sequence';
+
 export class FullhandScene {
   constructor() {
     this.name = 'Fullhand';
@@ -35,6 +38,7 @@ export class FullhandScene {
       // State
       running: false,
       totalTime: 0,
+      mode: EXECUTION_ENV_DEFAULT_MODE,
       
       // Callbacks
       onComplete: null
@@ -86,6 +90,9 @@ export class FullhandScene {
     this.state.execEnv = new ExecutionEnvironment(this.state.scene, this.state.camera);
     await this.state.execEnv.init();
     this.state.execEnv.show();
+    if (typeof this.state.execEnv.setMode === 'function') {
+      this.state.execEnv.setMode(this.state.mode);
+    }
     
     // Setup mouse tracking
     this._setupMouseTracking();
@@ -151,15 +158,65 @@ export class FullhandScene {
     this.state.typing = false;
   }
 
+  _resolveRequestedMode(requestedMode) {
+    if (requestedMode === 'sequence' || requestedMode === 'debug') {
+      return requestedMode;
+    }
+
+    try {
+      const saved = window.localStorage?.getItem(EXECUTION_ENV_MODE_STORAGE_KEY);
+      if (saved === 'sequence' || saved === 'debug') {
+        return saved;
+      }
+    } catch (error) {
+      console.warn('[FullhandScene] Unable to read stored execution mode:', error);
+    }
+
+    if (this.state.mode === 'sequence' || this.state.mode === 'debug') {
+      return this.state.mode;
+    }
+
+    return EXECUTION_ENV_DEFAULT_MODE;
+  }
+
+  setMode(mode) {
+    if (mode !== 'sequence' && mode !== 'debug') {
+      console.warn('[FullhandScene] Ignoring unsupported mode:', mode);
+      mode = EXECUTION_ENV_DEFAULT_MODE;
+    }
+
+    this.state.mode = mode;
+
+    try {
+      window.localStorage?.setItem(EXECUTION_ENV_MODE_STORAGE_KEY, mode);
+    } catch (error) {
+      console.warn('[FullhandScene] Unable to persist execution mode:', error);
+    }
+
+    if (this.state.execEnv && typeof this.state.execEnv.setMode === 'function') {
+      this.state.execEnv.setMode(mode);
+    }
+
+    if (!this.state.running) {
+      return;
+    }
+
+    if (mode === 'sequence') {
+      this._startTyping();
+    } else {
+      this._stopTyping();
+    }
+  }
+
   /**
    * Start scene
    */
-  async start() {
+  async start(_, options = {}) {
     console.log('[FullhandScene] ▶️ Starting Complete Execution Environment');
     this.state.running = true;
-    
-    // Start typing animation
-    this._startTyping();
+
+    const mode = this._resolveRequestedMode(options.mode);
+    this.setMode(mode);
   }
 
   /**
