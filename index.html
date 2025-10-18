@@ -120,13 +120,13 @@
   }
 
   .ref-sidebar.mythic-entrance.note-seed {
-   width: clamp(210px, 65vw, 260px);
-   padding: 20px 24px;
-   border-radius: 22px;
-   background: linear-gradient(145deg, rgba(25, 32, 58, 0.92), rgba(18, 26, 48, 0.88)) !important;
-   box-shadow: 0 18px 46px rgba(14, 18, 40, 0.58), 0 0 42px rgba(102, 126, 234, 0.45);
-   backdrop-filter: blur(24px) saturate(185%);
-   -webkit-backdrop-filter: blur(24px) saturate(185%);
+   width: clamp(260px, 80vw, 420px);
+   padding: clamp(12px, 3vw, 18px);
+   border-radius: 24px;
+   background: linear-gradient(145deg, rgba(25, 32, 58, 0.88), rgba(18, 26, 48, 0.82)) !important;
+   box-shadow: 0 18px 46px rgba(14, 18, 40, 0.48), 0 0 42px rgba(102, 126, 234, 0.35);
+   backdrop-filter: blur(24px) saturate(165%);
+   -webkit-backdrop-filter: blur(24px) saturate(165%);
    display: flex;
    align-items: center;
    justify-content: center;
@@ -1412,9 +1412,6 @@
   badBooleanTrack.loop = false;
   badBooleanTrack.volume = 0.82;
 
-  const chimeAudio = new Audio('./end.mp3');
-  chimeAudio.preload = 'auto';
-
   let scratchContext = null;
   let scratchGlitchPromise = Promise.resolve();
   let badBooleanEndListener = null;
@@ -1504,13 +1501,6 @@
     scratchGlitchPromise = playRecordScratchGlitch().then(() => {
       playBadBooleanTrack();
     });
-  }
-
-  function playAdDismissChime() {
-    const playback = chimeAudio.play();
-    if (playback && typeof playback.catch === 'function') {
-      playback.catch((error) => console.warn('Chime playback failed:', error));
-    }
   }
 
   chantAudio.addEventListener('play', () => startChantVisualizer(6000));
@@ -3380,6 +3370,10 @@
 
     ackBtn.style.transition = 'all 0.1s ease-out';
     ackBtn.style.willChange = 'transform, opacity';
+    ackBtn.style.textAlign = 'center';
+    ackBtn.style.display = 'block';
+    ackBtn.style.alignItems = '';
+    ackBtn.style.justifyContent = '';
 
     ackBtn.innerHTML = `
         <div style="font-size: 20px; font-weight: 900; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 2px; color: #ff0080; animation: pulse 0.5s infinite;">
@@ -3447,11 +3441,7 @@
     stopAiEnhancedScan();
     clearNoteStageTimeouts();
 
-    const wasAdActive = !badBooleanTrack.paused;
     stopBadBooleanTrack();
-    if (wasAdActive) {
-      scratchGlitchPromise.finally(() => playAdDismissChime());
-    }
 
     // Clear any pending timeout
     if (window.badBooleanTimeout) {
@@ -3494,31 +3484,28 @@
       // Show complete unified ToS card with header - hazy glass crystal effect
       ackBtn.innerHTML = `
         <div class="loom-invite-stack">
-          <div class="loom-invite-card" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">
-          <!-- Header with crystal haze effect -->
-          <div style="padding: 32px 36px; display:flex; justify-content:center; background: linear-gradient(140deg, rgba(118, 75, 162, 0.28), rgba(102, 126, 234, 0.24), rgba(143, 180, 255, 0.22)); border-bottom: 1px solid rgba(143, 180, 255, 0.28); backdrop-filter: blur(14px);">
-            ${LOOM_INVITE_EMBLEM}
-          </div>
-
-          <!-- Content -->
-          <div style="padding: 36px; font-size: 15px; font-weight: 300; line-height: 1.9; color: #f8f9fa;">
-            <div style="margin-bottom: 24px; font-weight: 400; font-size: 16px; color: #ffffff; letter-spacing: 0.4px; line-height: 1.6;">
-              ${openingText}
+          <div class="loom-invite-card loom-invite-card--tos" data-version="${versionLabel.toLowerCase()}">
+            <div class="loom-invite-card__header">
+              ${LOOM_INVITE_EMBLEM}
             </div>
-            <div style="margin-bottom: 28px; opacity: 0.95; font-size: 14px; line-height: 1.7;">
-              Not everyone passes that test, you know? And for that, we'd like you to join our incredibly exclusive <span id="alphaText" style="font-weight: 600; color: #8fb4ff; text-shadow: 0 0 8px rgba(143, 180, 255, 0.5);">alpha</span> test.
+            <div class="loom-invite-card__body">
+              <div class="loom-invite-opening">${openingText}</div>
+              <div class="loom-invite-body-text">
+                Not everyone passes that test, you know? And for that, we'd like you to join our incredibly exclusive <span id="alphaText" class="loom-invite-alpha">alpha</span> test.
+              </div>
+              <div class="loom-invite-divider">Just need you to sign the ToS....</div>
+              <button id="tosLabelToggle" class="tos-label" type="button" aria-expanded="false" aria-controls="tosExpandable">
+                <span class="tos-label-text">Terms of <span id="eternalText" class="tos-label-eternal"></span> Submission</span>
+                <span class="tos-label-arrow" aria-hidden="true"></span>
+              </button>
+              <div id="tosExpandable" class="tos-expandable" hidden aria-hidden="true">
+                <p class="tos-expandable-line">You don't ask to see a girl's ToES on the first date...</p>
+              </div>
+              <div id="tosCheckboxContainer" class="tos-checkbox">
+                <input type="checkbox" id="tosCheckbox">
+                <label for="tosCheckbox">I accept the terms</label>
+              </div>
             </div>
-            <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid rgba(143, 180, 255, 0.2); font-size: 13px; opacity: 0.85; font-weight: 300;">
-              Just need you to sign the ToS....
-            </div>
-            <div id="tosLabel" style="margin-top: 16px; font-size: 11px; color: #a0b0c0; letter-spacing: 2px; font-weight: 500;">
-              TERMS OF <span id="eternalText" style="opacity: 0;"></span> SUBMISSION
-            </div>
-            <div id="tosCheckboxContainer" style="margin-top: 22px; display: flex; align-items: center; gap: 14px; cursor: pointer; padding: 18px 24px; border: 1px solid rgba(143, 180, 255, 0.4); border-radius: 14px; background: linear-gradient(135deg, rgba(143, 180, 255, 0.12), rgba(102, 126, 234, 0.15)); backdrop-filter: blur(15px) saturate(180%); box-shadow: 0 4px 24px rgba(102, 126, 234, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 -1px 10px rgba(102, 126, 234, 0.1); transition: all 0.3s ease;">
-              <input type="checkbox" id="tosCheckbox" style="width: 22px; height: 22px; cursor: pointer; accent-color: #667eea; border-radius: 4px;">
-              <label for="tosCheckbox" style="cursor: pointer; user-select: none; font-size: 13px; font-weight: 400; color: #e8ecf0; letter-spacing: 0.4px;">I accept the terms</label>
-            </div>
-          </div>
           </div>
         </div>
       `;
@@ -3536,15 +3523,17 @@
       ackBtn.style.animation = '';
       ackBtn.style.opacity = '1';
       ackBtn.style.transform = 'scale(1)';
-      
+      ackBtn.style.textAlign = 'left';
+
       // Start glitching "alpha" text
       setTimeout(() => glitchAlphaText(), 500);
-      
+
       // Start flashing "ETERNAL" letter by letter
       setTimeout(() => flashEternalText(), 1000);
-      
+
       // Activate magnetic cursor for checkbox
       setTimeout(() => activateMagneticCheckbox(), 1500);
+      attachTosExpansionHandler();
 
       attachTosAcceptanceHandler();
 
@@ -3590,10 +3579,10 @@
   function flashEternalText() {
     const eternalEl = document.getElementById('eternalText');
     if (!eternalEl) return;
-    
+
     const word = 'ETERNAL ';
     let currentIndex = 0;
-    
+
     const flashInterval = setInterval(() => {
       if (currentIndex < word.length) {
         eternalEl.textContent = word.substring(0, currentIndex + 1);
@@ -3606,7 +3595,34 @@
       }
     }, 150);
   }
-  
+
+  function attachTosExpansionHandler() {
+    const toggle = document.getElementById('tosLabelToggle');
+    const expandable = document.getElementById('tosExpandable');
+    if (!toggle || !expandable) {
+      return;
+    }
+
+    if (toggle.dataset.listenerAttached === 'true') {
+      return;
+    }
+
+    toggle.dataset.listenerAttached = 'true';
+    const initialExpanded = toggle.getAttribute('aria-expanded') === 'true' || !expandable.hidden;
+    toggle.setAttribute('aria-expanded', String(initialExpanded));
+    toggle.classList.toggle('is-expanded', initialExpanded);
+    expandable.hidden = !initialExpanded;
+    expandable.setAttribute('aria-hidden', String(!initialExpanded));
+    toggle.addEventListener('click', () => {
+      const expanded = toggle.getAttribute('aria-expanded') === 'true';
+      const nextState = !expanded;
+      toggle.setAttribute('aria-expanded', String(nextState));
+      toggle.classList.toggle('is-expanded', nextState);
+      expandable.hidden = !nextState;
+      expandable.setAttribute('aria-hidden', String(!nextState));
+    });
+  }
+
   function activateMagneticCheckbox() {
     const checkbox = document.getElementById('tosCheckbox');
     const container = document.getElementById('tosCheckboxContainer');
@@ -5372,25 +5388,23 @@
     noteHasEnteredFrame = false;
 
     markInviteActive(false);
-    ackBtn.setAttribute('aria-label', 'Open Loomworks invitation note');
-    ackBtn.innerHTML = `
-      <div class="ref-note-crystal">
-        <div class="ref-note-title">Loom Note</div>
-        <div class="ref-note-sub">tap to continue</div>
-      </div>
-    `;
-    ackBtn.style.background = 'transparent';
-    ackBtn.style.backdropFilter = 'none';
-    ackBtn.style.webkitBackdropFilter = 'none';
-    ackBtn.style.border = 'none';
-    ackBtn.style.borderRadius = '0';
-    ackBtn.style.padding = '0';
-    ackBtn.style.boxShadow = 'none';
+    ackBtn.setAttribute('aria-label', 'Open Loomworks invitation');
+    ackBtn.classList.add('loom-invite-base');
+    ackBtn.classList.remove('loom-invite-active');
+    ackBtn.innerHTML = BASE_INVITE_TEMPLATE;
+    ackBtn.style.background = '';
+    ackBtn.style.backdropFilter = '';
+    ackBtn.style.webkitBackdropFilter = '';
+    ackBtn.style.border = '';
+    ackBtn.style.borderRadius = '';
+    ackBtn.style.padding = '';
+    ackBtn.style.boxShadow = '';
     ackBtn.style.animation = '';
     ackBtn.style.cursor = 'pointer';
     ackBtn.style.transition = 'transform 0.6s ease, opacity 0.6s ease';
     ackBtn.style.opacity = '1';
     ackBtn.style.transform = 'scale(1)';
+    ackBtn.style.textAlign = 'left';
 
     requestAnimationFrame(() => {
       sidebar.classList.add('stage-float');
@@ -5413,7 +5427,6 @@
     ackBtn.style.transform = 'scale(0.3)';
     ackBtn.style.opacity = '0';
 
-    scratchGlitchPromise.finally(() => playAdDismissChime());
     stopBadBooleanTrack();
     triggerTriColorBurst(1.3);
 
