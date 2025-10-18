@@ -199,6 +199,8 @@ export class IntroSceneComplete {
       celliGlitchStarted: false,
       promptBaseText: '=',
       hiddenInput: null,
+      doorwayInputActive: false,
+      doorwayInputRequiresClick: true,
       yellowTransformationInProgress: false,
       constructionPersisted: false,
       voxelRedirectDispatched: false,
@@ -218,6 +220,7 @@ export class IntroSceneComplete {
       endColorState: 'yellow',
       snapTogetherStarted: false,
       snapTogetherTime: 0,
+      pendingEndKeys: [],
       tRevealActive: false,
       tRevealStartTime: 0,
       hellTransformActive: false,
@@ -258,6 +261,10 @@ export class IntroSceneComplete {
       return;
     }
 
+    if (!this.state.doorwayInputActive) {
+      return;
+    }
+
     hiddenInput.value = '';
 
     // Ensure the input is positioned within the viewport so mobile browsers
@@ -285,6 +292,24 @@ export class IntroSceneComplete {
     } catch (error) {
       // Some mobile browsers do not support programmatic selection on hidden inputs
     }
+  }
+
+  _deactivateHiddenInput() {
+    const hiddenInput = this.state.hiddenInput;
+    if (!hiddenInput) {
+      return;
+    }
+
+    try {
+      hiddenInput.blur();
+    } catch (err) {
+      // Ignore blur failures (e.g., hidden input already blurred)
+    }
+
+    hiddenInput.value = '';
+    hiddenInput.style.position = 'absolute';
+    hiddenInput.style.top = '-9999px';
+    hiddenInput.style.left = '-9999px';
   }
 
   _broadcastIntroMusicManagement(managed) {
@@ -340,6 +365,13 @@ export class IntroSceneComplete {
 
   _handleHiddenInputValue(value) {
     if (!value) {
+      return;
+    }
+
+    if (!this.state.doorwayInputActive) {
+      if (this.state.hiddenInput) {
+        this.state.hiddenInput.value = '';
+      }
       return;
     }
 
@@ -400,6 +432,12 @@ export class IntroSceneComplete {
     }
 
     this._updateBackspaceTargetFromPrompt();
+    if (this.state.celliBackspaceTarget > this.state.restoredLetters) {
+      this.state.celliBackspaceSequenceTime = Math.max(
+        this.state.celliBackspaceSequenceTime,
+        0.5
+      );
+    }
 
     return true;
   }
@@ -424,6 +462,10 @@ export class IntroSceneComplete {
     this._setPromptText(this.state.inputText);
 
     this._triggerVoxelWorldRedirect();
+
+    this.state.doorwayInputActive = false;
+    this.state.doorwayInputRequiresClick = true;
+    this._deactivateHiddenInput();
 
     console.log('✨ T entered - triggering burst animation');
 
@@ -467,6 +509,9 @@ export class IntroSceneComplete {
     this.state.allYellowTransformed = false;
     this.state.yellowTransformCompleteCount = 0;
     this.state.endSequence = '';
+    if (Array.isArray(this.state.pendingEndKeys)) {
+      this.state.pendingEndKeys.length = 0;
+    }
     this.state.voxelRedirectDispatched = false;
     this.state.celliBackspaceSequenceStarted = false;
     this.state.celliBackspaceSequenceTime = 0;
@@ -1769,6 +1814,8 @@ export class IntroSceneComplete {
           this._triggerCelliGlitchRain();
         }
 
+        this.state.doorwayInputRequiresClick = false;
+        this.state.doorwayInputActive = true;
         this._focusHiddenInput();
       };
 
@@ -1785,6 +1832,13 @@ export class IntroSceneComplete {
           return;
         }
 
+        if (!this.state.doorwayInputActive) {
+          if (evt && typeof evt.preventDefault === 'function') {
+            evt.preventDefault();
+          }
+          return;
+        }
+
         if (evt.inputType === 'deleteContentBackward') {
           evt.preventDefault();
           this._handlePromptBackspace();
@@ -1793,6 +1847,13 @@ export class IntroSceneComplete {
 
       this._hiddenInputHandler = (evt) => {
         if (!this.state.running || !this.state.doorwayOpened) {
+          return;
+        }
+
+        if (!this.state.doorwayInputActive) {
+          if (evt && evt.target) {
+            evt.target.value = '';
+          }
           return;
         }
 
@@ -1891,6 +1952,7 @@ export class IntroSceneComplete {
     }
 
     if (!this.state.allYellowTransformed) {
+      this.state.pendingEndKeys.push(key);
       return true;
     }
 
@@ -2045,10 +2107,17 @@ export class IntroSceneComplete {
    */
   async start(state, options = {}) {
     console.log('▶️ Starting Complete Intro Scene');
-    
+
     // Hide play overlay
     const playEl = document.getElementById('play');
     if (playEl) playEl.classList.add('hidden');
+
+    this.state.doorwayInputActive = false;
+    this.state.doorwayInputRequiresClick = true;
+    if (Array.isArray(this.state.pendingEndKeys)) {
+      this.state.pendingEndKeys.length = 0;
+    }
+    this._deactivateHiddenInput();
     
     // Ensure quote starts hidden (will appear during collapse phase)
     const quoteEl = document.getElementById('quote');
@@ -3273,6 +3342,9 @@ export class IntroSceneComplete {
    */
   _openDoorway() {
     this.state.doorwayOpened = true;
+    this.state.doorwayInputActive = false;
+    this.state.doorwayInputRequiresClick = true;
+    this._deactivateHiddenInput();
     const doorway = document.getElementById('doorway');
     if (doorway) {
       doorway.classList.add('open');
@@ -3280,7 +3352,9 @@ export class IntroSceneComplete {
 
     if (this._isTouchPrimaryDevice()) {
       window.setTimeout(() => {
-        this._focusHiddenInput();
+        if (this.state.doorwayInputActive) {
+          this._focusHiddenInput();
+        }
       }, 60);
     }
   }
@@ -3568,6 +3642,7 @@ export class IntroSceneComplete {
 
                 if (this.state.yellowTransformCompleteCount >= totalVoxels) {
                   this.state.allYellowTransformed = true;
+                  this._processPendingEndKeys();
                   this._setColorPhase('yellow');
                   this.state.yellowTransformationInProgress = false;
                   this._markConstructionComplete();
@@ -3596,6 +3671,19 @@ export class IntroSceneComplete {
           }
         }, 16);
       }, delay);
+    });
+  }
+
+  _processPendingEndKeys() {
+    if (!Array.isArray(this.state.pendingEndKeys) || !this.state.pendingEndKeys.length) {
+      return;
+    }
+
+    const queuedKeys = [...this.state.pendingEndKeys];
+    this.state.pendingEndKeys.length = 0;
+
+    queuedKeys.forEach(key => {
+      this._handleEndSequenceKey(key);
     });
   }
 
@@ -3776,6 +3864,9 @@ export class IntroSceneComplete {
   async stop() {
     console.log('⏹️ Stopping Complete Intro Scene');
     this.state.running = false;
+    this.state.doorwayInputActive = false;
+    this.state.doorwayInputRequiresClick = true;
+    this._deactivateHiddenInput();
     this._stopIntroAudioPlayback();
     this._broadcastIntroMusicManagement(false);
   }

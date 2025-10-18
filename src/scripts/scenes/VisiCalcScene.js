@@ -53,9 +53,14 @@ export class VisiCalcScene {
       // Animation state
       cameraPosition: { x: 0, y: 0, z: 10 },
       cameraTarget: { x: 0, y: 0, z: 0 },
-      
+
       // Functions registry
-      functions: {}
+      functions: {},
+
+      // Presentation state
+      previousBodyBackground: '',
+      clueTrail: null,
+      clueStepTimeouts: []
     };
     
     this._initFunctions();
@@ -321,10 +326,10 @@ export class VisiCalcScene {
         width: 80vw;
         height: 60vh;
         max-width: 1200px;
-        background: rgba(0, 20, 10, 0.95);
+        background: rgba(0, 0, 0, 0.96);
         border: 2px solid #0f0;
         border-radius: 20px;
-        box-shadow: 0 0 30px rgba(0, 255, 160, 0.3);
+        box-shadow: 0 0 45px rgba(0, 255, 160, 0.35);
         font-family: 'Courier New', monospace;
         color: #0f0;
         overflow: hidden;
@@ -339,6 +344,7 @@ export class VisiCalcScene {
     container.innerHTML = gridHtml;
 
     this.state.container = container;
+    this._ensureClueTrailState();
   }
 
   /**
@@ -346,7 +352,7 @@ export class VisiCalcScene {
    */
   _generateGridHTML() {
     let html = `
-      <div style="padding: 10px; border-bottom: 1px solid #0f0; background: rgba(0, 30, 20, 0.8);">
+      <div style="padding: 10px; border-bottom: 1px solid #0f0; background: rgba(0, 0, 0, 0.85);">
         <div style="font-size: 14px; letter-spacing: 0.2em;">VISICALC</div>
         <div id="visicalc-cell-display" style="font-size: 11px; opacity: 0.7; margin-top: 4px;">A1: </div>
       </div>
@@ -354,20 +360,20 @@ export class VisiCalcScene {
         <table style="width: 100%; border-collapse: collapse;">
           <thead>
             <tr>
-              <th style="width: 40px; background: rgba(0, 30, 20, 0.8); border: 1px solid #0f0; padding: 4px;"></th>
+              <th style="width: 40px; background: rgba(0, 0, 0, 0.85); border: 1px solid #0f0; padding: 4px;"></th>
     `;
     
     // Column headers
     for (let col = 0; col < this.state.gridCols; col++) {
       const letter = String.fromCharCode(65 + col);
-      html += `<th style="background: rgba(0, 30, 20, 0.8); border: 1px solid #0f0; padding: 4px; min-width: 80px;">${letter}</th>`;
+      html += `<th style="background: rgba(0, 0, 0, 0.85); border: 1px solid #0f0; padding: 4px; min-width: 80px;">${letter}</th>`;
     }
     html += `</tr></thead><tbody>`;
     
     // Rows
     for (let row = 1; row <= this.state.gridRows; row++) {
       html += `<tr>`;
-      html += `<td style="background: rgba(0, 30, 20, 0.8); border: 1px solid #0f0; padding: 4px; text-align: center;">${row}</td>`;
+      html += `<td style="background: rgba(0, 0, 0, 0.85); border: 1px solid #0f0; padding: 4px; text-align: center;">${row}</td>`;
       
       for (let col = 0; col < this.state.gridCols; col++) {
         const letter = String.fromCharCode(65 + col);
@@ -380,7 +386,7 @@ export class VisiCalcScene {
     
     html += `</tbody></table></div>`;
     html += `
-      <div id="visicalc-terminal" style="display: none; padding: 10px; border-top: 1px solid #0f0; background: rgba(0, 30, 20, 0.95); height: 120px; overflow: auto;">
+      <div id="visicalc-terminal" style="display: none; padding: 10px; border-top: 1px solid #0f0; background: rgba(0, 0, 0, 0.92); height: 120px; overflow: auto;">
         <div id="visicalc-terminal-output" style="font-size: 12px; line-height: 1.4; margin-bottom: 10px;"></div>
         <div style="display: flex; gap: 8px;">
           <span>></span>
@@ -412,7 +418,9 @@ export class VisiCalcScene {
     // Keyboard navigation
     document.addEventListener('keydown', (e) => {
       if (!this.state.running) return;
-      
+
+      if (this._handleClueKeydown(e)) return;
+
       if (e.key === 'ArrowUp') this._moveSelection(0, -1);
       else if (e.key === 'ArrowDown') this._moveSelection(0, 1);
       else if (e.key === 'ArrowLeft') this._moveSelection(-1, 0);
@@ -430,23 +438,55 @@ export class VisiCalcScene {
    */
   _selectCell(addr) {
     this.state.focusedCell = addr;
-    
+
     // Update visual selection
     document.querySelectorAll('.visicalc-cell').forEach(cell => {
-      cell.style.background = 'transparent';
+      const cellAddr = cell.dataset.addr;
+      const cellData = this.state.cells.get(cellAddr);
+      if (cellData && cellData.style && cellData.style.background) {
+        cell.style.background = cellData.style.background;
+      } else {
+        cell.style.background = 'transparent';
+      }
+      cell.style.boxShadow = 'none';
+      cell.style.outline = 'none';
     });
-    
+
     const cellEl = document.getElementById(`cell-${addr}`);
     if (cellEl) {
-      cellEl.style.background = 'rgba(0, 255, 160, 0.2)';
+      cellEl.style.outline = '2px solid #0f0';
+      cellEl.style.boxShadow = '0 0 12px rgba(0, 255, 160, 0.35)';
     }
-    
+
+    this._applyClueCellHighlight();
+
     // Update cell display
     const cellData = this.state.cells.get(addr) || {};
     const displayEl = document.getElementById('visicalc-cell-display');
     if (displayEl) {
       displayEl.textContent = `${addr}: ${cellData.formula || cellData.value || ''}`;
     }
+  }
+
+  _applyClueCellHighlight() {
+    const clue = this.state.clueTrail;
+    if (!clue) {
+      return;
+    }
+
+    const cells = (clue.highlightedCells && clue.highlightedCells.size)
+      ? Array.from(clue.highlightedCells)
+      : (clue.entryCell ? [clue.entryCell] : []);
+
+    cells.forEach(cellId => {
+      const cellEl = document.getElementById(`cell-${cellId}`);
+      if (cellEl) {
+        cellEl.style.background = 'rgba(0, 0, 0, 0.85)';
+        cellEl.style.color = '#0f0';
+        cellEl.style.boxShadow = '0 0 16px rgba(0, 255, 160, 0.45)';
+        cellEl.style.borderColor = '#0f0';
+      }
+    });
   }
 
   /**
@@ -638,10 +678,251 @@ export class VisiCalcScene {
       this.state.camera.aspect = window.innerWidth / window.innerHeight;
       this.state.camera.updateProjectionMatrix();
     }
-    
+
     if (this.state.renderer) {
       this.state.renderer.setSize(window.innerWidth, window.innerHeight);
     }
+  }
+
+  _ensureClueTrailState() {
+    const container = this.state.container;
+    if (!container) return null;
+
+    if (this.state.clueTrail && this.state.clueTrail.overlayEl && this.state.clueTrail.overlayEl.isConnected) {
+      this.state.clueTrail.overlayEl.style.display = 'flex';
+      return this.state.clueTrail;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'visicell-clue-overlay';
+    overlay.style.position = 'absolute';
+    overlay.style.left = '36px';
+    overlay.style.bottom = '28px';
+    overlay.style.display = 'flex';
+    overlay.style.flexDirection = 'column';
+    overlay.style.gap = '8px';
+    overlay.style.pointerEvents = 'none';
+    overlay.style.fontFamily = `'Courier New', monospace`;
+    overlay.style.letterSpacing = '0.18em';
+    overlay.style.color = '#0f0';
+    overlay.style.textTransform = 'uppercase';
+    overlay.style.fontSize = '14px';
+    overlay.style.zIndex = '101';
+
+    const instruction = document.createElement('div');
+    instruction.id = 'visicell-entry-instruction';
+    instruction.style.fontSize = '12px';
+    instruction.style.opacity = '0.85';
+    instruction.style.letterSpacing = '0.12em';
+
+    const display = document.createElement('div');
+    display.id = 'visicell-entry-display';
+    display.style.fontSize = '18px';
+    display.style.letterSpacing = '0.22em';
+
+    overlay.appendChild(instruction);
+    overlay.appendChild(display);
+    container.appendChild(overlay);
+
+    const clue = {
+      entryCell: 'B4',
+      baseInput: 'ENTE',
+      currentInput: 'ENTE',
+      overlayEl: overlay,
+      instructionEl: instruction,
+      displayEl: display,
+      active: true,
+      stage: 'await-command',
+      highlightedCells: new Set(),
+      steps: []
+    };
+
+    this.state.clueTrail = clue;
+    return clue;
+  }
+
+  _initializeClueTrail() {
+    const clue = this._ensureClueTrailState();
+    if (!clue) return;
+
+    clue.currentInput = clue.baseInput;
+    clue.active = true;
+    clue.stage = 'await-command';
+    clue.highlightedCells = new Set([clue.entryCell]);
+    clue.steps = [];
+
+    this._updateClueDisplay();
+    this._showClueInstruction('Type R to complete the command, or spell LEAVE to defy it.');
+    this._selectCell(clue.entryCell);
+  }
+
+  _updateClueDisplay() {
+    const clue = this.state.clueTrail;
+    if (!clue) {
+      return;
+    }
+
+    if (clue.displayEl) {
+      const caret = clue.active ? '_' : '';
+      clue.displayEl.textContent = `${clue.currentInput}${caret}`;
+    }
+
+    let cellData = this.state.cells.get(clue.entryCell);
+    if (!cellData) {
+      this._setCellValue(clue.entryCell, clue.currentInput);
+      cellData = this.state.cells.get(clue.entryCell);
+    } else {
+      cellData.value = clue.currentInput;
+    }
+
+    if (cellData) {
+      cellData.style = cellData.style || {};
+      cellData.style.background = 'rgba(0, 0, 0, 0.85)';
+      cellData.style.color = '#0f0';
+    }
+
+    this._render();
+    this._applyClueCellHighlight();
+  }
+
+  _showClueInstruction(message) {
+    const clue = this.state.clueTrail;
+    if (!clue || !clue.instructionEl) {
+      return;
+    }
+
+    clue.instructionEl.textContent = message;
+  }
+
+  _handleClueKeydown(e) {
+    const clue = this.state.clueTrail;
+    if (!clue || !clue.active) {
+      return false;
+    }
+
+    if (this.state.focusedCell !== clue.entryCell) {
+      return false;
+    }
+
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      if (clue.currentInput.length > 0) {
+        clue.currentInput = clue.currentInput.slice(0, -1);
+        if (clue.currentInput.length === 0) {
+          clue.currentInput = '';
+        }
+        this._updateClueDisplay();
+      }
+      return true;
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      this._submitClueInput();
+      return true;
+    }
+
+    if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+      e.preventDefault();
+      if (clue.currentInput.length >= 8) {
+        clue.currentInput = clue.currentInput.slice(0, 7);
+      }
+      clue.currentInput += e.key.toUpperCase();
+      this._updateClueDisplay();
+      return true;
+    }
+
+    return false;
+  }
+
+  _submitClueInput() {
+    const clue = this.state.clueTrail;
+    if (!clue) {
+      return;
+    }
+
+    const value = (clue.currentInput || '').trim().toUpperCase();
+    if (value === 'LEAVE') {
+      this._startClueTrailSequence();
+      return;
+    }
+
+    if (value === 'ENTER') {
+      this._showClueInstruction('The doorway hums... but nothing changes. Maybe defy the prompt?');
+      return;
+    }
+
+    this._showClueInstruction('That command is ignored. Try something more rebellious.');
+  }
+
+  _startClueTrailSequence() {
+    const clue = this.state.clueTrail;
+    if (!clue) {
+      return;
+    }
+
+    clue.active = false;
+    clue.stage = 'trail';
+    clue.displayEl.textContent = clue.currentInput;
+    this._showClueInstruction('Clue trail initiated... watch the grid.');
+
+    const steps = [
+      { delay: 0, cell: 'C5', value: 'NEXT', message: 'Clue 1: Cell C5 glows with "NEXT".' },
+      { delay: 2200, cell: 'E3', value: 'DOOR', message: 'Clue 2: E3 whispers "DOOR".' },
+      { delay: 4400, cell: 'D7', value: 'OPENS', message: 'Clue 3: D7 completes the phrase "OPENS".' }
+    ];
+
+    clue.steps = steps;
+    this._clearClueTrailTimeouts();
+
+    steps.forEach((step, index) => {
+      const timeoutId = window.setTimeout(() => {
+        this._revealClueStep(step, index === steps.length - 1);
+      }, step.delay);
+      this.state.clueStepTimeouts.push(timeoutId);
+    });
+  }
+
+  _revealClueStep(step, isFinal) {
+    if (!step || !step.cell) {
+      return;
+    }
+
+    this._setCellValue(step.cell, step.value);
+    const cellData = this.state.cells.get(step.cell);
+    if (cellData) {
+      cellData.style = cellData.style || {};
+      cellData.style.background = 'rgba(0, 0, 0, 0.85)';
+      cellData.style.color = '#0f0';
+    }
+
+    const clue = this.state.clueTrail;
+    if (clue) {
+      clue.highlightedCells.add(step.cell);
+    }
+
+    this._render();
+    this._applyClueCellHighlight();
+
+    if (step.message) {
+      this._showClueInstruction(step.message);
+    }
+
+    if (isFinal) {
+      this._showClueInstruction('The message is complete. Follow it.');
+    }
+  }
+
+  _clearClueTrailTimeouts() {
+    if (!Array.isArray(this.state.clueStepTimeouts)) {
+      this.state.clueStepTimeouts = [];
+      return;
+    }
+
+    this.state.clueStepTimeouts.forEach(timeoutId => {
+      window.clearTimeout(timeoutId);
+    });
+    this.state.clueStepTimeouts.length = 0;
   }
 
   /**
@@ -653,6 +934,11 @@ export class VisiCalcScene {
     this.state.running = true;
 
     this._silenceExternalAudio();
+
+    if (typeof document !== 'undefined') {
+      this.state.previousBodyBackground = document.body.style.backgroundColor;
+      document.body.style.backgroundColor = '#000';
+    }
 
     if (!this.state.endAudio) {
       try {
@@ -682,16 +968,16 @@ export class VisiCalcScene {
     if (this.state.container) {
       this.state.container.style.display = 'block';
     }
-    
+
+    this._clearClueTrailTimeouts();
+
     // Initialize with some demo data
     this._setCellValue('A1', 'CELLI');
     this._setCellValue('B2', '=ARRAY("fill", 3, 3, 1, "🟦")');
     this._setCellValue('C3', '=SUM(1, 2, 3)');
-    
+
     this._recalculate();
-    this._render();
-    
-    this._selectCell('A1');
+    this._initializeClueTrail();
   }
 
   /**
@@ -734,6 +1020,17 @@ export class VisiCalcScene {
     if (this.state.container) {
       this.state.container.style.display = 'none';
     }
+
+    if (typeof document !== 'undefined') {
+      document.body.style.backgroundColor = this.state.previousBodyBackground || '';
+      this.state.previousBodyBackground = '';
+    }
+
+    if (this.state.clueTrail && this.state.clueTrail.overlayEl) {
+      this.state.clueTrail.overlayEl.style.display = 'none';
+    }
+
+    this._clearClueTrailTimeouts();
   }
 
   /**
