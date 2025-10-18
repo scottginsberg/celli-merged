@@ -287,6 +287,34 @@ export class IntroSceneComplete {
     }
   }
 
+  _broadcastIntroMusicManagement(managed) {
+    if (typeof window === 'undefined' || !window.dispatchEvent) {
+      return;
+    }
+
+    try {
+      window.dispatchEvent(new CustomEvent('celli:intro-music-managed', {
+        detail: { managed: Boolean(managed) }
+      }));
+    } catch (error) {
+      console.warn('⚠️ Failed to broadcast intro music management state:', error);
+    }
+  }
+
+  _updateFullSequenceStage(stage) {
+    if (!stage) {
+      return;
+    }
+
+    try {
+      if (window.sessionStorage?.getItem('celli:fullSequenceActive') === 'true') {
+        window.sessionStorage.setItem('celli:fullSequenceStage', stage);
+      }
+    } catch (error) {
+      console.warn('⚠️ Unable to persist full sequence stage from intro scene:', error);
+    }
+  }
+
   _isTouchPrimaryDevice() {
     if (typeof window === 'undefined') {
       return false;
@@ -2060,6 +2088,9 @@ export class IntroSceneComplete {
     
     console.log('✅ UI elements initialized for intro sequence');
 
+    this._broadcastIntroMusicManagement(true);
+    this._updateFullSequenceStage('intro-active');
+
     // Start animation
     this.state.introAudioPlayCount = 0;
     await this._playIntroAudio();
@@ -3342,40 +3373,21 @@ export class IntroSceneComplete {
       return;
     }
 
-    let target = 0;
+    const baseWord = 'START';
+    const sanitizedSuffix = suffix.replace(/[^A-Z]/g, '').slice(0, baseWord.length);
+    let removedCount = Math.max(0, baseWord.length - sanitizedSuffix.length);
 
-    switch (suffix) {
-      case 'STAR':
-        target = 0;
-        break;
-      case 'STA':
-        target = 1;
-        break;
-      case 'ST':
-        target = 2;
-        break;
-      case 'S':
-        target = 3;
-        break;
-      case '':
-        target = totalLetters;
-        break;
-      default: {
-        const baseWord = 'STAR';
-
-        if (baseWord.startsWith(suffix)) {
-          const missing = baseWord.length - suffix.length;
-          target = Math.max(0, Math.min(totalLetters, totalLetters - missing));
-        } else {
-          const removed = Math.max(0, Math.min(baseWord.length, baseWord.length - suffix.length));
-          target = Math.max(0, Math.min(totalLetters, removed));
+    if (!baseWord.startsWith(sanitizedSuffix)) {
+      for (let index = 0; index < sanitizedSuffix.length; index += 1) {
+        if (baseWord[index] !== sanitizedSuffix[index]) {
+          removedCount = Math.max(0, baseWord.length - index);
+          break;
         }
-        break;
       }
     }
 
-    const clampedTarget = Math.min(Math.max(target, 0), this.state.lettersToRestore.length);
-    this.state.celliBackspaceTarget = clampedTarget;
+    const target = Math.max(0, Math.min(totalLetters, removedCount));
+    this.state.celliBackspaceTarget = target;
   }
 
   /**
@@ -3765,6 +3777,7 @@ export class IntroSceneComplete {
     console.log('⏹️ Stopping Complete Intro Scene');
     this.state.running = false;
     this._stopIntroAudioPlayback();
+    this._broadcastIntroMusicManagement(false);
   }
 
   /**

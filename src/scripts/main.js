@@ -30,6 +30,14 @@ const SCENE_MODE_STORAGE_KEY = 'celli:sceneMode';
 const CONSTRUCTION_STORAGE_KEY = 'celli:introConstructionComplete';
 const INTRO_THEME_STORAGE_KEY = 'celli:introThemePreference';
 const DEFAULT_SCENE_MODE = 'template';
+const FULL_SEQUENCE_FLAG_KEY = 'celli:fullSequenceActive';
+const FULL_SEQUENCE_STAGE_KEY = 'celli:fullSequenceStage';
+const FULL_SEQUENCE_REFERRER_STAGE = 'referrer';
+const FULL_SEQUENCE_BETA_STAGE = 'beta';
+const FULL_SEQUENCE_INTRO_STAGE = 'intro';
+const FULL_SEQUENCE_INTRO_RUNNING_STAGE = 'intro-running';
+const FULL_SEQUENCE_INTRO_ACTIVE_STAGE = 'intro-active';
+const FULL_SEQUENCE_VOXEL_STAGE = 'voxel';
 
 let currentSceneMode = DEFAULT_SCENE_MODE;
 
@@ -115,6 +123,80 @@ function showToast(message, duration = 3000) {
   }, duration);
 }
 
+function isFullSequenceActive() {
+  try {
+    return window.sessionStorage?.getItem(FULL_SEQUENCE_FLAG_KEY) === 'true';
+  } catch (error) {
+    console.warn('⚠️ Unable to read Full Sequence active flag:', error);
+    return false;
+  }
+}
+
+function setFullSequenceActive(active) {
+  try {
+    if (active) {
+      window.sessionStorage?.setItem(FULL_SEQUENCE_FLAG_KEY, 'true');
+    } else {
+      window.sessionStorage?.removeItem(FULL_SEQUENCE_FLAG_KEY);
+      window.sessionStorage?.removeItem(FULL_SEQUENCE_STAGE_KEY);
+    }
+  } catch (error) {
+    console.warn('⚠️ Unable to update Full Sequence active flag:', error);
+  }
+}
+
+function getFullSequenceStage() {
+  try {
+    return window.sessionStorage?.getItem(FULL_SEQUENCE_STAGE_KEY) || '';
+  } catch (error) {
+    console.warn('⚠️ Unable to read Full Sequence stage:', error);
+    return '';
+  }
+}
+
+function setFullSequenceStage(stage) {
+  try {
+    if (!stage) {
+      window.sessionStorage?.removeItem(FULL_SEQUENCE_STAGE_KEY);
+      return;
+    }
+
+    if (window.sessionStorage?.getItem(FULL_SEQUENCE_FLAG_KEY) === 'true') {
+      window.sessionStorage.setItem(FULL_SEQUENCE_STAGE_KEY, stage);
+    }
+  } catch (error) {
+    console.warn('⚠️ Unable to persist Full Sequence stage:', error);
+  }
+}
+
+function resumeFullSequenceIfNeeded() {
+  if (!isFullSequenceActive()) {
+    return;
+  }
+
+  const stage = getFullSequenceStage();
+  if (stage === FULL_SEQUENCE_INTRO_RUNNING_STAGE) {
+    setFullSequenceStage(FULL_SEQUENCE_INTRO_STAGE);
+  }
+
+  if (stage === FULL_SEQUENCE_REFERRER_STAGE) {
+    console.log('🔗 Resuming Full Sequence at referrer stage');
+    if (typeof window.triggerOverlay === 'function') {
+      try {
+        window.triggerOverlay('https://www.reddit.com/r/all');
+      } catch (error) {
+        console.warn('⚠️ Unable to resume referrer overlay for Full Sequence:', error);
+      }
+    } else {
+      console.warn('⚠️ Referrer overlay trigger unavailable for Full Sequence resume.');
+    }
+  } else if (stage === FULL_SEQUENCE_BETA_STAGE) {
+    showToast('Full Sequence: continue the beta focus form to proceed.');
+  } else if (stage === FULL_SEQUENCE_INTRO_STAGE) {
+    showToast('Full Sequence: launching intro sequence…');
+  }
+}
+
 console.log('%c🎨 Celli v6.0 - Enhanced Scene System 🎨',
             'background: #8ab4ff; color: #000; font-size: 20px; padding: 10px; font-weight: bold;');
 console.log('%c🔧 Dynamic scene loading & composition',
@@ -153,6 +235,8 @@ function init() {
   
   // Wire up buttons
   setupButtons();
+
+  resumeFullSequenceIfNeeded();
 
   // Autostart experience if requested via query parameters
   handleAutoStart();
@@ -711,6 +795,28 @@ function setupButtons() {
     console.log('✅ Test Runner button initialized');
   }
 
+  const fullSequenceBtn = document.getElementById('fullSequenceBtn');
+  if (fullSequenceBtn) {
+    fullSequenceBtn.addEventListener('click', () => {
+      setFullSequenceActive(true);
+      setFullSequenceStage(FULL_SEQUENCE_REFERRER_STAGE);
+      showToast('Launching Full Sequence…');
+
+      try {
+        if (typeof window.triggerOverlay === 'function') {
+          window.triggerOverlay('https://www.reddit.com/r/all');
+        } else {
+          console.warn('⚠️ Full Sequence overlay trigger unavailable.');
+          showToast('Unable to start Full Sequence — overlay unavailable');
+        }
+      } catch (error) {
+        console.error('❌ Failed to start Full Sequence:', error);
+        showToast('Full Sequence failed to launch');
+      }
+    });
+    console.log('✅ Full Sequence button initialized');
+  }
+
   if (sceneOptionsContainer) {
     const debugToggleBtn = document.getElementById('debugToggle');
     if (debugToggleBtn) {
@@ -884,6 +990,27 @@ async function handleAutoStart() {
   const explicitEnable = autostartParam === '' || autostartParam === '1' || autostartParam?.toLowerCase() === 'true';
   const shouldAutostart = explicitDisable ? false : (explicitEnable || DEFAULT_AUTOSTART);
 
+  const fullSequenceActive = isFullSequenceActive();
+  const fullSequenceStage = fullSequenceActive ? getFullSequenceStage() : '';
+  if (fullSequenceActive && fullSequenceStage === FULL_SEQUENCE_INTRO_STAGE) {
+    console.log('⚡ Full Sequence intro stage detected - starting experience automatically.');
+    setFullSequenceStage(FULL_SEQUENCE_INTRO_RUNNING_STAGE);
+
+    try {
+      await startExperience({ reason: 'full-sequence-intro' });
+      setFullSequenceStage(FULL_SEQUENCE_INTRO_ACTIVE_STAGE);
+    } catch (error) {
+      console.error('❌ Failed to autostart intro for Full Sequence:', error);
+      setFullSequenceStage(FULL_SEQUENCE_INTRO_STAGE);
+      const playBtn = document.getElementById('playBtn');
+      if (playBtn) {
+        playBtn.disabled = false;
+      }
+    }
+
+    return;
+  }
+
   if (!shouldAutostart) {
     console.log('⏸️ Autostart disabled or not requested. Waiting for user interaction.');
     if (autostartParam !== null) {
@@ -917,6 +1044,11 @@ async function handleAutoStart() {
 }
 
 window.addEventListener('celli:launchVoxelWorld', async (event) => {
+  if (isFullSequenceActive()) {
+    setFullSequenceStage(FULL_SEQUENCE_VOXEL_STAGE);
+    setFullSequenceActive(false);
+  }
+
   if (voxelWorldRedirectInProgress) {
     return;
   }

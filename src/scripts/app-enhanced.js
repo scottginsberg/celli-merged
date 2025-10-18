@@ -47,6 +47,7 @@ const INTRO_THEME_SOURCES = {
 };
 let constructionCompleteCache = null;
 let sceneHooksRegistered = false;
+let introSceneMusicManaged = false;
 
 console.log('%c🎨 Celli - Enhanced Scene System Loading...',
   'background: #8ab4ff; color: #000; font-size: 18px; padding: 10px; font-weight: bold;');
@@ -347,6 +348,21 @@ function setupSceneHooks() {
   }
   sceneHooksRegistered = true;
 
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('celli:intro-music-managed', (event) => {
+      const managed = Boolean(event?.detail?.managed);
+      introSceneMusicManaged = managed;
+
+      if (!managed) {
+        try {
+          audioSystem.stopMusic({ fadeOutDuration: 0.2 });
+        } catch (error) {
+          console.warn('⚠️ Failed to stop global intro music after scene released control:', error);
+        }
+      }
+    });
+  }
+
   window.addEventListener('celli:construction-complete', () => {
     constructionCompleteCache = true;
     try {
@@ -364,6 +380,11 @@ function setupSceneHooks() {
 
   sceneManager.on('onSceneStart', ({ scene }) => {
     if (scene !== 'intro') {
+      return;
+    }
+
+    if (introSceneMusicManaged) {
+      console.log('🎵 Intro scene is managing music locally; skipping global intro playback.');
       return;
     }
 

@@ -1454,6 +1454,80 @@
       const statusEl = document.getElementById('audioStatus');
       const escapeButton = document.getElementById('escapeEncoreButton');
 
+      const FULL_SEQUENCE_FLAG_KEY = 'celli:fullSequenceActive';
+      const FULL_SEQUENCE_STAGE_KEY = 'celli:fullSequenceStage';
+      const FULL_SEQUENCE_REFERRER_STAGE = 'referrer';
+      const FULL_SEQUENCE_BETA_STAGE = 'beta';
+      const FULL_SEQUENCE_INTRO_STAGE = 'intro';
+      let fullSequenceRedirectScheduled = false;
+
+      function isFullSequenceActive() {
+        try {
+          return window.sessionStorage?.getItem(FULL_SEQUENCE_FLAG_KEY) === 'true';
+        } catch (error) {
+          console.warn('⚠️ Unable to read Full Sequence flag in beta form:', error);
+          return false;
+        }
+      }
+
+      function getFullSequenceStage() {
+        try {
+          return window.sessionStorage?.getItem(FULL_SEQUENCE_STAGE_KEY) || '';
+        } catch (error) {
+          console.warn('⚠️ Unable to read Full Sequence stage in beta form:', error);
+          return '';
+        }
+      }
+
+      function setFullSequenceStage(stage) {
+        try {
+          if (!stage) {
+            window.sessionStorage?.removeItem(FULL_SEQUENCE_STAGE_KEY);
+            return;
+          }
+
+          if (window.sessionStorage?.getItem(FULL_SEQUENCE_FLAG_KEY) === 'true') {
+            window.sessionStorage.setItem(FULL_SEQUENCE_STAGE_KEY, stage);
+          }
+        } catch (error) {
+          console.warn('⚠️ Unable to persist Full Sequence stage in beta form:', error);
+        }
+      }
+
+      function advanceFullSequenceToIntro(trigger) {
+        if (fullSequenceRedirectScheduled || !isFullSequenceActive()) {
+          return;
+        }
+
+        const stage = getFullSequenceStage();
+        if (stage !== FULL_SEQUENCE_BETA_STAGE) {
+          return;
+        }
+
+        fullSequenceRedirectScheduled = true;
+
+        try {
+          window.sessionStorage?.setItem('celli:fullSequenceTrigger', trigger || 'beta');
+        } catch (_) {
+          // ignore storage failures for diagnostics payloads
+        }
+
+        setFullSequenceStage(FULL_SEQUENCE_INTRO_STAGE);
+
+        try {
+          window.location.href = '../../index.html?fullsequence=intro';
+        } catch (error) {
+          console.warn('⚠️ Failed to redirect to intro for Full Sequence:', error);
+        }
+      }
+
+      if (isFullSequenceActive()) {
+        const currentStage = getFullSequenceStage();
+        if (!currentStage || currentStage === FULL_SEQUENCE_REFERRER_STAGE) {
+          setFullSequenceStage(FULL_SEQUENCE_BETA_STAGE);
+        }
+      }
+
       const selectionExperience = document.getElementById('submissionExperience');
       const selectionCloud = document.getElementById('selectionCloud');
 
@@ -1813,6 +1887,7 @@
           setWordleMessage('Encore secret cracked! CELLI!');
           renderWordleFocusQueue();
           updateStartButtonState();
+          advanceFullSequenceToIntro('puzzle-solved');
         } else {
           const attemptsLeft = WORDLE_MAX_ATTEMPTS - wordleCurrentRowIndex - 1;
           if (attemptsLeft <= 0) {
@@ -2102,6 +2177,49 @@
         let trifoldOpen = false;
         const pausedMediaElements = new Set();
 
+        function startTrifoldPlayback() {
+          if (!trifoldOpen) {
+            return;
+          }
+
+          try {
+            trifoldAudio.currentTime = 0;
+          } catch (_) {
+            // ignore currentTime reset failures
+          }
+
+          const playback = trifoldAudio.play();
+          if (playback && typeof playback.catch === 'function') {
+            playback.catch((error) => {
+              console.warn('⚠️ Unable to play trifold audio:', error);
+            });
+          }
+        }
+
+        function requestTrifoldPlayback() {
+          if (!trifoldOpen) {
+            return;
+          }
+
+          if (trifoldAudio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+            startTrifoldPlayback();
+            return;
+          }
+
+          const handleCanPlay = () => {
+            trifoldAudio.removeEventListener('canplay', handleCanPlay);
+            startTrifoldPlayback();
+          };
+
+          trifoldAudio.addEventListener('canplay', handleCanPlay, { once: true });
+
+          try {
+            trifoldAudio.load();
+          } catch (_) {
+            // ignore load failures; play() promise will report issues
+          }
+        }
+
         function isMediaElementPlaying(media) {
           if (!media || media === trifoldAudio) {
             return false;
@@ -2184,22 +2302,7 @@
           trifoldPanel.setAttribute('aria-hidden', 'false');
           trifoldPanel.classList.add('is-open');
           trifoldButton.setAttribute('aria-expanded', 'true');
-          try {
-            trifoldAudio.load();
-          } catch (_) {
-            // ignore
-          }
-          try {
-            trifoldAudio.currentTime = 0;
-          } catch (_) {
-            // ignore
-          }
-          const playback = trifoldAudio.play();
-          if (playback && typeof playback.catch === 'function') {
-            playback.catch((error) => {
-              console.warn('⚠️ Unable to play trifold audio:', error);
-            });
-          }
+          requestTrifoldPlayback();
           try {
             trifoldPanel.focus({ preventScroll: true });
           } catch (_) {
@@ -3364,6 +3467,7 @@
         sequencePlaying = false;
         firstTrackCompleted = true;
         updateStartButtonState();
+        advanceFullSequenceToIntro('track-ended');
       });
 
       encoreTrack.addEventListener('ended', () => {
