@@ -29,7 +29,7 @@ The sequence builder uses full class names while the main app uses short keys:
 | Sequence Builder Name | Main App Key |
 |----------------------|--------------|
 | IntroSceneComplete   | intro        |
-| VisiCalcScene        | visicell     |
+| VisiCellScene        | visicell     |
 | CelliRealScene       | cellireal    |
 | FullhandScene        | fullhand     |
 | End3Scene            | end3         |

@@ -14,7 +14,7 @@ import { sceneManager } from './core/SceneManager.js';
 
 // Import scenes
 import { IntroSceneComplete } from './scenes/IntroSceneComplete.js';
-import { VisiCalcScene } from './scenes/VisiCalcScene.js';
+import { VisiCellScene } from './scenes/VisiCellScene.js';
 import { CityScene } from './scenes/CityScene.js';
 import { CelliRealScene } from './scenes/CelliRealScene.js';
 
@@ -99,8 +99,8 @@ export function registerAllScenes() {
   // Register Complete Intro Scene (use this for faithful port)
   sceneManager.registerScene('intro', new IntroSceneComplete());
   
-  // Register VisiCalc Scene
-  sceneManager.registerScene('visicalc', new VisiCalcScene());
+  // Register VisiCell Scene
+  sceneManager.registerScene('visicell', new VisiCellScene());
 
   // Register City Scene
   sceneManager.registerScene('city', new CityScene());

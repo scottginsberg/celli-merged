@@ -8,7 +8,7 @@ export class SequenceBuilderCore {
     this.currentScene = null;
     this.sceneList = [
       'IntroSceneComplete',
-      'VisiCalcScene',
+      'VisiCellScene',
       'CelliRealScene',
       'FullhandScene',
       'End3Scene',
@@ -525,7 +525,7 @@ export class SequenceBuilderCore {
       // Map scene class names to scene keys used in main app
       const sceneKeyMap = {
         'IntroSceneComplete': 'intro',
-        'VisiCalcScene': 'visicell',
+        'VisiCellScene': 'visicell',
         'CelliRealScene': 'cellireal',
         'FullhandScene': 'fullhand',
         'End3Scene': 'end3',
