@@ -73,6 +73,8 @@ canvas#view{position:fixed;inset:0;width:100vw;height:100vh;display:block}
  background:linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #93c5fd 100%);
  opacity:1; transition:opacity .8s ease}
 #introOverlay.hidden{opacity:0; pointer-events:none}
+#spottedFade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 1s ease;z-index:10050}
+#spottedFade.visible{opacity:1}
 
 /* Panels */
 .panel{position:fixed;z-index:10;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:12px}
@@ -360,6 +362,7 @@ document.addEventListener('click', function(e){
 })();
 </script>
 <div id="introOverlay"><div id="introBrand">celli.os<div class="brand-ver">v.0.0.1</div></div></div>
+<div id="spottedFade"></div>
 <div id="world"></div>
 <canvas id="view"></canvas>
 
@@ -19318,12 +19321,139 @@ function resolveAudioSourceCaseInsensitive(fileName, basePaths){
  });
 }
 
+function easeInOutSine(t){
+ const clamped = Math.min(1, Math.max(0, t||0));
+ return 0.5 - 0.5 * Math.cos(Math.PI * clamped);
+}
+
+function ensureSpottedFadeElement(){
+ try{
+  let fade = document.getElementById('spottedFade');
+  if(!fade && document.body){
+   fade = document.createElement('div');
+   fade.id = 'spottedFade';
+   fade.style.cssText = 'position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 1s ease;z-index:10050;';
+   document.body.appendChild(fade);
+  }
+  return fade || null;
+ }catch{ return null; }
+}
+
+function restoreCelliOsIntroState(){
+ try{
+  const overlay = document.getElementById('introOverlay');
+  if(overlay){
+   overlay.style.display = 'block';
+   overlay.style.opacity = '1';
+   overlay.classList.remove('hidden');
+   overlay.style.pointerEvents = 'auto';
+  }
+ }catch{}
+ try{
+  const sheet = document.getElementById('sheet');
+  if(sheet){
+   sheet.classList.add('intro-centered');
+   sheet.style.width = '';
+   sheet.style.height = '';
+   sheet.style.left = '';
+   sheet.style.right = '';
+   sheet.style.top = '';
+   sheet.style.bottom = '';
+   sheet.style.transform = '';
+   sheet.style.opacity = '1';
+   sheet.style.pointerEvents = 'auto';
+   sheet.dataset.userSized = '0';
+   sheet.dataset.touchFreed = '0';
+  }
+ }catch{}
+ try{ Actions.setOceanEnabled?.(false); }catch{}
+ try{
+  if(Scene.isPresentEnabled?.()){ Actions.togglePresentMode?.(); }
+ }catch{}
+ try{ UI?.syncPresentUI?.(false); }catch{}
+ try{ UI?.syncOceanSettings?.(); }catch{}
+}
+
+function resetSpottedSequence(options = {}){
+ const state = spottedState;
+ if(!state) return;
+ try{
+  if(state.timeouts){
+   state.timeouts.forEach(id=> clearTimeout(id));
+   state.timeouts.length = 0;
+  }
+ }catch{}
+ try{
+  if(state.audio){
+   if(state.audioEndedHandler){
+    state.audio.removeEventListener('ended', state.audioEndedHandler);
+   }
+   state.audio.pause();
+   state.audio.currentTime = 0;
+  }
+ }catch{}
+ try{ state.audio = null; state.audioEndedHandler = null; }catch{}
+ state.audioStarted = false;
+ state.audioLoading = false;
+ if(state.physicsDisabled){
+  try{ togglePhysicsMode()?.catch(()=>{}); }catch{}
+ }
+ try{ resumeOrbitControls(); }catch{}
+ try{ state.cameraOrbit = null; }catch{}
+ if(options.restoreCamera !== false && state.cameraSnapshot){
+  try{
+   restoreCamera(state.cameraSnapshot);
+   controls?.update?.();
+  }catch{}
+ }
+ try{ arrayaAvatar?.setVisible(true); }catch{}
+ if(!options.keepFade){
+  try{
+   const fade = document.getElementById('spottedFade');
+   if(fade) fade.classList.remove('visible');
+  }catch{}
+ }
+ spottedState = null;
+ needsRender = true;
+}
+
+function handleSpottedAudioEnded(){
+ const state = spottedState;
+ if(!state || state.fadeActive) return;
+ const fade = ensureSpottedFadeElement();
+ state.fadeActive = true;
+ state.timeouts = state.timeouts || [];
+ const fadeInMs = 1000;
+ const holdMs = 3000;
+ if(fade){ fade.classList.add('visible'); }
+ needsRender = true;
+ const releaseTimer = setTimeout(()=>{
+  if(spottedState !== state){ return; }
+  if(fade){
+   restoreCelliOsIntroState();
+   resetSpottedSequence({ keepFade:true });
+   fade.classList.remove('visible');
+  } else {
+   restoreCelliOsIntroState();
+   resetSpottedSequence();
+  }
+ }, fadeInMs + holdMs);
+ state.timeouts.push(releaseTimer);
+}
+
 function playSpottedAudio(){
  if(!spottedState || spottedState.audio || spottedState.audioLoading) return;
  spottedState.audioLoading = true;
  resolveAudioSourceCaseInsensitive('spotted.mp3').then(audio=>{
   spottedState.audio = audio;
   spottedState.audioLoading = false;
+  try{ audio.currentTime = 0; }catch{}
+  try{
+   if(spottedState){
+    spottedState.audioEndedHandler = handleSpottedAudioEnded;
+    audio.addEventListener('ended', spottedState.audioEndedHandler, {once:true});
+   }
+  }catch{}
   const playPromise = audio.play();
   if(playPromise?.catch){ playPromise.catch(()=>{}); }
  }).catch(()=>{
@@ -19333,24 +19463,32 @@ function playSpottedAudio(){
 
 function startSpottedSequence(){
  if(spottedState?.active){
-  return spottedState;
+  resetSpottedSequence();
  }
  const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() * 0.001 : Date.now() / 1000;
- const basePos = getAvatarWorldPosition(false);
+ const basePosRaw = getAvatarWorldPosition(false) || new THREE.Vector3(0,0,0);
+ const basePos = basePosRaw.clone ? basePosRaw.clone() : new THREE.Vector3(basePosRaw.x||0, basePosRaw.y||0, basePosRaw.z||0);
+ const fade = ensureSpottedFadeElement();
+ if(fade){ fade.classList.remove('visible'); }
  spottedState = {
   active: true,
   startTime: now,
   focusDelay: 10,
   locked: false,
   lockTime: null,
-  lockPosition: basePos.clone(),
+  lockPosition: basePos,
   floatOffset: 0,
   floatSpeed: 1.4,
   floatMax: 18,
   audio: null,
   audioLoading: false,
   audioStarted: false,
-  physicsDisabled: false
+  physicsDisabled: false,
+  cameraSnapshot: captureCamera ? captureCamera() : null,
+  cameraOrbit: null,
+  fadeActive: false,
+  timeouts: [],
+  audioEndedHandler: null
  };
  try{ arrayaAvatar?.setVisible(false); }catch{}
  if(celli){
@@ -19396,6 +19534,59 @@ function updateSpottedSequence(deltaSec){
     try{
      playSpottedAudio();
     }catch{}
+   }
+  }
+  const focusBase = spottedState.lockPosition ? spottedState.lockPosition.clone() : (getAvatarWorldPosition(false) || new THREE.Vector3());
+  focusBase.y += spottedState.floatOffset || 0;
+  if(camera){
+   if(!spottedState.cameraOrbit){
+    const offset = camera.position.clone().sub(focusBase);
+    const startRadius = Math.max(3.5, offset.length());
+    const finalRadius = Math.max(4.5, Math.min(12, startRadius * 0.55));
+    const verticalStart = offset.y;
+    const verticalEnd = THREE.MathUtils.clamp(verticalStart * 0.5 + 1.5, 1.5, 8);
+    const startAngle = Math.atan2(offset.x, offset.z || 0.0001);
+    spottedState.cameraOrbit = {
+     focus: focusBase.clone(),
+     desired: focusBase.clone(),
+     temp: new THREE.Vector3(),
+     startRadius,
+     finalRadius,
+     verticalStart,
+     verticalEnd,
+     currentAngle: startAngle,
+     orbitSpeed: THREE.MathUtils.degToRad(12),
+     startTime: now,
+     dollyDuration: 6
+    };
+    try{ suspendOrbitControls(); }catch{}
+   } else {
+    spottedState.cameraOrbit.focus.copy(focusBase);
+   }
+   const orbit = spottedState.cameraOrbit;
+   if(orbit){
+    const elapsedOrbit = now - orbit.startTime;
+    const dollyDuration = orbit.dollyDuration || 6;
+    const t = dollyDuration > 0 ? Math.min(1, elapsedOrbit / dollyDuration) : 1;
+    const eased = easeInOutSine(t);
+    const radius = THREE.MathUtils.lerp(orbit.startRadius, orbit.finalRadius, eased);
+    orbit.currentAngle += (deltaSec || 0) * (orbit.orbitSpeed || 0.18);
+    const height = THREE.MathUtils.lerp(orbit.verticalStart, orbit.verticalEnd, eased);
+    orbit.temp.set(
+     Math.sin(orbit.currentAngle) * radius,
+     height,
+     Math.cos(orbit.currentAngle) * radius
+    );
+    orbit.desired.copy(orbit.focus).add(orbit.temp);
+    const lerpFactor = Math.min(1, (deltaSec || 0) * 4.2);
+    camera.position.lerp(orbit.desired, lerpFactor);
+    if(controls){
+     const targetLerp = Math.min(1, (deltaSec || 0) * 5.2);
+     controls.target.lerp(orbit.focus, targetLerp);
+     controls.update?.();
+    } else {
+     camera.lookAt(orbit.focus);
+    }
    }
   }
  }
@@ -21713,7 +21904,7 @@ function parseBounceMeta(meta){
  }
  }
 
- return {init, renderArray, renderChunk, renderLayer, updateFocus, centerOnArray, syncVisibility, setGridVisible, setAxesVisible, rebuildCollidersForArray, debounceColliderRebuild, setHighlightMode, setCameraLock, setViewMode, initAvatars, updateAvatars, addTimedPreview, handleJump, spawnPlayerAt, getCamera:()=>camera, getControls:()=>controls, updateValueSprite, setArrayOffset, reconcileAllArrays, setupRenderer, setupLighting, addConnection, removeConnection, createArraySnapshot, worldPos, getScene:()=>scene, getLayerMesh:(key)=>layerMeshes.get(key), rotateArrayAround, cellWorldPos, startDatafallDelete, updateDeleteEffects, removeArrayGraphics, refreshArray, hydrateAll, updateArrayLabelPlacement, dockOffsetFor, Chunk, ChunkManager, localPos, createCellMaterial, GEO_VOXEL, getCell:getCellFast, captureCamera, restoreCamera, updateCellColor:(arrId, coord)=>updateCellColor(arrId, coord), startSpottedSequence, togglePresentMode, isPresentEnabled, getGraphicsSettings, updateGraphicsSettings, setOceanEnabled, updateOceanSettings, getOceanSettings, upsertCellLight, removeCellLight, refreshLightsForArray, togglePhysicsMode, setPhysicsDebugAll, setPhysicsCamera, resetContactCache, setPhysicsSpawn, isPhysicsInputCaptured:()=>syncPhysicsInputCapture(), facingFromCamera, triggerCelliDerez, celliDerezState, getViewAxisForArray:(arrOrFrame, observer)=>{
+ return {init, renderArray, renderChunk, renderLayer, updateFocus, centerOnArray, syncVisibility, setGridVisible, setAxesVisible, rebuildCollidersForArray, debounceColliderRebuild, setHighlightMode, setCameraLock, setViewMode, initAvatars, updateAvatars, addTimedPreview, handleJump, spawnPlayerAt, getCamera:()=>camera, getControls:()=>controls, updateValueSprite, setArrayOffset, reconcileAllArrays, setupRenderer, setupLighting, addConnection, removeConnection, createArraySnapshot, worldPos, getScene:()=>scene, getLayerMesh:(key)=>layerMeshes.get(key), rotateArrayAround, cellWorldPos, startDatafallDelete, updateDeleteEffects, removeArrayGraphics, refreshArray, hydrateAll, updateArrayLabelPlacement, dockOffsetFor, Chunk, ChunkManager, localPos, createCellMaterial, GEO_VOXEL, getCell:getCellFast, captureCamera, restoreCamera, updateCellColor:(arrId, coord)=>updateCellColor(arrId, coord), startSpottedSequence, resetSpottedSequence, togglePresentMode, isPresentEnabled, getGraphicsSettings, updateGraphicsSettings, setOceanEnabled, updateOceanSettings, getOceanSettings, upsertCellLight, removeCellLight, refreshLightsForArray, togglePhysicsMode, setPhysicsDebugAll, setPhysicsCamera, resetContactCache, setPhysicsSpawn, isPhysicsInputCaptured:()=>syncPhysicsInputCapture(), facingFromCamera, triggerCelliDerez, celliDerezState, getViewAxisForArray:(arrOrFrame, observer)=>{
  try{
  if(!arrOrFrame) return null;
  const frame = arrOrFrame.matrixWorld ? arrOrFrame : (arrOrFrame._frame || null);
@@ -22345,26 +22536,27 @@ const UI = (()=>{
  toggleOceanPanel();
  };
  }
- if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
+if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  els.oceanSpottedBtn._wired = true;
  els.oceanSpottedBtn.addEventListener('click',()=>{
- try{
- Actions.setOceanEnabled(true);
- if(!(Scene.isPresentEnabled ? Scene.isPresentEnabled() : false)){
- Actions.togglePresentMode();
- syncPresentUI(true);
- }
- const started = Scene.startSpottedSequence?.();
- if(!started){
- console.warn('Spotted sequence could not start (already active?)');
- showToast?.('Spotlight already tracking Celli.');
- }
- }catch(err){
- console.warn('Failed to trigger spotted sequence', err);
- showToast?.('Unable to trigger spotted sequence.');
- }
+  try{
+   Actions.setOceanEnabled(true);
+   if(!(Scene.isPresentEnabled ? Scene.isPresentEnabled() : false)){
+    Actions.togglePresentMode();
+    syncPresentUI(true);
+   }
+   Scene.resetSpottedSequence?.();
+   const started = Scene.startSpottedSequence?.();
+   if(!started){
+    console.warn('Spotted sequence could not start (already active?)');
+    showToast?.('Spotlight already tracking Celli.');
+   }
+  }catch(err){
+   console.warn('Failed to trigger spotted sequence', err);
+   showToast?.('Unable to trigger spotted sequence.');
+  }
  });
- }
+}
  if(oceanClose && !oceanClose._wired){
  oceanClose._wired = true;
  oceanClose.addEventListener('click',(e)=>{ e.preventDefault(); hideOceanPanel(); });
