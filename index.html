@@ -1314,6 +1314,7 @@
   console.error('=== DIAGNOSTIC MODE - CHECK FOR ERRORS BELOW ===');
   
   const overlay = document.getElementById('celliRefOverlay');
+  const bodyEl = document.body;
   const refHeader = document.querySelector('.ref-header');
   const refLogo = document.getElementById('refLogo');
   const refTitle = document.getElementById('refTitle');
@@ -1353,6 +1354,32 @@
   const baseDarkness = document.getElementById('baseDarkness');
   const darkeningOverlay = document.getElementById('darkeningOverlay');
   const lightBeam = document.getElementById('lightBeam');
+  const REFERRER_MOBILE_BREAKPOINT = 860;
+  const layoutMediaQuery = window.matchMedia(`(max-width: ${REFERRER_MOBILE_BREAKPOINT}px)`);
+
+  function updateReferrerLayoutMode() {
+    if (!overlay) {
+      return;
+    }
+    const prefersCoarse = window.matchMedia('(pointer: coarse)').matches;
+    const isMobileLayout = layoutMediaQuery.matches || prefersCoarse;
+    overlay.classList.toggle('ref-mode-mobile', isMobileLayout);
+    overlay.classList.toggle('ref-mode-desktop', !isMobileLayout);
+    overlay.dataset.deviceMode = isMobileLayout ? 'mobile' : 'desktop';
+    if (bodyEl) {
+      bodyEl.classList.toggle('referrer-mobile', isMobileLayout);
+      bodyEl.classList.toggle('referrer-desktop', !isMobileLayout);
+    }
+  }
+
+  updateReferrerLayoutMode();
+  if (typeof layoutMediaQuery.addEventListener === 'function') {
+    layoutMediaQuery.addEventListener('change', updateReferrerLayoutMode);
+  } else if (typeof layoutMediaQuery.addListener === 'function') {
+    layoutMediaQuery.addListener(updateReferrerLayoutMode);
+  }
+  window.addEventListener('orientationchange', updateReferrerLayoutMode);
+
   const chantAudio = new Audio('./chant.mp3');
   chantAudio.preload = 'auto';
   const CHANT_TARGET_VOLUME = 0.7;
