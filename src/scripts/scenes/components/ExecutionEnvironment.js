@@ -44,9 +44,13 @@ export class ExecutionEnvironment {
       // Animation
       time: 0,
       typing: false,
-      
+
       // Visibility
-      visible: false
+      visible: false,
+
+      // Mode
+      mode: 'sequence',
+      debugMode: false
     };
   }
 
@@ -655,6 +659,24 @@ export class ExecutionEnvironment {
     if (this.state.fingerTube) this.state.fingerTube.visible = true;
     if (this.state.keyboard) this.state.keyboard.visible = true;
     this.state.dustParticles.forEach(d => d.visible = true);
+  }
+
+  /**
+   * Set execution mode (sequence vs debug)
+   */
+  setMode(mode) {
+    if (mode !== 'sequence' && mode !== 'debug') {
+      console.warn('[ExecutionEnvironment] Unsupported mode:', mode);
+      return;
+    }
+
+    if (this.state.mode === mode) {
+      return;
+    }
+
+    this.state.mode = mode;
+    this.state.debugMode = mode === 'debug';
+    console.log(`[ExecutionEnvironment] Mode set to ${mode}`);
   }
 
   /**

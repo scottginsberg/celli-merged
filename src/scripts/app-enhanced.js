@@ -17,6 +17,7 @@ import { IntroSceneComplete } from './scenes/IntroSceneComplete.js';
 import { VisiCellScene } from './scenes/VisiCellScene.js';
 import { CityScene } from './scenes/CityScene.js';
 import { CelliRealScene } from './scenes/CelliRealScene.js';
+import { FullhandScene } from './scenes/FullhandScene.js';
 
 // Import GUI systems
 import { quoteSystem } from './gui/QuoteSystem.js';
@@ -107,6 +108,9 @@ export function registerAllScenes() {
 
   // Register CelliReal voxel world scene
   sceneManager.registerScene('cellireal', new CelliRealScene());
+
+  // Register Execution Environment scene
+  sceneManager.registerScene('fullhand', new FullhandScene());
   
   // TODO: Register more scenes as they're extracted
   // sceneManager.registerScene('end3', new End3Scene());

@@ -38,8 +38,46 @@ const FULL_SEQUENCE_INTRO_STAGE = 'intro';
 const FULL_SEQUENCE_INTRO_RUNNING_STAGE = 'intro-running';
 const FULL_SEQUENCE_INTRO_ACTIVE_STAGE = 'intro-active';
 const FULL_SEQUENCE_VOXEL_STAGE = 'voxel';
+const EXECUTION_ENV_MODE_STORAGE_KEY = 'fullhand_mode';
+const EXECUTION_ENV_DEFAULT_MODE = 'sequence';
+
+const SCENE_OPTION_CONFIG = {
+  cellireal: {
+    templateUrl: './templates/componentized/cellireal-complete.html',
+    componentScene: 'cellireal',
+    badge: {
+      template: 'Template',
+      component: 'Component'
+    },
+    indicator: {
+      template: 'Opens standalone voxel world',
+      component: 'Loads voxel world in-app'
+    },
+    unlock: {
+      template: true,
+      component: true
+    }
+  },
+  fullhand: {
+    templateUrl: './templates/componentized/fullhand-complete.html',
+    componentScene: 'fullhand',
+    badge: {
+      template: 'Template',
+      component: 'Component'
+    },
+    indicator: {
+      template: 'Standalone execution environment',
+      component: 'In-app execution environment'
+    },
+    unlock: {
+      template: true,
+      component: true
+    }
+  }
+};
 
 let currentSceneMode = DEFAULT_SCENE_MODE;
+let currentExecutionEnvMode = EXECUTION_ENV_DEFAULT_MODE;
 
 let toastTimeoutId = null;
 
@@ -91,6 +129,7 @@ function setSceneMode(mode, { persist = true } = {}) {
   }
 
   updateSceneModeButtons();
+  applySceneModeToSceneOptions();
 }
 
 function getSceneMode() {
@@ -100,9 +139,124 @@ function getSceneMode() {
 function initializeSceneMode() {
   currentSceneMode = readStoredSceneMode();
   updateSceneModeButtons();
+  applySceneModeToSceneOptions();
 }
 
 window.getCelliSceneMode = getSceneMode;
+
+function readStoredExecutionEnvMode() {
+  try {
+    const stored = window.localStorage?.getItem(EXECUTION_ENV_MODE_STORAGE_KEY);
+    if (stored === 'sequence' || stored === 'debug') {
+      return stored;
+    }
+  } catch (error) {
+    console.warn('⚠️ Unable to read execution environment mode:', error);
+  }
+
+  return EXECUTION_ENV_DEFAULT_MODE;
+}
+
+function updateExecutionModeButtons() {
+  const buttons = document.querySelectorAll('.mode-btn[data-scene-target="fullhand"]');
+  buttons.forEach((button) => {
+    const buttonMode = button.dataset.mode;
+    const isActive = buttonMode === currentExecutionEnvMode;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    if (isActive) {
+      button.style.backgroundColor = '#4a7cff';
+      button.style.borderColor = '#6a9cff';
+      button.style.color = '#fff';
+    } else {
+      button.style.backgroundColor = '#2a2a2f';
+      button.style.borderColor = '#444';
+      button.style.color = '#ddd';
+    }
+  });
+}
+
+function setExecutionEnvironmentMode(mode, { persist = true, announce = false } = {}) {
+  if (mode !== 'sequence' && mode !== 'debug') {
+    return;
+  }
+
+  currentExecutionEnvMode = mode;
+
+  if (persist) {
+    try {
+      window.localStorage?.setItem(EXECUTION_ENV_MODE_STORAGE_KEY, mode);
+    } catch (error) {
+      console.warn('⚠️ Unable to persist execution environment mode:', error);
+    }
+  }
+
+  updateExecutionModeButtons();
+
+  if (announce) {
+    const message = mode === 'debug'
+      ? 'Execution environment set to Debug mode'
+      : 'Execution environment set to Sequence mode';
+    showToast(message);
+  }
+}
+
+function getExecutionEnvironmentMode() {
+  return currentExecutionEnvMode;
+}
+
+function initializeExecutionEnvironmentMode() {
+  currentExecutionEnvMode = readStoredExecutionEnvMode();
+  updateExecutionModeButtons();
+}
+
+function applySceneModeToSceneOptions() {
+  const container = document.getElementById('sceneOptions');
+  if (!container) {
+    return;
+  }
+
+  const mode = getSceneMode();
+
+  Object.entries(SCENE_OPTION_CONFIG).forEach(([sceneId, config]) => {
+    const option = container.querySelector(`.scene-option[data-scene="${sceneId}"]`);
+    if (!option) {
+      return;
+    }
+
+    const badge = option.querySelector('.mode-badge');
+    if (badge) {
+      const badgeText = (config.badge && config.badge[mode])
+        ? config.badge[mode]
+        : mode === 'component' ? 'Component' : 'Template';
+      badge.textContent = badgeText;
+      badge.style.display = 'inline-block';
+    }
+
+    const indicator = option.querySelector('.mode-indicator');
+    if (indicator) {
+      const indicatorText = (config.indicator && config.indicator[mode])
+        ? config.indicator[mode]
+        : mode === 'component' ? 'Loads inside app' : 'Opens standalone';
+      indicator.textContent = indicatorText;
+    }
+
+    const unlockConfig = config.unlock || {};
+    const shouldUnlock = unlockConfig[mode] ?? false;
+
+    if (shouldUnlock) {
+      option.dataset.modeUnlocked = 'true';
+      option.classList.remove('locked');
+    } else {
+      delete option.dataset.modeUnlocked;
+      if (option.dataset.debugUnlocked === 'true') {
+        option.classList.remove('locked');
+      } else if (option.dataset.originalLocked === 'true') {
+        option.classList.add('locked');
+      }
+    }
+  });
+}
 
 function showToast(message, duration = 3000) {
   const toastEl = document.getElementById('toast');
@@ -627,6 +781,20 @@ function setupButtons() {
     currentSceneMode = DEFAULT_SCENE_MODE;
   }
 
+  initializeExecutionEnvironmentMode();
+
+  const executionModeButtons = document.querySelectorAll('.mode-btn[data-scene-target="fullhand"]');
+  executionModeButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const mode = button.dataset.mode;
+      if (!mode || mode === getExecutionEnvironmentMode()) {
+        return;
+      }
+
+      setExecutionEnvironmentMode(mode, { announce: true });
+    });
+  });
+
   // Play button - starts the app and begins intro sequence
   const playBtn = document.getElementById('playBtn');
   if (playBtn) {
@@ -835,8 +1003,12 @@ function setupButtons() {
             option.classList.remove('locked');
             option.dataset.debugUnlocked = 'true';
           } else {
-            option.classList.add('locked');
             delete option.dataset.debugUnlocked;
+            if (option.dataset.modeUnlocked === 'true') {
+              option.classList.remove('locked');
+            } else {
+              option.classList.add('locked');
+            }
           }
         });
 
@@ -844,6 +1016,7 @@ function setupButtons() {
         debugToggleBtn.setAttribute('aria-pressed', debugUnlocked ? 'true' : 'false');
 
         showToast(debugUnlocked ? 'All scenes unlocked for debug' : 'Scene locks restored');
+        applySceneModeToSceneOptions();
       });
 
       console.log('✅ Scene Select debug toggle initialized');
@@ -861,19 +1034,65 @@ function setupButtons() {
         return;
       }
 
+      const sceneName = option.dataset.scene;
+      if (!sceneName) {
+        console.warn('⚠️ Scene option clicked without data-scene attribute');
+        showToast('Scene target missing');
+        return;
+      }
+
+      const sceneConfig = SCENE_OPTION_CONFIG[sceneName];
+
       const targetUrl = option.dataset.url;
+      if (sceneConfig) {
+        const mode = getSceneMode();
+
+        if (mode === 'template' && sceneConfig.templateUrl) {
+          console.log(`🌐 Opening ${sceneName} template:`, sceneConfig.templateUrl);
+          window.open(sceneConfig.templateUrl, '_blank', 'noopener');
+          document.getElementById('sceneSelect')?.classList.remove('visible');
+          showToast('Opening scene template in new window…');
+          return;
+        }
+
+        if (mode === 'component' && sceneConfig.componentScene) {
+          const registeredScenes = sceneManager.listScenes();
+          if (!registeredScenes.includes(sceneConfig.componentScene)) {
+            console.warn(`⚠️ Component scene not registered: ${sceneConfig.componentScene}`);
+            showToast('Scene not available in component mode yet.');
+            return;
+          }
+
+          try {
+            if (!experienceStarted) {
+              await startExperience({ reason: 'scene-select' });
+            }
+
+            const transitionOptions = {};
+            if (sceneName === 'fullhand') {
+              transitionOptions.mode = getExecutionEnvironmentMode();
+            }
+
+            const transitioned = await sceneManager.transitionTo(sceneConfig.componentScene, transitionOptions);
+            if (transitioned) {
+              document.getElementById('sceneSelect')?.classList.remove('visible');
+              showToast(`Transitioning to ${sceneName}…`);
+            } else {
+              showToast(`Failed to transition to ${sceneName}`);
+            }
+          } catch (error) {
+            console.error('❌ Failed to load scene from scene select:', error);
+            showToast(`Scene load failed: ${error.message || error}`);
+          }
+          return;
+        }
+      }
+
       if (targetUrl) {
         console.log('🌐 Opening external scene URL:', targetUrl);
         window.open(targetUrl, '_blank');
         document.getElementById('sceneSelect')?.classList.remove('visible');
         showToast('Opening scene in new window…');
-        return;
-      }
-
-      const sceneName = option.dataset.scene;
-      if (!sceneName) {
-        console.warn('⚠️ Scene option clicked without data-scene attribute');
-        showToast('Scene target missing');
         return;
       }
 
