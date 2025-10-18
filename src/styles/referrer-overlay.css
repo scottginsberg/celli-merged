@@ -2511,6 +2511,12 @@ body.referrer-blackout {
   -webkit-tap-highlight-color: transparent;
 }
 
+.golden-hold-button.dimension-locked {
+  width: var(--locked-width, min(360px, 80vw));
+  height: var(--locked-height, clamp(104px, 30vw, 150px));
+  transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), clip-path 0.85s cubic-bezier(0.77, 0, 0.175, 1), border-radius 0.6s ease, background 0.6s ease, box-shadow 0.6s ease, opacity 0.35s ease, filter 0.45s ease;
+}
+
 .golden-hold-button:hover:not(.snapping-to-cursor):not(.cursor-synced) {
   transform: translate3d(var(--cursor-dx, 0), calc(var(--cursor-dy, 0) - 6px), 0) scale(1.03);
 }
@@ -2593,8 +2599,9 @@ body.referrer-blackout {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 220px;
-  height: 180px;
+  transform-origin: 50% 50%;
+  width: var(--locked-width, 220px);
+  height: var(--locked-height, 180px);
 }
 
 .golden-hold-button.beta-card {
@@ -2924,20 +2931,24 @@ body.referrer-whiteout {
 
 @keyframes triangle-flight {
   0% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate3d(-50%, -50%, 0) scale(1);
     opacity: 1;
+    filter: drop-shadow(0 0 45px rgba(255, 255, 255, 0.55));
   }
   35% {
-    transform: translate(-50%, -50%) scale(0.55);
+    transform: translate3d(-50%, -50%, 0) scale(0.6);
     opacity: 1;
+    filter: drop-shadow(0 0 55px rgba(255, 255, 255, 0.45));
   }
   70% {
-    transform: translate(-50%, -50%) scale(0.18);
-    opacity: 0.8;
+    transform: translate3d(-50%, -50%, 0) scale(0.2);
+    opacity: 0.78;
+    filter: drop-shadow(0 0 65px rgba(255, 255, 255, 0.35));
   }
   100% {
-    transform: translate(-50%, -50%) scale(0.04);
-    opacity: 0.2;
+    transform: translate3d(-50%, -50%, 0) scale(0.04);
+    opacity: 0.18;
+    filter: drop-shadow(0 0 70px rgba(255, 255, 255, 0.22));
   }
 }
 
