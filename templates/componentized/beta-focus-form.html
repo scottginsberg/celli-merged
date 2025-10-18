@@ -190,7 +190,8 @@
       font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--page-fg);
       letter-spacing: 0.08em;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
 
     .pre-form-video-overlay--skippable {
@@ -544,11 +545,13 @@
 
     .wordle-selection-tiles {
       display: grid;
-      gap: clamp(0.5rem, 2vw, 0.85rem);
-      grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+      gap: clamp(0.65rem, 2.4vw, 1.05rem);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-auto-rows: minmax(clamp(3.2rem, 8vw, 3.85rem), auto);
       width: 100%;
       align-items: stretch;
       justify-items: stretch;
+      align-content: start;
     }
 
     .wordle-selection-tiles[hidden] {
@@ -556,9 +559,11 @@
     }
 
     .wordle-selection-tile {
-      padding: clamp(0.65rem, 2.2vw, 0.95rem) clamp(0.9rem, 2.8vw, 1.35rem);
-      font-size: clamp(0.72rem, 2.2vw, 0.92rem);
-      letter-spacing: 0.18em;
+      padding: clamp(0.55rem, 2vw, 0.85rem) clamp(0.5rem, 2vw, 0.95rem);
+      font-size: clamp(0.7rem, 1.9vw, 0.95rem);
+      letter-spacing: 0.16em;
+      justify-content: center;
+      text-align: center;
     }
 
     .wordle-selection-tile::before {
@@ -765,16 +770,18 @@
     .options {
       display: grid;
       gap: clamp(0.65rem, 2vw, 0.85rem);
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: 1fr;
+      grid-auto-rows: minmax(clamp(3.2rem, 6vh, 3.85rem), auto);
       align-items: stretch;
       justify-items: stretch;
-      padding-right: clamp(0.25rem, 1vw, 0.45rem);
-      padding-bottom: clamp(0.25rem, 1.2vh, 0.6rem);
+      padding-right: clamp(0.35rem, 1.2vw, 0.65rem);
+      padding-bottom: clamp(0.35rem, 1.5vh, 0.8rem);
       overflow-y: auto;
       scrollbar-color: #000 #fff;
       scrollbar-width: thin;
       min-height: 0;
-      height: min(100%, clamp(7.5rem, 12vh, 10.5rem));
+      height: 100%;
+      max-height: none;
       overscroll-behavior: contain;
     }
 
@@ -805,7 +812,7 @@
       position: relative;
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       border: 2px solid var(--focus-tile-border);
       background: transparent;
       color: var(--focus-tile-fg);
@@ -817,11 +824,13 @@
       cursor: pointer;
       transition: transform 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
       transform: translateY(var(--option-translate));
-      transform-origin: center bottom;
+      transform-origin: left center;
       border-radius: 0;
       overflow: hidden;
       isolation: isolate;
       box-shadow: var(--focus-tile-shadow);
+      text-align: left;
+      width: 100%;
     }
 
     .focus-option::before {
@@ -829,7 +838,7 @@
       position: absolute;
       inset: 0;
       background: var(--focus-tile-bg);
-      transform-origin: center bottom;
+      transform-origin: left center;
       transform: scaleX(var(--visualizer-scale-x)) scaleY(var(--visualizer-scale-y));
       transition: transform 0.22s ease, background 0.18s ease, filter 0.22s ease;
       filter: saturate(var(--visualizer-saturate));
@@ -917,6 +926,15 @@
 
     .wordle-selection-tiles.visualizer-active .wordle-selection-tile::before {
       transform: scaleX(var(--visualizer-scale-x)) scaleY(var(--visualizer-scale-y));
+    }
+
+    .wordle-selection-tiles.visualizer-breakaway {
+      transform: translateY(-10px);
+      gap: clamp(0.75rem, 3vw, 1.35rem);
+    }
+
+    .wordle-selection-tiles.visualizer-breakaway .wordle-selection-tile {
+      box-shadow: 0 16px 36px rgba(255, 255, 255, 0.12);
     }
 
     .open-zone {
@@ -1249,6 +1267,15 @@
         font-size: clamp(0.78rem, 4vw, 0.9rem);
       }
 
+      .wordle-selection-tiles {
+        gap: clamp(0.45rem, 4vw, 0.75rem);
+      }
+
+      .wordle-selection-tile {
+        font-size: clamp(0.68rem, 4.2vw, 0.9rem);
+        letter-spacing: 0.14em;
+      }
+
       .options.visualizer-active {
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       }
@@ -1256,6 +1283,10 @@
       .options.visualizer-active .focus-option {
         padding: 0.25rem 0.9rem;
         min-height: 1.1rem;
+      }
+
+      .wordle-selection-tiles.visualizer-breakaway {
+        transform: translateY(-8px);
       }
 
       .wordle-selection-tiles.visualizer-active .wordle-selection-tile {
@@ -1543,6 +1574,9 @@
       let firstTrackCompleted = false;
       let sequencePlaying = false;
       let wordleFeaturesRevealed = false;
+      const VISUALIZER_BREAKAWAY_DELAY_MS = 46000;
+      let visualizerBreakawayTimeoutId = null;
+      let visualizerBreakawayActive = false;
 
       if (wordleFocusQueueEl) {
         wordleFocusQueueEl.hidden = true;
@@ -1621,6 +1655,8 @@
         wordleSelectionTilesEl.hidden = true;
         wordleSelectionTilesEl.setAttribute('aria-hidden', 'true');
         wordleSelectionTilesEl.classList.remove('visualizer-active');
+        wordleSelectionTilesEl.classList.remove('visualizer-breakaway');
+        updateVisualizerBreakawayClass();
       }
 
       function renderWordleSelectionTiles() {
@@ -1668,6 +1704,45 @@
         wordleSelectionTilesEl.appendChild(fragment);
         wordleSelectionTilesEl.hidden = false;
         wordleSelectionTilesEl.setAttribute('aria-hidden', 'false');
+        updateVisualizerBreakawayClass();
+      }
+
+      function updateVisualizerBreakawayClass() {
+        if (!wordleSelectionTilesEl) {
+          return;
+        }
+        const shouldBreakaway = visualizerBreakawayActive && wordleSelectionButtons.length > 0;
+        wordleSelectionTilesEl.classList.toggle('visualizer-breakaway', shouldBreakaway);
+      }
+
+      function cancelVisualizerBreakawayTimer() {
+        if (visualizerBreakawayTimeoutId !== null) {
+          window.clearTimeout(visualizerBreakawayTimeoutId);
+          visualizerBreakawayTimeoutId = null;
+        }
+      }
+
+      function deactivateVisualizerBreakaway() {
+        cancelVisualizerBreakawayTimer();
+        if (!visualizerBreakawayActive) {
+          updateVisualizerBreakawayClass();
+          return;
+        }
+        visualizerBreakawayActive = false;
+        updateVisualizerBreakawayClass();
+      }
+
+      function triggerVisualizerBreakaway() {
+        visualizerBreakawayTimeoutId = null;
+        visualizerBreakawayActive = true;
+        updateVisualizerBreakawayClass();
+      }
+
+      function scheduleVisualizerBreakaway() {
+        cancelVisualizerBreakawayTimer();
+        visualizerBreakawayActive = false;
+        updateVisualizerBreakawayClass();
+        visualizerBreakawayTimeoutId = window.setTimeout(triggerVisualizerBreakaway, VISUALIZER_BREAKAWAY_DELAY_MS);
       }
 
       function setInitialOptionButtonsEnabled(enabled) {
@@ -1798,10 +1873,8 @@
         if (!sanitized) {
           return '';
         }
-        if (columnIndex < sanitized.length) {
-          return sanitized.charAt(columnIndex).toUpperCase();
-        }
-        return '';
+        const normalizedIndex = columnIndex % sanitized.length;
+        return sanitized.charAt(normalizedIndex).toUpperCase();
       }
 
       function evaluateWordleGuess(letters) {
@@ -2870,13 +2943,17 @@
 
         const buttonCount = targets.length;
         const step = Math.max(1, Math.floor(analyserData.length / buttonCount));
+        const breakawayTargets = visualizerBreakawayActive ? new Set(wordleSelectionButtons) : null;
 
         targets.forEach((button, index) => {
           const dataIndex = Math.min(analyserData.length - 1, index * step);
           const magnitude = analyserData[dataIndex] / 255;
           const eased = Math.pow(magnitude, 1.35);
-          const targetScale = 1 + eased * 1.2;
-          const targetSaturation = 1 + eased * 0.6;
+          const isBreakawayTile = breakawayTargets ? breakawayTargets.has(button) : false;
+          const scaleBoost = isBreakawayTile ? 1.85 : 1.2;
+          const saturationBoost = isBreakawayTile ? 1.15 : 0.6;
+          const targetScale = 1 + eased * scaleBoost;
+          const targetSaturation = 1 + eased * saturationBoost;
 
           const currentScale = tileScaleState.get(button) ?? 1;
           const currentSaturation = tileSaturationState.get(button) ?? 1;
@@ -2935,6 +3012,7 @@
         if (wordleSelectionTilesEl) {
           wordleSelectionTilesEl.classList.remove('visualizer-active');
         }
+        deactivateVisualizerBreakaway();
         activeVisualizerTrack = null;
       }
 
@@ -3211,6 +3289,11 @@
           updateStatus(label);
           if (audio) {
             startVisualizerFor(audio);
+            if (audio === baseTrack) {
+              scheduleVisualizerBreakaway();
+            } else {
+              deactivateVisualizerBreakaway();
+            }
           }
           if (typeof onSuccess === 'function') {
             onSuccess();
@@ -3228,6 +3311,7 @@
             console.warn('Audio playback failed. Ensure EA tracks are available.', error);
             updateStatus('Audio unavailable — please add the EA tracks.');
             stopVisualizerIfIdle(true);
+            deactivateVisualizerBreakaway();
             if (audio) {
               resetAudioVolume(audio);
             }
