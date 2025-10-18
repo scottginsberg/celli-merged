@@ -1,5 +1,5 @@
 /**
- * VisiCalc Scene - Interactive Spreadsheet Reality
+ * VisiCell Scene - Interactive Spreadsheet Reality
  * 
  * Core spreadsheet system with:
  * - Cell grid rendering and navigation
@@ -16,7 +16,7 @@
 import * as THREE from 'three';
 import { audioSystem } from '../systems/AudioSystem.js';
 
-export class VisiCalcScene {
+export class VisiCellScene {
   constructor() {
     this.state = {
       running: false,
@@ -24,7 +24,11 @@ export class VisiCalcScene {
       camera: null,
       renderer: null,
       endAudio: null,
-      
+      questOverlay: null,
+      deathOverlay: null,
+      deathSequenceActive: false,
+      deathTimeouts: [],
+
       // Spreadsheet state
       cells: new Map(), // key: "A1" -> value: { value, formula, computed, style }
       arrays: new Map(), // key: arrayId -> { cells, mesh, anchor }
@@ -273,7 +277,7 @@ export class VisiCalcScene {
    * Initialize scene
    */
   async init() {
-    console.log('📊 Initializing VisiCalc Scene...');
+    console.log('📊 Initializing VisiCell Scene...');
 
     // Create 3D scene for array visualization
     const scene = new THREE.Scene();
@@ -305,7 +309,7 @@ export class VisiCalcScene {
     // Setup event listeners
     this._setupEventListeners();
 
-    console.log('✅ VisiCalc Scene initialized');
+    console.log('✅ VisiCell Scene initialized');
   }
 
   /**
@@ -353,7 +357,7 @@ export class VisiCalcScene {
   _generateGridHTML() {
     let html = `
       <div style="padding: 10px; border-bottom: 1px solid #0f0; background: rgba(0, 0, 0, 0.85);">
-        <div style="font-size: 14px; letter-spacing: 0.2em;">VISICALC</div>
+        <div style="font-size: 14px; letter-spacing: 0.2em;">VISICELL</div>
         <div id="visicalc-cell-display" style="font-size: 11px; opacity: 0.7; margin-top: 4px;">A1: </div>
       </div>
       <div style="display: flex; flex-direction: column; height: calc(100% - 60px); overflow: auto;">
@@ -521,15 +525,33 @@ export class VisiCalcScene {
   /**
    * Set cell value
    */
-  _setCellValue(addr, value) {
+  _setCellValue(addr, value, options = {}) {
+    const { suppressClueCheck = false, resetStyle = false, style: overrideStyle } = options;
     const isFormula = typeof value === 'string' && value.startsWith('=');
-    
-    this.state.cells.set(addr, {
+    const existing = this.state.cells.get(addr);
+
+    const style = (!resetStyle && existing && existing.style)
+      ? { ...existing.style }
+      : {};
+
+    if (overrideStyle && typeof overrideStyle === 'object') {
+      Object.assign(style, overrideStyle);
+    }
+
+    const cellData = {
       value: isFormula ? '' : value,
       formula: isFormula ? value : '',
       computed: null,
-      style: {}
-    });
+      style
+    };
+
+    this.state.cells.set(addr, cellData);
+
+    if (!suppressClueCheck) {
+      this._handleClueCellValueChange(addr);
+    }
+
+    return cellData;
   }
 
   /**
@@ -633,11 +655,12 @@ export class VisiCalcScene {
         cellEl.textContent = displayValue;
         
         // Apply styles
-        if (cellData.style.color) {
-          cellEl.style.color = cellData.style.color;
-        }
-        if (cellData.style.background) {
-          cellEl.style.background = cellData.style.background;
+        if (cellData.style && typeof cellData.style === 'object') {
+          Object.entries(cellData.style).forEach(([styleKey, styleValue]) => {
+            if (styleKey in cellEl.style) {
+              cellEl.style[styleKey] = styleValue;
+            }
+          });
         }
       }
     });
@@ -725,7 +748,7 @@ export class VisiCalcScene {
     container.appendChild(overlay);
 
     const clue = {
-      entryCell: 'B4',
+      entryCell: null,
       baseInput: 'ENTE',
       currentInput: 'ENTE',
       overlayEl: overlay,
@@ -734,26 +757,377 @@ export class VisiCalcScene {
       active: true,
       stage: 'await-command',
       highlightedCells: new Set(),
-      steps: []
+      steps: [],
+      messageCells: [],
+      lastTriggeredValue: null,
+      lastShownInvalidValue: null,
+      completedMode: null,
+      pendingDeathMode: null,
+      deathSequenceScheduled: false,
+      initializing: false
     };
 
     this.state.clueTrail = clue;
     return clue;
   }
 
+  _pickRandomEntryCell() {
+    const candidates = ['D5', 'E6', 'F7', 'C8', 'G4', 'H6'];
+    const index = Math.floor(Math.random() * candidates.length);
+    return candidates[index] || 'D5';
+  }
+
+  _clearClueMessageCells() {
+    const clue = this.state.clueTrail;
+    if (!clue || !Array.isArray(clue.messageCells) || clue.messageCells.length === 0) {
+      return;
+    }
+
+    clue.messageCells.forEach(cellInfo => {
+      if (!cellInfo || !cellInfo.addr) return;
+
+      const { addr, formula, value, style } = cellInfo;
+      if (formula) {
+        this._setCellValue(addr, formula, { suppressClueCheck: true, resetStyle: true });
+      } else if (value) {
+        this._setCellValue(addr, value, { suppressClueCheck: true, resetStyle: true });
+      } else {
+        this._setCellValue(addr, '', { suppressClueCheck: true, resetStyle: true });
+      }
+
+      const restored = this.state.cells.get(addr);
+      if (restored) {
+        restored.style = style ? { ...style } : {};
+      }
+    });
+
+    clue.messageCells = [];
+    this._render();
+  }
+
+  _displayClueMessageAcrossCells(message, startCell = 'A10') {
+    const clue = this.state.clueTrail;
+    if (!clue) {
+      return;
+    }
+
+    this._clearClueMessageCells();
+
+    const sanitized = (message || '').toUpperCase();
+    const totalCols = this.state.gridCols;
+    const startCol = Math.max(0, startCell.charCodeAt(0) - 65);
+    let colIndex = startCol;
+    let rowIndex = parseInt(startCell.slice(1), 10) || 10;
+
+    clue.messageCells = [];
+
+    for (let i = 0; i < sanitized.length; i++) {
+      if (rowIndex > this.state.gridRows) break;
+
+      const addr = String.fromCharCode(65 + colIndex) + rowIndex;
+      const previous = this.state.cells.get(addr);
+      clue.messageCells.push({
+        addr,
+        value: previous ? previous.value : '',
+        formula: previous ? previous.formula : '',
+        style: previous && previous.style ? { ...previous.style } : null
+      });
+
+      const char = sanitized[i];
+      const displayChar = char === ' ' ? '' : char;
+      const cellData = this._setCellValue(addr, displayChar, { suppressClueCheck: true, resetStyle: true });
+      cellData.style = cellData.style || {};
+      Object.assign(cellData.style, {
+        background: 'rgba(0, 32, 0, 0.65)',
+        color: '#0f0',
+        textAlign: 'center',
+        fontWeight: '600',
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase'
+      });
+
+      const cellEl = document.getElementById(`cell-${addr}`);
+      if (cellEl) {
+        cellEl.style.textTransform = 'uppercase';
+      }
+
+      colIndex++;
+      if (colIndex >= totalCols) {
+        colIndex = 0;
+        rowIndex++;
+      }
+    }
+
+    this._render();
+  }
+
+  _handleClueCellValueChange(addr, overrideValue) {
+    const clue = this.state.clueTrail;
+    if (!clue || clue.initializing || clue.completedMode) {
+      return;
+    }
+
+    if (addr !== clue.entryCell) {
+      return;
+    }
+
+    const cellData = this.state.cells.get(addr);
+    const raw = overrideValue !== undefined
+      ? overrideValue
+      : (cellData ? (cellData.formula || cellData.value) : '');
+
+    const normalized = (raw || '').toString().trim().toUpperCase();
+    if (!normalized || normalized === (clue.baseInput || '').toUpperCase()) {
+      return;
+    }
+
+    if (normalized === 'LEAVE' && clue.lastTriggeredValue !== 'LEAVE') {
+      clue.currentInput = normalized;
+      clue.lastTriggeredValue = 'LEAVE';
+      this._startClueTrailSequence('leave');
+      return;
+    }
+
+    if (normalized === 'ENTER' && clue.lastTriggeredValue !== 'ENTER') {
+      clue.currentInput = normalized;
+      clue.lastTriggeredValue = 'ENTER';
+      this._startQuestSequence();
+      return;
+    }
+
+    if (normalized && clue.lastShownInvalidValue !== normalized) {
+      clue.lastShownInvalidValue = normalized;
+      this._showClueInstruction('That completion warps the grid. Try another ending.');
+    }
+  }
+
+  _ensureQuestOverlay() {
+    if (this.state.questOverlay && this.state.questOverlay.isConnected) {
+      return this.state.questOverlay;
+    }
+
+    const container = this.state.container;
+    if (!container) {
+      return null;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'visicell-quest-overlay';
+    overlay.style.position = 'absolute';
+    overlay.style.top = '40px';
+    overlay.style.right = '32px';
+    overlay.style.width = '280px';
+    overlay.style.padding = '16px';
+    overlay.style.border = '2px solid #0f0';
+    overlay.style.borderRadius = '12px';
+    overlay.style.background = 'rgba(0, 0, 0, 0.94)';
+    overlay.style.boxShadow = '0 0 24px rgba(0, 255, 160, 0.28)';
+    overlay.style.color = '#0f0';
+    overlay.style.display = 'none';
+    overlay.style.flexDirection = 'column';
+    overlay.style.gap = '8px';
+    overlay.style.fontFamily = `'Courier New', monospace`;
+    overlay.style.textTransform = 'uppercase';
+    overlay.style.letterSpacing = '0.12em';
+    overlay.style.zIndex = '120';
+
+    const title = document.createElement('div');
+    title.textContent = 'Quest // VisiCell Simulator';
+    title.style.fontSize = '12px';
+    title.style.opacity = '0.78';
+
+    const body = document.createElement('div');
+    body.id = 'visicell-quest-body';
+    body.style.fontSize = '13px';
+    body.style.lineHeight = '1.5';
+    body.style.letterSpacing = '0.06em';
+    body.textContent = 'Fudge the numbers before the presentation - make sure boss doesn\'t find out!';
+
+    overlay.appendChild(title);
+    overlay.appendChild(body);
+    container.appendChild(overlay);
+
+    this.state.questOverlay = overlay;
+    return overlay;
+  }
+
+  _startQuestSequence() {
+    const overlay = this._ensureQuestOverlay();
+    if (overlay) {
+      overlay.style.display = 'flex';
+      const body = overlay.querySelector('#visicell-quest-body');
+      if (body) {
+        body.textContent = 'Fudge the numbers before the presentation - make sure boss doesn\'t find out!';
+      }
+    }
+
+    this._startClueTrailSequence('enter');
+  }
+
+  _ensureDeathOverlay() {
+    if (this.state.deathOverlay && this.state.deathOverlay.isConnected) {
+      return this.state.deathOverlay;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'visicell-death-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.left = '0';
+    overlay.style.top = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.display = 'none';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '999';
+    overlay.style.fontSize = '56px';
+    overlay.style.fontWeight = '700';
+    overlay.style.textTransform = 'uppercase';
+    overlay.style.letterSpacing = '0.18em';
+    overlay.textContent = 'You died.';
+
+    document.body.appendChild(overlay);
+    this.state.deathOverlay = overlay;
+    return overlay;
+  }
+
+  _applyDeathOverlayStage(stage) {
+    const overlay = this._ensureDeathOverlay();
+    if (!overlay) {
+      return;
+    }
+
+    if (stage === 'souls') {
+      overlay.style.background = 'radial-gradient(circle, rgba(60, 10, 10, 0.96) 0%, rgba(10, 0, 0, 0.96) 75%)';
+      overlay.style.color = '#d73b2f';
+      overlay.style.fontFamily = `'Cinzel', serif`;
+      overlay.style.textShadow = '0 0 28px rgba(215, 59, 47, 0.8)';
+      overlay.textContent = 'You Died.';
+    } else if (stage === 'gta') {
+      overlay.style.background = 'linear-gradient(140deg, rgba(20, 20, 20, 0.95), rgba(45, 10, 55, 0.92))';
+      overlay.style.color = '#ff6ce1';
+      overlay.style.fontFamily = `'Impact', sans-serif`;
+      overlay.style.textShadow = '2px 2px 0 rgba(0,0,0,0.65), -2px -2px 0 rgba(0,0,0,0.45)';
+      overlay.textContent = 'You Died.';
+    } else {
+      overlay.style.background = 'rgba(0, 0, 0, 0.95)';
+      overlay.style.color = '#0f0';
+      overlay.style.fontFamily = `'Courier New', monospace`;
+      overlay.style.textShadow = '0 0 18px rgba(0, 255, 160, 0.55)';
+      overlay.textContent = 'You died.';
+    }
+  }
+
+  _clearDeathTimeouts() {
+    if (!Array.isArray(this.state.deathTimeouts)) {
+      this.state.deathTimeouts = [];
+      return;
+    }
+
+    this.state.deathTimeouts.forEach(timeoutId => window.clearTimeout(timeoutId));
+    this.state.deathTimeouts.length = 0;
+
+    if (this.state.deathOverlay) {
+      this.state.deathOverlay.style.display = 'none';
+      this._applyDeathOverlayStage('visicell');
+    }
+    this.state.deathSequenceActive = false;
+  }
+
+  _startDeathSequence(mode = 'leave') {
+    this._clearDeathTimeouts();
+
+    const overlay = this._ensureDeathOverlay();
+    if (!overlay) {
+      return;
+    }
+
+    if (this.state.questOverlay) {
+      this.state.questOverlay.style.display = 'none';
+    }
+
+    this.state.deathSequenceActive = true;
+    overlay.style.display = 'flex';
+    this._applyDeathOverlayStage('visicell');
+
+    const stageDurations = [1600, 1600, 1600];
+    const soulsTimeout = window.setTimeout(() => this._applyDeathOverlayStage('souls'), stageDurations[0]);
+    const gtaTimeout = window.setTimeout(() => this._applyDeathOverlayStage('gta'), stageDurations[0] + stageDurations[1]);
+    const resetTimeout = window.setTimeout(() => {
+      overlay.style.display = 'none';
+      this.state.deathSequenceActive = false;
+      this._applyDeathOverlayStage('visicell');
+      this._showOregonTrailEnding(mode);
+    }, stageDurations[0] + stageDurations[1] + stageDurations[2] + 800);
+
+    this.state.deathTimeouts.push(soulsTimeout, gtaTimeout, resetTimeout);
+  }
+
+  _showOregonTrailEnding(mode = 'leave') {
+    const clue = this.state.clueTrail;
+    const cells = ['H12', 'H13'];
+    const values = ['YOU DIED.', 'OF DYSENTERY.'];
+
+    cells.forEach((addr, index) => {
+      const timeout = window.setTimeout(() => {
+        const cellData = this._setCellValue(addr, values[index], { suppressClueCheck: true, resetStyle: true });
+        cellData.style = cellData.style || {};
+        Object.assign(cellData.style, {
+          background: 'rgba(0, 0, 0, 0.88)',
+          color: '#0f0',
+          textAlign: 'center',
+          fontWeight: '700',
+          textTransform: 'uppercase'
+        });
+
+        if (clue) {
+          clue.highlightedCells.add(addr);
+        }
+
+        this._render();
+        this._applyClueCellHighlight();
+      }, index === 0 ? 180 : 880);
+
+      this.state.deathTimeouts.push(timeout);
+    });
+
+    const endingMessage = mode === 'enter'
+      ? 'Quest failed. You died of dysentery.'
+      : 'Trail complete. You died of dysentery.';
+    this._showClueInstruction(endingMessage);
+
+    if (clue) {
+      clue.stage = 'end';
+      clue.active = false;
+    }
+  }
+
   _initializeClueTrail() {
     const clue = this._ensureClueTrailState();
     if (!clue) return;
 
+    const entryCell = this._pickRandomEntryCell();
+    clue.entryCell = entryCell;
     clue.currentInput = clue.baseInput;
     clue.active = true;
     clue.stage = 'await-command';
-    clue.highlightedCells = new Set([clue.entryCell]);
+    clue.highlightedCells = new Set([entryCell]);
     clue.steps = [];
+    clue.completedMode = null;
+    clue.pendingDeathMode = null;
+    clue.deathSequenceScheduled = false;
+    clue.lastTriggeredValue = null;
+    clue.lastShownInvalidValue = null;
 
+    clue.initializing = true;
+    this._setCellValue(entryCell, clue.baseInput, { suppressClueCheck: true, resetStyle: true });
     this._updateClueDisplay();
-    this._showClueInstruction('Type R to complete the command, or spell LEAVE to defy it.');
-    this._selectCell(clue.entryCell);
+    clue.initializing = false;
+
+    this._displayClueMessageAcrossCells(`Finish the word in cell ${entryCell}.`);
+
+    this._showClueInstruction(`Finish the word in ${entryCell}. Choose compliance or rebellion.`);
+    this._selectCell(entryCell);
   }
 
   _updateClueDisplay() {
@@ -769,16 +1143,31 @@ export class VisiCalcScene {
 
     let cellData = this.state.cells.get(clue.entryCell);
     if (!cellData) {
-      this._setCellValue(clue.entryCell, clue.currentInput);
+      this._setCellValue(clue.entryCell, clue.currentInput, {
+        suppressClueCheck: true,
+        resetStyle: true,
+        style: {
+          background: 'rgba(0, 0, 0, 0.85)',
+          color: '#0f0',
+          textAlign: 'center',
+          fontWeight: '600'
+        }
+      });
       cellData = this.state.cells.get(clue.entryCell);
     } else {
       cellData.value = clue.currentInput;
-    }
-
-    if (cellData) {
+      cellData.formula = '';
       cellData.style = cellData.style || {};
-      cellData.style.background = 'rgba(0, 0, 0, 0.85)';
-      cellData.style.color = '#0f0';
+      Object.assign(cellData.style, {
+        background: 'rgba(0, 0, 0, 0.85)',
+        color: '#0f0',
+        textAlign: 'center',
+        fontWeight: '600'
+      });
+
+      if (!clue.initializing) {
+        this._handleClueCellValueChange(clue.entryCell, clue.currentInput);
+      }
     }
 
     this._render();
@@ -841,36 +1230,42 @@ export class VisiCalcScene {
       return;
     }
 
-    const value = (clue.currentInput || '').trim().toUpperCase();
-    if (value === 'LEAVE') {
-      this._startClueTrailSequence();
+    const value = (clue.currentInput || '').trim();
+    if (!value) {
+      this._showClueInstruction('The command waits for a completion.');
       return;
     }
 
-    if (value === 'ENTER') {
-      this._showClueInstruction('The doorway hums... but nothing changes. Maybe defy the prompt?');
-      return;
-    }
-
-    this._showClueInstruction('That command is ignored. Try something more rebellious.');
+    this._handleClueCellValueChange(clue.entryCell, value);
   }
 
-  _startClueTrailSequence() {
+  _startClueTrailSequence(mode = 'leave') {
     const clue = this.state.clueTrail;
     if (!clue) {
       return;
     }
 
     clue.active = false;
-    clue.stage = 'trail';
+    clue.stage = mode === 'enter' ? 'quest' : 'trail';
+    clue.completedMode = mode;
+    clue.pendingDeathMode = mode;
+    clue.deathSequenceScheduled = false;
     clue.displayEl.textContent = clue.currentInput;
-    this._showClueInstruction('Clue trail initiated... watch the grid.');
+    this._showClueInstruction(mode === 'enter'
+      ? 'Quest sequence initiated... fudge quietly.'
+      : 'Clue trail initiated... watch the grid.');
 
-    const steps = [
-      { delay: 0, cell: 'C5', value: 'NEXT', message: 'Clue 1: Cell C5 glows with "NEXT".' },
-      { delay: 2200, cell: 'E3', value: 'DOOR', message: 'Clue 2: E3 whispers "DOOR".' },
-      { delay: 4400, cell: 'D7', value: 'OPENS', message: 'Clue 3: D7 completes the phrase "OPENS".' }
-    ];
+    const steps = mode === 'enter'
+      ? [
+        { delay: 0, cell: 'C5', value: 'FUDGE', message: 'Quest Step 1: C5 flashes "FUDGE".' },
+        { delay: 2200, cell: 'E3', value: 'NUMBERS', message: 'Quest Step 2: E3 scribbles "NUMBERS".' },
+        { delay: 4400, cell: 'D7', value: 'HURRY', message: 'Quest Step 3: D7 hisses "HURRY".' }
+      ]
+      : [
+        { delay: 0, cell: 'C5', value: 'NEXT', message: 'Clue 1: Cell C5 glows with "NEXT".' },
+        { delay: 2200, cell: 'E3', value: 'DOOR', message: 'Clue 2: E3 whispers "DOOR".' },
+        { delay: 4400, cell: 'D7', value: 'OPENS', message: 'Clue 3: D7 completes the phrase "OPENS".' }
+      ];
 
     clue.steps = steps;
     this._clearClueTrailTimeouts();
@@ -909,7 +1304,18 @@ export class VisiCalcScene {
     }
 
     if (isFinal) {
-      this._showClueInstruction('The message is complete. Follow it.');
+      const finalMessage = clue && clue.completedMode === 'enter'
+        ? 'Numbers fudged. The boss is almost here.'
+        : 'The message is complete. Follow it.';
+      this._showClueInstruction(finalMessage);
+
+      if (clue && !clue.deathSequenceScheduled) {
+        clue.deathSequenceScheduled = true;
+        const timeoutId = window.setTimeout(() => {
+          this._startDeathSequence(clue.pendingDeathMode || 'leave');
+        }, 1600);
+        this.state.clueStepTimeouts.push(timeoutId);
+      }
     }
   }
 
@@ -923,13 +1329,21 @@ export class VisiCalcScene {
       window.clearTimeout(timeoutId);
     });
     this.state.clueStepTimeouts.length = 0;
+
+    if (typeof this._clearDeathTimeouts === 'function') {
+      this._clearDeathTimeouts();
+    }
+
+    if (this.state.clueTrail) {
+      this.state.clueTrail.deathSequenceScheduled = false;
+    }
   }
 
   /**
    * Start scene
    */
   async start(state, options = {}) {
-    console.log('▶️ Starting VisiCalc Scene');
+    console.log('▶️ Starting VisiCell Scene');
 
     this.state.running = true;
 
@@ -956,11 +1370,11 @@ export class VisiCalcScene {
         const playPromise = this.state.endAudio.play();
         if (playPromise && typeof playPromise.then === 'function') {
           playPromise.catch(err => {
-            console.warn('⚠️ Unable to play end.mp3 during VisiCalc Scene', err);
+            console.warn('⚠️ Unable to play end.mp3 during VisiCell Scene', err);
           });
         }
       } catch (error) {
-        console.warn('⚠️ Error playing end.mp3 during VisiCalc Scene', error);
+        console.warn('⚠️ Error playing end.mp3 during VisiCell Scene', error);
       }
     }
 
@@ -1004,7 +1418,7 @@ export class VisiCalcScene {
    * Stop scene
    */
   async stop() {
-    console.log('⏹️ Stopping VisiCalc Scene');
+    console.log('⏹️ Stopping VisiCell Scene');
     this.state.running = false;
 
     if (this.state.endAudio) {
@@ -1019,6 +1433,14 @@ export class VisiCalcScene {
     // Hide spreadsheet
     if (this.state.container) {
       this.state.container.style.display = 'none';
+    }
+
+    if (this.state.questOverlay) {
+      this.state.questOverlay.style.display = 'none';
+    }
+
+    if (this.state.deathOverlay) {
+      this.state.deathOverlay.style.display = 'none';
     }
 
     if (typeof document !== 'undefined') {
@@ -1076,7 +1498,7 @@ export class VisiCalcScene {
         audioSystem.stopMusic({ fadeOutDuration: 0.2 });
       }
     } catch (error) {
-      console.warn('⚠️ Unable to stop background music before VisiCalc', error);
+      console.warn('⚠️ Unable to stop background music before VisiCell', error);
     }
 
     if (typeof window !== 'undefined') {
@@ -1092,12 +1514,12 @@ export class VisiCalcScene {
           window.dispatchEvent(new CustomEvent('celli:visicell-audio-muted'));
         }
       } catch (error) {
-        console.warn('⚠️ Unable to silence legacy audio before VisiCalc', error);
+        console.warn('⚠️ Unable to silence legacy audio before VisiCell', error);
       }
     }
   }
 }
 
-export default VisiCalcScene;
+export default VisiCellScene;
 
 

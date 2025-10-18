@@ -19,9 +19,9 @@
 - **Patch Available**: `src/patches/INTRO_SCENE_PATCH.js`
 - **Priority**: HIGH (most commonly used)
 
-### VisiCalcScene  
+### VisiCellScene
 - **Status**: ❌ Not Started
-- **File**: `src/scripts/scenes/VisiCalcScene.js`
+- **File**: `src/scripts/scenes/VisiCellScene.js`
 - **Action Needed**: Add timing/motion/events structures
 - **Priority**: MEDIUM
 
@@ -147,7 +147,7 @@ Based on standard scene structures:
 | Scene | Expected Nodes | Note |
 |-------|---------------|------|
 | IntroSceneComplete | 12 | If introCfg has all 12 phases |
-| VisiCalcScene | 3-5 | TBD based on scene structure |
+| VisiCellScene | 3-5 | TBD based on scene structure |
 | CelliRealScene | 1+ | Interactive, fewer phases |
 | FullhandScene | 5-8 | TBD based on scene structure |
 | End3Scene | 3-5 | TBD based on scene structure |
@@ -164,7 +164,7 @@ Based on standard scene structures:
 3. Update FullhandScene.js with timing structure
 
 ### Soon (Priority 2)
-4. Update VisiCalcScene
+4. Update VisiCellScene
 5. Update End3Scene
 6. Document each scene's timing structure
 

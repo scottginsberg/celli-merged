@@ -97,7 +97,7 @@ Node types are color-coded for easy identification:
 ### Scene Dropdown
 - Select different scenes to inspect
 - **Integrates with Auto-Ingest** - choose which scene to extract data from
-- Lists all available scenes (Intro, VisiCalc, CelliReal, Fullhand, End3, City, Leave)
+- Lists all available scenes (Intro, VisiCell, CelliReal, Fullhand, End3, City, Leave)
 - Updates scene badge when changed
 - Works with both parent window and opener window contexts
 
