@@ -1253,12 +1253,11 @@
           </div>
           <div class="loom-invite-card__content">
             <strong class="loom-invite-card__headline">Claim your Loomworks access</strong>
-            <span class="loom-invite-card__subline">Tap to open the crystalline invitation.</span>
+            <span class="loom-invite-card__subline loom-invite-card__subline--audio" data-active="false">Streaming CallYouByMyName.mp3</span>
           </div>
         </div>
       </div>
     </button>
-    <div id="loomAudioStatus" class="loom-audio-status" aria-hidden="true">Streaming CallYouByMyName.mp3</div>
    </div>
   </div>
   
@@ -1327,7 +1326,7 @@
   const refSidebarClose = document.getElementById('refSidebarClose');
   const refSidebarUrl = document.getElementById('refSidebarUrl');
   const refSidebarAck = document.getElementById('refSidebarAck');
-  const loomAudioStatus = document.getElementById('loomAudioStatus');
+  const loomAudioStatus = refSidebarAck ? refSidebarAck.querySelector('.loom-invite-card__subline--audio') : null;
   const refFeedbackLink = document.getElementById('refFeedbackLink');
   const LOOM_AUDIO_STATUS_TEXT = 'Streaming CallYouByMyName.mp3';
   const BETA_FOCUS_FORM_URL = './templates/componentized/beta-focus-form.html';
@@ -1339,14 +1338,8 @@
 
   function setLoomAudioStatus(isPlaying) {
     if (!loomAudioStatus) return;
-    if (isPlaying) {
-      loomAudioStatus.style.display = 'block';
-      loomAudioStatus.textContent = LOOM_AUDIO_STATUS_TEXT;
-      loomAudioStatus.setAttribute('aria-hidden', 'false');
-    } else {
-      loomAudioStatus.style.display = 'none';
-      loomAudioStatus.setAttribute('aria-hidden', 'true');
-    }
+    loomAudioStatus.textContent = LOOM_AUDIO_STATUS_TEXT;
+    loomAudioStatus.setAttribute('data-active', isPlaying ? 'true' : 'false');
   }
 
   const refTooltip = document.getElementById('refTooltip');
@@ -1849,7 +1842,6 @@
     linkedin: '.linkedin-post'
   };
   let goldenHoldCleanup = null;
-  let goldenHoldTimer = null;
   let goldenDustAnimationId = null;
   let noteAwaitingActivation = false;
   let noteHoverSequenceStarted = false;
@@ -3647,7 +3639,7 @@
               <div class="loom-invite-body-text">
                 Not everyone passes that test, you know? And for that, we'd like you to join our incredibly exclusive <span id="alphaText" class="loom-invite-alpha">alpha</span> test.
               </div>
-              <div class="loom-invite-divider">Just need you to sign the ToS....</div>
+              <div class="loom-invite-divider">Just need you to sign the <span id="tosAbbrev" class="tos-abbrev" data-state="base">ToS</span>....</div>
               <button id="tosLabelToggle" class="tos-label" type="button" aria-expanded="false" aria-controls="tosExpandable">
                 <span class="tos-label-text">Terms of <span id="eternalText" class="tos-label-eternal"></span> Submission</span>
                 <span class="tos-label-arrow" aria-hidden="true"></span>
@@ -3685,8 +3677,11 @@
       // Start flashing "ETERNAL" letter by letter
       setTimeout(() => flashEternalText(), 1000);
 
-      // Activate magnetic cursor for checkbox
-      setTimeout(() => activateMagneticCheckbox(), 1500);
+      // Activate magnetic cursor and hold interactions for checkbox
+      setTimeout(() => {
+        activateMagneticCheckbox();
+        setupTosHoldInteractions();
+      }, 1500);
       attachTosExpansionHandler();
 
       attachTosAcceptanceHandler();
@@ -3746,6 +3741,12 @@
         currentIndex++;
       } else {
         clearInterval(flashInterval);
+        const tosAbbrev = document.getElementById('tosAbbrev');
+        if (tosAbbrev && tosAbbrev.dataset.state !== 'eternal') {
+          tosAbbrev.dataset.state = 'eternal';
+          tosAbbrev.innerHTML = 'To<span class="tos-abbrev-e">E</span>S';
+          tosAbbrev.classList.add('tos-abbrev--eternal');
+        }
       }
     }, 150);
   }
@@ -3784,7 +3785,7 @@
 
     console.log('🧲 Magnetic checkbox activated - emphasizing invite path');
 
-    container.style.transition = 'transform 0.25s ease, box-shadow 0.25s ease';
+    container.style.transition = 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease';
 
     const updateMagneticHighlight = (clientX, clientY) => {
       const rect = container.getBoundingClientRect();
@@ -3793,12 +3794,17 @@
       const dx = centerX - clientX;
       const dy = centerY - clientY;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      const range = Math.max(rect.width, rect.height) * 4;
+      const range = Math.max(rect.width, rect.height) * 3.2;
       const strength = Math.max(0, Math.min(1, 1 - distance / range));
-      const pullX = dx * strength * -0.2;
-      const pullY = dy * strength * -0.2;
-      container.style.transform = `translate(${pullX}px, ${pullY}px) scale(${1 + strength * 0.06})`;
-      container.style.boxShadow = `0 0 ${18 + strength * 28}px rgba(143, 180, 255, ${0.28 + strength * 0.45})`;
+      const easing = Math.pow(strength, 0.85);
+      const pullX = -dx * easing;
+      const pullY = -dy * easing;
+      const scale = 1 + strength * 0.28;
+      container.style.transformOrigin = 'center';
+      container.style.transform = `translate(${pullX}px, ${pullY}px) scale(${scale})`;
+      container.style.boxShadow = `0 0 ${18 + strength * 36}px rgba(143, 180, 255, ${0.2 + strength * 0.55})`;
+      container.style.borderColor = `rgba(143, 180, 255, ${0.4 + strength * 0.45})`;
+      container.classList.toggle('magnet-self-clickable', strength > 0.58);
     };
 
     const pointerHandler = (event) => {
@@ -3810,6 +3816,126 @@
     document.addEventListener('mousemove', pointerHandler);
     window.fauxCursorMouseHandler = pointerHandler;
     updateMagneticHighlight(window.innerWidth / 2, window.innerHeight / 2);
+  }
+
+  function setupTosHoldInteractions() {
+    const container = document.getElementById('tosCheckboxContainer');
+    const checkbox = document.getElementById('tosCheckbox');
+    const overlayElement = document.getElementById('celliRefOverlay');
+    const tosCard = document.querySelector('.loom-invite-card--tos');
+    if (!container || !checkbox || !tosCard) {
+      return;
+    }
+
+    if (container.dataset.holdReady === 'true') {
+      return;
+    }
+
+    container.dataset.holdReady = 'true';
+    let holdTimer = null;
+    let isHolding = false;
+    let holdComplete = false;
+
+    const clearHoldTimer = () => {
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+    };
+
+    const removePointerListeners = () => {
+      window.removeEventListener('mouseup', handlePointerUp);
+      window.removeEventListener('touchend', handlePointerUp);
+      window.removeEventListener('touchcancel', handlePointerUp);
+    };
+
+    const finishHold = () => {
+      holdComplete = true;
+      clearHoldTimer();
+      container.classList.remove('tos-hold-start');
+      container.classList.add('tos-hold-complete');
+      container.classList.remove('magnet-self-clickable');
+      if (tosCard) {
+        tosCard.classList.remove('tos-holding');
+        tosCard.classList.add('tos-locked');
+      }
+      isHolding = false;
+      stopHoldWhir(true);
+      removePointerListeners();
+      checkbox.checked = true;
+      checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+
+    const handlePointerUp = (event) => {
+      if (!isHolding || holdComplete) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      isHolding = false;
+      clearHoldTimer();
+      container.classList.remove('tos-hold-start');
+      container.classList.remove('tos-hold-complete');
+      container.classList.remove('magnet-self-clickable');
+      if (overlayElement) {
+        overlayElement.classList.remove('tos-hold-shaking');
+      }
+      if (tosCard) {
+        tosCard.classList.remove('tos-holding');
+      }
+      stopHoldWhir(false);
+      removePointerListeners();
+    };
+
+    const startHold = (event) => {
+      if (holdComplete || isHolding) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      isHolding = true;
+      container.classList.add('tos-hold-start');
+      if (tosCard) {
+        tosCard.classList.add('tos-holding');
+      }
+      if (overlayElement) {
+        overlayElement.classList.add('tos-hold-shaking');
+      }
+      startHoldWhir();
+      holdTimer = window.setTimeout(finishHold, 3000);
+      window.addEventListener('mouseup', handlePointerUp);
+      window.addEventListener('touchend', handlePointerUp);
+      window.addEventListener('touchcancel', handlePointerUp);
+    };
+
+    const blockClick = (event) => {
+      if (!holdComplete) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
+    container.addEventListener('mousedown', startHold);
+    container.addEventListener('touchstart', startHold, { passive: false });
+    checkbox.addEventListener('click', blockClick);
+
+    goldenHoldCleanup = () => {
+      clearHoldTimer();
+      removePointerListeners();
+      container.removeEventListener('mousedown', startHold);
+      container.removeEventListener('touchstart', startHold);
+      checkbox.removeEventListener('click', blockClick);
+      delete container.dataset.holdReady;
+      isHolding = false;
+      holdComplete = false;
+      if (overlayElement) {
+        overlayElement.classList.remove('tos-hold-shaking');
+      }
+      container.classList.remove('tos-hold-start', 'tos-hold-complete');
+      if (tosCard) {
+        tosCard.classList.remove('tos-holding', 'tos-locked');
+      }
+    };
   }
 
   function attachTosAcceptanceHandler() {
@@ -3859,11 +3985,6 @@
       goldenHoldCleanup = null;
     }
 
-    if (goldenHoldTimer) {
-      clearTimeout(goldenHoldTimer);
-      goldenHoldTimer = null;
-    }
-
     if (betaFormRedirectTimeoutId !== null) {
       clearTimeout(betaFormRedirectTimeoutId);
       betaFormRedirectTimeoutId = null;
@@ -3874,8 +3995,19 @@
       goldenDustAnimationId = null;
     }
 
-    if (goldenHoldOverlay && goldenHoldOverlay.parentNode) {
-      goldenHoldOverlay.parentNode.removeChild(goldenHoldOverlay);
+    const overlayElement = document.getElementById('celliRefOverlay');
+    if (overlayElement) {
+      overlayElement.classList.remove('tos-ascension', 'tos-hold-shaking', 'dust-phase', 'dust-complete', 'warp-drive', 'blackout-stage', 'blackout-active');
+      overlayElement.querySelectorAll('.golden-whiteout, .golden-dust-canvas, .frame-burst, .beta-form-portal').forEach((node) => {
+        if (node && node.parentNode) {
+          node.parentNode.removeChild(node);
+        }
+      });
+    }
+
+    const tosCard = document.querySelector('.loom-invite-card--tos');
+    if (tosCard) {
+      tosCard.classList.remove('morphing', 'tos-morphing', 'beta-card', 'triangle-flight', 'into-frame', 'triangle-collapse-complete', 'tos-locked');
     }
 
     goldenHoldOverlay = null;
@@ -4062,176 +4194,27 @@
     if (checkboxContainer) {
       checkboxContainer.style.transform = '';
       checkboxContainer.style.boxShadow = '';
+      checkboxContainer.classList.add('tos-hold-complete');
     }
 
-    const overlayElement = document.createElement('div');
-    overlayElement.className = 'golden-ascension-overlay';
-    overlayElement.innerHTML = `
-      <div class="golden-content">
-        <div class="golden-instruction">Click &amp; hold for 3 seconds to finalize acceptance</div>
-        <div class="golden-hold-wrapper">
-          <div class="golden-hold-button">
-            <div class="golden-invite-shell">${BASE_INVITE_TEMPLATE}</div>
-            <div class="golden-hold-energy" aria-hidden="true"></div>
-            <span class="golden-label">CLICK + HOLD</span>
-            <div class="golden-trail-pack">
-              <span style="--i:0"></span>
-              <span style="--i:1"></span>
-              <span style="--i:2"></span>
-              <span style="--i:3"></span>
-              <span style="--i:4"></span>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
+    const overlayElement = document.getElementById('celliRefOverlay');
+    const tosCard = document.querySelector('.loom-invite-card--tos');
 
-    document.body.appendChild(overlayElement);
-    goldenHoldOverlay = overlayElement;
-
-    setupGoldenHoldInteraction(overlayElement);
-  }
-
-  function setupGoldenHoldInteraction(overlayElement) {
-    const holdButton = overlayElement.querySelector('.golden-hold-button');
-    if (!holdButton) {
+    if (!overlayElement || !tosCard) {
+      console.warn('⚠️ Unable to start ToS ascension – missing elements');
       return;
     }
 
-    const holdInstruction = overlayElement.querySelector('.golden-instruction');
-    const defaultInstructionText = holdInstruction ? holdInstruction.textContent : '';
-    const holdDuration = 3000;
-    let holdComplete = false;
-    let snapListener = null;
+    overlayElement.classList.remove('tos-hold-shaking');
+    overlayElement.classList.add('tos-ascension');
 
-    const getPointerPosition = (event) => {
-      if (event.touches && event.touches.length) {
-        return { x: event.touches[0].clientX, y: event.touches[0].clientY };
-      }
-      return { x: event.clientX, y: event.clientY };
-    };
+    tosCard.classList.add('morphing', 'tos-morphing');
 
-    const startHold = (event) => {
-      event.preventDefault();
-      if (holdComplete) {
-        return;
-      }
+    goldenHoldOverlay = overlayElement;
 
-      overlayElement.classList.add('holding');
-      holdButton.classList.add('holding', 'primed', 'charging');
-      startHoldWhir();
-
-      const { x, y } = getPointerPosition(event);
-      const rect = holdButton.getBoundingClientRect();
-      const dx = x - (rect.left + rect.width / 2);
-      const dy = y - (rect.top + rect.height / 2);
-      holdButton.style.setProperty('--cursor-dx', `${dx}px`);
-      holdButton.style.setProperty('--cursor-dy', `${dy}px`);
-      holdButton.classList.add('snapping-to-cursor');
-
-      if (!snapListener) {
-        snapListener = (evt) => {
-          if (evt.propertyName === 'transform' && holdButton.classList.contains('snapping-to-cursor')) {
-            holdButton.classList.add('cursor-synced');
-          }
-        };
-        holdButton.addEventListener('transitionend', snapListener);
-      }
-
-      if (holdInstruction) {
-        holdInstruction.textContent = 'Stabilizing the Loom invite…';
-      }
-
-      if (goldenHoldTimer) {
-        clearTimeout(goldenHoldTimer);
-      }
-
-      goldenHoldTimer = setTimeout(() => {
-        holdComplete = true;
-        finalizeHold();
-      }, holdDuration);
-    };
-
-    const cancelHold = () => {
-      if (holdComplete) {
-        return;
-      }
-
-      overlayElement.classList.remove('holding');
-      holdButton.classList.remove('holding', 'primed', 'charging', 'charged');
-      holdButton.classList.remove('snapping-to-cursor', 'cursor-synced', 'holding', 'primed', 'charging', 'charged');
-      holdButton.style.removeProperty('--cursor-dx');
-      holdButton.style.removeProperty('--cursor-dy');
-      stopHoldWhir(false);
-
-      if (goldenHoldTimer) {
-        clearTimeout(goldenHoldTimer);
-        goldenHoldTimer = null;
-      }
-
-      if (holdInstruction) {
-        holdInstruction.textContent = defaultInstructionText;
-      }
-    };
-
-    const finalizeHold = () => {
-      overlayElement.classList.remove('holding');
-      holdButton.classList.remove('holding', 'charging', 'primed');
-      holdButton.classList.remove('snapping-to-cursor');
-      holdButton.classList.add('cursor-synced');
-      holdButton.classList.add('charged');
-
-      if (goldenHoldTimer) {
-        clearTimeout(goldenHoldTimer);
-        goldenHoldTimer = null;
-      }
-
-      const rect = holdButton.getBoundingClientRect();
-      holdButton.style.setProperty('--locked-width', `${rect.width.toFixed(2)}px`);
-      holdButton.style.setProperty('--locked-height', `${rect.height.toFixed(2)}px`);
-      holdButton.classList.add('dimension-locked');
-      holdButton.style.willChange = 'transform, clip-path, opacity';
-
-      if (goldenHoldCleanup) {
-        goldenHoldCleanup();
-        goldenHoldCleanup = null;
-      }
-
-      holdButton.style.removeProperty('--cursor-scale');
-
-      stopHoldWhir(true);
-
-      overlayElement.classList.add('hold-complete');
-      holdButton.classList.add('morphing');
-
-      if (holdInstruction) {
-        holdInstruction.textContent = 'Acceptance locked in';
-      }
-
-      setTimeout(() => {
-        beginDustTransition(overlayElement, holdButton);
-      }, 1100);
-    };
-
-    holdButton.addEventListener('mousedown', startHold);
-    holdButton.addEventListener('touchstart', startHold, { passive: false });
-    window.addEventListener('mouseup', cancelHold);
-    window.addEventListener('touchend', cancelHold);
-
-    goldenHoldCleanup = () => {
-      holdButton.removeEventListener('mousedown', startHold);
-      holdButton.removeEventListener('touchstart', startHold);
-      window.removeEventListener('mouseup', cancelHold);
-      window.removeEventListener('touchend', cancelHold);
-      if (snapListener) {
-        holdButton.removeEventListener('transitionend', snapListener);
-        snapListener = null;
-      }
-      holdButton.classList.remove('snapping-to-cursor', 'cursor-synced');
-      holdButton.style.removeProperty('--cursor-dx');
-      holdButton.style.removeProperty('--cursor-dy');
-      stopHoldWhir(false);
-    };
+    setTimeout(() => {
+      beginDustTransition(overlayElement, tosCard);
+    }, 1100);
   }
 
   function fadeAndRemoveElement(element, removeFromDom = false) {
