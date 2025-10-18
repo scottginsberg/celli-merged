@@ -542,6 +542,29 @@
       gap: clamp(0.9rem, 2.8vw, 1.45rem);
     }
 
+    .wordle-selection-tiles {
+      display: grid;
+      gap: clamp(0.5rem, 2vw, 0.85rem);
+      grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+      width: 100%;
+      align-items: stretch;
+      justify-items: stretch;
+    }
+
+    .wordle-selection-tiles[hidden] {
+      display: none;
+    }
+
+    .wordle-selection-tile {
+      padding: clamp(0.65rem, 2.2vw, 0.95rem) clamp(0.9rem, 2.8vw, 1.35rem);
+      font-size: clamp(0.72rem, 2.2vw, 0.92rem);
+      letter-spacing: 0.18em;
+    }
+
+    .wordle-selection-tile::before {
+      border-radius: 0;
+    }
+
     .wordle-focus-queue {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -765,7 +788,7 @@
       scrollbar-color: #000 #fff;
       scrollbar-width: thin;
       min-height: 0;
-      height: min(100%, clamp(15rem, 56vh, 22rem));
+      height: min(100%, clamp(7.5rem, 12vh, 10.5rem));
       overscroll-behavior: contain;
     }
 
@@ -899,6 +922,15 @@
 
     .options.visualizer-active .focus-option::before {
       transform-origin: left center;
+    }
+
+    .wordle-selection-tiles.visualizer-active .wordle-selection-tile {
+      --visualizer-scale-y: 1;
+      --visualizer-scale-x: var(--visualizer-scale);
+    }
+
+    .wordle-selection-tiles.visualizer-active .wordle-selection-tile::before {
+      transform: scaleX(var(--visualizer-scale-x)) scaleY(var(--visualizer-scale-y));
     }
 
     .open-zone {
@@ -1239,6 +1271,10 @@
         padding: 0.25rem 0.9rem;
         min-height: 1.1rem;
       }
+
+      .wordle-selection-tiles.visualizer-active .wordle-selection-tile {
+        padding: 0.45rem 0.85rem;
+      }
     }
 
     @media (max-width: 720px) {
@@ -1351,6 +1387,14 @@
     </form>
     <section class="focus-frame focus-frame--wordle" aria-label="CELLI puzzle">
       <div
+        id="wordleSelectionTiles"
+        class="wordle-selection-tiles"
+        role="group"
+        aria-label="Selected focus tiles"
+        hidden
+        aria-hidden="true"
+      ></div>
+      <div
         id="wordleFocusQueue"
         class="wordle-focus-queue"
         role="list"
@@ -1419,6 +1463,7 @@
       const wordlePuzzleEl = document.getElementById('wordlePuzzle');
       const wordleBoardEl = wordlePuzzleEl ? wordlePuzzleEl.querySelector('.wordle-board') : null;
       const wordleMessageEl = document.getElementById('wordlePuzzleMessage');
+      const wordleSelectionTilesEl = document.getElementById('wordleSelectionTiles');
       const startButton = document.getElementById('startSequenceButton');
       const wordleFocusQueueEl = document.getElementById('wordleFocusQueue');
       const wordleFrame = document.querySelector('.focus-frame--wordle');
@@ -1429,6 +1474,7 @@
       const wordleRows = [];
       const wordleGuesses = [];
       const wordleFocusQueue = new Array(WORDLE_WORD_LENGTH).fill('');
+      let wordleSelectionButtons = [];
       let wordlePuzzleActive = false;
       let wordlePuzzleSolved = false;
       let wordleCurrentRowIndex = 0;
@@ -1453,6 +1499,8 @@
       if (wordleBoardEl) {
         wordleBoardEl.innerHTML = '';
       }
+
+      clearWordleSelectionTiles();
 
       updateStartButtonState();
 
@@ -1502,6 +1550,79 @@
           wordleFocusQueueEl.classList.toggle('wordle-focus-queue--active', hasContent);
           wordleFocusQueueEl.classList.toggle('wordle-focus-queue--solved', wordlePuzzleSolved);
         }
+      }
+
+      function clearWordleSelectionTiles() {
+        wordleSelectionButtons = [];
+        if (!wordleSelectionTilesEl) {
+          return;
+        }
+        wordleSelectionTilesEl.innerHTML = '';
+        wordleSelectionTilesEl.hidden = true;
+        wordleSelectionTilesEl.setAttribute('aria-hidden', 'true');
+        wordleSelectionTilesEl.classList.remove('visualizer-active');
+      }
+
+      function renderWordleSelectionTiles() {
+        if (!wordleFeaturesRevealed || !wordleSelectionTilesEl) {
+          return;
+        }
+
+        clearWordleSelectionTiles();
+
+        if (!selectionOrder.length) {
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        selectionOrder.forEach((button, index) => {
+          if (!button) {
+            return;
+          }
+          const value = (button.dataset && button.dataset.value ? button.dataset.value : button.textContent || '').trim();
+          if (!value) {
+            return;
+          }
+          const tile = document.createElement('button');
+          tile.type = 'button';
+          tile.className = 'wordle-selection-tile focus-option';
+          tile.dataset.value = value;
+          tile.textContent = value;
+          tile.setAttribute('aria-label', `Selected focus ${index + 1}: ${value}`);
+          const toneClass = getToneClass(button);
+          if (toneClass) {
+            tile.classList.add(toneClass);
+          }
+          tile.addEventListener('click', () => {
+            handleWordleFocusClick(tile);
+          });
+          fragment.appendChild(tile);
+          wordleSelectionButtons.push(tile);
+        });
+
+        if (!wordleSelectionButtons.length) {
+          return;
+        }
+
+        wordleSelectionTilesEl.appendChild(fragment);
+        wordleSelectionTilesEl.hidden = false;
+        wordleSelectionTilesEl.setAttribute('aria-hidden', 'false');
+      }
+
+      function setInitialOptionButtonsEnabled(enabled) {
+        optionButtons.forEach((button) => {
+          if (!button) {
+            return;
+          }
+          if (enabled) {
+            button.disabled = false;
+            button.removeAttribute('aria-disabled');
+          } else {
+            button.disabled = true;
+            button.setAttribute('aria-disabled', 'true');
+          }
+        });
       }
 
       function clearWordleFocusQueue() {
@@ -1597,6 +1718,8 @@
           initializeWordleBoard();
         }
         wordleFeaturesRevealed = true;
+        setInitialOptionButtonsEnabled(false);
+        renderWordleSelectionTiles();
         activateWordlePuzzle({ initial: true });
         renderWordleFocusQueue();
         updateStartButtonState();
@@ -1767,7 +1890,36 @@
             return;
           }
           seen.add(normalized);
-          candidates.push(path);
+          candidates.push(normalized);
+
+          const slashIndex = normalized.lastIndexOf('/');
+          const prefix = slashIndex >= 0 ? normalized.slice(0, slashIndex + 1) : '';
+          const file = normalized.slice(slashIndex + 1);
+          if (!file) {
+            return;
+          }
+          const dotIndex = file.lastIndexOf('.');
+          const baseName = dotIndex >= 0 ? file.slice(0, dotIndex) : file;
+          const extension = dotIndex >= 0 ? file.slice(dotIndex) : '';
+          const nameVariants = new Set([
+            baseName,
+            baseName.toLowerCase(),
+            baseName.toUpperCase(),
+            baseName.charAt(0).toUpperCase() + baseName.slice(1).toLowerCase()
+          ]);
+          const extensionVariants = extension
+            ? [extension, extension.toLowerCase(), extension.toUpperCase()]
+            : [''];
+
+          nameVariants.forEach((variantBase) => {
+            extensionVariants.forEach((variantExt) => {
+              const candidate = `${prefix}${variantBase}${variantExt}`;
+              if (!seen.has(candidate)) {
+                seen.add(candidate);
+                candidates.push(candidate);
+              }
+            });
+          });
         }
 
         addCandidate(fileName);
@@ -1809,7 +1961,42 @@
 
         const trifoldAudio = new Audio();
         trifoldAudio.preload = 'none';
-        trifoldAudio.src = 'trifold.mp3';
+        trifoldAudio.crossOrigin = 'anonymous';
+        const trifoldCandidates = buildTrackCandidates('trifold.mp3');
+        let trifoldCandidateIndex = 0;
+
+        function assignNextTrifoldSource() {
+          if (trifoldCandidateIndex >= trifoldCandidates.length) {
+            console.warn('Unable to resolve audio source for trifold panel.', trifoldCandidates);
+            trifoldAudio.removeEventListener('error', handleTrifoldError);
+            return;
+          }
+          const candidate = trifoldCandidates[trifoldCandidateIndex];
+          trifoldCandidateIndex += 1;
+          trifoldAudio.src = candidate;
+        }
+
+        function handleTrifoldError() {
+          if (trifoldAudio.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+            assignNextTrifoldSource();
+            try {
+              trifoldAudio.load();
+            } catch (_) {
+              // ignore
+            }
+          }
+        }
+
+        trifoldAudio.addEventListener('error', handleTrifoldError);
+        trifoldAudio.addEventListener(
+          'canplay',
+          () => {
+            trifoldAudio.removeEventListener('error', handleTrifoldError);
+          },
+          { once: true }
+        );
+
+        assignNextTrifoldSource();
 
         const trifoldButton = document.createElement('button');
         trifoldButton.type = 'button';
@@ -2564,8 +2751,22 @@
         }
       }
 
+      function getVisualizerTargets() {
+        if (wordleSelectionButtons.length) {
+          return wordleSelectionButtons;
+        }
+        return optionButtons;
+      }
+
+      function getVisualizerContainer() {
+        if (wordleSelectionButtons.length && wordleSelectionTilesEl) {
+          return wordleSelectionTilesEl;
+        }
+        return optionsContainer;
+      }
+
       function renderVisualizer() {
-        if (!analyser || !analyserData || !optionButtons.length) {
+        if (!analyser || !analyserData) {
           visualizerFrameId = null;
           return;
         }
@@ -2574,12 +2775,18 @@
           return;
         }
 
+        const targets = getVisualizerTargets();
+        if (!targets.length) {
+          visualizerFrameId = null;
+          return;
+        }
+
         analyser.getByteFrequencyData(analyserData);
 
-        const buttonCount = optionButtons.length;
+        const buttonCount = targets.length;
         const step = Math.max(1, Math.floor(analyserData.length / buttonCount));
 
-        optionButtons.forEach((button, index) => {
+        targets.forEach((button, index) => {
           const dataIndex = Math.min(analyserData.length - 1, index * step);
           const magnitude = analyserData[dataIndex] / 255;
           const eased = Math.pow(magnitude, 1.35);
@@ -2601,11 +2808,19 @@
       }
 
       function startVisualizerFor(audio) {
-        if (!optionButtons.length) {
+        const targets = getVisualizerTargets();
+        if (!targets.length) {
           return;
         }
-        if (optionsContainer) {
-          optionsContainer.classList.add('visualizer-active');
+        const container = getVisualizerContainer();
+        if (optionsContainer && optionsContainer !== container) {
+          optionsContainer.classList.remove('visualizer-active');
+        }
+        if (wordleSelectionTilesEl && wordleSelectionTilesEl !== container) {
+          wordleSelectionTilesEl.classList.remove('visualizer-active');
+        }
+        if (container) {
+          container.classList.add('visualizer-active');
         }
         attachAudioToAnalyser(audio);
         activeVisualizerTrack = audio;
@@ -2622,7 +2837,8 @@
           cancelAnimationFrame(visualizerFrameId);
           visualizerFrameId = null;
         }
-        optionButtons.forEach((button) => {
+        const allButtons = [...optionButtons, ...wordleSelectionButtons];
+        allButtons.forEach((button) => {
           tileScaleState.delete(button);
           tileSaturationState.delete(button);
           button.style.removeProperty('--visualizer-scale');
@@ -2630,6 +2846,9 @@
         });
         if (optionsContainer) {
           optionsContainer.classList.remove('visualizer-active');
+        }
+        if (wordleSelectionTilesEl) {
+          wordleSelectionTilesEl.classList.remove('visualizer-active');
         }
         activeVisualizerTrack = null;
       }
@@ -3012,6 +3231,9 @@
         const historyText = selectionHistory.length ? ` | History: ${selectionHistory.join(' → ')}` : '';
         const extraText = extraMessage ? ` — ${extraMessage}` : '';
         updateStatus(`Steps ${selectionSteps}: ${active.join(' • ')}${historyText}${extraText}`);
+        if (wordleFeaturesRevealed) {
+          renderWordleSelectionTiles();
+        }
       }
 
       function updateEscapeLabel(near) {
