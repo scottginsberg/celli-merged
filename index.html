@@ -4171,18 +4171,15 @@
             }
           }, 1600);
           overlayElement.classList.add('dust-complete');
-          triangleElement.classList.add('into-white');
         });
         teardownReferralStageLayers();
       } else {
         teardownReferralStageLayers();
         overlayElement.classList.add('dust-complete');
-        triangleElement.classList.add('into-white');
       }
     } else {
       teardownReferralStageLayers();
       overlayElement.classList.add('dust-complete');
-      triangleElement.classList.add('into-white');
     }
 
     startWarpSequence(overlayElement, triangleElement);
@@ -4321,8 +4318,14 @@
     });
 
     triangleElement.classList.add('beta-card');
-    triangleElement.classList.add('into-white');
-    triangleElement.classList.add('triangle-flight');
+
+    window.requestAnimationFrame(() => {
+      triangleElement.classList.add('triangle-flight');
+    });
+
+    window.setTimeout(() => {
+      triangleElement.classList.add('into-frame');
+    }, 420);
 
     window.setTimeout(() => {
       triangleElement.classList.add('triangle-collapse-complete');
