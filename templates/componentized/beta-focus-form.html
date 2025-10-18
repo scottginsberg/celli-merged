@@ -1410,6 +1410,8 @@
             <button type="button" class="focus-option" data-value="Worms">Worms</button>
             <button type="button" class="focus-option" data-value="Hell">Hell</button>
             <button type="button" class="focus-option" data-value="Hands">Hands</button>
+            <button type="button" class="focus-option" data-value="THIRD BASE">THIRD BASE</button>
+            <button type="button" class="focus-option" data-value="I DON'T KNOW!">I DON'T KNOW!</button>
             <button type="button" class="focus-option" data-value="Gore">Gore</button>
             <button type="button" class="focus-option" data-value="Violence">Violence</button>
             <button type="button" class="focus-option" data-value="Adult Interactions">Adult Interactions</button>
@@ -1485,8 +1487,10 @@
         console.warn('⚠️ ESRB card display interrupted:', error);
       }
 
-      const optionButtons = Array.from(document.querySelectorAll('.focus-option'));
       const optionsContainer = document.querySelector('.options');
+      let optionButtons = optionsContainer
+        ? Array.from(optionsContainer.querySelectorAll('.focus-option'))
+        : [];
       const statusEl = document.getElementById('audioStatus');
       const escapeButton = document.getElementById('escapeEncoreButton');
 
@@ -1496,6 +1500,13 @@
       const FULL_SEQUENCE_BETA_STAGE = 'beta';
       const FULL_SEQUENCE_INTRO_STAGE = 'intro';
       let fullSequenceRedirectScheduled = false;
+
+      const I_DONT_KNOW_VALUE = "I DON'T KNOW!";
+      const BITS_OF_TOMMY_VALUE = 'BITS OF TOMMY & THE GRINCH';
+      const GAGS_VALUE = 'GAGS';
+      const registeredOptionButtons = new WeakSet();
+      let iDontKnowStage = 0;
+      let bitsOfTommyButton = null;
 
       function isFullSequenceActive() {
         try {
@@ -3495,44 +3506,150 @@
         playTrack(track, label);
       }
 
-      optionButtons.forEach((button) => {
-        button.setAttribute('aria-pressed', 'false');
-        button.addEventListener('click', () => {
-          const value = button.dataset.value || button.textContent.trim();
-          const isActive = button.classList.contains('active-selection');
-          playStrumPreview();
-          handleWordleFocusClick(button);
+      optionButtons.forEach(registerOptionButton);
 
-          if (isActive) {
-            button.classList.remove('active-selection');
-            button.setAttribute('aria-pressed', 'false');
-            clearTone(button);
-            const index = selectionOrder.indexOf(button);
-            if (index >= 0) {
-              selectionOrder.splice(index, 1);
-            }
-            triggerPanelShake();
-            updateSelectionStatus(`Removed ${value}`);
-            refreshSubmissionExperience();
-            evaluateInversionTrigger();
-            updateStartButtonState();
-            return;
+      function registerOptionButton(button) {
+        if (!button) {
+          return;
+        }
+        button.setAttribute(
+          'aria-pressed',
+          button.classList.contains('active-selection') ? 'true' : 'false'
+        );
+        if (registeredOptionButtons.has(button)) {
+          return;
+        }
+        registeredOptionButtons.add(button);
+        button.addEventListener('click', handleOptionButtonClick);
+      }
+
+      function refreshOptionButtons() {
+        optionButtons = optionsContainer
+          ? Array.from(optionsContainer.querySelectorAll('.focus-option'))
+          : [];
+        optionButtons.forEach(registerOptionButton);
+      }
+
+      function createFocusOptionButton(label) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'focus-option';
+        button.dataset.value = label;
+        button.textContent = label;
+        return button;
+      }
+
+      function handleIDontKnowEasterEgg(button) {
+        if (!optionsContainer || !button) {
+          return;
+        }
+
+        if (iDontKnowStage === 0) {
+          const focusButtons = Array.from(optionsContainer.querySelectorAll('.focus-option'));
+          const targetIndex = 2;
+          const referenceButton = focusButtons[targetIndex] || null;
+          if (referenceButton !== button) {
+            optionsContainer.insertBefore(button, referenceButton);
           }
+          refreshOptionButtons();
+          evaluateInversionTrigger();
+          iDontKnowStage = 1;
+          return;
+        }
 
-          selectionSteps += 1;
-          selectionHistory.push(value);
-          button.classList.add('active-selection');
-          button.setAttribute('aria-pressed', 'true');
-          applyTone(button, 0);
-          selectionOrder.push(button);
-          cycleExistingTones();
+        if (iDontKnowStage === 1) {
+          if (!bitsOfTommyButton || !bitsOfTommyButton.isConnected) {
+            bitsOfTommyButton = createFocusOptionButton(BITS_OF_TOMMY_VALUE);
+          }
+          optionsContainer.insertBefore(
+            bitsOfTommyButton,
+            optionsContainer.firstElementChild || null
+          );
+          refreshOptionButtons();
+          evaluateInversionTrigger();
+          iDontKnowStage = 2;
+        }
+      }
+
+      function playBleghSpeech() {
+        const synth = window.speechSynthesis;
+        if (!synth || typeof window.SpeechSynthesisUtterance !== 'function') {
+          return false;
+        }
+
+        stopStrumPreview();
+        try {
+          synth.cancel();
+        } catch (error) {
+          console.warn('Unable to cancel speech synthesis preview', error);
+        }
+
+        try {
+          const utterance = new window.SpeechSynthesisUtterance('blegh.');
+          utterance.rate = 0.92;
+          utterance.pitch = 0.8;
+          synth.speak(utterance);
+          return true;
+        } catch (error) {
+          console.warn('Unable to play speech synthesis preview', error);
+        }
+
+        return false;
+      }
+
+      function handleOptionButtonClick(event) {
+        const button = event.currentTarget;
+        if (!button) {
+          return;
+        }
+
+        const value = button.dataset.value || button.textContent.trim();
+        const normalizedValue = value.toUpperCase();
+        const isActive = button.classList.contains('active-selection');
+
+        if (normalizedValue === I_DONT_KNOW_VALUE) {
+          handleIDontKnowEasterEgg(button);
+        }
+
+        let usedBleghPreview = false;
+        if (normalizedValue === GAGS_VALUE) {
+          usedBleghPreview = playBleghSpeech();
+        }
+        if (!usedBleghPreview) {
+          playStrumPreview();
+        }
+
+        handleWordleFocusClick(button);
+
+        if (isActive) {
+          button.classList.remove('active-selection');
+          button.setAttribute('aria-pressed', 'false');
+          clearTone(button);
+          const index = selectionOrder.indexOf(button);
+          if (index >= 0) {
+            selectionOrder.splice(index, 1);
+          }
           triggerPanelShake();
-          updateSelectionStatus(`Added ${value}`);
+          updateSelectionStatus(`Removed ${value}`);
           refreshSubmissionExperience();
           evaluateInversionTrigger();
           updateStartButtonState();
-        });
-      });
+          return;
+        }
+
+        selectionSteps += 1;
+        selectionHistory.push(value);
+        button.classList.add('active-selection');
+        button.setAttribute('aria-pressed', 'true');
+        applyTone(button, 0);
+        selectionOrder.push(button);
+        cycleExistingTones();
+        triggerPanelShake();
+        updateSelectionStatus(`Added ${value}`);
+        refreshSubmissionExperience();
+        evaluateInversionTrigger();
+        updateStartButtonState();
+      }
 
       if (startButton) {
         startButton.addEventListener('click', () => {
