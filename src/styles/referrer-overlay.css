@@ -89,6 +89,28 @@ body.referrer-mobile .ref-sidebar.mythic-entrance.stage-expand {
   transform: translate(-50%, -50%) scale(1.02);
 }
 
+body.referrer-stage-active {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  touch-action: none;
+}
+
+body.referrer-stage-active > :not(#referrerStageRoot):not(script):not(style) {
+  pointer-events: none !important;
+}
+
+.referrer-stage-root {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483600;
+  pointer-events: none;
+  display: block;
+}
+
+.referrer-stage-root.active {
+  pointer-events: auto;
+}
+
 @media (max-width: 540px) {
   body.referrer-mobile {
     --ref-light-beam-target-width: clamp(340px, 140vw, 520px);

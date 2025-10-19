@@ -1501,12 +1501,32 @@
       const FULL_SEQUENCE_INTRO_STAGE = 'intro';
       let fullSequenceRedirectScheduled = false;
 
+      function ensureFullSequenceActive(stage = '') {
+        try {
+          window.sessionStorage?.setItem(FULL_SEQUENCE_FLAG_KEY, 'true');
+          if (stage) {
+            const currentStage = window.sessionStorage?.getItem(FULL_SEQUENCE_STAGE_KEY);
+            if (!currentStage || currentStage === FULL_SEQUENCE_REFERRER_STAGE || currentStage === FULL_SEQUENCE_BETA_STAGE) {
+              window.sessionStorage.setItem(FULL_SEQUENCE_STAGE_KEY, stage);
+            }
+          }
+        } catch (error) {
+          console.warn('⚠️ Unable to ensure Full Sequence active state in beta form:', error);
+        }
+      }
+
       const I_DONT_KNOW_VALUE = "I DON'T KNOW!";
       const BITS_OF_TOMMY_VALUE = 'BITS OF TOMMY & THE GRINCH';
       const GAGS_VALUE = 'GAGS';
       const registeredOptionButtons = new WeakSet();
       let iDontKnowStage = 0;
       let bitsOfTommyButton = null;
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const fullSequenceQuery = (urlParams.get('fullsequence') || '').toLowerCase();
+      if (fullSequenceQuery === FULL_SEQUENCE_BETA_STAGE || fullSequenceQuery === FULL_SEQUENCE_REFERRER_STAGE) {
+        ensureFullSequenceActive(FULL_SEQUENCE_BETA_STAGE);
+      }
 
       function isFullSequenceActive() {
         try {
@@ -1552,6 +1572,8 @@
         }
 
         fullSequenceRedirectScheduled = true;
+
+        ensureFullSequenceActive(FULL_SEQUENCE_BETA_STAGE);
 
         try {
           window.sessionStorage?.setItem('celli:fullSequenceTrigger', trigger || 'beta');
@@ -3662,6 +3684,7 @@
             return;
           }
 
+          ensureFullSequenceActive(FULL_SEQUENCE_BETA_STAGE);
           revealWordleFeatures();
           encoreIndex = 0;
           triggerPanelShake();
