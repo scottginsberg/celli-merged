@@ -120,7 +120,7 @@ function createAddressTexture(col, row, depth) {
   ctx.fillText(label, canvas.width / 2, canvas.height / 2);
 
   const texture = new THREE.CanvasTexture(canvas);
-  texture.encoding = THREE.sRGBEncoding;
+  texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
 
@@ -214,8 +214,8 @@ export function initTheosSequence(options = {}) {
   container.classList.add('theos-sequence-root');
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x04050c);
-  scene.fog = new THREE.FogExp2(0x04050c, 0.0075);
+  scene.background = new THREE.Color(0x000000);
+  scene.fog = new THREE.FogExp2(0x000000, 0.006);
 
   const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
   camera.position.set(0, 0, -150);
@@ -223,8 +223,8 @@ export function initTheosSequence(options = {}) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  renderer.setClearColor(0x04050c, 1);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.setClearColor(0x000000, 1);
   container.appendChild(renderer.domElement);
 
   const composer = new EffectComposer(renderer);
@@ -232,24 +232,24 @@ export function initTheosSequence(options = {}) {
   composer.addPass(renderPass);
   const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    1.1,
-    0.9,
-    0.2
+    1.35,
+    0.92,
+    0.18
   );
   composer.addPass(bloomPass);
 
-  const ambientLight = new THREE.AmbientLight(0x5260a8, 0.9);
+  const ambientLight = new THREE.AmbientLight(0x4a5dd1, 0.75);
   scene.add(ambientLight);
 
-  const keyLight = new THREE.PointLight(0x7efce2, 1.6, 600, 2);
+  const keyLight = new THREE.PointLight(0x7efce2, 1.8, 640, 2);
   keyLight.position.set(90, 80, -40);
   scene.add(keyLight);
 
-  const fillLight = new THREE.PointLight(0x3b7bff, 1.25, 520, 2);
+  const fillLight = new THREE.PointLight(0x3b7bff, 1.45, 540, 2.2);
   fillLight.position.set(-90, -50, -30);
   scene.add(fillLight);
 
-  const rimLight = new THREE.DirectionalLight(0xfff6b7, 0.45);
+  const rimLight = new THREE.DirectionalLight(0xfff4d6, 0.65);
   rimLight.position.set(-30, 120, 80);
   scene.add(rimLight);
 
