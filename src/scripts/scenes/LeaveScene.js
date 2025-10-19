@@ -10,6 +10,7 @@
  */
 
 import * as THREE from 'three';
+import { puzzleStateManager } from '../systems/PuzzleStateManager.js';
 
 export class LeaveScene {
   constructor() {
@@ -24,7 +25,9 @@ export class LeaveScene {
       ozymandiasActive: false,
       ozymandiasText: '',
       ozymandiasSolved: false,
-      
+      ozymandiasOverlay: null,
+      ozymandiasPromptEl: null,
+
       // Labyrinth state
       labyrinthActive: false,
       currentRoom: 0,
@@ -80,10 +83,19 @@ export class LeaveScene {
    */
   async start(state, options = {}) {
     console.log('▶️ Starting LEAVE Scene');
-    
+
+    const wordleSolved = typeof puzzleStateManager?.isSolved === 'function'
+      ? puzzleStateManager.isSolved('wordle-beta')
+      : false;
+    if (wordleSolved) {
+      console.log('🧩 Beta Wordle flag detected — preparing Ozymandias handshake before the House of Leaves riddles.');
+    } else {
+      console.log('ℹ️ Beta Wordle flag not found in session; Ozymandias can still be attempted in story mode.');
+    }
+
     // Show Ozymandias puzzle
     this._startOzymandiasSystem();
-    
+
     this.state.running = true;
     
     console.log('✅ LEAVE Scene started');
@@ -93,48 +105,204 @@ export class LeaveScene {
    * Start Ozymandias puzzle system
    */
   _startOzymandiasSystem() {
+    if (this.state.ozymandiasSolved) {
+      console.log('📜 Ozymandias already solved — entering labyrinth.');
+      this._startLabyrinth();
+      return;
+    }
+
+    if (typeof puzzleStateManager?.isSolved === 'function' && puzzleStateManager.isSolved('ozymandias')) {
+      console.log('📜 Persisted Ozymandias flag detected — skipping puzzle overlay.');
+      this.state.ozymandiasSolved = true;
+      this._startLabyrinth();
+      return;
+    }
+
     console.log('📜 Starting Ozymandias puzzle...');
     this.state.ozymandiasActive = true;
-    
-    // Show puzzle UI
+
     const overlay = document.createElement('div');
     overlay.id = 'ozymandias-overlay';
     overlay.style.cssText = `
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.95);
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.98), rgba(8, 30, 16, 0.94));
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 1000;
       pointer-events: auto;
+      padding: 20px;
     `;
-    
+
     overlay.innerHTML = `
-      <div style="max-width: 600px; padding: 40px; text-align: center;">
-        <h2 style="color: #0f0; font-family: 'VT323', monospace; font-size: 32px; margin-bottom: 20px;">
-          OZYMANDIAS PUZZLE
+      <div style="max-width: 640px; width: 100%; padding: 40px; text-align: center; border: 1px solid rgba(46, 194, 126, 0.35); border-radius: 18px; background: rgba(0, 8, 4, 0.88); box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);">
+        <h2 style="color: #2ec27e; font-family: 'VT323', monospace; font-size: 34px; letter-spacing: 0.12em; margin-bottom: 16px;">
+          OZYMANDIAS SIGNAL
         </h2>
-        <p style="color: #0a8; font-family: 'Courier New', monospace; line-height: 1.6;">
-          "I met a traveller from an antique land..."
+        <p style="color: #9ef5c6; font-family: 'Courier New', monospace; line-height: 1.6; margin-bottom: 14px;">
+          Encore resonance confirmed. The Beta Wordle flag lit the desert. Recite the traveller's final line to unlock the House of Leaves riddles.
         </p>
-        <p style="color: #0f0; margin-top: 30px; font-family: 'VT323', monospace;">
-          Solve the puzzle to proceed to the House of Leaves
+        <p id="ozymandiasPrompt" style="color: #64ffc0; font-family: 'VT323', monospace; font-size: 18px; margin-bottom: 22px;">
+          Finish the incantation — punctuation optional.
         </p>
-        <button id="ozymandias-skip" style="margin-top: 30px; padding: 15px 30px; background: #0a8; color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
-          Skip Puzzle (For Now)
-        </button>
+        <form id="ozymandiasForm" style="display: flex; flex-direction: column; gap: 16px;">
+          <label for="ozymandiasAnswer" style="color: #c8ffe6; font-family: 'Inter', sans-serif; font-size: 16px; letter-spacing: 0.06em;">
+            Look on my works, ye Mighty, and
+          </label>
+          <input
+            id="ozymandiasAnswer"
+            name="ozymandiasAnswer"
+            type="text"
+            autocomplete="off"
+            placeholder="despair."
+            style="padding: 14px 16px; border-radius: 10px; border: 1px solid rgba(46, 194, 126, 0.45); background: rgba(0, 0, 0, 0.65); color: #e9fff3; font-size: 18px; text-align: center; letter-spacing: 0.08em;"
+            aria-describedby="ozymandiasHint"
+          />
+          <small id="ozymandiasHint" style="color: rgba(158, 245, 198, 0.75); font-family: 'Courier New', monospace;">
+            Try the full proclamation — case-insensitive, spaces and commas optional. "Despair" alone also counts.
+          </small>
+          <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-top: 8px;">
+            <button type="submit" style="padding: 12px 26px; border-radius: 999px; border: 1px solid #2ec27e; background: #2ec27e; color: #00170c; font-weight: 600; letter-spacing: 0.08em; cursor: pointer;">
+              Recite Incantation
+            </button>
+            <button type="button" id="ozymandiasSkip" style="padding: 12px 24px; border-radius: 999px; border: 1px solid rgba(158, 245, 198, 0.35); background: transparent; color: #9ef5c6; font-weight: 500; letter-spacing: 0.08em; cursor: pointer;">
+              Skip (Story Mode)
+            </button>
+          </div>
+        </form>
       </div>
     `;
-    
+
     document.body.appendChild(overlay);
-    
-    // Skip button handler
-    document.getElementById('ozymandias-skip').addEventListener('click', () => {
-      console.log('⏩ Skipping Ozymandias puzzle');
-      overlay.remove();
-      this._startLabyrinth();
+
+    const form = overlay.querySelector('#ozymandiasForm');
+    const input = overlay.querySelector('#ozymandiasAnswer');
+    const skipButton = overlay.querySelector('#ozymandiasSkip');
+    this.state.ozymandiasOverlay = overlay;
+    this.state.ozymandiasPromptEl = overlay.querySelector('#ozymandiasPrompt');
+
+    if (form) {
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        this._validateOzymandiasAnswer(input ? input.value : '', { input });
+      });
+    }
+
+    if (input) {
+      input.addEventListener('input', () => {
+        this._updateOzymandiasPrompt('Finish the traveller\'s warning to proceed.', 'info');
+      });
+      window.setTimeout(() => input.focus(), 0);
+    }
+
+    if (skipButton) {
+      skipButton.addEventListener('click', () => {
+        console.log('⏩ Skipping Ozymandias puzzle (story mode)');
+        this._completeOzymandiasPuzzle({ resolution: 'skip' });
+      });
+    }
+  }
+
+  _updateOzymandiasPrompt(message, tone = 'info') {
+    const promptEl = this.state.ozymandiasPromptEl;
+    if (!promptEl) {
+      return;
+    }
+
+    let color = '#64ffc0';
+    if (tone === 'error') {
+      color = '#ff7aa5';
+    } else if (tone === 'success') {
+      color = '#2ec27e';
+    }
+
+    promptEl.textContent = message;
+    promptEl.style.color = color;
+  }
+
+  _validateOzymandiasAnswer(rawInput, context = {}) {
+    const normalized = String(rawInput || '').trim();
+    const canonical = normalized.toLowerCase().replace(/[^a-z]/g, '');
+    const accepted = new Set([
+      'lookonmyworksyemightyanddespair',
+      'anddespair',
+      'despair'
+    ]);
+
+    if (!canonical) {
+      this._updateOzymandiasPrompt('Whisper the full line before the walls will open.', 'info');
+      if (context.input) {
+        context.input.focus();
+      }
+      return;
+    }
+
+    if (!accepted.has(canonical)) {
+      this._updateOzymandiasPrompt('The traveller shakes their head — try the final proclamation again.', 'error');
+      if (context.input) {
+        context.input.focus();
+        context.input.select?.();
+      }
+      return;
+    }
+
+    this._updateOzymandiasPrompt('Incantation confirmed. Hold tight — the house shifts.', 'success');
+    this._completeOzymandiasPuzzle({
+      resolution: canonical === 'despair' ? 'keyword' : 'recital',
+      entry: normalized
     });
+  }
+
+  _completeOzymandiasPuzzle(metadata = {}) {
+    if (this.state.ozymandiasSolved) {
+      if (this.state.ozymandiasOverlay && this.state.ozymandiasOverlay.parentNode) {
+        this.state.ozymandiasOverlay.remove();
+      }
+      this.state.ozymandiasOverlay = null;
+      return;
+    }
+
+    this.state.ozymandiasSolved = true;
+    this.state.ozymandiasActive = false;
+
+    if (this.state.ozymandiasOverlay && this.state.ozymandiasOverlay.parentNode) {
+      this.state.ozymandiasOverlay.remove();
+    }
+    this.state.ozymandiasOverlay = null;
+    this.state.ozymandiasPromptEl = null;
+
+    let recorded = false;
+    try {
+      if (typeof puzzleStateManager?.markSolved === 'function') {
+        puzzleStateManager.markSolved('ozymandias', {
+          source: 'leave-scene',
+          ...metadata
+        });
+        recorded = true;
+      }
+    } catch (error) {
+      console.warn('⚠️ Unable to persist Ozymandias puzzle state:', error);
+    }
+
+    if (!recorded && typeof window !== 'undefined') {
+      try {
+        window.dispatchEvent(
+          new CustomEvent('celli:puzzle-solved', {
+            detail: {
+              puzzleId: 'ozymandias',
+              status: 'solved',
+              metadata: { source: 'leave-scene', ...metadata }
+            }
+          })
+        );
+      } catch (error) {
+        console.warn('⚠️ Unable to broadcast Ozymandias completion event:', error);
+      }
+    }
+
+    console.log('🗿 Ozymandias cipher resolved — releasing House of Leaves riddles.');
+    this._startLabyrinth();
   }
 
   /**
@@ -164,7 +332,7 @@ export class LeaveScene {
           HOUSE OF LEAVES
         </h2>
         <p style="color: #6ba3d8; font-family: 'Courier New', monospace; line-height: 1.8; font-style: italic;">
-          The house is bigger on the inside...
+          The house is bigger on the inside... Encore's intro flag lights the path for the riddles ahead.
         </p>
         <div style="margin-top: 30px; color: #4a90e2; font-family: 'VT323', monospace;">
           Navigation: Arrow Keys<br>
@@ -223,11 +391,13 @@ export class LeaveScene {
   async stop() {
     console.log('⏹️ Stopping LEAVE Scene');
     this.state.running = false;
-    
+
     // Clean up overlays
     const ozyOverlay = document.getElementById('ozymandias-overlay');
     if (ozyOverlay) ozyOverlay.remove();
-    
+    this.state.ozymandiasOverlay = null;
+    this.state.ozymandiasPromptEl = null;
+
     const labOverlay = document.getElementById('labyrinth-overlay');
     if (labOverlay) labOverlay.remove();
   }

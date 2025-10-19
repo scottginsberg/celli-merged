@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Celli Beta Focus</title>
+  <script type="module" src="../../src/scripts/systems/PuzzleStateManager.js"></script>
   <style>
     :root {
       color-scheme: only dark;
@@ -1417,7 +1418,7 @@
             <button type="button" class="focus-option" data-value="Adult Interactions">Adult Interactions</button>
           </div>
           <div class="open-zone">
-            <button type="button" id="startSequenceButton" class="start-button" aria-disabled="false">Submit</button>
+            <button type="button" id="startSequenceButton" class="start-button" aria-disabled="false" title="Solve the Encore Wordle to flag the intro and unlock riddles like GALAXY, Ozymandias, and the Fullhand puzzle." data-tooltip="Encore Wordle">Submit</button>
           </div>
         </div>
         <footer>EA tracks will be added later.</footer>
@@ -1873,12 +1874,12 @@
         if (!wordlePuzzleSolved && wordleCurrentRowIndex < WORDLE_MAX_ATTEMPTS) {
           wordlePuzzleActive = true;
           if (initialActivation) {
-            setWordleMessage('Queue five focus picks to unlock START. Sixth tap submits your guess.');
+            setWordleMessage('Queue five focus picks to unlock START — solving CELLI flags the intro and opens puzzles like GALAXY, SOKOBAN, and the Fullhand riddle. Sixth tap submits your guess.');
           } else {
             setWordleMessage('The track has started — build the secret word with your focus picks. Sixth pick submits.');
           }
         } else if (wordlePuzzleSolved) {
-          setWordleMessage('Encore secret cracked! CELLI!');
+          setWordleMessage('Encore secret cracked! CELLI! Intro flag planted — the next load unlocks GALAXY, Ozymandias, and the Fullhand riddle.');
         }
         updateStartButtonState();
         renderWordleFocusQueue();
@@ -1994,6 +1995,26 @@
           setWordleMessage('Encore secret cracked! CELLI!');
           renderWordleFocusQueue();
           updateStartButtonState();
+          try {
+            if (window.celliPuzzleState && typeof window.celliPuzzleState.markSolved === 'function') {
+              window.celliPuzzleState.markSolved('wordle-beta', {
+                source: 'beta-focus-form',
+                redirectScheduled: true
+              });
+            } else {
+              window.dispatchEvent(
+                new CustomEvent('celli:puzzle-solved', {
+                  detail: {
+                    puzzleId: 'wordle-beta',
+                    status: 'solved',
+                    metadata: { source: 'beta-focus-form', redirectScheduled: true }
+                  }
+                })
+              );
+            }
+          } catch (error) {
+            console.warn('⚠️ Unable to record Wordle puzzle completion:', error);
+          }
           advanceFullSequenceToIntro('puzzle-solved');
         } else {
           const attemptsLeft = WORDLE_MAX_ATTEMPTS - wordleCurrentRowIndex - 1;
