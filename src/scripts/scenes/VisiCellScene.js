@@ -64,7 +64,19 @@ export class VisiCellScene {
       // Presentation state
       previousBodyBackground: '',
       clueTrail: null,
-      clueStepTimeouts: []
+      clueStepTimeouts: [],
+
+      // Clock widget state
+      clock: {
+        widgetEl: null,
+        modalEl: null,
+        controls: null,
+        ackTriggered: false,
+        referenceTime: null,
+        currentOffset: null
+      },
+      clockInterval: null,
+      clockOutsideClickHandler: null
     };
     
     this._initFunctions();
@@ -349,6 +361,7 @@ export class VisiCellScene {
 
     this.state.container = container;
     this._ensureClueTrailState();
+    this._ensureClockWidget();
   }
 
   /**
@@ -398,8 +411,322 @@ export class VisiCellScene {
         </div>
       </div>
     `;
-    
+
     return html;
+  }
+
+  _ensureClockWidget() {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const container = this.state.container;
+    if (!container) {
+      return;
+    }
+
+    const clockState = this.state.clock || (this.state.clock = {});
+
+    if (!clockState.widgetEl) {
+      const widget = document.createElement('button');
+      widget.id = 'visicell-clock-widget';
+      widget.type = 'button';
+      widget.style.position = 'absolute';
+      widget.style.top = '12px';
+      widget.style.right = '16px';
+      widget.style.padding = '6px 12px';
+      widget.style.border = '1px solid #0f0';
+      widget.style.borderRadius = '10px';
+      widget.style.background = 'rgba(0, 0, 0, 0.86)';
+      widget.style.color = '#0f0';
+      widget.style.fontFamily = `'Courier New', monospace`;
+      widget.style.fontSize = '11px';
+      widget.style.letterSpacing = '0.12em';
+      widget.style.cursor = 'pointer';
+      widget.style.boxShadow = '0 0 16px rgba(0, 255, 160, 0.3)';
+      widget.style.textTransform = 'uppercase';
+      widget.addEventListener('click', (event) => {
+        event.stopPropagation();
+        this._toggleClockModal();
+      });
+      container.appendChild(widget);
+      clockState.widgetEl = widget;
+    }
+
+    if (!clockState.modalEl) {
+      const modal = this._createClockModal();
+      container.appendChild(modal);
+      clockState.modalEl = modal;
+      clockState.controls = modal.__controls || null;
+    }
+
+    this._updateClockWidgetTime();
+
+    if (!this.state.clockInterval && typeof window !== 'undefined') {
+      this.state.clockInterval = window.setInterval(() => this._updateClockWidgetTime(), 15000);
+    }
+
+    if (!this.state.clockOutsideClickHandler) {
+      const handler = (event) => {
+        const modal = this.state.clock?.modalEl;
+        const widget = this.state.clock?.widgetEl;
+        if (!modal || modal.style.display !== 'flex') {
+          return;
+        }
+
+        if (modal.contains(event.target) || (widget && widget.contains(event.target))) {
+          return;
+        }
+
+        this._toggleClockModal(false);
+      };
+      document.addEventListener('click', handler);
+      this.state.clockOutsideClickHandler = handler;
+    }
+  }
+
+  _createClockModal() {
+    const modal = document.createElement('div');
+    modal.id = 'visicell-clock-modal';
+    modal.style.position = 'absolute';
+    modal.style.top = '48px';
+    modal.style.right = '16px';
+    modal.style.width = '240px';
+    modal.style.padding = '14px';
+    modal.style.display = 'none';
+    modal.style.flexDirection = 'column';
+    modal.style.gap = '10px';
+    modal.style.border = '1px solid #0f0';
+    modal.style.borderRadius = '14px';
+    modal.style.background = 'rgba(0, 0, 0, 0.92)';
+    modal.style.boxShadow = '0 0 28px rgba(0, 255, 160, 0.32)';
+    modal.style.zIndex = '160';
+    modal.style.color = '#0f0';
+    modal.style.fontFamily = `'Courier New', monospace`;
+    modal.style.textTransform = 'uppercase';
+
+    const header = document.createElement('div');
+    header.textContent = 'CLOCK SETTINGS';
+    header.style.fontSize = '12px';
+    header.style.fontWeight = '700';
+    header.style.letterSpacing = '0.18em';
+
+    const realtime = document.createElement('div');
+    realtime.id = 'visicell-clock-now';
+    realtime.style.fontSize = '11px';
+    realtime.style.opacity = '0.85';
+    realtime.style.letterSpacing = '0.12em';
+
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.id = 'visicell-clock-date';
+    dateInput.style.background = 'rgba(0, 0, 0, 0.85)';
+    dateInput.style.color = '#0f0';
+    dateInput.style.border = '1px solid #0f0';
+    dateInput.style.borderRadius = '8px';
+    dateInput.style.padding = '6px';
+    dateInput.style.fontFamily = `'Courier New', monospace`;
+    dateInput.style.fontSize = '11px';
+    dateInput.style.letterSpacing = '0.1em';
+
+    const timeInput = document.createElement('input');
+    timeInput.type = 'time';
+    timeInput.id = 'visicell-clock-time';
+    timeInput.style.background = 'rgba(0, 0, 0, 0.85)';
+    timeInput.style.color = '#0f0';
+    timeInput.style.border = '1px solid #0f0';
+    timeInput.style.borderRadius = '8px';
+    timeInput.style.padding = '6px';
+    timeInput.style.fontFamily = `'Courier New', monospace`;
+    timeInput.style.fontSize = '11px';
+    timeInput.style.letterSpacing = '0.1em';
+
+    const preview = document.createElement('div');
+    preview.id = 'visicell-clock-preview';
+    preview.style.fontSize = '11px';
+    preview.style.letterSpacing = '0.12em';
+    preview.style.minHeight = '18px';
+    preview.style.opacity = '0.88';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'CLOSE';
+    closeBtn.type = 'button';
+    closeBtn.style.alignSelf = 'flex-end';
+    closeBtn.style.padding = '6px 12px';
+    closeBtn.style.border = '1px solid #0f0';
+    closeBtn.style.borderRadius = '8px';
+    closeBtn.style.background = 'rgba(0, 0, 0, 0.8)';
+    closeBtn.style.color = '#0f0';
+    closeBtn.style.fontFamily = `'Courier New', monospace`;
+    closeBtn.style.fontSize = '11px';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      this._toggleClockModal(false);
+    });
+
+    const updatePreview = () => this._updateClockModalPreview();
+    dateInput.addEventListener('change', updatePreview);
+    timeInput.addEventListener('change', updatePreview);
+
+    modal.appendChild(header);
+    modal.appendChild(realtime);
+    modal.appendChild(dateInput);
+    modal.appendChild(timeInput);
+    modal.appendChild(preview);
+    modal.appendChild(closeBtn);
+
+    modal.__controls = {
+      dateInput,
+      timeInput,
+      preview,
+      realtime
+    };
+
+    return modal;
+  }
+
+  _toggleClockModal(forceState) {
+    const clockState = this.state.clock;
+    if (!clockState || !clockState.modalEl) {
+      return;
+    }
+
+    const shouldOpen = typeof forceState === 'boolean'
+      ? forceState
+      : clockState.modalEl.style.display !== 'flex';
+
+    if (shouldOpen) {
+      clockState.modalEl.style.display = 'flex';
+      clockState.referenceTime = new Date();
+      this._prepareClockModal();
+    } else {
+      clockState.modalEl.style.display = 'none';
+    }
+  }
+
+  _prepareClockModal() {
+    const clockState = this.state.clock;
+    if (!clockState || !clockState.controls) {
+      return;
+    }
+
+    const now = new Date();
+    clockState.referenceTime = now;
+
+    if (clockState.controls.dateInput) {
+      clockState.controls.dateInput.value = this._formatClockDateInput(now);
+    }
+    if (clockState.controls.timeInput) {
+      clockState.controls.timeInput.value = this._formatClockTimeInput(now);
+    }
+
+    this._updateClockModalPreview();
+  }
+
+  _formatClockDisplay(date) {
+    if (!(date instanceof Date)) {
+      return '';
+    }
+
+    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const month = months[date.getMonth()] || '???';
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${month} ${day} ${year} // ${hours}:${minutes}:${seconds}`;
+  }
+
+  _formatClockDateInput(date) {
+    if (!(date instanceof Date)) {
+      return '';
+    }
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  _formatClockTimeInput(date) {
+    if (!(date instanceof Date)) {
+      return '';
+    }
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+
+  _updateClockWidgetTime() {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const clockState = this.state.clock;
+    if (!clockState || !clockState.widgetEl) {
+      return;
+    }
+
+    const now = new Date();
+    const formatted = this._formatClockDisplay(now);
+    clockState.widgetEl.textContent = formatted;
+
+    if (clockState.controls && clockState.controls.realtime) {
+      clockState.controls.realtime.textContent = `NOW: ${formatted}`;
+    }
+
+    if (clockState.modalEl && clockState.modalEl.style.display === 'flex') {
+      clockState.currentOffset = 0;
+      this._updateClockModalPreview();
+    }
+  }
+
+  _updateClockModalPreview() {
+    const clockState = this.state.clock;
+    if (!clockState || !clockState.controls) {
+      return;
+    }
+
+    const { dateInput, timeInput, preview } = clockState.controls;
+    if (!dateInput || !timeInput || !preview || !dateInput.value || !timeInput.value) {
+      return;
+    }
+
+    const [year, month, day] = dateInput.value.split('-').map(part => parseInt(part, 10));
+    const [hours, minutes] = timeInput.value.split(':').map(part => parseInt(part, 10));
+
+    if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day) || Number.isNaN(hours) || Number.isNaN(minutes)) {
+      return;
+    }
+
+    const selected = new Date(year, month - 1, day, hours, minutes);
+    const now = new Date();
+    const diffMs = now.getTime() - selected.getTime();
+    const diffMinutes = Math.round(diffMs / 60000);
+
+    clockState.currentOffset = diffMinutes;
+    preview.textContent = `TARGET: ${this._formatClockDisplay(selected)} // OFFSET ${diffMinutes >= 0 ? '-' : '+'}${Math.abs(diffMinutes)} MIN`;
+
+    const isPast = selected.getTime() < now.getTime();
+    this._handleClockEasterEgg(diffMinutes, isPast);
+  }
+
+  _handleClockEasterEgg(offsetMinutes, isPast) {
+    const clue = this.state.clueTrail;
+    if (!clue || clue.clockAcknowledged || !clue.clueCell) {
+      return;
+    }
+
+    if (clue.riddleStage === 'await-clock' && isPast && Math.abs(offsetMinutes) === 35) {
+      clue.clockAcknowledged = true;
+      clue.riddleStage = 'complete';
+      this._updateClueCellText('TOUCHÉ', { emphasize: true });
+      this._updatePromptCell('WHAT WERE YOU TRYING TO DO AGAIN?');
+      this._showClueInstruction('TOUCHÉ. WHAT WERE YOU TRYING TO DO AGAIN?');
+      this._resetClueEntry();
+    }
   }
 
   /**
@@ -749,8 +1076,10 @@ export class VisiCellScene {
 
     const clue = {
       entryCell: null,
-      baseInput: 'ENTE',
-      currentInput: 'ENTE',
+      promptCell: null,
+      clueCell: null,
+      baseInput: '',
+      currentInput: '',
       overlayEl: overlay,
       instructionEl: instruction,
       displayEl: display,
@@ -764,7 +1093,11 @@ export class VisiCellScene {
       completedMode: null,
       pendingDeathMode: null,
       deathSequenceScheduled: false,
-      initializing: false
+      initializing: false,
+      riddleStage: 'await-leave',
+      onionRiddleScheduled: false,
+      clockAcknowledged: false,
+      glitchActive: false
     };
 
     this.state.clueTrail = clue;
@@ -877,21 +1210,11 @@ export class VisiCellScene {
       : (cellData ? (cellData.formula || cellData.value) : '');
 
     const normalized = (raw || '').toString().trim().toUpperCase();
-    if (!normalized || normalized === (clue.baseInput || '').toUpperCase()) {
+    if (!normalized) {
       return;
     }
 
-    if (normalized === 'LEAVE' && clue.lastTriggeredValue !== 'LEAVE') {
-      clue.currentInput = normalized;
-      clue.lastTriggeredValue = 'LEAVE';
-      this._startClueTrailSequence('leave');
-      return;
-    }
-
-    if (normalized === 'ENTER' && clue.lastTriggeredValue !== 'ENTER') {
-      clue.currentInput = normalized;
-      clue.lastTriggeredValue = 'ENTER';
-      this._startQuestSequence();
+    if (this._processClueCommand(normalized)) {
       return;
     }
 
@@ -1092,13 +1415,18 @@ export class VisiCellScene {
     });
 
     const endingMessage = mode === 'enter'
-      ? 'Quest failed. You died of dysentery.'
-      : 'Trail complete. You died of dysentery.';
+      ? 'QUEST FAILED. YOU DIED OF DYSENTERY.'
+      : 'TRAIL COMPLETE. YOU DIED OF DYSENTERY.';
     this._showClueInstruction(endingMessage);
 
     if (clue) {
       clue.stage = 'end';
       clue.active = false;
+      if (!clue.onionRiddleScheduled) {
+        clue.onionRiddleScheduled = true;
+        const onionTimeout = window.setTimeout(() => this._beginOnionRiddle(), 900);
+        this.state.deathTimeouts.push(onionTimeout);
+      }
     }
   }
 
@@ -1107,26 +1435,93 @@ export class VisiCellScene {
     if (!clue) return;
 
     const entryCell = this._pickRandomEntryCell();
+    const safeOffset = (addr, rowDelta, colDelta) => {
+      const baseCol = addr.charCodeAt(0) - 65;
+      const baseRow = parseInt(addr.slice(1), 10);
+      const newCol = baseCol + colDelta;
+      const newRow = baseRow + rowDelta;
+      if (Number.isNaN(newCol) || Number.isNaN(newRow)) {
+        return null;
+      }
+      if (newCol < 0 || newCol >= this.state.gridCols || newRow < 1 || newRow > this.state.gridRows) {
+        return null;
+      }
+      return String.fromCharCode(65 + newCol) + newRow;
+    };
+
+    let promptCell = safeOffset(entryCell, 1, 0) || safeOffset(entryCell, -1, 0);
+    let clueCell = safeOffset(entryCell, 0, 1) || safeOffset(entryCell, 0, -1);
+
+    if (promptCell === entryCell) {
+      promptCell = safeOffset(entryCell, -1, 0) || safeOffset(entryCell, 2, 0);
+    }
+    if (clueCell === entryCell) {
+      clueCell = safeOffset(entryCell, 0, -1) || safeOffset(entryCell, 0, 2);
+    }
+
     clue.entryCell = entryCell;
-    clue.currentInput = clue.baseInput;
+    clue.promptCell = promptCell;
+    clue.clueCell = clueCell;
+    clue.baseInput = '';
+    clue.currentInput = '';
     clue.active = true;
     clue.stage = 'await-command';
+    clue.riddleStage = 'await-leave';
+    clue.onionRiddleScheduled = false;
+    clue.clockAcknowledged = false;
     clue.highlightedCells = new Set([entryCell]);
+    if (promptCell) {
+      clue.highlightedCells.add(promptCell);
+    }
+    if (clueCell) {
+      clue.highlightedCells.add(clueCell);
+    }
     clue.steps = [];
     clue.completedMode = null;
     clue.pendingDeathMode = null;
     clue.deathSequenceScheduled = false;
     clue.lastTriggeredValue = null;
     clue.lastShownInvalidValue = null;
+    clue.glitchActive = false;
+    clue.clockAcknowledged = false;
 
     clue.initializing = true;
-    this._setCellValue(entryCell, clue.baseInput, { suppressClueCheck: true, resetStyle: true });
+    this._setCellValue(entryCell, '', { suppressClueCheck: true, resetStyle: true });
     this._updateClueDisplay();
     clue.initializing = false;
 
-    this._displayClueMessageAcrossCells(`Finish the word in cell ${entryCell}.`);
+    if (promptCell) {
+      const promptData = this._setCellValue(promptCell, 'REQUEST: TYPE LEAVE', { suppressClueCheck: true, resetStyle: true });
+      promptData.style = promptData.style || {};
+      Object.assign(promptData.style, {
+        background: 'rgba(0, 0, 0, 0.85)',
+        color: '#0f0',
+        textAlign: 'center',
+        fontWeight: '700',
+        padding: '8px',
+        whiteSpace: 'pre-wrap',
+        letterSpacing: '0.12em'
+      });
+    }
 
-    this._showClueInstruction(`Finish the word in ${entryCell}. Choose compliance or rebellion.`);
+    if (clueCell) {
+      const clueData = this._setCellValue(clueCell, 'CLUE CACHE SEALED', { suppressClueCheck: true, resetStyle: true });
+      clueData.style = clueData.style || {};
+      Object.assign(clueData.style, {
+        background: 'rgba(0, 16, 0, 0.85)',
+        color: '#0f0',
+        textAlign: 'left',
+        padding: '8px',
+        minHeight: '72px',
+        whiteSpace: 'pre-wrap',
+        letterSpacing: '0.12em'
+      });
+    }
+
+    this._render();
+    this._applyClueCellHighlight();
+
+    this._showClueInstruction(`TYPE LEAVE INSIDE ${entryCell} TO OPEN THE TRAIL.`);
     this._selectCell(entryCell);
   }
 
@@ -1180,7 +1575,392 @@ export class VisiCellScene {
       return;
     }
 
-    clue.instructionEl.textContent = message;
+    const sanitized = (message || '').toString().toUpperCase();
+    clue.instructionEl.textContent = sanitized;
+  }
+
+  _updatePromptCell(message) {
+    const clue = this.state.clueTrail;
+    if (!clue || !clue.promptCell) {
+      return;
+    }
+
+    const text = (message || '').toString().toUpperCase();
+    const promptData = this._setCellValue(clue.promptCell, text, { suppressClueCheck: true, resetStyle: true });
+    promptData.style = promptData.style || {};
+    Object.assign(promptData.style, {
+      background: 'rgba(0, 0, 0, 0.85)',
+      color: '#0f0',
+      textAlign: 'center',
+      fontWeight: '700',
+      padding: '10px',
+      whiteSpace: 'pre-wrap',
+      letterSpacing: '0.14em',
+      borderRadius: '10px',
+      transition: 'all 0.25s ease'
+    });
+
+    this._render();
+    this._applyClueCellHighlight();
+  }
+
+  _updateClueCellText(message, options = {}) {
+    const clue = this.state.clueTrail;
+    if (!clue || !clue.clueCell) {
+      return;
+    }
+
+    const text = (message || '').toString().toUpperCase();
+    const cellData = this._setCellValue(clue.clueCell, text, { suppressClueCheck: true, resetStyle: true });
+    cellData.style = cellData.style || {};
+
+    const baseStyle = {
+      background: 'rgba(0, 0, 0, 0.9)',
+      color: '#0f0',
+      textAlign: options.emphasize ? 'center' : 'left',
+      padding: options.enlarge ? '16px' : '10px',
+      whiteSpace: 'pre-wrap',
+      lineHeight: options.enlarge ? '1.65' : '1.5',
+      letterSpacing: '0.12em',
+      fontWeight: options.emphasize ? '800' : '700',
+      fontSize: options.emphasize ? '18px' : '14px',
+      borderRadius: '14px',
+      minWidth: options.enlarge ? '280px' : '200px',
+      minHeight: options.enlarge ? '140px' : '96px',
+      transition: 'all 0.35s ease'
+    };
+
+    Object.assign(cellData.style, baseStyle);
+
+    this._render();
+    this._applyClueCellHighlight();
+  }
+
+  _resetClueEntry() {
+    const clue = this.state.clueTrail;
+    if (!clue || !clue.entryCell) {
+      return;
+    }
+
+    clue.initializing = true;
+    clue.currentInput = '';
+    this._setCellValue(clue.entryCell, '', { suppressClueCheck: true, resetStyle: false });
+    clue.initializing = false;
+    this._updateClueDisplay();
+  }
+
+  _processClueCommand(command) {
+    const clue = this.state.clueTrail;
+    if (!clue) {
+      return false;
+    }
+
+    const normalized = command.trim();
+    if (!normalized) {
+      return false;
+    }
+
+    if (normalized === 'ENTER' && clue.lastTriggeredValue !== 'ENTER') {
+      clue.currentInput = normalized;
+      clue.lastTriggeredValue = 'ENTER';
+      this._startQuestSequence();
+      return true;
+    }
+
+    if (normalized === 'LEAVE') {
+      if (clue.riddleStage === 'await-leave' && clue.lastTriggeredValue !== 'LEAVE') {
+        clue.currentInput = normalized;
+        clue.lastTriggeredValue = 'LEAVE';
+        this._updatePromptCell('REQUEST ACKNOWLEDGED. HOLD FAST.');
+        this._showClueInstruction('CLUE TRAIL INITIATED. WATCH THE GRID.');
+        clue.riddleStage = 'await-onion';
+        this._startClueTrailSequence('leave');
+        return true;
+      }
+      return false;
+    }
+
+    if (clue.riddleStage === 'await-search' && normalized === 'SEARCH') {
+      clue.lastTriggeredValue = 'SEARCH';
+      this._updateClueCellText(`You found an onion. It's already peeled.\n\nBut wait, there's something its opposite and its partner. Take the last word of the first line, and remove the term for Richard Unkind. You'll know soulmate.`, { enlarge: true });
+      this._updatePromptCell('REQUEST: IDENTIFY KEY.');
+      this._showClueInstruction('THE GRID FOUND AN ONION. WHO HOLDS THE KEY?');
+      clue.riddleStage = 'await-key';
+      this._resetClueEntry();
+      clue.lastShownInvalidValue = null;
+      return true;
+    }
+
+    if (clue.riddleStage === 'await-key' && normalized === 'KEY') {
+      clue.lastTriggeredValue = 'KEY';
+      this._playVisiCellVideo('./key.MP4', 'KEY');
+      this._updateClueCellText(`Who'd I leave for, Key? Was it him or his creation?`, { enlarge: true });
+      this._updatePromptCell('REQUEST: SNAKE.');
+      this._showClueInstruction('HEAR THE HISS. NAME THE SNAKE.');
+      clue.riddleStage = 'await-snake';
+      this._resetClueEntry();
+      clue.lastShownInvalidValue = null;
+      return true;
+    }
+
+    if (clue.riddleStage === 'await-snake' && normalized === 'SNAKE') {
+      clue.lastTriggeredValue = 'SNAKE';
+      this._updateClueCellText('Sneaky. Do you know who was the Sneak King?', { enlarge: true });
+      this._updatePromptCell('REQUEST: BURGER KING.');
+      this._showClueInstruction('NAME THE KING OF SNEAK.');
+      clue.riddleStage = 'await-burger';
+      this._resetClueEntry();
+      clue.lastShownInvalidValue = null;
+      return true;
+    }
+
+    if (clue.riddleStage === 'await-burger' && normalized === 'BURGER KING') {
+      clue.lastTriggeredValue = 'BURGER KING';
+      this._updateClueCellText('Fine. Have it your way. Enjoy your cardboard kingdom Ozymandias. I used your password.', { enlarge: true });
+      this._updatePromptCell('REQUEST: PASSWORD?');
+      this._showClueInstruction('THE KING HAS FALLEN. NAME HIS PASSWORD.');
+      clue.riddleStage = 'await-ramses';
+      this._resetClueEntry();
+      clue.lastShownInvalidValue = null;
+      return true;
+    }
+
+    if (clue.riddleStage === 'await-ramses' && normalized === 'RAMSES II') {
+      clue.lastTriggeredValue = 'RAMSES II';
+      if (!clue.glitchActive) {
+        clue.glitchActive = true;
+        this._showRamsesGlitch();
+      }
+      this._updatePromptCell('ADJUST CLOCK 35 MINUTES BACK.');
+      this._showClueInstruction('HE CHANGED IT THIRTY-FIVE MINUTES AGO.');
+      clue.riddleStage = 'await-clock';
+      clue.clockAcknowledged = false;
+      this._resetClueEntry();
+      clue.lastShownInvalidValue = null;
+      return true;
+    }
+
+    if (clue.riddleStage === 'await-clock') {
+      if (normalized === 'RAMSES II') {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  _playVisiCellVideo(src, title = 'KEY') {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const resolveMediaPath = (path) => {
+      if (!path) return '';
+      const trimmed = path.trim();
+      if (!trimmed) return '';
+      if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('data:')) {
+        return trimmed;
+      }
+      if (trimmed.startsWith('./')) {
+        return trimmed;
+      }
+      return `./${trimmed}`;
+    };
+
+    const resolvedSrc = resolveMediaPath(src);
+    const existing = document.querySelector('.visicell-video-overlay');
+    if (existing) {
+      existing.remove();
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'visicell-video-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.left = '0';
+    overlay.style.top = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.background = 'rgba(0, 0, 0, 0.82)';
+    overlay.style.zIndex = '950';
+
+    const windowEl = document.createElement('div');
+    windowEl.style.background = 'rgba(0, 0, 0, 0.94)';
+    windowEl.style.border = '2px solid #0f0';
+    windowEl.style.borderRadius = '18px';
+    windowEl.style.width = '460px';
+    windowEl.style.maxWidth = '82vw';
+    windowEl.style.boxShadow = '0 0 38px rgba(0, 255, 160, 0.45)';
+    windowEl.style.display = 'flex';
+    windowEl.style.flexDirection = 'column';
+    windowEl.style.overflow = 'hidden';
+
+    const titleBar = document.createElement('div');
+    titleBar.style.display = 'flex';
+    titleBar.style.justifyContent = 'space-between';
+    titleBar.style.alignItems = 'center';
+    titleBar.style.background = 'rgba(0, 0, 0, 0.9)';
+    titleBar.style.padding = '10px 16px';
+    titleBar.style.letterSpacing = '0.16em';
+    titleBar.style.fontFamily = `'Courier New', monospace`;
+    titleBar.style.color = '#0f0';
+    titleBar.style.fontSize = '12px';
+    titleBar.style.textTransform = 'uppercase';
+
+    const titleText = document.createElement('span');
+    titleText.textContent = (title || 'KEY').toString().toUpperCase();
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '×';
+    closeBtn.style.background = 'transparent';
+    closeBtn.style.border = 'none';
+    closeBtn.style.color = '#0f0';
+    closeBtn.style.fontSize = '18px';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      fadeOut();
+    });
+
+    titleBar.appendChild(titleText);
+    titleBar.appendChild(closeBtn);
+
+    const video = document.createElement('video');
+    video.controls = true;
+    video.autoplay = true;
+    video.src = resolvedSrc;
+    video.style.width = '100%';
+    video.style.background = '#000';
+
+    const fallback = document.createElement('div');
+    fallback.textContent = `UNABLE TO LOAD ${resolvedSrc.split('/').pop()?.toUpperCase() || 'VIDEO'}`;
+    fallback.style.padding = '24px';
+    fallback.style.textAlign = 'center';
+    fallback.style.letterSpacing = '0.12em';
+    fallback.style.display = 'none';
+
+    const fadeOut = () => {
+      overlay.style.transition = 'opacity 3s ease';
+      overlay.style.opacity = '0';
+      window.setTimeout(() => overlay.remove(), 3000);
+    };
+
+    video.addEventListener('ended', fadeOut, { once: true });
+    video.addEventListener('error', () => {
+      video.style.display = 'none';
+      fallback.style.display = 'block';
+      window.setTimeout(fadeOut, 600);
+    }, { once: true });
+
+    windowEl.appendChild(titleBar);
+    windowEl.appendChild(video);
+    windowEl.appendChild(fallback);
+    overlay.appendChild(windowEl);
+
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) {
+        fadeOut();
+      }
+    });
+
+    document.body.appendChild(overlay);
+  }
+
+  _showRamsesGlitch() {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const clue = this.state.clueTrail;
+    const finalMessage = `USER.FIRSTNAME & LASTNAME, I'M NOT A REPUBLIC SERIAL VILLAIN. DO YOU SERIOUSLY THINK I'D EXPLAIN MY MASTER PASSWORD IF THERE REMAINED THE SLIGHTEST CHANCE OF YOU LOGGING IN? I CHANGED IT THIRTY-FIVE MINUTES AGO.`;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'visicell-glitch-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.left = '0';
+    overlay.style.top = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.background = 'rgba(0, 0, 0, 0.92)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '980';
+    overlay.style.fontFamily = `'Courier New', monospace`;
+    overlay.style.color = '#0f0';
+    overlay.style.textTransform = 'uppercase';
+    overlay.style.letterSpacing = '0.2em';
+
+    const messageEl = document.createElement('div');
+    messageEl.style.maxWidth = '70vw';
+    messageEl.style.textAlign = 'center';
+    messageEl.style.fontSize = '16px';
+    messageEl.style.lineHeight = '1.6';
+    messageEl.textContent = 'ACCESS DENIED';
+
+    overlay.appendChild(messageEl);
+    document.body.appendChild(overlay);
+
+    const glitchPhrases = [
+      'ACCESS DENIED',
+      'REVISION 35 MIN',
+      'OZYMANDIAS PROTOCOL',
+      'PASSWORD ROTATION',
+      'USER LOCKOUT',
+      '///////',
+      'GHOST KEY',
+      'REDACTED'
+    ];
+
+    let iteration = 0;
+    const glitchInterval = window.setInterval(() => {
+      const phrase = glitchPhrases[iteration % glitchPhrases.length];
+      messageEl.textContent = phrase;
+      iteration++;
+    }, 120);
+
+    const settleDelay = 1600;
+    window.setTimeout(() => {
+      window.clearInterval(glitchInterval);
+      messageEl.textContent = finalMessage;
+      messageEl.style.fontSize = '14px';
+      messageEl.style.lineHeight = '1.8';
+    }, settleDelay);
+
+    window.setTimeout(() => {
+      overlay.style.transition = 'opacity 0.9s ease';
+      overlay.style.opacity = '0';
+      window.setTimeout(() => overlay.remove(), 900);
+    }, settleDelay + 1100);
+
+    if (clue) {
+      window.setTimeout(() => {
+        this._updateClueCellText(finalMessage, { enlarge: true });
+        this._displayClueMessageAcrossCells(finalMessage, 'A14');
+      }, settleDelay + 400);
+    }
+  }
+
+  _beginOnionRiddle() {
+    const clue = this.state.clueTrail;
+    if (!clue) {
+      return;
+    }
+
+    clue.active = true;
+    clue.stage = 'trail';
+    clue.riddleStage = 'await-search';
+    clue.lastTriggeredValue = null;
+    clue.lastShownInvalidValue = null;
+    clue.clockAcknowledged = false;
+
+    this._resetClueEntry();
+    this._updatePromptCell('REQUEST: SEARCH.');
+    this._updateClueCellText(`No, I've locked that away. What I have left could make you cry. Why don't you dice that, too. Maybe search around.`, { enlarge: true });
+    this._showClueInstruction('THE CACHE IS RIDDLE-LOCKED. SEARCH IT.');
+    this._selectCell(clue.entryCell);
   }
 
   _handleClueKeydown(e) {
@@ -1211,12 +1991,13 @@ export class VisiCellScene {
       return true;
     }
 
-    if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+    if (e.key.length === 1 && /[a-zA-Z0-9 .]/.test(e.key)) {
       e.preventDefault();
-      if (clue.currentInput.length >= 8) {
-        clue.currentInput = clue.currentInput.slice(0, 7);
+      if (clue.currentInput.length >= 24) {
+        clue.currentInput = clue.currentInput.slice(0, 23);
       }
-      clue.currentInput += e.key.toUpperCase();
+      const char = e.key === ' ' ? ' ' : e.key.toUpperCase();
+      clue.currentInput += char;
       this._updateClueDisplay();
       return true;
     }
@@ -1420,6 +2201,31 @@ export class VisiCellScene {
   async stop() {
     console.log('⏹️ Stopping VisiCell Scene');
     this.state.running = false;
+
+    if (this.state.clockInterval && typeof window !== 'undefined') {
+      window.clearInterval(this.state.clockInterval);
+      this.state.clockInterval = null;
+    }
+
+    if (this.state.clockOutsideClickHandler && typeof document !== 'undefined') {
+      document.removeEventListener('click', this.state.clockOutsideClickHandler);
+      this.state.clockOutsideClickHandler = null;
+    }
+
+    if (this.state.clock && this.state.clock.modalEl) {
+      this.state.clock.modalEl.style.display = 'none';
+    }
+
+    if (typeof document !== 'undefined') {
+      const videoOverlay = document.querySelector('.visicell-video-overlay');
+      if (videoOverlay) {
+        videoOverlay.remove();
+      }
+      const glitchOverlay = document.querySelector('.visicell-glitch-overlay');
+      if (glitchOverlay) {
+        glitchOverlay.remove();
+      }
+    }
 
     if (this.state.endAudio) {
       try {
