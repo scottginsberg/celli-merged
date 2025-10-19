@@ -26,6 +26,8 @@ import { MainframeSpawn } from './components/MainframeSpawn.js';
 import { TerminalSequence } from './components/TerminalSequence.js';
 import { IntroExperience } from './components/IntroExperience.js';
 
+const LIMBO_TRACK_URL = new URL('../../../limbo.mp3', import.meta.url).href;
+
 export class CelliRealScene {
   constructor() {
     this.name = 'CelliReal';
@@ -583,7 +585,7 @@ export class CelliRealScene {
 
     if (!this.state.limboAudio) {
       try {
-        this.state.limboAudio = new Audio('./limbo.mp3');
+        this.state.limboAudio = new Audio(LIMBO_TRACK_URL);
         this.state.limboAudio.loop = true;
         this.state.limboAudio.volume = 0.6;
       } catch (error) {

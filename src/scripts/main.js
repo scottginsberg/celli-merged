@@ -76,7 +76,7 @@ const SCENE_OPTION_CONFIG = {
     },
     indicator: {
       template: 'Opens standalone voxel world',
-      component: 'Loads voxel world in-app'
+      component: 'Loads rebuilt voxel world in-app'
     },
     unlock: {
       template: true,
