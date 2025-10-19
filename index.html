@@ -1339,6 +1339,7 @@
   const FULL_SEQUENCE_FLAG_KEY = 'celli:fullSequenceActive';
   const FULL_SEQUENCE_STAGE_KEY = 'celli:fullSequenceStage';
   const FULL_SEQUENCE_REFERRER_STAGE = 'referrer';
+  const FULL_SEQUENCE_REFERRER_ACTIVE_KEY = 'celli:fullSequenceReferrerActive';
   const FULL_SEQUENCE_BETA_STAGE = 'beta';
   let betaFormRedirectTimeoutId = null;
   let betaFallbackCheckTimeoutId = null;
@@ -1367,6 +1368,18 @@
   function markBetaRedirectComplete() {
     if (document.body.dataset.betaRedirectComplete === 'pending') {
       document.body.dataset.betaRedirectComplete = 'true';
+    }
+  }
+
+  function setReferrerOverlayActiveState(isActive) {
+    try {
+      if (isActive) {
+        window.sessionStorage?.setItem(FULL_SEQUENCE_REFERRER_ACTIVE_KEY, 'true');
+      } else {
+        window.sessionStorage?.removeItem(FULL_SEQUENCE_REFERRER_ACTIVE_KEY);
+      }
+    } catch (error) {
+      console.warn('⚠️ Unable to update referrer overlay active state:', error);
     }
   }
 
@@ -3373,7 +3386,7 @@
   }
   
   // Sidebar controls
-  refSidebarClose.addEventListener('click', hideSidebar);
+  bindOverlayButton(refSidebarClose, hideSidebar);
   
   // Track if ToS phase is active
   let tosPhaseActive = false;
@@ -5120,20 +5133,39 @@
     const newDismiss = document.getElementById('refDismiss');
     const newRecreate = document.getElementById('refRecreate');
     const newReset = document.getElementById('refReset');
-    newClose.addEventListener('click', dismiss);
-    newDismiss.addEventListener('click', dismiss);
-    newRecreate.addEventListener('click', () => {
+    bindOverlayButton(newClose, dismiss);
+    bindOverlayButton(newDismiss, dismiss);
+    bindOverlayButton(newRecreate, () => {
       runGlitchOnce();
       jitterList(700);
     });
-    newReset.addEventListener('click', () => {
+    bindOverlayButton(newReset, () => {
       resetImpacts();
     });
+  }
+
+  function bindOverlayButton(button, handler) {
+    if (!button || typeof handler !== 'function') {
+      return;
+    }
+
+    const handleClick = (event) => {
+      handler(event);
+    };
+
+    const handleTouchEnd = (event) => {
+      event.preventDefault();
+      handler(event);
+    };
+
+    button.addEventListener('click', handleClick);
+    button.addEventListener('touchend', handleTouchEnd, { passive: false });
   }
   
   function openOverlay() {
     overlay.setAttribute('aria-hidden', 'false');
     ensureReferrerSequenceSession();
+    setReferrerOverlayActiveState(true);
     if (bodyEl) {
       bodyEl.style.overflow = 'hidden';
     }
@@ -5147,6 +5179,7 @@
       bodyEl.style.overflow = '';
     }
     deactivateReferrerStageRoot();
+    setReferrerOverlayActiveState(false);
     hideSidebar();
     hideTooltip();
     resetImpacts();

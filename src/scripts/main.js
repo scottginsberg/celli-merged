@@ -33,6 +33,7 @@ const DEFAULT_SCENE_MODE = 'template';
 const FULL_SEQUENCE_FLAG_KEY = 'celli:fullSequenceActive';
 const FULL_SEQUENCE_STAGE_KEY = 'celli:fullSequenceStage';
 const FULL_SEQUENCE_REFERRER_STAGE = 'referrer';
+const FULL_SEQUENCE_REFERRER_ACTIVE_KEY = 'celli:fullSequenceReferrerActive';
 const FULL_SEQUENCE_BETA_STAGE = 'beta';
 const FULL_SEQUENCE_INTRO_STAGE = 'intro';
 const FULL_SEQUENCE_INTRO_RUNNING_STAGE = 'intro-running';
@@ -336,14 +337,27 @@ function setFullSequenceStage(stage) {
   try {
     if (!stage) {
       window.sessionStorage?.removeItem(FULL_SEQUENCE_STAGE_KEY);
+      window.sessionStorage?.removeItem(FULL_SEQUENCE_REFERRER_ACTIVE_KEY);
       return;
     }
 
     if (window.sessionStorage?.getItem(FULL_SEQUENCE_FLAG_KEY) === 'true') {
       window.sessionStorage.setItem(FULL_SEQUENCE_STAGE_KEY, stage);
+      if (stage !== FULL_SEQUENCE_REFERRER_STAGE) {
+        window.sessionStorage?.removeItem(FULL_SEQUENCE_REFERRER_ACTIVE_KEY);
+      }
     }
   } catch (error) {
     console.warn('⚠️ Unable to persist Full Sequence stage:', error);
+  }
+}
+
+function isReferrerOverlayActive() {
+  try {
+    return window.sessionStorage?.getItem(FULL_SEQUENCE_REFERRER_ACTIVE_KEY) === 'true';
+  } catch (error) {
+    console.warn('⚠️ Unable to read referrer overlay active flag:', error);
+    return false;
   }
 }
 
@@ -358,15 +372,19 @@ function resumeFullSequenceIfNeeded() {
   }
 
   if (stage === FULL_SEQUENCE_REFERRER_STAGE) {
-    console.log('🔗 Resuming Full Sequence at referrer stage');
-    if (typeof window.triggerOverlay === 'function') {
-      try {
-        window.triggerOverlay('linkedin');
-      } catch (error) {
-        console.warn('⚠️ Unable to resume referrer overlay for Full Sequence:', error);
+    if (isReferrerOverlayActive()) {
+      console.log('🔗 Resuming Full Sequence at referrer stage');
+      if (typeof window.triggerOverlay === 'function') {
+        try {
+          window.triggerOverlay('linkedin');
+        } catch (error) {
+          console.warn('⚠️ Unable to resume referrer overlay for Full Sequence:', error);
+        }
+      } else {
+        console.warn('⚠️ Referrer overlay trigger unavailable for Full Sequence resume.');
       }
     } else {
-      console.warn('⚠️ Referrer overlay trigger unavailable for Full Sequence resume.');
+      console.log('ℹ️ Referrer stage stored but overlay not marked active — skipping auto-resume.');
     }
   } else if (stage === FULL_SEQUENCE_BETA_STAGE) {
     showToast('Full Sequence: continue the beta focus form to proceed.');
