@@ -19,6 +19,7 @@ import { SequenceUI } from './sequence/SequenceUI.js';
 import { sceneRegistry } from './sequence/SceneRegistry.js';
 import { registerSceneComponents } from './sequence/registerComponents.js';
 import { screenRecorder } from './tools/ScreenRecorder.js';
+import { showVisiCellVideo } from './ui/VisiCellVideoModal.js';
 
 // Import new systems
 import { permissionManager } from './systems/PermissionManager.js';
@@ -40,6 +41,11 @@ const FULL_SEQUENCE_INTRO_ACTIVE_STAGE = 'intro-active';
 const FULL_SEQUENCE_VOXEL_STAGE = 'voxel';
 const EXECUTION_ENV_MODE_STORAGE_KEY = 'fullhand_mode';
 const EXECUTION_ENV_DEFAULT_MODE = 'sequence';
+
+// Expose shared UI helpers globally for legacy template flows
+if (typeof window !== 'undefined') {
+  window.showVisiCellVideo = showVisiCellVideo;
+}
 
 const SCENE_OPTION_CONFIG = {
   theos: {

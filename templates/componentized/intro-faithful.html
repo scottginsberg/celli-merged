@@ -2987,10 +2987,15 @@ const clueTrailStepsConfig = [
       clueTrailPromptLocked = true;
       setEntryCellPrompt('PLAYBACK: KEY.MP4');
       flashEntryCell('#1a5f1a');
-      showVisiCellVideo('Key.mp4', 'KEY FILE', () => {
-        setClueText("WHO'D I LEAVE FOR, KEY? WAS IT HIM OR HIS CREATION?");
-        clueTrailPromptLocked = false;
-        refreshEntryPrompt();
+      showVisiCellVideo({
+        video: 'Key.mp4',
+        audio: 'key.mp3',
+        title: 'KEY FILE',
+        onComplete: () => {
+          setClueText("WHO'D I LEAVE FOR, KEY? WAS IT HIM OR HIS CREATION?");
+          clueTrailPromptLocked = false;
+          refreshEntryPrompt();
+        }
       });
     }
   },
@@ -6086,83 +6091,6 @@ function handleClueTrailCommand(command, frame) {
   resetPrompt();
 }
 
-function showVisiCellVideo(src, title, onComplete) {
-  if (!src) {
-    if (typeof onComplete === 'function') onComplete();
-    return;
-  }
-
-  if (document.querySelector('.visicell-video-overlay')) {
-    console.warn('?? VisiCell video overlay already active');
-    return;
-  }
-
-  const overlay = document.createElement('div');
-  overlay.className = 'visicell-video-overlay';
-  overlay.style.cssText = `
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-  `;
-
-  const windowEl = document.createElement('div');
-  windowEl.style.cssText = `
-    background: #000;
-    border: 2px solid #0f0;
-    box-shadow: 0 0 30px rgba(0, 255, 0, 0.4);
-    width: min(640px, 85vw);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  `;
-
-  const titleBar = document.createElement('div');
-  titleBar.style.cssText = `
-    background: #001a00;
-    color: #0f0;
-    padding: 10px 14px;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    letter-spacing: 0.2em;
-  `;
-  titleBar.textContent = (title || 'KEY FILE').toUpperCase();
-
-  const video = document.createElement('video');
-  video.style.cssText = 'width: 100%; height: auto; background: #000;';
-  video.controls = true;
-  video.autoplay = true;
-  video.src = src;
-
-  const closeOverlay = () => {
-    overlay.style.transition = 'opacity 3s ease';
-    overlay.style.opacity = '0';
-    setTimeout(() => {
-      overlay.remove();
-      if (typeof onComplete === 'function') {
-        onComplete();
-      }
-    }, 3000);
-  };
-
-  video.addEventListener('ended', closeOverlay, { once: true });
-  video.addEventListener('error', () => {
-    const fallback = document.createElement('div');
-    fallback.style.cssText = 'padding: 20px; color: #f55; text-align: center; letter-spacing: 0.18em;';
-    fallback.textContent = 'UNABLE TO LOAD VIDEO';
-    windowEl.appendChild(fallback);
-    closeOverlay();
-  }, { once: true });
-
-  windowEl.appendChild(titleBar);
-  windowEl.appendChild(video);
-  overlay.appendChild(windowEl);
-  document.body.appendChild(overlay);
-}
- 
 function resetVisiCellTerminal() {
   leaveSequenceActive = false;
   visiCellSimActive = false;
