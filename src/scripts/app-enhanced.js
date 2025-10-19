@@ -171,36 +171,36 @@ async function discoverIntroSequenceVideos() {
 
 function buildTrifoldIcon() {
   const icon = document.createElement('div');
-  icon.style.cssText = '
+  icon.style.cssText = `
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
     margin-bottom: 18px;
-  ';
+  `;
 
   const square = document.createElement('span');
-  square.style.cssText = '
+  square.style.cssText = `
     width: 22px;
     height: 22px;
     border: 2px solid #0ff;
     background: rgba(0, 40, 40, 0.4);
     box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
     display: inline-block;
-  ';
+  `;
 
   const triangle = document.createElement('span');
-  triangle.style.cssText = '
+  triangle.style.cssText = `
     width: 0;
     height: 0;
     border-left: 13px solid transparent;
     border-right: 13px solid transparent;
     border-bottom: 24px solid rgba(0, 255, 0, 0.75);
     filter: drop-shadow(0 0 10px rgba(0, 255, 0, 0.45));
-  ';
+  `;
 
   const circle = document.createElement('span');
-  circle.style.cssText = '
+  circle.style.cssText = `
     width: 22px;
     height: 22px;
     border-radius: 50%;
@@ -208,7 +208,7 @@ function buildTrifoldIcon() {
     box-shadow: 0 0 12px rgba(255, 255, 102, 0.45);
     background: rgba(30, 30, 0, 0.55);
     display: inline-block;
-  ';
+  `;
 
   icon.append(square, triangle, circle);
   return icon;
@@ -221,7 +221,7 @@ function ensureIntroSequenceOverlay() {
   }
 
   const overlay = document.createElement('div');
-  overlay.style.cssText = '
+  overlay.style.cssText = `
     position: fixed;
     inset: 0;
     display: none;
@@ -233,10 +233,10 @@ function ensureIntroSequenceOverlay() {
     font-family: "Courier New", monospace;
     letter-spacing: 0.22em;
     text-transform: uppercase;
-  ';
+  `;
 
   const container = document.createElement('div');
-  container.style.cssText = '
+  container.style.cssText = `
     width: min(880px, 86vw);
     display: flex;
     flex-direction: column;
@@ -246,7 +246,7 @@ function ensureIntroSequenceOverlay() {
     background: rgba(0, 0, 0, 0.85);
     border: 2px solid rgba(0, 255, 0, 0.35);
     box-shadow: 0 0 46px rgba(0, 255, 100, 0.28);
-  ';
+  `;
 
   const icon = buildTrifoldIcon();
 
@@ -259,13 +259,13 @@ function ensureIntroSequenceOverlay() {
   fileLabel.textContent = 'PREPARING PLAYLIST…';
 
   const video = document.createElement('video');
-  video.style.cssText = '
+  video.style.cssText = `
     width: 100%;
     max-height: 60vh;
     background: #000;
     border: 1px solid rgba(0, 255, 0, 0.4);
     box-shadow: inset 0 0 24px rgba(0, 255, 0, 0.25);
-  ';
+  `;
   video.controls = false;
   video.autoplay = true;
   video.playsInline = true;
