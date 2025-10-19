@@ -1211,6 +1211,7 @@
  <div id="sequence-overlay" style="display: none;"></div>
  
  <!-- Referrer Glitch Overlay -->
+<div id="referrerStageRoot" class="referrer-stage-root">
  <div id="celliRefOverlay" class="celli-ref-overlay" aria-hidden="true">
   <div class="celli-ref-mask"></div>
   <div class="celli-ref-panel" role="dialog" aria-modal="true" aria-labelledby="refTitle">
@@ -1222,22 +1223,22 @@
     </div>
     <button id="refClose" class="ref-close" aria-label="Close overlay">Close</button>
    </div>
-   
+
    <div id="refList" class="ref-list"></div>
-   
+
    <div class="ref-footer">
     <div class="ref-sub">Looks unstable — try "recreate" for another pass.</div>
     <div class="ref-controls">
-     <a id="refFeedbackLink" class="btn ref-feedback-link" href="./templates/componentized/beta-focus-form.html" target="_blank" rel="noopener">Feedback form</a>
+     <a id="refFeedbackLink" class="btn ref-feedback-link" href="./templates/componentized/beta-focus-form.html?fullsequence=beta" target="_blank" rel="noopener">Feedback form</a>
      <button id="refReset" class="btn" style="background: #3498db;">↻ Reset</button>
      <button id="refRecreate" class="btn">Recreate</button>
      <button id="refDismiss" class="btn">Dismiss</button>
     </div>
    </div>
-   
+
    <div id="refGlitch" class="ref-glitch" aria-hidden="true"></div>
    <div class="scanlines"></div>
-   
+
    <!-- Sidebar Ad -->
    <div id="refSidebar" class="ref-sidebar" style="display:none;">
     <button id="refSidebarClose" class="ref-sidebar-close" aria-label="Close sidebar">✕</button>
@@ -1262,28 +1263,29 @@
     </button>
    </div>
   </div>
-  
-</div>
- 
+
+ </div>
+
  <!-- Tooltip -->
  <div id="refTooltip" class="ref-tooltip">
   <span class="ref-tooltip-bullet" aria-hidden="true"></span>
   <span class="ref-tooltip-text"></span>
  </div>
- 
-<!-- Edge Impact Effects -->
-<div id="edgeImpact" class="edge-impact" aria-hidden="true"></div>
-<div id="baseDarkness" class="base-darkness" aria-hidden="true"></div>
-<div id="darkeningOverlay" class="darkening-overlay" aria-hidden="true"></div>
-<div id="lightBeam" class="light-beam" aria-hidden="true"></div>
 
-<!-- Video Player Overlay -->
- <div id="videoPlayerOverlay" style="position:fixed; inset:0; background:#000; z-index:30000; display:none; flex-direction:column; align-items:center; justify-content:center;">
+ <!-- Edge Impact Effects -->
+ <div id="edgeImpact" class="edge-impact" aria-hidden="true"></div>
+ <div id="baseDarkness" class="base-darkness" aria-hidden="true"></div>
+ <div id="darkeningOverlay" class="darkening-overlay" aria-hidden="true"></div>
+ <div id="lightBeam" class="light-beam" aria-hidden="true"></div>
+
+ <!-- Video Player Overlay -->
+ <div id="videoPlayerOverlay" style="position:fixed; inset:0; background:#000; z-index:2147484200; display:none; flex-direction:column; align-items:center; justify-content:center;">
   <div id="betaVideoStage" data-beta-stage="video" style="position:relative; width:90vw; height:90vh; display:flex; align-items:center; justify-content:center;">
-  <video id="introVideo" style="display:none;" crossorigin="anonymous"></video>
-  <canvas id="videoCanvas" style="max-width:100%; max-height:100%; object-fit:contain;"></canvas>
-  <div style="position:absolute; bottom:20px; right:20px; display:flex; gap:10px;">
-   <button id="videoCloseBtn" style="padding:10px 20px; background:#e74c3c; border:none; border-radius:6px; color:white; cursor:pointer; font-weight:600;">✕ Close</button>
+   <video id="introVideo" style="display:none;" crossorigin="anonymous"></video>
+   <canvas id="videoCanvas" style="max-width:100%; max-height:100%; object-fit:contain;"></canvas>
+   <div style="position:absolute; bottom:20px; right:20px; display:flex; gap:10px;">
+    <button id="videoCloseBtn" style="padding:10px 20px; background:#e74c3c; border:none; border-radius:6px; color:white; cursor:pointer; font-weight:600;">✕ Close</button>
+   </div>
   </div>
  </div>
 </div>
@@ -1314,6 +1316,7 @@
   console.error('=== DIAGNOSTIC MODE - CHECK FOR ERRORS BELOW ===');
   
   const overlay = document.getElementById('celliRefOverlay');
+  const refStageRoot = document.getElementById('referrerStageRoot');
   const bodyEl = document.body;
   const refHeader = document.querySelector('.ref-header');
   const refLogo = document.getElementById('refLogo');
@@ -1332,7 +1335,11 @@
   const loomAudioStatus = refSidebarAck ? refSidebarAck.querySelector('.loom-invite-card__subline--audio') : null;
   const refFeedbackLink = document.getElementById('refFeedbackLink');
   const LOOM_AUDIO_STATUS_TEXT = 'Streaming CallYouByMyName.mp3';
-  const BETA_FOCUS_FORM_URL = './templates/componentized/beta-focus-form.html';
+  const BETA_FOCUS_FORM_URL = new URL('./templates/componentized/beta-focus-form.html?fullsequence=beta', window.location.href).toString();
+  const FULL_SEQUENCE_FLAG_KEY = 'celli:fullSequenceActive';
+  const FULL_SEQUENCE_STAGE_KEY = 'celli:fullSequenceStage';
+  const FULL_SEQUENCE_REFERRER_STAGE = 'referrer';
+  const FULL_SEQUENCE_BETA_STAGE = 'beta';
   let betaFormRedirectTimeoutId = null;
   let betaFallbackCheckTimeoutId = null;
   let betaVideoSequenceStarted = false;
@@ -1340,6 +1347,49 @@
   if (refFeedbackLink) {
     refFeedbackLink.href = BETA_FOCUS_FORM_URL;
   }
+
+  function ensureReferrerSequenceSession() {
+    try {
+      window.sessionStorage?.setItem(FULL_SEQUENCE_FLAG_KEY, 'true');
+      const currentStage = window.sessionStorage?.getItem(FULL_SEQUENCE_STAGE_KEY);
+      if (!currentStage || currentStage === FULL_SEQUENCE_REFERRER_STAGE) {
+        window.sessionStorage.setItem(FULL_SEQUENCE_STAGE_KEY, FULL_SEQUENCE_REFERRER_STAGE);
+      }
+    } catch (error) {
+      console.warn('⚠️ Unable to establish Full Sequence session for referrer overlay:', error);
+    }
+  }
+
+  function markBetaRedirectPending() {
+    document.body.dataset.betaRedirectComplete = 'pending';
+  }
+
+  function markBetaRedirectComplete() {
+    if (document.body.dataset.betaRedirectComplete === 'pending') {
+      document.body.dataset.betaRedirectComplete = 'true';
+    }
+  }
+
+  function activateReferrerStageRoot() {
+    if (refStageRoot) {
+      refStageRoot.classList.add('active');
+    }
+    if (bodyEl) {
+      bodyEl.classList.add('referrer-stage-active');
+    }
+  }
+
+  function deactivateReferrerStageRoot() {
+    if (refStageRoot) {
+      refStageRoot.classList.remove('active');
+    }
+    if (bodyEl) {
+      bodyEl.classList.remove('referrer-stage-active');
+    }
+  }
+
+  window.addEventListener('beforeunload', markBetaRedirectComplete);
+  window.addEventListener('pagehide', markBetaRedirectComplete);
 
   function setLoomAudioStatus(isPlaying) {
     if (!loomAudioStatus) return;
@@ -4255,8 +4305,8 @@
     }
 
     try {
-      if (window.sessionStorage?.getItem('celli:fullSequenceActive') === 'true') {
-        window.sessionStorage.setItem('celli:fullSequenceStage', 'beta');
+      if (window.sessionStorage?.getItem(FULL_SEQUENCE_FLAG_KEY) === 'true') {
+        window.sessionStorage.setItem(FULL_SEQUENCE_STAGE_KEY, FULL_SEQUENCE_BETA_STAGE);
       }
     } catch (error) {
       console.warn('⚠️ Unable to persist Full Sequence stage for beta redirect:', error);
@@ -4269,8 +4319,8 @@
       betaFormRedirectTimeoutId = null;
       console.log('➡️ Redirecting to beta focus form…');
       try {
-        document.body.dataset.betaRedirectComplete = 'pending';
-        window.location.href = BETA_FOCUS_FORM_URL;
+        markBetaRedirectPending();
+        window.location.assign(BETA_FOCUS_FORM_URL);
       } catch (error) {
         console.error('⚠️ Unable to redirect to beta focus form', error);
         launchBetaFormVideoSequence();
@@ -5083,18 +5133,26 @@
   
   function openOverlay() {
     overlay.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
+    ensureReferrerSequenceSession();
+    if (bodyEl) {
+      bodyEl.style.overflow = 'hidden';
+    }
+    activateReferrerStageRoot();
     updateLightBeamFocus();
   }
 
   function dismiss() {
     overlay.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
+    if (bodyEl) {
+      bodyEl.style.overflow = '';
+    }
+    deactivateReferrerStageRoot();
     hideSidebar();
     hideTooltip();
     resetImpacts();
     resetLightBeamFocus();
     clearBetaFallbackTimeout();
+    delete document.body.dataset.betaRedirectComplete;
   }
   
   function showSidebar(url, withImpact = false) {
