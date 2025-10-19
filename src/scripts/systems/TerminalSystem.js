@@ -4,7 +4,8 @@
  * Manages the VisiCalc terminal input:
  * - Command input with validation
  * - Prompt auto-correction to "ENTE"
- * - Valid commands: ENTER, EXIT, LEAVE, MYHOUSE.WAD, OURHOUSE.LOOM, MADNESS.LOOM
+ * - Valid commands: ENTER, EXIT, LEAVE, SEARCH, KEY, SNAKE, BURGER KING,
+ *   RAMSES II, MYHOUSE.WAD, OURHOUSE.LOOM, MADNESS.LOOM
  * - Response system
  * - Integration with R infection
  */
@@ -21,8 +22,13 @@ export class TerminalSystem {
       // Valid commands
       validCommands: [
         'ENTER',
-        'EXIT', 
+        'EXIT',
         'LEAVE',
+        'SEARCH',
+        'KEY',
+        'SNAKE',
+        'BURGER KING',
+        'RAMSES II',
         'MYHOUSE.WAD',
         'OURHOUSE.LOOM',
         'MADNESS.LOOM'

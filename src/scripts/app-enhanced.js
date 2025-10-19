@@ -46,9 +46,18 @@ const INTRO_THEME_SOURCES = {
   [INTRO_THEME_DEFAULT]: './theme1.mp3',
   [INTRO_THEME_SECONDARY]: './theme2.mp3'
 };
+const INTRO_SEQUENCE_POPUP_AUDIO = './pop-up.mp3';
+const INTRO_SEQUENCE_VIDEO_PREFIX = './Intro';
+const INTRO_SEQUENCE_VIDEO_SUFFIX = '.mp4';
+const INTRO_SEQUENCE_MAX_COUNT = 12;
+const INTRO_SEQUENCE_SKIP_HINT = 'CLICK OR TAP TO SKIP';
 let constructionCompleteCache = null;
 let sceneHooksRegistered = false;
 let introSceneMusicManaged = false;
+
+let introSequenceOverlay = null;
+let introSequenceActive = false;
+let introSequenceMusicKey = null;
 
 console.log('%c🎨 Celli - Enhanced Scene System Loading...',
   'background: #8ab4ff; color: #000; font-size: 18px; padding: 10px; font-weight: bold;');
@@ -88,6 +97,357 @@ function stopAnimationLoop() {
     clock.stop();
     console.log('⏹️ Animation loop stopped');
   }
+}
+
+function resolveIntroThemeKey() {
+  const hasCompleted = hasConstructionCompleted();
+  let themeKey = INTRO_THEME_DEFAULT;
+
+  try {
+    const stored = window.localStorage?.getItem(INTRO_THEME_STORAGE_KEY);
+    if (stored === INTRO_THEME_DEFAULT || stored === INTRO_THEME_SECONDARY) {
+      themeKey = stored;
+    } else if (hasCompleted) {
+      themeKey = INTRO_THEME_SECONDARY;
+    }
+  } catch (error) {
+    console.warn('⚠️ Unable to read intro theme preference for sequence playback:', error);
+    if (hasCompleted) {
+      themeKey = INTRO_THEME_SECONDARY;
+    }
+  }
+
+  return themeKey;
+}
+
+function resolveIntroThemeUrl() {
+  const key = resolveIntroThemeKey();
+  return {
+    key,
+    url: INTRO_THEME_SOURCES[key] || INTRO_THEME_SOURCES[INTRO_THEME_DEFAULT]
+  };
+}
+
+async function probeIntroVideo(url) {
+  try {
+    const headResponse = await fetch(url, { method: 'HEAD' });
+    if (headResponse.ok) {
+      return true;
+    }
+  } catch (error) {
+    console.warn('⚠️ HEAD probe failed for intro video', url, error);
+  }
+
+  try {
+    const response = await fetch(url, { headers: { Range: 'bytes=0-0' } });
+    return response.ok;
+  } catch (error) {
+    console.warn('⚠️ Intro video probe failed', url, error);
+    return false;
+  }
+}
+
+async function discoverIntroSequenceVideos() {
+  const playlist = [];
+
+  for (let index = 1; index <= INTRO_SEQUENCE_MAX_COUNT; index += 1) {
+    const candidate = `${INTRO_SEQUENCE_VIDEO_PREFIX}${index}${INTRO_SEQUENCE_VIDEO_SUFFIX}`;
+    /* eslint-disable no-await-in-loop */
+    const exists = await probeIntroVideo(candidate);
+    /* eslint-enable no-await-in-loop */
+
+    if (!exists) {
+      if (index === 1) {
+        playlist.length = 0;
+      }
+      break;
+    }
+
+    playlist.push(candidate);
+  }
+
+  return playlist;
+}
+
+function buildTrifoldIcon() {
+  const icon = document.createElement('div');
+  icon.style.cssText = '
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  ';
+
+  const square = document.createElement('span');
+  square.style.cssText = '
+    width: 22px;
+    height: 22px;
+    border: 2px solid #0ff;
+    background: rgba(0, 40, 40, 0.4);
+    box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
+    display: inline-block;
+  ';
+
+  const triangle = document.createElement('span');
+  triangle.style.cssText = '
+    width: 0;
+    height: 0;
+    border-left: 13px solid transparent;
+    border-right: 13px solid transparent;
+    border-bottom: 24px solid rgba(0, 255, 0, 0.75);
+    filter: drop-shadow(0 0 10px rgba(0, 255, 0, 0.45));
+  ';
+
+  const circle = document.createElement('span');
+  circle.style.cssText = '
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid #ff6;
+    box-shadow: 0 0 12px rgba(255, 255, 102, 0.45);
+    background: rgba(30, 30, 0, 0.55);
+    display: inline-block;
+  ';
+
+  icon.append(square, triangle, circle);
+  return icon;
+}
+
+function ensureIntroSequenceOverlay() {
+  if (introSequenceOverlay && introSequenceOverlay.overlay?.isConnected) {
+    introSequenceOverlay.overlay.remove();
+    introSequenceOverlay = null;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = '
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at center, rgba(0, 15, 15, 0.94) 0%, rgba(0, 0, 0, 0.96) 70%);
+    z-index: 4000;
+    color: #0f0;
+    font-family: "Courier New", monospace;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  ';
+
+  const container = document.createElement('div');
+  container.style.cssText = '
+    width: min(880px, 86vw);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 24px 28px 32px;
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid rgba(0, 255, 0, 0.35);
+    box-shadow: 0 0 46px rgba(0, 255, 100, 0.28);
+  ';
+
+  const icon = buildTrifoldIcon();
+
+  const title = document.createElement('div');
+  title.textContent = 'STANDARD INTRO SEQUENCE';
+  title.style.cssText = 'font-size: 18px; color: #0ff;';
+
+  const fileLabel = document.createElement('div');
+  fileLabel.style.cssText = 'font-size: 12px; color: #9eff9e;';
+  fileLabel.textContent = 'PREPARING PLAYLIST…';
+
+  const video = document.createElement('video');
+  video.style.cssText = '
+    width: 100%;
+    max-height: 60vh;
+    background: #000;
+    border: 1px solid rgba(0, 255, 0, 0.4);
+    box-shadow: inset 0 0 24px rgba(0, 255, 0, 0.25);
+  ';
+  video.controls = false;
+  video.autoplay = true;
+  video.playsInline = true;
+  video.setAttribute('webkit-playsinline', 'true');
+
+  const skipHint = document.createElement('div');
+  skipHint.textContent = INTRO_SEQUENCE_SKIP_HINT;
+  skipHint.style.cssText = 'font-size: 11px; opacity: 0.7;';
+
+  container.append(icon, title, fileLabel, video, skipHint);
+  overlay.appendChild(container);
+  document.body.appendChild(overlay);
+
+  introSequenceOverlay = {
+    overlay,
+    container,
+    title,
+    fileLabel,
+    video,
+    skipHint
+  };
+
+  return introSequenceOverlay;
+}
+
+async function runIntroVideoSequence() {
+  if (introSequenceActive) {
+    return;
+  }
+
+  const playlist = await discoverIntroSequenceVideos();
+  if (!playlist.length) {
+    return;
+  }
+
+  const ui = ensureIntroSequenceOverlay();
+  const { key: themeKey, url: themeUrl } = resolveIntroThemeUrl();
+
+  introSequenceActive = true;
+  introSequenceMusicKey = `music:intro-sequence:${themeKey}`;
+
+  window.dispatchEvent(new CustomEvent('celli:intro-music-managed', {
+    detail: { managed: true }
+  }));
+
+  audioSystem.playMusic({
+    key: introSequenceMusicKey,
+    url: themeUrl,
+    loop: true,
+    volume: 0.62,
+    fadeInDuration: 2.2
+  }).catch((error) => {
+    console.warn('⚠️ Failed to start intro sequence music:', error);
+  });
+
+  try {
+    await audioSystem.loadAudioBuffer(INTRO_SEQUENCE_POPUP_AUDIO, 'sfx:intro-popup');
+    audioSystem.playBuffer('sfx:intro-popup', { volume: 0.55 });
+  } catch (error) {
+    console.warn('⚠️ Unable to play intro popup audio:', error);
+  }
+
+  return new Promise((resolve) => {
+    let currentIndex = 0;
+    let completed = false;
+
+    function cleanupIntroSequenceListeners() {
+      ui.video.removeEventListener('ended', handleEnded);
+      ui.video.removeEventListener('error', handleError);
+      ui.overlay.removeEventListener('click', handleOverlayClick);
+      ui.video.removeEventListener('click', handleVideoClick);
+      window.removeEventListener('beforeunload', cleanupIntroSequenceListeners);
+    }
+
+    const finish = () => {
+      if (completed) {
+        return;
+      }
+      completed = true;
+
+      cleanupIntroSequenceListeners();
+
+      const fadeDuration = 420;
+      ui.overlay.style.transition = `opacity ${fadeDuration}ms ease`;
+      ui.overlay.style.opacity = '0';
+
+      const cleanup = () => {
+        ui.overlay.style.display = 'none';
+        ui.video.pause();
+        ui.video.removeAttribute('src');
+        try {
+          ui.video.load();
+        } catch (error) {
+          console.warn('⚠️ Unable to reset intro sequence video element:', error);
+        }
+
+        introSequenceActive = false;
+        resolve();
+      };
+
+      window.setTimeout(cleanup, fadeDuration);
+    };
+
+    const updateLabel = (source, index) => {
+      const fileName = source.split('/').pop() || source;
+      ui.fileLabel.textContent = `INTRO ${index + 1}/${playlist.length}: ${fileName.toUpperCase()}`;
+    };
+
+    const playAtIndex = (index) => {
+      if (index >= playlist.length) {
+        finish();
+        return;
+      }
+
+      currentIndex = index;
+      const source = playlist[index];
+
+      ui.video.pause();
+      ui.video.removeAttribute('src');
+      try {
+        ui.video.load();
+      } catch (error) {
+        console.warn('⚠️ Unable to clear intro video element before switching sources:', error);
+      }
+
+      ui.video.src = source;
+      updateLabel(source, index);
+
+      const playPromise = ui.video.play();
+      if (playPromise && typeof playPromise.then === 'function') {
+        playPromise.catch((error) => {
+          console.warn('⚠️ Intro video autoplay blocked or failed:', error);
+          playAtIndex(index + 1);
+        });
+      }
+    };
+
+    const skipCurrent = () => {
+      if (currentIndex + 1 < playlist.length) {
+        playAtIndex(currentIndex + 1);
+      } else {
+        finish();
+      }
+    };
+
+    const handleEnded = () => {
+      playAtIndex(currentIndex + 1);
+    };
+
+    const handleError = () => {
+      console.warn('⚠️ Error during intro sequence playback, skipping to next video.');
+      playAtIndex(currentIndex + 1);
+    };
+
+    const handleOverlayClick = (event) => {
+      if (event.target === ui.overlay) {
+        skipCurrent();
+      }
+    };
+
+    const handleVideoClick = (event) => {
+      event.preventDefault();
+      skipCurrent();
+    };
+
+    ui.video.addEventListener('ended', handleEnded);
+    ui.video.addEventListener('error', handleError);
+    ui.overlay.addEventListener('click', handleOverlayClick);
+    ui.video.addEventListener('click', handleVideoClick);
+
+    ui.overlay.style.opacity = '0';
+    ui.overlay.style.display = 'flex';
+    requestAnimationFrame(() => {
+      ui.overlay.style.transition = 'opacity 360ms ease';
+      ui.overlay.style.opacity = '1';
+    });
+
+    playAtIndex(0);
+
+    // Ensure cleanup if user navigates away mid-playlist
+    window.addEventListener('beforeunload', cleanupIntroSequenceListeners, { once: true });
+  });
 }
 
 // ============================================================================
@@ -251,8 +611,15 @@ export async function startApp() {
     // Start animation loop
     startAnimationLoop();
 
+    console.log('🎞️ Preparing standard intro video playlist…');
+    try {
+      await runIntroVideoSequence();
+    } catch (sequenceError) {
+      console.warn('⚠️ Intro video sequence failed or was skipped early:', sequenceError);
+    }
+
     // Transition to intro scene - THIS STARTS THE INTRO SEQUENCE!
-    console.log('🎬 Starting intro sequence transition...');
+    console.log('🎬 Starting intro scene transition...');
     await sceneManager.transitionTo('intro');
 
     // Mark as initialized after successful transition

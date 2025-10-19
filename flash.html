@@ -360,6 +360,21 @@
         .timeline-icon-btn .venn-icon::after {
             right: 0;
         }
+        .timeline-icon-btn .layer-icon {
+            width: 18px;
+            height: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2px 0;
+        }
+        .timeline-icon-btn .layer-icon span {
+            display: block;
+            height: 3px;
+            border-radius: 2px;
+            background: linear-gradient(to right, #3a3a3a, #111);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+        }
         .playback-controls {
             display: flex;
             gap: 4px;
@@ -587,6 +602,13 @@
                 </div>
                 <button id="onion-skin-btn" class="timeline-icon-btn" title="Onion Skin Preview">
                     <div class="venn-icon"></div>
+                </button>
+                <button id="layer-btn" class="timeline-icon-btn" title="Layer Controls">
+                    <div class="layer-icon">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
                 </button>
                 <span style="margin-right: 8px;">Timeline</span>
                 <select id="weapon-select" style="font-size: 11px; padding: 2px 4px; margin-right: 8px;">
@@ -3794,7 +3816,24 @@
         if (onionSkinBtn) {
             onionSkinBtn.addEventListener('click', (event) => {
                 event.stopPropagation();
-                showFlashVideo('Key2.MP4', 'ONION SKIN REFERENCE');
+                showFlashVideo('./key3.mp4', 'ONION SKIN REFERENCE', './pop-up.mp3');
+            });
+        }
+
+        const layerBtn = document.getElementById('layer-btn');
+        if (layerBtn) {
+            layerBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                showFlashVideo('./key4.mp4', 'LAYER CONTROLS', './pop-up.mp3');
+            });
+        }
+
+        const keyframeCell = document.querySelector('.frame-cell.keyframe');
+        if (keyframeCell) {
+            keyframeCell.style.cursor = 'pointer';
+            keyframeCell.addEventListener('click', (event) => {
+                event.stopPropagation();
+                showFlashVideo('./key2.mp4', 'KEYFRAME REFERENCE', './pop-up.mp3');
             });
         }
 
@@ -4432,11 +4471,30 @@
             }
         }
         
-        function showFlashVideo(src, title) {
+        function showFlashVideo(src, title, audioSrc) {
             if (!src) return;
+
+            const resolveMediaPath = (path) => {
+                if (!path) return '';
+                const trimmed = path.trim();
+                if (!trimmed) return '';
+                if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('data:')) {
+                    return trimmed;
+                }
+                if (trimmed.startsWith('./')) {
+                    return trimmed;
+                }
+                return `./${trimmed}`;
+            };
+
+            const resolvedSrc = resolveMediaPath(src);
+            const resolvedAudio = audioSrc ? resolveMediaPath(audioSrc) : '';
 
             const existingOverlay = document.querySelector('.flash-video-overlay');
             if (existingOverlay) {
+                if (existingOverlay.__audio && typeof existingOverlay.__audio.pause === 'function') {
+                    try { existingOverlay.__audio.pause(); } catch (error) { console.warn('⚠️ Unable to stop previous flash audio:', error); }
+                }
                 existingOverlay.remove();
             }
 
@@ -4465,17 +4523,36 @@
             const video = document.createElement('video');
             video.controls = true;
             video.autoplay = true;
-            video.src = src;
+            video.src = resolvedSrc;
             video.style.background = '#000';
+
+            let audioHandle = null;
+            if (resolvedAudio) {
+                try {
+                    audioHandle = new Audio(resolvedAudio);
+                    audioHandle.volume = 0.8;
+                    audioHandle.play().catch((error) => {
+                        console.warn('⚠️ Flash popup audio blocked:', error);
+                    });
+                } catch (error) {
+                    console.warn('⚠️ Unable to create flash popup audio:', error);
+                }
+            }
 
             const fallback = document.createElement('div');
             fallback.style.cssText = 'padding: 24px; font-weight: bold; text-align: center; letter-spacing: 0.12em; display: none;';
-            fallback.textContent = 'UNABLE TO LOAD KEY 2.MP4';
+            fallback.textContent = `UNABLE TO LOAD ${resolvedSrc.split('/').pop()?.toUpperCase() || 'VIDEO'}`;
 
             const fadeOutOverlay = () => {
                 overlay.style.transition = 'opacity 3s ease';
                 overlay.style.opacity = '0';
-                setTimeout(() => overlay.remove(), 3000);
+                setTimeout(() => {
+                    overlay.remove();
+                    if (audioHandle) {
+                        try { audioHandle.pause(); } catch (error) { console.warn('⚠️ Unable to pause flash popup audio:', error); }
+                        audioHandle = null;
+                    }
+                }, 3000);
             };
 
             video.addEventListener('ended', fadeOutOverlay, { once: true });
@@ -4496,6 +4573,7 @@
                 }
             });
 
+            overlay.__audio = audioHandle;
             document.body.appendChild(overlay);
         }
 
