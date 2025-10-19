@@ -12,6 +12,143 @@ import { assetPool } from './systems/AssetPool.js';
 import { configSystem } from './systems/ConfigSystem.js';
 import { sequenceEngine } from './systems/SequenceEngine.js';
 import { audioSystem } from './systems/AudioSystem.js';
+import appConfig from './config.js';
+
+const mediaConfig = appConfig.media || {};
+const introVideoConfig = mediaConfig.introVideo || {};
+const keyMomentsVideoConfig = mediaConfig.keyMoments || {};
+const audioConfig = mediaConfig.audio || {};
+const themeAudioConfig = audioConfig.theme || {};
+const keyAudioConfig = audioConfig.key || {};
+const popUpAudioConfig = audioConfig.popUp || {};
+
+const omitPreload = (settings = {}, extra = {}) => {
+  const { preload, ...rest } = settings;
+  return { ...rest, ...extra };
+};
+
+const INTRO_VIDEO_ASSETS = [
+  { key: 'video_intro_primary', url: './intro.mp4', label: 'Intro Sequence 1' },
+  { key: 'video_intro_variant_2', url: './intro2.mp4', label: 'Intro Sequence 2' },
+  { key: 'video_intro_variant_3', url: './intro3.mp4', label: 'Intro Sequence 3' },
+  { key: 'video_intro_variant_4', url: './intro4.mp4', label: 'Intro Sequence 4' },
+  { key: 'video_intro_variant_5', url: './intro5.mp4', label: 'Intro Sequence 5' },
+  { key: 'video_intro_variant_6', url: './intro6.mp4', label: 'Intro Sequence 6' },
+  { key: 'video_intro_variant_7', url: './intro7.mp4', label: 'Intro Sequence 7' }
+];
+
+const KEY_VIDEO_ASSETS = [
+  { key: 'video_key_primary', url: './key.MP4', variant: 'primary' },
+  { key: 'video_key_alternate_a', url: './Key2.MP4', variant: 'alternate-a' },
+  { key: 'video_key_alternate_b', url: './Key%202.MP4', variant: 'alternate-b' }
+];
+
+const THEME_AUDIO_ASSETS = [
+  { key: 'audio_theme_primary', url: './theme1.mp3', variant: 'primary' },
+  { key: 'audio_theme_secondary', url: './theme2.mp3', variant: 'secondary' }
+];
+
+const OPTIONAL_AUDIO_ASSETS = [
+  {
+    key: 'audio_key_motif',
+    url: './key.mp3',
+    settings: keyAudioConfig,
+    optional: true,
+    tags: ['key'],
+    variant: 'key-motif'
+  },
+  {
+    key: 'audio_pop_up',
+    url: './pop-up.mp3',
+    settings: popUpAudioConfig,
+    optional: true,
+    tags: ['ui'],
+    variant: 'pop-up'
+  }
+];
+
+/**
+ * Canonical manifest of static assets used by the application.
+ * Build and deployment tooling can import this object (or the helper
+ * `getAssetManifest`) to copy/link the real media files without creating
+ * placeholder artifacts.
+ */
+export const assetManifest = {
+  shader_blackhole_vert: {
+    url: './src/assets/shaders/blackhole.vert.glsl',
+    type: 'shader',
+    preload: true,
+    tags: ['shader', 'core'],
+    metadata: { label: 'Blackhole Vertex Shader' }
+  },
+  shader_blackhole_frag: {
+    url: './src/assets/shaders/blackhole.frag.glsl',
+    type: 'shader',
+    preload: true,
+    tags: ['shader', 'core'],
+    metadata: { label: 'Blackhole Fragment Shader' }
+  },
+  quotes: {
+    url: './src/data/quotes.json',
+    type: 'json',
+    preload: true,
+    tags: ['data', 'narrative'],
+    metadata: { label: 'Quote Data' }
+  }
+};
+
+INTRO_VIDEO_ASSETS.forEach((asset, index) => {
+  assetManifest[asset.key] = {
+    url: asset.url,
+    type: 'video',
+    preload: introVideoConfig.preload ?? true,
+    tags: ['video', 'intro'],
+    metadata: omitPreload(introVideoConfig, {
+      order: index + 1,
+      label: asset.label
+    })
+  };
+});
+
+KEY_VIDEO_ASSETS.forEach((asset, index) => {
+  assetManifest[asset.key] = {
+    url: asset.url,
+    type: 'video',
+    preload: keyMomentsVideoConfig.preload ?? false,
+    tags: ['video', 'key'],
+    metadata: omitPreload(keyMomentsVideoConfig, {
+      order: index + 1,
+      variant: asset.variant
+    })
+  };
+});
+
+THEME_AUDIO_ASSETS.forEach((asset, index) => {
+  assetManifest[asset.key] = {
+    url: asset.url,
+    type: 'audio',
+    preload: themeAudioConfig.preload ?? true,
+    tags: ['audio', 'theme', 'music'],
+    metadata: omitPreload(themeAudioConfig, {
+      order: index + 1,
+      variant: asset.variant
+    })
+  };
+});
+
+OPTIONAL_AUDIO_ASSETS.forEach(asset => {
+  const { settings = {}, optional = false, tags = [] } = asset;
+  assetManifest[asset.key] = {
+    url: asset.url,
+    type: 'audio',
+    preload: settings.preload ?? false,
+    optional,
+    tags: ['audio', ...tags],
+    metadata: omitPreload(settings, { variant: asset.variant })
+  };
+});
+
+export const getAssetManifest = () => JSON.parse(JSON.stringify(assetManifest));
 
 /**
  * Register all default configuration
@@ -167,22 +304,15 @@ export function registerDefaultConfig() {
 export function registerAssets() {
   console.group('📦 Registering assets...');
 
-  // Shaders
-  assetPool.register('shader_blackhole_vert', './src/assets/shaders/blackhole.vert.glsl', 'shader');
-  console.log('➕ shader_blackhole_vert (shader)');
-  assetPool.register('shader_blackhole_frag', './src/assets/shaders/blackhole.frag.glsl', 'shader');
-  console.log('➕ shader_blackhole_frag (shader)');
-  
-  // JSON data
-  assetPool.register('quotes', './src/data/quotes.json', 'json');
-  console.log('➕ quotes (json)');
+  assetPool.registerBatch(assetManifest);
 
-  // Sequences (if they exist)
-  // assetPool.register('seq_intro', './src/data/sequences/intro.json', 'json');
-  // assetPool.register('seq_theos', './src/data/sequences/theos.json', 'json');
-
-  // Audio (when we have audio files)
-  // assetPool.register('audio_chime', './src/assets/audio/chime.mp3', 'audio');
+  Object.entries(assetManifest).forEach(([key, config]) => {
+    const preloadTag = config.preload ? 'preload' : 'lazy';
+    const tagLabel = config.tags && config.tags.length
+      ? ` tags:[${config.tags.join(', ')}]`
+      : '';
+    console.log(`➕ ${key} (${config.type}, ${preloadTag})${tagLabel}`);
+  });
 
   console.groupEnd();
   console.log(`✅ ${assetPool.assets.size} assets registered`);
@@ -199,7 +329,7 @@ export async function preloadAssets(onProgress = null) {
   }
 
   try {
-    await assetPool.loadAll();
+    await assetPool.loadAll({ preloadOnly: true });
     console.log('✅ All assets loaded');
     return true;
   } catch (error) {

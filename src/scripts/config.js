@@ -36,7 +36,47 @@ export default {
     sceneSelect: true,
     audioEnabled: true
   },
-  
+
+  // Media playback toggles for reuse across riddles
+  media: {
+    introVideo: {
+      autoplay: true,
+      loop: false,
+      muted: false,
+      preload: true,
+      volume: 1.0
+    },
+    keyMoments: {
+      autoplay: false,
+      loop: false,
+      muted: false,
+      preload: false,
+      volume: 0.9
+    },
+    audio: {
+      theme: {
+        autoplay: true,
+        loop: true,
+        preload: true,
+        volume: 0.7,
+        fadeIn: 3.5,
+        fadeOut: 2.0
+      },
+      key: {
+        autoplay: false,
+        loop: false,
+        preload: false,
+        volume: 0.85
+      },
+      popUp: {
+        autoplay: false,
+        loop: false,
+        preload: false,
+        volume: 0.6
+      }
+    }
+  },
+
   // Three.js CDN
   three: {
     version: '0.160.0',
