@@ -52,20 +52,30 @@ export class UIManager {
    * Initialize all UI components
    */
   async init() {
-    console.log('[UIManager] Initializing complete UI system...');
-    
+    const canGroup = typeof console.groupCollapsed === 'function';
+    if (canGroup) {
+      console.groupCollapsed('[UIManager] Initializing complete UI system...');
+    } else {
+      console.log('[UIManager] Initializing complete UI system...');
+    }
+    console.log('[UIManager] Document readyState:', document.readyState);
+    console.time('[UIManager] Init duration');
+
     try {
       // Initialize spreadsheet
       this.state.spreadsheet = new SpreadsheetGridComplete({
         onCellSelect: (data) => this._handleCellSelect(data),
         onFormulaApply: (data) => this._handleFormulaApply(data)
       });
-      
+
+      console.time('[UIManager] Spreadsheet build');
       const gridSuccess = this.state.spreadsheet.build();
+      console.timeEnd('[UIManager] Spreadsheet build');
+      console.log('[UIManager] Spreadsheet build result:', gridSuccess);
       if (!gridSuccess) {
-        throw new Error('Failed to build spreadsheet grid');
+        throw new Error('Failed to build spreadsheet grid (see SpreadsheetGrid-Complete logs above)');
       }
-      
+
       // Initialize narrative windows
       this.state.windows = new NarrativeWindows();
       const windowsSuccess = this.state.windows.init();
@@ -93,11 +103,19 @@ export class UIManager {
       
       // Setup additional UI handlers
       this._setupUIHandlers();
-      
+
+      console.timeEnd('[UIManager] Init duration');
       console.log('[UIManager] ✅ Complete UI system initialized');
+      if (canGroup) {
+        console.groupEnd();
+      }
       return true;
     } catch (error) {
       console.error('[UIManager] Initialization failed:', error);
+      console.timeEnd('[UIManager] Init duration');
+      if (canGroup) {
+        console.groupEnd();
+      }
       return false;
     }
   }

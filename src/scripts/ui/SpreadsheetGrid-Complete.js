@@ -63,15 +63,29 @@ export class SpreadsheetGridComplete {
    * Build grid HTML and inject into DOM
    */
   build() {
-    console.log('[SpreadsheetGrid-Complete] Building grid...');
-    
+    const canGroup = typeof console.groupCollapsed === 'function';
+    if (canGroup) {
+      console.groupCollapsed('[SpreadsheetGrid-Complete] Building grid...');
+    } else {
+      console.log('[SpreadsheetGrid-Complete] Building grid...');
+    }
+    console.log('[SpreadsheetGrid-Complete] Document readyState:', document.readyState);
+    console.log('[SpreadsheetGrid-Complete] Existing #sheet element:', !!document.getElementById('sheet'));
+    console.time('[SpreadsheetGrid-Complete] Build duration');
+
     // Get or create sheet container
     this.state.sheet = document.getElementById('sheet');
     if (!this.state.sheet) {
-      console.error('[SpreadsheetGrid-Complete] #sheet not found!');
+      console.error('[SpreadsheetGrid-Complete] #sheet not found! Cannot build grid.');
+      if (typeof console.timeEnd === 'function') {
+        console.timeEnd('[SpreadsheetGrid-Complete] Build duration');
+      }
+      if (canGroup) {
+        console.groupEnd();
+      }
       return false;
     }
-    
+
     // Get table elements
     this.state.thead = this.state.sheet.querySelector('#cols');
     this.state.tbody = this.state.sheet.querySelector('#rows');
@@ -79,20 +93,37 @@ export class SpreadsheetGridComplete {
     this.state.directEdit = document.getElementById('directEdit');
     
     if (!this.state.thead || !this.state.tbody) {
-      console.error('[SpreadsheetGrid-Complete] Table elements not found!');
+      console.error('[SpreadsheetGrid-Complete] Table elements not found!', {
+        hasThead: !!this.state.thead,
+        hasTbody: !!this.state.tbody
+      });
+      if (typeof console.timeEnd === 'function') {
+        console.timeEnd('[SpreadsheetGrid-Complete] Build duration');
+      }
+      if (canGroup) {
+        console.groupEnd();
+      }
       return false;
     }
-    
+
     // Build column headers
     this._buildHeaders();
-    
+
     // Build cell grid
     this._buildCells();
-    
+
     // Setup event handlers
     this._setupEvents();
-    
-    console.log('[SpreadsheetGrid-Complete] ✅ Grid built');
+
+    console.timeEnd('[SpreadsheetGrid-Complete] Build duration');
+    console.log('[SpreadsheetGrid-Complete] ✅ Grid built', {
+      cols: this.state.cols,
+      rows: this.state.rows,
+      cellCount: this.state.cells.size
+    });
+    if (canGroup) {
+      console.groupEnd();
+    }
     return true;
   }
 
