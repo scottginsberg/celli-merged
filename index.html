@@ -4318,28 +4318,57 @@
     return loaded && typeof html2canvas !== 'undefined';
   }
 
+  function logBurstDebug(step, details) {
+    try {
+      if (!window.__celliBurstDebug) {
+        window.__celliBurstDebug = [];
+      }
+      const entry = {
+        step,
+        details,
+        timestamp: Date.now(),
+      };
+      window.__celliBurstDebug.push(entry);
+    } catch (error) {
+      console.warn('⚠️ Unable to persist burst debug log entry', error);
+    }
+
+    if (details !== undefined) {
+      console.log(`🧪 [BurstDebug] ${step}`, details);
+    } else {
+      console.log(`🧪 [BurstDebug] ${step}`);
+    }
+  }
+
   function cleanupGoldenSequence() {
     if (goldenHoldCleanup) {
+      logBurstDebug('cleanupGoldenSequence:invoking-hold-cleanup');
       goldenHoldCleanup();
       goldenHoldCleanup = null;
     }
 
     if (betaFormRedirectTimeoutId !== null) {
+      logBurstDebug('cleanupGoldenSequence:clearing-beta-redirect-timeout', betaFormRedirectTimeoutId);
       clearTimeout(betaFormRedirectTimeoutId);
       betaFormRedirectTimeoutId = null;
     }
     clearBetaFallbackTimeout();
 
     if (goldenDustAnimationId) {
+      logBurstDebug('cleanupGoldenSequence:cancelling-dust-animation');
       cancelAnimationFrame(goldenDustAnimationId);
       goldenDustAnimationId = null;
     }
 
     const overlayElement = document.getElementById('celliRefOverlay');
     if (overlayElement) {
+      logBurstDebug('cleanupGoldenSequence:resetting-overlay-classes');
       overlayElement.classList.remove('tos-ascension', 'tos-hold-shaking', 'dust-phase', 'dust-complete', 'warp-drive', 'blackout-stage', 'blackout-active');
       overlayElement.querySelectorAll('.golden-whiteout, .golden-dust-canvas, .frame-burst, .beta-form-portal, .beta-form-inline').forEach((node) => {
         if (node && node.parentNode) {
+          logBurstDebug('cleanupGoldenSequence:removing-overlay-node', {
+            classList: node.className,
+          });
           node.parentNode.removeChild(node);
         }
       });
@@ -4348,11 +4377,13 @@
 
     const tosCard = document.querySelector('.loom-invite-card--tos');
     if (tosCard) {
+      logBurstDebug('cleanupGoldenSequence:resetting-tos-card');
       tosCard.classList.remove('morphing', 'tos-morphing', 'beta-card', 'triangle-flight', 'into-frame', 'triangle-collapse-complete', 'tos-locked');
     }
 
     const videoStage = document.getElementById('betaVideoStage');
     if (videoStage) {
+      logBurstDebug('cleanupGoldenSequence:showing-video-stage');
       videoStage.style.display = '';
     }
 
@@ -4363,6 +4394,7 @@
       } catch (error) {
         console.warn('⚠️ Unable to pause intro video during cleanup:', error);
       }
+      logBurstDebug('cleanupGoldenSequence:resetting-intro-video');
       introVideo.removeAttribute('src');
       introVideo.load();
       introVideo.style.display = 'none';
@@ -4377,6 +4409,7 @@
 
   function scheduleBetaFormRedirect(delay = 0) {
     if (betaFormRedirectTimeoutId !== null) {
+      logBurstDebug('scheduleBetaFormRedirect:clearing-existing-timeout', betaFormRedirectTimeoutId);
       clearTimeout(betaFormRedirectTimeoutId);
       betaFormRedirectTimeoutId = null;
     }
@@ -4392,14 +4425,23 @@
     const parsedDelay = Number(delay);
     const safeDelay = Math.max(0, Number.isFinite(parsedDelay) ? parsedDelay : 0);
     console.log(`🛣️ Scheduling redirect to beta focus form in ${safeDelay}ms`);
+    logBurstDebug('scheduleBetaFormRedirect:scheduled', {
+      requestedDelay: delay,
+      safeDelay,
+    });
     betaFormRedirectTimeoutId = window.setTimeout(() => {
       betaFormRedirectTimeoutId = null;
       console.log('➡️ Redirecting to beta focus form…');
+      logBurstDebug('scheduleBetaFormRedirect:timeout-fired');
       try {
         markBetaRedirectPending();
         window.location.assign(BETA_FOCUS_FORM_URL);
       } catch (error) {
         console.error('⚠️ Unable to redirect to beta focus form', error);
+        logBurstDebug('scheduleBetaFormRedirect:navigation-error', {
+          message: error?.message,
+          name: error?.name,
+        });
         launchBetaFormVideoSequence();
       }
     }, safeDelay);
@@ -4409,6 +4451,7 @@
 
   function clearBetaFallbackTimeout() {
     if (betaFallbackCheckTimeoutId !== null) {
+      logBurstDebug('clearBetaFallbackTimeout:clearing-timeout', betaFallbackCheckTimeoutId);
       clearTimeout(betaFallbackCheckTimeoutId);
       betaFallbackCheckTimeoutId = null;
     }
@@ -4417,12 +4460,18 @@
   function scheduleBetaFallbackCheck(baseDelay) {
     clearBetaFallbackTimeout();
     const fallbackDelay = Math.max(1200, baseDelay + 1000);
+    logBurstDebug('scheduleBetaFallbackCheck:scheduled', {
+      baseDelay,
+      fallbackDelay,
+    });
     betaFallbackCheckTimeoutId = window.setTimeout(() => {
       betaFallbackCheckTimeoutId = null;
       if (document.body.dataset.betaRedirectComplete === 'true') {
+        logBurstDebug('scheduleBetaFallbackCheck:cancelled-already-complete');
         return;
       }
       console.warn('⚠️ Beta redirect stalled – launching inline fallback sequence.');
+      logBurstDebug('scheduleBetaFallbackCheck:fallback-triggered');
       launchBetaFormVideoSequence();
     }, fallbackDelay);
   }
@@ -4430,9 +4479,11 @@
   function showInlineBetaForm() {
     const overlay = document.getElementById('videoPlayerOverlay');
     if (!overlay) {
+      logBurstDebug('showInlineBetaForm:overlay-missing');
       return;
     }
 
+    logBurstDebug('showInlineBetaForm:activating');
     document.body.dataset.betaRedirectComplete = 'true';
 
     const video = document.getElementById('introVideo');
@@ -4442,15 +4493,18 @@
       } catch (error) {
         console.warn('⚠️ Unable to pause intro video for inline form:', error);
       }
+      logBurstDebug('showInlineBetaForm:video-paused');
     }
 
     const stage = document.getElementById('betaVideoStage');
     if (stage) {
+      logBurstDebug('showInlineBetaForm:hiding-video-stage');
       stage.style.display = 'none';
     }
 
     let frame = overlay.querySelector('.beta-form-inline');
     if (!frame) {
+      logBurstDebug('showInlineBetaForm:creating-iframe');
       frame = document.createElement('iframe');
       frame.className = 'beta-form-inline';
       frame.setAttribute('title', 'Celli Beta Focus Form');
@@ -4459,14 +4513,17 @@
     }
 
     if (!frame.getAttribute('src')) {
+      logBurstDebug('showInlineBetaForm:setting-src', BETA_FOCUS_FORM_URL);
       frame.src = BETA_FOCUS_FORM_URL;
     }
 
     overlay.setAttribute('data-active', 'inline');
+    logBurstDebug('showInlineBetaForm:overlay-active');
   }
 
   function launchBetaFormVideoSequence() {
     if (betaVideoSequenceStarted) {
+      logBurstDebug('launchBetaFormVideoSequence:already-started');
       return;
     }
 
@@ -4475,6 +4532,7 @@
     clearBetaFallbackTimeout();
 
     if (betaFormRedirectTimeoutId !== null) {
+      logBurstDebug('launchBetaFormVideoSequence:clearing-redirect-timeout', betaFormRedirectTimeoutId);
       clearTimeout(betaFormRedirectTimeoutId);
       betaFormRedirectTimeoutId = null;
     }
@@ -4489,13 +4547,16 @@
       } catch (error) {
         console.error('⚠️ Fallback navigation failed:', error);
       }
+      logBurstDebug('launchBetaFormVideoSequence:missing-overlay-or-video');
       return;
     }
 
     if (stage) {
+      logBurstDebug('launchBetaFormVideoSequence:showing-stage');
       stage.style.display = 'flex';
     }
 
+    logBurstDebug('launchBetaFormVideoSequence:prepping-overlay');
     overlay.style.display = 'flex';
     overlay.style.opacity = '0';
     overlay.setAttribute('data-active', 'video');
@@ -4702,10 +4763,12 @@
 
   function startGoldenHoldSequence() {
     if (postTermsSequenceStarted) {
+      logBurstDebug('startGoldenHoldSequence:already-started');
       return;
     }
 
     postTermsSequenceStarted = true;
+    logBurstDebug('startGoldenHoldSequence:begin');
 
     stopMagneticCursor();
     if (window.fauxCursorMouseHandler) {
@@ -4725,6 +4788,10 @@
 
     if (!overlayElement || !tosCard) {
       console.warn('⚠️ Unable to start ToS ascension – missing elements');
+      logBurstDebug('startGoldenHoldSequence:missing-elements', {
+        hasOverlay: Boolean(overlayElement),
+        hasTosCard: Boolean(tosCard),
+      });
       return;
     }
 
@@ -4734,8 +4801,10 @@
     tosCard.classList.add('morphing', 'tos-morphing');
 
     goldenHoldOverlay = overlayElement;
+    logBurstDebug('startGoldenHoldSequence:queued-dust-transition');
 
     setTimeout(() => {
+      logBurstDebug('startGoldenHoldSequence:begin-dust-transition');
       beginDustTransition(overlayElement, tosCard);
     }, 1100);
   }
@@ -4761,9 +4830,11 @@
   }
 
   function teardownReferralStageLayers() {
+    logBurstDebug('teardownReferralStageLayers:start');
     cancelExtraInviteSchedule();
 
     document.querySelectorAll('.loom-invite-clone, .loom-invite-pin').forEach((node) => {
+      logBurstDebug('teardownReferralStageLayers:fade-out-node', node.className);
       fadeAndRemoveElement(node, true);
     });
 
@@ -4771,33 +4842,40 @@
 
     const swarm = document.getElementById('loomInviteSwarm');
     if (swarm) {
+      logBurstDebug('teardownReferralStageLayers:removing-swarm');
       fadeAndRemoveElement(swarm, true);
     }
 
     if (refPanel) {
+      logBurstDebug('teardownReferralStageLayers:panel-fade');
       fadeAndRemoveElement(refPanel);
     }
 
     if (refSidebar) {
+      logBurstDebug('teardownReferralStageLayers:sidebar-fade');
       fadeAndRemoveElement(refSidebar);
     }
 
     if (darkeningOverlay) {
+      logBurstDebug('teardownReferralStageLayers:darkening-overlay');
       darkeningOverlay.classList.add('referral-fade');
       darkeningOverlay.style.opacity = '0';
     }
 
     if (baseDarkness) {
+      logBurstDebug('teardownReferralStageLayers:base-darkness');
       baseDarkness.classList.add('referral-fade');
       baseDarkness.style.opacity = '0';
     }
 
     document.querySelectorAll('.light-ray, .burst-beam, .darkening-hole').forEach((node) => {
+      logBurstDebug('teardownReferralStageLayers:removing-light-effect', node.className);
       fadeAndRemoveElement(node, true);
     });
 
     const tooltip = document.querySelector('.ref-tooltip');
     if (tooltip) {
+      logBurstDebug('teardownReferralStageLayers:tooltip-fade');
       fadeAndRemoveElement(tooltip, true);
     }
 
@@ -4805,28 +4883,47 @@
       document.querySelectorAll('.referral-fade').forEach((node) => {
         node.classList.add('referral-hidden');
       });
+      logBurstDebug('teardownReferralStageLayers:fade-complete');
     }, 520);
   }
 
   async function runVoxelShatterSequence(sourceCanvas) {
     if (!sourceCanvas) {
+      logBurstDebug('runVoxelShatterSequence:no-source-canvas');
       return false;
     }
+    logBurstDebug('runVoxelShatterSequence:start', {
+      width: sourceCanvas.width,
+      height: sourceCanvas.height,
+    });
     try {
       await voxelShatter.startFromCanvas(sourceCanvas, { duration: 3400, burstDelay: 750 });
+      logBurstDebug('runVoxelShatterSequence:success');
       return true;
     } catch (error) {
       console.warn('⚠️ Voxel shatter failed, using fallback dust animation', error);
+      logBurstDebug('runVoxelShatterSequence:error', {
+        message: error?.message,
+        name: error?.name,
+      });
       try {
         voxelShatter.dispose();
       } catch (disposeError) {
         console.warn('⚠️ Unable to dispose voxel shatter scene cleanly', disposeError);
+        logBurstDebug('runVoxelShatterSequence:dispose-error', {
+          message: disposeError?.message,
+          name: disposeError?.name,
+        });
       }
       return false;
     }
   }
 
   async function beginDustTransition(overlayElement, triangleElement) {
+    logBurstDebug('beginDustTransition:start', {
+      hasOverlay: Boolean(overlayElement),
+      hasTriangle: Boolean(triangleElement),
+    });
     const label = triangleElement.querySelector('.golden-label');
     if (label) {
       setTimeout(() => label.remove(), 320);
@@ -4839,9 +4936,14 @@
 
     document.body.classList.add('referrer-whiteout');
     overlayElement.classList.add('dust-phase');
+    logBurstDebug('beginDustTransition:whiteout-applied');
 
     let captureCanvas = null;
     const html2CanvasReady = await ensureHtml2CanvasLoaded();
+    logBurstDebug('beginDustTransition:html2canvas-status', {
+      html2CanvasReady,
+      libraryLoaded: typeof html2canvas !== 'undefined',
+    });
 
     if (html2CanvasReady && typeof html2canvas !== 'undefined') {
       await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -4853,22 +4955,39 @@
           backgroundColor: getComputedStyle(document.body).backgroundColor || '#0b0b10'
         });
         console.log('🖼️ DOM captured for raster dust sequence');
+        logBurstDebug('beginDustTransition:html2canvas-success', {
+          width: captureCanvas.width,
+          height: captureCanvas.height,
+        });
       } catch (err) {
         console.warn('⚠️ html2canvas capture failed', err);
+        logBurstDebug('beginDustTransition:html2canvas-error', {
+          message: err?.message,
+          name: err?.name,
+        });
       }
     }
 
     const voxelSuccess = captureCanvas ? await runVoxelShatterSequence(captureCanvas) : false;
+    logBurstDebug('beginDustTransition:voxel-status', {
+      attempted: Boolean(captureCanvas),
+      success: voxelSuccess,
+    });
 
     if (!voxelSuccess) {
       const whiteout = document.createElement('div');
       whiteout.className = 'golden-whiteout';
       overlayElement.appendChild(whiteout);
+      logBurstDebug('beginDustTransition:whiteout-fallback');
 
       if (captureCanvas) {
         const dustCanvas = document.createElement('canvas');
         dustCanvas.className = 'golden-dust-canvas';
         overlayElement.appendChild(dustCanvas);
+        logBurstDebug('beginDustTransition:starting-dust-animation', {
+          dustWidth: captureCanvas.width,
+          dustHeight: captureCanvas.height,
+        });
 
         runDustAnimation(captureCanvas, dustCanvas, whiteout, () => {
           dustCanvas.classList.add('fade-out');
@@ -4878,27 +4997,39 @@
             }
           }, 1600);
           overlayElement.classList.add('dust-complete');
+          logBurstDebug('beginDustTransition:dust-animation-complete');
         });
         teardownReferralStageLayers();
       } else {
         teardownReferralStageLayers();
         overlayElement.classList.add('dust-complete');
+        logBurstDebug('beginDustTransition:no-canvas-fallback');
       }
     } else {
       teardownReferralStageLayers();
       overlayElement.classList.add('dust-complete');
+      logBurstDebug('beginDustTransition:voxel-complete');
     }
 
+    logBurstDebug('beginDustTransition:starting-warp-sequence');
     startWarpSequence(overlayElement, triangleElement);
   }
 
   function runDustAnimation(sourceCanvas, targetCanvas, whiteoutElement, onComplete) {
+    logBurstDebug('runDustAnimation:start', {
+      width: sourceCanvas ? sourceCanvas.width : undefined,
+      height: sourceCanvas ? sourceCanvas.height : undefined,
+    });
     const sourceContext = sourceCanvas.getContext('2d');
     const ctx = targetCanvas.getContext('2d');
     if (!sourceContext || !ctx) {
       if (typeof onComplete === 'function') {
         onComplete();
       }
+      logBurstDebug('runDustAnimation:missing-context', {
+        hasSource: Boolean(sourceContext),
+        hasTarget: Boolean(ctx),
+      });
       return;
     }
 
@@ -4940,6 +5071,7 @@
     }
 
     let progress = 0;
+    logBurstDebug('runDustAnimation:particles-created', particles.length);
 
     const animate = () => {
       progress += 0.012;
@@ -4975,6 +5107,7 @@
         if (typeof onComplete === 'function') {
           onComplete();
         }
+        logBurstDebug('runDustAnimation:completed');
       }
     };
 
@@ -4983,19 +5116,26 @@
 
   function startWarpSequence(overlayElement, triangleElement) {
     if (!overlayElement || !triangleElement) {
+      logBurstDebug('startWarpSequence:missing-elements', {
+        hasOverlay: Boolean(overlayElement),
+        hasTriangle: Boolean(triangleElement),
+      });
       return;
     }
 
     if (overlayElement.classList.contains('warp-drive')) {
+      logBurstDebug('startWarpSequence:already-active');
       return;
     }
 
+    logBurstDebug('startWarpSequence:init');
     overlayElement.classList.add('warp-drive');
     overlayElement.classList.add('blackout-stage');
     document.body.classList.add('referrer-blackout');
 
     window.requestAnimationFrame(() => {
       overlayElement.classList.add('blackout-active');
+      logBurstDebug('startWarpSequence:blackout-active');
     });
 
     let frameBurst = overlayElement.querySelector('.frame-burst');
@@ -5004,6 +5144,7 @@
       frameBurst.className = 'frame-burst';
       overlayElement.appendChild(frameBurst);
       window.requestAnimationFrame(() => frameBurst.classList.add('active'));
+      logBurstDebug('startWarpSequence:frame-burst-created');
     }
 
     let portal = overlayElement.querySelector('.beta-form-portal');
@@ -5015,8 +5156,10 @@
       portal.appendChild(glow);
       overlayElement.appendChild(portal);
       window.requestAnimationFrame(() => portal.classList.add('active'));
+      logBurstDebug('startWarpSequence:portal-created');
     } else {
       window.requestAnimationFrame(() => portal.classList.add('active'));
+      logBurstDebug('startWarpSequence:portal-reactivated');
     }
 
     const trailSpans = triangleElement.querySelectorAll('.golden-trail-pack span');
@@ -5028,16 +5171,20 @@
 
     window.requestAnimationFrame(() => {
       triangleElement.classList.add('triangle-flight');
+      logBurstDebug('startWarpSequence:triangle-flight');
     });
 
     window.setTimeout(() => {
       triangleElement.classList.add('into-frame');
+      logBurstDebug('startWarpSequence:triangle-into-frame');
     }, 420);
 
     window.setTimeout(() => {
       triangleElement.classList.add('triangle-collapse-complete');
+      logBurstDebug('startWarpSequence:triangle-collapse-complete');
     }, 1400);
 
+    logBurstDebug('startWarpSequence:scheduling-beta-redirect');
     scheduleBetaFormRedirect(0);
   }
   
