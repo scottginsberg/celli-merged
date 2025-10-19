@@ -73,6 +73,7 @@ async function runTests() {
     const dependencyTests = await import('./dependencies.test.js');
     const writeTests = await import('./write-actions.test.js');
     const integrationTests = await import('./integration.test.js');
+    const riddleSmokeTests = await import('./riddle-smoke.test.js');
 
     // Import test runner
     const { TestRunner } = await import('./test-runner.js');
@@ -98,6 +99,9 @@ async function runTests() {
     }
     if (integrationTests.default) {
       masterRunner.suites.push(...integrationTests.default.suites);
+    }
+    if (riddleSmokeTests.default) {
+      masterRunner.suites.push(...riddleSmokeTests.default.suites);
     }
 
     // Run all tests

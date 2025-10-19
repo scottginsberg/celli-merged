@@ -247,6 +247,7 @@
         <li><strong>Dependency Tests:</strong> Dependency tracking, circular detection, recalculation</li>
         <li><strong>Write/Actions Tests:</strong> Transactions, batching, history</li>
         <li><strong>Integration Tests:</strong> End-to-end scenarios, complex formulas</li>
+        <li><strong>Riddle Chain Smoke Tests:</strong> Intro/Wordle/VisiCell/Flash/Puzzle event sequencing</li>
       </ul>
     </div>
 
@@ -258,6 +259,7 @@
       <button class="secondary" id="runDepsBtn" onclick="runDependencyTests()">Dependency Tests</button>
       <button class="secondary" id="runWriteBtn" onclick="runWriteTests()">Write Tests</button>
       <button class="secondary" id="runIntegrationBtn" onclick="runIntegrationTests()">Integration Tests</button>
+      <button class="secondary" id="runRiddleSmokeBtn" onclick="runRiddleSmokeTests()">Riddle Chain Smoke</button>
       <button class="secondary" onclick="clearOutput()">Clear</button>
     </div>
 
@@ -318,6 +320,7 @@
         const dependencyTests = await import('./dependencies.test.js');
         const writeTests = await import('./write-actions.test.js');
         const integrationTests = await import('./integration.test.js');
+        const riddleSmokeTests = await import('./riddle-smoke.test.js');
 
         // Create master runner
         const masterRunner = new TestRunner();
@@ -340,6 +343,9 @@
         }
         if (integrationTests.default) {
           masterRunner.suites.push(...integrationTests.default.suites);
+        }
+        if (riddleSmokeTests.default) {
+          masterRunner.suites.push(...riddleSmokeTests.default.suites);
         }
 
         await masterRunner.run();
@@ -421,7 +427,7 @@
     window.runIntegrationTests = async function() {
       clearOutput();
       captureConsole();
-      
+
       try {
         const tests = await import('./integration.test.js');
         if (tests.default) {
@@ -429,6 +435,20 @@
         }
       } catch (error) {
         console.error('Error running integration tests:', error);
+      }
+    };
+
+    window.runRiddleSmokeTests = async function() {
+      clearOutput();
+      captureConsole();
+
+      try {
+        const tests = await import('./riddle-smoke.test.js');
+        if (tests.default) {
+          await tests.default.run();
+        }
+      } catch (error) {
+        console.error('Error running riddle chain smoke tests:', error);
       }
     };
 
