@@ -17,7 +17,13 @@
 <body>
   <div id="cellireal-root"></div>
   <script type="module">
-import { Store } from '../../src/scripts/engine/Store.js';
+import '../../src/scripts/engine/Store.js';
+
+const Store = window.Store;
+
+if (!Store || typeof Store.getState !== 'function') {
+  throw new Error('Cellireal bootstrap failed: window.Store is unavailable.');
+}
 
 window.Store = Store;
 
