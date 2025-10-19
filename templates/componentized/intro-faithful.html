@@ -2870,13 +2870,13 @@ showVisiCalc();
  </div>
  <div style="font-family: 'Courier New', monospace; white-space: pre; line-height: 1.6; font-size: 13px; opacity: 0; animation: fadeInVisi 0.5s ease forwards 0.5s;">
 >A1:
- A B C D E F
+   A     B     C     D     E     F
 1
 2
-3 LOOK
-4
-5 END
-6
+3               FINISH
+4               THE WORD
+5         CELL <span id="visicell-entry-target">???</span>
+6               NEEDS ENTER
 7 =STAR =T
 8
 9
@@ -2916,12 +2916,20 @@ showVisiCalc();
  </style>
  `;
 
- document.body.appendChild(visiCalc);
- setupVisiCellClockWidget(visiCalc);
- try { SceneManager.setPhase('visicell'); } catch (e) {}
- 
- // Snap VisiCell into view immediately
- visiCalc.style.opacity = '1';
+document.body.appendChild(visiCalc);
+setupVisiCellClockWidget(visiCalc);
+try { SceneManager.setPhase('visicell'); } catch (e) {}
+
+ window.addEventListener('visicell:entry-cell-selected', (event) => {
+ const target = document.getElementById('visicell-entry-target');
+ const entryCell = event && event.detail ? event.detail.entryCell : null;
+ if (target && entryCell) {
+ target.textContent = entryCell;
+ }
+ });
+
+// Snap VisiCell into view immediately
+visiCalc.style.opacity = '1';
  
  const frame = document.getElementById('visicalc-frame');
  if (frame) {
@@ -2950,7 +2958,7 @@ showVisiCalc();
  }, 500);
  }
  
- let terminalInput = 'ENTE';
+ let terminalInput = 'ENTER';
  let terminalActive = false;
  let rInfectionStarted = false;
  let rInfectionStage = 0;
@@ -3462,7 +3470,7 @@ function setupTerminalInput() {
  });
 
  updateTerminalPrompt();
- if (terminalInput !== 'ENTE') {
+ if (terminalInput !== 'ENTER') {
  schedulePromptToEnte({ immediateFill: true });
  }
  }
@@ -3493,7 +3501,7 @@ const validTerminalCommands = ['ENTER', 'EXIT', 'LEAVE', 'SEARCH', 'KEY', 'SNAKE
  cancelPromptReset();
  promptResetting = true;
 
- const target = 'ENTE';
+ const target = 'ENTER';
 
  const startFill = () => {
  let index = 0;
@@ -6398,7 +6406,7 @@ visicellClockTouchActivated = false;
   const terminalEl = document.getElementById('visicellinput');
   if (terminalEl) terminalEl.style.display = 'block';
 
- terminalInput = 'ENTE';
+ terminalInput = 'ENTER';
  updateTerminalPrompt();
  }
  
