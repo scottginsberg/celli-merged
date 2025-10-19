@@ -4887,6 +4887,8 @@
     }, 520);
   }
 
+  const VOXEL_SHATTER_TIMEOUT_MS = 6500;
+
   async function runVoxelShatterSequence(sourceCanvas) {
     if (!sourceCanvas) {
       logBurstDebug('runVoxelShatterSequence:no-source-canvas');
@@ -4896,8 +4898,42 @@
       width: sourceCanvas.width,
       height: sourceCanvas.height,
     });
+    let timeoutId = null;
     try {
-      await voxelShatter.startFromCanvas(sourceCanvas, { duration: 3400, burstDelay: 750 });
+      const result = await Promise.race([
+        voxelShatter
+          .startFromCanvas(sourceCanvas, { duration: 3400, burstDelay: 750 })
+          .then(() => ({ status: 'completed' })),
+        new Promise((resolve) => {
+          timeoutId = window.setTimeout(
+            () => resolve({ status: 'timeout' }),
+            VOXEL_SHATTER_TIMEOUT_MS
+          );
+        }),
+      ]);
+
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+
+      if (result.status === 'timeout') {
+        console.warn('⚠️ Voxel shatter timed out, using fallback dust animation');
+        logBurstDebug('runVoxelShatterSequence:timeout', {
+          timeoutMs: VOXEL_SHATTER_TIMEOUT_MS,
+        });
+        try {
+          voxelShatter.dispose();
+        } catch (disposeError) {
+          console.warn('⚠️ Unable to dispose voxel shatter scene after timeout', disposeError);
+          logBurstDebug('runVoxelShatterSequence:dispose-error', {
+            message: disposeError?.message,
+            name: disposeError?.name,
+          });
+        }
+        return false;
+      }
+
       logBurstDebug('runVoxelShatterSequence:success');
       return true;
     } catch (error) {
@@ -4916,6 +4952,11 @@
         });
       }
       return false;
+    } finally {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
     }
   }
 
