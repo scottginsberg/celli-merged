@@ -124,6 +124,14 @@ function checkSokobanGoal(boardId, goal) {
     return false;
   }
   const value = getCellValue(boardId, goal);
+  try {
+    const board = Store.getState().arrays?.[boardId];
+    const tokens = board?.params?.sokoTokens;
+    const boxToken = tokens?.BOX ?? tokens?.box ?? '??';
+    return value === boxToken;
+  } catch (error) {
+    console.warn('[PuzzleTracker] Unable to inspect Sokoban tokens:', error);
+  }
   return value === '??';
 }
 
@@ -149,6 +157,313 @@ function trackGalaxyPuzzle(context = {}) {
     }
   }, context);
 }
+
+const DEFAULT_SOKO_TOKENS = {
+  WALL: ' ',
+  BOX: '??',
+  PLAYER: '??',
+  GOAL: ' ',
+  EMPTY: '',
+  FLOOR: ''
+};
+
+function parseAddress(value) {
+  if (value == null) {
+    return null;
+  }
+  const text = typeof value === 'string' ? value : String(value);
+  if (!text) {
+    return null;
+  }
+
+  if (typeof window.parseAlt === 'function') {
+    try {
+      const parsed = window.parseAlt(text);
+      if (parsed) {
+        return parsed;
+      }
+    } catch (error) {
+      console.warn('[SOKO_STEP] parseAlt failed, falling back to manual parsing:', error);
+    }
+  }
+
+  const match = /^@\[(.*)\]$/.exec(text.trim());
+  if (!match) {
+    return null;
+  }
+  const parts = match[1].split(',').map(part => part.trim());
+  if (parts.length < 4) {
+    return null;
+  }
+
+  const [xRaw, yRaw, zRaw, arrRaw] = parts;
+  const toNumber = (raw, allowNull = false) => {
+    const num = Number(raw);
+    if (!Number.isFinite(num)) {
+      return allowNull ? null : 0;
+    }
+    return num;
+  };
+
+  const arrId = toNumber(arrRaw, true);
+  if (!Number.isFinite(arrId)) {
+    return null;
+  }
+
+  return {
+    x: toNumber(xRaw),
+    y: toNumber(yRaw),
+    z: toNumber(zRaw),
+    arrId
+  };
+}
+
+function resolveSokobanRef(arg, anchor, arr) {
+  if (!arg) {
+    return null;
+  }
+
+  if (arg.kind === 'ref') {
+    return {
+      arrId: Number.isFinite(arg.arrId) ? arg.arrId : (anchor.arrId ?? arr.id),
+      x: Number.isFinite(arg.x) ? arg.x : anchor.x,
+      y: Number.isFinite(arg.y) ? arg.y : anchor.y,
+      z: Number.isFinite(arg.z) ? arg.z : anchor.z
+    };
+  }
+
+  const valOf = window.Formula?.valOf;
+  if (typeof valOf === 'function') {
+    try {
+      const evaluated = valOf(arg);
+      const parsed = parseAddress(evaluated);
+      if (parsed) {
+        return {
+          arrId: Number.isFinite(parsed.arrId) ? parsed.arrId : (anchor.arrId ?? arr.id),
+          x: Number.isFinite(parsed.x) ? parsed.x : anchor.x,
+          y: Number.isFinite(parsed.y) ? parsed.y : anchor.y,
+          z: Number.isFinite(parsed.z) ? parsed.z : anchor.z
+        };
+      }
+    } catch (error) {
+      console.warn('[SOKO_STEP] Unable to evaluate reference argument:', error);
+    }
+  }
+
+  const parsed = parseAddress(arg);
+  if (parsed) {
+    return {
+      arrId: Number.isFinite(parsed.arrId) ? parsed.arrId : (anchor.arrId ?? arr.id),
+      x: Number.isFinite(parsed.x) ? parsed.x : anchor.x,
+      y: Number.isFinite(parsed.y) ? parsed.y : anchor.y,
+      z: Number.isFinite(parsed.z) ? parsed.z : anchor.z
+    };
+  }
+  return null;
+}
+
+function getSokobanTokens(board) {
+  const tokens = board?.params?.sokoTokens || board?.params?.soko_tokens;
+  if (!tokens) {
+    return { ...DEFAULT_SOKO_TOKENS };
+  }
+  return {
+    WALL: tokens.WALL ?? tokens.wall ?? DEFAULT_SOKO_TOKENS.WALL,
+    BOX: tokens.BOX ?? tokens.box ?? DEFAULT_SOKO_TOKENS.BOX,
+    PLAYER: tokens.PLAYER ?? tokens.player ?? DEFAULT_SOKO_TOKENS.PLAYER,
+    GOAL: tokens.GOAL ?? tokens.goal ?? DEFAULT_SOKO_TOKENS.GOAL,
+    EMPTY: tokens.EMPTY ?? tokens.empty ?? DEFAULT_SOKO_TOKENS.EMPTY,
+    FLOOR: tokens.FLOOR ?? tokens.floor ?? tokens.EMPTY ?? DEFAULT_SOKO_TOKENS.FLOOR
+  };
+}
+
+function runSokobanStep(anchor, arr, ast, options = {}) {
+  const { label = 'SOKO:STEP', logTag = 'SOKO_STEP', runRules = false } = options;
+  const args = Array.isArray(ast?.args) ? ast.args : [];
+  const memRef = resolveSokobanRef(args[0], anchor, arr);
+  if (!memRef) {
+    Actions.setCell(arr.id, anchor, '!ERR:memRef', ast.raw, true);
+    return { success: false };
+  }
+
+  const valOf = window.Formula?.valOf;
+  const evalArg = (arg, fallback = 0) => {
+    if (arg == null) {
+      return fallback;
+    }
+    if (typeof valOf === 'function') {
+      try {
+        const value = valOf(arg);
+        const num = Number(value);
+        return Number.isFinite(num) ? num : fallback;
+      } catch (error) {
+        console.warn(`[${logTag}] Unable to evaluate argument:`, error);
+      }
+    }
+    const num = Number(arg);
+    return Number.isFinite(num) ? num : fallback;
+  };
+
+  const dx = Math.trunc(evalArg(args[1], 0));
+  const dy = Math.trunc(evalArg(args[2], 0));
+  if (!dx && !dy) {
+    Actions.setCell(arr.id, anchor, 'SOKO:WAIT', ast.raw, true);
+    return { success: false, memRef };
+  }
+
+  let memVal = '';
+  try {
+    memVal = Formula.getCellValue(memRef);
+  } catch (error) {
+    console.warn(`[${logTag}] Unable to read Sokoban memory reference:`, error);
+    Actions.setCell(arr.id, anchor, '!ERR:memRead', ast.raw, true);
+    return { success: false, memRef };
+  }
+
+  const pos = parseAddress(memVal);
+  if (!pos || !Number.isFinite(pos.arrId)) {
+    Actions.setCell(arr.id, anchor, '!ERR:memPos', ast.raw, true);
+    return { success: false, memRef };
+  }
+
+  const boardId = Number(pos.arrId);
+  const board = Store.getState().arrays?.[boardId];
+  if (!board) {
+    Actions.setCell(arr.id, anchor, '!ERR:board', ast.raw, true);
+    return { success: false, memRef, boardId };
+  }
+
+  const tokens = getSokobanTokens(board);
+  const px = Number(pos.x) || 0;
+  const py = Number(pos.y) || 0;
+  const pz = Number.isFinite(pos.z) ? Number(pos.z) : 0;
+  const nx = px + dx;
+  const ny = py + dy;
+  const nnx = px + dx * 2;
+  const nny = py + dy * 2;
+  const size = board.size || { x: 0, y: 0 };
+  const inBounds = (x, y) => x >= 0 && y >= 0 && x < size.x && y < size.y;
+
+  if (!inBounds(nx, ny)) {
+    Actions.setCell(arr.id, anchor, 'SOKO:BLOCK', ast.raw, true);
+    return { success: false, boardId };
+  }
+
+  const goal = board.params?.sokoGoal;
+  const isGoalCoord = (x, y, z = 0) => goal && x === goal.x && y === goal.y && (goal.z ?? 0) === (z ?? 0);
+
+  const readCell = (x, y) => {
+    try {
+      const value = Formula.getCellValue({ arrId: boardId, x, y, z: pz });
+      return value == null ? '' : value;
+    } catch (error) {
+      console.warn(`[${logTag}] Unable to read Sokoban cell:`, error);
+      return '';
+    }
+  };
+
+  const classifyCell = (value, x, y) => {
+    if (value === tokens.BOX) {
+      return 'box';
+    }
+    if (value === tokens.PLAYER) {
+      return 'player';
+    }
+    if (value === tokens.WALL && !isGoalCoord(x, y, pz)) {
+      return 'wall';
+    }
+    if (value === tokens.GOAL) {
+      return 'goal';
+    }
+    if (isGoalCoord(x, y, pz)) {
+      return value === tokens.BOX ? 'box' : 'goal';
+    }
+    if (value === '' || value === tokens.EMPTY) {
+      return 'empty';
+    }
+    if (typeof value === 'string' && value.trim() === '') {
+      return 'empty';
+    }
+    return 'other';
+  };
+
+  const targetValue = readCell(nx, ny);
+  const targetType = classifyCell(targetValue, nx, ny);
+  if (targetType === 'wall' || targetType === 'player' || targetType === 'other') {
+    Actions.setCell(arr.id, anchor, 'SOKO:BLOCK', ast.raw, true);
+    return { success: false, boardId };
+  }
+
+  const memArrId = Number.isFinite(memRef.arrId) ? memRef.arrId : (anchor.arrId ?? arr.id);
+  const memCoord = {
+    x: Number.isFinite(memRef.x) ? memRef.x : anchor.x,
+    y: Number.isFinite(memRef.y) ? memRef.y : anchor.y,
+    z: Number.isFinite(memRef.z) ? memRef.z : anchor.z
+  };
+  const newRefValue = `@[${nx},${ny},${pz},${boardId}]`;
+  const floorValue = (x, y) => (isGoalCoord(x, y, pz) ? tokens.GOAL : tokens.EMPTY);
+
+  if (targetType === 'box') {
+    if (!inBounds(nnx, nny)) {
+      Actions.setCell(arr.id, anchor, 'SOKO:BLOCK', ast.raw, true);
+      return { success: false, boardId };
+    }
+    const beyondValue = readCell(nnx, nny);
+    const beyondType = classifyCell(beyondValue, nnx, nny);
+    if (beyondType !== 'empty' && beyondType !== 'goal') {
+      Actions.setCell(arr.id, anchor, 'SOKO:BLOCK', ast.raw, true);
+      return { success: false, boardId };
+    }
+    const tx = Write.start('sokoban.move', `${logTag} push`);
+    Write.set(tx, boardId, { x: nnx, y: nny, z: pz }, { value: tokens.BOX, formula: null });
+    Write.set(tx, boardId, { x: nx, y: ny, z: pz }, { value: tokens.PLAYER, formula: null });
+    Write.set(tx, boardId, { x: px, y: py, z: pz }, { value: floorValue(px, py), formula: null });
+    Write.set(tx, memArrId, memCoord, { value: newRefValue, formula: null });
+    Write.commit(tx);
+  } else {
+    const tx = Write.start('sokoban.move', `${logTag} move`);
+    Write.set(tx, boardId, { x: nx, y: ny, z: pz }, { value: tokens.PLAYER, formula: null });
+    Write.set(tx, boardId, { x: px, y: py, z: pz }, { value: floorValue(px, py), formula: null });
+    Write.set(tx, memArrId, memCoord, { value: newRefValue, formula: null });
+    Write.commit(tx);
+  }
+
+  Actions.setCell(arr.id, anchor, label, ast.raw, true);
+
+  try {
+    const goalCoord = Store.getState().arrays?.[boardId]?.params?.sokoGoal;
+    if (goalCoord && checkSokobanGoal(boardId, goalCoord) && Store.getState().globalState.get('sokoban.win') !== 1) {
+      Store.getState().globalState.set('sokoban.win', 1);
+    }
+  } catch (error) {
+    console.warn(`${logTag} victory check failed`, error);
+  }
+
+  if (runRules) {
+    try {
+      const arrays = Object.values(Store.getState().arrays || {});
+      const rulesArr = arrays.find(a => a?.params?.sokoRules && a.params.boardId === boardId);
+      if (rulesArr) {
+        const mv = rulesArr.params?.moveAnchor || { x: 0, y: (rulesArr.size?.y || 1) - 1, z: 0, arrId: rulesArr.id };
+        const tx = Write.start('sokoban.rules', `${logTag} rules`);
+        Formula.executeAt({ arrId: mv.arrId ?? rulesArr.id, x: mv.x ?? 0, y: mv.y ?? 0, z: mv.z ?? 0 }, undefined, tx);
+        Write.commit(tx);
+      }
+    } catch (error) {
+      console.warn(`${logTag} rules execution failed`, error);
+    }
+  }
+
+  return { success: true, boardId };
+}
+
+tag('SOKO_STEP',['GAME','ACTION'],(anchor,arr,ast)=>{
+ runSokobanStep(anchor, arr, ast, { label: 'SOKO:STEP', logTag: 'SOKO_STEP' });
+});
+
+tag('SOKO_STEP2',['GAME','ACTION'],(anchor,arr,ast)=>{
+ runSokobanStep(anchor, arr, ast, { label: 'SOKO:STEP', logTag: 'SOKO_STEP2', runRules: true });
+});
 tag('GALAXY',['GAME'],(anchor,arr,ast)=>{
  // Initialize GALAXY puzzle game
  Actions.begin();
@@ -179,51 +494,6 @@ tag('GALAXY',['GAME'],(anchor,arr,ast)=>{
  Actions.end();
  trackGalaxyPuzzle({ anchor: { ...anchor, arrId: arr.id }, arrayId: arr.id });
 });
- const t1 = at(nx,ny);
- if(t1===WALL) return;
- if(t1===BOX){
-  const t2 = at(nnx,nny);
-  if(t2!==EMPTY) return; // cannot push
-  // push box
-  Write.set(tx, boardId, {x:nnx,y:nny,z:pz}, { value: BOX, formula:null });
-  Write.set(tx, boardId, {x:nx ,y:ny ,z:pz}, { value: PLAYER, formula:null });
-  Write.set(tx, boardId, {x:px ,y:py ,z:pz}, { value: EMPTY, formula:null });
-  // update memory
-  const newRef = `@[${nx},${ny},${pz},${boardId}]`;
-  Write.set(tx, memRef.arrId, {x:memRef.x,y:memRef.y,z:memRef.z}, { value:newRef, formula:null });
-  return;
- }
- // simple move into empty
- if(t1===EMPTY){
-  Write.set(tx, boardId, {x:nx ,y:ny ,z:pz}, { value: PLAYER, formula:null });
-  Write.set(tx, boardId, {x:px ,y:py ,z:pz}, { value: EMPTY, formula:null });
-  const newRef = `@[${nx},${ny},${pz},${boardId}]`;
-  Write.set(tx, memRef.arrId, {x:memRef.x,y:memRef.y,z:memRef.z}, { value:newRef, formula:null });
- }
- try{
-  const goal = Store.getState().arrays[boardId]?.params?.sokoGoal;
-  if(goal && checkSokobanGoal(boardId, goal) && Store.getState().globalState.get('sokoban.win') !== 1){
-   Store.getState().globalState.set('sokoban.win', 1);
-  }
- }catch(e){ console.warn('SOKO_STEP victory check failed', e); }
-});
- const memVal = Formula.getCellValue(memRef);
- const pos = parseAlt(String(memVal)||''); if(!pos) return;
- const boardId = pos.arrId; const pz = pos.z||0;
- // Find Rules array by convention: same board name + " Rules" or first array with params.sokoRules
- const rulesArr = Object.values(Store.getState().arrays).find(a=>a.params?.sokoRules && a.params?.boardId===boardId);
- if(!rulesArr) { Actions.setCell(arr.id, anchor, '!ERR:No Rules', ast.raw, true); return; }
- // MOVE anchor stored in params
- const mv = rulesArr.params?.moveAnchor || {x:0,y:rulesArr.size.y-1,z:0,arrId:rulesArr.id};
- Formula.executeAt({arrId:mv.arrId,x:mv.x,y:mv.y,z:mv.z}, undefined, tx);
- Actions.setCell(arr.id, anchor, 'SOKO:STEP', ast.raw, true);
- try{
-  const goal = Store.getState().arrays[boardId]?.params?.sokoGoal;
-  if(goal && checkSokobanGoal(boardId, goal) && Store.getState().globalState.get('sokoban.win') !== 1){
-   Store.getState().globalState.set('sokoban.win', 1);
-  }
- }catch(e){ console.warn('SOKO_STEP2 victory check failed', e); }
-});
 tag('SOKOBAN2',['GAME','META'],(anchor,arr,ast)=>{
  try{
   const size = {x:10,y:8,z:1};
@@ -234,17 +504,29 @@ tag('SOKOBAN2',['GAME','META'],(anchor,arr,ast)=>{
   const PSTART = {x:2,y:2,z:0};
   const BOX='??', WALL=' ', PLAYER='??', GOAL=' ';
   const GOAL_COORD = {x:7,y:2,z:0};
+  const TOKENS = { BOX, WALL, PLAYER, GOAL, EMPTY:'', FLOOR:'' };
   Actions.begin();
-  // walls border
-  for(let x=0;x<size.x;x++){ Actions.setCell(board.id,{x,y:size.y-1,z:0},WALL,null,true); Actions.setCell(board.id,{x,y:0,z:0},WALL,null,true); }
-  for(let y=0;y<size.y;y++){ Actions.setCell(board.id,{x:0,y,z:0},WALL,null,true); Actions.setCell(board.id,{x:size.x-1,y,z:0},WALL,null,true); }
-  // place player, box and goal
-  Actions.setCell(board.id,PSTART,PLAYER,null,true);
-  Actions.setCell(board.id,{x:4,y:2,z:0},BOX,null,true);
-  Actions.setCell(board.id,GOAL_COORD,GOAL,null,true);
-  board.params = { ...(board.params||{}), sokoGoal: GOAL_COORD };
-  // memory: player ref string at (0,0)
-  Actions.setCell(mem.id,{x:0,y:0,z:0},`@[${PSTART.x},${PSTART.y},${PSTART.z},${board.id}]`,null,true);
+  try{
+   // walls border
+   for(let x=0;x<size.x;x++){ Actions.setCell(board.id,{x,y:size.y-1,z:0},WALL,null,true); Actions.setCell(board.id,{x,y:0,z:0},WALL,null,true); }
+   for(let y=0;y<size.y;y++){ Actions.setCell(board.id,{x:0,y,z:0},WALL,null,true); Actions.setCell(board.id,{x:size.x-1,y,z:0},WALL,null,true); }
+   // place player, box and goal
+   Actions.setCell(board.id,PSTART,PLAYER,null,true);
+   Actions.setCell(board.id,{x:4,y:2,z:0},BOX,null,true);
+   Actions.setCell(board.id,GOAL_COORD,GOAL,null,true);
+   board.params = { ...(board.params||{}), sokoGoal: GOAL_COORD, sokoTokens: TOKENS };
+   // memory: player ref string at (0,0)
+   Actions.setCell(mem.id,{x:0,y:0,z:0},`@[${PSTART.x},${PSTART.y},${PSTART.z},${board.id}]`,null,true);
+  }finally{
+   Actions.end();
+  }
+  rules.params = {
+   ...(rules.params||{}),
+   sokoRules: true,
+   boardId: board.id,
+   moveAnchor: { x:0, y:(rules.size?.y||1)-1, z:0, arrId: rules.id }
+  };
+  const pos = dockOffsetFor(board,'east',1.0);
   Scene.setArrayOffset(ctrl,pos);
   Actions.setCell(arr.id, anchor, `Sokoban2:#${board.id}`, ast.raw, true);
   Store.getState().globalState.set('sokoban.win', 0);
@@ -266,17 +548,22 @@ tag('SOKOBAN',['GAME','META'],(anchor,arr,ast)=>{
   const PSTART = {x:2,y:2,z:0};
   const BOX='??', WALL=' ', PLAYER='??', GOAL=' ';
   const GOAL_COORD = {x:7,y:2,z:0};
+  const TOKENS = { BOX, WALL, PLAYER, GOAL, EMPTY:'', FLOOR:'' };
   Actions.begin();
-  // walls border
-  for(let x=0;x<size.x;x++){ Actions.setCell(board.id,{x,y:size.y-1,z:0},WALL,null,true); Actions.setCell(board.id,{x,y:0,z:0},WALL,null,true); }
-  for(let y=0;y<size.y;y++){ Actions.setCell(board.id,{x:0,y,z:0},WALL,null,true); Actions.setCell(board.id,{x:size.x-1,y,z:0},WALL,null,true); }
-  // place player, box and goal
-  Actions.setCell(board.id,PSTART,PLAYER,null,true);
-  Actions.setCell(board.id,{x:4,y:2,z:0},BOX,null,true);
-  Actions.setCell(board.id,GOAL_COORD,GOAL,null,true);
-  board.params = { ...(board.params||{}), sokoGoal: GOAL_COORD };
-  // memory: player ref string at (0,0)
-  Actions.setCell(mem.id,{x:0,y:0,z:0},`@[${PSTART.x},${PSTART.y},${PSTART.z},${board.id}]`,null,true);
+  try{
+   // walls border
+   for(let x=0;x<size.x;x++){ Actions.setCell(board.id,{x,y:size.y-1,z:0},WALL,null,true); Actions.setCell(board.id,{x,y:0,z:0},WALL,null,true); }
+   for(let y=0;y<size.y;y++){ Actions.setCell(board.id,{x:0,y,z:0},WALL,null,true); Actions.setCell(board.id,{x:size.x-1,y,z:0},WALL,null,true); }
+   // place player, box and goal
+   Actions.setCell(board.id,PSTART,PLAYER,null,true);
+   Actions.setCell(board.id,{x:4,y:2,z:0},BOX,null,true);
+   Actions.setCell(board.id,GOAL_COORD,GOAL,null,true);
+   board.params = { ...(board.params||{}), sokoGoal: GOAL_COORD, sokoTokens: TOKENS };
+   // memory: player ref string at (0,0)
+   Actions.setCell(mem.id,{x:0,y:0,z:0},`@[${PSTART.x},${PSTART.y},${PSTART.z},${board.id}]`,null,true);
+  }finally{
+   Actions.end();
+  }
   // controller arrows with ON_SELECT to call SOKO_STEP(memRef,dx,dy)
   const mref = `@[0,0,0,${mem.id}]`;
   Actions.setCell(ctrl.id,{x:1,y:2,z:0},'?',null,true);
