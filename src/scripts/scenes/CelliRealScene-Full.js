@@ -57,7 +57,10 @@ export class CelliRealScene {
       
       // Intro sequence
       introPhase: 'celli-os', // 'celli-os' | 'terminal' | '2d-to-3d' | '3d-world'
-      transitionProgress: 0
+      transitionProgress: 0,
+
+      // Audio
+      limboAudio: null
     };
     
     // HTML templates
@@ -526,6 +529,8 @@ export class CelliRealScene {
       await this.state.mainframeSpawn.beginHomeReveal();
     }
 
+    this._playLimboTrack();
+
     this._enableFullInteraction();
 
     console.log('[CelliRealScene-Full] ✅ Complete intro sequence finished');
@@ -560,15 +565,59 @@ export class CelliRealScene {
     // Show all UI controls via UIManager
     this.state.uiManager?.showDPad();
     this.state.uiManager?.showWindows();
-    
+
     // Show terminal and notepad icons
     const termIcon = document.getElementById('terminal-icon');
     const padIcon = document.getElementById('notepad-icon');
-    
+
     if (termIcon) termIcon.style.display = 'flex';
     if (padIcon) padIcon.style.display = 'flex';
-    
+
     console.log('[CelliRealScene-Full] ✅ Full interaction enabled');
+  }
+
+  _playLimboTrack() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (!this.state.limboAudio) {
+      try {
+        this.state.limboAudio = new Audio('./limbo.mp3');
+        this.state.limboAudio.loop = true;
+        this.state.limboAudio.volume = 0.6;
+      } catch (error) {
+        console.warn('[CelliRealScene-Full] ⚠️ Unable to initialize limbo.mp3 audio element', error);
+        this.state.limboAudio = null;
+        return;
+      }
+    }
+
+    try {
+      this.state.limboAudio.currentTime = 0;
+      const playPromise = this.state.limboAudio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(error => {
+          console.warn('[CelliRealScene-Full] ⚠️ Unable to play limbo.mp3 during reveal', error);
+        });
+      }
+    } catch (error) {
+      console.warn('[CelliRealScene-Full] ⚠️ Error while playing limbo.mp3', error);
+    }
+  }
+
+  _stopLimboTrack() {
+    const audio = this.state.limboAudio;
+    if (!audio) return;
+
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+    } catch (error) {
+      console.warn('[CelliRealScene-Full] ⚠️ Unable to stop limbo.mp3', error);
+    }
+
+    this.state.limboAudio = null;
   }
 
   /**
@@ -594,6 +643,7 @@ export class CelliRealScene {
    * Stop scene
    */
   stop() {
+    this._stopLimboTrack();
     this.state.running = false;
   }
 
@@ -607,6 +657,8 @@ export class CelliRealScene {
     
     // Destroy UI Manager (handles all UI components)
     this.state.uiManager?.destroy();
+
+    this._stopLimboTrack();
 
     // Destroy mainframe and terminal
     this.state.mainframeSpawn?.destroy();
