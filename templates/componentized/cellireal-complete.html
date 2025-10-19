@@ -17,7 +17,11 @@
 <body>
   <div id="cellireal-root"></div>
   <script type="module">
-window.Store = Store;
+const Store = window.Store;
+
+if (!Store) {
+  console.warn('[CelliReal] Store runtime is unavailable – puzzle tracking features will be limited.');
+}
 
 const puzzleTrackerRegistry = new Map();
 
@@ -49,7 +53,7 @@ function announcePuzzleSolved(puzzleId, context = {}) {
   }
 
   try {
-    const globalState = Store.getState().globalState;
+    const globalState = Store?.getState?.().globalState;
     if (globalState && typeof globalState.set === 'function') {
       globalState.set(`puzzle.${puzzleId}.solved`, 1);
       if (puzzleId === 'sokoban') {
@@ -100,7 +104,7 @@ function registerPuzzleTracker(puzzleId, checkFn, context = {}) {
     return solved;
   };
 
-  unsubscribe = Store.subscribe(() => evaluate());
+  unsubscribe = Store?.subscribe ? Store.subscribe(() => evaluate()) : null;
   puzzleTrackerRegistry.set(puzzleId, { unsubscribe, evaluate, context });
   evaluate();
 
@@ -125,7 +129,7 @@ function checkSokobanGoal(boardId, goal) {
   }
   const value = getCellValue(boardId, goal);
   try {
-    const board = Store.getState().arrays?.[boardId];
+    const board = Store?.getState?.().arrays?.[boardId];
     const tokens = board?.params?.sokoTokens;
     const boxToken = tokens?.BOX ?? tokens?.box ?? '??';
     return value === boxToken;
@@ -149,7 +153,7 @@ function trackSokobanBoard(boardId, goal, context = {}) {
 function trackGalaxyPuzzle(context = {}) {
   registerPuzzleTracker('galaxy', () => {
     try {
-      const globalState = Store.getState().globalState;
+      const globalState = Store?.getState?.().globalState;
       return globalState && globalState.get('galaxy.win') === 1;
     } catch (error) {
       console.warn('[PuzzleTracker] Unable to inspect GALAXY state:', error);
@@ -431,9 +435,9 @@ function runSokobanStep(anchor, arr, ast, options = {}) {
   Actions.setCell(arr.id, anchor, label, ast.raw, true);
 
   try {
-    const goalCoord = Store.getState().arrays?.[boardId]?.params?.sokoGoal;
-    if (goalCoord && checkSokobanGoal(boardId, goalCoord) && Store.getState().globalState.get('sokoban.win') !== 1) {
-      Store.getState().globalState.set('sokoban.win', 1);
+    const goalCoord = Store?.getState?.().arrays?.[boardId]?.params?.sokoGoal;
+    if (goalCoord && checkSokobanGoal(boardId, goalCoord) && Store?.getState?.().globalState?.get?.('sokoban.win') !== 1) {
+      Store?.getState?.().globalState?.set?.('sokoban.win', 1);
     }
   } catch (error) {
     console.warn(`${logTag} victory check failed`, error);
@@ -441,7 +445,7 @@ function runSokobanStep(anchor, arr, ast, options = {}) {
 
   if (runRules) {
     try {
-      const arrays = Object.values(Store.getState().arrays || {});
+      const arrays = Object.values(Store?.getState?.().arrays || {});
       const rulesArr = arrays.find(a => a?.params?.sokoRules && a.params.boardId === boardId);
       if (rulesArr) {
         const mv = rulesArr.params?.moveAnchor || { x: 0, y: (rulesArr.size?.y || 1) - 1, z: 0, arrId: rulesArr.id };
@@ -469,9 +473,10 @@ tag('GALAXY',['GAME'],(anchor,arr,ast)=>{
  Actions.begin();
 
  // Set up game state
- Store.getState().globalState.set('galaxy.active', 1);
- Store.getState().globalState.set('galaxy.gravityWell', `@[${anchor.x+1},${anchor.y+2},${anchor.z},${arr.id}]`);
- Store.getState().globalState.set('galaxy.win', 0);
+ const galaxyState = Store?.getState?.().globalState;
+ galaxyState?.set?.('galaxy.active', 1);
+ galaxyState?.set?.('galaxy.gravityWell', `@[${anchor.x+1},${anchor.y+2},${anchor.z},${arr.id}]`);
+ galaxyState?.set?.('galaxy.win', 0);
 
  // Create gravity well
  Actions.setCell(arr.id, anchor, '?? GALAXY PUZZLE', ast.raw, true);
@@ -529,7 +534,7 @@ tag('SOKOBAN2',['GAME','META'],(anchor,arr,ast)=>{
   const pos = dockOffsetFor(board,'east',1.0);
   Scene.setArrayOffset(ctrl,pos);
   Actions.setCell(arr.id, anchor, `Sokoban2:#${board.id}`, ast.raw, true);
-  Store.getState().globalState.set('sokoban.win', 0);
+ Store?.getState?.().globalState?.set?.('sokoban.win', 0);
   registerPuzzleTracker('sokoban-rules', () => checkSokobanGoal(board.id, GOAL_COORD), {
    boardId: board.id,
    goal: GOAL_COORD,
@@ -576,7 +581,7 @@ tag('SOKOBAN',['GAME','META'],(anchor,arr,ast)=>{
   const tx=Write.start('sokoban.status','SOKOBAN status');
   Write.set(tx, arr.id, anchor, { value:`Sokoban:#${board.id}`, formula: ast.raw, meta:{skip_recompute:true} });
   Write.commit(tx);
-  Store.getState().globalState.set('sokoban.win', 0);
+ Store?.getState?.().globalState?.set?.('sokoban.win', 0);
   trackSokobanBoard(board.id, GOAL_COORD, { anchor: { ...anchor, arrId: arr.id }, arrayId: arr.id });
   }catch(e){ Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true); }
  });

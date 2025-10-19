@@ -1403,6 +1403,9 @@
   let betaFormRedirectTimeoutId = null;
   let betaFallbackCheckTimeoutId = null;
   let betaVideoSequenceStarted = false;
+  const BETA_REDIRECT_DELAY_MS = 2600;
+  let betaFormPreloadFrame = null;
+  let betaFormWarmupStarted = false;
 
   if (refFeedbackLink) {
     refFeedbackLink.href = BETA_FOCUS_FORM_URL;
@@ -4346,6 +4349,9 @@
       overlayElement.removeAttribute('data-active');
     }
 
+    betaFormPreloadFrame = null;
+    betaFormWarmupStarted = false;
+
     const tosCard = document.querySelector('.loom-invite-card--tos');
     if (tosCard) {
       tosCard.classList.remove('morphing', 'tos-morphing', 'beta-card', 'triangle-flight', 'into-frame', 'triangle-collapse-complete', 'tos-locked');
@@ -4427,6 +4433,38 @@
     }, fallbackDelay);
   }
 
+  function warmBetaFocusForm(targetOverlay) {
+    const overlay = targetOverlay || document.getElementById('videoPlayerOverlay');
+    if (!overlay) {
+      return null;
+    }
+
+    if (!betaFormPreloadFrame) {
+      betaFormPreloadFrame = document.createElement('iframe');
+      betaFormPreloadFrame.className = 'beta-form-inline';
+      betaFormPreloadFrame.setAttribute('title', 'Celli Beta Focus Form');
+      betaFormPreloadFrame.setAttribute('loading', 'lazy');
+      overlay.appendChild(betaFormPreloadFrame);
+    } else if (betaFormPreloadFrame.parentElement !== overlay) {
+      overlay.appendChild(betaFormPreloadFrame);
+    }
+
+    betaFormPreloadFrame.setAttribute('aria-hidden', 'true');
+    betaFormPreloadFrame.style.opacity = '0';
+    betaFormPreloadFrame.style.pointerEvents = 'none';
+
+    if (!betaFormPreloadFrame.getAttribute('src')) {
+      betaFormPreloadFrame.src = BETA_FOCUS_FORM_URL;
+    }
+
+    if (!betaFormWarmupStarted) {
+      betaFormWarmupStarted = true;
+      console.log('🔥 Warming beta focus form in the background…');
+    }
+
+    return betaFormPreloadFrame;
+  }
+
   function showInlineBetaForm() {
     const overlay = document.getElementById('videoPlayerOverlay');
     if (!overlay) {
@@ -4449,18 +4487,14 @@
       stage.style.display = 'none';
     }
 
-    let frame = overlay.querySelector('.beta-form-inline');
+    const frame = warmBetaFocusForm(overlay);
     if (!frame) {
-      frame = document.createElement('iframe');
-      frame.className = 'beta-form-inline';
-      frame.setAttribute('title', 'Celli Beta Focus Form');
-      frame.setAttribute('loading', 'lazy');
-      overlay.appendChild(frame);
+      return;
     }
 
-    if (!frame.getAttribute('src')) {
-      frame.src = BETA_FOCUS_FORM_URL;
-    }
+    frame.removeAttribute('aria-hidden');
+    frame.style.opacity = '';
+    frame.style.pointerEvents = '';
 
     overlay.setAttribute('data-active', 'inline');
   }
@@ -5038,7 +5072,9 @@
       triangleElement.classList.add('triangle-collapse-complete');
     }, 1400);
 
-    scheduleBetaFormRedirect(0);
+    warmBetaFocusForm(overlayElement);
+
+    scheduleBetaFormRedirect(BETA_REDIRECT_DELAY_MS);
   }
   
   // Magnetic cursor effect
