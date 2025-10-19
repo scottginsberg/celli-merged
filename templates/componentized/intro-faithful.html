@@ -2974,9 +2974,14 @@ const clueTrailStepsConfig = [
   {
     command: 'SEARCH',
     gridCoord: 'D5',
-    gridText: "YOU FOUND AN ONION. IT'S ALREADY PEELED. BUT WAIT, THERE'S SOMETHING ITS OPPOSITE AND ITS PARTNER. TAKE THE LAST WORD OF THE FIRST LINE, AND REMOVE THE TERM FOR RICHARD UNKIND. YOU'LL KNOW SOULMATE.",
+    gridText: 'SEARCH RESULT: ONION LOCATED. OPPOSITE + PARTNER REQUIRED.',
     onExecute: () => {
       setClueText("YOU FOUND AN ONION. IT'S ALREADY PEELED.\n\nBUT WAIT, THERE'S SOMETHING ITS OPPOSITE AND ITS PARTNER. TAKE THE LAST WORD OF THE FIRST LINE, AND REMOVE THE TERM FOR RICHARD UNKIND. YOU'LL KNOW SOULMATE.");
+      const clueCell = document.getElementById('visicell-clue-cell');
+      if (clueCell) {
+        clueCell.style.minHeight = '180px';
+        clueCell.style.whiteSpace = 'pre-line';
+      }
     }
   },
   {
@@ -2987,17 +2992,17 @@ const clueTrailStepsConfig = [
       clueTrailPromptLocked = true;
       setEntryCellPrompt('PLAYBACK: KEY.MP4');
       flashEntryCell('#1a5f1a');
-      showVisiCellVideo('Key.mp4', 'KEY FILE', () => {
+      showVisiCellVideo('./key.mp4', 'KEY FILE', () => {
         setClueText("WHO'D I LEAVE FOR, KEY? WAS IT HIM OR HIS CREATION?");
         clueTrailPromptLocked = false;
         refreshEntryPrompt();
-      });
+      }, { audioSrc: './key.mp3', audioVolume: 0.82 });
     }
   },
   {
     command: 'SNAKE',
     gridCoord: 'D7',
-    gridText: 'IDENTIFIED: SNEAK KING',
+    gridText: 'PROMPT: IDENTIFY THE SNEAK KING',
     onExecute: () => {
       setClueText('SNEAKY. DO YOU KNOW WHO WAS THE SNEAK KING?');
     }
@@ -3014,6 +3019,9 @@ const clueTrailStepsConfig = [
 let visicellClockInterval = null;
 let visicellClockWindow = null;
 let visicellClockDismissHandler = null;
+let visicellGirAudioHandle = null;
+let visicellRebootAudioHandle = null;
+let visicellClockTouchActivated = false;
 
 function setupVisiCellClockWidget(root) {
   if (!root) return;
@@ -3185,6 +3193,14 @@ function toggleVisiCellClockWindow(root, widget) {
       offsetMinutes = Math.max(-720, Math.min(720, offsetMinutes + delta));
       updateOffsetDisplay();
       updatePrimaryTime(offsetMinutes);
+      if (offsetMinutes === -35 && !visicellClockTouchActivated) {
+        visicellClockTouchActivated = true;
+        setClueText('TOUCHÉ. WHAT WERE YOU TRYING TO DO AGAIN?');
+        if (clueEntryCellCoord) {
+          setEntryCellPrompt('OFFSET -35 MINUTES CONFIRMED');
+          flashEntryCell('#1a5f1a');
+        }
+      }
     });
     return btn;
   };
@@ -3196,6 +3212,7 @@ function toggleVisiCellClockWindow(root, widget) {
     offsetMinutes = 0;
     updateOffsetDisplay();
     updatePrimaryTime(offsetMinutes);
+    visicellClockTouchActivated = false;
   });
   const plusBtn = makeOffsetButton('+5', 5);
 
@@ -3456,7 +3473,7 @@ function setupTerminalInput() {
  promptEl.innerHTML = terminalInput + '<span style="animation: blink 1s step-end infinite;">_</span>';
  }
 
-const validTerminalCommands = ['ENTER', 'EXIT', 'LEAVE', 'SEARCH', 'KEY', 'SNAKE', 'BURGER KING', 'MYHOUSE.WAD', 'OURHOUSE.LOOM', 'MADNESS.LOOM'];
+const validTerminalCommands = ['ENTER', 'EXIT', 'LEAVE', 'SEARCH', 'KEY', 'SNAKE', 'BURGER KING', 'RAMSES II', 'MYHOUSE.WAD', 'OURHOUSE.LOOM', 'MADNESS.LOOM'];
 
  function cancelPromptReset() {
  if (promptClearInterval) {
@@ -3584,6 +3601,12 @@ function processCommand(cmd, frame) {
       schedulePromptToEnte({ immediateFill: true });
     }
     return;
+  } else if (normalizedCmd === 'RAMSES II') {
+    triggerRamsesResponse(frame);
+    terminalInput = '';
+    updateTerminalPrompt();
+    schedulePromptToEnte({ immediateFill: true });
+    return;
   } else if (normalizedCmd === 'SEARCH' || normalizedCmd === 'KEY' || normalizedCmd === 'SNAKE' || normalizedCmd === 'BURGER KING') {
     terminalResponse(frame, 'CLUE TRAIL NOT ACTIVE. TYPE LEAVE FIRST.');
   } else if (cmd.toLowerCase() === 'myhouse.wad') {
@@ -3604,7 +3627,7 @@ function processCommand(cmd, frame) {
  if (!frame) return;
  const responseDiv = document.createElement('div');
  responseDiv.style.cssText = 'margin-top: 10px; color: #0f0; font-family: "Courier New", monospace; font-size: 13px;';
- responseDiv.textContent = message;
+  responseDiv.textContent = (message || '').toUpperCase();
  frame.appendChild(responseDiv);
 
  // Reset input
@@ -5020,9 +5043,14 @@ RRRR RRR`;
  }, 400);
  }
  
- function triggerLeaveSequence(frame) {
- console.log('?? LEAVE ? LEAVES ? GIR.mp3');
- 
+function triggerLeaveSequence(frame) {
+console.log('?? LEAVE ? LEAVES ? GIR.mp3');
+
+ if (visicellGirAudioHandle) {
+ try { visicellGirAudioHandle.pause(); } catch (error) { console.warn('?? Unable to pause Gir audio handle', error); }
+ }
+ visicellGirAudioHandle = playVisiCellAudio('./Gir.mp3', { volume: 0.72 });
+
  // Mark as seen
  localStorage.setItem('megred_seen_leave', 'true');
  
@@ -6086,7 +6114,99 @@ function handleClueTrailCommand(command, frame) {
   resetPrompt();
 }
 
-function showVisiCellVideo(src, title, onComplete) {
+function triggerRamsesResponse(frame) {
+  const hostFrame = frame || document.getElementById('visicalc-frame');
+  if (!hostFrame) return;
+
+  if (!clueSheetElements || !clueSheetElements.container || !hostFrame.contains(clueSheetElements.container)) {
+    buildClueSheet(hostFrame);
+  }
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 2050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  `;
+
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = `
+    padding: 28px 36px;
+    border: 2px solid rgba(0, 255, 0, 0.5);
+    background: rgba(0, 12, 0, 0.92);
+    box-shadow: 0 0 28px rgba(0, 255, 0, 0.35);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.22em;
+    color: #0f0;
+    text-transform: uppercase;
+    max-width: min(720px, 80vw);
+  `;
+
+  const glitchDisplay = document.createElement('div');
+  glitchDisplay.textContent = 'PASSWORD ROTATION';
+  glitchDisplay.style.cssText = 'font-size: 14px;';
+
+  wrapper.appendChild(glitchDisplay);
+  overlay.appendChild(wrapper);
+  document.body.appendChild(overlay);
+
+  clueTrailPromptLocked = true;
+  setEntryCellPrompt('PASSWORD ROTATION DETECTED');
+  flashEntryCell('#2c0010');
+
+  const finalMessage = 'USER.FIRSTNAME & LASTNAME, I\'M NOT A REPUBLIC SERIAL VILLAIN. DO YOU SERIOUSLY THINK I\'D EXPLAIN MY MASTER PASSWORD IF THERE REMAINED THE SLIGHTEST CHANCE OF YOU LOGGING IN? I CHANGED IT THIRTY-FIVE MINUTES AGO.'.toUpperCase();
+
+  glitchText(wrapper, 'RAMSES II', finalMessage);
+
+  setTimeout(() => {
+    overlay.style.transition = 'opacity 0.6s ease';
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.remove(), 600);
+
+    setClueText(finalMessage);
+    clueTrailPromptLocked = false;
+    refreshEntryPrompt({ flash: false });
+  }, 1500);
+}
+
+function resolveVisiCellMediaPath(path) {
+  if (!path) return '';
+  const trimmed = path.trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('./')) {
+    return trimmed;
+  }
+  return `./${trimmed.replace(/^\.\//, '')}`;
+}
+
+function playVisiCellAudio(src, options = {}) {
+  const resolved = resolveVisiCellMediaPath(src);
+  if (!resolved) return null;
+
+  try {
+    const audio = new Audio(resolved);
+    const volume = typeof options.volume === 'number' ? options.volume : 0.8;
+    audio.volume = Math.min(1, Math.max(0, volume));
+    audio.loop = Boolean(options.loop);
+    audio.play().catch((error) => {
+      console.warn('?? Unable to play VisiCell audio:', resolved, error);
+    });
+    return audio;
+  } catch (error) {
+    console.warn('?? Failed to initialize VisiCell audio element:', resolved, error);
+    return null;
+  }
+}
+
+function showVisiCellVideo(src, title, onComplete, options = {}) {
   if (!src) {
     if (typeof onComplete === 'function') onComplete();
     return;
@@ -6096,6 +6216,9 @@ function showVisiCellVideo(src, title, onComplete) {
     console.warn('?? VisiCell video overlay already active');
     return;
   }
+
+  const resolvedSrc = resolveVisiCellMediaPath(src);
+  const resolvedAudio = options.audioSrc ? resolveVisiCellMediaPath(options.audioSrc) : '';
 
   const overlay = document.createElement('div');
   overlay.className = 'visicell-video-overlay';
@@ -6135,12 +6258,21 @@ function showVisiCellVideo(src, title, onComplete) {
   video.style.cssText = 'width: 100%; height: auto; background: #000;';
   video.controls = true;
   video.autoplay = true;
-  video.src = src;
+  video.src = resolvedSrc;
+
+  let audioHandle = null;
+  if (resolvedAudio) {
+    audioHandle = playVisiCellAudio(resolvedAudio, { volume: options.audioVolume ?? 0.8 });
+  }
 
   const closeOverlay = () => {
     overlay.style.transition = 'opacity 3s ease';
     overlay.style.opacity = '0';
     setTimeout(() => {
+      if (audioHandle) {
+        try { audioHandle.pause(); } catch (error) { console.warn('?? Unable to pause VisiCell audio overlay', error); }
+        audioHandle = null;
+      }
       overlay.remove();
       if (typeof onComplete === 'function') {
         onComplete();
@@ -6152,7 +6284,7 @@ function showVisiCellVideo(src, title, onComplete) {
   video.addEventListener('error', () => {
     const fallback = document.createElement('div');
     fallback.style.cssText = 'padding: 20px; color: #f55; text-align: center; letter-spacing: 0.18em;';
-    fallback.textContent = 'UNABLE TO LOAD VIDEO';
+    fallback.textContent = `UNABLE TO LOAD ${resolvedSrc.split('/').pop()?.toUpperCase() || 'VIDEO'}`;
     windowEl.appendChild(fallback);
     closeOverlay();
   }, { once: true });
@@ -6164,16 +6296,25 @@ function showVisiCellVideo(src, title, onComplete) {
 }
  
 function resetVisiCellTerminal() {
-  leaveSequenceActive = false;
-  visiCellSimActive = false;
-  clueTrailActive = false;
-  clueTrailPromptLocked = false;
-  if (!clueTrailComplete) {
-    clueEntryCellCoord = '';
-  }
-  clueTrailProgress.clear();
-  if (clueSheetElements && clueSheetElements.container) {
-    clueSheetElements.container.remove();
+ leaveSequenceActive = false;
+ visiCellSimActive = false;
+ clueTrailActive = false;
+ clueTrailPromptLocked = false;
+ if (!clueTrailComplete) {
+   clueEntryCellCoord = '';
+ }
+ clueTrailProgress.clear();
+ if (visicellGirAudioHandle) {
+ try { visicellGirAudioHandle.pause(); } catch (error) { console.warn('?? Unable to pause Gir audio during reset', error); }
+ visicellGirAudioHandle = null;
+ }
+if (visicellRebootAudioHandle) {
+try { visicellRebootAudioHandle.pause(); } catch (error) { console.warn('?? Unable to pause reboot audio during reset', error); }
+visicellRebootAudioHandle = null;
+}
+visicellClockTouchActivated = false;
+ if (clueSheetElements && clueSheetElements.container) {
+   clueSheetElements.container.remove();
     clueSheetElements = null;
   }
   const clockWidget = document.getElementById('visicell-clock-widget');
@@ -7582,9 +7723,14 @@ console.log('?? Camera will NOT dolly until depth fully constructed');
  animateAddresses();
  }
  
- function triggerVictory(frame) {
- console.log('?? VICTORY!');
- if (!frame) return;
+function triggerVictory(frame) {
+console.log('?? VICTORY!');
+if (!frame) return;
+
+if (visicellRebootAudioHandle) {
+try { visicellRebootAudioHandle.pause(); } catch (error) { console.warn('?? Unable to pause reboot audio handle', error); }
+}
+visicellRebootAudioHandle = playVisiCellAudio('./reboot.mp3', { volume: 0.68 });
 
  // Set madness flag
  madnessActivated = true;
