@@ -380,8 +380,7 @@ export class IntroSceneComplete {
     for (const char of value) {
       const key = char.toUpperCase();
 
-      if (key === 'T') {
-        this._handleTInput();
+      if (key === 'T' && this._tryHandleStartCompletion()) {
         continue;
       }
 
@@ -398,6 +397,56 @@ export class IntroSceneComplete {
     if (this.state.hiddenInput) {
       this.state.hiddenInput.value = '';
     }
+  }
+
+  _getPromptSuffix({ sanitize = false } = {}) {
+    const baseLength = (this.state.promptBaseText || '').length;
+    const suffix = (this.state.inputText || '').slice(baseLength);
+
+    if (!sanitize) {
+      return suffix;
+    }
+
+    return suffix.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  }
+
+  _getStartMatchInfo() {
+    const baseWord = 'START';
+    const fullSanitized = this._getPromptSuffix({ sanitize: true });
+    const sanitizedSuffix = fullSanitized.slice(0, baseWord.length);
+    let matchLength = 0;
+
+    for (; matchLength < sanitizedSuffix.length; matchLength += 1) {
+      if (sanitizedSuffix[matchLength] !== baseWord[matchLength]) {
+        break;
+      }
+    }
+
+    return { sanitizedSuffix, matchLength, baseWord, fullLength: fullSanitized.length };
+  }
+
+  _tryHandleStartCompletion() {
+    if (this.state.tEntered) {
+      return false;
+    }
+
+    const { sanitizedSuffix, matchLength, baseWord, fullLength } = this._getStartMatchInfo();
+    const expectedLength = baseWord.length - 1;
+
+    if (sanitizedSuffix.length !== expectedLength) {
+      return false;
+    }
+
+    if (fullLength !== expectedLength) {
+      return false;
+    }
+
+    if (matchLength !== expectedLength) {
+      return false;
+    }
+
+    this._handleTInput();
+    return true;
   }
 
   _handlePromptBackspace() {
@@ -451,13 +500,20 @@ export class IntroSceneComplete {
       return;
     }
 
+    const { sanitizedSuffix, matchLength, baseWord, fullLength } = this._getStartMatchInfo();
+    const expectedPrefix = baseWord.slice(0, baseWord.length - 1);
+
+    if (
+      sanitizedSuffix !== expectedPrefix ||
+      matchLength !== expectedPrefix.length ||
+      fullLength !== expectedPrefix.length
+    ) {
+      return;
+    }
+
     this.state.tEntered = true;
 
-    if (this.state.inputText.length <= this.state.promptBaseText.length) {
-      this.state.inputText = `${this.state.promptBaseText}T`;
-    } else {
-      this.state.inputText += 'T';
-    }
+    this.state.inputText = `${this.state.promptBaseText}${baseWord}`;
 
     this._setPromptText(this.state.inputText);
 
@@ -1925,9 +1981,8 @@ export class IntroSceneComplete {
 
     const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
 
-    if (key === 'T') {
+    if (key === 'T' && this._tryHandleStartCompletion()) {
       e.preventDefault();
-      this._handleTInput();
       return;
     }
 
@@ -3438,7 +3493,6 @@ export class IntroSceneComplete {
   }
 
   _updateBackspaceTargetFromPrompt() {
-    const suffix = (this.state.inputText || '').slice(this.state.promptBaseText.length).toUpperCase();
     const totalLetters = Array.isArray(this.state.lettersToRestore)
       ? this.state.lettersToRestore.length
       : 0;
@@ -3447,21 +3501,36 @@ export class IntroSceneComplete {
       return;
     }
 
-    const baseWord = 'START';
-    const sanitizedSuffix = suffix.replace(/[^A-Z]/g, '').slice(0, baseWord.length);
-    let removedCount = Math.max(0, baseWord.length - sanitizedSuffix.length);
+    const { sanitizedSuffix, matchLength, baseWord, fullLength } = this._getStartMatchInfo();
+    const hasExtraChars = fullLength > sanitizedSuffix.length;
+    const hasMismatch = hasExtraChars || matchLength !== sanitizedSuffix.length;
 
-    if (!baseWord.startsWith(sanitizedSuffix)) {
-      for (let index = 0; index < sanitizedSuffix.length; index += 1) {
-        if (baseWord[index] !== sanitizedSuffix[index]) {
-          removedCount = Math.max(0, baseWord.length - index);
+    let target;
+
+    if (hasMismatch) {
+      target = totalLetters;
+    } else {
+      switch (sanitizedSuffix.length) {
+        case baseWord.length:
+        case baseWord.length - 1:
+          target = 0;
           break;
-        }
+        case 3:
+          target = 1;
+          break;
+        case 2:
+          target = 2;
+          break;
+        case 1:
+          target = 3;
+          break;
+        default:
+          target = totalLetters;
+          break;
       }
     }
 
-    const target = Math.max(0, Math.min(totalLetters, removedCount));
-    this.state.celliBackspaceTarget = target;
+    this.state.celliBackspaceTarget = Math.max(0, Math.min(target, totalLetters));
   }
 
   /**
