@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Celli.real – Standalone Reference</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+      background: #04050c;
+      color: #dce1ff;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 18px 24px;
+      border-bottom: 1px solid rgba(138, 180, 255, 0.28);
+      background: linear-gradient(135deg, rgba(15, 22, 45, 0.92), rgba(10, 16, 32, 0.96));
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 14px;
+    }
+
+    header strong {
+      color: #7efce2;
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+    }
+
+    .notes {
+      padding: 18px 24px;
+      border-bottom: 1px solid rgba(138, 180, 255, 0.12);
+      background: rgba(8, 12, 28, 0.88);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .notes a {
+      color: #8ab4ff;
+      text-decoration: none;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #03040a;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Celli.real:</strong> Standalone spreadsheet reality (template launch)
+  </header>
+  <main>
+    <section class="notes">
+      This page mirrors the legacy standalone presentation of Celli.real that previously opened from the scene select template
+      toggle. The fully modular rebuild still lives in
+      <a href="./componentized/cellireal-complete.html" target="_blank" rel="noopener">templates/componentized/cellireal-complete.html</a>,
+      but the classic frame is preserved here for direct access.
+    </section>
+    <iframe src="./componentized/cellireal-complete.html" title="Celli.real spreadsheet"></iframe>
+  </main>
+</body>
+</html>

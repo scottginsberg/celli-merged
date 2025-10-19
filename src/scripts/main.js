@@ -68,7 +68,7 @@ const SCENE_OPTION_CONFIG = {
     }
   },
   cellireal: {
-    templateUrl: './templates/componentized/cellireal-complete.html',
+    templateUrl: './templates/cellireal-template.html',
     componentScene: 'cellireal',
     badge: {
       template: 'Template',
