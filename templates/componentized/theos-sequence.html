@@ -7,6 +7,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+      }
+    }
+  </script>
   <style>
     :root {
       color-scheme: dark;
@@ -38,42 +46,316 @@
       position: fixed;
       inset: 0;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 22px;
-      background: radial-gradient(circle at 50% 50%, rgba(10, 16, 28, 0.92), rgba(3, 4, 8, 0.97));
-      backdrop-filter: blur(8px) saturate(140%);
-      -webkit-backdrop-filter: blur(8px) saturate(140%);
+      background: radial-gradient(circle at 50% 50%, rgba(10, 16, 28, 0.9), rgba(3, 4, 8, 0.98));
+      overflow: hidden;
       z-index: 10;
       transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    #overlay::before {
+      content: '';
+      position: absolute;
+      inset: -30%;
+      background: radial-gradient(circle at 50% 50%, rgba(85, 160, 255, 0.35), transparent 60%);
+      filter: blur(30px) saturate(130%);
+      opacity: 0.55;
+      transform: scale(1);
+      transition: transform 0.6s ease, opacity 0.6s ease;
+      pointer-events: none;
     }
 
     #overlay.hidden {
       opacity: 0;
       pointer-events: none;
-      transform: translateY(12px);
+      transform: translateY(18px) scale(0.98);
+    }
+
+    .overlay-panel {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 22px;
+      padding: clamp(32px, 4vw, 48px) clamp(32px, 5vw, 60px);
+      border-radius: 28px;
+      border: 1px solid rgba(138, 180, 255, 0.55);
+      background: linear-gradient(145deg, rgba(15, 24, 48, 0.92), rgba(8, 12, 24, 0.96));
+      box-shadow:
+        0 40px 120px rgba(10, 16, 36, 0.75),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 0 35px rgba(20, 80, 160, 0.18);
+      transform: perspective(1100px) translateZ(0) scale(1);
+      transition: transform 0.45s ease, box-shadow 0.45s ease, border-color 0.45s ease;
+      max-width: min(540px, 90vw);
+      text-align: center;
+    }
+
+    .overlay-panel::before {
+      content: '';
+      position: absolute;
+      inset: 12px;
+      border-radius: 22px;
+      border: 1px solid rgba(0, 255, 195, 0.15);
+      box-shadow: inset 0 0 40px rgba(0, 255, 195, 0.08);
+      pointer-events: none;
     }
 
     #startBtn {
       appearance: none;
       border: 1px solid rgba(138, 180, 255, 0.7);
-      background: linear-gradient(135deg, rgba(40, 60, 120, 0.9), rgba(22, 34, 88, 0.9));
+      background: linear-gradient(135deg, rgba(40, 60, 120, 0.94), rgba(22, 34, 88, 0.94));
       color: #fff;
-      padding: 18px 32px;
+      padding: 20px 44px;
       font-size: 14px;
-      letter-spacing: 0.2em;
+      letter-spacing: 0.22em;
       text-transform: uppercase;
       border-radius: 999px;
       font-family: 'Press Start 2P', cursive;
       cursor: pointer;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      box-shadow: 0 18px 45px rgba(10, 20, 60, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      transition: transform 0.35s ease, box-shadow 0.35s ease, letter-spacing 0.35s ease, border-color 0.35s ease;
+      box-shadow:
+        0 22px 55px rgba(8, 14, 42, 0.65),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset 0 -12px 24px rgba(18, 48, 120, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #startBtn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0));
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      pointer-events: none;
     }
 
     #startBtn:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 24px 55px rgba(18, 36, 90, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+      transform: translateY(-2px) scale(1.015);
+      letter-spacing: 0.28em;
+      box-shadow:
+        0 30px 70px rgba(18, 32, 90, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        inset 0 -16px 28px rgba(22, 52, 130, 0.4);
+    }
+
+    #startBtn:focus-visible {
+      outline: 2px solid rgba(0, 255, 195, 0.6);
+      outline-offset: 4px;
+    }
+
+    #startBtn.locked {
+      cursor: default;
+      opacity: 0.85;
+      border-color: rgba(0, 255, 195, 0.4);
+      background: linear-gradient(135deg, rgba(12, 44, 64, 0.9), rgba(8, 26, 52, 0.9));
+      box-shadow:
+        0 30px 80px rgba(8, 16, 38, 0.6),
+        inset 0 0 45px rgba(0, 255, 195, 0.18);
+    }
+
+    #overlay.hidden .overlay-panel {
+      transform: perspective(1100px) translateZ(-60px) scale(0.94);
+      opacity: 0;
+    }
+
+    #overlay.hidden::before {
+      transform: scale(1.2);
+      opacity: 0;
+    }
+
+    body.barrel-stage-1 #overlay::before {
+      transform: scale(1.05);
+      opacity: 0.7;
+    }
+
+    body.barrel-stage-2 #overlay::before {
+      transform: scale(1.12) rotate(8deg);
+      opacity: 0.85;
+    }
+
+    body.barrel-stage-3 #overlay::before {
+      transform: scale(1.22) rotate(16deg);
+      opacity: 0.95;
+    }
+
+    @keyframes overlayPulseStage1 {
+      0% {
+        transform: perspective(1100px) translateZ(0) scale(1);
+        box-shadow:
+          0 40px 120px rgba(10, 16, 36, 0.75),
+          inset 0 1px 0 rgba(255, 255, 255, 0.08),
+          inset 0 0 35px rgba(20, 80, 160, 0.18);
+      }
+      45% {
+        transform: perspective(720px) translateZ(90px) scale(1.07) rotateX(2deg);
+        box-shadow:
+          0 55px 140px rgba(20, 44, 120, 0.8),
+          inset 0 0 48px rgba(0, 255, 195, 0.22);
+      }
+      100% {
+        transform: perspective(900px) translateZ(42px) scale(1.03) rotateX(1deg);
+        box-shadow:
+          0 46px 130px rgba(14, 32, 90, 0.78),
+          inset 0 0 42px rgba(0, 255, 195, 0.18);
+      }
+    }
+
+    @keyframes overlayPulseStage2 {
+      0% {
+        transform: perspective(900px) translateZ(42px) scale(1.03) rotateX(1deg);
+      }
+      38% {
+        transform: perspective(620px) translateZ(145px) scale(1.12) rotateX(4deg);
+        box-shadow:
+          0 70px 160px rgba(22, 52, 150, 0.9),
+          inset 0 0 58px rgba(64, 200, 255, 0.25);
+      }
+      100% {
+        transform: perspective(780px) translateZ(58px) scale(1.05) rotateX(2deg);
+        box-shadow:
+          0 58px 150px rgba(18, 42, 120, 0.82),
+          inset 0 0 54px rgba(0, 255, 195, 0.22);
+      }
+    }
+
+    @keyframes overlayPulseStage3 {
+      0% {
+        transform: perspective(780px) translateZ(58px) scale(1.05) rotateX(2deg);
+      }
+      32% {
+        transform: perspective(540px) translateZ(210px) scale(1.18) rotateX(5deg);
+        box-shadow:
+          0 90px 190px rgba(28, 64, 170, 0.95),
+          inset 0 0 70px rgba(0, 255, 195, 0.3);
+      }
+      100% {
+        transform: perspective(720px) translateZ(75px) scale(1.08) rotateX(3deg);
+        box-shadow:
+          0 68px 170px rgba(20, 48, 140, 0.9),
+          inset 0 0 62px rgba(0, 255, 195, 0.26);
+      }
+    }
+
+    @keyframes startBtnPulseStage1 {
+      0% {
+        transform: translateY(0) scale(1);
+        letter-spacing: 0.22em;
+        box-shadow:
+          0 22px 55px rgba(8, 14, 42, 0.65),
+          inset 0 1px 0 rgba(255, 255, 255, 0.12),
+          inset 0 -12px 24px rgba(18, 48, 120, 0.35);
+      }
+      45% {
+        transform: translateY(-6px) scale(1.08);
+        letter-spacing: 0.3em;
+        box-shadow:
+          0 40px 95px rgba(0, 255, 195, 0.38),
+          inset 0 0 30px rgba(0, 255, 195, 0.3);
+      }
+      100% {
+        transform: translateY(-3px) scale(1.04);
+        letter-spacing: 0.28em;
+        box-shadow:
+          0 32px 80px rgba(0, 180, 255, 0.35),
+          inset 0 0 26px rgba(0, 255, 195, 0.2);
+      }
+    }
+
+    @keyframes startBtnPulseStage2 {
+      0% {
+        transform: translateY(-3px) scale(1.04);
+      }
+      38% {
+        transform: translateY(-9px) scale(1.12);
+        letter-spacing: 0.34em;
+        box-shadow:
+          0 50px 110px rgba(0, 255, 195, 0.45),
+          inset 0 0 40px rgba(0, 255, 195, 0.32);
+      }
+      100% {
+        transform: translateY(-5px) scale(1.07);
+        box-shadow:
+          0 40px 100px rgba(0, 190, 255, 0.42),
+          inset 0 0 34px rgba(0, 255, 195, 0.26);
+      }
+    }
+
+    @keyframes startBtnPulseStage3 {
+      0% {
+        transform: translateY(-5px) scale(1.07);
+      }
+      32% {
+        transform: translateY(-14px) scale(1.16);
+        letter-spacing: 0.38em;
+        box-shadow:
+          0 66px 140px rgba(0, 255, 195, 0.6),
+          inset 0 0 50px rgba(0, 255, 195, 0.35);
+      }
+      100% {
+        transform: translateY(-8px) scale(1.11);
+        box-shadow:
+          0 54px 130px rgba(0, 210, 255, 0.52),
+          inset 0 0 46px rgba(0, 255, 195, 0.3);
+      }
+    }
+
+    body.barrel-stage-1 .overlay-panel {
+      animation: overlayPulseStage1 1.05s ease forwards;
+      border-color: rgba(0, 255, 195, 0.4);
+    }
+
+    body.barrel-stage-2 .overlay-panel {
+      animation: overlayPulseStage2 1.15s ease forwards;
+      border-color: rgba(0, 255, 195, 0.55);
+    }
+
+    body.barrel-stage-3 .overlay-panel {
+      animation: overlayPulseStage3 1.2s ease forwards;
+      border-color: rgba(0, 255, 195, 0.65);
+    }
+
+    body.barrel-stage-1 #startBtn::after,
+    body.barrel-stage-2 #startBtn::after,
+    body.barrel-stage-3 #startBtn::after {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+
+    body.barrel-stage-1 #startBtn { animation: startBtnPulseStage1 0.95s ease forwards; }
+    body.barrel-stage-2 #startBtn { animation: startBtnPulseStage2 1.05s ease forwards; }
+    body.barrel-stage-3 #startBtn { animation: startBtnPulseStage3 1.2s ease forwards; }
+
+    .status-log {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 16px 22px;
+      background: rgba(5, 10, 20, 0.6);
+      border: 1px solid rgba(138, 180, 255, 0.22);
+      border-radius: 14px;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(207, 214, 255, 0.78);
+      min-width: min(360px, 80vw);
+    }
+
+    .status-stage {
+      color: var(--accent-strong);
+      font-weight: 500;
+      letter-spacing: 0.22em;
+    }
+
+    .status-message {
+      display: block;
+      color: rgba(207, 214, 255, 0.7);
+      letter-spacing: 0.14em;
     }
 
     #overlay h1 {
@@ -143,10 +425,16 @@
   <div id="sequence-root"></div>
 
   <div id="overlay">
-    <h1>THE.OS Grid Boot</h1>
-    <p>Initialize the coordinate lattice. Observe 2D address genesis, Z-axis propagation, voxel crystallization, and singularity collapse into the black hole.</p>
-    <button id="startBtn">Initialize Grid Build</button>
-    <span class="hint">Audio recommended • Tap to engage</span>
+    <div class="overlay-panel">
+      <h1>THE.OS Grid Boot</h1>
+      <p class="overlay-description">Initialize the coordinate lattice. Observe 2D address genesis, Z-axis propagation, voxel crystallization, and singularity collapse into the black hole.</p>
+      <div id="overlayStatus" class="status-log">
+        <span id="overlayStatusStage" class="status-stage">Stage 0 — Idle</span>
+        <span id="overlayStatusMessage" class="status-message">Tap to energize the lattice.</span>
+      </div>
+      <button id="startBtn">Initialize Grid Build</button>
+      <span class="hint">Audio recommended • Tap to engage</span>
+    </div>
   </div>
 
   <div id="telemetry">
@@ -167,6 +455,35 @@
     const startBtn = document.getElementById('startBtn');
     const telemetry = document.getElementById('telemetry');
     const sequenceRoot = document.getElementById('sequence-root');
+    const overlayStatusStage = document.getElementById('overlayStatusStage');
+    const overlayStatusMessage = document.getElementById('overlayStatusMessage');
+
+    const stageClasses = ['barrel-stage-1', 'barrel-stage-2', 'barrel-stage-3'];
+    const stageDescriptors = [
+      {
+        overlay: 'Stage 1 — Vector handshake engaged',
+        message: 'Field handshake calibrating…',
+        telemetry: 'Vector handshake calibrating…',
+        nextLabel: 'Intensify Barrel Warp'
+      },
+      {
+        overlay: 'Stage 2 — Barrel distortion aligning',
+        message: 'Spatial lattice warping…',
+        telemetry: 'Spatial distortion intensifying…',
+        nextLabel: 'Engage Singularity Spin'
+      },
+      {
+        overlay: 'Stage 3 — Singularity spin locked',
+        message: 'Hold for punch-through…',
+        telemetry: 'Singularity spin locked. Executing grid build…',
+        nextLabel: 'Executing Grid Build…'
+      }
+    ];
+
+    let audioCtx = null;
+    let initClickCount = 0;
+    let primingSequence = false;
+    let sequenceInstance = null;
 
     function updateTelemetry(message) {
       if (!telemetry) return;
@@ -176,8 +493,6 @@
       }
     }
 
-    let sequenceInstance = null;
-
     function beginSequence() {
       if (sequenceInstance) {
         return;
@@ -185,7 +500,12 @@
       document.body.classList.add('running');
       if (overlay) {
         overlay.classList.add('hidden');
-        setTimeout(() => overlay.remove(), 900);
+        setTimeout(() => {
+          overlay.remove();
+          document.body.classList.remove(...stageClasses);
+        }, 900);
+      } else {
+        document.body.classList.remove(...stageClasses);
       }
       updateTelemetry('Grid constructing…');
       sequenceInstance = initTheosSequence({
@@ -203,15 +523,165 @@
       }
     }
 
+    function setOverlayStage(stageIndex) {
+      document.body.classList.remove(...stageClasses);
+      if (stageIndex >= 0 && stageIndex < stageClasses.length) {
+        document.body.classList.add(stageClasses[stageIndex]);
+      }
+      if (overlayStatusStage && overlayStatusMessage) {
+        if (stageIndex < 0) {
+          overlayStatusStage.textContent = 'Stage 0 — Idle';
+          overlayStatusMessage.textContent = 'Tap to energize the lattice.';
+        } else {
+          const descriptor = stageDescriptors[stageIndex];
+          overlayStatusStage.textContent = descriptor.overlay;
+          overlayStatusMessage.textContent = descriptor.message;
+        }
+      }
+    }
+
+    function playStartupWhir(clickStage = 1) {
+      if (clickStage <= 0) return;
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        window._theosAudioCtx = audioCtx;
+      }
+
+      const now = audioCtx.currentTime;
+      const masterGain = audioCtx.createGain();
+      masterGain.gain.setValueAtTime(0.32 + clickStage * 0.06, now);
+      masterGain.connect(audioCtx.destination);
+
+      const distortion = audioCtx.createWaveShaper();
+      const curve = new Float32Array(256);
+      const amount = 45 * clickStage;
+      for (let i = 0; i < 256; i++) {
+        const x = (i * 2) / 256 - 1;
+        curve[i] = ((3 + amount) * x * 20 * (Math.PI / 180)) /
+          (Math.PI + amount * Math.abs(x));
+      }
+      distortion.curve = curve;
+      distortion.oversample = '4x';
+
+      const bandpass = audioCtx.createBiquadFilter();
+      bandpass.type = 'bandpass';
+      bandpass.frequency.setValueAtTime(180 + clickStage * 110, now);
+      bandpass.Q.setValueAtTime(2.2 + clickStage * 0.6, now);
+
+      const lowpass = audioCtx.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      lowpass.frequency.setValueAtTime(1200 + clickStage * 320, now);
+      lowpass.Q.setValueAtTime(0.8 + clickStage * 0.2, now);
+
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sawtooth';
+      const baseFreq = 110 + clickStage * 45;
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(
+        baseFreq * (1.9 + clickStage * 0.28),
+        now + 0.42 + clickStage * 0.08
+      );
+
+      const subOsc = audioCtx.createOscillator();
+      subOsc.type = 'triangle';
+      const subFreq = 48 + clickStage * 12;
+      subOsc.frequency.setValueAtTime(subFreq, now);
+      subOsc.frequency.linearRampToValueAtTime(
+        subFreq * (1.1 + clickStage * 0.12),
+        now + 0.8
+      );
+
+      const oscGain = audioCtx.createGain();
+      oscGain.gain.setValueAtTime(0.0001, now);
+      oscGain.gain.exponentialRampToValueAtTime(0.65 + clickStage * 0.08, now + 0.06);
+      oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.5 + clickStage * 0.25);
+
+      const subGain = audioCtx.createGain();
+      subGain.gain.setValueAtTime(0.0001, now);
+      subGain.gain.exponentialRampToValueAtTime(0.32 + clickStage * 0.06, now + 0.12);
+      subGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.8 + clickStage * 0.28);
+
+      const lfo = audioCtx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.setValueAtTime(5 + clickStage * 2.5, now);
+      const lfoGain = audioCtx.createGain();
+      lfoGain.gain.setValueAtTime(18 + clickStage * 20, now);
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+
+      osc.connect(oscGain);
+      subOsc.connect(subGain);
+      oscGain.connect(bandpass);
+      subGain.connect(bandpass);
+      bandpass.connect(lowpass);
+      lowpass.connect(distortion);
+      distortion.connect(masterGain);
+
+      osc.start(now);
+      subOsc.start(now);
+      lfo.start(now);
+
+      const stopTime = now + 1.9 + clickStage * 0.28;
+      osc.stop(stopTime);
+      subOsc.stop(stopTime);
+      lfo.stop(stopTime);
+    }
+
+    function updateButtonLabel(stageIndex) {
+      if (!startBtn) return;
+      if (stageIndex < 0) {
+        startBtn.textContent = 'Initialize Grid Build';
+        startBtn.disabled = false;
+        startBtn.classList.remove('locked');
+        return;
+      }
+      const descriptor = stageDescriptors[Math.min(stageIndex, stageDescriptors.length - 1)];
+      startBtn.textContent = descriptor.nextLabel;
+      if (stageIndex >= stageDescriptors.length - 1) {
+        startBtn.disabled = true;
+        startBtn.classList.add('locked');
+      } else {
+        startBtn.disabled = false;
+        startBtn.classList.remove('locked');
+      }
+    }
+
+    function handleInitializationClick() {
+      if (!startBtn || sequenceInstance || primingSequence) {
+        return;
+      }
+      initClickCount = Math.min(initClickCount + 1, stageClasses.length);
+      const stageIndex = Math.min(initClickCount, stageDescriptors.length) - 1;
+      if (stageIndex >= 0) {
+        setOverlayStage(stageIndex);
+        updateTelemetry(stageDescriptors[stageIndex].telemetry);
+        updateButtonLabel(stageIndex);
+        playStartupWhir(stageIndex + 1);
+        startBtn.blur();
+      }
+      if (initClickCount >= stageClasses.length) {
+        primingSequence = true;
+        setTimeout(() => beginSequence(), 520);
+      }
+    }
+
+    setOverlayStage(-1);
+    updateButtonLabel(-1);
+
     if (startStage === 'blackhole') {
       beginSequence();
     } else if (startBtn) {
-      startBtn.addEventListener('click', beginSequence);
+      startBtn.addEventListener('click', () => handleInitializationClick());
     }
 
     window.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' || event.key === ' ') {
-        beginSequence();
+        event.preventDefault();
+        if (startStage === 'blackhole') {
+          beginSequence();
+          return;
+        }
+        handleInitializationClick();
       }
     });
   </script>
