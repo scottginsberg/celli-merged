@@ -1,55 +1,73 @@
-// Reboot chime for coordinate grid build
-const gridRebootAudio = (() => {
-  try {
-    const audio = new Audio('reboot.mp3');
-    audio.preload = 'auto';
-    audio.volume = 1;
-    return audio;
-  } catch (err) {
-    console.warn('Failed to initialize reboot audio:', err);
-    return null;
-  }
-})();
-
-    console.log('?? Camera is at:', addressCamera.position);
-    console.log('?? Camera is looking at: (0, 0, 0)');
-
-    if (!addressScene.userData.rebootPlayed) {
-      addressScene.userData.rebootPlayed = true;
-      if (gridRebootAudio) {
-        try {
-          gridRebootAudio.currentTime = 0;
-          const playPromise = gridRebootAudio.play();
-          if (playPromise && typeof playPromise.catch === 'function') {
-            playPromise.catch(err => console.warn('Reboot audio blocked:', err));
-          }
-        } catch (err) {
-          console.warn('Failed to play reboot audio:', err);
-        }
-      }
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>THE.OS Coordinate Grid Reference</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #06070f;
+      font-family: 'Roboto Mono', monospace;
+      color: #dce1ff;
+      display: flex;
+      flex-direction: column;
     }
- window.addressSequenceTime = 0;
- console.log('? Resetting sequence time to 0 for full grid build.');
- // Ensure the entire sequence plays through to the black hole
- window.addressSequenceTime = 0;
- console.log('? Resetting sequence time to 0 for full grid build before black hole.');
- console.log('?? Cell address sequence started from beginning - progressing to black hole');
-    console.log('?? Camera is at:', addressCamera.position);
 
-    console.log('?? Camera is looking at: (0, 0, 0)');
-
-    if (!addressScene.userData.rebootPlayed) {
-      addressScene.userData.rebootPlayed = true;
-      if (gridRebootAudio) {
-        try {
-          gridRebootAudio.currentTime = 0;
-          const playPromise = gridRebootAudio.play();
-          if (playPromise && typeof playPromise.catch === 'function') {
-            playPromise.catch(err => console.warn('Reboot audio blocked:', err));
-          }
-        } catch (err) {
-          console.warn('Failed to play reboot audio:', err);
-        }
-      }
+    header {
+      padding: 18px 24px;
+      border-bottom: 1px solid rgba(138, 180, 255, 0.28);
+      background: linear-gradient(135deg, rgba(18, 24, 48, 0.9), rgba(12, 16, 32, 0.95));
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 14px;
     }
-  }
+
+    header strong {
+      color: #7efce2;
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+    }
+
+    .notes {
+      padding: 18px 24px;
+      border-bottom: 1px solid rgba(138, 180, 255, 0.12);
+      background: rgba(10, 14, 28, 0.85);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .notes a {
+      color: #8ab4ff;
+      text-decoration: none;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #03040a;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Reference:</strong> THE.OS coordinate grid → singularity sequence
+  </header>
+  <main>
+    <section class="notes">
+      The faithful rebuild of the intro lattice now lives at
+      <a href="./templates/componentized/theos-sequence.html" target="_blank" rel="noopener">templates/componentized/theos-sequence.html</a>.
+      Use the scene select buttons in the main app to launch it directly in template mode, or interact with the embedded view below.
+    </section>
+    <iframe src="./templates/componentized/theos-sequence.html" title="THE.OS grid sequence"></iframe>
+  </main>
+</body>
+</html>

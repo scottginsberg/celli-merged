@@ -42,6 +42,30 @@ const EXECUTION_ENV_MODE_STORAGE_KEY = 'fullhand_mode';
 const EXECUTION_ENV_DEFAULT_MODE = 'sequence';
 
 const SCENE_OPTION_CONFIG = {
+  theos: {
+    templateUrl: './templates/componentized/theos-sequence.html',
+    badge: {
+      template: 'Template'
+    },
+    indicator: {
+      template: 'Standalone coordinate lattice build'
+    },
+    unlock: {
+      template: true
+    }
+  },
+  blackhole: {
+    templateUrl: './templates/componentized/theos-sequence.html?start=blackhole',
+    badge: {
+      template: 'Template'
+    },
+    indicator: {
+      template: 'Standalone singularity sequence'
+    },
+    unlock: {
+      template: true
+    }
+  },
   cellireal: {
     templateUrl: './templates/componentized/cellireal-complete.html',
     componentScene: 'cellireal',
