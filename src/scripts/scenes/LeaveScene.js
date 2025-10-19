@@ -1,39 +1,51 @@
 /**
  * LEAVE Scene - House of Leaves Sequence
- * 
+ *
  * Features:
  * - Ozymandias puzzle
  * - House labyrinth
  * - GIR.mp3 transformation
- * 
+ *
  * Ported from merged2.html
  */
 
 import * as THREE from 'three';
+import { sceneManager } from '../core/SceneManager.js';
+import { puzzleEventBus } from '../systems/PuzzleEventBus.js';
 
 export class LeaveScene {
-  constructor() {
+  constructor(config = {}) {
+    this.config = {
+      startPuzzle: 'ozymandias',
+      ...config
+    };
+
     this.state = {
       running: false,
       totalTime: 0,
       scene: null,
       camera: null,
       renderer: null,
-      
+
       // Puzzle state
       ozymandiasActive: false,
       ozymandiasText: '',
       ozymandiasSolved: false,
-      
+      ozymandiasOverlay: null,
+
       // Labyrinth state
       labyrinthActive: false,
       currentRoom: 0,
       rooms: [],
-      
+      labyrinthOverlay: null,
+
       // GIR transformation state
       girActive: false,
       transformProgress: 0
     };
+
+    this._chainReady = false;
+    this.subscriptions = [];
   }
 
   /**
@@ -43,10 +55,10 @@ export class LeaveScene {
     console.log('🏠 Initializing LEAVE Scene...');
 
     const app = document.getElementById('app');
-    
+
     // Create renderer
-    const renderer = new THREE.WebGLRenderer({ 
-      antialias: true, 
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
       alpha: false,
       preserveDrawingBuffer: true // Enable screen recording
     });
@@ -72,6 +84,8 @@ export class LeaveScene {
     // Setup resize handler
     window.addEventListener('resize', () => this._handleResize());
 
+    this._ensurePuzzleChainListeners();
+
     console.log('✅ LEAVE Scene initialized');
   }
 
@@ -80,23 +94,46 @@ export class LeaveScene {
    */
   async start(state, options = {}) {
     console.log('▶️ Starting LEAVE Scene');
-    
-    // Show Ozymandias puzzle
-    this._startOzymandiasSystem();
-    
+
+    const startOptions = {
+      ...this.config,
+      ...options
+    };
+
+    if (startOptions.startPuzzle === 'labyrinth') {
+      this._startLabyrinth(startOptions);
+    } else {
+      this._startOzymandiasSystem(startOptions);
+    }
+
     this.state.running = true;
-    
+
     console.log('✅ LEAVE Scene started');
   }
 
   /**
    * Start Ozymandias puzzle system
    */
-  _startOzymandiasSystem() {
+  _startOzymandiasSystem(options = {}) {
     console.log('📜 Starting Ozymandias puzzle...');
+    if (this.state.ozymandiasActive) {
+      return;
+    }
+
     this.state.ozymandiasActive = true;
-    
-    // Show puzzle UI
+    this.state.ozymandiasSolved = false;
+
+    puzzleEventBus.emitRiddleAvailable('ozymandias', {
+      scene: 'leave',
+      options
+    });
+
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    this._removeOverlay(this.state.ozymandiasOverlay);
+
     const overlay = document.createElement('div');
     overlay.id = 'ozymandias-overlay';
     overlay.style.cssText = `
@@ -109,7 +146,7 @@ export class LeaveScene {
       z-index: 1000;
       pointer-events: auto;
     `;
-    
+
     overlay.innerHTML = `
       <div style="max-width: 600px; padding: 40px; text-align: center;">
         <h2 style="color: #0f0; font-family: 'VT323', monospace; font-size: 32px; margin-bottom: 20px;">
@@ -121,30 +158,77 @@ export class LeaveScene {
         <p style="color: #0f0; margin-top: 30px; font-family: 'VT323', monospace;">
           Solve the puzzle to proceed to the House of Leaves
         </p>
-        <button id="ozymandias-skip" style="margin-top: 30px; padding: 15px 30px; background: #0a8; color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
-          Skip Puzzle (For Now)
-        </button>
+        <div style="display: flex; gap: 16px; justify-content: center; margin-top: 30px; flex-wrap: wrap;">
+          <button id="ozymandias-complete" style="padding: 15px 30px; background: #0f0; color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+            Mark Puzzle Solved
+          </button>
+          <button id="ozymandias-skip" style="padding: 15px 30px; background: #0a8; color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+            Skip Puzzle (For Now)
+          </button>
+        </div>
       </div>
     `;
-    
+
     document.body.appendChild(overlay);
-    
-    // Skip button handler
-    document.getElementById('ozymandias-skip').addEventListener('click', () => {
-      console.log('⏩ Skipping Ozymandias puzzle');
-      overlay.remove();
-      this._startLabyrinth();
+    this.state.ozymandiasOverlay = overlay;
+
+    const resolvePuzzle = (skipped) => {
+      this._removeOverlay(this.state.ozymandiasOverlay);
+      this.state.ozymandiasOverlay = null;
+      this._completeOzymandias({ skipped, options });
+    };
+
+    const completeButton = overlay.querySelector('#ozymandias-complete');
+    if (completeButton) {
+      completeButton.addEventListener('click', () => resolvePuzzle(false));
+    }
+
+    const skipButton = overlay.querySelector('#ozymandias-skip');
+    if (skipButton) {
+      skipButton.addEventListener('click', () => {
+        console.log('⏩ Skipping Ozymandias puzzle');
+        resolvePuzzle(true);
+      });
+    }
+  }
+
+  _completeOzymandias(context = {}) {
+    if (!this.state.ozymandiasActive || this.state.ozymandiasSolved) {
+      return;
+    }
+
+    this.state.ozymandiasSolved = true;
+    this.state.ozymandiasActive = false;
+
+    puzzleEventBus.emitRiddleSolved('ozymandias', {
+      scene: 'leave',
+      skipped: Boolean(context.skipped),
+      options: context.options
     });
   }
 
   /**
    * Start labyrinth sequence
    */
-  _startLabyrinth() {
+  _startLabyrinth(options = {}) {
     console.log('🏚️ Starting House of Leaves labyrinth...');
+    if (this.state.labyrinthActive) {
+      return;
+    }
+
     this.state.labyrinthActive = true;
-    
-    // Show labyrinth UI (placeholder)
+
+    puzzleEventBus.emitRiddleAvailable('houseofleaves', {
+      scene: 'leave',
+      options
+    });
+
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    this._removeOverlay(this.state.labyrinthOverlay);
+
     const overlay = document.createElement('div');
     overlay.id = 'labyrinth-overlay';
     overlay.style.cssText = `
@@ -157,7 +241,7 @@ export class LeaveScene {
       z-index: 1000;
       pointer-events: auto;
     `;
-    
+
     overlay.innerHTML = `
       <div style="max-width: 700px; padding: 40px; text-align: center;">
         <h2 style="color: #4a90e2; font-family: 'VT323', monospace; font-size: 28px; margin-bottom: 20px;">
@@ -175,14 +259,32 @@ export class LeaveScene {
         </button>
       </div>
     `;
-    
+
     document.body.appendChild(overlay);
-    
-    // Return button handler
-    document.getElementById('labyrinth-return').addEventListener('click', () => {
-      console.log('🔙 Returning to main');
-      overlay.remove();
-      this.stop();
+    this.state.labyrinthOverlay = overlay;
+
+    const returnButton = overlay.querySelector('#labyrinth-return');
+    if (returnButton) {
+      returnButton.addEventListener('click', () => {
+        console.log('🔙 Returning to main');
+        this._removeOverlay(this.state.labyrinthOverlay);
+        this.state.labyrinthOverlay = null;
+        this._completeLabyrinth({ skipped: false, options });
+      });
+    }
+  }
+
+  _completeLabyrinth(context = {}) {
+    if (!this.state.labyrinthActive) {
+      return;
+    }
+
+    this.state.labyrinthActive = false;
+
+    puzzleEventBus.emitRiddleSolved('houseofleaves', {
+      scene: 'leave',
+      skipped: Boolean(context.skipped),
+      options: context.options
     });
   }
 
@@ -191,9 +293,9 @@ export class LeaveScene {
    */
   update(state, deltaTime, totalTime) {
     if (!this.state.running) return;
-    
+
     this.state.totalTime += deltaTime;
-    
+
     // Render
     if (this.state.renderer && this.state.scene && this.state.camera) {
       this.state.renderer.render(this.state.scene, this.state.camera);
@@ -206,11 +308,11 @@ export class LeaveScene {
   _handleResize() {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    
+
     if (this.state.renderer) {
       this.state.renderer.setSize(w, h);
     }
-    
+
     if (this.state.camera) {
       this.state.camera.aspect = w / h;
       this.state.camera.updateProjectionMatrix();
@@ -223,13 +325,10 @@ export class LeaveScene {
   async stop() {
     console.log('⏹️ Stopping LEAVE Scene');
     this.state.running = false;
-    
-    // Clean up overlays
-    const ozyOverlay = document.getElementById('ozymandias-overlay');
-    if (ozyOverlay) ozyOverlay.remove();
-    
-    const labOverlay = document.getElementById('labyrinth-overlay');
-    if (labOverlay) labOverlay.remove();
+    this.state.ozymandiasActive = false;
+    this.state.labyrinthActive = false;
+
+    this._cleanupOverlays();
   }
 
   /**
@@ -237,8 +336,34 @@ export class LeaveScene {
    */
   async destroy() {
     await this.stop();
-    
-    // Cleanup resources
+
+    this.subscriptions.forEach(unsub => {
+      try {
+        unsub();
+      } catch (error) {
+        console.warn('⚠️ Failed to unsubscribe puzzle listener', error);
+      }
+    });
+    this.subscriptions = [];
+    this._chainReady = false;
+
+    this._disposeThreeResources();
+  }
+
+  _cleanupOverlays() {
+    this._removeOverlay(this.state.ozymandiasOverlay);
+    this.state.ozymandiasOverlay = null;
+    this._removeOverlay(this.state.labyrinthOverlay);
+    this.state.labyrinthOverlay = null;
+  }
+
+  _removeOverlay(overlay) {
+    if (overlay && overlay.parentNode) {
+      overlay.remove();
+    }
+  }
+
+  _disposeThreeResources() {
     if (this.state.scene) {
       this.state.scene.traverse(obj => {
         if (obj.geometry) obj.geometry.dispose();
@@ -251,15 +376,50 @@ export class LeaveScene {
         }
       });
     }
-    
+
     if (this.state.renderer && this.state.renderer.domElement) {
       this.state.renderer.domElement.remove();
       this.state.renderer.dispose();
     }
   }
+
+  _ensurePuzzleChainListeners() {
+    if (this._chainReady) {
+      return;
+    }
+
+    this._chainReady = true;
+
+    const advanceToOzymandias = (source, { context } = {}) => {
+      sceneManager.transitionTo('ozymandias', {
+        trigger: source,
+        riddleContext: context
+      });
+    };
+
+    this.subscriptions.push(
+      puzzleEventBus.onRiddleSolved('sokoban', payload => advanceToOzymandias('sokoban', payload))
+    );
+
+    this.subscriptions.push(
+      puzzleEventBus.onRiddleSolved('galaxy', payload => advanceToOzymandias('galaxy', payload))
+    );
+
+    this.subscriptions.push(
+      puzzleEventBus.onRiddleSolved('ozymandias', ({ context }) => {
+        this._startLabyrinth({ trigger: 'ozymandias', context });
+      })
+    );
+
+    this.subscriptions.push(
+      puzzleEventBus.onRiddleSolved('houseofleaves', ({ context }) => {
+        sceneManager.transitionTo('cellireal', {
+          trigger: 'houseofleaves',
+          riddleContext: context
+        });
+      })
+    );
+  }
 }
 
 export default LeaveScene;
-
-
-

@@ -15,9 +15,16 @@
 
 import * as THREE from 'three';
 import { audioSystem } from '../systems/AudioSystem.js';
+import { sceneManager } from '../core/SceneManager.js';
+import { puzzleEventBus } from '../systems/PuzzleEventBus.js';
 
 export class VisiCellScene {
-  constructor() {
+  constructor(config = {}) {
+    this.config = {
+      defaultPuzzle: null,
+      ...config
+    };
+
     this.state = {
       running: false,
       scene: null,
@@ -28,6 +35,8 @@ export class VisiCellScene {
       deathOverlay: null,
       deathSequenceActive: false,
       deathTimeouts: [],
+      activePuzzle: null,
+      puzzleOverlay: null,
 
       // Spreadsheet state
       cells: new Map(), // key: "A1" -> value: { value, formula, computed, style }
@@ -67,6 +76,9 @@ export class VisiCellScene {
       clueStepTimeouts: []
     };
     
+    this._chainReady = false;
+    this.subscriptions = [];
+
     this._initFunctions();
   }
 
@@ -308,6 +320,8 @@ export class VisiCellScene {
 
     // Setup event listeners
     this._setupEventListeners();
+
+    this._ensurePuzzleChainListeners();
 
     console.log('✅ VisiCell Scene initialized');
   }
@@ -1355,28 +1369,10 @@ export class VisiCellScene {
     }
 
     if (!this.state.endAudio) {
-      try {
-        this.state.endAudio = new Audio('./end.mp3');
-        this.state.endAudio.preload = 'auto';
-      } catch (error) {
-        console.warn('⚠️ Failed to initialize end.mp3 audio element', error);
-        this.state.endAudio = null;
-      }
+      this.state.endAudio = this._createAudioStream('./end.mp3');
     }
 
-    if (this.state.endAudio) {
-      try {
-        this.state.endAudio.currentTime = 0;
-        const playPromise = this.state.endAudio.play();
-        if (playPromise && typeof playPromise.then === 'function') {
-          playPromise.catch(err => {
-            console.warn('⚠️ Unable to play end.mp3 during VisiCell Scene', err);
-          });
-        }
-      } catch (error) {
-        console.warn('⚠️ Error playing end.mp3 during VisiCell Scene', error);
-      }
-    }
+    this._playAudioStream(this.state.endAudio, 'VisiCell Scene');
 
     // Show spreadsheet
     if (this.state.container) {
@@ -1392,6 +1388,11 @@ export class VisiCellScene {
 
     this._recalculate();
     this._initializeClueTrail();
+
+    const startPuzzle = options.puzzle || options.puzzleName || this.config.defaultPuzzle;
+    if (startPuzzle) {
+      this._activatePuzzle(startPuzzle, options);
+    }
   }
 
   /**
@@ -1420,6 +1421,9 @@ export class VisiCellScene {
   async stop() {
     console.log('⏹️ Stopping VisiCell Scene');
     this.state.running = false;
+
+    this._removePuzzleOverlay();
+    this.state.activePuzzle = null;
 
     if (this.state.endAudio) {
       try {
@@ -1461,6 +1465,16 @@ export class VisiCellScene {
   async destroy() {
     await this.stop();
 
+    this.subscriptions.forEach(unsub => {
+      try {
+        unsub();
+      } catch (error) {
+        console.warn('⚠️ Failed to unsubscribe puzzle listener', error);
+      }
+    });
+    this.subscriptions = [];
+    this._chainReady = false;
+
     if (this.state.endAudio) {
       try {
         this.state.endAudio.pause();
@@ -1487,6 +1501,185 @@ export class VisiCellScene {
     if (this.state.container) {
       this.state.container.remove();
     }
+  }
+
+  _createAudioStream(src) {
+    if (!src || typeof src !== 'string') {
+      return null;
+    }
+
+    if (/^file:/i.test(src)) {
+      console.warn('⚠️ Refusing to load audio from forbidden protocol', src);
+      return null;
+    }
+
+    const normalized = (/^https?:/i.test(src) || src.startsWith('./') || src.startsWith('/'))
+      ? src
+      : `./${src}`;
+
+    try {
+      const audio = new Audio(normalized);
+      audio.preload = 'auto';
+      if ('crossOrigin' in audio) {
+        audio.crossOrigin = 'anonymous';
+      }
+      return audio;
+    } catch (error) {
+      console.warn(`⚠️ Failed to create audio stream for ${normalized}`, error);
+      return null;
+    }
+  }
+
+  _playAudioStream(audio, contextLabel = 'VisiCell') {
+    if (!audio) {
+      return;
+    }
+
+    try {
+      audio.currentTime = 0;
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.then === 'function') {
+        playPromise.catch(err => {
+          console.warn(`⚠️ Unable to play audio during ${contextLabel}`, err);
+        });
+      }
+    } catch (error) {
+      console.warn(`⚠️ Error playing audio during ${contextLabel}`, error);
+    }
+  }
+
+  _activatePuzzle(puzzleName, options = {}) {
+    if (!puzzleName) {
+      return;
+    }
+
+    const normalized = String(puzzleName).toLowerCase();
+    if (this.state.activePuzzle === normalized) {
+      return;
+    }
+
+    this.state.activePuzzle = normalized;
+
+    puzzleEventBus.emitRiddleAvailable(normalized, {
+      scene: 'visicell',
+      options
+    });
+
+    this._showPuzzleOverlay(normalized, options);
+  }
+
+  _showPuzzleOverlay(puzzleName, options = {}) {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    this._removePuzzleOverlay();
+
+    const titles = {
+      sokoban: 'SOKOBAN // Warehouse Conundrum',
+      galaxy: 'GALAXY // Orbital Focus Puzzle'
+    };
+    const descriptions = {
+      sokoban: 'Reorganize the crates using spreadsheet formulas. Use logic to push every box into position.',
+      galaxy: 'Navigate gravitational wells to realign the planetoids. Each formula changes the orbital pull.'
+    };
+
+    const title = titles[puzzleName] || puzzleName.toUpperCase();
+    const description = descriptions[puzzleName] || 'Solve the riddle to progress.';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'visicell-puzzle-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1200;
+      pointer-events: auto;
+    `;
+
+    overlay.innerHTML = `
+      <div style="max-width: 640px; padding: 40px; text-align: center;">
+        <h2 style="color: #0ff; font-family: 'VT323', monospace; font-size: 32px; margin-bottom: 20px;">
+          ${title}
+        </h2>
+        <p style="color: #0cf; font-family: 'Courier New', monospace; line-height: 1.6;">
+          ${description}
+        </p>
+        <div style="display: flex; gap: 16px; justify-content: center; margin-top: 30px; flex-wrap: wrap;">
+          <button id="visicell-puzzle-complete" style="padding: 15px 30px; background: #0ff; color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+            Mark Puzzle Solved
+          </button>
+          <button id="visicell-puzzle-skip" style="padding: 15px 30px; background: #08f; color: #000; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+            Skip Puzzle
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    this.state.puzzleOverlay = overlay;
+
+    const resolve = (skipped) => {
+      this._removePuzzleOverlay();
+      this._completePuzzle(puzzleName, { skipped, options });
+    };
+
+    const completeBtn = overlay.querySelector('#visicell-puzzle-complete');
+    if (completeBtn) {
+      completeBtn.addEventListener('click', () => resolve(false));
+    }
+
+    const skipBtn = overlay.querySelector('#visicell-puzzle-skip');
+    if (skipBtn) {
+      skipBtn.addEventListener('click', () => {
+        console.log(`⏩ Skipping ${puzzleName} puzzle`);
+        resolve(true);
+      });
+    }
+  }
+
+  _removePuzzleOverlay() {
+    if (this.state.puzzleOverlay && this.state.puzzleOverlay.parentNode) {
+      this.state.puzzleOverlay.remove();
+    }
+    this.state.puzzleOverlay = null;
+  }
+
+  _completePuzzle(puzzleName, context = {}) {
+    const normalized = String(puzzleName).toLowerCase();
+    if (!normalized) {
+      return;
+    }
+
+    if (this.state.activePuzzle === normalized) {
+      this.state.activePuzzle = null;
+    }
+
+    puzzleEventBus.emitRiddleSolved(normalized, {
+      scene: 'visicell',
+      skipped: Boolean(context.skipped),
+      options: context.options
+    });
+  }
+
+  _ensurePuzzleChainListeners() {
+    if (this._chainReady) {
+      return;
+    }
+
+    this._chainReady = true;
+
+    const wordleUnsub = puzzleEventBus.onRiddleSolved('wordle', ({ context }) => {
+      sceneManager.transitionTo('sokoban', {
+        trigger: 'wordle',
+        riddleContext: context
+      });
+    });
+
+    this.subscriptions.push(wordleUnsub);
   }
 
   /**

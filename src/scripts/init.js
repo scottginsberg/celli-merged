@@ -12,6 +12,7 @@ import { assetPool } from './systems/AssetPool.js';
 import { configSystem } from './systems/ConfigSystem.js';
 import { sequenceEngine } from './systems/SequenceEngine.js';
 import { audioSystem } from './systems/AudioSystem.js';
+import { puzzleEventBus } from './systems/PuzzleEventBus.js';
 
 /**
  * Register all default configuration
@@ -386,6 +387,11 @@ export function initializeDebugCommands() {
   window.celli.assets = assetPool;
   window.celli.sequences = sequenceEngine;
   window.celli.audio = audioSystem;
+  window.celli.puzzles = {
+    bus: puzzleEventBus,
+    available: (name, context = {}) => puzzleEventBus.emitRiddleAvailable(name, context),
+    solve: (name, context = {}) => puzzleEventBus.emitRiddleSolved(name, context)
+  };
 
   window.celli.showTuning = () => {
     const ui = document.getElementById('playerTuningUI');
@@ -418,6 +424,7 @@ export function initializeDebugCommands() {
   console.log('  - celli.assets (asset pool)');
   console.log('  - celli.sequences (sequence engine)');
   console.log('  - celli.audio (audio system)');
+  console.log('  - celli.puzzles (puzzle event bus helpers)');
   console.log('  - celli.showTuning() (show tuning UI)');
   console.log('  - celli.exportConfig() (export config)');
   console.log('  - celli.resetConfig() (reset to defaults)');

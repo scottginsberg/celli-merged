@@ -15,6 +15,7 @@ export class SceneManager {
     this.activeScene = null;
     this.transitionInProgress = false;
     this.permissions = new Map();
+    this.aliases = new Map();
     this.hooks = {
       beforeTransition: [],
       afterTransition: [],
@@ -32,7 +33,7 @@ export class SceneManager {
     if (this.scenes.has(name)) {
       console.warn(`Scene "${name}" already registered, overwriting`);
     }
-    
+
     // Validate scene structure
     const requiredMethods = ['init', 'start', 'update', 'stop'];
     for (const method of requiredMethods) {
@@ -52,6 +53,44 @@ export class SceneManager {
   }
 
   /**
+   * Register an alias for an existing scene.
+   * Aliases allow shorthand transitions without duplicating scene instances.
+   * @param {string} alias - Alias identifier
+   * @param {string} target - Registered scene name
+   * @param {Object} [defaultOptions={}] - Default transition options applied when alias is used
+   */
+  registerAlias(alias, target, defaultOptions = {}) {
+    if (!target || !this.scenes.has(target)) {
+      console.warn(`Cannot register alias "${alias}" → "${target}". Target scene not found.`);
+      return;
+    }
+
+    this.aliases.set(alias, {
+      target,
+      options: { ...defaultOptions }
+    });
+
+    console.log(`🔗 Scene alias registered: ${alias} → ${target}`);
+  }
+
+  /**
+   * Resolve scene aliases prior to transition.
+   * @param {string} sceneName
+   * @param {Object} options
+   * @returns {{ name: string, options: Object }}
+   */
+  _resolveSceneAlias(sceneName, options) {
+    if (!this.aliases.has(sceneName)) {
+      return { name: sceneName, options };
+    }
+
+    const alias = this.aliases.get(sceneName);
+    const mergedOptions = { ...alias.options, ...options };
+    console.log(`🎯 Resolving scene alias "${sceneName}" → "${alias.target}"`);
+    return { name: alias.target, options: mergedOptions };
+  }
+
+  /**
    * Transition to a new scene
    * @param {string} sceneName - Name of scene to transition to
    * @param {Object} options - Transition options
@@ -61,6 +100,11 @@ export class SceneManager {
       console.warn('Transition already in progress');
       return false;
     }
+
+    const requestedScene = sceneName;
+    const resolved = this._resolveSceneAlias(sceneName, options);
+    sceneName = resolved.name;
+    options = resolved.options;
 
     if (!this.scenes.has(sceneName)) {
       console.error(`Scene "${sceneName}" not registered`);
@@ -77,7 +121,7 @@ export class SceneManager {
 
     try {
       // Call before transition hooks
-      await this._callHooks('beforeTransition', { from: this.activeScene, to: sceneName });
+      await this._callHooks('beforeTransition', { from: this.activeScene, to: sceneName, requested: requestedScene });
 
       // Stop current scene
       if (this.activeScene) {
@@ -88,10 +132,14 @@ export class SceneManager {
       await this._startScene(sceneName, options);
 
       // Call after transition hooks
-      await this._callHooks('afterTransition', { from: this.activeScene, to: sceneName });
+      await this._callHooks('afterTransition', { from: this.activeScene, to: sceneName, requested: requestedScene });
 
       this.activeScene = sceneName;
-      console.log(`🎬 Transitioned to scene: ${sceneName}`);
+      if (requestedScene !== sceneName) {
+        console.log(`🎬 Transitioned to scene: ${sceneName} (requested: ${requestedScene})`);
+      } else {
+        console.log(`🎬 Transitioned to scene: ${sceneName}`);
+      }
 
       return true;
     } catch (error) {
@@ -230,6 +278,14 @@ export class SceneManager {
     }
 
     this.scenes.delete(sceneName);
+
+    for (const [alias, aliasConfig] of Array.from(this.aliases.entries())) {
+      if (aliasConfig.target === sceneName) {
+        this.aliases.delete(alias);
+        console.log(`🧹 Removed scene alias ${alias} (target destroyed)`);
+      }
+    }
+
     console.log(`💥 Scene destroyed: ${sceneName}`);
   }
 
@@ -237,7 +293,10 @@ export class SceneManager {
    * Get list of registered scenes
    */
   listScenes() {
-    return Array.from(this.scenes.keys());
+    return [
+      ...Array.from(this.scenes.keys()),
+      ...Array.from(this.aliases.keys())
+    ];
   }
 
   /**

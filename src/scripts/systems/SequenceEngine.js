@@ -173,11 +173,15 @@ export class SequenceEngine {
 
       // Transition node (scene transition)
       transition: async (node, state) => {
-        const { toScene, effect } = node.params || {};
+        const { toScene, effect, options = {} } = node.params || {};
         console.log(`🎬 Transition: to ${toScene} (${effect})`);
-        
-        // This would trigger scene manager transition
-        this._callHooks('onEvent', { type: 'transition', toScene, effect, state });
+
+        this._callHooks('onEvent', {
+          type: 'transition',
+          name: toScene,
+          data: { toScene, effect, options },
+          state
+        });
       },
 
       // Event node (trigger custom event)
@@ -185,11 +189,11 @@ export class SequenceEngine {
         const { eventName, eventData } = node.params || {};
         console.log(`⚡ Event: ${eventName}`);
         
-        this._callHooks('onEvent', { 
-          type: 'custom', 
-          name: eventName, 
-          data: eventData, 
-          state 
+        this._callHooks('onEvent', {
+          type: 'custom',
+          name: eventName,
+          data: eventData,
+          state
         });
       },
 

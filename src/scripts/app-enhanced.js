@@ -18,6 +18,7 @@ import { VisiCellScene } from './scenes/VisiCellScene.js';
 import { CityScene } from './scenes/CityScene.js';
 import { CelliRealScene } from './scenes/CelliRealScene.js';
 import { FullhandScene } from './scenes/FullhandScene.js';
+import { LeaveScene } from './scenes/LeaveScene.js';
 
 // Import GUI systems
 import { quoteSystem } from './gui/QuoteSystem.js';
@@ -29,6 +30,7 @@ import { audioSystem } from './systems/AudioSystem.js';
 import { assetPool } from './systems/AssetPool.js';
 import { configSystem } from './systems/ConfigSystem.js';
 import { sequenceEngine } from './systems/SequenceEngine.js';
+import { puzzleEventBus } from './systems/PuzzleEventBus.js';
 
 // Import initialization
 import {
@@ -49,6 +51,7 @@ const INTRO_THEME_SOURCES = {
 let constructionCompleteCache = null;
 let sceneHooksRegistered = false;
 let introSceneMusicManaged = false;
+let puzzleHooksRegistered = false;
 
 console.log('%c🎨 Celli - Enhanced Scene System Loading...',
   'background: #8ab4ff; color: #000; font-size: 18px; padding: 10px; font-weight: bold;');
@@ -99,7 +102,7 @@ export function registerAllScenes() {
 
   // Register Complete Intro Scene (use this for faithful port)
   sceneManager.registerScene('intro', new IntroSceneComplete());
-  
+
   // Register VisiCell Scene
   sceneManager.registerScene('visicell', new VisiCellScene());
 
@@ -111,7 +114,16 @@ export function registerAllScenes() {
 
   // Register Execution Environment scene
   sceneManager.registerScene('fullhand', new FullhandScene());
-  
+
+  // Register House of Leaves / Ozymandias scene
+  sceneManager.registerScene('leave', new LeaveScene());
+
+  // Register shorthand aliases for puzzle entry points
+  sceneManager.registerAlias('sokoban', 'visicell', { puzzle: 'sokoban' });
+  sceneManager.registerAlias('galaxy', 'visicell', { puzzle: 'galaxy' });
+  sceneManager.registerAlias('ozymandias', 'leave', { startPuzzle: 'ozymandias' });
+  sceneManager.registerAlias('houseofleaves', 'leave', { startPuzzle: 'labyrinth' });
+
   // TODO: Register more scenes as they're extracted
   // sceneManager.registerScene('end3', new End3Scene());
   // sceneManager.registerScene('fullhand', new FullhandScene());
@@ -235,6 +247,7 @@ export async function startApp() {
     // Setup sequence engine hooks
     setupSequenceHooks();
     setupSceneHooks();
+    setupPuzzleHooks();
 
     // Create player tuning UI (if enabled)
     if (configSystem.get('debug.enablePlayerTuning') !== false) {
@@ -318,16 +331,47 @@ function setupSequenceHooks() {
   });
 
   // Hook custom events
-  sequenceEngine.on('onEvent', ({ type, name, data }) => {
+  sequenceEngine.on('onEvent', ({ type, name, data = {}, state }) => {
     console.log(`⚡ Event: ${type} - ${name}`);
-    
+
     if (type === 'transition') {
-      // Scene transition
-      sceneManager.transitionTo(data.toScene);
+      const targetScene = name || data.toScene;
+      if (!targetScene) {
+        console.warn('⚠️ Transition event missing target scene');
+        return;
+      }
+
+      sceneManager.transitionTo(targetScene, data.options || {});
+      return;
+    }
+
+    if (type === 'custom') {
+      if (name === 'riddleAvailable' && data?.riddle) {
+        puzzleEventBus.emitRiddleAvailable(data.riddle, { ...data, state });
+      } else if (name === 'riddleSolved' && data?.riddle) {
+        puzzleEventBus.emitRiddleSolved(data.riddle, { ...data, state });
+      }
     }
   });
 
   console.log('🔗 Sequence engine hooks configured');
+}
+
+function setupPuzzleHooks() {
+  if (puzzleHooksRegistered) {
+    return;
+  }
+  puzzleHooksRegistered = true;
+
+  puzzleEventBus.onRiddleAvailable('*', ({ name, context }) => {
+    console.log(`🧩 Riddle available: ${name}`, context);
+  });
+
+  puzzleEventBus.onRiddleSolved('*', ({ name, context }) => {
+    console.log(`🧩 Riddle solved: ${name}`, context);
+  });
+
+  console.log('🧩 Puzzle event hooks configured');
 }
 
 function hasConstructionCompleted() {
