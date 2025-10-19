@@ -387,7 +387,11 @@ export class MainframeSpawn {
   }
 
   _updateHomeConstruction(deltaTime) {
-    const dt = deltaTime / 1000;
+    // `deltaTime` from the scene update loop is provided in seconds.
+    // This routine originally assumed milliseconds which slowed the
+    // animation to an imperceptible crawl (and blocked the intro from
+    // finishing). Treat it as seconds so progress advances correctly.
+    const dt = deltaTime;
     let allComplete = true;
 
     this.state.homeCells.forEach((cell) => {
