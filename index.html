@@ -27,6 +27,8 @@
  <link rel="stylesheet" href="src/styles/celli-real.css">
  <link rel="stylesheet" href="src/styles/referrer-overlay.css">
  <link rel="stylesheet" href="src/styles/recorder.css">
+ <link rel="stylesheet" href="src/styles/scene-select.css">
+ <link rel="stylesheet" href="src/styles/full-sequence-button.css">
  
  <!-- Mythic Sidebar Entrance Animations -->
  <style>
@@ -1011,6 +1013,12 @@
  </style>
 </head>
 <body>
+ <div id="fallback" class="fallback-message" role="alert" aria-live="assertive" style="display:none">
+  <div class="fallback-message__content">
+   <h1>Celli requires WebGL</h1>
+   <p>Your browser appears to have WebGL disabled. Enable hardware acceleration and reload to explore the full experience.</p>
+  </div>
+ </div>
  <div id="app" class="scanlines"></div>
  <div class="hud">
   <div id="quote" class="quote">

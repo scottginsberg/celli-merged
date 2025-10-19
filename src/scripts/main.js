@@ -399,9 +399,16 @@ console.log('%c🔧 Dynamic scene loading & composition',
             'background: #0f0; color: #000; font-size: 14px; padding: 6px;');
 
 // Check WebGL support
-if (!checkWebGL()) {
-  document.getElementById('fallback').style.display = 'flex';
-  throw new Error('WebGL not available');
+const webglAvailable = checkWebGL();
+if (!webglAvailable) {
+  const fallback = document.getElementById('fallback');
+  if (fallback) {
+    fallback.style.display = 'flex';
+  } else {
+    console.warn('⚠️ WebGL unavailable and fallback container missing.');
+  }
+
+  console.error('WebGL not available — skipping Celli initialization.');
 }
 
 // Initialize when DOM is ready
@@ -1359,11 +1366,13 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('💥 Unhandled promise rejection:', event.reason);
 });
 
-// Start when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
+// Start when DOM is ready (only if WebGL is available)
+if (webglAvailable) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 }
 
 // Export THREE globally for compatibility
