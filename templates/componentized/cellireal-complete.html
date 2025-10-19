@@ -1,5 +1,22 @@
-<title>Celli</title>
-<script type="module" src="../../src/scripts/systems/PuzzleStateManager.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Celli Real Scene</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto+Mono:wght@100;300&family=VT323&display=swap" rel="stylesheet">
+  <script type="module" src="../../src/scripts/systems/PuzzleStateManager.js"></script>
+  <style>
+    html, body { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Roboto Mono', ui-monospace, monospace; }
+    body { min-height: 100vh; }
+    #cellireal-root { position: relative; min-height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="cellireal-root"></div>
+  <script type="module">
 window.Store = Store;
 
 const puzzleTrackerRegistry = new Map();
@@ -276,3 +293,6 @@ tag('SOKOBAN',['GAME','META'],(anchor,arr,ast)=>{
   trackSokobanBoard(board.id, GOAL_COORD, { anchor: { ...anchor, arrId: arr.id }, arrayId: arr.id });
   }catch(e){ Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true); }
  });
+  </script>
+</body>
+</html>
