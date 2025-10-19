@@ -1091,7 +1091,7 @@
     <button id="quickTwitter" style="padding:6px 14px; background:#1da1f2; border:0; color:#fff; border-radius:6px; cursor:pointer; font-size:10px; font-weight:700;">Zeed</button>
     <button id="quickFacebook" style="padding:6px 14px; background:#1877f2; border:0; color:#fff; border-radius:6px; cursor:pointer; font-size:10px; font-weight:700;">Facebook</button>
     <button id="quickLinkedIn" style="padding:6px 14px; background:#0a66c2; border:0; color:#fff; border-radius:6px; cursor:pointer; font-size:10px; font-weight:700;">LinkedIn</button>
-    <a id="directFormLink" href="./templates/componentized/beta-focus-form.html" target="_blank" rel="noopener" style="padding:6px 14px; background:#20c997; border-radius:6px; color:#0b0f16; cursor:pointer; font-size:10px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+    <a id="directFormLink" href="./templates/componentized/beta-focus-form.html" rel="noopener" style="padding:6px 14px; background:#20c997; border-radius:6px; color:#0b0f16; cursor:pointer; font-size:10px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
      <span aria-hidden="true">📝</span>
      <span>Beta Form</span>
     </a>
@@ -1237,7 +1237,7 @@
    <div class="ref-footer">
     <div class="ref-sub">Looks unstable — try "recreate" for another pass.</div>
     <div class="ref-controls">
-     <a id="refFeedbackLink" class="btn ref-feedback-link" href="./templates/componentized/beta-focus-form.html?fullsequence=beta" target="_blank" rel="noopener">Feedback form</a>
+    <a id="refFeedbackLink" class="btn ref-feedback-link" href="./templates/componentized/beta-focus-form.html?fullsequence=beta" rel="noopener">Feedback form</a>
      <button id="refReset" class="btn" style="background: #3498db;">↻ Reset</button>
      <button id="refRecreate" class="btn">Recreate</button>
      <button id="refDismiss" class="btn">Dismiss</button>
@@ -1342,8 +1342,59 @@
   const refSidebarAck = document.getElementById('refSidebarAck');
   const loomAudioStatus = refSidebarAck ? refSidebarAck.querySelector('.loom-invite-card__subline--audio') : null;
   const refFeedbackLink = document.getElementById('refFeedbackLink');
+  const directFormLink = document.getElementById('directFormLink');
   const LOOM_AUDIO_STATUS_TEXT = 'Streaming CallYouByMyName.mp3';
-  const BETA_FOCUS_FORM_URL = new URL('./templates/componentized/beta-focus-form.html?fullsequence=beta', window.location.href).toString();
+
+  function computeAppBaseUrl() {
+    const href = window.location && typeof window.location.href === 'string'
+      ? window.location.href
+      : '';
+
+    try {
+      const current = new URL(href);
+      if (current.protocol === 'file:') {
+        const sanitized = href.replace(/[?#].*$/, '');
+        if (sanitized.endsWith('/')) {
+          return sanitized;
+        }
+        const slashIndex = sanitized.lastIndexOf('/');
+        return slashIndex >= 0 ? `${sanitized.slice(0, slashIndex + 1)}` : sanitized;
+      }
+
+      let basePath = current.pathname || '/';
+      if (!basePath.endsWith('/')) {
+        const lastSlashIndex = basePath.lastIndexOf('/');
+        const lastSegment = lastSlashIndex >= 0 ? basePath.slice(lastSlashIndex + 1) : basePath;
+        const looksLikeFile = /\.[A-Za-z0-9]+$/.test(lastSegment);
+        if (looksLikeFile) {
+          basePath = lastSlashIndex >= 0 ? basePath.slice(0, lastSlashIndex + 1) : '/';
+        } else {
+          basePath = `${basePath}/`;
+        }
+      }
+
+      return `${current.origin}${basePath}`;
+    } catch (error) {
+      console.warn('⚠️ Unable to compute app base URL, defaulting to current directory:', error);
+      const sanitized = href.replace(/[?#].*$/, '');
+      if (sanitized.endsWith('/')) {
+        return sanitized;
+      }
+      const slashIndex = sanitized.lastIndexOf('/');
+      if (slashIndex >= 0) {
+        const lastSegment = sanitized.slice(slashIndex + 1);
+        const looksLikeFile = /\.[A-Za-z0-9]+$/.test(lastSegment);
+        if (looksLikeFile) {
+          return `${sanitized.slice(0, slashIndex + 1)}`;
+        }
+        return `${sanitized}/`;
+      }
+      return sanitized || './';
+    }
+  }
+
+  const APP_BASE_URL = computeAppBaseUrl();
+  const BETA_FOCUS_FORM_URL = new URL('templates/componentized/beta-focus-form.html?fullsequence=beta', APP_BASE_URL).toString();
   const FULL_SEQUENCE_FLAG_KEY = 'celli:fullSequenceActive';
   const FULL_SEQUENCE_STAGE_KEY = 'celli:fullSequenceStage';
   const FULL_SEQUENCE_REFERRER_STAGE = 'referrer';
@@ -1355,6 +1406,11 @@
 
   if (refFeedbackLink) {
     refFeedbackLink.href = BETA_FOCUS_FORM_URL;
+  }
+
+  if (directFormLink) {
+    directFormLink.href = BETA_FOCUS_FORM_URL;
+    directFormLink.removeAttribute('target');
   }
 
   function ensureReferrerSequenceSession() {
