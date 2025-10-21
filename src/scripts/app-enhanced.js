@@ -562,6 +562,44 @@ export async function startApp() {
       play.style.display = 'none';
     }
 
+    const introSequenceApi = window.celliApp?.introSequence;
+    if (introSequenceApi?.resolvePlaylist && introSequenceApi?.playOverlay) {
+      try {
+        const playlist = await introSequenceApi.resolvePlaylist();
+        if (Array.isArray(playlist) && playlist.length) {
+          console.log('🎞️ Intro overlay playlist resolved:', playlist.length, 'entries');
+
+          audioSystem.init();
+          try {
+            await audioSystem.resume();
+          } catch (audioError) {
+            console.warn('⚠️ Audio resume failed before intro overlay:', audioError);
+          }
+
+          const themeKey = resolvePreferredIntroThemeKey();
+          const themeUrl = INTRO_THEME_SOURCES[themeKey] || INTRO_THEME_SOURCES[INTRO_THEME_DEFAULT];
+
+          await introSequenceApi.playOverlay({
+            playlist,
+            audioSystem,
+            music: {
+              key: `intro:theme:${themeKey}`,
+              url: themeUrl,
+              volume: 0.6,
+              fadeInDuration: 1.6,
+              fadeOutDuration: 0.8
+            }
+          });
+
+          console.log('🎞️ Intro overlay completed');
+        } else {
+          console.log('ℹ️ Intro overlay playlist empty; continuing bootstrap');
+        }
+      } catch (overlayError) {
+        console.warn('⚠️ Failed to run intro overlay playlist:', overlayError);
+      }
+    }
+
     console.group('🧰 System bootstrap');
     console.log('🧭 Scene registry before init:', sceneManager.listScenes());
 
@@ -711,6 +749,31 @@ function hasConstructionCompleted() {
   return constructionCompleteCache;
 }
 
+function resolvePreferredIntroThemeKey() {
+  const hasCompleted = hasConstructionCompleted();
+  let themeKey = INTRO_THEME_DEFAULT;
+
+  try {
+    const stored = window.localStorage?.getItem(INTRO_THEME_STORAGE_KEY);
+    if (stored === INTRO_THEME_DEFAULT || stored === INTRO_THEME_SECONDARY) {
+      themeKey = stored;
+    } else if (hasCompleted) {
+      themeKey = INTRO_THEME_SECONDARY;
+    }
+  } catch (error) {
+    console.warn('⚠️ Unable to read intro theme preference for music playback:', error);
+    if (hasCompleted) {
+      themeKey = INTRO_THEME_SECONDARY;
+    }
+  }
+
+  if (hasCompleted && themeKey !== INTRO_THEME_SECONDARY) {
+    themeKey = INTRO_THEME_SECONDARY;
+  }
+
+  return themeKey;
+}
+
 function setupSceneHooks() {
   if (sceneHooksRegistered) {
     return;
@@ -757,23 +820,7 @@ function setupSceneHooks() {
       return;
     }
 
-    const hasCompleted = hasConstructionCompleted();
-    let themeKey = INTRO_THEME_DEFAULT;
-
-    try {
-      const stored = window.localStorage?.getItem(INTRO_THEME_STORAGE_KEY);
-      if (stored === INTRO_THEME_DEFAULT || stored === INTRO_THEME_SECONDARY) {
-        themeKey = stored;
-      } else if (hasCompleted) {
-        themeKey = INTRO_THEME_SECONDARY;
-      }
-    } catch (error) {
-      console.warn('⚠️ Unable to read intro theme preference for music playback:', error);
-      if (hasCompleted) {
-        themeKey = INTRO_THEME_SECONDARY;
-      }
-    }
-
+    const themeKey = resolvePreferredIntroThemeKey();
     const themeUrl = INTRO_THEME_SOURCES[themeKey] || INTRO_THEME_SOURCES[INTRO_THEME_DEFAULT];
 
     audioSystem.playMusic({
