@@ -8554,10 +8554,49 @@ visicellRebootAudioHandle = visicellRebootAttempt;
  chimePlayed = true;
  }
  
- // Hide Loomworks text near end
+ // Untype loomworks back to LOOK at end of loomworks phase
  const loomProgress = (t - introCfg.blackoutEnd) / (introCfg.loomworksEnd - introCfg.blackoutEnd);
- if (loomProgress > 0.85) {
- document.getElementById('loomworks').style.opacity = THREE.MathUtils.lerp(1, 0, (loomProgress - 0.85) / 0.15);
+ if (loomProgress > 0.75 && !loomworksShown) {
+ loomworksShown = true;
+ // Start untyping sequence
+ setTimeout(() => {
+ // Untype "works Experience." back to empty
+ const tailText = loomTail.textContent || '';
+ let untyped = tailText.length;
+ const untypeInterval = setInterval(() => {
+ if (untyped <= 0) {
+ clearInterval(untypeInterval);
+ // Then untype "a L" from loomPre
+ loomPre.textContent = '';
+ loomPost.textContent = 'K';
+ loomCore.textContent = 'OO';
+ loomworksEl.style.fontSize = '32px';
+ loomworksEl.style.fontWeight = '700';
+ loomworksEl.style.letterSpacing = '0.2em';
+ // Flash to GAZE after a brief pause
+ setTimeout(() => {
+ loomPre.textContent = 'G';
+ loomCore.textContent = 'A';
+ loomPost.textContent = 'ZE';
+ loomworksEl.style.opacity = '0';
+ setTimeout(() => { loomworksEl.style.opacity = '1'; }, 50);
+ setTimeout(() => { loomworksEl.style.opacity = '0'; }, 150);
+ setTimeout(() => { loomworksEl.style.opacity = '1'; }, 250);
+ // Build quote around GAZE
+ setTimeout(() => {
+ quoteBefore.textContent = '...if you ';
+ quoteBefore.style.display = 'inline';
+ quoteAfter.textContent = ' for long into an abyss, the abyss gazes also into you.';
+ quoteAfter.style.display = 'inline';
+ quoteEl.style.opacity = '1';
+ }, 600);
+ }, 400);
+ return;
+ }
+ loomTail.textContent = tailText.substring(0, untyped - 1);
+ untyped--;
+ }, 40);
+ }, 100);
  }
  } else if (phase === 'celli') {
  // CELLI phase - lower bloom to reduce wobble
@@ -8569,7 +8608,11 @@ visicellRebootAudioHandle = visicellRebootAttempt;
  triMesh.visible = false;
 
  if (!celliStarted) {
+ // Hide loomworks and quote after transitions complete
+ setTimeout(() => {
  document.getElementById('loomworks').style.display = 'none';
+ quoteEl.style.opacity = '0';
+ }, 2000);
  celliStarted = true;
  }
  } else {

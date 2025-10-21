@@ -62,8 +62,12 @@
 @keyframes glitchB{ 0%{clip-path:inset(60% 0 0 0)} 50%{clip-path:inset(30% 0 40% 0)} 100%{clip-path:inset(0 0 70% 0)} }
 #pad{ position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:480px; height:360px; background:rgba(17,24,39,.95); border:1px solid rgba(255,255,255,.12); border-radius:20px; box-shadow:0 25px 50px -12px rgb(0 0 0 / .5); z-index:10002; display:none; color:#e5e7eb; overflow:hidden; flex-direction:column; backdrop-filter:blur(14px); }
 #pad textarea{ width:100%; flex:1; background:inherit; color:inherit; border:none; padding:18px 18px 36px; font-family:'Roboto Mono',monospace; outline:none; resize:none; border-radius:16px; }
+#pad .note-content{ width:100%; flex:1; background:inherit; color:inherit; border:none; padding:18px 18px 36px; font-family:'Roboto Mono',monospace; outline:none; resize:none; border-radius:16px; }
 #pad .win-header{border-top-left-radius:20px; border-top-right-radius:20px;}
 #pad .pad-resizer{position:absolute; right:10px; bottom:10px; width:18px; height:18px; background:linear-gradient(135deg, rgba(59,130,246,0.4), rgba(59,130,246,0.9)); border-radius:6px; cursor:nwse-resize; box-shadow:0 6px 14px rgba(15,23,42,0.2); border:1px solid rgba(255,255,255,0.4);}
+.pad-tab{ transition:all .2s ease; }
+.pad-tab:hover{ background:rgba(255,255,255,0.5) !important; }
+.pad-tab-active{ background:#ffffff !important; font-weight:600 !important; }
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;overscroll-behavior:none}
@@ -148,16 +152,16 @@ body.touch #minDot.show{ display:block; transform:scale(1); opacity:1 }
 .row-headers{width:48px; overflow:auto hidden; border-right:1px solid var(--line)}
 .grid-wrap{flex:1; overflow:auto}
 table.sheet{border-collapse:collapse; table-layout:fixed; width:max-content}
-table.sheet td, table.sheet th{border:1px solid #e6e8ef; padding:0; height:60px; font-size:14px; font-family:'Roboto Mono', monospace}
+table.sheet td, table.sheet th{border:1px solid #e6e8ef; padding:0; height:60px; font-size:14px; font-family:'Roboto Mono','Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji','Twemoji Mozilla',monospace}
 /* Match reference code: use Roboto Mono for both headers and cells */
-td.cell{width:92px; background:#fff; padding:0 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; text-align:left; font-family:'Roboto Mono', monospace}
+td.cell{width:92px; background:#fff; padding:0 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; text-align:left; font-family:'Roboto Mono','Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji','Twemoji Mozilla', monospace}
 /* Axes/header cells: soft gray */
 table.sheet th{ background:#f9fafb; text-align:center; font-weight:600 }
 /* Row header (Y labels) padding/width for non-touch */
 table.sheet tr th:first-child{ min-width:56px; padding:0 10px }
 
 /* Ensure compatibility with reference-style selector */
-.sheet-table th,.sheet-table td{ border:1px solid var(--line); padding:6px 8px; min-width:60px; text-align:left; font-family:'Roboto Mono', monospace; font-size:14px }
+.sheet-table th,.sheet-table td{ border:1px solid var(--line); padding:6px 8px; min-width:60px; text-align:left; font-family:'Roboto Mono','Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji','Twemoji Mozilla', monospace; font-size:14px }
 .sheet-table th{ background:#f9fafb; text-align:center; font-weight:600 }
 td.cell[data-generated="true"]{background:#f0fdf4} /* Light green for formula-emitted cells */
 td.cell[data-anchor="true"]{background:#dcfce7} /* Darker green for anchor cells */
@@ -369,31 +373,31 @@ document.addEventListener('click', function(e){
 <!-- Debug/builder card -->
 <div class="panel stack" id="hud" style="padding:0; overflow:hidden">
  <div class="win-header" style="background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.12)"><span>DEBUG CONSOLE</span><div id="debug-close" class="close" title="Hide"></div></div>
- <div class="sub" style="padding:0 12px 8px;">Click cells <span class="kbd">? ? ? ?</span> move <span class="kbd">Enter</span> edit <span class="kbd">P</span> physics <span class="kbd">F</span> functions</div>
+ <div class="sub" style="padding:0 12px 8px;">Click cells <span class="kbd">← ↑ → ↓</span> move <span class="kbd">Enter</span> edit <span class="kbd">P</span> physics <span class="kbd">F</span> functions</div>
  
  <!-- Navigation & View Controls -->
  <div class="row" style="padding:0 12px 6px;">
- <button class="btn primary" id="centerHome">?? Home</button>
- <button class="btn" id="viewMainframe">??? Mainframe</button>
+ <button class="btn primary" id="centerHome">Home</button>
+ <button class="btn" id="viewMainframe">Mainframe</button>
  <button class="btn" id="toggleGrid">Grid</button>
  <button class="btn" id="toggleAxes">Axes</button>
  </div>
  
  <!-- Scene & Physics Controls -->
   <div class="row" style="padding:0 12px 6px;">
-  <button class="btn good" id="physicsBtn">? Physics</button>
-  <button class="btn" id="toggleChunks">?? Chunks</button>
-  <button class="btn warn" id="reset">?? Reset</button>
+ <button class="btn good" id="physicsBtn">Physics</button>
+ <button class="btn" id="toggleChunks">Chunks</button>
+ <button class="btn warn" id="reset">Reset</button>
   </div>
 
   <div class="row" style="padding:0 12px 6px;">
-  <button class="btn" id="celliCollapseBtn">?? Multi-Wrap Collapse</button>
+ <button class="btn" id="celliCollapseBtn">Multi-Wrap Collapse</button>
   </div>
 
  <div class="row" style="padding:0 12px 6px;">
- <button class="btn" id="presentToggleBtn">?? Present: OFF</button>
- <button class="btn" id="graphicsSettingsBtn">??? Graphic Settings</button>
- <button class="btn" id="oceanSettingsBtn">?? Ocean Backdrop</button>
+ <button class="btn" id="presentToggleBtn">Present: OFF</button>
+ <button class="btn" id="graphicsSettingsBtn">Graphic Settings</button>
+ <button class="btn" id="oceanSettingsBtn">Ocean Backdrop</button>
  <button class="btn" id="oceanSpottedBtn">🔦 Spotted</button>
  </div>
 
@@ -404,15 +408,15 @@ document.addEventListener('click', function(e){
 
  <!-- Data Import/Export -->
  <div class="row" style="padding:0 12px 6px;">
- <button class="btn" id="importFileBtn">?? Import File</button>
- <button class="btn" id="pasteDataBtn">?? Paste Data</button>
+ <button class="btn" id="importFileBtn">Import File</button>
+ <button class="btn" id="pasteDataBtn">Paste Data</button>
  </div>
  
  <!-- Save System -->
  <div class="row" style="padding:0 12px 6px;">
- <button class="btn good" id="saveStateBtn">?? Save</button>
- <button class="btn" id="loadStateBtn">?? Load</button>
- <button class="btn warn" id="clearSaveBtn">??? Clear Save</button>
+ <button class="btn good" id="saveStateBtn">Save</button>
+ <button class="btn" id="loadStateBtn">Load</button>
+ <button class="btn warn" id="clearSaveBtn">Clear Save</button>
  </div>
  
  <!-- Save Status -->
@@ -590,7 +594,7 @@ document.addEventListener('click', function(e){
  <span>Floating Lights</span>
  <input type="checkbox" id="oceanShowFloaters">
  </label>
- <button class="btn" id="oceanScreenshotBtn">?? Capture Screenshot</button>
+ <button class="btn" id="oceanScreenshotBtn">Capture Screenshot</button>
  </div>
 
  <div class="stack" style="gap:10px;">
@@ -859,17 +863,29 @@ document.addEventListener('click', function(e){
 
 <!-- Screen-space D-Pad (bottom-right) -->
  <div id="dpad" aria-label="D-Pad">
- <div class="dp grab" title="Drag">?</div>
- <div class="dp up" data-dir="up">?</div>
- <div class="dp depthUp desktop-only" data-dir="depthUp">?</div>
- <div class="dp jump mobile-only" data-action="jump" style="display:none" title="Jump">?</div>
- <div class="dp left" data-dir="left">?</div>
+ <div class="dp grab" title="Drag">Drag</div>
+ <div class="dp up" data-dir="up">↑</div>
+ <div class="dp depthUp desktop-only" data-dir="depthUp" title="Depth Up" aria-label="Depth Up">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+   <path d="M12 4v12"/>
+   <path d="M8 8l4-4 4 4"/>
+   <path d="M4 20h16"/>
+  </svg>
+ </div>
+ <div class="dp jump mobile-only" data-action="jump" style="display:none" title="Jump">Jump</div>
+ <div class="dp left" data-dir="left">←</div>
  <div class="dp center desktop-only" title="Arrow mapping"><span style="display:inline-block;width:16px;height:12px;border:2px solid #fff;border-radius:3px"></span>&nbsp;<span id="depthMode">H</span></div>
  <div class="dp center mobile-only" style="display:none;cursor:default;pointer-events:none;opacity:0.3">?</div>
- <div class="dp depthDown desktop-only" data-dir="depthDown">?</div>
- <div class="dp present" role="button" data-action="present" aria-pressed="false" title="Enter Present Mode">?</div>
- <div class="dp down" data-dir="down">?</div>
- <div class="dp right" data-dir="right">?</div>
+ <div class="dp depthDown desktop-only" data-dir="depthDown" title="Depth Down" aria-label="Depth Down">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+   <path d="M12 8v12"/>
+   <path d="M8 16l4 4 4-4"/>
+   <path d="M4 4h16"/>
+  </svg>
+ </div>
+ <div class="dp present" role="button" data-action="present" aria-pressed="false" title="Enter Present Mode">Present</div>
+ <div class="dp down" data-dir="down">↓</div>
+ <div class="dp right" data-dir="right">→</div>
  </div>
 
 <!-- 2D Sheet with merged Fx UI -->
@@ -878,9 +894,9 @@ document.addEventListener('click', function(e){
  <div class="sheet-head">
  <div class="sheet-title-row" style="display:flex;align-items:center;justify-content:space-between;">
  <div style="display:flex;align-items:center;gap:8px;">
- <button class="layer-btn" id="prevArray" style="display:none">?</button>
+ <button class="layer-btn" id="prevArray" style="display:none;color:#000">←</button>
  <div class="sheet-title" id="sheetTitle" style="font-family:Inter, system-ui; font-weight:600;"></div>
- <button class="layer-btn" id="nextArray" style="display:none">?</button>
+ <button class="layer-btn" id="nextArray" style="display:none;color:#000">→</button>
  </div>
  <div class="sheet-ctrls" style="display:flex;gap:6px;align-items:center;">
  <button class="btn" id="copyAddress" title="Copy Address" aria-label="Copy Address">@</button>
@@ -911,7 +927,7 @@ document.addEventListener('click', function(e){
  <div id="fxHighlight" aria-hidden="true"></div>
  <input type="text" id="fx" placeholder='=ARRAY("Hello","World")'>
  </div>
- <button class="btn primary" id="applyFx" title="Apply">?</button>
+ <button class="btn primary" id="applyFx" title="Apply">Apply</button>
  </div>
  <div id="minDot" title="Minimize"></div>
  </div>
@@ -955,13 +971,24 @@ document.addEventListener('click', function(e){
 <div id="notepad-icon" class="ui-icon" title="ty.txt">
  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-300"><path d="M8 2v4"></path><path d="M12 2v4"></path><path d="M16 2v4"></path><rect x="4" y="4" width="16" height="18" rx="2"></rect><path d="M12 12h.01"></path><path d="M16 16h.01"></path><path d="M8 12h.01"></path><path d="M8 16h.01"></path></svg>
 </div>
+<div id="media-icon" class="ui-icon desktop-only" title="Play Media" style="display:none;">
+ <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-300"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+</div>
 <div id="terminal">
  <div class="win-header"><span>Terminal</span><div id="term-close" class="close" title="Close"></div></div>
  <pre id="term"></pre>
 </div>
 <div id="pad" style="background:#fafafc; color:#1f2937; border:1px solid #e5e7eb;">
- <div class="win-header" style="background:#f2f4f8; color:#111827"><span>ty.txt Notepad</span><div id="pad-close" class="close" title="Close"></div></div>
- <textarea id="note" style="background:#ffffff; color:#111827">special thanks:
+ <div class="win-header" style="background:#f2f4f8; color:#111827">
+  <div style="display:flex; align-items:center; gap:8px; flex:1;">
+   <span id="pad-tab-ty" class="pad-tab pad-tab-active" style="cursor:pointer; padding:4px 12px; background:#ffffff; border-radius:6px; font-weight:600;">ty.txt</span>
+   <span id="pad-tab-ref" class="pad-tab" style="cursor:pointer; padding:4px 12px; border-radius:6px;">ref.txt</span>
+  </div>
+  <div id="pad-close" class="close" title="Close"></div>
+ </div>
+ <textarea id="note-ty" class="note-content" style="background:#ffffff; color:#111827">For Calliope and my many muses.
+
+special thanks:
 - Stephen Lavelle (Increpare)
 - Arvi Teikari (Hempuli)
 - Jonathan Blow
@@ -971,6 +998,11 @@ document.addEventListener('click', function(e){
 Synthesize what you love, make what you can.
 
 "I don't love all of you, but I would if I could." increpare, 'Stephen's Sausage Roll'</textarea>
+ <textarea id="note-ref" class="note-content" style="background:#ffffff; color:#111827; display:none;">References & Encounters
+
+This document maps scenes and encounters to their corresponding references.
+
+[To be populated as the journey unfolds...]</textarea>
  <div class="pad-resizer" aria-hidden="true"></div>
 </div>
 <div id="crash" style="display:none; position:fixed; inset:0; background:#0b1220; color:#eaeefb; padding:24px; white-space:pre-wrap; z-index:1000; overflow:auto"></div>
@@ -1071,6 +1103,18 @@ if(typeof twemoji !== 'undefined'){
  className: 'emoji'
  });
 }
+// Re-parse emojis on dynamic updates (cells, headers, HUD)
+try{
+ const mo = new MutationObserver((mutations)=>{
+  if(typeof twemoji === 'undefined') return;
+  for(const m of mutations){
+   if(m.type === 'childList' || m.type === 'characterData'){
+    try{ twemoji.parse(m.target.parentNode || m.target, { folder:'svg', ext:'.svg', className:'emoji' }); }catch{}
+   }
+  }
+ });
+ mo.observe(document.body, { childList:true, characterData:true, subtree:true });
+}catch{}
 const playClickSound = (()=>{
  try{
  const audio = new Audio('https://threejs.org/examples/sounds/ping_pong.mp3');
@@ -6197,13 +6241,13 @@ tag('DISPLAY_AS',['ACTION'],(anchor,arr,ast)=>{
  Scene.updateValueSprite(arr, t.x, t.y, t.z, ch.cells[idx]);
  // silent: do not stamp anchor
 });
-tag('BOUNCE',['ACTION'],(anchor,arr,ast,tx)=>{
+tag('BOUNCE',['ACTION','META'],(anchor,arr,ast,tx)=>{
  const valOf = Formula.valOf;
  const modeRaw = Math.round(Number(valOf(ast.args[0] ?? 0)) || 0);
  const bounceType = modeRaw === 1 ? 'land' : 'walk';
  const heightRaw = Number(valOf(ast.args[1] ?? 0));
  const height = Number.isFinite(heightRaw) ? Math.max(0, heightRaw) : 0;
- const targets = collectTargetCells(ast.args[2], anchor);
+ const targets = collectTargetCells(ast.args[2] || {kind:'ref', arrId:arr.id, x:anchor.x, y:anchor.y, z:anchor.z}, anchor);
  const info = ensureTransaction(tx, 'scene.bounce', 'Configure bounce pads');
  const formatHeight = (value)=>{
  const num = Number(value);
@@ -22997,6 +23041,73 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  if(pc && !pc._wired){ pc._wired=true; pc.addEventListener('click',()=>{ console.log('Notepad close'); closePad(); }); }
  };
  wireNarrative();
+ 
+ // Tab switching for notepad
+ const wirePadTabs=()=>{
+  const tabTy=document.getElementById('pad-tab-ty');
+  const tabRef=document.getElementById('pad-tab-ref');
+  const noteTy=document.getElementById('note-ty');
+  const noteRef=document.getElementById('note-ref');
+  if(tabTy && !tabTy._wired){
+   tabTy._wired=true;
+   tabTy.addEventListener('click',()=>{
+    tabTy.classList.add('pad-tab-active'); tabRef.classList.remove('pad-tab-active');
+    tabTy.style.background='#ffffff'; tabTy.style.fontWeight='600';
+    tabRef.style.background=''; tabRef.style.fontWeight='';
+    noteTy.style.display=''; noteRef.style.display='none';
+   });
+  }
+  if(tabRef && !tabRef._wired){
+   tabRef._wired=true;
+   tabRef.addEventListener('click',()=>{
+    tabRef.classList.add('pad-tab-active'); tabTy.classList.remove('pad-tab-active');
+    tabRef.style.background='#ffffff'; tabRef.style.fontWeight='600';
+    tabTy.style.background=''; tabTy.style.fontWeight='';
+    noteRef.style.display=''; noteTy.style.display='none';
+   });
+  }
+ };
+ wirePadTabs();
+ 
+ // Media button controls
+ const wireMediaButton=()=>{
+  const mediaIcon=document.getElementById('media-icon');
+  if(!mediaIcon) return;
+  if(!mediaIcon._wired){
+   mediaIcon._wired=true;
+   mediaIcon.addEventListener('click',()=>{
+    const audio=window.CellirealSoundtrack?.getAudio?.();
+    if(!audio){
+     console.warn('No audio instance available');
+     return;
+    }
+    if(audio.paused){
+     audio.play().catch(err=>console.warn('Failed to play audio:', err));
+     mediaIcon.style.opacity='1';
+    } else {
+     audio.pause();
+     mediaIcon.style.opacity='0.6';
+    }
+   });
+  }
+ };
+ wireMediaButton();
+ 
+ // Position media icon
+ const positionMediaIcon=()=>{
+  const mediaIcon=document.getElementById('media-icon');
+  const notepadIcon=document.getElementById('notepad-icon');
+  if(mediaIcon && notepadIcon){
+   const noteRect=notepadIcon.getBoundingClientRect();
+   mediaIcon.style.position='fixed';
+   mediaIcon.style.right=(window.innerWidth - noteRect.right)+'px';
+   mediaIcon.style.top=(noteRect.bottom + 16)+'px';
+   mediaIcon.style.display='flex';
+  }
+ };
+ setTimeout(positionMediaIcon, 100);
+ window.addEventListener('resize', positionMediaIcon);
+ 
  // Debug panel collapse/expand via icon; ensure stacking above other UI
  const hud=document.getElementById('hud');
  const dbg=document.getElementById('debug-icon');
@@ -23020,11 +23131,60 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  if(dbg && !dbg._wired){
  dbg._wired = true;
  let lastHudToggle = 0;
- const safeToggle = ()=>{ const now=Date.now(); if(now - lastHudToggle < 220) return; lastHudToggle = now; toggleHud(); };
+ 
+ // Function to check if we're in 3D mode (sheet is hidden/collapsed)
+ const isIn3DMode = ()=>{
+  const sheet = document.getElementById('sheet');
+  if(!sheet) return true;
+  const style = getComputedStyle(sheet);
+  const isHidden = sheet.style.display === 'none' || style.display === 'none' || 
+                   sheet.classList.contains('intro-centered') === false;
+  return isHidden || window.__INTRO_FIRED;
+ };
+ 
+ // Return to OS function - shows desktop view with icons
+ const returnToOS = ()=>{
+  console.log('Returning to OS...');
+  const termIcon = document.getElementById('terminal-icon');
+  const padIcon = document.getElementById('notepad-icon');
+  const mediaIcon = document.getElementById('media-icon');
+  const sheet = document.getElementById('sheet');
+  
+  // Show icons
+  if(termIcon){ termIcon.style.display = 'flex'; }
+  if(padIcon){ padIcon.style.display = 'flex'; }
+  if(mediaIcon){ mediaIcon.style.display = 'flex'; positionMediaIcon(); }
+  
+  // Update debug button title
+  dbg.setAttribute('title','Return to 3D');
+  
+  // Optionally fade in/transition effect
+  const overlay = document.getElementById('introOverlay');
+  if(overlay){
+   overlay.style.background = 'linear-gradient(180deg, rgba(240,245,255,0.95) 0%, rgba(255,251,240,0.92) 100%)';
+   overlay.style.pointerEvents = 'none';
+   overlay.style.opacity = '1';
+   overlay.style.transition = 'opacity 0.5s ease';
+  }
+ };
+ 
+ const safeToggle = ()=>{ 
+  const now=Date.now(); 
+  if(now - lastHudToggle < 220) return; 
+  lastHudToggle = now; 
+  
+  // Check if in 3D mode - if so, return to OS instead of toggling HUD
+  if(isIn3DMode()){
+   returnToOS();
+  } else {
+   toggleHud(); 
+  }
+ };
+ 
  dbg.addEventListener('click', (e)=>{ e.preventDefault(); safeToggle(); });
  // Also handle pointerup (covers touch) to ensure one, reliable toggle
  dbg.addEventListener('pointerup', (e)=>{ if(e.button===0 || e.pointerType){ e.preventDefault(); safeToggle(); } });
- dbg.setAttribute('title','Debug Console');
+ dbg.setAttribute('title','Return to OS');
  dbg.setAttribute('role','button');
  dbg.tabIndex = 0;
  dbg.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); safeToggle(); }});
@@ -25047,6 +25207,9 @@ window.UI = UI;
  <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
  <script src="../../src/scripts/tools/recorder-standalone.js"></script>
+ 
+ <!-- Limbo Audio Playback on Intro -->
+ <script src="./cellireal-limbo-audio.js"></script>
  
  </body>
  </html>

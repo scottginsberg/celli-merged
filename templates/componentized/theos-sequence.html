@@ -10,8 +10,8 @@
   <script type="importmap">
     {
       "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
       }
     }
   </script>
@@ -40,6 +40,15 @@
     #sequence-root {
       position: fixed;
       inset: 0;
+      z-index: 1;
+    }
+    
+    #sequence-root canvas {
+      display: block;
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
     }
 
     #overlay {
@@ -484,12 +493,42 @@
     let initClickCount = 0;
     let primingSequence = false;
     let sequenceInstance = null;
+    let sequenceAudio = null;
 
     function updateTelemetry(message) {
       if (!telemetry) return;
       const lines = telemetry.querySelectorAll('div');
       if (lines.length > 1) {
         lines[1].innerHTML = `<strong>Status:</strong> ${message}`;
+      }
+    }
+
+    function playSequenceMusic() {
+      if (sequenceAudio) return;
+      
+      try {
+        sequenceAudio = new Audio('../../reboot.mp3');
+        sequenceAudio.loop = false;
+        sequenceAudio.volume = 0.7;
+        
+        // Trigger final collapse when audio ends
+        sequenceAudio.addEventListener('ended', () => {
+          console.log('[THEOS] Audio ended - triggering final collapse');
+          if (sequenceInstance && sequenceInstance.triggerFinalCollapse) {
+            sequenceInstance.triggerFinalCollapse();
+          }
+        });
+        
+        const playPromise = sequenceAudio.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            console.log('[THEOS] Playing reboot.mp3');
+          }).catch(err => {
+            console.warn('[THEOS] Audio playback failed:', err);
+          });
+        }
+      } catch (err) {
+        console.warn('[THEOS] Failed to initialize audio:', err);
       }
     }
 
@@ -508,18 +547,35 @@
         document.body.classList.remove(...stageClasses);
       }
       updateTelemetry('Grid constructing…');
+      
+      // Play reboot.mp3 soundtrack
+      playSequenceMusic();
+      
       sequenceInstance = initTheosSequence({
         container: sequenceRoot,
         startStage
       });
+      
+      // Start the sequence timeline
+      if (sequenceInstance && sequenceInstance.start) {
+        sequenceInstance.start();
+      }
 
       if (startStage === 'blackhole') {
         updateTelemetry('Singularity engaged');
       } else {
-        setTimeout(() => updateTelemetry('Extending into Z-axis…'), 9000);
-        setTimeout(() => updateTelemetry('Voxel lattice forming…'), 17000);
-        setTimeout(() => updateTelemetry('White room manifesting…'), 26000);
-        setTimeout(() => updateTelemetry('Singularity forming…'), 34000);
+        setTimeout(() => updateTelemetry('ASCII grid stable — glitching to modern…'), 2800);
+        setTimeout(() => updateTelemetry('Z-axis expansion initiated…'), 3500);
+        setTimeout(() => updateTelemetry('Grid lines forming — rotation engaged…'), 6500);
+        setTimeout(() => updateTelemetry('Orbital dolly out — observing lattice…'), 7000);
+        setTimeout(() => updateTelemetry('Dolly in — voxel shift imminent…'), 9500);
+        setTimeout(() => updateTelemetry('Voxel transformation: Green cubes…'), 12000);
+        setTimeout(() => updateTelemetry('Random shape pop — flat variants emerging…'), 14000);
+        setTimeout(() => updateTelemetry('Glitch cascade — emissive glow igniting…'), 16000);
+        setTimeout(() => updateTelemetry('Cell-shaded pyramids stabilizing…'), 20000);
+        setTimeout(() => updateTelemetry('Red spheres — organic neural network…'), 24000);
+        setTimeout(() => updateTelemetry('Blue rounded cubes — neighbor grid…'), 28000);
+        setTimeout(() => updateTelemetry('White singularity approaching…'), 32000);
       }
     }
 

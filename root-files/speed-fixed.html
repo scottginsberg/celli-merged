@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Rainbow Roadmap: Off-Road Edition</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&display=swap');
+  
+  :root { --bg:#000000; --rainbow1:#ff0066; --rainbow2:#ffaa00; --rainbow3:#ffff00; --rainbow4:#00ff00; --rainbow5:#00ffff; --rainbow6:#0066ff; --rainbow7:#ff00ff; }
+  html,body{height:100%;margin:0;background:var(--bg);color:#e6e8ef;font-family:'Orbitron',system-ui,sans-serif;overflow:hidden}
+  canvas{display:block}
+
+  #ui{
+    position:fixed; inset:auto 0 0 0; pointer-events:none;
+    display:flex; justify-content:space-between; align-items:flex-end; padding:18px;
+  }
+  .dpad{
+    pointer-events:auto; width:140px; height:140px; position:relative; user-select:none;
+    touch-action:none; opacity:.9; filter:drop-shadow(0 0 20px rgba(0,102,255,.6));
+  }
+  .dpad .btn{
+    position:absolute; background:rgba(0,102,255,.12); border:2px solid rgba(0,102,255,.6);
+    border-radius:14px; backdrop-filter:blur(6px);
+    box-shadow: inset 0 0 20px rgba(0,102,255,.3);
+  }
+  .dpad .left, .dpad .right{ top:50%; transform:translateY(-50%); width:56px; height:112px; }
+  .dpad .left{ left:0; border-top-right-radius:40px; border-bottom-right-radius:40px; }
+  .dpad .right{ right:0; border-top-left-radius:40px; border-bottom-left-radius:40px; }
+  .btn:active, .btn.active{ 
+    background:rgba(0,102,255,.35); 
+    border-color:rgba(0,102,255,1); 
+    box-shadow: 0 0 30px rgba(0,102,255,1), inset 0 0 30px rgba(0,102,255,.8);
+  }
+
+  .hud{
+    pointer-events:none; margin-left:auto; text-align:right; padding:12px 18px; border-radius:12px;
+    background:linear-gradient(180deg, rgba(0,102,255,.15), rgba(255,255,0,.1));
+    border:2px solid rgba(0,102,255,.5);
+    box-shadow: 0 0 20px rgba(0,102,255,.5), inset 0 0 15px rgba(0,102,255,.2);
+  }
+  .hud .row{ font-weight:700; letter-spacing:1.5px; font-variant-numeric:tabular-nums; 
+    text-shadow: 0 0 10px rgba(0,102,255,.9); color:#0066ff; font-size:16px; }
+  .hud .goal{ font-size:13px; letter-spacing:1px; opacity:0.85; margin-top:4px; color:#ffff00; }
+  
+  #titleScreen{
+    position:fixed; inset:0; z-index:100; 
+    background:#000;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  #titleScreen h1{
+    font-family:'Press Start 2P', monospace; font-size:clamp(24px, 5vw, 56px); margin:0 0 20px; 
+    letter-spacing:4px; text-align:center; padding:0 20px;
+    background: linear-gradient(135deg, #0066ff 0%, #ffff00 50%, #ff0066 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: tricolor-shift 4s ease-in-out infinite;
+    filter: drop-shadow(0 0 12px rgba(0,102,255,0.6)) drop-shadow(0 0 8px rgba(255,0,102,0.4));
+  }
+  #titleScreen p{
+    font-family:'Press Start 2P', monospace; font-size:clamp(12px, 2vw, 18px); 
+    letter-spacing:2px; color:#0066ff; margin:10px 0;
+    text-shadow: 0 0 10px rgba(0,102,255,0.8);
+  }
+  @keyframes tricolor-shift{
+    0%, 100%{ background-position: 0% 50%; }
+    50%{ background-position: 100% 50%; }
+  }
+  @keyframes fadeOut{
+    to{ opacity:0; }
+  }
+  .fadeOut{ animation: fadeOut 0.8s forwards; }
+  
+  .hint{
+    position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+    color:#0066ff; font-size:12px; opacity:.9; text-align:center; pointer-events:none;
+    text-shadow: 0 0 10px rgba(0,102,255,.8); letter-spacing:2px;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="titleScreen">
+  <h1>RAINBOW ROADMAP:<br>OFF-ROAD EDITION</h1>
+  <p>PRESS ANY KEY TO START</p>
+</div>
+
+<div id="ui">
+  <div class="dpad" id="dpad">
+    <div class="btn left"  id="btnLeft"  aria-label="Left"></div>
+    <div class="btn right" id="btnRight" aria-label="Right"></div>
+  </div>
+  <div class="hud">
+    <div class="row">SPD: <span id="spd">0</span> KM/H</div>
+    <div class="row">DST: <span id="dst">0.00</span> KM</div>
+    <div class="row">⚡ <span id="boost">100</span>%</div>
+    <div class="goal">GOALS: <span id="goals">Loading...</span></div>
+    <button id="encoreBtn" style="margin-top:8px;padding:8px 12px;background:rgba(255,0,102,0.2);border:2px solid #ff0066;color:#ff0066;border-radius:8px;cursor:pointer;font-family:'Orbitron',sans-serif;font-weight:700;letter-spacing:1px;display:none;">ENCORE</button>
+  </div>
+</div>
+<div class="hint">← / → VEER • S WHEELIE • SPACE BOOST • SHIFT FLIP VIEW</div>
+
+<script type="module">
+// SPEED.HTML - VERSION 2024-FIXED
+import * as THREE from "https://unpkg.com/three@0.158.0/build/three.module.js";
+import { EffectComposer } from "https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/UnrealBloomPass.js";
+
+console.log('✅ Speed.html loaded - imports resolved correctly');
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0x0a0b10, 1);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x0a0020, 0.0008);  // Less dense for better visibility
+
+// Camera rig to avoid quaternion accumulation
+const camRig = new THREE.Object3D();
+scene.add(camRig);
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 2000);
+camera.position.set(0, 2, 6);  // Start behind bike (looking at bike from behind)
+camRig.add(camera);
+
+// Post-processing for bloom glow
+const composer = new EffectComposer(renderer);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(innerWidth, innerHeight),
+  1.2,    // strength
+  0.6,    // radius
+  0.3     // threshold
+);
+composer.addPass(bloomPass);
+
+// Enhanced lighting - tricolor atmosphere with dynamic intensity
+const hemi = new THREE.HemisphereLight(0x0066ff, 0xffff00, 2.0);
+const dir  = new THREE.DirectionalLight(0xffffff, 2.5);
+dir.position.set(30, 80, -50);
+dir.castShadow = false;  // Shadows off for performance
+const dir2 = new THREE.DirectionalLight(0xff0066, 1.5);
+dir2.position.set(-30, 50, -50);
+const dir3 = new THREE.DirectionalLight(0x0066ff, 1.2);
+dir3.position.set(0, 60, 80);
+const ambientLight = new THREE.AmbientLight(0x1a1a3a, 0.6);
+scene.add(hemi, dir, dir2, dir3, ambientLight);
+
+// Audio setup for terrain reactivity
+let audioContext = null;
+let analyser = null;
+let dataArray = null;
+let audioSource = null;
+let audioInitialized = false;
+
+// Audio tracks (EA.mp3 and encore sequence)
+const baseTrack = new Audio();
+baseTrack.crossOrigin = 'anonymous';
+baseTrack.preload = 'auto';
+
+const encoreTrack = new Audio();
+encoreTrack.crossOrigin = 'anonymous';
+encoreTrack.preload = 'auto';
+
+const superEncoreTrack = new Audio();
+superEncoreTrack.crossOrigin = 'anonymous';
+superEncoreTrack.preload = 'auto';
+
+const finaleTrack = new Audio();
+finaleTrack.crossOrigin = 'anonymous';
+finaleTrack.preload = 'auto';
+
+// Try to load tracks from multiple paths
+function tryLoadAudio(audio, baseName) {
+  const candidates = [
+    `../../${baseName}`,
+    `./${baseName}`,
+    `./templates/componentized/${baseName}`,
+    baseName
+  ];
+  
+  let index = 0;
+  const tryNext = () => {
+    if (index >= candidates.length) {
+      console.warn(`Unable to load ${baseName}`);
+      return;
+    }
+    audio.src = candidates[index];
+    index++;
+  };
+  
+  audio.addEventListener('error', tryNext, { once: false });
+  audio.addEventListener('canplay', () => {
+    audio.removeEventListener('error', tryNext);
+  }, { once: true });
+  
+  tryNext();
+}
+
+tryLoadAudio(baseTrack, 'ea.mp3');
+tryLoadAudio(encoreTrack, 'ea2.mp3');
+tryLoadAudio(superEncoreTrack, 'ea3.mp3');
+tryLoadAudio(finaleTrack, 'ea4.mp3');
+
+let currentTrack = null;
+let encoreIndex = 0;
+
+function initAudio() {
+  if (audioInitialized) return;
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    audioContext = new AudioContext();
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 128;
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+    audioInitialized = true;
+  } catch (e) {
+    console.warn('Audio init failed:', e);
+  }
+}
+
+function connectTrackToAnalyser(track) {
+  if (!audioContext || !analyser) return;
+  try {
+    if (audioSource) {
+      audioSource.disconnect();
+    }
+    audioSource = audioContext.createMediaElementSource(track);
+    audioSource.connect(analyser);
+    analyser.connect(audioContext.destination);
+  } catch (e) {
+    console.warn('Could not connect track to analyser:', e);
+  }
+}
+
+function playTrack(track) {
+  if (currentTrack && currentTrack !== track) {
+    currentTrack.pause();
+    currentTrack.currentTime = 0;
+  }
+  currentTrack = track;
+  connectTrackToAnalyser(track);
+  
+  const playPromise = track.play();
+  if (playPromise && typeof playPromise.catch === 'function') {
+    playPromise.catch((e) => {
+      console.warn('Playback blocked:', e);
+    });
+  }
+}
+
+function getAudioLevel() {
+  if (!analyser || !dataArray) return 0;
+  analyser.getByteFrequencyData(dataArray);
+  let sum = 0;
+  for (let i = 0; i < dataArray.length; i++) {
+    sum += dataArray[i];
+  }
+  return sum / (dataArray.length * 255);
+}
+
+const encoreBtn = document.getElementById('encoreBtn');
+
+// Encore sequence
+baseTrack.addEventListener('ended', () => {
+  console.log('EA.mp3 complete - ready for encore');
+  if (encoreBtn) {
+    encoreBtn.style.display = 'block';
+    encoreBtn.textContent = 'ENCORE';
+  }
+});
+
+encoreTrack.addEventListener('ended', () => {
+  console.log('Encore complete');
+  if (encoreBtn) {
+    encoreBtn.textContent = 'ENCORE 2';
+  }
+});
+
+superEncoreTrack.addEventListener('ended', () => {
+  console.log('Super Encore complete');
+  if (encoreBtn) {
+    encoreBtn.textContent = 'FINALE';
+  }
+});
+
+finaleTrack.addEventListener('ended', () => {
+  console.log('Finale complete');
+  if (encoreBtn) {
+    encoreBtn.style.display = 'none';
+  }
+});
+
+if (encoreBtn) {
+  encoreBtn.addEventListener('click', () => {
+    const tracks = [encoreTrack, superEncoreTrack, finaleTrack];
+    const nextTrack = tracks[encoreIndex];
+    if (nextTrack) {
+      playTrack(nextTrack);
+      encoreIndex++;
+      encoreBtn.style.display = encoreIndex >= tracks.length ? 'none' : 'block';
+    }
+  });
+}
+
+// ---------- Digitized landscape (voxel columns) ----------
+const WORLD_WIDTH = 120;
+const ROAD_HALF   = 12;
+const COL_SIZE_X  = 2.5;
+const COL_SIZE_Z  = 4.0;
+const COLS_X = Math.floor(WORLD_WIDTH / COL_SIZE_X);
+const ROWS_Z = 250;      // More rows for longer view distance
+const START_Z = -600;    // Start further back to see more terrain ahead
+const SCROLL_SPEED = 70;
+
+// Noise → hills with audio reactivity
+function hash2(x, y){
+  const s = Math.sin(x*127.1 + y*311.7) * 43758.5453123;
+  return s - Math.floor(s);
+}
+function smoothstep(a, b, t){ t = Math.min(1, Math.max(0, (t-a)/(b-a))); return t*t*(3-2*t); }
+function valueNoise(x, y){
+  const xi = Math.floor(x), yi = Math.floor(y);
+  const xf = x - xi, yf = y - yi;
+  const a = hash2(xi, yi);
+  const b = hash2(xi+1, yi);
+  const c = hash2(xi, yi+1);
+  const d = hash2(xi+1, yi+1);
+  const u = xf*xf*(3-2*xf);
+  const v = yf*yf*(3-2*yf);
+  return (a*(1-u) + b*u) + (c-a)*v*(1-u) + (d-b)*u*v;
+}
+function hills(x, z, audioBoost = 0){
+  let n = 0;
+  // Multiple octaves for varied terrain
+  n += valueNoise(x*0.08, z*0.04);
+  n += 0.5*valueNoise(x*0.16+3.7, z*0.08+1.9);
+  n += 0.25*valueNoise(x*0.32+7.1, z*0.16+6.3);
+  n += 0.15*valueNoise(x*0.64+11.3, z*0.32+13.7);  // More detail
+  n += 0.08*valueNoise(x*1.28+19.5, z*0.64+27.1);  // Fine detail
+  n /= (1+0.5+0.25+0.15+0.08);
+  n = Math.pow(n, 1.3);  // Sharper peaks
+  n = (n - 0.5) * 2.2; // [-1.1, 1.1] - more variance
+  // Add audio reactivity for hills
+  n += audioBoost * 0.4;
+  return n;
+}
+
+// Road curve function - generates smooth winding path
+function roadCenterX(z){
+  // Layered sine waves for natural curves
+  let offset = 0;
+  offset += Math.sin(z * 0.008) * 8.0;      // Wide gentle curves
+  offset += Math.sin(z * 0.025 + 7.3) * 4.0; // Tighter curves
+  offset += Math.sin(z * 0.045 + 13.7) * 2.0; // Detail curves
+  return offset;
+}
+
+// Road elevation - dramatic wide hills and valleys (global plane deformation)
+function roadElevation(z){
+  let elev = 0;
+  elev += Math.sin(z * 0.002) * 35.0;        // VERY long, tall hills (wider frequency)
+  elev += Math.sin(z * 0.006 + 3.2) * 20.0;  // Long valleys
+  elev += Math.sin(z * 0.012 + 8.7) * 10.0;  // Medium waves
+  return elev;
+}
+
+// Tricolor + red/magenta scheme
+const tricolorsNormal = [
+  new THREE.Color(0x0066ff),    // true blue (not cyan)
+  new THREE.Color(0xffff00),    // yellow
+  new THREE.Color(0xff0066),    // magenta
+  new THREE.Color(0xffffff)     // white
+];
+
+const tricolorsInverted = [
+  new THREE.Color(0x00ffff),    // cyan
+  new THREE.Color(0xff00ff),    // magenta
+  new THREE.Color(0xffff00),    // yellow
+  new THREE.Color(0x000000)     // black (inverted white)
+];
+
+let colorInverted = false;
+let inversionFlashActive = false;
+let cameraSpinning = false;
+let cameraSpinProgress = 0;
+let cameraFlipped = false;  // Track if camera has been flipped to front view
+
+function getTricolor(x, z){
+  // Assign color based on position hash
+  const palette = colorInverted ? tricolorsInverted : tricolorsNormal;
+  const hash = Math.abs(Math.sin(x * 12.34 + z * 56.78) * 43758.5453);
+  const idx = Math.floor(hash * palette.length);
+  return palette[idx % palette.length];
+}
+
+function triggerColorInversion(){
+  console.log('🌈 COLOR INVERSION TRIGGERED AT 30 SECONDS!');
+  
+  // Create flash overlay
+  const flash = document.createElement('div');
+  flash.style.cssText = 'position:fixed; inset:0; z-index:1000; pointer-events:none; background:#000; opacity:1;';
+  document.body.appendChild(flash);
+  
+  inversionFlashActive = true;
+  
+  // Black → White → Fade sequence
+  setTimeout(() => {
+    flash.style.transition = 'background 0.4s ease, opacity 0.4s ease';
+    flash.style.background = '#fff';
+  }, 100);
+  
+  setTimeout(() => {
+    flash.style.opacity = '0';
+    inversionFlashActive = false;
+    // Start camera spin after flash
+    cameraSpinning = true;
+    cameraSpinProgress = 0;
+  }, 500);
+  
+  setTimeout(() => {
+    flash.remove();
+  }, 1200);
+  
+  // Invert renderer and scene colors
+  renderer.setClearColor(0xffffff, 1);  // White background
+  scene.fog.color.setHex(0xffffff);     // White fog
+  ROAD_COLOR.setHex(0xf5f5f5);          // White road
+  ROAD_EDGE_COLOR.setHex(0x00ffff);     // Cyan edges
+  
+  // Update sky to white
+  sky.material.uniforms.top.value.setHex(0xffffff);
+  sky.material.uniforms.mid.value.setHex(0xe0e0f0);
+  sky.material.uniforms.bottom.value.setHex(0xffffff);
+}
+
+const columnGeo = new THREE.BoxGeometry(COL_SIZE_X, 1, COL_SIZE_Z);
+const columnMat = new THREE.MeshStandardMaterial({
+  color: 0xffffff, 
+  metalness: 0.5, 
+  roughness: 0.4, 
+  fog: true, 
+  emissive: 0x000000, 
+  emissiveIntensity: 0.2,
+  envMapIntensity: 1.5
+});
+const instanceCount = COLS_X * ROWS_Z;
+const columns = new THREE.InstancedMesh(columnGeo, columnMat, instanceCount);
+columns.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+columns.castShadow = false; columns.receiveShadow = false;
+scene.add(columns);
+
+columns.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(instanceCount*3), 3);
+
+const halfW = WORLD_WIDTH/2;
+const x0 = -halfW + COL_SIZE_X*0.5;
+const zStride = COL_SIZE_Z;
+const zStart = START_Z;
+
+function idx(ix, iz){ return iz*COLS_X + ix; }
+
+let rowOffset = 0;
+let scrollZ = 0;
+let ROAD_COLOR = new THREE.Color(0x0a0a20);
+let ROAD_EDGE_COLOR = new THREE.Color(0x0066ff);
+
+// Lightbike-inspired rectangular vehicle with animated veering
+// Bike is attached to camera rig so it's always visible in front/below camera
+const bike = new THREE.Group();
+bike.position.set(0, -0.8, -4);  // In front of and slightly below camera
+camRig.add(bike);
+
+// Main body - elongated rectangle with enhanced materials
+const bikeBody = new THREE.Mesh(
+  new THREE.BoxGeometry(2.5, 0.8, 6.0),
+  new THREE.MeshStandardMaterial({
+    color:0x0066ff, 
+    metalness:0.95, 
+    roughness:0.05, 
+    emissive:0x0066ff, 
+    emissiveIntensity:1.2,
+    envMapIntensity: 2.0
+  })
+);
+bikeBody.position.y = 1.2;
+bike.add(bikeBody);
+
+// Front light bar - glowing
+const frontBar = new THREE.Mesh(
+  new THREE.BoxGeometry(3.0, 0.4, 0.4),
+  new THREE.MeshBasicMaterial({
+    color:0xffff00, 
+    transparent:false,
+    fog:false
+  })
+);
+frontBar.position.set(0, 1.2, -3.2);
+bike.add(frontBar);
+
+// Add front headlight beams
+const frontLight = new THREE.SpotLight(0xffff00, 8, 80, Math.PI / 6, 0.3, 2);
+frontLight.position.set(0, 1.2, -3.5);
+frontLight.target.position.set(0, 0, -20);
+bike.add(frontLight);
+bike.add(frontLight.target);
+
+// Side trails (animated rectangles)
+const leftTrail = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.4, 4.0),
+  new THREE.MeshBasicMaterial({color:0x0066ff, transparent:true, opacity:0.6, side:THREE.DoubleSide})
+);
+leftTrail.position.set(-1.5, 0.8, 0);
+leftTrail.rotation.y = Math.PI/2;
+bike.add(leftTrail);
+
+const rightTrail = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.4, 4.0),
+  new THREE.MeshBasicMaterial({color:0xff0066, transparent:true, opacity:0.6, side:THREE.DoubleSide})
+);
+rightTrail.position.set(1.5, 0.8, 0);
+rightTrail.rotation.y = Math.PI/2;
+bike.add(rightTrail);
+
+// Enhanced underglow with pulsing
+const bikeGlow = new THREE.PointLight(0x0066ff, 5, 25);
+bikeGlow.position.y = 0.3;
+bikeGlow.castShadow = false;
+bike.add(bikeGlow);
+
+// Rear glow
+const rearGlow = new THREE.PointLight(0xff0066, 4, 20);
+rearGlow.position.set(0, 0.8, 3.2);
+bike.add(rearGlow);
+
+// Add "SUBMIT" text as sprite (always faces camera)
+const submitCanvas = document.createElement('canvas');
+submitCanvas.width = 512;
+submitCanvas.height = 128;
+const submitCtx = submitCanvas.getContext('2d');
+submitCtx.fillStyle = 'rgba(0,0,0,0.8)';
+submitCtx.fillRect(0, 0, 512, 128);
+submitCtx.strokeStyle = '#0066ff';
+submitCtx.lineWidth = 4;
+submitCtx.strokeRect(4, 4, 504, 120);
+submitCtx.fillStyle = '#fff';
+submitCtx.font = 'bold 48px "Orbitron", sans-serif';
+submitCtx.textAlign = 'center';
+submitCtx.textBaseline = 'middle';
+submitCtx.fillText('SUBMIT', 256, 64);
+
+const submitTexture = new THREE.CanvasTexture(submitCanvas);
+submitTexture.needsUpdate = true;
+const submitSprite = new THREE.Sprite(new THREE.SpriteMaterial({ 
+  map: submitTexture, 
+  transparent: true,
+  depthTest: true,
+  depthWrite: false
+}));
+submitSprite.scale.set(6, 1.5, 1);
+submitSprite.position.set(0, 2.5, 0);
+bike.add(submitSprite);
+
+// Road lines
+const roadLines = [];
+for (let i=0; i<4; i++){
+  const lineColors = [0x0066ff, 0xffff00, 0xff0066];
+  const lineMat = new THREE.MeshBasicMaterial({
+    color: lineColors[i % lineColors.length], transparent: true, opacity: 0.6
+  });
+  const lineGeo = new THREE.PlaneGeometry(0.4, 5);
+  const line = new THREE.Mesh(lineGeo, lineMat);
+  line.rotation.x = -Math.PI/2;
+  line.position.y = 0.1;
+  roadLines.push(line);
+  scene.add(line);
+}
+
+let CAM_OFFSET = new THREE.Vector3(0, 8.0, 20.0);  // Higher and further for better hill view
+let cameraShake = 0;
+let cameraDistance = 20.0;
+
+// Scroll wheel camera control
+addEventListener('wheel', (e) => {
+  e.preventDefault();
+  cameraDistance += e.deltaY * 0.02;
+  cameraDistance = Math.max(8, Math.min(60, cameraDistance));
+  CAM_OFFSET.z = cameraDistance;
+  CAM_OFFSET.y = cameraDistance * 0.4;  // Height scales with distance
+}, { passive: false });
+
+// Game state
+let gameStarted = false;
+let steer = 0, vx = 0, x = 0;
+const MAX_X = ROAD_HALF*0.9;
+let speedKmh = 0;
+let targetSpeed = 180;
+let distKm = 0;
+let boostEnergy = 100;
+let gameTime = 0;
+let audioLevel = 0;
+let goals = [];
+let currentGoalIndex = 0;
+
+const spdEl = document.getElementById('spd');
+const dstEl = document.getElementById('dst');
+const boostEl = document.getElementById('boost');
+const goalsEl = document.getElementById('goals');
+const titleScreenEl = document.getElementById('titleScreen');
+
+// Load goals from session storage (beta form selections)
+try {
+  const sessionGoals = sessionStorage.getItem('celli:betaFormSelections');
+  if (sessionGoals) {
+    goals = JSON.parse(sessionGoals);
+  }
+} catch (e) {
+  console.warn('Could not load goals:', e);
+}
+
+if (goals.length === 0) {
+  goals = ['Level Editor', 'Story Mode', 'Musical Numbers'];
+}
+
+goalsEl.textContent = goals[currentGoalIndex] || 'Keep Going!';
+
+// Input
+const keys = new Set();
+addEventListener('keydown', e=>{
+  if (!gameStarted){
+    gameStarted = true;
+    speedKmh = 120;
+    titleScreenEl.classList.add('fadeOut');
+    setTimeout(()=>titleScreenEl.style.display='none', 800);
+    initAudio();
+    // Start playing EA.mp3
+    setTimeout(() => {
+      playTrack(baseTrack);
+    }, 200);
+  }
+  if (e.code==='ArrowLeft'||e.code==='KeyA'){ keys.add('L'); e.preventDefault(); }
+  if (e.code==='ArrowRight'||e.code==='KeyD'){ keys.add('R'); e.preventDefault(); }
+  if (e.code==='Space'){ keys.add('BOOST'); e.preventDefault(); }
+  if (e.code==='KeyS'||e.code==='ArrowDown'){ keys.add('WHEELIE'); e.preventDefault(); }
+  if (e.code==='ShiftLeft'||e.code==='ShiftRight'){ keys.add('FLIP'); e.preventDefault(); }
+});
+addEventListener('keyup', e=>{
+  if (e.code==='ArrowLeft'||e.code==='KeyA') keys.delete('L');
+  if (e.code==='ArrowRight'||e.code==='KeyD') keys.delete('R');
+  if (e.code==='Space') keys.delete('BOOST');
+  if (e.code==='KeyS'||e.code==='ArrowDown') keys.delete('WHEELIE');
+  if (e.code==='ShiftLeft'||e.code==='ShiftRight') keys.delete('FLIP');
+});
+
+const btnLeft = document.getElementById('btnLeft');
+const btnRight= document.getElementById('btnRight');
+function bindHold(btn, flag){
+  const set=(v)=>{ btn.classList.toggle('active', v); v?keys.add(flag):keys.delete(flag); };
+  const down=e=>{ 
+    if (!gameStarted){
+      gameStarted = true;
+      speedKmh = 120;
+      titleScreenEl.classList.add('fadeOut');
+      setTimeout(()=>titleScreenEl.style.display='none', 800);
+      initAudio();
+      // Start playing EA.mp3
+      setTimeout(() => {
+        playTrack(baseTrack);
+      }, 200);
+    }
+    set(true); e.preventDefault(); 
+  };
+  const up  =e=>{ set(false); e.preventDefault(); };
+  btn.addEventListener('pointerdown', down);
+  addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  btn.addEventListener('contextmenu', e=>e.preventDefault());
+}
+bindHold(btnLeft, 'L'); bindHold(btnRight,'R');
+
+const HEIGHT_AMP = 25.0;  // Much taller voxels for dramatic hills/valleys
+function heightAt(xw, zw, audioBoost = 0){
+  const n = hills(xw, zw, audioBoost);
+  return n * HEIGHT_AMP;
+}
+
+// Smooth height interpolation cache to reduce jitter
+const heightCache = new Map();
+function getCachedHeight(xw, zw, audioBoost){
+  const key = `${Math.floor(xw*10)},${Math.floor(zw*10)}`;
+  if (!heightCache.has(key)) {
+    heightCache.set(key, heightAt(xw, zw, audioBoost));
+  }
+  return heightCache.get(key);
+}
+
+const dummy = new THREE.Object3D();
+const color = new THREE.Color();
+
+// Build all terrain instances
+for (let iz=0; iz<ROWS_Z; iz++){
+  const globalRow = iz - rowOffset;
+  const worldZBase = zStart + globalRow * zStride;
+  const roadCenter = roadCenterX(worldZBase);
+  
+  for (let ix=0; ix<COLS_X; ix++){
+  const xw = x0 + ix*COL_SIZE_X;
+    const d = Math.abs(xw - roadCenter); // Distance from curved road center
+    let hNorm = hills(xw, worldZBase);
+  let h = hNorm * HEIGHT_AMP;
+    let col = getTricolor(xw, worldZBase);
+
+    // Global road elevation deforms entire plane
+    const roadElev = roadElevation(worldZBase);
+
+  if (d < ROAD_HALF){
+    const edge = smoothstep(ROAD_HALF-2.0, ROAD_HALF, d);
+      h = (1.0 - edge)*0.3;  // Small local bumps on road
+      if (edge > 0.85) {
+        col = ROAD_EDGE_COLOR;
+      } else {
+        col = ROAD_COLOR;
+      }
+    }
+    // All terrain (road and off-road) sits on the elevation plane
+    
+    const baseY = roadElev;  // Ground plane at this elevation
+    const columnHeight = Math.max(0.5, 0.5 + h);  // Local terrain height above ground
+    dummy.position.set(xw, baseY + columnHeight*0.5, worldZBase);
+    dummy.scale.set(1, columnHeight, 1);
+  dummy.updateMatrix();
+    columns.setMatrixAt(idx(ix, iz), dummy.matrix);
+  color.copy(col);
+    columns.instanceColor.setXYZ(idx(ix, iz), color.r, color.g, color.b);
+  }
+}
+columns.instanceMatrix.needsUpdate = true;
+if (columns.instanceColor) columns.instanceColor.needsUpdate = true;
+
+// Obstacles & Collectibles
+const obstacles = [];
+const collectibles = [];
+
+const obstacleMat = new THREE.MeshStandardMaterial({
+  color:0xff0000, metalness:0.8, roughness:0.2, emissive:0xff0000, emissiveIntensity:0.8
+});
+const collectibleMat = new THREE.MeshStandardMaterial({
+  color:0xffff00, metalness:0.9, roughness:0.1, emissive:0xffff00, emissiveIntensity:1.0
+});
+
+let nextObstacleZ = -30;
+let nextCollectibleZ = -20;
+let nextGoalCheckpointZ = -100;
+
+// Particle system
+const particleCount = 60;
+const particleGeo = new THREE.BufferGeometry();
+const particlePositions = new Float32Array(particleCount * 3);
+const particleVelocities = [];
+const particleColors = new Float32Array(particleCount * 3);
+
+for (let i=0; i<particleCount; i++){
+  particlePositions[i*3] = 0;
+  particlePositions[i*3+1] = 0;
+  particlePositions[i*3+2] = 0;
+  particleVelocities.push({x:0, y:0, z:0, life:0});
+  const tricolorParticles = [0x0066ff, 0xffff00, 0xff0066, 0xffffff];
+  const c = new THREE.Color(tricolorParticles[Math.floor(Math.random() * tricolorParticles.length)]);
+  particleColors[i*3] = c.r;
+  particleColors[i*3+1] = c.g;
+  particleColors[i*3+2] = c.b;
+}
+particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+
+const particleMat = new THREE.PointsMaterial({
+  size: 0.5, vertexColors: true, transparent: true, opacity: 0.9,
+  blending: THREE.AdditiveBlending, depthWrite: false
+});
+const particles = new THREE.Points(particleGeo, particleMat);
+scene.add(particles);
+
+let particleIdx = 0;
+function emitParticle(pos){
+  const p = particleVelocities[particleIdx];
+  p.x = pos.x + (Math.random()-0.5)*3;
+  p.y = pos.y + (Math.random()-0.5)*1.5;
+  p.z = pos.z;
+  p.vx = (Math.random()-0.5)*4;
+  p.vy = (Math.random()-0.5)*2.5;
+  p.vz = 6 + Math.random()*6;
+  p.life = 1.0;
+  
+  particlePositions[particleIdx*3] = p.x;
+  particlePositions[particleIdx*3+1] = p.y;
+  particlePositions[particleIdx*3+2] = p.z;
+  
+  particleIdx = (particleIdx + 1) % particleCount;
+}
+
+function updateParticles(dt){
+  for (let i=0; i<particleCount; i++){
+    const p = particleVelocities[i];
+    if (p.life > 0){
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.z += p.vz * dt;
+      p.life -= dt * 1.2;
+      
+      particlePositions[i*3] = p.x;
+      particlePositions[i*3+1] = p.y;
+      particlePositions[i*3+2] = p.z;
+    } else {
+      particlePositions[i*3+1] = -100;
+    }
+  }
+  particleGeo.attributes.position.needsUpdate = true;
+}
+
+// Resize
+function onResize(){
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w,h);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', onResize);
+onResize();
+
+let rollSm = 0, pitchSm = 0;
+let playerX = 0;  // Player's lateral position on road
+let playerVx = 0; // Player's lateral velocity
+const bikeZ = 0;  // Bike/camera rig stays at origin Z, world scrolls past
+let wheelieActive = false;
+let wheeliePitch = 0;
+
+let prev = performance.now();
+
+function tick(now){
+  requestAnimationFrame(tick);
+  const dt = Math.min(0.033, (now - prev)/1000);
+  prev = now;
+
+  if (!gameStarted){
+    renderer.render(scene, camera);
+    return;
+  }
+
+  gameTime += dt;
+  audioLevel = getAudioLevel();
+
+  // Shift key triggers camera flip and color inversion
+  if (keys.has('FLIP') && !cameraSpinning && !cameraFlipped) {
+    cameraFlipped = true;
+    colorInverted = true;
+    triggerColorInversion();
+    keys.delete('FLIP');
+  }
+
+  // Speed ramping with audio boost
+  targetSpeed = 180 + Math.min(100, gameTime * 2) + audioLevel * 50;
+  speedKmh += (targetSpeed - speedKmh) * dt * 2;
+
+  // Boost mechanic
+  if (keys.has('BOOST') && boostEnergy > 0){
+    speedKmh = Math.min(450, speedKmh + 250*dt);
+    boostEnergy = Math.max(0, boostEnergy - 35*dt);
+    bikeGlow.intensity = 5;
+    bikeGlow.distance = 30;
+    leftTrail.material.opacity = 0.9;
+    rightTrail.material.opacity = 0.9;
+  } else {
+    boostEnergy = Math.min(100, boostEnergy + 15*dt);
+    bikeGlow.intensity = 3;
+    bikeGlow.distance = 20;
+    leftTrail.material.opacity = 0.6;
+    rightTrail.material.opacity = 0.6;
+  }
+
+  // Animated veering trails
+  const veerWave = Math.sin(gameTime * 8 + steer * 5) * 0.3;
+  leftTrail.position.z = veerWave * 1.5;
+  rightTrail.position.z = -veerWave * 1.5;
+  const trailColors = [0x0066ff, 0xffff00, 0xff0066];
+  leftTrail.material.color.setHex(trailColors[Math.floor(Math.random() * trailColors.length)]);
+  rightTrail.material.color.setHex(trailColors[Math.floor(Math.random() * trailColors.length)]);
+
+  // Input → steer (now controls playerX)
+  const want = (keys.has('L')?-1:0) + (keys.has('R')?+1:0);
+  steer += (want - steer) * (want ? 12*dt : 7*dt);
+  const agility = keys.has('BOOST') ? 25 : 18;
+  playerVx += steer * (agility * dt);
+  playerVx *= 0.985;
+  playerX += playerVx * dt;
+  playerX = Math.max(-MAX_X, Math.min(MAX_X, playerX));
+  if (Math.abs(playerX) >= MAX_X*0.985) playerVx *= -0.6;
+
+  // Forward scroll
+  const mps = speedKmh * (1000/3600);
+  const forward = mps * dt;
+  distKm += (mps*dt)/1000;
+
+  // Emit particles (from camera rig world position)
+  if (Math.random() < 0.2){
+    const bikeWorldPos = new THREE.Vector3();
+    bike.getWorldPosition(bikeWorldPos);
+    emitParticle(bikeWorldPos);
+  }
+  updateParticles(dt);
+
+  // Update road lines - follow the curves
+  const lineSpacing = 22;
+  for (let i=0; i<roadLines.length; i++){
+    const line = roadLines[i];
+    const offset = (gameTime * speedKmh * 0.12 + i*lineSpacing) % (lineSpacing*roadLines.length);
+    const lineZ = bikeZ - 50 + offset;
+    const lineCenterX = roadCenterX(lineZ);
+    line.position.z = lineZ;
+    line.position.x = lineCenterX + ((i % 2 === 0) ? -4 : 4);
+    line.material.opacity = 0.5 + Math.sin(gameTime*5 + i*2)*0.3;
+  }
+
+  cameraShake *= 0.85;
+
+  // Advance grid
+  scrollZ += forward * 0.9;
+  while (scrollZ >= zStride){
+    scrollZ -= zStride;
+    rowOffset = (rowOffset + 1) % ROWS_Z;
+  }
+  
+  // Rebuild terrain with audio reactivity on voxel heights - smooth updates
+  const shouldRebuildTerrain = Math.floor(gameTime * 60) % 3 === 0; // More frequent for smoother waves
+  
+  if (shouldRebuildTerrain) {
+    const centerRowIndex = Math.floor(ROWS_Z / 2);
+    
+    // Create smooth wave pattern across entire grid
+    for (let iz=0; iz<ROWS_Z; iz++){
+      const offsetFromCenter = iz - centerRowIndex;
+      const worldZBase = (rowOffset + iz) * zStride;
+      const zw = bikeZ + offsetFromCenter * zStride - scrollZ;
+      const roadCenter = roadCenterX(worldZBase);
+      
+    for (let ix=0; ix<COLS_X; ix++){
+        const xw = x0 + ix*COL_SIZE_X;
+        const d = Math.abs(xw - roadCenter); // Distance from curved road center
+        
+        // Smooth continuous terrain with audio wave
+        let hNorm = hills(xw, worldZBase, 0);
+        let h = hNorm * HEIGHT_AMP;
+        
+        // Create wave patterns that pulse with audio
+        const wavePhase = gameTime * 2 + worldZBase * 0.05;
+        const audioWave = Math.sin(wavePhase) * audioLevel * 0.5;
+        
+        // Audio-reactive boost - MUCH stronger, way taller voxels
+        let audioHeightBoost = d > ROAD_HALF 
+          ? audioLevel * 30 + audioWave * 15
+          : audioLevel * 8 + audioWave * 4;
+        
+        let col = getTricolor(xw, worldZBase);
+        
+        // Apply road elevation (global plane deformation for dramatic landscape)
+        const roadElev = roadElevation(worldZBase);
+        
+        if (d < ROAD_HALF){
+          const edge = smoothstep(ROAD_HALF-2.0, ROAD_HALF, d);
+          h = (1.0 - edge)*0.3;  // Small local bumps on road
+          audioHeightBoost = audioLevel * 8 + audioWave * 4;
+          if (edge > 0.85) {
+            col = ROAD_EDGE_COLOR;
+          } else {
+            col = ROAD_COLOR;
+          }
+        }
+        // All terrain sits on the elevation plane
+        
+        const baseY = roadElev;  // Ground plane deformation
+        const columnHeight = Math.max(0.5, 0.5 + h + audioHeightBoost);
+        
+        // Smooth height transitions
+        const smoothHeight = THREE.MathUtils.lerp(columnHeight, columnHeight, 0.4);
+        
+        dummy.position.set(xw, baseY + smoothHeight*0.5, zw);
+        dummy.scale.set(1, smoothHeight, 1);
+        dummy.updateMatrix();
+        columns.setMatrixAt(idx(ix, iz), dummy.matrix);
+        color.copy(col);
+        columns.instanceColor.setXYZ(idx(ix, iz), color.r, color.g, color.b);
+      }
+    }
+    columns.instanceColor.needsUpdate = true;
+  } else {
+    const centerRowIndex = Math.floor(ROWS_Z / 2);
+    for (let iz=0; iz<ROWS_Z; iz++){
+      const offsetFromCenter = iz - centerRowIndex;
+      const zw = bikeZ + offsetFromCenter * zStride - scrollZ;
+    for (let ix=0; ix<COLS_X; ix++){
+        const i = idx(ix, iz);
+        const matrixOffset = i * 16;
+        columns.instanceMatrix.array[matrixOffset + 14] = zw;
+      }
+    }
+    }
+    columns.instanceMatrix.needsUpdate = true;
+
+  // Position camera rig at player location on road
+  const playerWorldZ = (rowOffset + Math.floor(ROWS_Z/2)) * zStride + scrollZ;
+  const currentRoadCenter = roadCenterX(playerWorldZ);
+  const currentRoadElev = roadElevation(playerWorldZ);
+  
+  // Gentle pull toward road center
+  const roadPull = (currentRoadCenter - playerX) * 0.8 * dt;
+  playerX += roadPull;
+  
+  // Camera rig sits on the road at player position (bike is child of rig)
+  // Add extra height to prevent clipping into terrain
+  const rigY = currentRoadElev + 5.0;
+  camRig.position.set(playerX, rigY, 0);
+  
+  // Terrain slopes for camera bank/pitch
+  const epsX = 1.5, epsZ = 8.0;
+  const aheadWorldZ = playerWorldZ - epsZ;
+  const behindWorldZ = playerWorldZ + epsZ;
+  const hL = roadElevation(playerWorldZ) + (playerX - epsX < -ROAD_HALF ? heightAt(playerX - epsX, playerWorldZ) * 0.3 : 0);
+  const hR = roadElevation(playerWorldZ) + (playerX + epsX > ROAD_HALF ? heightAt(playerX + epsX, playerWorldZ) * 0.3 : 0);
+  const hF = roadElevation(aheadWorldZ);
+  const hB = roadElevation(behindWorldZ);
+  const slopeX = (hR - hL) / (2*epsX);
+  const slopeZ = (hF - hB) / (2*epsZ);
+
+  const roll  = THREE.MathUtils.clamp(-slopeX * 0.15 - steer * 0.2, -0.3, 0.3);
+  const pitch = THREE.MathUtils.clamp(-slopeZ * 0.25, -0.2, 0.2);
+  rollSm  = THREE.MathUtils.lerp(rollSm,  roll,  0.15);
+  pitchSm = THREE.MathUtils.lerp(pitchSm, pitch, 0.15);
+
+  // Wheelie mechanic (hold S to tilt camera up)
+  wheelieActive = keys.has('WHEELIE');
+  const targetWheeliePitch = wheelieActive ? -0.3 : 0;
+  wheeliePitch = THREE.MathUtils.lerp(wheeliePitch, targetWheeliePitch, 0.1);
+
+  // Camera spin animation during color inversion
+  if (cameraSpinning) {
+    cameraSpinProgress += dt * 0.8;  // 1.25 second spin
+    if (cameraSpinProgress >= 1.0) {
+      cameraSpinning = false;
+      cameraSpinProgress = 1.0;
+    }
+    
+    // Smooth spin from back to front (180 degrees)
+    const eased = cameraSpinProgress * cameraSpinProgress * (3 - 2 * cameraSpinProgress); // smoothstep
+    const spinAngle = Math.PI * eased;  // 0 to PI (180 degrees)
+    const radius = 6.5;
+    
+    // Rotate around bike: start at +Z (back), end at -Z (front)
+    camera.position.set(
+      Math.sin(spinAngle) * radius * 0.3,  // Slight X movement for drama
+      2 + Math.abs(Math.sin(spinAngle)) * 1.5,  // Arc up during spin
+      radius - spinAngle * (radius * 2 / Math.PI)  // Sweep from +6 to -6
+    );
+    
+    // Camera looks at bike throughout spin
+    camera.lookAt(0, 0, 0);
+  } else {
+    // Normal camera rotation when not spinning
+    const shakeX = (Math.random()-0.5) * cameraShake;
+    const shakeY = (Math.random()-0.5) * cameraShake;
+    const shakeZ = (Math.random()-0.5) * cameraShake * 0.5;
+    
+    camera.rotation.set(pitchSm + wheeliePitch + shakeY * 0.01, shakeX * 0.01, rollSm + shakeZ * 0.01);
+  }
+
+  // Bike lean with veering animation and wheelie
+  bikeBody.rotation.z = rollSm * 1.2 + Math.sin(gameTime * 6) * 0.05;
+  bikeBody.rotation.x = pitchSm * 0.5 + wheeliePitch * 0.8;
+  bikeBody.rotation.y = steer * 0.1;
+  
+  // Adjust bike Y position during wheelie
+  bike.position.y = -0.8 + (wheelieActive ? 0.3 : 0);
+
+  // Spawn category tile obstacles (random categories behind player in chase view)
+  while (nextObstacleZ > bikeZ - 80) {
+    const obstacleRoadCenter = roadCenterX(nextObstacleZ);
+    const obstacleElev = roadElevation(nextObstacleZ);
+    const xPos = obstacleRoadCenter + (Math.random() - 0.5) * ROAD_HALF * 1.6;
+    
+    // Random category from goals list (or generic labels)
+    const categoryLabels = goals.length > 0 ? goals : ['LEVEL', 'STORY', 'PUZZLE', 'MUSIC', 'BOSS'];
+    const categoryText = categoryLabels[Math.floor(Math.random() * categoryLabels.length)];
+    
+    const tileGroup = new THREE.Group();
+    
+    // Tile base
+    const tileColors = [0x0066ff, 0xffff00, 0xff0066];
+    const tileColor = tileColors[Math.floor(Math.random() * tileColors.length)];
+    const tileGeo = new THREE.BoxGeometry(5, 2, 0.4);
+    const tileMat = new THREE.MeshStandardMaterial({
+      color: tileColor, metalness: 0.7, roughness: 0.3, emissive: tileColor, emissiveIntensity: 0.5
+    });
+    const tileMesh = new THREE.Mesh(tileGeo, tileMat);
+    tileGroup.add(tileMesh);
+    
+    // Text sprite
+    const textCanvas = document.createElement('canvas');
+    textCanvas.width = 256;
+    textCanvas.height = 64;
+    const textCtx = textCanvas.getContext('2d');
+    textCtx.fillStyle = '#000';
+    textCtx.font = 'bold 24px "Orbitron", sans-serif';
+    textCtx.textAlign = 'center';
+    textCtx.textBaseline = 'middle';
+    textCtx.fillText(categoryText, 128, 32);
+    
+    const textTexture = new THREE.CanvasTexture(textCanvas);
+    const textSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: textTexture, transparent: true }));
+    textSprite.scale.set(4.5, 1.125, 1);
+    textSprite.position.z = 0.25;
+    tileGroup.add(textSprite);
+    
+    tileGroup.position.set(xPos, obstacleElev + 3, nextObstacleZ);
+    tileGroup.userData = {size: 5, active: true, text: categoryText};
+    scene.add(tileGroup);
+    obstacles.push(tileGroup);
+    
+    const light = new THREE.PointLight(tileColor, 2.5, 18);
+    light.position.copy(tileGroup.position);
+    light.position.y += 2;
+    scene.add(light);
+    tileGroup.userData.light = light;
+    
+    nextObstacleZ -= 20 + Math.random() * 10;
+  }
+  
+  // Spawn collectibles - follow road curves
+  while (nextCollectibleZ > bikeZ - 60) {
+    const collectibleRoadCenter = roadCenterX(nextCollectibleZ);
+    const xPos = collectibleRoadCenter + (Math.random() - 0.5) * ROAD_HALF * 1.4;
+    const mesh = new THREE.Mesh(new THREE.OctahedronGeometry(1.5), collectibleMat);
+    mesh.position.set(xPos, 3.0, nextCollectibleZ);
+    mesh.userData = {active: true, spinSpeed: 2 + Math.random() * 3};
+    scene.add(mesh);
+    collectibles.push(mesh);
+    
+    const light = new THREE.PointLight(0xffff00, 2.5, 15);
+    light.position.copy(mesh.position);
+    scene.add(light);
+    mesh.userData.light = light;
+    
+    nextCollectibleZ -= 12 + Math.random() * 8;
+  }
+
+  // Spawn category tile checkpoints - 3D mesh representations
+  while (nextGoalCheckpointZ > bikeZ - 120) {
+    if (currentGoalIndex < goals.length) {
+      const goalText = goals[currentGoalIndex];
+      const checkpointRoadCenter = roadCenterX(nextGoalCheckpointZ);
+      const checkpointElev = roadElevation(nextGoalCheckpointZ);
+      
+      // Create 3D tile with category text
+      const tileGroup = new THREE.Group();
+      
+      // Tile base (colored box)
+      const tileColors = [0x0066ff, 0xffff00, 0xff0066, 0xffffff];
+      const tileColor = tileColors[currentGoalIndex % tileColors.length];
+      const tileGeo = new THREE.BoxGeometry(8, 3, 0.5);
+      const tileMat = new THREE.MeshStandardMaterial({
+        color: tileColor, metalness: 0.7, roughness: 0.3, emissive: tileColor, emissiveIntensity: 0.4
+      });
+      const tileMesh = new THREE.Mesh(tileGeo, tileMat);
+      tileGroup.add(tileMesh);
+      
+      // Text sprite on tile
+      const textCanvas = document.createElement('canvas');
+      textCanvas.width = 512;
+      textCanvas.height = 128;
+      const textCtx = textCanvas.getContext('2d');
+      textCtx.fillStyle = '#000';
+      textCtx.font = 'bold 32px "Orbitron", sans-serif';
+      textCtx.textAlign = 'center';
+      textCtx.textBaseline = 'middle';
+      textCtx.fillText(goalText.toUpperCase(), 256, 64);
+      
+      const textTexture = new THREE.CanvasTexture(textCanvas);
+      const textSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: textTexture, transparent: true }));
+      textSprite.scale.set(7, 1.75, 1);
+      textSprite.position.z = 0.3;
+      tileGroup.add(textSprite);
+      
+      tileGroup.position.set(checkpointRoadCenter, checkpointElev + 4, nextGoalCheckpointZ);
+      tileGroup.userData = {type: 'goal', goalIndex: currentGoalIndex, active: true, text: goalText};
+      scene.add(tileGroup);
+      obstacles.push(tileGroup);
+      
+      // Glow light
+      const tileLight = new THREE.PointLight(tileColor, 3, 25);
+      tileLight.position.copy(tileGroup.position);
+      tileLight.position.y += 2;
+      scene.add(tileLight);
+      tileGroup.userData.light = tileLight;
+      
+      nextGoalCheckpointZ -= 150;
+    }
+  }
+
+  // Update obstacles
+  for (let i=obstacles.length-1; i>=0; i--){
+    const ob = obstacles[i];
+    
+    if (ob.userData.type === 'goal') {
+      // Rotate tile for visual interest
+      ob.rotation.y += dt * 2;
+      
+      // Remove if passed
+      if (ob.position.z > bikeZ + 20) {
+        scene.remove(ob);
+        if (ob.userData.light) scene.remove(ob.userData.light);
+        obstacles.splice(i, 1);
+      } else if (ob.userData.active && Math.abs(ob.position.z - bikeZ) < 8) {
+        // Reached goal tile
+        ob.userData.active = false;
+        currentGoalIndex++;
+        if (currentGoalIndex < goals.length) {
+          goalsEl.textContent = goals[currentGoalIndex];
+        } else {
+          goalsEl.textContent = 'ALL GOALS REACHED!';
+        }
+        
+        // Flash and remove tile
+        if (ob.userData.light) {
+          ob.userData.light.intensity = 10;
+          setTimeout(() => {
+            scene.remove(ob);
+            if (ob.userData.light) scene.remove(ob.userData.light);
+          }, 300);
+        }
+        obstacles.splice(i, 1);
+      }
+    } else {
+      ob.rotation.y += dt * 2;
+      if (ob.userData.light) ob.userData.light.intensity = 1.5 + Math.sin(gameTime*10)*0.5 + audioLevel * 2;
+      
+      if (ob.position.z > bikeZ + 20){
+        scene.remove(ob);
+        if (ob.userData.light) scene.remove(ob.userData.light);
+        obstacles.splice(i, 1);
+      } else if (ob.userData.active){
+        const dx = Math.abs(ob.position.x - playerX);
+        const dz = Math.abs(ob.position.z - bikeZ);
+        if (dx < ob.userData.size*0.5 + 2 && dz < 4){
+          ob.userData.active = false;
+          speedKmh *= 0.6;
+          boostEnergy = Math.max(0, boostEnergy - 20);
+          ob.material.emissiveIntensity = 3;
+          cameraShake = 2.5;
+          
+          for (let j=0; j<15; j++){
+            emitParticle(ob.position);
+          }
+          
+          setTimeout(()=>{
+            scene.remove(ob);
+            if (ob.userData.light) scene.remove(ob.userData.light);
+          }, 200);
+        }
+      }
+    }
+  }
+
+  // Update collectibles
+  for (let i=collectibles.length-1; i>=0; i--){
+    const col = collectibles[i];
+    
+    col.rotation.y += dt * col.userData.spinSpeed;
+    col.rotation.x += dt * col.userData.spinSpeed * 0.5;
+    col.position.y = 2.5 + Math.sin(gameTime*3 + i)*0.8 + audioLevel * 1.5;
+    
+    if (col.userData.light){
+      col.userData.light.position.copy(col.position);
+      col.userData.light.intensity = 1.0 + Math.sin(gameTime*5)*0.3 + audioLevel * 2;
+    }
+    
+    if (col.position.z > bikeZ + 20){
+      scene.remove(col);
+      if (col.userData.light) scene.remove(col.userData.light);
+      collectibles.splice(i, 1);
+    } else if (col.userData.active){
+      const dx = Math.abs(col.position.x - playerX);
+      const dz = Math.abs(col.position.z - bikeZ);
+      if (dx < 2.5 && dz < 4){
+        col.userData.active = false;
+        boostEnergy = Math.min(100, boostEnergy + 15);
+        
+        for (let j=0; j<8; j++){
+          emitParticle(col.position);
+        }
+        
+        scene.remove(col);
+        if (col.userData.light) scene.remove(col.userData.light);
+        collectibles.splice(i, 1);
+      }
+    }
+  }
+
+  // HUD
+  spdEl.textContent = String(Math.round(speedKmh));
+  dstEl.textContent = distKm.toFixed(2);
+  boostEl.textContent = String(Math.round(boostEnergy));
+
+  // Cycle bike body color through tricolor based on audio
+  const tricolorCycle = [0x0066ff, 0xffff00, 0xff0066, 0xffffff];
+  const colorIndex = Math.floor((gameTime * 2 + audioLevel * 5) % tricolorCycle.length);
+  bikeBody.material.color.setHex(tricolorCycle[colorIndex]);
+  bikeBody.material.emissive.setHex(tricolorCycle[colorIndex]);
+  frontBar.material.color.setHex(tricolorCycle[(colorIndex + 1) % tricolorCycle.length]);
+
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(tick);
+
+// Tricolor gradient sky dome
+const sky = new THREE.Mesh(
+  new THREE.SphereGeometry(1200, 24, 16),
+  new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite:false,
+    uniforms:{ 
+      top:{value:new THREE.Color(0x0a0020)}, 
+      mid:{value:new THREE.Color(0x1a0040)},
+      bottom:{value:new THREE.Color(0x000000)},
+      time:{value:0}
+    },
+    vertexShader:`
+      varying vec3 vW; 
+      void main(){ 
+        vW=(modelMatrix*vec4(position,1.)).xyz; 
+        gl_Position=projectionMatrix*viewMatrix*vec4(vW,1.); 
+      }`,
+    fragmentShader:`
+      varying vec3 vW; 
+      uniform vec3 top, mid, bottom;
+      uniform float time;
+      void main(){ 
+        float h = normalize(vW).y*0.5+0.5;
+        vec3 col = h > 0.5 
+          ? mix(mid, top, pow((h-0.5)*2.0, 1.2))
+          : mix(bottom, mid, pow(h*2.0, 1.5));
+        
+        // Tricolor stars (cyan, yellow, white)
+        float star = fract(sin(dot(vW.xz, vec2(12.9898,78.233))) * 43758.5453);
+        if (star > 0.997 && h > 0.3) {
+          float starType = fract(star * 43.0);
+          vec3 starColor = starType < 0.33  ? vec3(0.0, 1.0, 1.0)    // cyan
+                         : starType < 0.66  ? vec3(1.0, 1.0, 0.0)    // yellow
+                         : vec3(1.0, 1.0, 1.0);                      // white
+          col += starColor * 0.4;
+        }
+        
+        gl_FragColor=vec4(col,1.); 
+      }`
+  })
+);
+scene.add(sky);
+</script>
+</body>
+</html>

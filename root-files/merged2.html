@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Celli - Redirecting…</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      color: #8ab4ff;
+      font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    main {
+      text-align: center;
+    }
+    a {
+      color: #fff;
+    }
+  </style>
+  <script>
+    (function redirect() {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has('autostart')) {
+        params.set('autostart', '1');
+      }
+      const target = `./index.html${params.toString() ? `?${params.toString()}` : ''}`;
+      window.redirectTarget = target;
+      if (typeof window.location.replace === 'function') {
+        window.location.replace(target);
+      } else {
+        window.location.href = target;
+      }
+    })();
+  </script>
+</head>
+<body>
+  <main>
+    <p id="status">Redirecting to the modular Celli experience…</p>
+    <p><a id="link" href="./index.html?autostart=1">Continue to index.html</a></p>
+  </main>
+  <script>
+    (function updateLink() {
+      const link = document.getElementById('link');
+      const status = document.getElementById('status');
+      if (link && window.redirectTarget) {
+        link.href = window.redirectTarget;
+        status.textContent = 'Redirecting to the modular Celli experience…';
+      }
+    })();
+  </script>
+  <noscript>
+    <style>main { max-width: 480px; padding: 1.5rem; }</style>
+    <main>
+      <p>JavaScript is required for automatic redirection. Please open <a href="./index.html?autostart=1">index.html</a>.</p>
+    </main>
+  </noscript>
+</body>
+</html>

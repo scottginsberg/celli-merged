@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celli Standalone Builder</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #0a0a0a;
+            color: #0f0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #111;
+            border: 2px solid #0f0;
+            border-radius: 8px;
+            padding: 30px;
+        }
+        h1 {
+            text-align: center;
+            color: #0ff;
+            margin-bottom: 30px;
+            font-size: 2em;
+            text-shadow: 0 0 10px #0ff;
+        }
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            color: #0ff;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        button:hover:not(:disabled) {
+            background: #0ff;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px #0ff;
+        }
+        button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+        #output {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            border: 1px solid #0f0;
+        }
+        #fileList {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #000;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            border: 1px solid #333;
+        }
+        .file-item {
+            color: #0af;
+            font-size: 11px;
+            padding: 2px 0;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success { background: #0f0; color: #000; }
+        .error { background: #f00; color: #fff; }
+        .info { background: #0af; color: #fff; }
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
+        label {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔨 Celli Standalone Builder</h1>
+
+        <div class="section">
+            <h2>📁 Step 1: Select Folder</h2>
+            <p style="margin-bottom: 15px;">Select your <code>celli-refactor</code> folder to bundle all files:</p>
+            <input type="file" id="fileInput" multiple webkitdirectory directory style="display: none;">
+            <div class="btn-group">
+                <button onclick="triggerFileInput()" id="selectBtn">📁 Select Folder & Files</button>
+            </div>
+            <div id="folderInfo" style="margin-top: 15px; color: #0af;"></div>
+            <div id="fileList"></div>
+        </div>
+
+        <div class="section">
+            <h2>🔨 Step 2: Build</h2>
+            <label>
+                <input type="checkbox" id="includeAllJS" checked>
+                Include all JavaScript files
+            </label>
+            <label>
+                <input type="checkbox" id="includeAllCSS" checked>
+                Include all CSS files
+            </label>
+            <div class="btn-group">
+                <button onclick="rebuild()" id="rebuildBtn" disabled>🔨 Rebuild Standalone HTML</button>
+                <button onclick="downloadBuilt()" disabled id="downloadBtn">💾 Download Built File</button>
+                <button onclick="testBuilt()" disabled id="testBtn">🧪 Test in New Window</button>
+            </div>
+            <div id="status" style="margin-top: 15px;"></div>
+        </div>
+
+        <div class="section">
+            <h2>📋 Build Log</h2>
+            <div id="output">Ready to build...</div>
+        </div>
+
+        <div class="section">
+            <h2>ℹ️ How It Works</h2>
+            <ol style="padding-left: 30px; line-height: 2;">
+                <li>Select your project folder</li>
+                <li>Builder scans for all .js and .css files</li>
+                <li>Removes ES6 import/export statements</li>
+                <li>Excludes duplicate and conflicting files</li>
+                <li>Orders files so classes are defined before use</li>
+                <li>Fixes Three.js CDN class references</li>
+                <li>Bundles everything into a single HTML file</li>
+                <li>Output works anywhere - no server needed!</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        let builtHTML = '';
+        let discoveredFiles = { js: [], css: [], html: [] };
+        let uploadedFiles = [];
+        
+        // Initialize file input handler
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('fileInput');
+            fileInput.addEventListener('change', handleFileSelect);
+        });
+        
+        function triggerFileInput() {
+            document.getElementById('fileInput').click();
+        }
+        
+        function handleFileSelect(event) {
+            const folderInfo = document.getElementById('folderInfo');
+            const fileList = document.getElementById('fileList');
+            const output = document.getElementById('output');
+            const rebuildBtn = document.getElementById('rebuildBtn');
+            
+            uploadedFiles = Array.from(event.target.files);
+            
+            if (uploadedFiles.length === 0) {
+                folderInfo.innerHTML = '⚠️ No files selected';
+                return;
+            }
+            
+            output.textContent = `📂 Processing ${uploadedFiles.length} files...\n`;
+            
+            // Reset discovered files
+            discoveredFiles = { js: [], css: [], html: [] };
+            
+            // Categorize files
+            uploadedFiles.forEach(file => {
+                const path = file.webkitRelativePath || file.name;
+                
+                // Skip unnecessary files
+                if (path.includes('node_modules') || path.startsWith('.')) return;
+                
+                if (file.name.endsWith('.js')) {
+                    discoveredFiles.js.push({ path, name: file.name, type: 'js', file });
+                    output.textContent += `✓ JS: ${path}\n`;
+                } else if (file.name.endsWith('.css')) {
+                    discoveredFiles.css.push({ path, name: file.name, type: 'css', file });
+                    output.textContent += `✓ CSS: ${path}\n`;
+                } else if (file.name.endsWith('.html')) {
+                    discoveredFiles.html.push({ path, name: file.name, type: 'html', file });
+                }
+            });
+            
+            // Display results
+            folderInfo.innerHTML = `✅ Loaded <strong>${uploadedFiles.length}</strong> files`;
+            displayFoundFiles();
+            
+            // Enable rebuild button
+            if (discoveredFiles.js.length > 0 || discoveredFiles.css.length > 0) {
+                rebuildBtn.disabled = false;
+                output.textContent += `\n✅ Ready to build!\n`;
+                output.textContent += `📊 Total: ${discoveredFiles.js.length} JS, ${discoveredFiles.css.length} CSS\n`;
+            } else {
+                output.textContent += `\n⚠️ No JS or CSS files found.\n`;
+            }
+        }
+        
+        function displayFoundFiles() {
+            const fileList = document.getElementById('fileList');
+            let html = '<div style="margin-top: 15px;">';
+            
+            if (discoveredFiles.js.length > 0) {
+                html += `<h3 style="color: #0af; margin: 10px 0;">JavaScript (${discoveredFiles.js.length})</h3>`;
+                discoveredFiles.js.forEach(f => {
+                    html += `<div class="file-item">✓ ${f.path}</div>`;
+                });
+            }
+            
+            if (discoveredFiles.css.length > 0) {
+                html += `<h3 style="color: #0af; margin: 15px 0 10px 0;">CSS (${discoveredFiles.css.length})</h3>`;
+                discoveredFiles.css.forEach(f => {
+                    html += `<div class="file-item">✓ ${f.path}</div>`;
+                });
+            }
+            
+            html += '</div>';
+            fileList.innerHTML = html;
+        }
+        
+        async function rebuild() {
+            const btn = document.getElementById('rebuildBtn');
+            const status = document.getElementById('status');
+            const output = document.getElementById('output');
+            
+            btn.disabled = true;
+            status.innerHTML = '<div class="info">🔨 Building...</div>';
+            output.textContent = '🔨 Starting build process...\n';
+            
+            try {
+                if (discoveredFiles.js.length === 0) {
+                    throw new Error('No files to bundle! Select folder first.');
+                }
+                
+                const includeAllJS = document.getElementById('includeAllJS').checked;
+                const includeAllCSS = document.getElementById('includeAllCSS').checked;
+                
+                output.textContent += `📄 Reading ${discoveredFiles.js.length} JS files...\n`;
+                output.textContent += `🎨 Reading ${discoveredFiles.css.length} CSS files...\n`;
+                
+                // Read all files
+                const jsContents = await Promise.all(
+                    discoveredFiles.js.map(async f => {
+                        try {
+                            return await f.file.text();
+                        } catch (e) {
+                            return `// Error loading ${f.path}: ${e.message}`;
+                        }
+                    })
+                );
+                
+                const cssContents = await Promise.all(
+                    discoveredFiles.css.map(async f => {
+                        try {
+                            return await f.file.text();
+                        } catch (e) {
+                            return `/* Error loading ${f.path}: ${e.message} */`;
+                        }
+                    })
+                );
+                
+                output.textContent += '✅ All files loaded\n';
+                output.textContent += '🔧 Processing imports/exports and ordering files...\n';
+                
+                // Build the standalone HTML
+                builtHTML = buildStandaloneHTML(jsContents, cssContents, discoveredFiles);
+                
+                output.textContent += '✅ Files bundled in correct dependency order\n';
+                output.textContent += '📊 Check browser console for detailed file list\n';
+                
+                output.textContent += `\n✅ Build complete!\n`;
+                output.textContent += `📊 Output size: ${(builtHTML.length / 1024).toFixed(2)} KB\n`;
+                
+                status.innerHTML = '<div class="success">✅ Build successful! Download ready.</div>';
+                
+                // Enable download buttons
+                document.getElementById('downloadBtn').disabled = false;
+                document.getElementById('testBtn').disabled = false;
+                
+            } catch (error) {
+                output.textContent += `\n❌ Build failed: ${error.message}\n`;
+                status.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        
+        function buildStandaloneHTML(jsContents, cssContents, files) {
+            const timestamp = new Date().toISOString();
+            
+            // Combine all CSS
+            const allCSS = cssContents.join('\n\n');
+            
+            // Exclude redundant/conflicting files
+            const excludePatterns = [
+                /[\/\\]app\.js$/i,  // Old version - conflicts with app-enhanced.js
+                /[\/\\]systems[\/\\]QuoteSystem\.js$/i,  // Old version - use gui/QuoteSystem.js instead
+                /[\/\\]systems[\/\\]LoomworksSystem\.js$/i,  // Old version - use gui/LoomworksSystem.js instead
+            ];
+            
+            // Filter out excluded files
+            const filteredFiles = [];
+            const filteredContents = [];
+            const seenFilenames = new Map(); // Track duplicate filenames
+            
+            files.js.forEach((f, i) => {
+                // Normalize path for consistent matching (replace backslashes with forward slashes)
+                const normalizedPath = f.path.replace(/\\/g, '/');
+                
+                const shouldExclude = excludePatterns.some(pattern => {
+                    const testPath = f.path; // Test original path with pattern that handles both slashes
+                    const result = pattern.test(testPath);
+                    if (result) {
+                        console.log(`✓ Excluding: ${f.path}`);
+                    }
+                    return result;
+                });
+                
+                if (!shouldExclude) {
+                    // Check for duplicate filenames
+                    const filename = f.name;
+                    if (seenFilenames.has(filename)) {
+                        console.warn(`⚠️ Duplicate filename detected: ${filename}`);
+                        console.warn(`   Already included: ${seenFilenames.get(filename)}`);
+                        console.warn(`   Skipping: ${f.path}`);
+                        // Skip this duplicate
+                    } else {
+                        seenFilenames.set(filename, f.path);
+                        filteredFiles.push(f);
+                        filteredContents.push(jsContents[i]);
+                    }
+                } else {
+                    console.log(`⚠️ Excluding conflicting file: ${f.path}`);
+                }
+            });
+            
+            console.log(`📊 File filtering results:`);
+            console.log(`   Original: ${files.js.length} files`);
+            console.log(`   Filtered: ${filteredFiles.length} files`);
+            console.log(`   Excluded: ${files.js.length - filteredFiles.length} files`);
+            
+            // Create file order - classes must be defined before they're used
+            const fileOrder = [];
+            const pathLower = (f) => f.path.toLowerCase();
+            
+            // Priority order to ensure classes are defined before use
+            const orderGroups = [
+                // 1. Core systems first
+                { pattern: /core[\/\\]SceneManager\.js$/i, priority: 10 },
+                { pattern: /core[\/\\]/i, priority: 20 },
+                { pattern: /systems[\/\\]/i, priority: 30 },
+                
+                // 2. GUI components
+                { pattern: /gui[\/\\]/i, priority: 40 },
+                
+                // 3. Scene definitions (MUST come before app logic)
+                { pattern: /scenes[\/\\]/i, priority: 50 },
+                
+                // 4. Utility and helper files
+                { pattern: /utils[\/\\]/i, priority: 60 },
+                { pattern: /helpers[\/\\]/i, priority: 60 },
+                
+                // 5. App logic (second to last)
+                { pattern: /app-enhanced\.js$/i, priority: 90 },
+                // Note: app.js is excluded (see excludePatterns above)
+                
+                // 6. Entry point (MUST be last)
+                { pattern: /main\.js$/i, priority: 100 },
+            ];
+            
+            // Assign priority to each file
+            const filesWithPriority = filteredFiles.map((f, index) => {
+                let priority = 70; // default priority for unmatched files
+                
+                for (const group of orderGroups) {
+                    if (group.pattern.test(f.path)) {
+                        priority = group.priority;
+                        break;
+                    }
+                }
+                
+                return { file: f, index, priority };
+            });
+            
+            // Sort by priority, then alphabetically within same priority
+            filesWithPriority.sort((a, b) => {
+                if (a.priority !== b.priority) {
+                    return a.priority - b.priority;
+                }
+                return a.file.path.localeCompare(b.file.path);
+            });
+            
+            // Log the order for debugging
+            console.log('📦 File bundling order:');
+            filesWithPriority.forEach((item, i) => {
+                console.log(`  ${i + 1}. [P${item.priority}] ${item.file.path}`);
+            });
+            
+            // Process JavaScript in correct order
+            const allJS = filesWithPriority.map((item) => {
+                const content = filteredContents[item.index];
+                let cleaned = content
+                    // Remove all import statements (multiple patterns)
+                    .replace(/import\s+\*\s+as\s+\w+\s+from\s+['"][^'"]+['"]\s*;?/gm, '// removed import')
+                    .replace(/import\s+{[^}]*}\s+from\s+['"][^'"]+['"]\s*;?/gm, '// removed import')
+                    .replace(/import\s+\w+\s+from\s+['"][^'"]+['"]\s*;?/gm, '// removed import')
+                    .replace(/import\s+['"][^'"]+['"]\s*;?/gm, '// removed import')
+                    // Remove all export statements (including async functions)
+                    .replace(/export\s+{[^}]*}\s*;?/gm, '// removed export')
+                    .replace(/export\s+default\s+/gm, '')
+                    .replace(/export\s+(async\s+)?(const|let|var|function|class)\s+/gm, '$1$2 ');
+                
+                // For files that define global shared state, ensure variables are on window
+                // This fixes issues where code expects window.clock, window.running, etc.
+                if (item.file.path.match(/app-enhanced\.js$/i)) {
+                    // Convert key variables to window properties
+                    cleaned = cleaned
+                        .replace(/(^|\n)(\s*)(const|let|var)\s+(clock|running|totalTime)\s*=/g, '$1$2window.$4 =')
+                        // Handle async functions
+                        .replace(/(^|\n)(\s*)async\s+function\s+(frame|toast|clearToast|setupButtons|initApp|startApp|transitionToCity|transitionToIntro|preloadAssets|initializeSystems)\s*\(/g, '$1$2window.$3 = async function $3(')
+                        // Handle regular functions
+                        .replace(/(^|\n)(\s*)function\s+(frame|toast|clearToast|setupButtons|initApp|startApp|transitionToCity|transitionToIntro|preloadAssets|initializeSystems)\s*\(/g, '$1$2window.$3 = function $3(');
+                }
+                
+                // Fix Three.js post-processing class references for all files
+                // CDN-loaded Three.js examples attach to THREE object, not global scope
+                // Add THREE. prefix to post-processing classes that aren't already prefixed
+                cleaned = cleaned
+                    .replace(/\bnew\s+(EffectComposer|RenderPass|UnrealBloomPass|AfterimagePass|ShaderPass|BokehPass|FilmPass|RoundedBoxGeometry)\s*\(/g, 'new THREE.$1(')
+                    // Fix double-prefix if it already had THREE.
+                    .replace(/\bnew\s+THREE\.THREE\./g, 'new THREE.');
+                
+                return `\n// ===== ${item.file.path} =====\n${cleaned}\n`;
+            }).join('\n');
+            
+            // Build HTML
+            return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celli v6.0 - Standalone Built ${timestamp}</title>
+    <style>
+/* ========================================
+   Bundled CSS - Built ${timestamp}
+   ======================================== */
+${allCSS}
+    </style>
+</head>
+<body>
+    <!-- Main app container -->
+    <div id="app" class="scanlines"></div>
+    
+    <!-- HUD elements -->
+    <div id="hud" class="hud">
+        <div id="brand" class="brand">∴CELLI</div>
+        <div id="quote" class="quote">
+            <span id="quoteBefore"></span>
+            <span id="quoteAfter"></span>
+        </div>
+        <div id="loomworks" class="loomworks">
+            <span id="loomPre" class="loomworks-chunk"></span><span id="loomCore" class="loomworks-chunk"></span><span id="loomPost" class="loomworks-chunk"></span><span id="loomTail" class="loomworks-chunk"></span>
+        </div>
+    </div>
+    
+    <div id="screenGlitch" class="screenGlitch"></div>
+    
+    <!-- Play overlay -->
+    <div id="play" class="play">
+        <button id="playBtn">Play</button>
+        <button id="sceneSelectBtn">Scene Select</button>
+        <button id="testBtn">Test City</button>
+        <button id="sequenceComposerBtn">Sequence Composer</button>
+    </div>
+    
+    <!-- Scene Select Menu -->
+    <div id="sceneSelect" class="sceneSelect">
+        <button id="closeSceneSelect">✕</button>
+        <h2>Select Scene</h2>
+        <div class="scene-option" data-scene="intro">Intro</div>
+        <div class="scene-option" data-scene="city">City</div>
+        <div class="scene-option locked">More Coming Soon...</div>
+    </div>
+
+    <!-- Three.js from CDN (UMD build for standalone) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/EffectComposer.js"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/RenderPass.js"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/UnrealBloomPass.js"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/AfterimagePass.js"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/ShaderPass.js"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/BokehPass.js"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/postprocessing/FilmPass.js"><\/script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/geometries/RoundedBoxGeometry.js"><\/script>
+    
+    <script>
+/* ========================================
+   Bundled JavaScript - Built ${timestamp}
+   Standalone Celli v6.0
+   ======================================== */
+
+(function() {
+    'use strict';
+    
+    console.log('%c🎨 Celli Standalone v6.0', 'background: #0f0; color: #000; font-size: 20px; padding: 10px;');
+    
+    // Make Three.js available globally
+    const THREE = window.THREE;
+    if (!THREE) {
+        console.error('❌ Three.js not loaded from CDN!');
+        document.body.innerHTML = '<h1 style="color:red;text-align:center;margin-top:50px;">Error: Three.js failed to load. Check internet connection.</h1>';
+        return;
+    }
+    
+    console.log('✅ Three.js loaded:', THREE.REVISION);
+    
+    // Global app state
+    window.celliApp = window.celliApp || {};
+    
+    // Bundled module code (imports/exports removed)
+${allJS}
+    
+})();
+    <\/script>
+</body>
+</html>`;
+        }
+        
+        function downloadBuilt() {
+            if (!builtHTML) {
+                alert('Nothing to download! Build first.');
+                return;
+            }
+            
+            const blob = new Blob([builtHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `celli-standalone-${Date.now()}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            const output = document.getElementById('output');
+            output.textContent += '\n✅ File downloaded!\n';
+        }
+        
+        function testBuilt() {
+            if (!builtHTML) {
+                alert('Nothing to test! Build first.');
+                return;
+            }
+            
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(builtHTML);
+            newWindow.document.close();
+            
+            const output = document.getElementById('output');
+            output.textContent += '\n✅ Opened in new window for testing\n';
+        }
+    </script>
+</body>
+</html>

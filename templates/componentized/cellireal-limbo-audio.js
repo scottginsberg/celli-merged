@@ -28,7 +28,7 @@
 
     try {
       audioInstance = new Audio(resolveAudioUrl());
-      audioInstance.loop = true;
+      audioInstance.loop = false;
       audioInstance.volume = AUDIO_VOLUME;
       audioInstance.preload = 'auto';
     } catch (error) {

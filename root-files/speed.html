@@ -1,0 +1,3725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Rainbow Roadmap: Off-Road Edition</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&display=swap');
+  
+  :root { --bg:#000000; --rainbow1:#ff0066; --rainbow2:#ffaa00; --rainbow3:#ffff00; --rainbow4:#00ff00; --rainbow5:#00ffff; --rainbow6:#0066ff; --rainbow7:#ff00ff; }
+  html,body{height:100%;margin:0;background:var(--bg);color:#e6e8ef;font-family:'Orbitron',system-ui,sans-serif;overflow:hidden}
+  canvas{display:block}
+
+  #ui{
+    position:fixed; inset:auto 0 0 0; pointer-events:none;
+    display:flex; justify-content:space-between; align-items:flex-end; padding:18px;
+  }
+  .dpad{
+    pointer-events:auto; width:140px; height:140px; position:relative; user-select:none;
+    touch-action:none; opacity:.9; filter:drop-shadow(0 0 20px rgba(0,102,255,.6));
+  }
+  .dpad .btn{
+    position:absolute; background:rgba(0,102,255,.12); border:2px solid rgba(0,102,255,.6);
+    border-radius:14px; backdrop-filter:blur(6px);
+    box-shadow: inset 0 0 20px rgba(0,102,255,.3);
+  }
+  .dpad .left, .dpad .right{ top:50%; transform:translateY(-50%); width:56px; height:112px; }
+  .dpad .left{ left:0; border-top-right-radius:40px; border-bottom-right-radius:40px; }
+  .dpad .right{ right:0; border-top-left-radius:40px; border-bottom-left-radius:40px; }
+  .btn:active, .btn.active{ 
+    background:rgba(0,102,255,.35); 
+    border-color:rgba(0,102,255,1); 
+    box-shadow: 0 0 30px rgba(0,102,255,1), inset 0 0 30px rgba(0,102,255,.8);
+  }
+
+  .hud{
+    pointer-events:none; margin-left:auto; text-align:right; padding:12px 18px; border-radius:12px;
+    background:linear-gradient(180deg, rgba(0,102,255,.15), rgba(255,255,0,.1));
+    border:2px solid rgba(0,102,255,.5);
+    box-shadow: 0 0 20px rgba(0,102,255,.5), inset 0 0 15px rgba(0,102,255,.2);
+  }
+  .hud .row{ font-weight:700; letter-spacing:1.5px; font-variant-numeric:tabular-nums; 
+    text-shadow: 0 0 10px rgba(0,102,255,.9); color:#0066ff; font-size:16px; }
+  .hud .goal{ font-size:13px; letter-spacing:1px; opacity:0.85; margin-top:4px; color:#ffff00; }
+  
+  .hint{
+    position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+    color:#0066ff; font-size:12px; opacity:.9; text-align:center; pointer-events:none;
+    text-shadow: 0 0 10px rgba(0,102,255,.8); letter-spacing:2px;
+  }
+  
+  body.orbit-mode {
+    cursor: grab;
+  }
+  
+  body.orbit-mode.dragging {
+    cursor: grabbing;
+  }
+  
+  .camera-mode-overlay {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 102, 255, 0.15);
+    border: 2px solid #0066ff;
+    color: #00ffff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+  }
+  
+  .camera-mode-overlay.visible {
+    opacity: 1;
+  }
+
+  #debugPanel {
+    position: fixed; top: 10px; right: 10px; width: 300px; max-height: 90vh;
+    background: rgba(0, 0, 0, 0.85); border: 2px solid #0066ff;
+    border-radius: 8px; padding: 15px; overflow-y: auto;
+    font-family: 'Orbitron', monospace; font-size: 11px;
+    color: #e0e0e0; display: none; pointer-events: auto;
+    box-shadow: 0 0 20px rgba(0, 102, 255, 0.5);
+  }
+  #debugPanel.visible { display: block; }
+  #debugPanel h3 {
+    color: #0066ff; font-size: 13px; margin: 10px 0 8px 0;
+    border-bottom: 1px solid #0066ff; padding-bottom: 4px;
+  }
+  #debugPanel h3:first-child { margin-top: 0; }
+  #debugPanel label {
+    display: block; margin: 6px 0 2px 0; color: #ffff00;
+  }
+  #debugPanel input[type="range"] {
+    width: calc(100% - 80px); height: 4px; background: #333;
+    border-radius: 2px; outline: none; display: inline-block;
+  }
+  #debugPanel input[type="range"]::-webkit-slider-thumb {
+    width: 12px; height: 12px; background: #0066ff;
+    border-radius: 50%; cursor: pointer;
+  }
+  #debugPanel input[type="checkbox"] {
+    margin-right: 6px;
+  }
+  #debugPanel .value {
+    color: #00ffff; font-weight: bold; float: right;
+  }
+  #debugPanel input[type="number"] {
+    width: 70px; padding: 4px; background: #222; border: 1px solid #0066ff;
+    border-radius: 4px; color: #00ffff; font-size: 11px; margin-left: 8px;
+    display: inline-block; font-weight: bold;
+  }
+  #debugPanel .control-row {
+    display: flex; align-items: center; gap: 8px; margin: 6px 0 8px 0;
+  }
+  #debugPanel .control-row input[type="range"] {
+    flex: 1; margin: 0;
+  }
+  #debugPanel .control-row input[type="number"] {
+    width: 70px; margin: 0;
+  }
+  #debugToggle {
+    position: fixed; top: 10px; right: 10px;
+    background: rgba(0, 102, 255, 0.3); border: 2px solid #0066ff;
+    color: #0066ff; padding: 8px 12px; border-radius: 6px;
+    cursor: pointer; font-family: 'Orbitron', sans-serif;
+    font-size: 12px; font-weight: 700;
+    pointer-events: auto; z-index: 1000;
+  }
+  #debugToggle:hover { background: rgba(0, 102, 255, 0.5); }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="ui">
+  <div class="hud" style="padding: 12px 18px; border-radius: 12px; background: linear-gradient(180deg, rgba(0,102,255,.15), rgba(255,255,0,.1)); border: 2px solid rgba(0,102,255,.5); box-shadow: 0 0 20px rgba(0,102,255,.5), inset 0 0 15px rgba(0,102,255,.2); position: fixed; top: 18px; right: 18px; text-align: right; pointer-events: none;">
+    <div class="row" style="font-size: 20px; letter-spacing: 3px;">
+      <span id="stars"></span>
+    </div>
+  </div>
+</div>
+
+<button id="escapeBtn" style="position: fixed; top: 18px; left: 18px; padding: 12px 20px; background: rgba(255, 0, 0, 0.3); border: 2px solid #ff0000; color: #ff0000; border-radius: 8px; cursor: pointer; font-family: 'Orbitron', sans-serif; font-weight: 700; letter-spacing: 1px; font-size: 14px; display: none; pointer-events: auto; transition: all 0.3s;">GET ME OUT OF HERE</button>
+
+<!-- Yellow Timeline between stars and escape button -->
+<div id="timeline" style="position: fixed; top: 25px; left: 50%; transform: translateX(-50%); width: 40%; max-width: 500px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; position: relative;">
+    <div style="position: absolute; top: 50%; left: 0; right: 0; height: 3px; background: #ffff00; transform: translateY(-50%); box-shadow: 0 0 10px #ffff00;"></div>
+    <div id="q1Marker" style="position: relative; z-index: 1; text-align: center; cursor: pointer; pointer-events: auto;" title="Jump to Q1 (0-30s)">
+      <div style="width: 16px; height: 16px; border-radius: 50%; background: #ffff00; margin: 0 auto 6px; box-shadow: 0 0 12px #ffff00;"></div>
+      <div style="font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700; color: #ffff00; text-shadow: 0 0 8px #ffff00;">Q1</div>
+  </div>
+    <div id="q2Marker" style="position: relative; z-index: 1; text-align: center; cursor: pointer; pointer-events: auto;" title="Jump to Q2 (30-60s)">
+      <div style="width: 16px; height: 16px; border-radius: 50%; background: #ffff00; margin: 0 auto 6px; box-shadow: 0 0 12px #ffff00;"></div>
+      <div style="font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700; color: #ffff00; text-shadow: 0 0 8px #ffff00;">Q2</div>
+  </div>
+    <div id="q3Marker" style="position: relative; z-index: 1; text-align: center; cursor: pointer; pointer-events: auto;" title="Jump to Q3 (60-90s)">
+      <div style="width: 16px; height: 16px; border-radius: 50%; background: #ffff00; margin: 0 auto 6px; box-shadow: 0 0 12px #ffff00;"></div>
+      <div style="font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700; color: #ffff00; text-shadow: 0 0 8px #ffff00;">Q3</div>
+</div>
+    <div id="q4Marker" style="position: relative; z-index: 1; text-align: center; cursor: pointer; pointer-events: auto;" title="Jump to Q4 (90-120s)">
+      <div style="width: 16px; height: 16px; border-radius: 50%; background: #ffff00; margin: 0 auto 6px; box-shadow: 0 0 12px #ffff00;"></div>
+      <div style="font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 700; color: #ffff00; text-shadow: 0 0 8px #ffff00;">Q4</div>
+    </div>
+  </div>
+  
+  <!-- Now Playing Display -->
+  <div id="nowPlaying" style="margin-top: 15px; text-align: center; font-family: 'Orbitron', sans-serif; font-size: 11px; color: #0066ff; text-shadow: 0 0 8px rgba(0,102,255,0.6); font-weight: 600; letter-spacing: 1px;">
+    Now Playing: Executive Assistance - Celli
+  </div>
+</div>
+
+<div id="vignetteCollapse" style="position: fixed; inset: 0; pointer-events: none; z-index: 1001; display: none; background: white;">
+  <!-- Transit Video Stack -->
+  <div id="videoStack" style="position: fixed; bottom: 30px; right: 30px; pointer-events: auto; z-index: 1002;">
+    <!-- Videos will be added here dynamically -->
+  </div>
+  
+  <div id="lookInside" style="position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%); font-family: 'Orbitron', 'Arial', sans-serif; font-weight: 700; color: black; opacity: 0; transition: opacity 1.5s; text-align: left; line-height: 1.3;">
+    <div style="font-size: 80px; letter-spacing: 10px; margin-bottom: 15px; display: flex; align-items: center; position: relative;">
+      <span style="display: flex; align-items: center; gap: 0; position: relative;">
+        <span>L</span>
+        <!-- O Portal - Black expanding circle positioned exactly here -->
+        <div id="portalO" style="display: inline-flex; align-items: center; justify-content: center; width: 78px; height: 78px; border-radius: 50%; background: black; cursor: pointer; pointer-events: auto; opacity: 0; transition: opacity 0.5s; margin: 0 -8px; position: relative; flex-shrink: 0;"></div>
+        <span>OK INSIDE,</span>
+      </span>
+    </div>
+    <div style="font-size: 56px; letter-spacing: 6px; margin-bottom: 12px; margin-left: 40px; opacity: 0; transition: opacity 1.5s 0.3s;">DEAR ALICE,</div>
+    <div style="font-size: 42px; letter-spacing: 4px; margin-bottom: 10px; margin-left: 80px; opacity: 0; transition: opacity 1.5s 0.6s;">TO FIND,</div>
+    <div style="font-size: 32px; letter-spacing: 3px; margin-bottom: 8px; margin-left: 120px; opacity: 0; transition: opacity 1.5s 0.9s;">YOU TOO,</div>
+    <div style="font-size: 24px; letter-spacing: 2px; margin-bottom: 6px; margin-left: 160px; opacity: 0; transition: opacity 1.5s 1.2s;">ARE MADE</div>
+    <div style="font-size: 18px; letter-spacing: 1px; margin-left: 200px; opacity: 0; transition: opacity 1.5s 1.5s;">OF GLASS.</div>
+    <div style="font-size: 14px; letter-spacing: 1px; margin-top: 30px; margin-left: 100px; opacity: 0; font-weight: 400; transition: opacity 1.5s 1.8s;">No being forced to pick between pills.<br>This isn't Hollywood.</div>
+  </div>
+</div>
+
+<div class="camera-mode-overlay" id="cameraModeOverlay">ORBIT CAMERA ACTIVE - Drag to Rotate</div>
+
+<button id="debugToggle">DEBUG</button>
+<div id="debugPanel">
+  <h3>⚙️ Visual Settings</h3>
+  
+  <div style="background: rgba(0, 102, 255, 0.2); padding: 8px; border-radius: 4px; margin-bottom: 12px; border: 1px solid #0066ff;">
+    <div style="font-size: 11px; color: #ffff00; font-weight: bold;">PROGRESSION STATUS</div>
+    <div id="phaseStatus" style="font-size: 10px; color: #00ffff; margin-top: 4px;">Phase 0: Flat Look</div>
+  </div>
+  
+  <h3>Bloom</h3>
+  <label>Strength</label>
+  <div class="control-row">
+    <input type="range" id="bloomStr" min="0" max="3" step="0.1" value="0">
+    <input type="number" id="bloomStrNum" step="0.1" value="0">
+  </div>
+  <label>Radius</label>
+  <div class="control-row">
+    <input type="range" id="bloomRad" min="0" max="2" step="0.1" value="0.6">
+    <input type="number" id="bloomRadNum" step="0.1" value="0.6">
+  </div>
+  <label>Threshold</label>
+  <div class="control-row">
+    <input type="range" id="bloomThresh" min="0" max="1" step="0.05" value="0.3">
+    <input type="number" id="bloomThreshNum" step="0.05" value="0.3">
+  </div>
+  
+  <h3>Fog</h3>
+  <label><input type="checkbox" id="fogEnabled" checked> Enable Fog</label>
+  <label>Type</label>
+  <select id="fogType" style="width: 100%; padding: 4px; background: #333; color: #e0e0e0; border: 1px solid #0066ff; border-radius: 4px; margin-bottom: 8px;">
+    <option value="exp2">Exponential (Depth)</option>
+    <option value="near">Near Fog</option>
+    <option value="far">Far Fog</option>
+  </select>
+  <label>Density</label>
+  <div class="control-row">
+    <input type="range" id="fogDens" min="0" max="0.01" step="0.0001" value="0.005">
+    <input type="number" id="fogDensNum" step="0.0001" value="0.005">
+  </div>
+  <label>Near Distance (Start)</label>
+  <div class="control-row">
+    <input type="range" id="fogNear" min="1" max="200" step="1" value="20">
+    <input type="number" id="fogNearNum" step="1" value="20">
+  </div>
+  <label>Far Distance (Max)</label>
+  <div class="control-row">
+    <input type="range" id="fogFar" min="50" max="2000" step="10" value="100">
+    <input type="number" id="fogFarNum" step="10" value="100">
+  </div>
+  
+  <h3>Camera</h3>
+  <label>FOV</label>
+  <div class="control-row">
+    <input type="range" id="fov" min="30" max="120" step="5" value="75">
+    <input type="number" id="fovNum" step="1" value="75">
+  </div>
+  <label>Distance</label>
+  <div class="control-row">
+    <input type="range" id="camDist" min="5" max="60" step="1" value="20">
+    <input type="number" id="camDistNum" step="1" value="20">
+  </div>
+  <label>Height</label>
+  <div class="control-row">
+    <input type="range" id="camHeight" min="2" max="20" step="0.5" value="8">
+    <input type="number" id="camHeightNum" step="0.5" value="8">
+  </div>
+  
+  <h3>Lighting</h3>
+  <label>Hemi Intensity</label>
+  <div class="control-row">
+    <input type="range" id="hemiInt" min="0" max="5" step="0.1" value="2.0">
+    <input type="number" id="hemiIntNum" step="0.1" value="2.0">
+  </div>
+  <label>Dir Light 1</label>
+  <div class="control-row">
+    <input type="range" id="dir1Int" min="0" max="5" step="0.1" value="2.5">
+    <input type="number" id="dir1IntNum" step="0.1" value="2.5">
+  </div>
+  <label>Ambient</label>
+  <div class="control-row">
+    <input type="range" id="ambInt" min="0" max="2" step="0.1" value="0.6">
+    <input type="number" id="ambIntNum" step="0.1" value="0.6">
+  </div>
+  
+  <h3>Particles</h3>
+  <label>Size</label>
+  <div class="control-row">
+    <input type="range" id="partSize" min="0.1" max="2" step="0.1" value="0.5">
+    <input type="number" id="partSizeNum" step="0.1" value="0.5">
+  </div>
+  <label>Opacity</label>
+  <div class="control-row">
+    <input type="range" id="partOp" min="0" max="1" step="0.05" value="0.9">
+    <input type="number" id="partOpNum" step="0.05" value="0.9">
+  </div>
+  <label>Gravity</label>
+  <div class="control-row">
+    <input type="range" id="grav" min="-20" max="0" step="0.5" value="-9.8">
+    <input type="number" id="gravNum" step="0.5" value="-9.8">
+  </div>
+  
+  <h3>Post-Processing</h3>
+  <label>Tone Exposure</label>
+  <div class="control-row">
+    <input type="range" id="toneExp" min="0.1" max="3" step="0.1" value="1.2">
+    <input type="number" id="toneExpNum" step="0.1" value="1.2">
+  </div>
+  <label><input type="checkbox" id="composerEnabled" checked> Enable Composer</label>
+</div>
+
+<script type="module">
+// SPEED.HTML - VERSION 2024-ESM - PROGRESSIVE VISUAL ENHANCEMENT
+import * as THREE from "https://esm.sh/three@0.158.0";
+import { EffectComposer } from "https://esm.sh/three@0.158.0/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "https://esm.sh/three@0.158.0/examples/jsm/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "https://esm.sh/three@0.158.0/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { ShaderPass } from "https://esm.sh/three@0.158.0/examples/jsm/postprocessing/ShaderPass.js";
+import { FXAAShader } from "https://esm.sh/three@0.158.0/examples/jsm/shaders/FXAAShader.js";
+import { AfterimagePass } from "https://esm.sh/three@0.158.0/examples/jsm/postprocessing/AfterimagePass.js";
+
+console.log('✅ Speed.html loaded - Progressive visual system enabled');
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0x0a0b10, 1);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x0a0020, 20, 100);  // Linear fog with near=20, far=100
+
+// Camera rig to avoid quaternion accumulation
+const camRig = new THREE.Object3D();
+camRig.position.set(0, 20, 0);  // Start HIGH above road for countdown
+scene.add(camRig);
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 2000);
+camera.position.set(0, 2, 6);  // Start behind bike (looking at bike from behind)
+camRig.add(camera);
+
+// Post-processing - Progressive enhancement system
+const composer = new EffectComposer(renderer);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(innerWidth, innerHeight),
+  0,      // Start with NO bloom
+  0.6,    // radius
+  0.3     // threshold
+);
+composer.addPass(bloomPass);
+
+const afterimagePass = new AfterimagePass(0); // Start with no afterimage
+composer.addPass(afterimagePass);
+
+const fxaaPass = new ShaderPass(FXAAShader);
+fxaaPass.material.uniforms['resolution'].value.set(1/innerWidth, 1/innerHeight);
+composer.addPass(fxaaPass);
+
+// Enhanced lighting - tricolor atmosphere with dynamic intensity
+// Start with reduced intensity for flat look
+const hemi = new THREE.HemisphereLight(0x0066ff, 0xffff00, 0.8);  // Start dimmer
+const dir  = new THREE.DirectionalLight(0xffffff, 1.0);  // Start dimmer
+dir.position.set(30, 80, -50);
+dir.castShadow = false;  // Shadows off for performance
+const dir2 = new THREE.DirectionalLight(0xff0066, 0.5);  // Start dimmer
+dir2.position.set(-30, 50, -50);
+const dir3 = new THREE.DirectionalLight(0x0066ff, 0.4);  // Start dimmer
+dir3.position.set(0, 60, 80);
+const ambientLight = new THREE.AmbientLight(0x1a1a3a, 0.3);  // Start dimmer
+scene.add(hemi, dir, dir2, dir3, ambientLight);
+
+// Audio setup for terrain reactivity
+let audioContext = null;
+let analyser = null;
+let dataArray = null;
+let audioSource = null;
+let audioInitialized = false;
+
+// Audio tracks (EA.mp3 and encore sequence)
+const baseTrack = new Audio();
+baseTrack.crossOrigin = 'anonymous';
+baseTrack.preload = 'auto';
+
+const encoreTrack = new Audio();
+encoreTrack.crossOrigin = 'anonymous';
+encoreTrack.preload = 'auto';
+
+const superEncoreTrack = new Audio();
+superEncoreTrack.crossOrigin = 'anonymous';
+superEncoreTrack.preload = 'auto';
+
+const finaleTrack = new Audio();
+finaleTrack.crossOrigin = 'anonymous';
+finaleTrack.preload = 'auto';
+
+const tapoutTrack = new Audio();
+tapoutTrack.crossOrigin = 'anonymous';
+tapoutTrack.preload = 'auto';
+
+// Try to load tracks from multiple paths (case-insensitive variants)
+function tryLoadAudio(audio, baseName) {
+  // Split into stem and extension to preserve/mix cases correctly
+  const match = /^(.*?)(?:\.([A-Za-z0-9]+))?$/.exec(baseName);
+  const stemOrig = match && match[1] ? match[1] : baseName;
+  const extOrig = match && match[2] ? match[2] : '';
+
+  const stems = Array.from(new Set([
+    stemOrig,
+    stemOrig.toLowerCase(),
+    stemOrig.toUpperCase(),
+    stemOrig.charAt(0).toUpperCase() + stemOrig.slice(1).toLowerCase()
+  ]));
+
+  const exts = Array.from(new Set([
+    extOrig,
+    extOrig.toLowerCase(),
+    extOrig.toUpperCase()
+  ].filter(Boolean)));
+
+  const filenames = new Set();
+  if (exts.size > 0) {
+    for (const s of stems) {
+      for (const e of exts) {
+        filenames.add(`${s}.${e}`);
+      }
+    }
+  } else {
+    stems.forEach(s => filenames.add(s));
+  }
+
+  // Ensure original baseName is prioritized first
+  const prioritized = [baseName, ...Array.from(filenames).filter(f => f !== baseName)];
+
+  const prefixes = [
+    '../',
+    './',
+    ''
+  ];
+
+  const seen = new Set();
+  const candidates = [];
+  for (const f of prioritized) {
+    for (const p of prefixes) {
+      const url = p + f;
+      if (!seen.has(url)) {
+        seen.add(url);
+        candidates.push(url);
+      }
+    }
+  }
+  
+  let index = 0;
+  const tryNext = () => {
+    if (index >= candidates.length) {
+      console.warn(`Unable to load ${baseName} (tried: ${candidates.join(', ')})`);
+      return;
+    }
+    audio.src = candidates[index++];
+  };
+  
+  audio.addEventListener('error', tryNext, { once: false });
+  audio.addEventListener('canplay', () => {
+    audio.removeEventListener('error', tryNext);
+  }, { once: true });
+  
+  tryNext();
+}
+
+tryLoadAudio(baseTrack, 'ea.mp3');
+tryLoadAudio(tapoutTrack, 'tapout.mp3');
+tryLoadAudio(encoreTrack, 'ea2.mp3');
+tryLoadAudio(superEncoreTrack, 'ea3.mp3');
+tryLoadAudio(finaleTrack, 'ea4.mp3');
+
+let currentTrack = null;
+let encoreIndex = 0;
+
+function initAudio() {
+  if (audioInitialized) return;
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    audioContext = new AudioContext();
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 128;
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+    audioInitialized = true;
+  } catch (e) {
+    console.warn('Audio init failed:', e);
+  }
+}
+
+function connectTrackToAnalyser(track) {
+  if (!audioContext || !analyser) return;
+  try {
+    if (audioSource) {
+      audioSource.disconnect();
+    }
+    audioSource = audioContext.createMediaElementSource(track);
+    audioSource.connect(analyser);
+    analyser.connect(audioContext.destination);
+  } catch (e) {
+    console.warn('Could not connect track to analyser:', e);
+  }
+}
+
+function playTrack(track) {
+  if (currentTrack && currentTrack !== track) {
+    currentTrack.pause();
+    currentTrack.currentTime = 0;
+  }
+  currentTrack = track;
+  connectTrackToAnalyser(track);
+  
+  // Update Now Playing display
+  const nowPlaying = document.getElementById('nowPlaying');
+  if (nowPlaying) {
+    if (track === baseTrack) {
+      nowPlaying.textContent = 'Now Playing: Executive Assistance - Celli';
+    } else if (track === tapoutTrack) {
+      nowPlaying.textContent = 'Now Playing: Executive, Assisted (vs. RAW) - Celli';
+    } else if (track === encoreTrack) {
+      nowPlaying.textContent = 'Now Playing: EA2 - Celli';
+    } else if (track === superEncoreTrack) {
+      nowPlaying.textContent = 'Now Playing: Now.exe, What Tour? - Celli';
+    } else if (track === finaleTrack) {
+      nowPlaying.textContent = 'Now Playing: EA4 - Celli';
+    }
+  }
+  
+  const playPromise = track.play();
+  if (playPromise && typeof playPromise.catch === 'function') {
+    playPromise.catch((e) => {
+      console.warn('Playback blocked:', e);
+    });
+  }
+}
+
+function getAudioLevel() {
+  if (!analyser || !dataArray) return 0;
+  analyser.getByteFrequencyData(dataArray);
+  let sum = 0;
+  for (let i = 0; i < dataArray.length; i++) {
+    sum += dataArray[i];
+  }
+  return sum / (dataArray.length * 255);
+}
+
+const escapeBtn = document.getElementById('escapeBtn');
+let songEnded = false;
+let endSequenceStarted = false;
+
+// Show escape button during gameplay
+setTimeout(() => {
+  if (escapeBtn) escapeBtn.style.display = 'block';
+}, 5000);
+
+// Escape button behavior - changes to ENCORE on hover/click near
+if (escapeBtn) {
+  let isEncoreMode = false;
+  
+  escapeBtn.addEventListener('mouseenter', () => {
+    if (!isEncoreMode) {
+      isEncoreMode = true;
+      escapeBtn.textContent = 'ENCORE';
+      escapeBtn.style.background = 'rgba(0, 102, 255, 0.3)';
+      escapeBtn.style.borderColor = '#0066ff';
+      escapeBtn.style.color = '#0066ff';
+    }
+  });
+  
+  escapeBtn.addEventListener('mousemove', () => {
+    if (!isEncoreMode) {
+      isEncoreMode = true;
+      escapeBtn.textContent = 'ENCORE';
+      escapeBtn.style.background = 'rgba(0, 102, 255, 0.3)';
+      escapeBtn.style.borderColor = '#0066ff';
+      escapeBtn.style.color = '#0066ff';
+    }
+  });
+  
+  // Touch/tap handling for mobile
+  escapeBtn.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (!isEncoreMode) {
+      isEncoreMode = true;
+      escapeBtn.textContent = 'ENCORE';
+      escapeBtn.style.background = 'rgba(0, 102, 255, 0.3)';
+      escapeBtn.style.borderColor = '#0066ff';
+      escapeBtn.style.color = '#0066ff';
+    }
+  });
+  
+  escapeBtn.addEventListener('click', () => {
+    if (isEncoreMode) {
+      const tracks = [tapoutTrack, encoreTrack, superEncoreTrack, finaleTrack];
+    const nextTrack = tracks[encoreIndex];
+    if (nextTrack) {
+      playTrack(nextTrack);
+      encoreIndex++;
+        escapeBtn.style.display = encoreIndex >= tracks.length ? 'none' : 'block';
+      }
+    }
+  });
+}
+
+// Song end sequence
+baseTrack.addEventListener('ended', () => {
+  console.log('EA.mp3 complete - starting end sequence');
+  songEnded = true;
+});
+
+tapoutTrack.addEventListener('ended', () => {
+  console.log('Tapout complete');
+  songEnded = true;
+});
+
+encoreTrack.addEventListener('ended', () => {
+  console.log('EA2 complete');
+  songEnded = true;
+});
+
+superEncoreTrack.addEventListener('ended', () => {
+  console.log('EA3 complete');
+  songEnded = true;
+});
+
+finaleTrack.addEventListener('ended', () => {
+  console.log('EA4 complete');
+  songEnded = true;
+});
+
+// Transit Video Stack System
+let transitVideos = [];
+let currentTransitIndex = 0;
+let videoStackContainer = null;
+let isStackExpanded = false;
+
+async function startTransitVideoStack() {
+  videoStackContainer = document.getElementById('videoStack');
+  if (!videoStackContainer) return;
+  
+  // Scan for transit videos (transit1.mp4 through transit10.mp4)
+  const availableVideos = [];
+  for (let i = 1; i <= 10; i++) {
+    const video = document.createElement('video');
+    video.src = `../transit${i}.mp4`;
+    video.muted = false;
+    video.style.cssText = 'width: 400px; height: auto; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.6); cursor: pointer; transition: all 0.4s; position: absolute; bottom: 0; right: 0;';
+    
+    // Test if video exists
+    await new Promise((resolve) => {
+      video.addEventListener('loadeddata', () => {
+        availableVideos.push({ index: i, element: video });
+        resolve();
+      }, { once: true });
+      
+      video.addEventListener('error', () => {
+        resolve();  // Skip if not found
+      }, { once: true });
+    });
+  }
+  
+  console.log(`📹 Found ${availableVideos.length} transit videos`);
+  transitVideos = availableVideos;
+  
+  if (transitVideos.length > 0) {
+    playNextTransit();
+  }
+}
+
+function playNextTransit() {
+  if (currentTransitIndex >= transitVideos.length) {
+    currentTransitIndex = 0;  // Loop back
+  }
+  
+  const videoData = transitVideos[currentTransitIndex];
+  const video = videoData.element;
+  
+  // Add to stack
+  videoStackContainer.appendChild(video);
+  
+  // Stack position
+  const stackIndex = videoStackContainer.children.length - 1;
+  video.style.bottom = (stackIndex * 15) + 'px';
+  video.style.zIndex = 1000 + stackIndex;
+  
+  // Click to pause/play
+  video.addEventListener('click', () => {
+    if (video.paused) {
+      video.play();
+    } else {
+      video.pause();
+    }
+  });
+  
+  // Hover to expand and fan out stack
+  video.addEventListener('mouseenter', () => {
+    if (!isStackExpanded) {
+      isStackExpanded = true;
+      video.style.width = '600px';  // Even larger on hover
+      video.style.zIndex = '2000';
+      
+      // Fan out other videos
+      Array.from(videoStackContainer.children).forEach((v, i) => {
+        if (v !== video) {
+          v.style.width = '300px';  // Larger thumbnails
+          v.style.right = (i * 320) + 'px';
+          v.style.bottom = '0px';
+        }
+      });
+    }
+  });
+  
+  videoStackContainer.addEventListener('mouseleave', () => {
+    isStackExpanded = false;
+    Array.from(videoStackContainer.children).forEach((v, i) => {
+      v.style.width = '400px';
+      v.style.right = '0px';
+      v.style.bottom = (i * 15) + 'px';
+      v.style.zIndex = (1000 + i).toString();
+    });
+  });
+  
+  // When video ends, play next
+  video.addEventListener('ended', () => {
+    currentTransitIndex++;
+    playNextTransit();
+  });
+  
+  video.play().catch(e => console.warn('Transit video autoplay blocked:', e));
+}
+
+// Portal O - Expanding black hole to intro sequence
+const portalO = document.getElementById('portalO');
+let portalExpanding = false;
+
+if (portalO) {
+  // Hover/move near triggers expansion
+  const expandPortal = () => {
+    if (!portalExpanding && portalO.style.opacity === '1') {  // Only if visible
+      portalExpanding = true;
+      console.log('🕳️ Portal expanding to intro...');
+      
+      // Create expanding overlay from portal position
+      const overlay = document.createElement('div');
+      const rect = portalO.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      overlay.style.cssText = `position: fixed; left: ${centerX}px; top: ${centerY}px; transform: translate(-50%, -50%); width: 78px; height: 78px; border-radius: 50%; background: black; z-index: 10001; pointer-events: none;`;
+      document.body.appendChild(overlay);
+      
+      // Expand to cover screen
+      setTimeout(() => {
+        const maxDim = Math.max(window.innerWidth, window.innerHeight) * 3;
+        overlay.style.width = maxDim + 'px';
+        overlay.style.height = maxDim + 'px';
+        overlay.style.transition = 'all 3s cubic-bezier(0.4, 0, 0.2, 1)';
+      }, 50);
+      
+      // Navigate to intro sequence with persistent black screen
+      setTimeout(() => {
+        // Create persistent black overlay that survives navigation
+        const persistentBlack = document.createElement('div');
+        persistentBlack.id = 'persistent-black-overlay';
+        persistentBlack.style.cssText = 'position: fixed; inset: 0; background: black; z-index: 999999; pointer-events: none;';
+        document.body.appendChild(persistentBlack);
+        
+        // Set flags for index.html
+        sessionStorage.setItem('celli:autoClickPlay', 'true');
+        sessionStorage.setItem('celli:blackOverlay', 'true');
+        
+        // Navigate immediately
+        window.location.href = 'index.html';
+      }, 3000);
+    }
+  };
+  
+  // Only add listeners after portal is visible
+  portalO.addEventListener('click', expandPortal);
+  
+  // Hover support - but check if visible first
+  portalO.addEventListener('mouseenter', (e) => {
+    if (portalO.style.opacity === '1') {
+      expandPortal();
+    }
+  });
+  
+  // Touch support for mobile
+  portalO.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (portalO.style.opacity === '1') {
+      expandPortal();
+    }
+  });
+}
+
+// Timeline quarter markers - jump to song sections
+const q1Marker = document.getElementById('q1Marker');
+const q2Marker = document.getElementById('q2Marker');
+const q3Marker = document.getElementById('q3Marker');
+const q4Marker = document.getElementById('q4Marker');
+
+if (q1Marker) {
+  q1Marker.addEventListener('click', () => {
+    gameTime = 5;
+    if (currentTrack) currentTrack.currentTime = 5;
+    console.log('⏩ Jumped to Q1 (5s)');
+  });
+}
+
+if (q2Marker) {
+  q2Marker.addEventListener('click', () => {
+    gameTime = 35;
+    if (currentTrack) currentTrack.currentTime = 35;
+    console.log('⏩ Jumped to Q2 (35s) - Inversion section');
+  });
+}
+
+if (q3Marker) {
+  q3Marker.addEventListener('click', () => {
+    gameTime = 65;
+    if (currentTrack) currentTrack.currentTime = 65;
+    console.log('⏩ Jumped to Q3 (65s) - Finale begins');
+  });
+}
+
+if (q4Marker) {
+  q4Marker.addEventListener('click', () => {
+    gameTime = 95;
+    if (currentTrack) currentTrack.currentTime = 95;
+    console.log('⏩ Jumped to Q4 (95s) - Final crescendo');
+  });
+}
+
+// ---------- Digitized landscape (voxel columns) ----------
+const WORLD_WIDTH = 120;
+const ROAD_HALF   = 12;
+const COL_SIZE_X  = 2.5;
+const COL_SIZE_Z  = 4.0;
+const COLS_X = Math.floor(WORLD_WIDTH / COL_SIZE_X);
+const ROWS_Z = 250;      // More rows for longer view distance
+const START_Z = -600;    // Start further back to see more terrain ahead
+const SCROLL_SPEED = 70;
+
+// Noise → hills with audio reactivity
+function hash2(x, y){
+  const s = Math.sin(x*127.1 + y*311.7) * 43758.5453123;
+  return s - Math.floor(s);
+}
+function smoothstep(a, b, t){ t = Math.min(1, Math.max(0, (t-a)/(b-a))); return t*t*(3-2*t); }
+function valueNoise(x, y){
+  const xi = Math.floor(x), yi = Math.floor(y);
+  const xf = x - xi, yf = y - yi;
+  const a = hash2(xi, yi);
+  const b = hash2(xi+1, yi);
+  const c = hash2(xi, yi+1);
+  const d = hash2(xi+1, yi+1);
+  const u = xf*xf*(3-2*xf);
+  const v = yf*yf*(3-2*yf);
+  return (a*(1-u) + b*u) + (c-a)*v*(1-u) + (d-b)*u*v;
+}
+function hills(x, z, audioBoost = 0){
+  let n = 0;
+  // Multiple octaves for varied terrain
+  n += valueNoise(x*0.08, z*0.04);
+  n += 0.5*valueNoise(x*0.16+3.7, z*0.08+1.9);
+  n += 0.25*valueNoise(x*0.32+7.1, z*0.16+6.3);
+  n += 0.15*valueNoise(x*0.64+11.3, z*0.32+13.7);  // More detail
+  n += 0.08*valueNoise(x*1.28+19.5, z*0.64+27.1);  // Fine detail
+  n /= (1+0.5+0.25+0.15+0.08);
+  n = Math.pow(n, 1.3);  // Sharper peaks
+  n = (n - 0.5) * 2.2; // [-1.1, 1.1] - more variance
+  // Add audio reactivity for hills
+  n += audioBoost * 0.4;
+  return n;
+}
+
+// Road curve function - generates smooth winding path
+function roadCenterX(z){
+  // Layered sine waves for natural curves
+  let offset = 0;
+  offset += Math.sin(z * 0.008) * 8.0;      // Wide gentle curves
+  offset += Math.sin(z * 0.025 + 7.3) * 4.0; // Tighter curves
+  offset += Math.sin(z * 0.045 + 13.7) * 2.0; // Detail curves
+  return offset;
+}
+
+// Road elevation - dramatic wide hills and valleys (global plane deformation)
+function roadElevation(z){
+  let elev = 0;
+  elev += Math.sin(z * 0.002) * 35.0;        // VERY long, tall hills (wider frequency)
+  elev += Math.sin(z * 0.006 + 3.2) * 20.0;  // Long valleys
+  elev += Math.sin(z * 0.012 + 8.7) * 10.0;  // Medium waves
+  return elev;
+}
+
+// Tricolor + red/magenta scheme
+const tricolorsNormal = [
+  new THREE.Color(0x0066ff),    // true blue (not cyan)
+  new THREE.Color(0xffff00),    // yellow
+  new THREE.Color(0xff0066),    // magenta
+  new THREE.Color(0xffffff)     // white
+];
+
+const tricolorsInverted = [
+  new THREE.Color(0x00ffff),    // cyan
+  new THREE.Color(0xff00ff),    // magenta
+  new THREE.Color(0xffff00),    // yellow
+  new THREE.Color(0x000000)     // black (inverted white)
+];
+
+let colorInverted = false;
+let inversionFlashActive = false;
+let cameraFlipped = false;  // Track if inversion has occurred
+
+function getTricolor(x, z){
+  // Assign color based on position hash
+  const palette = colorInverted ? tricolorsInverted : tricolorsNormal;
+  const hash = Math.abs(Math.sin(x * 12.34 + z * 56.78) * 43758.5453);
+  const idx = Math.floor(hash * palette.length);
+  return palette[idx % palette.length];
+}
+
+function triggerColorInversion(){
+  console.log('🌈 COLOR INVERSION TRIGGERED AT 25 SECONDS!');
+  
+  // Create flash overlay
+  const flash = document.createElement('div');
+  flash.style.cssText = 'position:fixed; inset:0; z-index:1000; pointer-events:none; background:#000; opacity:1;';
+  document.body.appendChild(flash);
+  
+  inversionFlashActive = true;
+  
+  // Black → White → Fade sequence
+  setTimeout(() => {
+    flash.style.transition = 'background 0.4s ease, opacity 0.4s ease';
+    flash.style.background = '#fff';
+  }, 100);
+  
+  setTimeout(() => {
+    flash.style.opacity = '0';
+    inversionFlashActive = false;
+    // NO camera spin during inversion
+  }, 500);
+  
+  setTimeout(() => {
+    flash.remove();
+  }, 1200);
+  
+  // Invert renderer and scene colors to WHITE
+  renderer.setClearColor(0xffffff, 1);  // White background
+  if (scene.fog) {
+    scene.fog.color.setHex(0xffffff);   // White fog
+  }
+  ROAD_COLOR.setHex(0xf5f5f5);          // White road
+  ROAD_EDGE_COLOR.setHex(0x00ffff);     // Cyan edges
+  
+  // Update sky to pure white
+  sky.material.uniforms.top.value.setHex(0xffffff);
+  sky.material.uniforms.mid.value.setHex(0xffffff);
+  sky.material.uniforms.bottom.value.setHex(0xffffff);
+  sky.material.needsUpdate = true;
+}
+
+const columnGeo = new THREE.BoxGeometry(COL_SIZE_X, 1, COL_SIZE_Z);
+const columnMat = new THREE.MeshStandardMaterial({
+  color: 0xffffff, 
+  metalness: 0.1,  // Start flat
+  roughness: 0.9,  // Start flat
+  fog: true, 
+  emissive: 0x000000, 
+  emissiveIntensity: 0,  // Start with no emissive
+  envMapIntensity: 0.5
+});
+const instanceCount = COLS_X * ROWS_Z;
+const columns = new THREE.InstancedMesh(columnGeo, columnMat, instanceCount);
+columns.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+columns.castShadow = false; columns.receiveShadow = false;
+scene.add(columns);
+
+columns.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(instanceCount*3), 3);
+
+const halfW = WORLD_WIDTH/2;
+const x0 = -halfW + COL_SIZE_X*0.5;
+const zStride = COL_SIZE_Z;
+const zStart = START_Z;
+
+function idx(ix, iz){ return iz*COLS_X + ix; }
+
+let rowOffset = 0;
+let scrollZ = 0;
+let ROAD_COLOR = new THREE.Color(0x0a0a20);
+let ROAD_EDGE_COLOR = new THREE.Color(0x0066ff);
+
+// Lightbike-inspired rectangular vehicle with animated veering
+// Bike is attached to camera rig so it's always visible in front/below camera
+const bike = new THREE.Group();
+bike.position.set(0, 10, -4);  // Start HIGH above road for countdown
+camRig.add(bike);
+
+// Main body - elongated rectangle with enhanced materials
+const bikeBody = new THREE.Mesh(
+  new THREE.BoxGeometry(2.5, 0.8, 6.0),
+  new THREE.MeshStandardMaterial({
+    color:0x0066ff, 
+    metalness:0.1,   // Start flat
+    roughness:0.9,   // Start flat
+    emissive:0x0066ff, 
+    emissiveIntensity:0,  // Start with no emissive
+    envMapIntensity: 0.5,
+    toneMapped: false  // Bypass tone mapping for consistent bloom
+  })
+);
+bikeBody.position.y = 1.2;
+bike.add(bikeBody);
+
+// Front light bar - glowing
+const frontBar = new THREE.Mesh(
+  new THREE.BoxGeometry(3.0, 0.4, 0.4),
+  new THREE.MeshBasicMaterial({
+    color:0xffff00, 
+    transparent:true,
+    opacity:0.3,  // Start dim
+    fog:false
+  })
+);
+frontBar.position.set(0, 1.2, -3.2);
+bike.add(frontBar);
+
+// Add front headlight beams
+const frontLight = new THREE.SpotLight(0xffff00, 2, 80, Math.PI / 6, 0.3, 2);  // Start dimmer
+frontLight.position.set(0, 1.2, -3.5);
+frontLight.target.position.set(0, 0, -20);
+bike.add(frontLight);
+bike.add(frontLight.target);
+
+// Side trails (animated rectangles)
+const leftTrail = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.4, 4.0),
+  new THREE.MeshBasicMaterial({color:0x0066ff, transparent:true, opacity:0.2, side:THREE.DoubleSide})  // Start dim
+);
+leftTrail.position.set(-1.5, 0.8, 0);
+leftTrail.rotation.y = Math.PI/2;
+bike.add(leftTrail);
+
+const rightTrail = new THREE.Mesh(
+  new THREE.PlaneGeometry(0.4, 4.0),
+  new THREE.MeshBasicMaterial({color:0xff0066, transparent:true, opacity:0.2, side:THREE.DoubleSide})  // Start dim
+);
+rightTrail.position.set(1.5, 0.8, 0);
+rightTrail.rotation.y = Math.PI/2;
+bike.add(rightTrail);
+
+// Enhanced underglow with pulsing
+const bikeGlow = new THREE.PointLight(0x0066ff, 1, 25);  // Start dimmer
+bikeGlow.position.y = 0.3;
+bikeGlow.castShadow = false;
+bike.add(bikeGlow);
+
+// Rear glow
+const rearGlow = new THREE.PointLight(0xff0066, 0.5, 20);  // Start dimmer
+rearGlow.position.set(0, 0.8, 3.2);
+bike.add(rearGlow);
+
+// Add "SUBMIT" text as sprite (always faces camera)
+const submitCanvas = document.createElement('canvas');
+submitCanvas.width = 512;
+submitCanvas.height = 128;
+const submitCtx = submitCanvas.getContext('2d');
+submitCtx.fillStyle = 'rgba(0,0,0,0.8)';
+submitCtx.fillRect(0, 0, 512, 128);
+submitCtx.strokeStyle = '#0066ff';
+submitCtx.lineWidth = 4;
+submitCtx.strokeRect(4, 4, 504, 120);
+submitCtx.fillStyle = '#fff';
+submitCtx.font = 'bold 48px "Orbitron", sans-serif';
+submitCtx.textAlign = 'center';
+submitCtx.textBaseline = 'middle';
+submitCtx.fillText('SUBMIT', 256, 64);
+
+const submitTexture = new THREE.CanvasTexture(submitCanvas);
+submitTexture.needsUpdate = true;
+const submitSprite = new THREE.Sprite(new THREE.SpriteMaterial({ 
+  map: submitTexture, 
+  transparent: true,
+  depthTest: true,
+  depthWrite: false
+}));
+submitSprite.scale.set(6, 1.5, 1);
+submitSprite.position.set(0, 2.5, 0);
+bike.add(submitSprite);
+
+// SkiFree Yeti/Monster chaser sprite - EXACT pixel art from image
+const yetiCanvas = document.createElement('canvas');
+yetiCanvas.width = 320;
+yetiCanvas.height = 400;
+const yetiCtx = yetiCanvas.getContext('2d');
+yetiCtx.imageSmoothingEnabled = false;  // Pixel art style
+
+// Draw pixel art yeti matching the provided image exactly
+const pixelSize = 10;
+
+// Yeti pixels with stick arms (A = arm pixels)
+const yetiPixelsTemplate = [
+  'A   KK    KK   A',  // Ear tips + arms
+  'A  KKWK  KWKK  A',  // Ears + arms
+  'A KWWWWWWWWWWK A',  // Head top + arms
+  '  KWWWWWWWWWWK  ',  // Head
+  ' KWWWWWWWWWWWWK ',  // Head wider
+  ' KWWRRKWWKRRWWK ',  // Eyes (red)
+  ' KWWRRKWWKRRWWK ',  // Eyes
+  '  KWWWWWWWWWWK  ',  // Face
+  'A  KGGGGGGGGK  A',  // Yellow belt + arms
+  'A  KGGGGGGGGK  A',  // Arms extended
+  'A KSSSSSSSSSK  A',  // Gray body + arms
+  ' AKSSSSSSSSSK  A',  // Gray body + arms
+  ' KSSSSSSSSSSSK  ',
+  ' KSSSSSSSSSSSK  ',
+  '  KSSSSSSSSSK   ',
+  '   KSSSSSSSK    ',
+  '    KWWWWWK     ',  // Legs
+  '    KWWWWWK     ',
+  '   KK    KK     ',  // Feet
+  '  KKK    KKK    ',
+];
+
+const yetiColors = {
+  'K': '#000000',  // Black outline
+  'W': '#cccccc',  // Light gray/white
+  'R': '#ff0000',  // Red eyes
+  'G': '#ffff00',  // Yellow belt
+  'S': '#999999',  // Gray body
+  'A': '#666666'   // Dark gray stick arms
+};
+
+const yetiPixels = yetiPixelsTemplate;
+
+yetiPixels.forEach((row, y) => {
+  for (let x = 0; x < row.length; x++) {
+    const char = row[x];
+    if (char !== ' ' && yetiColors[char]) {
+      yetiCtx.fillStyle = yetiColors[char];
+      yetiCtx.fillRect(x * pixelSize + 30, y * pixelSize + 20, pixelSize, pixelSize);
+    }
+  }
+});
+
+// Store base pixels for arm animation
+const yetiBasePixels = yetiPixels;
+
+// Yeti arm animation function
+let yetiArmFrame = 0;
+function updateYetiAnimation() {
+  yetiCtx.clearRect(0, 0, yetiCanvas.width, yetiCanvas.height);
+  
+  // Arm swing angle (stick arms wave up and down)
+  const armSwing = Math.sin(gameTime * 6) * 3;  // Up/down swing
+  
+  // Redraw body with animated stick arms
+  yetiPixelsTemplate.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const char = row[x];
+      if (char !== ' ' && yetiColors[char]) {
+        yetiCtx.fillStyle = yetiColors[char];
+        
+        let drawX = x;
+        let drawY = y;
+        
+        // Animate stick arms (A characters)
+        if (char === 'A') {
+          if (x < 8) {
+            // Left arm - swing up
+            drawY += Math.floor(armSwing);
+          } else {
+            // Right arm - swing up (opposite phase)
+            drawY -= Math.floor(armSwing);
+          }
+        }
+        
+        yetiCtx.fillRect(drawX * pixelSize + 30, drawY * pixelSize + 20, pixelSize, pixelSize);
+      }
+    }
+  });
+  
+  yetiTexture.needsUpdate = true;
+}
+
+const yetiTexture = new THREE.CanvasTexture(yetiCanvas);
+yetiTexture.needsUpdate = true;
+const yetiSprite = new THREE.Sprite(new THREE.SpriteMaterial({ 
+  map: yetiTexture, 
+  transparent: true,
+  depthTest: false,
+  depthWrite: false
+}));
+yetiSprite.scale.set(15, 15, 1);  // Larger for visibility
+yetiSprite.position.set(0, 4, -25);  // IN FRONT/opposite side of bike
+yetiSprite.visible = false;  // Hidden until ski hill sequence
+scene.add(yetiSprite);  // Add to scene, not bike, so it stays in world space
+
+// SkiFree Trees (mapped to vertical slat, not billboard)
+function createTreeMesh() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  
+  const ps = 6;  // Larger pixels
+  const treePixels = [
+    '       GGG       ',
+    '      GGGGG      ',
+    '     GGGGGGG     ',
+    '    GGGGGGGGG    ',
+    '     GGGGGGG     ',
+    '    GGGGGGGGG    ',
+    '   GGGGGGGGGGG   ',
+    '  GGGGGGGGGGGGG  ',
+    '       BBB       ',
+    '       BBB       ',
+    '       BBB       ',
+    '       BBB       ',
+  ];
+  
+  const treeColors = { 'G': '#00ff00', 'B': '#8B4513' };
+  treePixels.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const char = row[x];
+      if (char !== ' ' && treeColors[char]) {
+        ctx.fillStyle = treeColors[char];
+        ctx.fillRect(x * ps + 5, y * ps + 20, ps, ps);
+      }
+    }
+  });
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  const material = new THREE.MeshBasicMaterial({ 
+    map: texture, 
+    transparent: true,
+    side: THREE.DoubleSide
+  });
+  
+  // Create vertical plane (slat) instead of billboard sprite
+  const geometry = new THREE.PlaneGeometry(10, 12);
+  const mesh = new THREE.Mesh(geometry, material);
+  return mesh;
+}
+
+// SkiFree Gates (pixel art)
+function createGateSprite() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  
+  const ps = 4;
+  const gatePixels = [
+    'RRRR      BBBB',
+    'RRRR      BBBB',
+    'RRRR      BBBB',
+    'RRRR      BBBB',
+    'RRRR      BBBB',
+    'RRRR      BBBB',
+    'RRRR      BBBB',
+    'RRRR      BBBB',
+  ];
+  
+  const gateColors = { 'R': '#ff0000', 'B': '#0066ff' };
+  gatePixels.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const char = row[x];
+      if (char !== ' ' && gateColors[char]) {
+        ctx.fillStyle = gateColors[char];
+        ctx.fillRect(x * ps + 10, y * ps + 30, ps, ps);
+      }
+    }
+  });
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ 
+    map: texture, 
+    transparent: true,
+    depthTest: true
+  }));
+  sprite.scale.set(8, 4, 1);
+  return sprite;
+}
+
+// Floating Crumbling Cube Arrays (6x6x6)
+const floatingCubeGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);  // Small cubes
+const floatingCubeMat = new THREE.MeshStandardMaterial({
+  color: 0x000000,
+  metalness: 0.3,
+  roughness: 0.7,
+  emissive: 0x000000,
+  emissiveIntensity: 0.2
+});
+
+const floatingArrays = [];
+const skiObstacles = [];  // Trees and gates spawned during ski section
+const cubesPerArray = 6 * 6 * 6;  // 216 cubes per array
+
+// Voxel explosion system
+const voxelExplosions = [];
+const maxExplosionParticles = 300;
+
+function createVoxelExplosion(centerPos) {
+  const burstCount = 15 + Math.floor(Math.random() * 10);
+  const particles = [];
+  const tricolors = [0x0066ff, 0xffff00, 0xff0066, 0x00ffff];
+  
+  for (let i = 0; i < burstCount; i++) {
+    const color = tricolors[Math.floor(Math.random() * tricolors.length)];
+    const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+    const material = new THREE.MeshBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: 1,
+      emissive: color,
+      emissiveIntensity: 1.5
+    });
+    
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.copy(centerPos);
+    
+    // Fireworks-like explosion direction (spherical burst)
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.random() * Math.PI;
+    const speed = 10 + Math.random() * 15;
+    
+    mesh.userData = {
+      velocity: new THREE.Vector3(
+        Math.sin(phi) * Math.cos(theta) * speed,
+        Math.cos(phi) * speed * 1.5,  // More upward bias for fireworks
+        Math.sin(phi) * Math.sin(theta) * speed
+      ),
+      life: 1.0,
+      gravity: -18,
+      rotSpeed: new THREE.Vector3(
+        (Math.random() - 0.5) * 15,
+        (Math.random() - 0.5) * 15,
+        (Math.random() - 0.5) * 15
+      )
+    };
+    
+    scene.add(mesh);
+    particles.push(mesh);
+  }
+  
+  return particles;
+}
+
+function updateVoxelExplosions(dt) {
+  for (let i = voxelExplosions.length - 1; i >= 0; i--) {
+    const particles = voxelExplosions[i];
+    let allDead = true;
+    
+    for (let j = particles.length - 1; j >= 0; j--) {
+      const p = particles[j];
+      
+      if (p.userData.life > 0) {
+        allDead = false;
+        
+        // Apply velocity and gravity
+        p.position.add(p.userData.velocity.clone().multiplyScalar(dt));
+        p.userData.velocity.y += p.userData.gravity * dt;
+        
+        // Rotate
+        p.rotation.x += p.userData.rotSpeed.x * dt;
+        p.rotation.y += p.userData.rotSpeed.y * dt;
+        p.rotation.z += p.userData.rotSpeed.z * dt;
+        
+        // Fade
+        p.userData.life -= dt * 0.7;
+        p.material.opacity = Math.max(0, p.userData.life);
+      } else {
+        scene.remove(p);
+        p.geometry.dispose();
+        p.material.dispose();
+        particles.splice(j, 1);
+      }
+    }
+    
+    if (allDead || particles.length === 0) {
+      voxelExplosions.splice(i, 1);
+    }
+  }
+}
+
+function createFloatingCubeArray(centerPos) {
+  const array = new THREE.InstancedMesh(floatingCubeGeo, floatingCubeMat, cubesPerArray);
+  const arrayDummy = new THREE.Object3D();
+  const arrayColor = new THREE.Color();
+  
+  array.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cubesPerArray * 3), 3);
+  
+  // Store target positions for each cube
+  array.userData.targetPositions = [];
+  array.userData.targetRotations = [];
+  array.userData.targetScales = [];
+  
+  let idx = 0;
+  for (let x = 0; x < 6; x++) {
+    for (let y = 0; y < 6; y++) {
+      for (let z = 0; z < 6; z++) {
+        // Target position (where cube will expand to)
+        const targetPos = new THREE.Vector3(
+          (x - 2.5) * 1.2 + (Math.random() - 0.5) * 0.3,
+          (y - 2.5) * 1.2 + (Math.random() - 0.5) * 0.3,
+          (z - 2.5) * 1.2 + (Math.random() - 0.5) * 0.3
+        );
+        
+        const targetRot = new THREE.Euler(
+          Math.random() * Math.PI,
+          Math.random() * Math.PI,
+          Math.random() * Math.PI
+        );
+        
+        const targetScale = 0.9 + Math.random() * 0.2;
+        
+        array.userData.targetPositions.push(targetPos);
+        array.userData.targetRotations.push(targetRot);
+        array.userData.targetScales.push(targetScale);
+        
+        // Start all cubes at CENTER (collapsed)
+        arrayDummy.position.set(0, 0, 0);
+        arrayDummy.rotation.set(0, 0, 0);
+        arrayDummy.scale.setScalar(0.01);  // Start tiny
+        arrayDummy.updateMatrix();
+        array.setMatrixAt(idx, arrayDummy.matrix);
+        
+        arrayColor.setHex(0x000000);  // Start black
+        array.instanceColor.setXYZ(idx, arrayColor.r, arrayColor.g, arrayColor.b);
+        idx++;
+      }
+    }
+  }
+  
+  array.instanceMatrix.needsUpdate = true;
+  array.instanceColor.needsUpdate = true;
+  array.position.copy(centerPos);
+  array.userData.rotSpeed = Math.random() * 0.5 + 0.2;
+  array.userData.floatSpeed = Math.random() * 0.3 + 0.1;
+  array.userData.expansionProgress = 0;  // 0 = collapsed, 1 = fully expanded
+  array.userData.collapsePhase = 0;  // For final 10s collapse animation
+  array.userData.exploded = false;  // Track if explosion was triggered
+  
+  scene.add(array);
+  return array;
+}
+
+// Assigna billboard (Asana parody with evil eyes)
+const assignaCanvas = document.createElement('canvas');
+assignaCanvas.width = 1024;
+assignaCanvas.height = 768;
+const assignaCtx = assignaCanvas.getContext('2d');
+
+// Draw simplified Asana-like interface with rounded corners
+function roundRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// Background with rounded corners
+assignaCtx.fillStyle = '#1a1a1a';
+roundRect(assignaCtx, 0, 0, 1024, 768, 30);
+
+// Sidebar
+assignaCtx.fillStyle = '#2c2c2c';
+assignaCtx.fillRect(0, 0, 200, 768);
+
+// Asana logo area (parody)
+assignaCtx.fillStyle = '#ff5263';
+roundRect(assignaCtx, 15, 15, 30, 30, 5);
+assignaCtx.fillStyle = '#ffffff';
+assignaCtx.font = 'bold 24px Arial';
+assignaCtx.fillText('Assigna', 55, 38);
+
+// Sidebar items
+const sidebarItems = ['Home', 'My Tasks', 'Inbox', 'Portfolios'];
+assignaCtx.fillStyle = '#999';
+assignaCtx.font = '14px Arial';
+sidebarItems.forEach((item, i) => {
+  roundRect(assignaCtx, 15, 80 + i * 35, 170, 28, 8);
+  assignaCtx.fillStyle = '#eee';
+  assignaCtx.fillText(item, 25, 100 + i * 35);
+  assignaCtx.fillStyle = '#999';
+});
+
+// Main content area - project cards with rounded corners
+const projectColors = ['#4A90E2', '#E85D75', '#F39C12', '#9B59B6', '#27AE60'];
+for (let i = 0; i < 8; i++) {
+  const y = 80 + i * 70;
+  const color = projectColors[i % projectColors.length];
+  
+  // Card background
+  assignaCtx.fillStyle = '#3a3a3a';
+  roundRect(assignaCtx, 220, y, 580, 55, 12);
+  
+  // Project icon
+  assignaCtx.fillStyle = color;
+  roundRect(assignaCtx, 235, y + 12, 32, 32, 6);
+  
+  // Project text
+  assignaCtx.fillStyle = '#fff';
+  assignaCtx.font = 'bold 16px Arial';
+  assignaCtx.fillText(['Marketing plan', 'Product launch', 'Website redesign', 'Q1 Goals', 'Team sync', 'Customer feedback', 'Launch event', 'Strategy'][i], 280, y + 28);
+  
+  assignaCtx.fillStyle = '#888';
+  assignaCtx.font = '12px Arial';
+  assignaCtx.fillText('Due soon • Team', 280, y + 45);
+}
+
+// THREE SOLID RED GLOWING EYES in TRIANGLE formation
+const centerX = 512;
+const centerY = 384;
+const eyeRadius = 30;
+const triangleHeight = 80;
+
+// Eye positions in triangle: top, bottom-left, bottom-right
+const eyePositions = [
+  { x: centerX, y: centerY - triangleHeight / 2 },  // Top
+  { x: centerX - triangleHeight / 2, y: centerY + triangleHeight / 2 },  // Bottom left
+  { x: centerX + triangleHeight / 2, y: centerY + triangleHeight / 2 }   // Bottom right
+];
+
+// Draw three glowing eyes in triangle
+eyePositions.forEach((pos, i) => {
+  // Outer glow (larger)
+  const gradient = assignaCtx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, eyeRadius * 3);
+  gradient.addColorStop(0, 'rgba(255, 0, 0, 1)');
+  gradient.addColorStop(0.3, 'rgba(255, 0, 0, 0.6)');
+  gradient.addColorStop(0.6, 'rgba(255, 0, 0, 0.2)');
+  gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+  assignaCtx.fillStyle = gradient;
+  assignaCtx.fillRect(pos.x - eyeRadius * 3, pos.y - eyeRadius * 3, eyeRadius * 6, eyeRadius * 6);
+  
+  // Solid red eye
+  assignaCtx.fillStyle = '#ff0000';
+  assignaCtx.beginPath();
+  assignaCtx.arc(pos.x, pos.y, eyeRadius, 0, Math.PI * 2);
+  assignaCtx.fill();
+  
+  // Darker red center for depth
+  assignaCtx.fillStyle = '#cc0000';
+  assignaCtx.beginPath();
+  assignaCtx.arc(pos.x, pos.y, eyeRadius * 0.6, 0, Math.PI * 2);
+  assignaCtx.fill();
+  
+  // Bright highlight
+  assignaCtx.fillStyle = '#ff6666';
+  assignaCtx.beginPath();
+  assignaCtx.arc(pos.x + 8, pos.y - 8, eyeRadius * 0.25, 0, Math.PI * 2);
+  assignaCtx.fill();
+});
+
+// Animate evil eyes
+let eyePulsePhase = 0;
+function updateAssignaEyes() {
+  eyePulsePhase += 0.05;
+  
+  // Redraw eyes with pulsing glow
+  const centerX = 512;
+  const centerY = 384;
+  const eyeRadius = 30;
+  const triangleHeight = 80;
+  
+  // Clear eye area
+  assignaCtx.clearRect(centerX - 200, centerY - 100, 400, 200);
+  
+  // Redraw background in that area
+  assignaCtx.fillStyle = '#1a1a1a';
+  assignaCtx.fillRect(centerX - 200, centerY - 100, 400, 200);
+  
+  const pulse = Math.sin(eyePulsePhase) * 0.2 + 0.8;  // 0.6 to 1.0
+  const glowIntensity = Math.sin(eyePulsePhase) * 0.4 + 0.6;  // 0.2 to 1.0
+  
+  // Eye positions in triangle
+  const eyePositions = [
+    { x: centerX, y: centerY - triangleHeight / 2 },  // Top
+    { x: centerX - triangleHeight / 2, y: centerY + triangleHeight / 2 },  // Bottom left
+    { x: centerX + triangleHeight / 2, y: centerY + triangleHeight / 2 }   // Bottom right
+  ];
+  
+  eyePositions.forEach((pos) => {
+    // Pulsing outer glow
+    const gradient = assignaCtx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, eyeRadius * 3 * pulse);
+    gradient.addColorStop(0, `rgba(255, 0, 0, ${glowIntensity})`);
+    gradient.addColorStop(0.3, `rgba(255, 0, 0, ${0.6 * glowIntensity})`);
+    gradient.addColorStop(0.6, `rgba(255, 0, 0, ${0.2 * glowIntensity})`);
+    gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+    assignaCtx.fillStyle = gradient;
+    assignaCtx.fillRect(pos.x - eyeRadius * 3, pos.y - eyeRadius * 3, eyeRadius * 6, eyeRadius * 6);
+    
+    // Solid red eye
+    assignaCtx.fillStyle = '#ff0000';
+    assignaCtx.beginPath();
+    assignaCtx.arc(pos.x, pos.y, eyeRadius * pulse, 0, Math.PI * 2);
+    assignaCtx.fill();
+    
+    // Darker red center for depth
+    assignaCtx.fillStyle = '#cc0000';
+    assignaCtx.beginPath();
+    assignaCtx.arc(pos.x, pos.y, eyeRadius * 0.6 * pulse, 0, Math.PI * 2);
+    assignaCtx.fill();
+    
+    // Bright highlight
+    assignaCtx.fillStyle = '#ff6666';
+    assignaCtx.beginPath();
+    assignaCtx.arc(pos.x + 8, pos.y - 8, eyeRadius * 0.25 * pulse, 0, Math.PI * 2);
+    assignaCtx.fill();
+  });
+  
+  assignaTexture.needsUpdate = true;
+}
+
+const assignaTexture = new THREE.CanvasTexture(assignaCanvas);
+const assignaSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: assignaTexture,
+  transparent: true,
+  depthTest: true,
+  fog: false  // Eyes glow through fog
+}));
+assignaSprite.scale.set(40, 30, 1);  // Large billboard
+assignaSprite.position.set(0, 25, -80);  // Distant, higher up
+assignaSprite.rotation.x = -0.3;  // Tilt forward
+assignaSprite.visible = true;
+assignaSprite.renderOrder = 999;  // Render on top
+scene.add(assignaSprite);
+
+// 3D Countdown Banner
+function createTextSprite(text, size, color) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 6;
+  ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+  
+  ctx.fillStyle = color;
+  ctx.font = `bold ${size}px "Press Start 2P", monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  
+  // Handle multi-line text
+  const lines = text.split('\n');
+  const lineHeight = size * 1.2;
+  const startY = (canvas.height / 2) - ((lines.length - 1) * lineHeight / 2);
+  
+  lines.forEach((line, i) => {
+    ctx.fillText(line, canvas.width / 2, startY + i * lineHeight);
+  });
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ 
+    map: texture, 
+    transparent: true,
+    depthTest: false
+  }));
+  return sprite;
+}
+
+// Title banner - Position HIGH above road
+const titleBanner = createTextSprite('RAINBOW ROADMAP:\nOFFROAD EDITION', 60, '#0066ff');
+titleBanner.scale.set(20, 5, 1);
+titleBanner.position.set(0, 25, -30);  // Much higher - well above road
+scene.add(titleBanner);
+
+// Countdown sprites - Position below title with spacing
+const countdown3 = createTextSprite('3', 150, '#ffff00');
+countdown3.scale.set(10, 2.5, 1);
+countdown3.position.set(0, 15, -20);  // Below title with spacing
+countdown3.visible = false;
+scene.add(countdown3);
+
+const countdown2 = createTextSprite('2', 150, '#ff0066');
+countdown2.scale.set(10, 2.5, 1);
+countdown2.position.set(0, 15, -20);
+countdown2.visible = false;
+scene.add(countdown2);
+
+const countdown1 = createTextSprite('1', 150, '#0066ff');
+countdown1.scale.set(10, 2.5, 1);
+countdown1.position.set(0, 15, -20);
+countdown1.visible = false;
+scene.add(countdown1);
+
+const countdownSprint = createTextSprite('SPRINT!', 120, '#00ffff');
+countdownSprint.scale.set(15, 3.75, 1);
+countdownSprint.position.set(0, 15, -20);
+countdownSprint.visible = false;
+scene.add(countdownSprint);
+
+// Road lines
+const roadLines = [];
+for (let i=0; i<4; i++){
+  const lineColors = [0x0066ff, 0xffff00, 0xff0066];
+  const lineMat = new THREE.MeshBasicMaterial({
+    color: lineColors[i % lineColors.length], transparent: true, opacity: 0.6
+  });
+  const lineGeo = new THREE.PlaneGeometry(0.4, 5);
+  const line = new THREE.Mesh(lineGeo, lineMat);
+  line.rotation.x = -Math.PI/2;
+  line.position.y = 0.1;
+  roadLines.push(line);
+  scene.add(line);
+}
+
+// Speed lines (emit from bike's rear)
+const speedLineGeo = new THREE.BufferGeometry();
+const maxSpeedLines = 80;
+const slPos = new Float32Array(maxSpeedLines * 3);
+const slVel = new Float32Array(maxSpeedLines * 3);
+const slLife = new Float32Array(maxSpeedLines);
+
+for (let i=0; i<maxSpeedLines; i++) {
+  slPos[i*3] = 0;
+  slPos[i*3+1] = 0;
+  slPos[i*3+2] = 0;
+  slVel[i*3] = 0;
+  slVel[i*3+1] = 0;
+  slVel[i*3+2] = 0;
+  slLife[i] = 0;
+}
+
+speedLineGeo.setAttribute('position', new THREE.BufferAttribute(slPos, 3));
+const speedLines = new THREE.Points(speedLineGeo, new THREE.PointsMaterial({
+  size: 0.3,
+  sizeAttenuation: true,
+  transparent: true,
+  opacity: 0,  // Start invisible
+  color: 0x0066ff,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending
+}));
+scene.add(speedLines);
+
+let speedLineIdx = 0;
+function emitSpeedLine(bikeRearPos) {
+  const i = speedLineIdx;
+  slPos[i*3] = bikeRearPos.x + (Math.random() - 0.5) * 2;
+  slPos[i*3+1] = bikeRearPos.y + (Math.random() - 0.5) * 1;
+  slPos[i*3+2] = bikeRearPos.z;
+  
+  slVel[i*3] = (Math.random() - 0.5) * 2;
+  slVel[i*3+1] = (Math.random() - 0.5) * 2;
+  slVel[i*3+2] = 15 + Math.random() * 10;  // Backward from bike
+  
+  slLife[i] = 0.8 + Math.random() * 0.4;
+  speedLineIdx = (speedLineIdx + 1) % maxSpeedLines;
+}
+
+function updateSpeedLines(dt, bikeRearPos) {
+  // Emit new speed lines from bike rear
+  if (Math.random() < 0.4 && speedLines.material.opacity > 0.1) {
+    emitSpeedLine(bikeRearPos);
+  }
+  
+  for (let i=0; i<maxSpeedLines; i++) {
+    if (slLife[i] > 0) {
+      slPos[i*3] += slVel[i*3] * dt;
+      slPos[i*3+1] += slVel[i*3+1] * dt;
+      slPos[i*3+2] += slVel[i*3+2] * dt;
+      slLife[i] -= dt;
+    } else {
+      slPos[i*3+1] = -1000;  // Hide dead particles
+    }
+  }
+  speedLineGeo.attributes.position.needsUpdate = true;
+}
+
+// Octagonal expanding particles for finale (like zany.html)
+const octoParticles = [];
+const maxOctoParticles = 30;
+
+function createOctagonalParticle(pos, color) {
+  const shape = new THREE.Shape();
+  const radius = 0.5;
+  const sides = 8;
+  
+  for (let i = 0; i < sides; i++) {
+    const angle = (i / sides) * Math.PI * 2;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    if (i === 0) shape.moveTo(x, y);
+    else shape.lineTo(x, y);
+  }
+  shape.closePath();
+  
+  const geometry = new THREE.ShapeGeometry(shape);
+  const material = new THREE.MeshBasicMaterial({
+    color: color,
+    transparent: true,
+    opacity: 1,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.copy(pos);
+  mesh.userData = {
+    velocity: new THREE.Vector3(
+      (Math.random() - 0.5) * 8,
+      (Math.random() - 0.5) * 8,
+      (Math.random() - 0.5) * 8
+    ),
+    expansion: 0,
+    maxScale: 3 + Math.random() * 4,
+    life: 1.0
+  };
+  
+  scene.add(mesh);
+  return mesh;
+}
+
+function updateOctoParticles(dt) {
+  for (let i = octoParticles.length - 1; i >= 0; i--) {
+    const p = octoParticles[i];
+    
+    // Move
+    p.position.add(p.userData.velocity.clone().multiplyScalar(dt));
+    
+    // Expand
+    p.userData.expansion += dt * 2;
+    const scale = p.userData.expansion * p.userData.maxScale;
+    p.scale.setScalar(scale);
+    
+    // Fade
+    p.userData.life -= dt * 0.8;
+    p.material.opacity = Math.max(0, p.userData.life);
+    
+    // Billboard to camera
+    p.lookAt(camera.position);
+    
+    // Remove if dead
+    if (p.userData.life <= 0) {
+      scene.remove(p);
+      octoParticles.splice(i, 1);
+    }
+  }
+}
+
+let CAM_OFFSET = new THREE.Vector3(0, 8.0, 20.0);  // Higher and further for better hill view
+let cameraShake = 0;
+let cameraDistance = 20.0;
+
+// Camera control modes (declare before wheel event)
+let orbitCameraMode = false;
+let orbitTheta = 0;  // Horizontal orbit angle
+let orbitPhi = Math.PI / 8;  // Vertical orbit angle (slight down angle)
+let orbitRadius = 20;
+let isDragging = false;
+let lastMouseX = 0;
+let lastMouseY = 0;
+let rearViewMode = false;
+
+// Scroll wheel camera control
+addEventListener('wheel', (e) => {
+  e.preventDefault();
+  
+  if (orbitCameraMode) {
+    // In orbit mode, control orbit radius
+    orbitRadius += e.deltaY * 0.02;
+    orbitRadius = Math.max(5, Math.min(60, orbitRadius));
+  } else {
+    // In normal mode, control chase camera distance
+  cameraDistance += e.deltaY * 0.02;
+  cameraDistance = Math.max(8, Math.min(60, cameraDistance));
+  CAM_OFFSET.z = cameraDistance;
+  CAM_OFFSET.y = cameraDistance * 0.4;  // Height scales with distance
+  }
+}, { passive: false });
+
+// Progressive Visual Enhancement System - Redesigned Timeline
+const visualProgression = {
+  phase: 0,
+  inversionTriggered: false,
+  offRoadWaveTriggered: false,
+  skiHillTriggered: false,
+  returnTriggered: false,
+  roadExpansion: 0,  // 0 = normal, 1 = expanded
+  waveIntensity: 0,   // 0 = flat, 1 = max wave
+  skiHillIntensity: 0,  // 0 = normal, 1 = steep ski slope
+  
+  update(time) {
+    const phaseEl = document.getElementById('phaseStatus');
+    
+    // Phase 0 (0-10s): Flat look, gradual build
+    if (time > 5 && this.phase === 0) {
+      this.phase = 1;
+      console.log('🎨 Phase 1: Subtle bloom begins');
+      if (phaseEl) phaseEl.textContent = 'Phase 1: Building (5-15s)';
+    }
+    
+    // Phase 1 (5-15s): Build up bloom and lighting
+    if (time > 15 && this.phase === 1) {
+      this.phase = 2;
+      console.log('🎨 Phase 2: Pre-inversion build complete');
+      if (phaseEl) phaseEl.textContent = 'Phase 2: Peak (15-30s)';
+    }
+    
+    // Phase 2 (~25s): Trigger color inversion + bloom reduction
+    if (time > 25 && !this.inversionTriggered) {
+      this.inversionTriggered = true;
+      this.phase = 3;
+      console.log('🌈 Phase 3: COLOR INVERSION - Bloom reduced');
+      if (phaseEl) phaseEl.textContent = 'Phase 3: INVERTED (25-60s)';
+      if (!cameraFlipped) {
+        cameraFlipped = true;
+        colorInverted = true;
+        triggerColorInversion();
+      }
+    }
+    
+    // Phase 3.5 (~42s): Off-road wave sequence during inversion (SHORTENED)
+    if (time > 42 && !this.offRoadWaveTriggered) {
+      this.offRoadWaveTriggered = true;
+      console.log('🌊 OFF-ROAD WAVE SEQUENCE - Road transforms to voxel grid');
+      if (phaseEl) phaseEl.textContent = 'Phase 3.5: OFF-ROAD WAVE (42-50s)';
+      
+      // Flash transition
+      const flash = document.createElement('div');
+      flash.style.cssText = 'position:fixed; inset:0; z-index:1000; pointer-events:none; background:#000; opacity:1;';
+      document.body.appendChild(flash);
+      
+      setTimeout(() => {
+        flash.style.transition = 'opacity 0.3s ease';
+        flash.style.opacity = '0';
+      }, 100);
+      
+      setTimeout(() => {
+        flash.remove();
+      }, 400);
+      
+      // Gain a star for reaching off-road section
+      if (currentStars < maxStars) {
+        currentStars++;
+        updateStarDisplay();
+      }
+    }
+    
+    // Phase 3.75 (~50s): Ski Hill sequence with yeti chase
+    if (time > 50 && !this.skiHillTriggered) {
+      this.skiHillTriggered = true;
+      console.log('⛷️ SKI HILL SEQUENCE - Steep downhill with yeti chase');
+      if (phaseEl) phaseEl.textContent = 'Phase 3.75: SKI HILL (50-60s)';
+      
+      // Flash transition to ski hill (white flash on white background = black flash)
+      const flash = document.createElement('div');
+      flash.style.cssText = 'position:fixed; inset:0; z-index:1000; pointer-events:none; background:#000; opacity:1;';
+      document.body.appendChild(flash);
+      
+      setTimeout(() => {
+        flash.style.transition = 'opacity 0.4s ease';
+        flash.style.opacity = '0';
+      }, 150);
+      
+      setTimeout(() => {
+        flash.remove();
+      }, 550);
+      
+      // Gain a star for reaching ski section
+      if (currentStars < maxStars) {
+        currentStars++;
+        updateStarDisplay();
+        console.log(`⭐ Star earned! ${currentStars}/${maxStars}`);
+      }
+    }
+    
+    // Phase 4 (~60s): Return flip + rapid effect layering
+    if (time > 60 && !this.returnTriggered) {
+      this.returnTriggered = true;
+      this.phase = 4;
+      console.log('🚀 Phase 4: RETURN FLIP - Rapid effect layering');
+      if (phaseEl) phaseEl.textContent = 'Phase 4: ENHANCED (60s+)';
+      
+      // Gain a star for reaching finale
+      if (currentStars < maxStars) {
+        currentStars++;
+        updateStarDisplay();
+        console.log(`⭐ Star earned! ${currentStars}/${maxStars}`);
+      }
+      
+      // Clear all ski obstacles
+      for (let i = skiObstacles.length - 1; i >= 0; i--) {
+        scene.remove(skiObstacles[i]);
+        skiObstacles.splice(i, 1);
+      }
+      
+      // Trigger return flip and color restoration
+      if (cameraFlipped) {
+        // NO camera spin - just instant restoration
+        cameraFlipped = false;
+        
+        // INSTANTLY snap bike back to road level (no lerp)
+        bike.position.y = -0.8;
+        
+        // Restore normal colors with flash effect
+        const flash = document.createElement('div');
+        flash.style.cssText = 'position:fixed; inset:0; z-index:1000; pointer-events:none; background:#fff; opacity:1;';
+        document.body.appendChild(flash);
+        
+        setTimeout(() => {
+          flash.style.transition = 'background 0.4s ease, opacity 0.4s ease';
+          flash.style.background = '#000';
+        }, 100);
+        
+        setTimeout(() => {
+          flash.style.opacity = '0';
+          colorInverted = false;
+        }, 500);
+        
+        setTimeout(() => {
+          flash.remove();
+        }, 1200);
+        
+        // Restore original colors to BLACK
+        renderer.setClearColor(0x0a0b10, 1);
+        if (scene.fog) {
+          scene.fog.color.setHex(0x0a0020);  // Black fog
+        }
+        ROAD_COLOR.setHex(0x0a0a20);
+        ROAD_EDGE_COLOR.setHex(0x0066ff);
+        sky.material.uniforms.top.value.setHex(0x000000);
+        sky.material.uniforms.mid.value.setHex(0x000000);
+        sky.material.uniforms.bottom.value.setHex(0x000000);
+        sky.material.needsUpdate = true;
+      }
+    }
+    
+    // Sequence management based on time ranges
+    if (time >= 42 && time < 50) {
+      // Off-road wave deformation (42-50s)
+      this.roadExpansion = THREE.MathUtils.lerp(this.roadExpansion, 1.0, 0.08);
+      this.waveIntensity = THREE.MathUtils.lerp(this.waveIntensity, 1.0, 0.08);
+      this.skiHillIntensity = THREE.MathUtils.lerp(this.skiHillIntensity, 0, 0.08);
+    } else if (time >= 50 && time < 60) {
+      // Ski hill sequence (50-60s)
+      this.roadExpansion = THREE.MathUtils.lerp(this.roadExpansion, 0, 0.08);  // Normal width for ski hill
+      this.waveIntensity = THREE.MathUtils.lerp(this.waveIntensity, 0, 0.08);  // No wave
+      this.skiHillIntensity = THREE.MathUtils.lerp(this.skiHillIntensity, 1.0, 0.08);  // Full ski slope
+      
+      // Debug logging every second
+      if (Math.floor(time) !== Math.floor(time - 0.016)) {
+        console.log(`⛷️ SKI MODE ACTIVE - Intensity: ${this.skiHillIntensity.toFixed(2)}, Yeti: ${this.skiHillIntensity > 0.3 ? 'VISIBLE' : 'hidden'}`);
+      }
+    } else if (time >= 60) {
+      // Return to normal after phase 4
+      this.roadExpansion = THREE.MathUtils.lerp(this.roadExpansion, 0, 0.03);
+      this.waveIntensity = THREE.MathUtils.lerp(this.waveIntensity, 0, 0.03);
+      this.skiHillIntensity = THREE.MathUtils.lerp(this.skiHillIntensity, 0, 0.03);
+    }
+    
+    // Bloom control based on phase
+    let targetBloom = 0;
+    if (this.phase === 1) {
+      targetBloom = 0.4;  // Very subtle build
+    } else if (this.phase === 2) {
+      targetBloom = 0.7;  // Reduced pre-inversion bloom
+    } else if (this.phase === 3) {
+      targetBloom = 0.2;  // Dramatically reduced during inversion
+    } else if (this.phase >= 4) {
+      // Phase 4: Aggressive bloom ramp for "becoming energy" effect
+      const phase4Duration = time - 60;
+      if (phase4Duration > 40) {
+        // Last 20 seconds: aggressive exponential ramp
+        const rampProgress = Math.min(1, (phase4Duration - 40) / 20);
+        // Exponential curve for dramatic effect
+        const exponential = Math.pow(rampProgress, 1.5);
+        targetBloom = 0.8 + exponential * 4.2;  // 0.8 → 5.0 (even higher max)
+      } else {
+        targetBloom = 0.8;  // Initial phase 4 bloom
+      }
+    }
+    // Faster lerp in phase 4 for quicker visual response
+    const bloomLerpSpeed = this.phase >= 4 && (time - 60) > 40 ? 0.12 : (this.phase >= 4 ? 0.08 : 0.02);
+    bloomPass.strength = THREE.MathUtils.lerp(bloomPass.strength, targetBloom, bloomLerpSpeed);
+    
+    // Lighting ramp up
+    let targetHemi = 0.8, targetDir = 1.0, targetDir2 = 0.5, targetDir3 = 0.4, targetAmb = 0.3;
+    if (this.phase >= 1) {
+      targetHemi = 1.5; targetDir = 2.0; targetDir2 = 1.0; targetDir3 = 0.8; targetAmb = 0.5;
+    }
+    if (this.phase >= 2) {
+      targetHemi = 2.0; targetDir = 2.5; targetDir2 = 1.5; targetDir3 = 1.2; targetAmb = 0.6;
+    }
+    if (this.phase >= 4) {
+      targetHemi = 2.5; targetDir = 3.0; targetDir2 = 2.0; targetDir3 = 1.5; targetAmb = 0.8;
+    }
+    
+    const lightLerpSpeed = this.phase >= 4 ? 0.08 : 0.02;
+    hemi.intensity = THREE.MathUtils.lerp(hemi.intensity, targetHemi, lightLerpSpeed);
+    dir.intensity = THREE.MathUtils.lerp(dir.intensity, targetDir, lightLerpSpeed);
+    dir2.intensity = THREE.MathUtils.lerp(dir2.intensity, targetDir2, lightLerpSpeed);
+    dir3.intensity = THREE.MathUtils.lerp(dir3.intensity, targetDir3, lightLerpSpeed);
+    ambientLight.intensity = THREE.MathUtils.lerp(ambientLight.intensity, targetAmb, lightLerpSpeed);
+    
+    // Material enhancement
+    if (this.phase >= 2) {
+      const targetMetalness = 0.5;
+      const targetRoughness = 0.4;
+      const targetEmissive = 0.2;
+      columnMat.metalness = THREE.MathUtils.lerp(columnMat.metalness, targetMetalness, 0.02);
+      columnMat.roughness = THREE.MathUtils.lerp(columnMat.roughness, targetRoughness, 0.02);
+      columnMat.emissiveIntensity = THREE.MathUtils.lerp(columnMat.emissiveIntensity, targetEmissive, 0.02);
+      columnMat.needsUpdate = true;
+    }
+    
+    // Speed lines - Start in final 20 seconds
+    const phase4Duration = time - 60;
+    if (this.phase >= 4 && phase4Duration > 40) {
+      speedLines.material.opacity = THREE.MathUtils.lerp(speedLines.material.opacity, 0.7, 0.08);
+    } else {
+      speedLines.material.opacity = THREE.MathUtils.lerp(speedLines.material.opacity, 0, 0.08);
+    }
+    
+    // Afterimage/Motion blur - Start IMMEDIATELY in Phase 4 for intense light trailing
+    if (this.phase >= 4) {
+      afterimagePass.uniforms.damp.value = THREE.MathUtils.lerp(afterimagePass.uniforms.damp.value, 0.82, 0.08);
+    } else {
+      afterimagePass.uniforms.damp.value = THREE.MathUtils.lerp(afterimagePass.uniforms.damp.value, 0, 0.08);
+    }
+    
+    // Particle enhancement
+    let targetParticleOpacity = 0.3;
+    if (this.phase >= 2) targetParticleOpacity = 0.6;
+    if (this.phase >= 4) targetParticleOpacity = 0.95;
+    particleMat.opacity = THREE.MathUtils.lerp(particleMat.opacity, targetParticleOpacity, this.phase >= 4 ? 0.08 : 0.03);
+    
+    // Bike lights
+    if (this.phase >= 1) {
+      frontLight.intensity = THREE.MathUtils.lerp(frontLight.intensity, 5, 0.02);
+      frontBar.material.opacity = THREE.MathUtils.lerp(frontBar.material.opacity, 0.8, 0.03);
+    }
+    if (this.phase >= 4) {
+      frontLight.intensity = THREE.MathUtils.lerp(frontLight.intensity, 8, 0.08);
+      frontBar.material.opacity = THREE.MathUtils.lerp(frontBar.material.opacity, 1.0, 0.08);
+    }
+    
+    // Glow lights
+    if (this.phase >= 2 && !keys.has('BOOST')) {
+      bikeGlow.intensity = THREE.MathUtils.lerp(bikeGlow.intensity, 2, 0.02);
+      rearGlow.intensity = THREE.MathUtils.lerp(rearGlow.intensity, 2.5, 0.02);
+    }
+    if (this.phase >= 4 && !keys.has('BOOST')) {
+      bikeGlow.intensity = THREE.MathUtils.lerp(bikeGlow.intensity, 5, 0.08);
+      rearGlow.intensity = THREE.MathUtils.lerp(rearGlow.intensity, 4, 0.08);
+    }
+    
+  }
+};
+
+// Game state
+let gameStarted = false;
+let countdownActive = false;
+let countdownValue = 3;
+let countdownTimer = 0;
+let steer = 0, vx = 0, x = 0;
+const MAX_X = ROAD_HALF*0.9;
+let speedKmh = 0;
+let targetSpeed = 180;
+let distKm = 0;
+let boostEnergy = 100;
+let gameTime = 0;
+let audioLevel = 0;
+let goals = [];
+let currentGoalIndex = 0;
+
+const starsEl = document.getElementById('stars');
+let endSequenceTimer = 0;
+
+// Star tracking system (GTA-style)
+let maxStars = 5;  // Default, can be set by beta form
+let currentStars = 0;
+
+// Load max stars from session storage (beta form)
+try {
+  const sessionStars = sessionStorage.getItem('celli:betaFormStars');
+  if (sessionStars) {
+    maxStars = parseInt(sessionStars, 10);
+  }
+} catch (e) {
+  console.warn('Could not load max stars:', e);
+}
+
+function updateStarDisplay() {
+  if (!starsEl) return;
+  
+  const tricolorStars = colorInverted 
+    ? ['⭐', '🌟', '✨']  // Inverted style
+    : ['★', '☆', '✦'];  // Normal style
+  
+  const tricolorColors = colorInverted
+    ? ['#00ffff', '#ff00ff', '#ffff00']  // Cyan, Magenta, Yellow
+    : ['#0066ff', '#ffff00', '#ff0066'];  // Blue, Yellow, Magenta
+  
+  let html = '';
+  for (let i = 0; i < maxStars; i++) {
+    const filled = i < currentStars;
+    const colorIdx = i % tricolorColors.length;
+    const starChar = filled ? tricolorStars[colorIdx % tricolorStars.length] : '☆';
+    const color = tricolorColors[colorIdx];
+    html += `<span style="color: ${filled ? color : '#666'}; text-shadow: ${filled ? '0 0 10px ' + color : 'none'};">${starChar}</span> `;
+  }
+  starsEl.innerHTML = html;
+}
+
+updateStarDisplay();
+
+// Load goals from session storage (beta form selections)
+try {
+  const sessionGoals = sessionStorage.getItem('celli:betaFormSelections');
+  if (sessionGoals) {
+    goals = JSON.parse(sessionGoals);
+  }
+} catch (e) {
+  console.warn('Could not load goals:', e);
+}
+
+if (goals.length === 0) {
+  goals = ['Level Editor', 'Story Mode', 'Musical Numbers'];
+}
+
+// Input
+const keys = new Set();
+
+// Auto-start countdown on load
+setTimeout(() => {
+  countdownActive = true;
+  countdownValue = 3;
+  countdownTimer = 0;
+    initAudio();
+    // Start playing EA.mp3
+    setTimeout(() => {
+      playTrack(baseTrack);
+    }, 200);
+}, 500);
+
+addEventListener('keydown', e=>{
+  if (e.code==='ArrowLeft'||e.code==='KeyA'){ keys.add('L'); e.preventDefault(); }
+  if (e.code==='ArrowRight'||e.code==='KeyD'){ keys.add('R'); e.preventDefault(); }
+  if (e.code==='Space'){ keys.add('BOOST'); e.preventDefault(); }
+  if (e.code==='KeyS'||e.code==='ArrowDown'){ keys.add('WHEELIE'); e.preventDefault(); }
+  
+  // Toggle orbit camera mode with C
+  if (e.code==='KeyC'){ 
+    orbitCameraMode = !orbitCameraMode;
+    console.log(orbitCameraMode ? '🎥 Orbit camera ENABLED (drag to rotate)' : '🎥 Orbit camera DISABLED');
+    
+    // Update UI
+    document.body.classList.toggle('orbit-mode', orbitCameraMode);
+    const overlay = document.getElementById('cameraModeOverlay');
+    if (overlay) {
+      overlay.classList.toggle('visible', orbitCameraMode);
+      setTimeout(() => {
+        if (orbitCameraMode) overlay.classList.remove('visible');
+      }, 2000);  // Hide after 2 seconds
+    }
+    
+    e.preventDefault(); 
+  }
+  
+  // Rear-view mirror mode with Shift
+  if (e.code==='ShiftLeft'||e.code==='ShiftRight'){ 
+    rearViewMode = true;
+    e.preventDefault(); 
+  }
+});
+addEventListener('keyup', e=>{
+  if (e.code==='ArrowLeft'||e.code==='KeyA') keys.delete('L');
+  if (e.code==='ArrowRight'||e.code==='KeyD') keys.delete('R');
+  if (e.code==='Space') keys.delete('BOOST');
+  if (e.code==='KeyS'||e.code==='ArrowDown') keys.delete('WHEELIE');
+  
+  // Release rear-view mirror
+  if (e.code==='ShiftLeft'||e.code==='ShiftRight'){ 
+    rearViewMode = false;
+  }
+});
+
+// D-pad removed - keyboard/mouse only controls
+
+// Mouse drag for orbit camera
+addEventListener('mousedown', (e) => {
+  if (orbitCameraMode && e.button === 0) {  // Left click only
+    isDragging = true;
+    document.body.classList.add('dragging');
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+    e.preventDefault();
+  }
+});
+
+addEventListener('mousemove', (e) => {
+  if (isDragging && orbitCameraMode) {
+    const deltaX = e.clientX - lastMouseX;
+    const deltaY = e.clientY - lastMouseY;
+    
+    orbitTheta -= deltaX * 0.005;  // Horizontal rotation
+    orbitPhi = THREE.MathUtils.clamp(orbitPhi + deltaY * 0.005, 0.1, Math.PI / 2);  // Vertical rotation (clamped)
+    
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+  }
+});
+
+addEventListener('mouseup', () => {
+  isDragging = false;
+  document.body.classList.remove('dragging');
+});
+
+addEventListener('mouseleave', () => {
+  isDragging = false;
+  document.body.classList.remove('dragging');
+});
+
+const HEIGHT_AMP = 25.0;  // Much taller voxels for dramatic hills/valleys
+function heightAt(xw, zw, audioBoost = 0){
+  const n = hills(xw, zw, audioBoost);
+  return n * HEIGHT_AMP;
+}
+
+// Smooth height interpolation cache to reduce jitter
+const heightCache = new Map();
+function getCachedHeight(xw, zw, audioBoost){
+  const key = `${Math.floor(xw*10)},${Math.floor(zw*10)}`;
+  if (!heightCache.has(key)) {
+    heightCache.set(key, heightAt(xw, zw, audioBoost));
+  }
+  return heightCache.get(key);
+}
+
+const dummy = new THREE.Object3D();
+const color = new THREE.Color();
+
+// Build all terrain instances
+for (let iz=0; iz<ROWS_Z; iz++){
+  const globalRow = iz - rowOffset;
+  const worldZBase = zStart + globalRow * zStride;
+  const roadCenter = roadCenterX(worldZBase);
+  
+  for (let ix=0; ix<COLS_X; ix++){
+  const xw = x0 + ix*COL_SIZE_X;
+    const d = Math.abs(xw - roadCenter); // Distance from curved road center
+    let hNorm = hills(xw, worldZBase);
+  let h = hNorm * HEIGHT_AMP;
+    let col = getTricolor(xw, worldZBase);
+
+    // Global road elevation deforms entire plane
+    const roadElev = roadElevation(worldZBase);
+
+  if (d < ROAD_HALF){
+    const edge = smoothstep(ROAD_HALF-2.0, ROAD_HALF, d);
+      h = (1.0 - edge)*0.3;  // Small local bumps on road
+      if (edge > 0.85) {
+        col = ROAD_EDGE_COLOR;
+      } else {
+        col = ROAD_COLOR;
+      }
+    }
+    // All terrain (road and off-road) sits on the elevation plane
+    
+    const baseY = roadElev;  // Ground plane at this elevation
+    const columnHeight = Math.max(0.5, 0.5 + h);  // Local terrain height above ground
+    dummy.position.set(xw, baseY + columnHeight*0.5, worldZBase);
+    dummy.scale.set(1, columnHeight, 1);
+  dummy.updateMatrix();
+    columns.setMatrixAt(idx(ix, iz), dummy.matrix);
+  color.copy(col);
+    columns.instanceColor.setXYZ(idx(ix, iz), color.r, color.g, color.b);
+  }
+}
+columns.instanceMatrix.needsUpdate = true;
+if (columns.instanceColor) columns.instanceColor.needsUpdate = true;
+
+// Obstacles & Collectibles
+const obstacles = [];
+const collectibles = [];
+
+const obstacleMat = new THREE.MeshStandardMaterial({
+  color:0xff0000, metalness:0.8, roughness:0.2, emissive:0xff0000, emissiveIntensity:0.8
+});
+const collectibleMat = new THREE.MeshStandardMaterial({
+  color:0xffff00, metalness:0.9, roughness:0.1, emissive:0xffff00, emissiveIntensity:1.0
+});
+
+let nextObstacleZ = -30;
+let nextCollectibleZ = -20;
+let nextGoalCheckpointZ = -100;
+
+// Particle system
+const particleCount = 60;
+const particleGeo = new THREE.BufferGeometry();
+const particlePositions = new Float32Array(particleCount * 3);
+const particleVelocities = [];
+const particleColors = new Float32Array(particleCount * 3);
+
+for (let i=0; i<particleCount; i++){
+  particlePositions[i*3] = 0;
+  particlePositions[i*3+1] = 0;
+  particlePositions[i*3+2] = 0;
+  particleVelocities.push({x:0, y:0, z:0, life:0});
+  const tricolorParticles = [0x0066ff, 0xffff00, 0xff0066, 0xffffff];
+  const c = new THREE.Color(tricolorParticles[Math.floor(Math.random() * tricolorParticles.length)]);
+  particleColors[i*3] = c.r;
+  particleColors[i*3+1] = c.g;
+  particleColors[i*3+2] = c.b;
+}
+particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+
+const particleMat = new THREE.PointsMaterial({
+  size: 0.5, vertexColors: true, transparent: true, opacity: 0.3,  // Start dim
+  blending: THREE.AdditiveBlending, depthWrite: false
+});
+const particles = new THREE.Points(particleGeo, particleMat);
+scene.add(particles);
+
+let particleIdx = 0;
+function emitParticle(pos, isWheelieParticle = false){
+  const p = particleVelocities[particleIdx];
+  p.x = pos.x + (Math.random()-0.5)*3;
+  p.y = pos.y + (Math.random()-0.5)*1.5;
+  p.z = pos.z;
+  
+  if (isWheelieParticle) {
+    // Wheelie particles spark upward and outward
+    p.vx = (Math.random()-0.5)*8;  // Wider spread
+    p.vy = 3 + Math.random()*4;     // Strong upward velocity
+    p.vz = 2 + Math.random()*3;     // Some backward drift
+    p.life = 0.6;  // Shorter life for sparks
+  } else {
+    // Normal particles
+  p.vx = (Math.random()-0.5)*4;
+  p.vy = (Math.random()-0.5)*2.5;
+  p.vz = 6 + Math.random()*6;
+  p.life = 1.0;
+  }
+  
+  particlePositions[particleIdx*3] = p.x;
+  particlePositions[particleIdx*3+1] = p.y;
+  particlePositions[particleIdx*3+2] = p.z;
+  
+  particleIdx = (particleIdx + 1) % particleCount;
+}
+
+let particleGravity = -9.8; // Global gravity for debug control
+
+function updateParticles(dt){
+  for (let i=0; i<particleCount; i++){
+    const p = particleVelocities[i];
+    if (p.life > 0){
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.z += p.vz * dt;
+      p.vy += particleGravity * dt; // Apply gravity for arc
+      p.life -= dt * 1.2;
+      
+      particlePositions[i*3] = p.x;
+      particlePositions[i*3+1] = p.y;
+      particlePositions[i*3+2] = p.z;
+    } else {
+      particlePositions[i*3+1] = -100;
+    }
+  }
+  particleGeo.attributes.position.needsUpdate = true;
+}
+
+// Resize
+function onResize(){
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w,h);
+  composer.setSize(w,h);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+  fxaaPass.material.uniforms['resolution'].value.set(1/w, 1/h);
+}
+addEventListener('resize', onResize);
+onResize();
+
+// FOV pulsing with speed (from zany.html)
+function updateFOV(dt) {
+  const baseFOV = 75;
+  let targetFOV = baseFOV + Math.min(20, speedKmh / 30) + (keys.has('BOOST') && wheelieHoldTime < 0.5 ? 8 : 0);
+  
+  // Wide FOV during jump
+  if (isJumping) {
+    targetFOV += 15;
+  }
+  
+  camera.fov += (targetFOV - camera.fov) * dt * 3;
+  camera.updateProjectionMatrix();
+}
+
+let rollSm = 0, pitchSm = 0;
+let playerX = 0;  // Player's lateral position on road
+let playerVx = 0; // Player's lateral velocity
+const bikeZ = 0;  // Bike/camera rig stays at origin Z, world scrolls past
+let wheelieActive = false;
+let wheeliePitch = 0;
+let wheelieHoldTime = 0;  // Track how long wheelie has been held
+let isJumping = false;
+let jumpVelocityY = 0;
+let jumpHeight = 0;
+let useComposer = true; // Global for debug control
+
+let prev = performance.now();
+
+function tick(now){
+  requestAnimationFrame(tick);
+  const dt = Math.min(0.033, (now - prev)/1000);
+  prev = now;
+
+  // Countdown logic
+  if (countdownActive && !gameStarted) {
+    countdownTimer += dt;
+    
+    // Hide all countdown sprites first
+    countdown3.visible = false;
+    countdown2.visible = false;
+    countdown1.visible = false;
+    countdownSprint.visible = false;
+    titleBanner.visible = true;
+    
+    // Lower bike AND camera rig gradually during countdown
+    const targetBikeY = -0.8;
+    bike.position.y = THREE.MathUtils.lerp(bike.position.y, targetBikeY, 0.05);
+    
+    // Lower camera rig from 20 to road level (determined by terrain)
+    const currentRoadElev = roadElevation(0);  // Road elevation at start
+    const targetRigY = currentRoadElev + 5.0;
+    camRig.position.y = THREE.MathUtils.lerp(camRig.position.y, targetRigY, 0.05);
+    
+    // Show appropriate countdown sprite based on timer
+    if (countdownTimer < 1.0) {
+      countdown3.visible = true;
+      countdown3.scale.set(10 + Math.sin(countdownTimer * 6) * 0.5, 2.5 + Math.sin(countdownTimer * 6) * 0.125, 1);
+    } else if (countdownTimer < 2.0) {
+      countdown2.visible = true;
+      countdown2.scale.set(10 + Math.sin(countdownTimer * 6) * 0.5, 2.5 + Math.sin(countdownTimer * 6) * 0.125, 1);
+    } else if (countdownTimer < 3.0) {
+      countdown1.visible = true;
+      countdown1.scale.set(10 + Math.sin(countdownTimer * 6) * 0.5, 2.5 + Math.sin(countdownTimer * 6) * 0.125, 1);
+    } else if (countdownTimer < 4.0) {
+      countdownSprint.visible = true;
+      countdownSprint.scale.set(15 + Math.sin(countdownTimer * 8) * 1, 3.75 + Math.sin(countdownTimer * 8) * 0.25, 1);
+    } else {
+      // Start game!
+      gameStarted = true;
+      countdownActive = false;
+      speedKmh = 120;
+      titleBanner.visible = false;
+      countdownSprint.visible = false;
+      bike.position.y = -0.8;  // Ensure final position
+    }
+    
+    if (useComposer) {
+      composer.render();
+    } else {
+      renderer.render(scene, camera);
+    }
+    return;
+  }
+
+  if (!gameStarted){
+    if (useComposer) {
+      composer.render();
+    } else {
+    renderer.render(scene, camera);
+    }
+    return;
+  }
+
+  // Hide countdown elements during game
+  titleBanner.visible = false;
+  countdown3.visible = false;
+  countdown2.visible = false;
+  countdown1.visible = false;
+  countdownSprint.visible = false;
+
+  gameTime += dt;
+  audioLevel = getAudioLevel();
+
+  // Progressive visual enhancement (handles inversion and return automatically)
+  visualProgression.update(gameTime);
+  
+  // FOV pulsing with speed
+  updateFOV(dt);
+
+  // Speed ramping with audio boost
+  targetSpeed = 180 + Math.min(100, gameTime * 2) + audioLevel * 50;
+  speedKmh += (targetSpeed - speedKmh) * dt * 2;
+
+  // Boost mechanic (only if not primed for jump)
+  if (keys.has('BOOST') && boostEnergy > 0 && wheelieHoldTime < 0.5){
+    speedKmh = Math.min(450, speedKmh + 250*dt);
+    boostEnergy = Math.max(0, boostEnergy - 35*dt);
+    bikeGlow.intensity = 5;
+    bikeGlow.distance = 30;
+    leftTrail.material.opacity = 0.9;
+    rightTrail.material.opacity = 0.9;
+  } else {
+    boostEnergy = Math.min(100, boostEnergy + 15*dt);
+    if (!keys.has('BOOST')) {
+    bikeGlow.intensity = 3;
+    bikeGlow.distance = 20;
+    leftTrail.material.opacity = 0.6;
+    rightTrail.material.opacity = 0.6;
+    }
+  }
+
+  // Animated veering trails
+  const veerWave = Math.sin(gameTime * 8 + steer * 5) * 0.3;
+  leftTrail.position.z = veerWave * 1.5;
+  rightTrail.position.z = -veerWave * 1.5;
+  const trailColors = [0x0066ff, 0xffff00, 0xff0066];
+  leftTrail.material.color.setHex(trailColors[Math.floor(Math.random() * trailColors.length)]);
+  rightTrail.material.color.setHex(trailColors[Math.floor(Math.random() * trailColors.length)]);
+
+  // Input → steer (now controls playerX)
+  const want = (keys.has('L')?-1:0) + (keys.has('R')?+1:0);
+  steer += (want - steer) * (want ? 12*dt : 7*dt);
+  const agility = keys.has('BOOST') ? 25 : 18;
+  playerVx += steer * (agility * dt);
+  playerVx *= 0.985;
+  playerX += playerVx * dt;
+  playerX = Math.max(-MAX_X, Math.min(MAX_X, playerX));
+  if (Math.abs(playerX) >= MAX_X*0.985) playerVx *= -0.6;
+
+  // Forward scroll
+  const mps = speedKmh * (1000/3600);
+  const forward = mps * dt;
+  distKm += (mps*dt)/1000;
+
+  // Emit particles (from camera rig world position)
+  if (Math.random() < 0.2){
+    const bikeWorldPos = new THREE.Vector3();
+    bike.getWorldPosition(bikeWorldPos);
+    emitParticle(bikeWorldPos);
+  }
+  updateParticles(dt);
+  
+  // Get bike rear position for speed lines
+  const bikeRearLocal = new THREE.Vector3(0, 0.5, 3);  // Rear of bike
+  const bikeRearWorld = bikeRearLocal.clone();
+  bike.localToWorld(bikeRearWorld);
+  camRig.localToWorld(bikeRearWorld);
+  
+  updateSpeedLines(dt, bikeRearWorld);
+
+  // Update road lines - follow the curves
+  const lineSpacing = 22;
+  for (let i=0; i<roadLines.length; i++){
+    const line = roadLines[i];
+    const offset = (gameTime * speedKmh * 0.12 + i*lineSpacing) % (lineSpacing*roadLines.length);
+    const lineZ = bikeZ - 50 + offset;
+    const lineCenterX = roadCenterX(lineZ);
+    line.position.z = lineZ;
+    line.position.x = lineCenterX + ((i % 2 === 0) ? -4 : 4);
+    line.material.opacity = 0.5 + Math.sin(gameTime*5 + i*2)*0.3;
+  }
+
+  cameraShake *= 0.85;
+
+  // Advance grid
+  scrollZ += forward * 0.9;
+  while (scrollZ >= zStride){
+    scrollZ -= zStride;
+    rowOffset = (rowOffset + 1) % ROWS_Z;
+  }
+  
+  // Update terrain Z positions every frame (smooth scrolling)
+    const centerRowIndex = Math.floor(ROWS_Z / 2);
+    for (let iz=0; iz<ROWS_Z; iz++){
+      const offsetFromCenter = iz - centerRowIndex;
+      const zw = bikeZ + offsetFromCenter * zStride - scrollZ;
+    for (let ix=0; ix<COLS_X; ix++){
+      const i = idx(ix, iz);
+      const matrixOffset = i * 16;
+      columns.instanceMatrix.array[matrixOffset + 14] = zw;
+    }
+  }
+  columns.instanceMatrix.needsUpdate = true;
+  
+  // Rebuild terrain heights with audio reactivity (less frequently)
+  const shouldRebuildHeights = Math.floor(gameTime * 60) % 3 === 0;
+  
+  // Dynamic road width expansion during off-road wave
+  const currentRoadHalf = ROAD_HALF + (visualProgression.roadExpansion * 20);  // Expand up to 32 units wide
+  
+  if (shouldRebuildHeights) {
+    // Update heights and colors only (Z is already set above)
+    for (let iz=0; iz<ROWS_Z; iz++){
+      const worldZBase = (rowOffset + iz) * zStride;
+      const roadCenter = roadCenterX(worldZBase);
+      
+      // Dynamic wave deformation
+      const waveOffset = visualProgression.waveIntensity * Math.sin(gameTime * 1.5 + worldZBase * 0.02) * 15;
+      
+    for (let ix=0; ix<COLS_X; ix++){
+        const xw = x0 + ix*COL_SIZE_X;
+        const d = Math.abs(xw - roadCenter);
+        
+        let col = getTricolor(xw, worldZBase);
+        let h = 0;
+        let audioHeightBoost = 0;
+        
+        // SKI HILL MODE - One continuous smooth wave, smaller cubes
+        if (visualProgression.skiHillIntensity >= 0.3) {
+          // Continuous smooth wave across ENTIRE width (not just road)
+          const smoothWave = Math.sin(worldZBase * 0.01) * 3;  // Gentle rolling wave
+          h = 0.3 + smoothWave;  // Smooth undulating surface
+          audioHeightBoost = 0;  // No audio reactivity
+          col = new THREE.Color(0xffffff);  // Pure white snow
+          
+          // Steep downhill slope across entire width
+          const skiHillSlope = visualProgression.skiHillIntensity * worldZBase * -0.25;  // Very steep
+          const roadElev = roadElevation(worldZBase) + skiHillSlope;
+          const baseY = roadElev;
+          
+          // Smaller cube height for finer detail
+          const cubeHeight = Math.max(0.3, 0.3 + h);
+          
+          // Update matrix directly
+          const i = idx(ix, iz);
+          const matrixOffset = i * 16;
+          columns.instanceMatrix.array[matrixOffset + 13] = baseY + cubeHeight * 0.5;
+          columns.instanceMatrix.array[matrixOffset + 5] = cubeHeight;
+          
+          // Scale down X and Z for smaller cubes
+          columns.instanceMatrix.array[matrixOffset + 0] = 0.6;  // X scale
+          columns.instanceMatrix.array[matrixOffset + 10] = 0.6;  // Z scale
+          
+          color.copy(col);
+          columns.instanceColor.setXYZ(i, color.r, color.g, color.b);
+          
+          continue;  // Skip normal terrain logic
+        } else {
+          // Reset scale to normal when not in ski mode
+          const i = idx(ix, iz);
+          const matrixOffset = i * 16;
+          columns.instanceMatrix.array[matrixOffset + 0] = 1.0;  // X scale
+          columns.instanceMatrix.array[matrixOffset + 10] = 1.0;  // Z scale
+        }
+        
+        // Normal terrain logic (non-ski mode)
+        let hNorm = hills(xw, worldZBase, 0);
+        h = hNorm * HEIGHT_AMP;
+        
+        // Create wave patterns that pulse with audio
+        const wavePhase = gameTime * 2 + worldZBase * 0.05;
+        const audioWave = Math.sin(wavePhase) * audioLevel * 0.5;
+        
+        // Audio-reactive boost
+        audioHeightBoost = d > currentRoadHalf 
+          ? audioLevel * 30 + audioWave * 15
+          : audioLevel * 8 + audioWave * 4;
+        
+        // Apply road elevation + wave deformation
+        const roadElev = roadElevation(worldZBase) + waveOffset;
+        
+        // Off-road wave mode: road becomes voxel grid
+        const isOnRoad = d < currentRoadHalf;
+        if (isOnRoad && visualProgression.waveIntensity < 0.5){
+          // Normal road (flat, road colors)
+          const edge = smoothstep(currentRoadHalf-2.0, currentRoadHalf, d);
+          h = (1.0 - edge)*0.3;
+          audioHeightBoost = audioLevel * 8 + audioWave * 4;
+          if (edge > 0.85) {
+            col = ROAD_EDGE_COLOR;
+          } else {
+            col = ROAD_COLOR;
+          }
+        } else if (isOnRoad && visualProgression.waveIntensity >= 0.5) {
+          // Off-road wave mode: road uses tricolor voxel pattern
+          h = hNorm * HEIGHT_AMP * 0.3;  // Reduced height variation on road
+          audioHeightBoost = audioLevel * 15 + audioWave * 8;
+          // Keep tricolor from getTricolor() - no road color override
+        }
+        
+        const baseY = roadElev;
+        const columnHeight = Math.max(0.5, 0.5 + h + audioHeightBoost);
+        
+        // Update Y position and scale in matrix directly (keep Z unchanged)
+        const i = idx(ix, iz);
+        const matrixOffset = i * 16;
+        
+        // Set Y position (matrix[13]) and Y scale (matrix[5])
+        columns.instanceMatrix.array[matrixOffset + 13] = baseY + columnHeight * 0.5;
+        columns.instanceMatrix.array[matrixOffset + 5] = columnHeight;
+        
+        // Update color
+        color.copy(col);
+        columns.instanceColor.setXYZ(i, color.r, color.g, color.b);
+      }
+    }
+    columns.instanceColor.needsUpdate = true;
+  }
+
+  // Position camera rig at player location on road
+  const playerWorldZ = (rowOffset + Math.floor(ROWS_Z/2)) * zStride + scrollZ;
+  const currentRoadCenter = roadCenterX(playerWorldZ);
+  const currentRoadElev = roadElevation(playerWorldZ);
+  
+  // Dynamic wave deformation that bike tracks
+  const waveOffset = visualProgression.waveIntensity * Math.sin(gameTime * 1.5 + playerWorldZ * 0.02) * 15;
+  
+  // Ski hill slope that bike tracks - VERY STEEP
+  const skiHillSlope = visualProgression.skiHillIntensity > 0 ? visualProgression.skiHillIntensity * playerWorldZ * -0.25 : 0;
+  
+  // Gentle pull toward road center
+  const roadPull = (currentRoadCenter - playerX) * 0.8 * dt;
+  playerX += roadPull;
+  
+  // Camera rig sits on the road at player position (bike is child of rig)
+  // Add extra height to prevent clipping into terrain + wave tracking + ski slope
+  const rigY = currentRoadElev + waveOffset + skiHillSlope + 5.0;
+  camRig.position.set(playerX, rigY, 0);
+  
+  // Assigna billboard - animate eyes during initial section, track terrain height
+  if (gameTime <= 25) {
+    updateAssignaEyes();
+    
+    // Position billboard using same Y as bike (rigY) plus higher offset
+    assignaSprite.position.set(
+      currentRoadCenter,  // Follow road curves
+      rigY + 20,  // 20 units above the bike's camera rig (higher)
+      -80  // Fixed distance ahead in view space
+    );
+    
+    assignaSprite.visible = true;
+  } else {
+    assignaSprite.visible = false;
+  }
+  
+  // Terrain slopes for camera bank/pitch (with wave deformation and ski hill)
+  const epsX = 1.5, epsZ = 8.0;
+  const aheadWorldZ = playerWorldZ - epsZ;
+  const behindWorldZ = playerWorldZ + epsZ;
+  
+  const waveAtPlayer = visualProgression.waveIntensity * Math.sin(gameTime * 1.5 + playerWorldZ * 0.02) * 15;
+  const waveAhead = visualProgression.waveIntensity * Math.sin(gameTime * 1.5 + aheadWorldZ * 0.02) * 15;
+  const waveBehind = visualProgression.waveIntensity * Math.sin(gameTime * 1.5 + behindWorldZ * 0.02) * 15;
+  
+  const skiSlopePlayer = visualProgression.skiHillIntensity > 0 ? visualProgression.skiHillIntensity * playerWorldZ * -0.25 : 0;
+  const skiSlopeAhead = visualProgression.skiHillIntensity > 0 ? visualProgression.skiHillIntensity * aheadWorldZ * -0.25 : 0;
+  const skiSlopeBehind = visualProgression.skiHillIntensity > 0 ? visualProgression.skiHillIntensity * behindWorldZ * -0.25 : 0;
+  
+  const hL = roadElevation(playerWorldZ) + waveAtPlayer + skiSlopePlayer + (playerX - epsX < -currentRoadHalf ? heightAt(playerX - epsX, playerWorldZ) * 0.3 : 0);
+  const hR = roadElevation(playerWorldZ) + waveAtPlayer + skiSlopePlayer + (playerX + epsX > currentRoadHalf ? heightAt(playerX + epsX, playerWorldZ) * 0.3 : 0);
+  const hF = roadElevation(aheadWorldZ) + waveAhead + skiSlopeAhead;
+  const hB = roadElevation(behindWorldZ) + waveBehind + skiSlopeBehind;
+  const slopeX = (hR - hL) / (2*epsX);
+  const slopeZ = (hF - hB) / (2*epsZ);
+
+  // Enhanced pitch during wave sequence and ski hill
+  let pitchMultiplier = 0.25;
+  if (visualProgression.waveIntensity > 0.5) pitchMultiplier = 0.4;
+  if (visualProgression.skiHillIntensity > 0.5) pitchMultiplier = 0.5;  // Even more pitch on ski hill
+
+  const roll  = THREE.MathUtils.clamp(-slopeX * 0.15 - steer * 0.2, -0.3, 0.3);
+  const pitch = THREE.MathUtils.clamp(-slopeZ * pitchMultiplier, -0.5, 0.5);  // Allow more pitch range for ski hill
+  rollSm  = THREE.MathUtils.lerp(rollSm,  roll,  0.15);
+  pitchSm = THREE.MathUtils.lerp(pitchSm, pitch, 0.15);
+  
+  // Yeti sprite visibility and animation during ski hill
+  const showYeti = visualProgression.skiHillIntensity > 0.3;
+  yetiSprite.visible = showYeti;
+  
+  if (showYeti) {
+    // Update arm animation
+    updateYetiAnimation();
+    
+    // Animate yeti bouncing/chasing
+    const bounce = Math.sin(gameTime * 8) * 0.8;
+    const sway = Math.sin(gameTime * 6) * 1.5;
+    
+    // Position yeti in world space, AHEAD of player (chasing from in front during inverted white mode)
+    const yetiWorldPos = new THREE.Vector3(
+      playerX + sway,
+      rigY + 4 + bounce,
+      -25  // In front of player
+    );
+    
+    yetiSprite.position.copy(yetiWorldPos);
+    yetiSprite.scale.set(15 + bounce * 0.5, 15 + bounce * 0.5, 1);
+    
+    // Debug every 2 seconds
+    if (Math.floor(gameTime) % 2 === 0 && Math.abs(gameTime - Math.floor(gameTime)) < 0.05) {
+      console.log(`🦍 YETI VISIBLE! Position: (${yetiWorldPos.x.toFixed(1)}, ${yetiWorldPos.y.toFixed(1)}, ${yetiWorldPos.z.toFixed(1)}), Intensity: ${visualProgression.skiHillIntensity.toFixed(2)}`);
+    }
+  }
+  
+  // Spawn ski obstacles (trees and gates) during ski hill sequence
+  if (visualProgression.skiHillIntensity > 0.5 && Math.random() < 0.015) {
+    const isGate = Math.random() < 0.4;  // 40% gates, 60% trees
+    const obstacle = isGate ? createGateSprite() : createTreeMesh();
+    
+    // Position ahead on the slope
+    const obstacleZ = -40 - Math.random() * 30;
+    const obstacleX = currentRoadCenter + (Math.random() - 0.5) * currentRoadHalf * 1.8;
+    const obstacleWorldZ = playerWorldZ - obstacleZ;
+    const obstacleElev = roadElevation(obstacleWorldZ) + (visualProgression.skiHillIntensity * obstacleWorldZ * -0.25);
+    
+    // For tree meshes, orient perpendicular to camera view
+    if (!isGate) {
+      obstacle.rotation.y = 0;  // Face forward (slat aligned with road direction)
+    }
+    
+    obstacle.position.set(obstacleX, obstacleElev + 6, obstacleZ);  // Higher position for larger trees
+    obstacle.userData = { active: true, skiObstacle: true };
+    scene.add(obstacle);
+    skiObstacles.push(obstacle);
+  }
+  
+  // Spawn floating cube arrays during inversion AND finale (stop at 105s for final explosion sequence)
+  if ((colorInverted || visualProgression.phase >= 4) && gameTime < 105 && Math.random() < 0.01) {
+    const arrayPos = new THREE.Vector3(
+      (Math.random() - 0.5) * 60,  // Spread across width
+      rigY + 30 + Math.random() * 20,  // High in sky
+      -40 - Math.random() * 40  // Ahead of player
+    );
+    const array = createFloatingCubeArray(arrayPos);
+    floatingArrays.push(array);
+  }
+  
+  // Update floating cube arrays
+  updateVoxelExplosions(dt);
+  
+  for (let i = floatingArrays.length - 1; i >= 0; i--) {
+    const array = floatingArrays[i];
+    
+    // Collapse and explode in final 10 seconds (110-120s)
+    const shouldCollapse = gameTime > 110 && !array.userData.exploded;
+    
+    if (shouldCollapse) {
+      // Rapid collapse phase (jittery animation inward) - FAST
+      array.userData.collapsePhase = Math.min(1, array.userData.collapsePhase + dt * 4);
+      
+      // Trigger explosion quickly at collapse phase 0.5
+      if (array.userData.collapsePhase >= 0.5 && !array.userData.exploded) {
+        array.userData.exploded = true;
+        
+        // Create fireworks explosion
+        const particles = createVoxelExplosion(array.position);
+        voxelExplosions.push(particles);
+        
+        console.log(`💥 Cube array exploded at ${gameTime.toFixed(1)}s - ${voxelExplosions.length} active explosions`);
+        
+        // Remove the cube array
+        scene.remove(array);
+        floatingArrays.splice(i, 1);
+        continue;
+      }
+    } else {
+      // Normal expansion animation
+      array.userData.expansionProgress = Math.min(1, array.userData.expansionProgress + dt * 0.8);
+    }
+    
+    const expansionEased = array.userData.expansionProgress * array.userData.expansionProgress;  // Ease out
+    const collapseAmount = array.userData.collapsePhase;
+    
+    // Rotate and float
+    array.rotation.x += dt * array.userData.rotSpeed;
+    array.rotation.y += dt * array.userData.rotSpeed * 0.7;
+    array.position.y += Math.sin(gameTime * array.userData.floatSpeed) * dt * 2;
+    
+    // Update colors: Black during inversion, White during finale
+    const targetColor = visualProgression.phase >= 4 ? 0xffffff : 0x000000;
+    const targetCol = new THREE.Color(targetColor);
+    
+    const arrayDummy = new THREE.Object3D();
+    
+    for (let c = 0; c < cubesPerArray; c++) {
+      // Animate cube expanding to target position
+      const targetPos = array.userData.targetPositions[c];
+      const targetRot = array.userData.targetRotations[c];
+      const targetScale = array.userData.targetScales[c];
+      
+      if (shouldCollapse && collapseAmount > 0) {
+        // Collapse phase: jittery animation back to center
+        const jitter = new THREE.Vector3(
+          (Math.random() - 0.5) * 0.5,
+          (Math.random() - 0.5) * 0.5,
+          (Math.random() - 0.5) * 0.5
+        );
+        
+        const currentPos = targetPos.clone().multiplyScalar(expansionEased);
+        const collapsedPos = currentPos.clone().lerp(new THREE.Vector3(0, 0, 0), collapseAmount);
+        arrayDummy.position.copy(collapsedPos).add(jitter.multiplyScalar(collapseAmount));
+        
+        arrayDummy.rotation.set(
+          targetRot.x * expansionEased * (1 - collapseAmount * 0.5),
+          targetRot.y * expansionEased * (1 - collapseAmount * 0.5),
+          targetRot.z * expansionEased * (1 - collapseAmount * 0.5)
+        );
+        arrayDummy.scale.setScalar((0.01 + (targetScale - 0.01) * expansionEased) * (1 - collapseAmount * 0.8));
+      } else {
+        // Normal expansion: Lerp from center (0,0,0) to target position
+        arrayDummy.position.lerpVectors(new THREE.Vector3(0, 0, 0), targetPos, expansionEased);
+        arrayDummy.rotation.set(
+          targetRot.x * expansionEased,
+          targetRot.y * expansionEased,
+          targetRot.z * expansionEased
+        );
+        arrayDummy.scale.setScalar(0.01 + (targetScale - 0.01) * expansionEased);
+      }
+      
+      arrayDummy.updateMatrix();
+      array.setMatrixAt(c, arrayDummy.matrix);
+      
+      // Update colors
+      const currentR = array.instanceColor.getX(c);
+      const currentG = array.instanceColor.getY(c);
+      const currentB = array.instanceColor.getZ(c);
+      
+      const newR = THREE.MathUtils.lerp(currentR, targetCol.r, 0.08);
+      const newG = THREE.MathUtils.lerp(currentG, targetCol.g, 0.08);
+      const newB = THREE.MathUtils.lerp(currentB, targetCol.b, 0.08);
+      
+      array.instanceColor.setXYZ(c, newR, newG, newB);
+    }
+    
+    array.instanceMatrix.needsUpdate = true;
+    array.instanceColor.needsUpdate = true;
+    
+    // Also update material color
+    array.material.color.lerp(targetCol, 0.08);
+    array.material.emissive.lerp(targetCol, 0.08);
+    
+    // Remove if way behind
+    if (array.position.z > 80) {
+      scene.remove(array);
+      floatingArrays.splice(i, 1);
+    }
+  }
+  
+  // Update ski obstacles - track to terrain Y
+  for (let i = skiObstacles.length - 1; i >= 0; i--) {
+    const obs = skiObstacles[i];
+    
+    // Update tree/gate Y position to follow terrain
+    if (obs.userData.skiObstacle) {
+      const obsWorldZ = obs.position.z;
+      const obstacleWorldZPos = playerWorldZ + obsWorldZ;  // Convert local to world Z
+      const obsElev = roadElevation(obstacleWorldZPos) + (visualProgression.skiHillIntensity * obstacleWorldZPos * -0.25);
+      obs.position.y = obsElev + 6;  // Update Y to follow terrain
+    }
+    
+    // Remove if passed or ski sequence ended
+    if (obs.position.z > 20 || visualProgression.skiHillIntensity < 0.2) {
+      scene.remove(obs);
+      skiObstacles.splice(i, 1);
+    }
+  }
+
+  // Wheelie mechanic (hold S to tilt camera up)
+  wheelieActive = keys.has('WHEELIE');
+  const targetWheeliePitch = wheelieActive ? -0.3 : 0;
+  wheeliePitch = THREE.MathUtils.lerp(wheeliePitch, targetWheeliePitch, 0.1);
+
+  // Track wheelie hold duration
+  if (wheelieActive) {
+    wheelieHoldTime += dt;
+  } else {
+    wheelieHoldTime = 0;
+  }
+  
+  // Show jump ready indicator
+  const jumpReadyEl = document.getElementById('jumpReady');
+  if (jumpReadyEl) {
+    jumpReadyEl.style.display = wheelieHoldTime > 0.5 && !isJumping ? 'inline' : 'none';
+  }
+  
+  // Update camera mode indicators
+  const orbitIndicator = document.getElementById('orbitIndicator');
+  if (orbitIndicator) {
+    orbitIndicator.textContent = orbitCameraMode ? 'ON' : 'OFF';
+    orbitIndicator.style.color = orbitCameraMode ? '#00ff00' : '#ff0066';
+  }
+  
+  const rearIndicator = document.getElementById('rearIndicator');
+  if (rearIndicator) {
+    rearIndicator.textContent = rearViewMode ? 'ACTIVE' : '-';
+    rearIndicator.style.color = rearViewMode ? '#ffff00' : '#666';
+  }
+  
+  // Jump mechanic: fully held wheelie (>0.5s) + spacebar = jump
+  if (!isJumping && wheelieHoldTime > 0.5 && keys.has('BOOST')) {
+    isJumping = true;
+    jumpVelocityY = 20;  // Initial jump velocity
+    jumpHeight = 0;
+    console.log('🚀 JUMP!');
+    
+    // Emit jump particles
+    const bikePos = new THREE.Vector3();
+    bike.getWorldPosition(bikePos);
+    camRig.localToWorld(bikePos);
+    for (let i = 0; i < 20; i++) {
+      emitParticle(bikePos, true);
+    }
+  }
+  
+  // Jump physics
+  if (isJumping) {
+    const jumpGravity = -35;  // Gravity for jump arc
+    jumpVelocityY += jumpGravity * dt;
+    jumpHeight += jumpVelocityY * dt;
+    
+    // Emit particles during jump arc
+    if (Math.random() < 0.3) {
+      const bikePos = new THREE.Vector3();
+      bike.getWorldPosition(bikePos);
+      camRig.localToWorld(bikePos);
+      emitParticle(bikePos, true);
+    }
+    
+    // Land when reaching road level
+    if (jumpHeight <= 0) {
+      jumpHeight = 0;
+      jumpVelocityY = 0;
+      isJumping = false;
+      cameraShake = 1.5;  // Landing impact
+      console.log('📍 Landed');
+      
+      // Landing particle burst
+      const bikePos = new THREE.Vector3();
+      bike.getWorldPosition(bikePos);
+      camRig.localToWorld(bikePos);
+      for (let i = 0; i < 15; i++) {
+        emitParticle(bikePos, true);
+      }
+    }
+  }
+
+  // Camera control based on mode
+    const shakeX = (Math.random()-0.5) * cameraShake;
+    const shakeY = (Math.random()-0.5) * cameraShake;
+    const shakeZ = (Math.random()-0.5) * cameraShake * 0.5;
+    
+  if (orbitCameraMode) {
+    // Orbit camera mode: Position camera in spherical coordinates around bike
+    const x = orbitRadius * Math.sin(orbitPhi) * Math.cos(orbitTheta);
+    const y = orbitRadius * Math.cos(orbitPhi);
+    const z = orbitRadius * Math.sin(orbitPhi) * Math.sin(orbitTheta);
+    
+    camera.position.set(x, y, z);
+    camera.lookAt(0, 0, 0);  // Look at bike center
+  } else if (rearViewMode) {
+    // Rear-view mirror: Camera looks backward
+    camera.position.set(0, 2, -6);  // In front of bike, looking back
+    camera.rotation.set(pitchSm + wheeliePitch + shakeY * 0.01, Math.PI + shakeX * 0.01, rollSm + shakeZ * 0.01);
+  } else {
+    // Normal chase camera
+    camera.position.set(0, 2, 6);
+    camera.rotation.set(pitchSm + wheeliePitch + shakeY * 0.01, shakeX * 0.01, rollSm + shakeZ * 0.01);
+  }
+
+  // Bike lean with veering animation and wheelie
+  bikeBody.rotation.z = rollSm * 1.2 + Math.sin(gameTime * 6) * 0.05;
+  bikeBody.rotation.x = pitchSm * 0.5 + wheeliePitch * 0.8;
+  bikeBody.rotation.y = steer * 0.1;
+  
+  // Jump ready visual cue
+  if (wheelieHoldTime > 0.5 && !isJumping) {
+    rearGlow.intensity = 8 + Math.sin(gameTime * 15) * 2;  // Pulsing glow
+    rearGlow.color.setHex(0xffff00);  // Yellow when jump ready
+  } else if (!keys.has('BOOST')) {
+    rearGlow.color.setHex(0xff0066);  // Normal magenta
+  }
+  
+  // Adjust bike Y position during wheelie, jumping, and off-road wave
+  const wheelieOffset = wheelieActive ? 0.3 : 0;
+  const offRoadLift = visualProgression.waveIntensity * 1.5;  // Lift bike during off-road wave
+  
+  // Snap to normal height if not in special sequences
+  if (visualProgression.phase >= 4) {
+    bike.position.y = -0.8 + wheelieOffset + jumpHeight;  // No off-road lift in phase 4
+  } else {
+    bike.position.y = -0.8 + wheelieOffset + jumpHeight + offRoadLift;
+  }
+
+  // Wheelie particle effects from rear pivot point
+  if (wheelieActive && Math.random() < 0.5) {
+    // Get the world position of the rear pivot point (back bottom edge of bike)
+    const pivotPoint = new THREE.Vector3(0, -0.5, 2.5); // Rear bottom of bike in local space
+    const worldPivot = pivotPoint.clone();
+    bike.localToWorld(worldPivot);
+    camRig.localToWorld(worldPivot);
+    
+    // Emit upward-sparking particles from the pivot point
+    emitParticle(worldPivot, true);
+  }
+  
+  // Emit octagonal particles in finale (100s+)
+  if (gameTime > 100 && Math.random() < 0.1) {
+    const bikePos = new THREE.Vector3();
+    bike.getWorldPosition(bikePos);
+    camRig.localToWorld(bikePos);
+    
+    const tricolorOcto = [0x0066ff, 0xffff00, 0xff0066, 0x00ffff];
+    const particleColor = tricolorOcto[Math.floor(Math.random() * tricolorOcto.length)];
+    
+    if (octoParticles.length < maxOctoParticles) {
+      const particle = createOctagonalParticle(bikePos, particleColor);
+      octoParticles.push(particle);
+    }
+  }
+  
+  updateOctoParticles(dt);
+
+  // Spawn category tile obstacles (random categories behind player in chase view)
+  while (nextObstacleZ > bikeZ - 80) {
+    const obstacleRoadCenter = roadCenterX(nextObstacleZ);
+    const obstacleElev = roadElevation(nextObstacleZ);
+    const xPos = obstacleRoadCenter + (Math.random() - 0.5) * ROAD_HALF * 1.6;
+    
+    // Random category from goals list (or generic labels)
+    const categoryLabels = goals.length > 0 ? goals : ['LEVEL', 'STORY', 'PUZZLE', 'MUSIC', 'BOSS'];
+    const categoryText = categoryLabels[Math.floor(Math.random() * categoryLabels.length)];
+    
+    const tileGroup = new THREE.Group();
+    
+    // Tile base
+    const tileColors = [0x0066ff, 0xffff00, 0xff0066];
+    const tileColor = tileColors[Math.floor(Math.random() * tileColors.length)];
+    const tileGeo = new THREE.BoxGeometry(5, 2, 0.4);
+    const tileMat = new THREE.MeshStandardMaterial({
+      color: tileColor, metalness: 0.7, roughness: 0.3, emissive: tileColor, emissiveIntensity: 0.5
+    });
+    const tileMesh = new THREE.Mesh(tileGeo, tileMat);
+    tileGroup.add(tileMesh);
+    
+    // Text sprite
+    const textCanvas = document.createElement('canvas');
+    textCanvas.width = 256;
+    textCanvas.height = 64;
+    const textCtx = textCanvas.getContext('2d');
+    textCtx.fillStyle = '#000';
+    textCtx.font = 'bold 24px "Orbitron", sans-serif';
+    textCtx.textAlign = 'center';
+    textCtx.textBaseline = 'middle';
+    textCtx.fillText(categoryText, 128, 32);
+    
+    const textTexture = new THREE.CanvasTexture(textCanvas);
+    const textSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: textTexture, transparent: true }));
+    textSprite.scale.set(4.5, 1.125, 1);
+    textSprite.position.z = 0.25;
+    tileGroup.add(textSprite);
+    
+    tileGroup.position.set(xPos, obstacleElev + 3, nextObstacleZ);
+    tileGroup.userData = {size: 5, active: true, text: categoryText};
+    scene.add(tileGroup);
+    obstacles.push(tileGroup);
+    
+    const light = new THREE.PointLight(tileColor, 2.5, 18);
+    light.position.copy(tileGroup.position);
+    light.position.y += 2;
+    scene.add(light);
+    tileGroup.userData.light = light;
+    
+    nextObstacleZ -= 20 + Math.random() * 10;
+  }
+  
+  // Spawn collectibles - follow road curves
+  while (nextCollectibleZ > bikeZ - 60) {
+    const collectibleRoadCenter = roadCenterX(nextCollectibleZ);
+    const xPos = collectibleRoadCenter + (Math.random() - 0.5) * ROAD_HALF * 1.4;
+    const mesh = new THREE.Mesh(new THREE.OctahedronGeometry(1.5), collectibleMat);
+    mesh.position.set(xPos, 3.0, nextCollectibleZ);
+    mesh.userData = {active: true, spinSpeed: 2 + Math.random() * 3};
+    scene.add(mesh);
+    collectibles.push(mesh);
+    
+    const light = new THREE.PointLight(0xffff00, 2.5, 15);
+    light.position.copy(mesh.position);
+    scene.add(light);
+    mesh.userData.light = light;
+    
+    nextCollectibleZ -= 12 + Math.random() * 8;
+  }
+
+  // Spawn category tile checkpoints - 3D mesh representations
+  while (nextGoalCheckpointZ > bikeZ - 120) {
+    if (currentGoalIndex < goals.length) {
+      const goalText = goals[currentGoalIndex];
+      const checkpointRoadCenter = roadCenterX(nextGoalCheckpointZ);
+      const checkpointElev = roadElevation(nextGoalCheckpointZ);
+      
+      // Create 3D tile with category text
+      const tileGroup = new THREE.Group();
+      
+      // Tile base (colored box)
+      const tileColors = [0x0066ff, 0xffff00, 0xff0066, 0xffffff];
+      const tileColor = tileColors[currentGoalIndex % tileColors.length];
+      const tileGeo = new THREE.BoxGeometry(8, 3, 0.5);
+      const tileMat = new THREE.MeshStandardMaterial({
+        color: tileColor, metalness: 0.7, roughness: 0.3, emissive: tileColor, emissiveIntensity: 0.4
+      });
+      const tileMesh = new THREE.Mesh(tileGeo, tileMat);
+      tileGroup.add(tileMesh);
+      
+      // Text sprite on tile
+      const textCanvas = document.createElement('canvas');
+      textCanvas.width = 512;
+      textCanvas.height = 128;
+      const textCtx = textCanvas.getContext('2d');
+      textCtx.fillStyle = '#000';
+      textCtx.font = 'bold 32px "Orbitron", sans-serif';
+      textCtx.textAlign = 'center';
+      textCtx.textBaseline = 'middle';
+      textCtx.fillText(goalText.toUpperCase(), 256, 64);
+      
+      const textTexture = new THREE.CanvasTexture(textCanvas);
+      const textSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: textTexture, transparent: true }));
+      textSprite.scale.set(7, 1.75, 1);
+      textSprite.position.z = 0.3;
+      tileGroup.add(textSprite);
+      
+      tileGroup.position.set(checkpointRoadCenter, checkpointElev + 4, nextGoalCheckpointZ);
+      tileGroup.userData = {type: 'goal', goalIndex: currentGoalIndex, active: true, text: goalText};
+      scene.add(tileGroup);
+      obstacles.push(tileGroup);
+      
+      // Glow light
+      const tileLight = new THREE.PointLight(tileColor, 3, 25);
+      tileLight.position.copy(tileGroup.position);
+      tileLight.position.y += 2;
+      scene.add(tileLight);
+      tileGroup.userData.light = tileLight;
+      
+      nextGoalCheckpointZ -= 150;
+    }
+  }
+
+  // Update obstacles
+  for (let i=obstacles.length-1; i>=0; i--){
+    const ob = obstacles[i];
+    
+    if (ob.userData.type === 'goal') {
+      // Rotate tile for visual interest
+      ob.rotation.y += dt * 2;
+      
+      // Remove if passed
+      if (ob.position.z > bikeZ + 20) {
+        scene.remove(ob);
+        if (ob.userData.light) scene.remove(ob.userData.light);
+        obstacles.splice(i, 1);
+      } else if (ob.userData.active && Math.abs(ob.position.z - bikeZ) < 8) {
+        // Reached goal tile
+        ob.userData.active = false;
+        currentGoalIndex++;
+        console.log(`Goal reached: ${ob.userData.text} (${currentGoalIndex}/${goals.length})`);
+        
+        // Gain a star for completing goal
+        if (currentStars < maxStars) {
+          currentStars++;
+          updateStarDisplay();
+        }
+        
+        // Flash and remove tile
+        if (ob.userData.light) {
+          ob.userData.light.intensity = 10;
+          setTimeout(() => {
+            scene.remove(ob);
+            if (ob.userData.light) scene.remove(ob.userData.light);
+          }, 300);
+        }
+        obstacles.splice(i, 1);
+      }
+    } else {
+      ob.rotation.y += dt * 2;
+      if (ob.userData.light) ob.userData.light.intensity = 1.5 + Math.sin(gameTime*10)*0.5 + audioLevel * 2;
+      
+      if (ob.position.z > bikeZ + 20){
+        scene.remove(ob);
+        if (ob.userData.light) scene.remove(ob.userData.light);
+        obstacles.splice(i, 1);
+      } else if (ob.userData.active){
+        const dx = Math.abs(ob.position.x - playerX);
+        const dz = Math.abs(ob.position.z - bikeZ);
+        if (dx < ob.userData.size*0.5 + 2 && dz < 4){
+          ob.userData.active = false;
+          speedKmh *= 0.6;
+          boostEnergy = Math.max(0, boostEnergy - 20);
+          ob.material.emissiveIntensity = 3;
+          cameraShake = 2.5;
+          
+          for (let j=0; j<15; j++){
+            emitParticle(ob.position);
+          }
+          
+          setTimeout(()=>{
+            scene.remove(ob);
+            if (ob.userData.light) scene.remove(ob.userData.light);
+          }, 200);
+        }
+      }
+    }
+  }
+
+  // Update collectibles
+  for (let i=collectibles.length-1; i>=0; i--){
+    const col = collectibles[i];
+    
+    col.rotation.y += dt * col.userData.spinSpeed;
+    col.rotation.x += dt * col.userData.spinSpeed * 0.5;
+    col.position.y = 2.5 + Math.sin(gameTime*3 + i)*0.8 + audioLevel * 1.5;
+    
+    if (col.userData.light){
+      col.userData.light.position.copy(col.position);
+      col.userData.light.intensity = 1.0 + Math.sin(gameTime*5)*0.3 + audioLevel * 2;
+    }
+    
+    if (col.position.z > bikeZ + 20){
+      scene.remove(col);
+      if (col.userData.light) scene.remove(col.userData.light);
+      collectibles.splice(i, 1);
+    } else if (col.userData.active){
+      const dx = Math.abs(col.position.x - playerX);
+      const dz = Math.abs(col.position.z - bikeZ);
+      if (dx < 2.5 && dz < 4){
+        col.userData.active = false;
+        boostEnergy = Math.min(100, boostEnergy + 15);
+        
+        for (let j=0; j<8; j++){
+          emitParticle(col.position);
+        }
+        
+        scene.remove(col);
+        if (col.userData.light) scene.remove(col.userData.light);
+        collectibles.splice(i, 1);
+      }
+    }
+  }
+
+  // Update star display (colors change with inversion)
+  updateStarDisplay();
+  
+  // End sequence - vignette collapse into "LOOK INSIDE"
+  if (songEnded && !endSequenceStarted) {
+    endSequenceTimer += dt;
+    
+    // Wait 2 seconds after song ends
+    if (endSequenceTimer > 2.0) {
+      endSequenceStarted = true;
+      console.log('🎬 Starting end sequence - vignette collapse');
+      
+      const vignetteEl = document.getElementById('vignetteCollapse');
+      const lookInside = document.getElementById('lookInside');
+      const portalO = document.getElementById('portalO');
+      
+      if (vignetteEl && lookInside && portalO) {
+        vignetteEl.style.display = 'block';
+        
+        // Start transit video stack
+        startTransitVideoStack();
+        
+        // Reveal black portal O
+        setTimeout(() => {
+          portalO.style.opacity = '1';
+        }, 500);
+        
+        // Reveal text with cascade
+        setTimeout(() => {
+          lookInside.style.opacity = '1';
+          // Trigger cascade animations on child divs
+          const lines = lookInside.querySelectorAll('div');
+          lines.forEach((line) => {
+            line.style.opacity = '1';
+          });
+        }, 1000);
+      }
+    }
+  }
+
+  // Cycle bike body color through tricolor based on audio
+  const tricolorCycle = [0x0066ff, 0xffff00, 0xff0066, 0xffffff];
+  const colorIndex = Math.floor((gameTime * 2 + audioLevel * 5) % tricolorCycle.length);
+  bikeBody.material.color.setHex(tricolorCycle[colorIndex]);
+  bikeBody.material.emissive.setHex(tricolorCycle[colorIndex]);
+  
+  // Progressive material enhancement
+  let targetMetalness = 0.1, targetRoughness = 0.9, targetEmissive = 0;
+  
+  if (visualProgression.phase >= 1) {
+    targetMetalness = 0.4;
+    targetRoughness = 0.6;
+    targetEmissive = 0.8;
+  }
+  if (visualProgression.phase >= 2) {
+    targetMetalness = 0.85;
+    targetRoughness = 0.15;
+    targetEmissive = 2.5;
+  }
+  if (visualProgression.phase >= 4) {
+    targetMetalness = 0.95;
+    targetRoughness = 0.05;
+    targetEmissive = 3.5;
+  }
+  
+  const matLerpSpeed = visualProgression.phase >= 4 ? 0.08 : 0.02;
+  bikeBody.material.metalness = THREE.MathUtils.lerp(bikeBody.material.metalness, targetMetalness, matLerpSpeed);
+  bikeBody.material.roughness = THREE.MathUtils.lerp(bikeBody.material.roughness, targetRoughness, matLerpSpeed);
+  bikeBody.material.emissiveIntensity = THREE.MathUtils.lerp(bikeBody.material.emissiveIntensity, targetEmissive, matLerpSpeed);
+  
+  frontBar.material.color.setHex(tricolorCycle[(colorIndex + 1) % tricolorCycle.length]);
+
+  // Render with or without post-processing
+  if (useComposer) {
+    composer.render();
+  } else {
+  renderer.render(scene, camera);
+  }
+}
+requestAnimationFrame(tick);
+
+// Tricolor gradient sky dome
+const sky = new THREE.Mesh(
+  new THREE.SphereGeometry(1200, 24, 16),
+  new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite:false,
+    uniforms:{ 
+      top:{value:new THREE.Color(0x000000)}, 
+      mid:{value:new THREE.Color(0x000000)},
+      bottom:{value:new THREE.Color(0x000000)},
+      time:{value:0}
+    },
+    vertexShader:`
+      varying vec3 vW; 
+      void main(){ 
+        vW=(modelMatrix*vec4(position,1.)).xyz; 
+        gl_Position=projectionMatrix*viewMatrix*vec4(vW,1.); 
+      }`,
+    fragmentShader:`
+      varying vec3 vW; 
+      uniform vec3 top, mid, bottom;
+      uniform float time;
+      void main(){ 
+        // Use uniform colors (changes with inversion)
+        float h = normalize(vW).y * 0.5 + 0.5;
+        vec3 col = h > 0.5 
+          ? mix(mid, top, pow((h-0.5)*2.0, 1.2))
+          : mix(bottom, mid, pow(h*2.0, 1.5));
+        gl_FragColor=vec4(col, 1.0); 
+      }`
+  })
+);
+scene.add(sky);
+
+// ============================================
+// DEBUG PANEL - Press DEBUG button (top right) to toggle
+// Real-time controls for all visual settings:
+// - Bloom (strength, radius, threshold)
+// - Fog (type: exponential/near/far, density, near/far distances, enable/disable)
+// - Camera (FOV, distance, height)
+// - Lighting (hemisphere, directional, ambient)
+// - Particles (size, opacity, gravity)
+// - Post-processing (exposure, composer toggle)
+// ============================================
+
+// Helper to sync slider and number input
+function syncControls(sliderId, numberId, onChange) {
+  const slider = document.getElementById(sliderId);
+  const number = document.getElementById(numberId);
+  
+  slider.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    number.value = val;
+    onChange(val);
+  });
+  
+  number.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    // Update slider only if within range
+    if (val >= parseFloat(slider.min) && val <= parseFloat(slider.max)) {
+      slider.value = val;
+    }
+    onChange(val);
+  });
+}
+
+document.getElementById('debugToggle').addEventListener('click', () => {
+  document.getElementById('debugPanel').classList.toggle('visible');
+});
+
+// Bloom controls
+syncControls('bloomStr', 'bloomStrNum', (val) => {
+  bloomPass.strength = val;
+});
+syncControls('bloomRad', 'bloomRadNum', (val) => {
+  bloomPass.radius = val;
+});
+syncControls('bloomThresh', 'bloomThreshNum', (val) => {
+  bloomPass.threshold = val;
+});
+
+// Fog controls
+let currentFogType = 'exp2';
+let fogNear = 20;
+let fogFar = 100;
+let fogDensity = 0.005;
+
+function updateFog() {
+  const fogColor = 0x0a0020;
+  
+  if (!document.getElementById('fogEnabled').checked) {
+    scene.fog = null;
+    return;
+  }
+  
+  switch(currentFogType) {
+    case 'exp2':
+      // Exponential fog with near/far bounds
+      // Use linear fog with near/far but apply density as a scaling factor
+      scene.fog = new THREE.Fog(fogColor, fogNear, fogFar);
+      break;
+    case 'near':
+      // Near fog: starts close, ends at middle distance
+      scene.fog = new THREE.Fog(fogColor, fogNear, fogNear + 200);
+      break;
+    case 'far':
+      // Far fog: starts far, creates depth
+      scene.fog = new THREE.Fog(fogColor, fogFar - 100, fogFar);
+      break;
+  }
+}
+
+document.getElementById('fogType').addEventListener('change', (e) => {
+  currentFogType = e.target.value;
+  updateFog();
+});
+
+syncControls('fogDens', 'fogDensNum', (val) => {
+  fogDensity = val;
+  updateFog();
+});
+
+syncControls('fogNear', 'fogNearNum', (val) => {
+  fogNear = val;
+  updateFog();
+});
+
+syncControls('fogFar', 'fogFarNum', (val) => {
+  fogFar = val;
+  updateFog();
+});
+
+document.getElementById('fogEnabled').addEventListener('change', (e) => {
+  updateFog();
+});
+
+// Camera controls
+syncControls('fov', 'fovNum', (val) => {
+  camera.fov = val;
+  camera.updateProjectionMatrix();
+});
+syncControls('camDist', 'camDistNum', (val) => {
+  cameraDistance = val;
+  CAM_OFFSET.z = cameraDistance;
+  CAM_OFFSET.y = cameraDistance * 0.4;
+});
+syncControls('camHeight', 'camHeightNum', (val) => {
+  CAM_OFFSET.y = val;
+});
+
+// Lighting controls
+syncControls('hemiInt', 'hemiIntNum', (val) => {
+  hemi.intensity = val;
+});
+syncControls('dir1Int', 'dir1IntNum', (val) => {
+  dir.intensity = val;
+});
+syncControls('ambInt', 'ambIntNum', (val) => {
+  ambientLight.intensity = val;
+});
+
+// Particle controls
+syncControls('partSize', 'partSizeNum', (val) => {
+  particleMat.size = val;
+});
+syncControls('partOp', 'partOpNum', (val) => {
+  particleMat.opacity = val;
+});
+syncControls('grav', 'gravNum', (val) => {
+  particleGravity = val;
+});
+
+// Post-processing controls
+syncControls('toneExp', 'toneExpNum', (val) => {
+  renderer.toneMappingExposure = val;
+});
+document.getElementById('composerEnabled').addEventListener('change', (e) => {
+  useComposer = e.target.checked;
+});
+
+console.log('🎨 Debug panel initialized');
+</script>
+</body>
+</html>
