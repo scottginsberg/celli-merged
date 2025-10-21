@@ -71,7 +71,8 @@
    right: -400px;
    top: 50%;
    transform: translateY(-50%);
-   transition: right 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.8s ease-out;
+   will-change: transform, right;
+   transition: right 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
    box-shadow: 0 0 50px rgba(102, 126, 234, 0.8);
    z-index: 10001;
    animation: glow-pulse 2s ease-in-out infinite;
@@ -139,6 +140,7 @@
    padding: 0;
    background: transparent;
    border: none;
+   overflow: hidden;
   }
 
   .ref-sidebar.mythic-entrance.note-hover {
@@ -561,6 +563,8 @@
    pointer-events: auto;
    cursor: pointer;
    z-index: 1;
+   overflow: hidden;
+   border-radius: 28px;
   }
 
   .loom-invite-clone.visible {
@@ -572,23 +576,23 @@
   .loom-invite-clone::after {
    content: '';
    position: absolute;
-   inset: -22px -28px;
+   inset: -8px -10px;
    border-radius: 28px;
-   background: radial-gradient(circle at 50% 18%, rgba(143, 180, 255, 0.16), transparent 60%);
+   background: radial-gradient(circle at 50% 50%, rgba(143, 180, 255, 0.2), transparent 70%);
    mix-blend-mode: screen;
-   opacity: 0.65;
+   opacity: 0.5;
    transform: translateZ(0);
    pointer-events: none;
   }
 
   .loom-invite-clone::after {
-   inset: -12px -16px;
-   opacity: 0.85;
-   filter: blur(18px);
+   inset: -4px -6px;
+   opacity: 0.6;
+   filter: blur(8px);
   }
 
   .loom-invite-clone-card,
-  .loom-invite-card {
+  .loom-invite-card:not(.loom-invite-card--tos) {
    position: relative;
    border-radius: 24px;
    background: linear-gradient(145deg, rgba(102, 126, 234, 0.32), rgba(143, 180, 255, 0.22), rgba(118, 75, 162, 0.28));
@@ -597,6 +601,7 @@
    border: 1px solid rgba(160, 190, 255, 0.4);
    box-shadow: 0 24px 50px rgba(9, 12, 34, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.22);
    overflow: hidden;
+   isolation: isolate;
   }
 
   .loom-invite-card::after,
@@ -975,12 +980,13 @@
    top: 0;
    width: 100vw;
    height: 100vh;
-   background: radial-gradient(ellipse at right center, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.4) 30%, transparent 60%);
+   background: radial-gradient(ellipse 60vw 50vh at 100% 50%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.4) 30%, transparent 60%);
    mix-blend-mode: screen;
    pointer-events: none;
    z-index: 2147483650;
    opacity: 0;
    animation: burst-flash 2.5s ease-out forwards;
+   transform-origin: right center;
   }
   
   @keyframes burst-flash {
@@ -1303,7 +1309,8 @@
  {
   "imports": {
    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-   "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+   "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
   }
  }
  </script>
@@ -1395,6 +1402,35 @@
 
   const APP_BASE_URL = computeAppBaseUrl();
   const BETA_FOCUS_FORM_URL = new URL('templates/componentized/beta-focus-form.html?fullsequence=beta', APP_BASE_URL).toString();
+
+  // Immediate blackout + redirect helper to avoid laggy pixel sweep
+  function blackoutUnderPage(){
+    try{
+      document.documentElement.style.background = '#000';
+      document.body.style.background = '#000';
+      let under = document.getElementById('refBlackUnderlay');
+      if(!under){
+        under = document.createElement('div');
+        under.id = 'refBlackUnderlay';
+        under.style.cssText = 'position:fixed;inset:0;background:#000;z-index:0;';
+        document.body.insertBefore(under, document.body.firstChild || null);
+      }
+      const world = document.getElementById('world');
+      const view = document.getElementById('view');
+      if(world) world.style.display = 'none';
+      if(view) view.style.display = 'none';
+    }catch(e){ /* no-op */ }
+  }
+
+  function redirectToBetaFormImmediate(){
+    try{ markBetaRedirectPending(); }catch(e){}
+    blackoutUnderPage();
+    try{
+      window.location.assign(BETA_FOCUS_FORM_URL);
+    }catch(e){
+      window.location.href = BETA_FOCUS_FORM_URL;
+    }
+  }
   const FULL_SEQUENCE_FLAG_KEY = 'celli:fullSequenceActive';
   const FULL_SEQUENCE_STAGE_KEY = 'celli:fullSequenceStage';
   const FULL_SEQUENCE_REFERRER_STAGE = 'referrer';
@@ -3223,6 +3259,7 @@
     if (element.tagName === 'A') {
       element.setAttribute('href', url);
     }
+    element.style.cursor = 'pointer';
   }
 
   function buildGlitchUrl(platformKey, stage, index) {
@@ -3689,8 +3726,13 @@
       noteCrystal.classList.add('ref-note-crystal--hover');
     }
 
-    triggerNoteHoverEffects();
     triggerTriColorBurst(1.1);
+
+    // Delay burst light until after card is centered (950ms centering animation + 200ms buffer)
+    const burstTimeout = setTimeout(() => {
+      triggerNoteHoverEffects();
+    }, 1150);
+    noteStageTimeouts.push(burstTimeout);
 
     const rumbleTimeout = setTimeout(() => {
       sidebar.classList.add('stage-rumble');
@@ -3851,22 +3893,22 @@
 
     ackBtn.innerHTML = `
         <div class="badboolean-banner" style="padding: 28px 20px; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center;">
-          <div class="badboolean-topline" data-wave-line data-wave-boost="0.9" style="font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #ff4acb; text-shadow: 0 0 16px rgba(255, 54, 204, 0.6);">
+          <div class="badboolean-topline" data-wave-line data-wave-boost="0.9" style="font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #ff4acb; text-shadow: 0 0 16px rgba(255, 54, 204, 0.6); text-align: center; width: 100%; display: flex; justify-content: center; align-items: center;">
             ARE YOU A TOTAL ZERO?
           </div>
-          <div class="badboolean-subline" data-wave-line data-wave-boost="0.8" style="font-size: 16px; font-weight: 700; color: #f5ff7d; text-shadow: 0 0 12px rgba(0,0,0,0.8);">
+          <div class="badboolean-subline" data-wave-line data-wave-boost="0.8" style="font-size: 16px; font-weight: 700; color: #f5ff7d; text-shadow: 0 0 12px rgba(0,0,0,0.8); text-align: center; width: 100%; display: flex; justify-content: center; align-items: center;">
             💋 SINGLES IN YOUR AREA 💋
           </div>
-          <div class="badboolean-mainline" data-wave-line data-wave-boost="1.5" style="font-size: 28px; font-weight: 900; letter-spacing: 3px; color: #61f8ff; text-shadow: 0 0 18px rgba(97,248,255,0.9);">
+          <div class="badboolean-mainline" data-wave-line data-wave-boost="1.5" style="font-size: 28px; font-weight: 900; letter-spacing: 3px; color: #61f8ff; text-shadow: 0 0 18px rgba(97,248,255,0.9); text-align: center; width: 100%; display: flex; justify-content: center; align-items: center;">
             BADBOOLEAN.COM
           </div>
-          <div class="badboolean-tagline" data-wave-line data-wave-boost="0.6" style="font-size: 14px; font-weight: 500; color: #ff92d0; font-style: italic;">
+          <div class="badboolean-tagline" data-wave-line data-wave-boost="0.6" style="font-size: 14px; font-weight: 500; color: #ff92d0; font-style: italic; text-align: center; width: 100%; display: flex; justify-content: center; align-items: center;">
             True love never felt so false.
           </div>
-          <div class="badboolean-footer" data-wave-line data-wave-boost="0.85" style="font-size: 12px; font-weight: 700; color: #ff5cff;">
+          <div class="badboolean-footer" data-wave-line data-wave-boost="0.85" style="font-size: 12px; font-weight: 700; color: #ff5cff; text-align: center; width: 100%; display: flex; justify-content: center; align-items: center;">
             🔥 CLICK HERE NOW!!! 🔥
           </div>
-          <div class="badboolean-twist" data-wave-line data-wave-boost="0.4" style="font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.78); text-transform: uppercase; letter-spacing: 0.18em;">
+          <div class="badboolean-twist" data-wave-line data-wave-boost="0.4" style="font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.78); text-transform: uppercase; letter-spacing: 0.18em; text-align: center; width: 100%; display: flex; justify-content: center; align-items: center;">
             * compatibility test completed — you passed.
           </div>
         </div>
@@ -4801,12 +4843,11 @@
     tosCard.classList.add('morphing', 'tos-morphing');
 
     goldenHoldOverlay = overlayElement;
-    logBurstDebug('startGoldenHoldSequence:queued-dust-transition');
+    logBurstDebug('startGoldenHoldSequence:immediate-redirect');
 
-    setTimeout(() => {
-      logBurstDebug('startGoldenHoldSequence:begin-dust-transition');
-      beginDustTransition(overlayElement, tosCard);
-    }, 1100);
+    // Immediate blackout + redirect (no delays, no burst animations)
+    try { blackoutUnderPage(); } catch (e) {}
+    redirectToBetaFormImmediate();
   }
 
   function fadeAndRemoveElement(element, removeFromDom = false) {
@@ -4961,99 +5002,10 @@
   }
 
   async function beginDustTransition(overlayElement, triangleElement) {
-    logBurstDebug('beginDustTransition:start', {
-      hasOverlay: Boolean(overlayElement),
-      hasTriangle: Boolean(triangleElement),
-    });
-    const label = triangleElement.querySelector('.golden-label');
-    if (label) {
-      setTimeout(() => label.remove(), 320);
-    }
-
-    const trailSpans = triangleElement.querySelectorAll('.golden-trail-pack span');
-    trailSpans.forEach((span, index) => {
-      span.style.setProperty('--i', index);
-    });
-
-    document.body.classList.add('referrer-whiteout');
-    overlayElement.classList.add('dust-phase');
-    logBurstDebug('beginDustTransition:whiteout-applied');
-
-    let captureCanvas = null;
-    const html2CanvasReady = await ensureHtml2CanvasLoaded();
-    logBurstDebug('beginDustTransition:html2canvas-status', {
-      html2CanvasReady,
-      libraryLoaded: typeof html2canvas !== 'undefined',
-    });
-
-    if (html2CanvasReady && typeof html2canvas !== 'undefined') {
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      try {
-        captureCanvas = await html2canvas(document.body, {
-          useCORS: true,
-          logging: false,
-          scale: window.devicePixelRatio || 1,
-          backgroundColor: getComputedStyle(document.body).backgroundColor || '#0b0b10'
-        });
-        console.log('🖼️ DOM captured for raster dust sequence');
-        logBurstDebug('beginDustTransition:html2canvas-success', {
-          width: captureCanvas.width,
-          height: captureCanvas.height,
-        });
-      } catch (err) {
-        console.warn('⚠️ html2canvas capture failed', err);
-        logBurstDebug('beginDustTransition:html2canvas-error', {
-          message: err?.message,
-          name: err?.name,
-        });
-      }
-    }
-
-    const voxelSuccess = captureCanvas ? await runVoxelShatterSequence(captureCanvas) : false;
-    logBurstDebug('beginDustTransition:voxel-status', {
-      attempted: Boolean(captureCanvas),
-      success: voxelSuccess,
-    });
-
-    if (!voxelSuccess) {
-      const whiteout = document.createElement('div');
-      whiteout.className = 'golden-whiteout';
-      overlayElement.appendChild(whiteout);
-      logBurstDebug('beginDustTransition:whiteout-fallback');
-
-      if (captureCanvas) {
-        const dustCanvas = document.createElement('canvas');
-        dustCanvas.className = 'golden-dust-canvas';
-        overlayElement.appendChild(dustCanvas);
-        logBurstDebug('beginDustTransition:starting-dust-animation', {
-          dustWidth: captureCanvas.width,
-          dustHeight: captureCanvas.height,
-        });
-
-        runDustAnimation(captureCanvas, dustCanvas, whiteout, () => {
-          dustCanvas.classList.add('fade-out');
-          setTimeout(() => {
-            if (dustCanvas.parentNode) {
-              dustCanvas.parentNode.removeChild(dustCanvas);
-            }
-          }, 1600);
-          overlayElement.classList.add('dust-complete');
-          logBurstDebug('beginDustTransition:dust-animation-complete');
-        });
-        teardownReferralStageLayers();
-      } else {
-        teardownReferralStageLayers();
-        overlayElement.classList.add('dust-complete');
-        logBurstDebug('beginDustTransition:no-canvas-fallback');
-      }
-    } else {
-      teardownReferralStageLayers();
-      overlayElement.classList.add('dust-complete');
-      logBurstDebug('beginDustTransition:voxel-complete');
-    }
-
-    logBurstDebug('beginDustTransition:starting-warp-sequence');
-    startWarpSequence(overlayElement, triangleElement);
+    logBurstDebug('beginDustTransition:start - immediate redirect');
+    // Fast path: avoid laggy pixel sweep — blackout and redirect immediately
+    try { blackoutUnderPage(); } catch (e) {}
+    redirectToBetaFormImmediate();
   }
 
   function runDustAnimation(sourceCanvas, targetCanvas, whiteoutElement, onComplete) {
@@ -5733,6 +5685,7 @@
     particle.style.background = color;
     particle.style.boxShadow = `0 0 ${size}px ${color}`;
     particle.style.mixBlendMode = 'screen';
+    particle.style.zIndex = '2147483700'; // Top layer - above everything
 
     particle.style.left = x + 'px';
     particle.style.top = y + 'px';
@@ -5977,6 +5930,263 @@
     }
   }
   
+  // Gun sound generation
+  let gunSoundContext = null;
+  let gunSoundIndex = 0;
+  const MAX_SYNTHESIZED_SOUNDS = 3; // Use synthesized sounds for first 3 clicks
+  
+  // Prepared SFX Library - indexed WAV files
+  const PREPARED_GUN_SOUNDS = [
+    'Prepared SFX Library/1911/A_34P.wav',
+    'Prepared SFX Library/1911/A_42P.wav',
+    'Prepared SFX Library/1917/B_16P.wav',
+    'Prepared SFX Library/1917/B_24P.wav',
+    'Prepared SFX Library/AK-47/C_27P.wav',
+    'Prepared SFX Library/AK-47/C_28P.wav',
+    'Prepared SFX Library/AK-47/C_29P.wav',
+    'Prepared SFX Library/AK-47/C_31P.wav',
+    'Prepared SFX Library/AK-47/C_34P.wav',
+    'Prepared SFX Library/AK-47/C_36P.wav',
+    'Prepared SFX Library/AR-15/D_24P.wav',
+    'Prepared SFX Library/AR-15/D_32P.wav',
+    'Prepared SFX Library/Arisaka/E_18P.wav',
+    'Prepared SFX Library/Arisaka/E_25P.wav',
+    'Prepared SFX Library/Bersa/F_41P.wav',
+    'Prepared SFX Library/Bersa/F_47P.wav',
+    'Prepared SFX Library/Carl Gustav M45/G_20P.wav',
+    'Prepared SFX Library/Carl Gustav M45/G_22P.wav',
+    'Prepared SFX Library/Carl Gustav M45/G_24P.wav',
+    'Prepared SFX Library/Carl Gustav M45/G_31P.wav',
+    'Prepared SFX Library/Carl Gustav M45/G_33P.wav',
+    'Prepared SFX Library/Carl Gustav M45/G_35P.wav',
+    'Prepared SFX Library/CD/H_16P.wav',
+    'Prepared SFX Library/CD/H_21P.wav',
+    'Prepared SFX Library/Marlin 336/I_17P.wav',
+    'Prepared SFX Library/Marlin 336/I_22P.wav',
+    'Prepared SFX Library/Model 12/K_17P.wav',
+    'Prepared SFX Library/Model 12/K_22P.wav',
+    'Prepared SFX Library/Model 1894/L_17P.wav',
+    'Prepared SFX Library/Model 1894/L_23P.wav',
+    'Prepared SFX Library/Mosin Nagant/M_21P.wav',
+    'Prepared SFX Library/Mosin Nagant/M_26P.wav',
+    'Prepared SFX Library/Mossberg/N_26P.wav',
+    'Prepared SFX Library/Mossberg/N_30P.wav',
+    'Prepared SFX Library/Nova/O_17P.wav',
+    'Prepared SFX Library/Nova/O_21P.wav',
+    'Prepared SFX Library/PPSh/P_16P.wav',
+    'Prepared SFX Library/PPSh/P_18P.wav',
+    'Prepared SFX Library/PPSh/P_22P.wav',
+    'Prepared SFX Library/PPSh/P_30P.wav',
+    'Prepared SFX Library/PPSh/P_32P.wav',
+    'Prepared SFX Library/PPSh/P_34P.wav',
+    'Prepared SFX Library/Ruger Mark III/R_30P.wav',
+    'Prepared SFX Library/Ruger Mark III/R_35P.wav',
+    'Prepared SFX Library/Ruger Single Six/S_11P.wav',
+    'Prepared SFX Library/Ruger Single Six/S_14P.wav',
+    'Prepared SFX Library/Savage 10 .300 Blackout/T_17P.wav',
+    'Prepared SFX Library/Savage 10 .300 Blackout/T_27P.wav',
+    'Prepared SFX Library/SKS/U_14P.wav',
+    'Prepared SFX Library/SKS/U_19P.wav',
+    'Prepared SFX Library/Smith & Wesson 642/V_22P.wav',
+    'Prepared SFX Library/Smith & Wesson 642/V_27P.wav',
+    'Prepared SFX Library/Tikka/W_24P.wav',
+    'Prepared SFX Library/Tikka/W_29P.wav',
+    'Prepared SFX Library/Walther PPQ/X_31P.wav',
+    'Prepared SFX Library/Walther PPQ/X_39P.wav'
+  ];
+  
+  function playGunSound(clickX, clickY) {
+    gunSoundIndex++;
+    
+    // First 3 clicks: use synthesized cartoony sounds
+    if (gunSoundIndex <= MAX_SYNTHESIZED_SOUNDS) {
+      playSynthesizedGunSound(gunSoundIndex, clickX, clickY);
+    } else {
+      // Click 4+: play random WAV from library
+      playRandomWavGunSound(clickX, clickY);
+    }
+  }
+  
+  function playSynthesizedGunSound(clickNumber, clickX, clickY) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      // Fallback: spawn single bullet even if no audio
+      spawnVisualBullet(clickX, clickY, 0, 0);
+      return;
+    }
+    
+    if (!gunSoundContext) {
+      gunSoundContext = new AudioContextClass();
+    } else if (gunSoundContext.state === 'suspended') {
+      gunSoundContext.resume().catch(() => {});
+    }
+    
+    const ctx = gunSoundContext;
+    const now = ctx.currentTime;
+    
+    // Progress from cartoony (0) to transitioning (1)
+    const progress = Math.min((clickNumber - 1) / MAX_SYNTHESIZED_SOUNDS, 1);
+    
+    // Create oscillator for main shot
+    const shotOsc = ctx.createOscillator();
+    const shotGain = ctx.createGain();
+    const shotFilter = ctx.createBiquadFilter();
+    
+    // Cartoony: high pitched "pew pew", gradually deeper
+    const startFreq = 800 - (progress * 400); // 800Hz -> 400Hz
+    const endFreq = 120 - (progress * 50); // 120Hz -> 70Hz
+    
+    shotOsc.type = 'square';
+    shotOsc.frequency.setValueAtTime(startFreq, now);
+    shotOsc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.08);
+    
+    // Filter
+    shotFilter.type = 'lowpass';
+    shotFilter.frequency.setValueAtTime(2500 - (progress * 800), now);
+    shotFilter.Q.setValueAtTime(1 + (progress * 2), now);
+    
+    // Volume envelope
+    const maxVol = 0.25 + (progress * 0.1);
+    shotGain.gain.setValueAtTime(0.0001, now);
+    shotGain.gain.exponentialRampToValueAtTime(maxVol, now + 0.005);
+    shotGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+    
+    shotOsc.connect(shotFilter);
+    shotFilter.connect(shotGain);
+    shotGain.connect(ctx.destination);
+    
+    shotOsc.start(now);
+    shotOsc.stop(now + 0.15);
+    
+    // Spawn bullet synchronized with cartoony sound
+    spawnVisualBullet(clickX, clickY, 0, 0);
+  }
+  
+  // Weapon burst characteristics - maps weapon types to bullet patterns
+  const WEAPON_BURST_PATTERNS = {
+    'AK-47': { bullets: 3, delay: 85, spread: 12 },
+    'AR-15': { bullets: 2, delay: 90, spread: 10 },
+    'PPSh': { bullets: 5, delay: 60, spread: 15 },
+    'Carl Gustav M45': { bullets: 3, delay: 80, spread: 11 },
+    '1911': { bullets: 1, delay: 0, spread: 0 },
+    '1917': { bullets: 1, delay: 0, spread: 0 },
+    'Arisaka': { bullets: 1, delay: 0, spread: 0 },
+    'Bersa': { bullets: 1, delay: 0, spread: 0 },
+    'CD': { bullets: 1, delay: 0, spread: 0 },
+    'Marlin 336': { bullets: 1, delay: 0, spread: 0 },
+    'Model 12': { bullets: 1, delay: 0, spread: 0 },
+    'Model 1894': { bullets: 1, delay: 0, spread: 0 },
+    'Mosin Nagant': { bullets: 1, delay: 0, spread: 0 },
+    'Mossberg': { bullets: 1, delay: 0, spread: 0 },
+    'Nova': { bullets: 1, delay: 0, spread: 0 },
+    'Ruger Mark III': { bullets: 1, delay: 0, spread: 0 },
+    'Ruger Single Six': { bullets: 1, delay: 0, spread: 0 },
+    'Savage 10 .300 Blackout': { bullets: 1, delay: 0, spread: 0 },
+    'SKS': { bullets: 2, delay: 95, spread: 8 },
+    'Smith & Wesson 642': { bullets: 1, delay: 0, spread: 0 },
+    'Tikka': { bullets: 1, delay: 0, spread: 0 },
+    'Walther PPQ': { bullets: 1, delay: 0, spread: 0 }
+  };
+  
+  function getWeaponTypeFromPath(soundPath) {
+    for (const weaponType in WEAPON_BURST_PATTERNS) {
+      if (soundPath.includes(weaponType)) {
+        return weaponType;
+      }
+    }
+    return null;
+  }
+  
+  function spawnVisualBullet(clickX, clickY, delay = 0, spread = 0) {
+    const actualDelay = delay || 0;
+    
+    setTimeout(() => {
+      console.log(`     💥 Creating visual bullet at (${clickX}, ${clickY}) with spread ${spread}, delay ${actualDelay}ms`);
+      
+      const bullet = document.createElement('div');
+      bullet.className = 'visual-bullet';
+      
+      // Add random spread
+      const spreadX = (Math.random() - 0.5) * spread;
+      const spreadY = (Math.random() - 0.5) * spread;
+      
+      const finalX = clickX + spreadX;
+      const finalY = clickY + spreadY;
+      
+      bullet.style.cssText = `
+        position: fixed;
+        left: ${finalX}px;
+        top: ${finalY}px;
+        width: 20px;
+        height: 20px;
+        margin-left: -10px;
+        margin-top: -10px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #ffffff, #ffff00 30%, #ff6600);
+        box-shadow: 0 0 20px rgba(255, 255, 255, 1), 0 0 40px rgba(255, 255, 0, 0.9), 0 0 60px rgba(255, 100, 0, 0.6);
+        z-index: 2147483650;
+        pointer-events: none;
+        opacity: 1;
+        transform: scale(2) translate(-50%, -50%);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      `;
+      
+      document.body.appendChild(bullet);
+      console.log(`     ✓ Bullet element added to DOM at (${finalX.toFixed(0)}, ${finalY.toFixed(0)})`);
+      
+      // Flash bright then fade
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          bullet.style.opacity = '0';
+          bullet.style.transform = 'scale(4) translate(-50%, -50%)';
+        });
+      });
+      
+      setTimeout(() => {
+        if (bullet.parentNode) {
+          bullet.parentNode.removeChild(bullet);
+        }
+      }, 400);
+    }, actualDelay);
+  }
+  
+  function playRandomWavGunSound(clickX, clickY) {
+    if (!PREPARED_GUN_SOUNDS.length) {
+      console.warn('⚠️ No gun sound WAV files available');
+      return;
+    }
+    
+    // Pick a random WAV file
+    const randomIndex = Math.floor(Math.random() * PREPARED_GUN_SOUNDS.length);
+    const soundPath = PREPARED_GUN_SOUNDS[randomIndex];
+    
+    console.log(`🔫 Playing ${soundPath}`);
+    
+    // Determine weapon type and spawn bullets based on pattern
+    const weaponType = getWeaponTypeFromPath(soundPath);
+    const burstPattern = weaponType ? WEAPON_BURST_PATTERNS[weaponType] : { bullets: 3, delay: 100, spread: 10 };
+    
+    console.log(`   🎯 Weapon: ${weaponType || 'unknown'}, spawning ${burstPattern.bullets} bullet(s)`);
+    
+    // Spawn visual bullets based on weapon pattern
+    for (let i = 0; i < burstPattern.bullets; i++) {
+      const delay = i * burstPattern.delay;
+      spawnVisualBullet(clickX, clickY, delay, burstPattern.spread);
+    }
+    
+    // Play the audio
+    const audio = new Audio(soundPath);
+    audio.volume = 0.6;
+    audio.preload = 'auto';
+    
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch((error) => {
+        console.warn(`⚠️ Unable to play gun sound ${soundPath}:`, error);
+      });
+    }
+  }
+
   function triggerEdgeImpact() {
     // Increment impact count
     impactCount++;
@@ -6620,6 +6830,13 @@
   function onLinkClick(e, url) {
     e.preventDefault();
 
+    // Capture click position for bullet spawning
+    const clickX = e.clientX || (e.target ? e.target.getBoundingClientRect().left : 0);
+    const clickY = e.clientY || (e.target ? e.target.getBoundingClientRect().top : 0);
+
+    // Play gun sound immediately on click with position
+    playGunSound(clickX, clickY);
+
     // Hide the hover tooltip
     hideTooltip();
 
@@ -6635,7 +6852,10 @@
     };
 
     if (isPostLink(linkElement)) {
-      sendHeartsAndPrayers(linkElement, platform);
+      // Only Facebook gets hearts and prayers
+      if (platform === 'facebook') {
+        sendHeartsAndPrayers(linkElement, platform);
+      }
       launchTooltip();
       runGlitchOnce();
       jitterList(400);
@@ -6737,6 +6957,7 @@
         const originalLink = it.link || '#';
         setGlitchLink(link, originalLink);
         link.dataset.originalLink = originalLink;
+        // HN gets tooltips on hover
         link.addEventListener('mouseenter', () => showTooltip(getCurrentLink(link, originalLink), link));
         link.addEventListener('mouseleave', () => {
           if (!refTooltip.classList.contains('morphing')) hideTooltip();
@@ -6747,6 +6968,7 @@
           const href = a.getAttribute('href') || '#';
           setGlitchLink(a, href);
           a.dataset.originalLink = href;
+          // HN gets tooltips on hover
           a.addEventListener('mouseenter', () => showTooltip(getCurrentLink(a, href), a));
           a.addEventListener('mouseleave', () => {
             if (!refTooltip.classList.contains('morphing')) hideTooltip();
@@ -6824,10 +7046,7 @@
         const originalLink = it.link || '#';
         setGlitchLink(link, originalLink);
         link.dataset.originalLink = originalLink;
-        link.addEventListener('mouseenter', () => showTooltip(getCurrentLink(link, originalLink), link));
-        link.addEventListener('mouseleave', () => {
-          if (!refTooltip.classList.contains('morphing')) hideTooltip();
-        });
+        // Reddit: no tooltip on hover, only click action
         link.addEventListener('click', (e) => onLinkClick(e, getCurrentLink(link, originalLink)));
         
         content.appendChild(postDiv);
@@ -6914,10 +7133,7 @@
           const originalLink = it.link || '#';
           setGlitchLink(textEl, originalLink);
           textEl.dataset.originalLink = originalLink;
-          textEl.addEventListener('mouseenter', () => showTooltip(getCurrentLink(textEl, originalLink), textEl));
-          textEl.addEventListener('mouseleave', () => {
-            if (!refTooltip.classList.contains('morphing')) hideTooltip();
-          });
+          // Twitter: no tooltip on hover, only click action
           textEl.addEventListener('click', (e) => onLinkClick(e, getCurrentLink(textEl, originalLink)));
         }
         
@@ -7004,10 +7220,7 @@
           const originalLink = it.link || '#';
           setGlitchLink(textEl, originalLink);
           textEl.dataset.originalLink = originalLink;
-          textEl.addEventListener('mouseenter', () => showTooltip(getCurrentLink(textEl, originalLink), textEl));
-          textEl.addEventListener('mouseleave', () => {
-            if (!refTooltip.classList.contains('morphing')) hideTooltip();
-          });
+          // Facebook: no tooltip on hover, only click action
           textEl.addEventListener('click', (e) => onLinkClick(e, getCurrentLink(textEl, originalLink)));
         }
         
@@ -7100,10 +7313,7 @@
           const originalLink = it.link || '#';
           setGlitchLink(textEl, originalLink);
           textEl.dataset.originalLink = originalLink;
-          textEl.addEventListener('mouseenter', () => showTooltip(getCurrentLink(textEl, originalLink), textEl));
-          textEl.addEventListener('mouseleave', () => {
-            if (!refTooltip.classList.contains('morphing')) hideTooltip();
-          });
+          // LinkedIn: no tooltip on hover, only click action
           textEl.addEventListener('click', (e) => onLinkClick(e, getCurrentLink(textEl, originalLink)));
         }
 
@@ -7476,5 +7686,53 @@
   console.log('✅ Referrer Glitch Overlay initialized');
   console.log('📋 Ready to test: Click "Hacker News" or "Reddit" button in Play overlay');
  </script>
+
+ <!-- Limbo Audio Playback on Intro -->
+ <script src="./templates/componentized/cellireal-limbo-audio.js"></script>
+
+ <!-- Instant black overlay before anything loads -->
+ <script>
+   // IMMEDIATE black overlay creation (before DOM loads)
+   (function() {
+     if (sessionStorage.getItem('celli:blackOverlay') === 'true') {
+       const style = document.createElement('style');
+       style.textContent = '#portal-black-overlay { position: fixed !important; inset: 0 !important; background: black !important; z-index: 999999 !important; pointer-events: none !important; }';
+       document.head.appendChild(style);
+       
+       const blackOverlay = document.createElement('div');
+       blackOverlay.id = 'portal-black-overlay';
+       document.body.appendChild(blackOverlay);
+       console.log('⚫ Black overlay mounted IMMEDIATELY');
+     }
+   })();
+   
+   window.addEventListener('load', () => {
+     if (sessionStorage.getItem('celli:autoClickPlay') === 'true') {
+       sessionStorage.removeItem('celli:autoClickPlay');
+       console.log('🕳️ Auto-clicking Play button from portal...');
+       
+       setTimeout(() => {
+         const playBtn = document.getElementById('playBtn');
+         if (playBtn) {
+           playBtn.click();
+           
+           // Fade out black overlay when intro starts
+           setTimeout(() => {
+             const blackOverlay = document.getElementById('portal-black-overlay');
+             if (blackOverlay) {
+               blackOverlay.style.opacity = '0';
+               blackOverlay.style.transition = 'opacity 0.5s';
+               setTimeout(() => {
+                 blackOverlay.remove();
+                 sessionStorage.removeItem('celli:blackOverlay');
+               }, 500);
+             }
+           }, 1000);  // Wait 1s for intro to initialize
+         }
+       }, 500);
+     }
+   });
+ </script>
+
 </body>
 </html>

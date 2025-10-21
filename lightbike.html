@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lightbike — Smooth Veer Edition</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+    :root { --cyan:#00ffff; --mag:#ff00aa; --gold:#ffb000; --lime:#00ff88; }
+    html,body { margin:0; height:100%; background:#000; color:#fff; font-family:'Orbitron',system-ui,sans-serif; overflow:hidden; }
+    #game { width:100%; height:100%; position:relative; }
+    canvas { display:block; }
+
+    /* Overlays */
+    .overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:auto; } /* changed */
+    .panel {
+      pointer-events:auto; min-width:300px; max-width:90vw;
+      background:rgba(0,0,0,.78); border:2px solid var(--cyan); border-radius:12px;
+      box-shadow:0 0 22px var(--cyan); padding:1.25rem 1.5rem; text-align:center;
+    }
+    .panel h2 { margin:.2rem 0 .5rem; font-size:2.2rem; color:var(--cyan); text-shadow:0 0 12px var(--cyan); }
+    .panel p { margin:.25rem 0 1rem; opacity:.9 }
+    .panel button {
+      background:var(--cyan); color:#000; border:0; padding:.65rem 1.4rem; border-radius:.35rem;
+      font-weight:700; cursor:pointer; transition:filter .15s ease, box-shadow .15s ease;
+      touch-action: manipulation;
+    }
+    .panel button:hover { filter:brightness(1.06); box-shadow:0 0 18px #fff; }
+
+    #intro { display:flex; }
+    #msgWrap { display:none; }
+
+    /* Touch controls */
+    .touch { position:absolute; left:0; right:0; bottom:18px; display:none; gap:18px; justify-content:center; pointer-events:none; }
+    .btn {
+      width:74px; height:74px; border-radius:50%;
+      border:2px solid rgba(0,255,255,.5); background:rgba(0,255,255,.1); color:var(--cyan);
+      display:flex; align-items:center; justify-content:center; font-size:2rem; user-select:none; pointer-events:auto;
+      touch-action: manipulation;
+    }
+    .btn:active { background:rgba(0,255,255,.35); }
+    @media (pointer:coarse) { .touch { display:flex; } }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <!-- START overlay -->
+    <div id="intro" class="overlay">
+      <div class="panel">
+        <h2>LIGHTBIKE</h2>
+        <p>Tap/click or press <b>Space / Enter</b> to start.<br/>Steer with <b>A / D</b> or arrow keys. <br/><b>Right-click</b>: Sharp 90° turn with camera snap.</p>
+        <button id="startBtn">Start</button>
+      </div>
+    </div>
+
+    <!-- Game-over overlay -->
+    <div id="msgWrap" class="overlay">
+      <div class="panel">
+        <h2 id="msgTitle"></h2>
+        <p id="msgText"></p>
+        <button id="restart">New Game</button>
+      </div>
+    </div>
+
+    <!-- Touch controls -->
+    <div class="touch">
+      <div id="left"  class="btn">⟵</div>
+      <div id="right" class="btn">⟶</div>
+    </div>
+  </div>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.166.1/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.166.1/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+  (async()=>{
+    // ---------- Load THREE via importmap ----------
+    const THREE = await import('three');
+
+    // ---------- Utils ----------
+    const clamp = THREE.MathUtils.clamp;
+    const damp = (x,y,lambda,dt)=> x + (y-x) * (1 - Math.exp(-lambda*dt));
+    const angleDiff = (a,b)=> Math.atan2(Math.sin(a-b), Math.cos(a-b));
+    function distPointSeg2D(p, a, b){
+      const abx=b.x-a.x, aby=b.y-a.y, apx=p.x-a.x, apy=p.y-a.y;
+      const ab2 = abx*abx+aby*aby || 1e-9;
+      const t = clamp((apx*abx + apy*aby)/ab2, 0, 1);
+      const px = a.x + abx*t, py = a.y + aby*t;
+      const dx = p.x - px, dy = p.y - py;
+      return { dist: Math.hypot(dx,dy), t };
+    }
+
+    // ---------- Terrain (smooth hills/dips) ----------
+    const HILL_AMP1 = 120.0, HILL_AMP2 = 80.0, HILL_AMP3 = 60.0, HILL_AMP4 = 30.0;
+    const FREQ1 = 0.0035, FREQ2 = 0.0027, FREQ3 = 0.0020, FREQ4 = 0.0045;
+    function groundHeight(x, z){
+      return (
+        HILL_AMP1*Math.sin(x*FREQ1) +
+        HILL_AMP2*Math.cos(z*FREQ2 + 1.37) +
+        HILL_AMP3*Math.sin((x+z)*FREQ3 + 0.52) +
+        HILL_AMP4*Math.cos((x*0.7 - z*0.45)*FREQ4 + 2.1)
+      );
+    }
+    function buildCurvedGrid(step=60, segStep=40){
+      const positions = [];
+      for (let x=-ARENA_HALF; x<=ARENA_HALF; x+=step){
+        for (let z=-ARENA_HALF; z<ARENA_HALF; z+=segStep){
+          const x0=x, z0=z, x1=x, z1=z+segStep;
+          positions.push(x0, groundHeight(x0,z0)+0.02, z0);
+          positions.push(x1, groundHeight(x1,z1)+0.02, z1);
+        }
+      }
+      for (let z=-ARENA_HALF; z<=ARENA_HALF; z+=step){
+        for (let x=-ARENA_HALF; x<ARENA_HALF; x+=segStep){
+          const x0=x, z0=z, x1=x+segStep, z1=z;
+          positions.push(x0, groundHeight(x0,z0)+0.02, z0);
+          positions.push(x1, groundHeight(x1,z1)+0.02, z1);
+        }
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions),3));
+      const mat = new THREE.LineBasicMaterial({ color:0x00aaff, transparent:true, opacity:0.7 });
+      return new THREE.LineSegments(geo, mat);
+    }
+    function buildTerrain(res=160){
+      const geo = new THREE.PlaneGeometry(ARENA_HALF*2+400, ARENA_HALF*2+400, res, res);
+      geo.rotateX(-Math.PI/2);
+      const pos = geo.attributes.position;
+      for (let i=0;i<pos.count;i++){
+        const x = pos.getX(i), z = pos.getZ(i);
+        pos.setY(i, groundHeight(x,z));
+      }
+      pos.needsUpdate = true; geo.computeVertexNormals();
+      const mat = new THREE.MeshStandardMaterial({ color:0x020207, metalness:0.1, roughness:0.95 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.receiveShadow = false; mesh.castShadow = false; return mesh;
+    }
+
+    // ---------- Config ----------
+    const ARENA_HALF = 2500;
+    const BIKE_SPEED = 78;
+    const BIKE_TURN_RATE = 3.0;
+    const TRAIL_VISUAL_HEIGHT = 6.0;
+    const TRAIL_COLLIDE_THICK = 1.2;
+    const TRAIL_ANCHOR_SPACING = 4.0;
+    const SELF_SAFE_SEGMENTS = 18;
+    const PLAYER_RADIUS = 0.85;
+    const BASE_ACCEL = 30; // W acceleration units/sec^2
+    const MAX_SPEED = 160;
+    const GRIND_SPEED_GAIN = 24; // per second when leaning into wall
+
+    // ---------- THREE setup ----------
+    const root = document.getElementById('game');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000006);
+    scene.fog = new THREE.Fog(0x000010, 1000, 8000);
+
+    const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 50000);
+    camera.up.set(0,1,0);
+    camera.rotation.order = 'YXZ';
+    camera.position.set(0, 18, 26);
+
+    const renderer = new THREE.WebGLRenderer({ antialias:true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    root.appendChild(renderer.domElement);
+
+    const amb = new THREE.AmbientLight(0x66ccff, 0.35);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.7);
+    dir.position.set(1,2,1);
+    scene.add(amb, dir);
+
+    // Curved terrain + grid
+    const terrain = buildTerrain(180);
+    scene.add(terrain);
+    const grid = buildCurvedGrid();
+    scene.add(grid);
+
+    // Arena boundary segments (for collision)
+    const arenaSegments = [];
+    (function(){
+      const L = ARENA_HALF;
+      arenaSegments.push({ a:{x:-L,y:-L}, b:{x: L,y:-L} });
+      arenaSegments.push({ a:{x: L,y:-L}, b:{x: L,y: L} });
+      arenaSegments.push({ a:{x: L,y: L}, b:{x:-L,y: L} });
+      arenaSegments.push({ a:{x:-L,y: L}, b:{x:-L,y:-L} });
+      const y = TRAIL_VISUAL_HEIGHT/2, h=TRAIL_VISUAL_HEIGHT, t=0.5;
+      const wallMat = new THREE.MeshBasicMaterial({ color:0x00ffff, transparent:true, opacity:0.08 });
+      function addWall(x1,z1,x2,z2){
+        const len = Math.hypot(x2-x1, z2-z1);
+        const geo = new THREE.BoxGeometry(len, h, t);
+        const mesh = new THREE.Mesh(geo, wallMat);
+        const cx = (x1+x2)/2, cz=(z1+z2)/2;
+        mesh.position.set(cx, y, cz);
+        mesh.rotation.y = Math.atan2(z2-z1, x2-x1);
+        scene.add(mesh);
+      }
+      addWall(-L,-L,  L,-L);
+      addWall( L,-L,  L, L);
+      addWall( L, L, -L, L);
+      addWall(-L, L, -L,-L);
+    })();
+
+    // ---------- Trail Pane (vertical strip) ----------
+    class TrailPane {
+      constructor({ color, height }){
+        this.height = height;
+        this.points = [];
+        this.tailPoint = null;
+        this.geometry = new THREE.BufferGeometry();
+        this.material = new THREE.MeshBasicMaterial({ color:0x00ffff, transparent:true, opacity:0.85, side:THREE.DoubleSide, depthWrite:false, depthTest:true, blending:THREE.AdditiveBlending });
+        this.mesh = new THREE.Mesh(this.geometry, this.material);
+        this.mesh.renderOrder = 2; this.mesh.frustumCulled = false;
+        scene.add(this.mesh);
+      }
+      addPoint(v){ this.points.push(v.clone()); this._rebuild(); }
+      setTail(v){ this.tailPoint = v ? v.clone() : null; this._rebuild(); }
+      setFromSegments(points, tail){ this.points = points ? points.slice() : []; this.tailPoint = tail ? tail.clone() : null; this._rebuild(); }
+      _rebuild(){
+        const pts = this.tailPoint ? [...this.points, this.tailPoint] : this.points;
+        if (pts.length < 2) { this.mesh.visible=false; return; }
+        const n = pts.length;
+        const positions = new Float32Array(n*2*3);
+        let pOff = 0;
+        for (let i=0;i<n;i++){
+          const p = pts[i];
+          positions[pOff++] = p.x; positions[pOff++] = p.y; positions[pOff++] = p.z; // bottom
+          positions[pOff++] = p.x; positions[pOff++] = p.y + this.height; positions[pOff++] = p.z; // top
+        }
+        const tris = (n-1)*2;
+        const indices = new (n*2>65535?Uint32Array:Uint16Array)(tris*3);
+        let iOff=0;
+        for (let i=0;i<n-1;i++){
+          const i0=i*2, i1=i*2+1, i2=(i+1)*2, i3=(i+1)*2+1;
+          indices[iOff++]=i0; indices[iOff++]=i2; indices[iOff++]=i1;
+          indices[iOff++]=i2; indices[iOff++]=i3; indices[iOff++]=i1;
+        }
+        this.geometry.setAttribute('position', new THREE.BufferAttribute(positions,3));
+        this.geometry.setIndex(new THREE.BufferAttribute(indices,1));
+        this.geometry.computeVertexNormals();
+        this.geometry.computeBoundingSphere();
+        this.mesh.visible = true;
+      }
+      dispose(){ scene.remove(this.mesh); this.geometry.dispose(); this.material.dispose(); }
+    }
+
+    // ---------- Bike ----------
+    let BIKE_ID = 0;
+    class Bike {
+      constructor({ color, start, heading=0, ai=false, name='Rider' }) {
+        this.id = BIKE_ID++;
+        this.color = new THREE.Color(color);
+        this.heading = heading;
+        this.turnInput = 0;
+        this.speed = BIKE_SPEED;
+        this.accelOn = false;
+        this.turnRate = BIKE_TURN_RATE;
+        this.radius = PLAYER_RADIUS;
+        this.isAlive = true;
+        this.isAI = ai;
+        this.name = name;
+        this.lean = 0;
+        this.maxLean = 0.65;
+        this.isDrifting = false;
+        this.velocityAngle = heading;
+        this.driftGrip = 3.0; // higher = less sideways slide
+        this.heading = heading;
+
+        // Hierarchy: pivot (pos/yaw) -> tilt (roll/pitch) -> mesh (model)
+        this.pivot = new THREE.Group();
+        this.pivot.position.set(start.x, 0, start.z);
+        this.pivot.rotation.y = heading;
+        scene.add(this.pivot);
+
+        this.tilt = new THREE.Group();
+        this.tilt.rotation.order = 'ZXY';
+        this.pivot.add(this.tilt);
+
+        this.pitchG = new THREE.Group();
+        this.pitchG.rotation.order = 'XYZ';
+        this.tilt.add(this.pitchG);
+
+        this.mesh = new THREE.Group();
+        this.pitchG.add(this.mesh);
+
+        const wheelR = 0.7;
+        const body = new THREE.Mesh(
+          new THREE.BoxGeometry(3.6, 1, 1.05),
+          new THREE.MeshLambertMaterial({ color:this.color, emissive:this.color, emissiveIntensity:1.2 })
+        );
+        const wheelMat = new THREE.MeshLambertMaterial({ color:0xcccccc, emissive:0x888888, emissiveIntensity:0.5 });
+        const wheelGeo = new THREE.CylinderGeometry(wheelR,wheelR,0.3,24);
+        const w1 = new THREE.Mesh(wheelGeo, wheelMat); w1.rotation.x = Math.PI/2; w1.position.set( 1.4, wheelR, 0);
+        const w2 = new THREE.Mesh(wheelGeo, wheelMat); w2.rotation.x = Math.PI/2; w2.position.set(-1.4, wheelR, 0);
+        body.position.set(0, wheelR + 0.5, 0);
+        this.mesh.add(body, w1, w2);
+        // place pivot at rear wheel contact (so yaw turns around the rear)
+        this.mesh.position.x = 1.4;
+        // Align model forward to +X (path forward)
+        this.mesh.rotation.y = -Math.PI/2;
+
+        // Movement state
+        this.pos = new THREE.Vector2(start.x, start.z);
+        this.airY = 0;
+        this.vy = 0;
+        this.gravity = -80;
+        this.isAirborne = false;
+        this.pitch = 0;
+        this.maxPitch = 0.5;
+        this.wheelieOn = false;
+        this.noseDownOn = false;
+        this.speedBoost = 0;
+        this.maxBoost = 60;
+        this.boostDecay = 0.6; // per second
+        this.jumpArcs = [];
+        this.age = 0;
+        this.isGrinding = false;
+        this.grindNormal = new THREE.Vector2(0,0);
+        this.grindTangent = new THREE.Vector2(0,0);
+        this.grindSeg = null; // {a:{x,y}, b:{x,y}}
+        this.grindT = 0; // 0..1 along segment
+        this.grindSide = 1; // +1 into normal, -1 opposite
+        this.grindOffset = 0.25; // world units away from wall
+        this.grindCooldown = 0; // seconds until we can re-snap to grind
+        this.grindAwayTimer = 0; // lean-away hysteresis
+        // sparks
+        const sparkGeo = new THREE.BufferGeometry();
+        const sparkMat = new THREE.PointsMaterial({ color:0xffeeaa, size:3, transparent:true, opacity:0.9, blending:THREE.AdditiveBlending, depthWrite:false });
+        sparkGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3*100),3));
+        this.sparks = new THREE.Points(sparkGeo, sparkMat);
+        this.sparks.visible = false; scene.add(this.sparks);
+        this.sparkIdx = 0;
+        // Trail state
+        this.trailPane = new TrailPane({ color:this.color, height:TRAIL_VISUAL_HEIGHT });
+        this.trailSegments = [];
+        this._obstacleSyncIndex = 0;
+        this._lastAnchor = new THREE.Vector3(this.pos.x, groundHeight(this.pos.x, this.pos.y), this.pos.y);
+        this.trailPane.addPoint(this._lastAnchor.clone());
+      }
+
+      get pos2(){ return { x:this.pos.x, y:this.pos.y }; }
+
+      steerLeft(on){ this.turnInput = on ? -1 : (this.turnInput===-1?0:this.turnInput); }
+      steerRight(on){ this.turnInput = on ? +1 : (this.turnInput===+1?0:this.turnInput); }
+      straight(){ this.turnInput = 0; }
+
+      kill(){ if (!this.isAlive) return; this.isAlive=false; this.pivot.visible=false; }
+
+      sharpTurn(dir){
+        if (!this.isAlive) return;
+        // Map input to world yaw: left(A:-1) => +PI/2, right(D:+1) => -PI/2
+        const input = (typeof dir === 'number') ? dir : 0;
+        const direction = input !== 0 ? -Math.sign(input) : -1; // default: right turn
+        // finalize current segment
+        const a3 = this._lastAnchor.clone();
+        const b3 = new THREE.Vector3(this.pos.x, groundHeight(this.pos.x, this.pos.y) + this.airY, this.pos.y);
+        if (!this.trailSegments) this.trailSegments = [];
+        this.trailSegments.push({ a:{x:a3.x,y:a3.z}, b:{x:b3.x,y:b3.z}, owner:this.id, index:this.trailSegments.length });
+        this._lastAnchor.copy(b3);
+        if (this.trailPane && this.trailPane.addPoint) this.trailPane.addPoint(b3.clone());
+        // apply instant heading change
+        this.heading += direction * Math.PI/2;
+        this.velocityAngle = this.heading;
+        this.pivot.rotation.y = this.velocityAngle;
+      }
+
+      aiThink(obstacles){
+        // emergency avoidance: if a wall is close ahead, turn away from it
+        let nearest = { d: Infinity, normal:{x:0,y:0} };
+        const pos = this.pos2;
+        const fwd = { x: Math.cos(this.velocityAngle), y: Math.sin(this.velocityAngle) };
+        for (const seg of obstacles) {
+          const abx=seg.b.x-seg.a.x, aby=seg.b.y-seg.a.y;
+          const apx=pos.x-seg.a.x, apy=pos.y-seg.a.y;
+          const ab2=abx*abx+aby*aby||1e-9;
+          const tt=Math.max(0,Math.min(1,(apx*abx+apy*aby)/ab2));
+          const px=seg.a.x+abx*tt, py=seg.a.y+aby*tt;
+          const dx=pos.x-px, dy=pos.y-py; const d=Math.hypot(dx,dy);
+          if (d < nearest.d) {
+            const len=Math.hypot(abx,aby)||1; const nx=-aby/len, ny=abx/len; // left normal
+            nearest = { d, normal:{x:nx,y:ny} };
+          }
+        }
+        if (nearest.d < 16) {
+          // turn away from the nearer side
+          const side = fwd.x*nearest.normal.y - fwd.y*nearest.normal.x; // cross sign: >0 turn right, <0 turn left
+          this.turnInput = side > 0 ? -1 : +1; // steer away
+          return;
+        }
+        // otherwise choose the most open direction
+        const candidates = [-0.9,-0.45,0,0.45,0.9];
+        let best = {score:-Infinity, input:0};
+        for (const mul of candidates) {
+          const desired = this.heading + mul*0.6;
+          const score = this._clearance(desired, obstacles, 220, 5);
+          if (score > best.score) best = { score, input: Math.sign(mul) };
+        }
+        this.turnInput = (best.score > 150 && Math.random()<0.6) ? 0 : best.input;
+      }
+
+      _clearance(angle, obstacles, maxDist, step){
+        const p = this.pos2;
+        const dir = { x:Math.cos(angle), y:Math.sin(angle) };
+        const danger = (TRAIL_COLLIDE_THICK/2 + this.radius + 0.3);
+        let traveled = 0;
+        for (let d=0; d<=maxDist; d+=step) {
+          const q = { x:p.x + dir.x*d, y:p.y + dir.y*d };
+          if (Math.abs(q.x) > ARENA_HALF-1 || Math.abs(q.y) > ARENA_HALF-1) return traveled;
+          for (const seg of obstacles) {
+            if (seg.owner === this.id && seg.index > this.trailSegments.length-SELF_SAFE_SEGMENTS) continue;
+            const { dist } = distPointSeg2D(q, seg.a, seg.b);
+            if (dist <= danger) return traveled;
+          }
+          traveled = d;
+        }
+        return traveled;
+      }
+
+      update(dt, obstacles){
+        if (!this.isAlive) return;
+        if (this.isAI) this.aiThink(obstacles);
+        // update age
+        this.age += dt;
+        // lean (bank) around X-axis; pitch (wheelie) around Z-axis
+        const baseTargetLean = clamp(this.turnInput * this.maxLean, -this.maxLean, this.maxLean);
+        const targetLean = this.wheelieOn ? 0 : baseTargetLean;
+        this.lean = damp(this.lean, targetLean, 10, dt);
+        // bank around X (forward axis)
+        this.tilt.rotation.x = this.lean;
+        let targetPitch = 0;
+        if (this.wheelieOn) targetPitch += this.maxPitch;
+        if (this.noseDownOn) targetPitch -= this.maxPitch*0.7;
+        this.pitch = damp(this.pitch, targetPitch, 10, dt);
+        // wheelie pitch around Z (nose up/down)
+        this.pitchG.rotation.z = this.pitch;
+        // keep mesh yaw neutral so visuals match path (yaw only on pivot)
+        this.mesh.rotation.y = 0;
+
+        // physics-like yaw: integrate yaw rate based on lean (A/left => negative lean => positive yaw to the left)
+        const yawRate = -this.turnRate * Math.tan(this.lean);
+        this.heading += yawRate * dt;
+        // drift: velocity direction lags behind heading when drifting
+        if (this.isDrifting) {
+          const k = 1 - Math.exp(-this.driftGrip * dt);
+          const diff = angleDiff(this.heading, this.velocityAngle);
+          this.velocityAngle += diff * k;
+        } else {
+          this.velocityAngle = this.heading;
+        }
+        const fwd = new THREE.Vector3(1,0,0).applyQuaternion(this.pivot.quaternion).setY(0).normalize();
+        // downhill boost when holding W
+        const slopeSampleAhead = 8;
+        const baseYBefore = groundHeight(this.pos.x, this.pos.y);
+        const aheadX = this.pos.x + fwd.x * slopeSampleAhead;
+        const aheadZ = this.pos.y + fwd.z * slopeSampleAhead;
+        const aheadYg = groundHeight(aheadX, aheadZ);
+        const slope = (aheadYg - baseYBefore) / slopeSampleAhead; // negative is downhill
+        if (this.noseDownOn && slope < -0.001) {
+          this.speedBoost = Math.min(this.maxBoost, this.speedBoost + (-slope) * 40 * dt);
+        } else {
+          // natural taper
+          const decay = Math.exp(-this.boostDecay * dt);
+          this.speedBoost *= decay;
+        }
+        // base acceleration (W)
+        if (this.accelOn) this.speed = Math.min(MAX_SPEED, this.speed + BASE_ACCEL * dt);
+        else this.speed = Math.max(BIKE_SPEED, this.speed - BASE_ACCEL*0.4*dt);
+        const curSpeed = this.speed + this.speedBoost;
+        this.currentSpeed = curSpeed;
+        // grind cooldown timer
+        if (this.grindCooldown > 0) this.grindCooldown = Math.max(0, this.grindCooldown - dt);
+        // position integrate; if grinding, move strictly along grind tangent and keep small offset to wall
+        if (this.isGrinding) {
+          // Validate segment
+          if (!this.grindSeg) { this.isGrinding=false; }
+          else {
+            const ax = this.grindSeg.a.x, ay = this.grindSeg.a.y;
+            const bx = this.grindSeg.b.x, by = this.grindSeg.b.y;
+            const tx = bx-ax, ty = by-ay; const len = Math.hypot(tx,ty) || 1e-6;
+            const tnx = tx/len, tny = ty/len;
+            // advance along wall
+            this.grindT += (curSpeed/len) * dt;
+            // find neighbor if needed
+            const joinRadius = 1.2;
+            const tryHandoff = (endX,endY,forward=true)=>{
+              // search simple neighbor in obstacles
+              let best=null, bestDot=0.5; // allow looser alignment
+              for (const s of obstacles) {
+                const s_ax=s.a.x, s_ay=s.a.y, s_bx=s.b.x, s_by=s.b.y;
+                const s_tx=s_bx-s_ax, s_ty=s_by-s_ay; const s_len=Math.hypot(s_tx,s_ty)||1e-6; const s_tnx=s_tx/s_len, s_tny=s_ty/s_len;
+                const dot = tnx*s_tnx + tny*s_tny;
+                const dA = Math.hypot(endX-s_ax, endY-s_ay);
+                const dB = Math.hypot(endX-s_bx, endY-s_by);
+                if (dA<joinRadius && dot>bestDot) { best={a:{x:s_ax,y:s_ay}, b:{x:s_bx,y:s_by}}; bestDot=dot; this.grindT=0; }
+                else if (dB<joinRadius && dot>bestDot) { best={a:{x:s_bx,y:s_by}, b:{x:s_ax,y:s_ay}}; bestDot=dot; this.grindT=0; }
+              }
+              if (best) { this.grindSeg=best; }
+            };
+            if (this.grindT>1){ tryHandoff(bx,by,true); this.grindT=Math.min(this.grindT-1,1); }
+            if (this.grindT<0){ tryHandoff(ax,ay,false); this.grindT=Math.max(this.grindT+1,0); }
+            // position along current
+            const px = ax + (bx-ax)*this.grindT; const py = ay + (by-ay)*this.grindT;
+            // compute normal based on grindSide
+            const nnx = -tny*this.grindSide, nny = tnx*this.grindSide;
+            this.pos.x = px + nnx*this.grindOffset;
+            this.pos.y = py + nny*this.grindOffset;
+            this.velocityAngle = Math.atan2(tny, tnx);
+            this.heading = this.velocityAngle;
+            // hysteresis for lean-away: accumulate when leaning away, reset when leaning into
+            const leanInto = Math.sign(this.lean) === ((nnx*Math.cos(this.velocityAngle)+nny*Math.sin(this.velocityAngle))>0?1:-1);
+            if (!leanInto) this.grindAwayTimer += dt; else this.grindAwayTimer = 0;
+            if (this.grindAwayTimer > 0.25) { this.isGrinding=false; this.grindCooldown=0.25; this.grindAwayTimer=0; }
+          }
+          // sparks emission
+          const intoSign = (this.grindNormal.x*Math.cos(this.velocityAngle)+this.grindNormal.y*Math.sin(this.velocityAngle)) > 0 ? 1 : -1;
+          const emit = (Math.sign(this.lean) === intoSign);
+          this.sparks.visible = emit;
+          if (emit) {
+            const arr = this.sparks.geometry.attributes.position.array;
+            for (let k=0;k<6;k++) {
+              const i = (this.sparkIdx++ % 100) * 3;
+              arr[i+0] = this.pivot.position.x + (Math.random()-0.5)*2;
+              arr[i+1] = this.pivot.position.y + 1 + Math.random()*2;
+              arr[i+2] = this.pivot.position.z + (Math.random()-0.5)*2;
+            }
+            this.sparks.geometry.attributes.position.needsUpdate = true;
+          }
+        } else {
+          this.sparks.visible = false;
+          this.pos.x += fwd.x * curSpeed * dt;
+          this.pos.y += fwd.z * curSpeed * dt;
+        }
+        const baseYAfter = groundHeight(this.pos.x, this.pos.y);
+        this.pivot.position.set(this.pos.x, baseYAfter + this.airY, this.pos.y);
+        this.pivot.rotation.y = this.velocityAngle; // orient visuals to path
+
+        // jump physics
+        if (this.isAirborne) {
+          this.vy += this.gravity * dt;
+          this.airY += this.vy * dt;
+          if (this.airY <= 0) { this.airY = 0; this.vy = 0; this.isAirborne = false; }
+        }
+
+        if (Math.abs(this.pos.x) > ARENA_HALF-0.6 || Math.abs(this.pos.y) > ARENA_HALF-0.6) { this.kill(); return; }
+
+        if (!this._lastAnchor) this._lastAnchor = new THREE.Vector3(this.pos.x, baseYAfter + this.airY, this.pos.y);
+        const dist = new THREE.Vector3(this.pos.x, baseYAfter + this.airY, this.pos.y).distanceTo(this._lastAnchor);
+        const threshold = Math.min(TRAIL_ANCHOR_SPACING, 1.0);
+        if (!this.isAirborne && dist >= threshold) {
+          const a3 = this._lastAnchor.clone();
+          const b3 = new THREE.Vector3(this.pos.x, baseYAfter, this.pos.y);
+          if (!this.trailSegments) this.trailSegments = [];
+          if (this._obstacleSyncIndex == null) this._obstacleSyncIndex = 0;
+          this.trailSegments.push({ a:{x:a3.x,y:a3.z}, b:{x:b3.x,y:b3.z}, owner:this.id, index:this.trailSegments.length });
+          this._lastAnchor.copy(b3);
+          if (this.trailPane && this.trailPane.addPoint) this.trailPane.addPoint(b3.clone());
+        }
+        // when airborne, continue to add sparse points to trail to build arc
+        if (this.isAirborne) {
+          const b3 = new THREE.Vector3(this.pos.x, baseYAfter + this.airY, this.pos.y);
+          this._lastAnchor.copy(b3);
+          if (this.trailPane && this.trailPane.addPoint) this.trailPane.addPoint(b3.clone());
+        }
+        // always set live tail to current position (guard if disposed)
+        if (this.trailPane && this.trailPane.setTail) {
+          this.trailPane.setTail(new THREE.Vector3(this.pos.x, baseYAfter + this.airY, this.pos.y));
+        }
+        // full rebuild from segments to ensure visibility
+        if (this.trailPane) {
+          const pts = [];
+          const segs = this.trailSegments ? this.trailSegments.slice(-200) : [];
+          for (let i=0;i<segs.length;i++){
+            const s = segs[i];
+            if (i===0) pts.push(new THREE.Vector3(s.a.x, groundHeight(s.a.x, s.a.y), s.a.y));
+            pts.push(new THREE.Vector3(s.b.x, groundHeight(s.b.x, s.b.y), s.b.y));
+          }
+          this.trailPane.points = pts;
+          if (this.trailPane.setTail) this.trailPane.setTail(new THREE.Vector3(this.pos.x, baseYAfter + this.airY, this.pos.y));
+        }
+      }
+    }
+
+    // ---------- Game ----------
+    class Game {
+      constructor(){
+        this.clock = new THREE.Clock();
+        this.running = false;
+        this.firstSnap = false;
+        this.bikes = [];
+        this.obstacles = arenaSegments.map(s => ({...s, owner:-1, index:-1}));
+        this.camRoll = 0;
+        // speedometer
+        const sp = document.createElement('div');
+        sp.id = 'speedo';
+        sp.style.position = 'absolute';
+        sp.style.left = '12px';
+        sp.style.top = '10px';
+        sp.style.fontFamily = "'Orbitron', system-ui, sans-serif";
+        sp.style.fontSize = '16px';
+        sp.style.color = '#00ffff';
+        sp.style.textShadow = '0 0 8px #00ffff';
+        sp.style.pointerEvents = 'none';
+        document.getElementById('game').appendChild(sp);
+        this.audio = null;
+        this._bindUI();
+        this._bindInput();
+        this._loop();
+        addEventListener('resize', ()=>{
+          // update line material resolution
+          for (const b of this.bikes){ if (b.trailPane && b.trailPane.material && b.trailPane.material.resolution){ b.trailPane.material.resolution.set(innerWidth, innerHeight); } }
+        });
+      }
+      _initAudio(){
+        if (this.audio) return;
+        const ctx = new (window.AudioContext||window.webkitAudioContext)();
+        const master = ctx.createGain(); master.gain.value = 0.05; master.connect(ctx.destination);
+        const hum = ctx.createOscillator(); hum.type='sine'; hum.frequency.value = 60;
+        const humGain = ctx.createGain(); humGain.gain.value = 0.18; hum.connect(humGain).connect(master);
+        const rev = ctx.createOscillator(); rev.type='sawtooth'; rev.frequency.value = 120;
+        const revGain = ctx.createGain(); revGain.gain.value = 0.0; rev.connect(revGain).connect(master);
+        hum.start(); rev.start();
+        this.audio = { ctx, master, hum, humGain, rev, revGain };
+      }
+
+      start(){
+        // Clean leftovers
+        this.bikes.forEach(b => {
+          if (b.trailPane) b.trailPane.dispose();
+          if (b.jumpDeco && b.jumpDeco.mesh) scene.remove(b.jumpDeco.mesh);
+          if (b.sparks) scene.remove(b.sparks);
+          if (b.pivot) scene.remove(b.pivot);
+        });
+        this.bikes.length = 0;
+        this.obstacles = arenaSegments.map(s => ({...s, owner:-1, index:-1}));
+
+        // Spawn bikes
+        const player = new Bike({ color:'#00ffff', start:new THREE.Vector3(0,0,0), heading:0, ai:false, name:'You' });
+        const ai1    = new Bike({ color:'#ff00aa', start:new THREE.Vector3(-800,1, 800), heading:-Math.PI/2, ai:true, name:'AI-1' });
+        const ai2    = new Bike({ color:'#ffb000', start:new THREE.Vector3( 800,1,-800), heading: Math.PI/2, ai:true, name:'AI-2' });
+        this.player = player;
+        this.bikes.push(player, ai1, ai2);
+        // seed pane with two points
+        for (const b of this.bikes) {
+          const p0 = new THREE.Vector3(b.pos.x, groundHeight(b.pos.x,b.pos.y), b.pos.y);
+          const p1 = new THREE.Vector3(b.pos.x+0.01, groundHeight(b.pos.x,b.pos.y), b.pos.y);
+          b.trailPane.setFromSegments([p0,p1], p1.clone());
+        }
+
+        this.gameOver = false;
+        this.firstSnap = true;
+        this.running = true;
+        try { this._initAudio(); this.audio?.ctx?.resume?.(); } catch(_){}
+        this._showIntro(false);
+        this._showMsg(false);
+      }
+
+      _loop(){
+        try {
+        requestAnimationFrame(()=>this._loop());
+        const dt = Math.min(0.033, this.clock.getDelta());
+
+        if (this.running) {
+          // Update bikes
+          for (const b of this.bikes) b.update(dt, this.obstacles);
+          // Merge new trail segments (guard against transient undefined during restart)
+          for (const b of this.bikes) {
+            if (!b || !b.trailSegments) continue;
+            while (b._obstacleSyncIndex < b.trailSegments.length) {
+              this.obstacles.push(b.trailSegments[b._obstacleSyncIndex++]);
+            }
+          }
+          // Collisions
+          this._checkCollisions();
+            // Camera chase
+          if (this.player?.isAlive) {
+              const back=22, up=12, ahead=22;
+              const fwd = new THREE.Vector3(1,0,0).applyQuaternion(this.player.pivot.quaternion).setY(0).normalize();
+              const right = new THREE.Vector3(0,0,1).applyQuaternion(this.player.pivot.quaternion).setY(0).normalize();
+              const side = 0;
+            const desired = new THREE.Vector3(
+                this.player.pivot.position.x - fwd.x*back,
+                this.player.pivot.position.y + up,
+                this.player.pivot.position.z - fwd.z*back
+              );
+              desired.addScaledVector(right, side);
+              if (this.firstSnap) { camera.position.copy(desired); this.firstSnap=false; this.prevHeading = this.player.velocityAngle; }
+              else {
+                const dh = Math.abs(angleDiff(this.player.velocityAngle, this.prevHeading || this.player.velocityAngle));
+                const alpha = clamp(0.18 + dh*1.2, 0.18, 0.85);
+                camera.position.lerp(desired, alpha);
+                this.prevHeading = this.player.velocityAngle;
+              }
+              const aheadPos = new THREE.Vector3(
+                this.player.pivot.position.x + fwd.x*ahead,
+                0,
+                this.player.pivot.position.z + fwd.z*ahead
+              );
+              const aheadY = groundHeight(aheadPos.x, aheadPos.z) + 2;
+              const lookAt = new THREE.Vector3(aheadPos.x, aheadY, aheadPos.z);
+              camera.up.set(0,1,0);
+              camera.lookAt(lookAt);
+              const sp = document.getElementById('speedo');
+              if (sp) sp.textContent = `Speed: ${Math.round(this.player.currentSpeed||0)}`;
+              // audio update
+              if (this.audio) {
+                const speed = this.player.currentSpeed || 0;
+                const base = 60 + speed*0.8; // rev freq
+                this.audio.rev.frequency.setTargetAtTime(Math.min(900, base), this.audio.ctx.currentTime, 0.02);
+                const revGainTarget = this.player.accelOn ? 0.35 : 0.15;
+                this.audio.revGain.gain.setTargetAtTime(revGainTarget, this.audio.ctx.currentTime, 0.05);
+                const humGainTarget = 0.08 + Math.min(0.2, speed/400);
+                this.audio.humGain.gain.setTargetAtTime(humGainTarget, this.audio.ctx.currentTime, 0.1);
+              }
+            }
+          }
+
+          // decorate jump arcs and render trails directly from segments
+          for (const b of this.bikes) {
+            // rebuild pane directly from recorded segments
+            if (b.trailPane && b.trailSegments) {
+              const pts = [];
+              const segs = b.trailSegments.slice(-400);
+              for (let i=0;i<segs.length;i++){
+                const s = segs[i];
+                if (i===0) pts.push(new THREE.Vector3(s.a.x, groundHeight(s.a.x, s.a.y), s.a.y));
+                pts.push(new THREE.Vector3(s.b.x, groundHeight(s.b.x, s.b.y), s.b.y));
+              }
+              b.trailPane.setFromSegments(pts, new THREE.Vector3(b.pos.x, groundHeight(b.pos.x,b.pos.y)+b.airY, b.pos.y));
+            }
+            if (!b.jumpDeco) {
+              const mat = new THREE.MeshBasicMaterial({ color:0x00ffff, transparent:true, opacity:0.3, side:THREE.DoubleSide, depthWrite:false });
+              const geo = new THREE.BufferGeometry();
+              b.jumpDeco = { geo, mat, mesh:new THREE.Mesh(geo, mat) };
+              scene.add(b.jumpDeco.mesh);
+            }
+            const positions = [];
+            for (const arc of b.jumpArcs) {
+              if (!arc.done && b.isAirborne && !arc.peak) {
+                arc.peak = new THREE.Vector3(b.pos.x, 0, b.pos.y);
+              }
+              if (arc.done) continue;
+              const start = arc.start;
+              const end = new THREE.Vector3(b.pos.x, 0, b.pos.y);
+              const num = 24;
+              for (let i=0;i<num;i++){
+                const t0 = i/num, t1=(i+1)/num;
+                const h0 = Math.sin(Math.PI*t0) * 8;
+                const h1 = Math.sin(Math.PI*t1) * 8;
+                const x0 = start.x + (end.x-start.x)*t0;
+                const z0 = start.z + (end.z-start.z)*t0;
+                const x1 = start.x + (end.x-start.x)*t1;
+                const z1 = start.z + (end.z-start.z)*t1;
+                positions.push(x0, h0, z0,   x1, h1, z1,   x0, 0.02, z0);
+                positions.push(x1, h1, z1,   x1, 0.02, z1, x0, 0.02, z0);
+              }
+              if (!b.isAirborne) { arc.end = end; arc.done = true; }
+            }
+            const arr = new Float32Array(positions);
+            b.jumpDeco.geo.setAttribute('position', new THREE.BufferAttribute(arr,3));
+          }
+        renderer.render(scene, camera);
+        } catch (e) {
+          if (!this._loopErrorLogged) {
+            console.error('Loop error:', e);
+            this._loopErrorLogged = true;
+          }
+          // Pause the game to prevent spam
+          this.running = false;
+        }
+      }
+
+      _checkCollisions(){
+        for (const bike of this.bikes) {
+          if (!bike.isAlive) continue;
+          if (bike.age < 1.5) continue; // spawn grace
+          if (bike.airY > TRAIL_VISUAL_HEIGHT) continue; // airborne above wall height: no collisions
+          const p = bike.pos2;
+          const danger = (TRAIL_COLLIDE_THICK/2 + bike.radius);
+
+          // Maintain existing grind latch first
+          if (bike.isGrinding && bike.grindSeg) {
+            const seg = bike.grindSeg;
+            const abx=seg.b.x-seg.a.x, aby=seg.b.y-seg.a.y;
+            const apx=p.x-seg.a.x, apy=p.y-seg.a.y;
+            const ab2=abx*abx+aby*aby||1e-9;
+            const tt=Math.max(0,Math.min(1,(apx*abx+apy*aby)/ab2));
+            // update param and keep grinding if close
+            bike.grindT = tt;
+            const px=seg.a.x+abx*tt, py=seg.a.y+aby*tt;
+            const dx=p.x-px, dy=p.y-py; const distToSeg=Math.hypot(dx,dy);
+            if (distToSeg <= 2.0) {
+              // stay latched; skip new collision checks
+              const len=Math.hypot(abx,aby)||1e-6; bike.grindTangent.set(abx/len, aby/len);
+              const nx = -bike.grindTangent.y*bike.grindSide, ny=bike.grindTangent.x*bike.grindSide;
+              bike.grindNormal.set(nx,ny);
+              continue; // move to next bike, preserving grind
+            } else {
+              // too far; release and cooldown
+              bike.isGrinding=false; bike.grindCooldown=0.25;
+            }
+          }
+
+          let grinding = false;
+          let grindTangent = null;
+          let grindNormal = null;
+          let grindSeg = null; let grindT = 0; let grindSide=1;
+          for (const seg of this.obstacles) {
+            if (seg.owner === bike.id && seg.index > bike.trailSegments.length-SELF_SAFE_SEGMENTS) continue;
+            const { dist, t } = (function(){
+              const abx=seg.b.x-seg.a.x, aby=seg.b.y-seg.a.y;
+              const apx=p.x-seg.a.x, apy=p.y-seg.a.y;
+              const ab2=abx*abx+aby*aby||1e-9;
+              const tt=Math.max(0,Math.min(1,(apx*abx+apy*aby)/ab2));
+              const px=seg.a.x+abx*tt, py=seg.a.y+aby*tt;
+              const dx=p.x-px, dy=p.y-py;
+              return { dist: Math.hypot(dx,dy), t:tt };
+            })();
+            if (dist <= danger) {
+              // low-to-moderate angle grind detection (more permissive)
+              const tx = seg.b.x - seg.a.x, ty = seg.b.y - seg.a.y;
+              const len = Math.hypot(tx,ty) || 1;
+              const tangent = { x: tx/len, y: ty/len };
+              const normal = { x: -tangent.y, y: tangent.x };
+              const fwd = { x: Math.cos(bike.velocityAngle), y: Math.sin(bike.velocityAngle) };
+              const approach = fwd.x*normal.x + fwd.y*normal.y; // >0 into wall
+              const along = fwd.x*tangent.x + fwd.y*tangent.y;
+              const approachAbs = Math.abs(approach);
+              if (approachAbs <= 0.7 && along > 0.0 && bike.grindCooldown <= 0) { // latch range
+                grinding = true; grindTangent = tangent; grindNormal = normal; grindSeg={a:seg.a,b:seg.b}; grindT=t; grindSide = (approach>0?+1:-1); break;
+              } else if (approachAbs > 0.95) {
+                bike.kill(); break;
+              }
+            }
+          }
+          if (grinding) {
+            bike.isGrinding = true; bike.grindNormal.set(grindNormal.x, grindNormal.y);
+            bike.grindTangent.set(grindTangent.x, grindTangent.y);
+            bike.grindSeg = grindSeg; bike.grindT = grindT; bike.grindSide = grindSide;
+            bike.velocityAngle = Math.atan2(grindTangent.y, grindTangent.x);
+            const leanDir = Math.sign(bike.lean) || 0;
+            const into = (bike.grindNormal.x*Math.cos(bike.velocityAngle) + bike.grindNormal.y*Math.sin(bike.velocityAngle)) > 0 ? 1 : -1;
+            if (leanDir === into) bike.speed = Math.min(MAX_SPEED, bike.speed + GRIND_SPEED_GAIN * 0.016);
+          } else {
+            if (bike.isGrinding) bike.grindCooldown = 0.25; // brief cooldown to avoid re-snap loop
+            bike.isGrinding = false;
+          }
+        }
+        const alive = this.bikes.filter(b=>b.isAlive);
+        if (!this.gameOver && alive.length <= 1) {
+          this.gameOver = true; this.running = false;
+          const win = this.player?.isAlive;
+          this._showMsg(true, win ? 'VICTORY' : 'DEFEATED', win ? 'You are the last one standing.' : 'You have been derezzed.');
+        }
+      }
+
+      _bindUI(){
+        const start = () => this.start();
+        const byId = id => document.getElementById(id);
+
+        // Click + touch for Start/Restart
+        const startBtn = byId('startBtn');
+        const restartBtn = byId('restart');
+        const intro = byId('intro');
+
+        startBtn.addEventListener('click', start);
+        startBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); start(); }, { passive:false });
+
+        restartBtn.addEventListener('click', start);
+        restartBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); start(); }, { passive:false });
+
+        // Also allow clicking anywhere on the intro overlay to start
+        intro.addEventListener('click', (e)=>{ if (e.target === intro || intro.contains(e.target)) start(); });
+
+        // Keyboard start shortcuts
+        addEventListener('keydown', (e)=>{
+          if (!this.running && (e.code==='Space' || e.code==='Enter')) this.start();
+        });
+
+        // Resize
+        addEventListener('resize', ()=>{
+          camera.aspect = innerWidth/innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(innerWidth, innerHeight);
+        });
+      }
+
+      _bindInput(){
+        if (!('ontouchstart' in window)) {
+          addEventListener('keydown', e => {
+            if (!this.running) return;
+            if (e.repeat) return;
+            if (e.key==='a'||e.key==='ArrowLeft') this.player.steerLeft(true);
+            if (e.key==='d'||e.key==='ArrowRight') this.player.steerRight(true);
+            if (e.key==='s') this.player.wheelieOn = true;
+            if (e.key==='w'||e.key==='W') this.player.accelOn = true;
+            if (e.key==='w'||e.key==='W') this.player.noseDownOn = true;
+            if (e.key==='Shift') this.player.isDrifting = true;
+            if (e.code==='Space') {
+              // jump when wheelie pitch is near/above threshold (faster unlock)
+              if (!this.player.isAirborne && this.player.pitch >= this.player.maxPitch * 0.6) {
+                this.player.isAirborne = true;
+                this.player.vy = 40;
+                // record start of jump arc
+                this.player.jumpArcs.push({ start:new THREE.Vector3(this.player.pos.x,0,this.player.pos.y), peak: null, end: null, done:false });
+              }
+            }
+          });
+          addEventListener('keyup', e => {
+            if (!this.running) return;
+            if (['a','ArrowLeft'].includes(e.key)) this.player.steerLeft(false);
+            if (['d','ArrowRight'].includes(e.key)) this.player.steerRight(false);
+            if (e.key==='s') this.player.wheelieOn = false;
+            if (e.key==='w'||e.key==='W') this.player.accelOn = false;
+            if (e.key==='w'||e.key==='W') this.player.noseDownOn = false;
+            if (e.key==='Shift') this.player.isDrifting = false;
+            if (['a','ArrowLeft','d','ArrowRight'].includes(e.key)) this.player.straight();
+          });
+          // Right-click: sharp 90° turn with camera snap
+          addEventListener('contextmenu', e => { e.preventDefault(); });
+          addEventListener('mousedown', e => {
+            if (!this.running) return;
+            if (e.button === 2) { this.sharpTurn(); }
+          });
+        }
+        // Touch steer
+        const L=document.getElementById('left'), R=document.getElementById('right');
+        const press = fn => ev => { ev.preventDefault(); if (this.running) fn(true); };
+        const release = fn => ev => { ev.preventDefault(); if (this.running) fn(false); };
+        L.addEventListener('touchstart', press((on)=>this.player.steerLeft(on)));
+        R.addEventListener('touchstart', press((on)=>this.player.steerRight(on)));
+        L.addEventListener('touchend',   release((on)=>this.player.straight()));
+        R.addEventListener('touchend',   release((on)=>this.player.straight()));
+      }
+
+      sharpTurn(){
+        if (!this.running || !this.player || !this.player.isAlive) return;
+        const dir = this.player.turnInput !== 0 ? this.player.turnInput : -1; // default to right turn
+        this.player.sharpTurn(dir);
+        this.firstSnap = true; // snap camera instantly on next frame
+      }
+
+      _showIntro(show){ document.getElementById('intro').style.display = show ? 'flex' : 'none'; }
+      _showMsg(show, title='', text=''){
+        const wrap = document.getElementById('msgWrap');
+        if (!show) { wrap.style.display='none'; return; }
+        document.getElementById('msgTitle').textContent = title;
+        document.getElementById('msgText').textContent  = text;
+        wrap.style.display='flex';
+      }
+    }
+
+    // Boot to intro screen
+    new Game();
+  })().catch(err=>{
+    console.error(err);
+    const intro = document.getElementById('intro');
+    intro.style.display='flex';
+    const p = intro.querySelector('.panel p');
+    if (p) p.innerHTML = 'Could not load 3D engine. Please connect to the internet and reload.';
+  });
+  </script>
+</body>
+</html>

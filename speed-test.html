@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Speed Test - Module Import</title>
+</head>
+<body>
+  <h1>Testing Three.js Import</h1>
+  <div id="status">Loading...</div>
+  
+  <script type="module">
+    console.log('Script started');
+    import * as THREE from "https://unpkg.com/three@0.158.0/build/three.module.js";
+    console.log('Three.js imported successfully!', THREE);
+    document.getElementById('status').textContent = '✅ THREE.js loaded: ' + THREE.REVISION;
+  </script>
+</body>
+</html>
+
