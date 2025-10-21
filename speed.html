@@ -405,39 +405,38 @@ const tapoutTrack = new Audio();
 tapoutTrack.crossOrigin = 'anonymous';
 tapoutTrack.preload = 'auto';
 
-// Try to load tracks from multiple paths (case-insensitive variants)
-function tryLoadAudio(audio, baseName) {
-  // Split into stem and extension to preserve/mix cases correctly
-  const match = /^(.*?)(?:\.([A-Za-z0-9]+))?$/.exec(baseName);
-  const stemOrig = match && match[1] ? match[1] : baseName;
-  const extOrig = match && match[2] ? match[2] : '';
+function buildCaseInsensitiveFilenames(baseName) {
+  const variants = new Set([baseName]);
 
-  const stems = Array.from(new Set([
-    stemOrig,
-    stemOrig.toLowerCase(),
-    stemOrig.toUpperCase(),
-    stemOrig.charAt(0).toUpperCase() + stemOrig.slice(1).toLowerCase()
-  ]));
+  const pathParts = baseName.split('/');
+  const filePart = pathParts.pop();
 
-  const exts = Array.from(new Set([
-    extOrig,
-    extOrig.toLowerCase(),
-    extOrig.toUpperCase()
-  ].filter(Boolean)));
+  if (filePart) {
+    const dotIndex = filePart.lastIndexOf('.');
+    const stem = dotIndex !== -1 ? filePart.slice(0, dotIndex) : filePart;
+    const ext = dotIndex !== -1 ? filePart.slice(dotIndex + 1) : '';
 
-  const filenames = new Set();
-  if (exts.size > 0) {
+    const stems = new Set([stem, stem.toLowerCase(), stem.toUpperCase()]);
+    const exts = ext ? new Set([ext, ext.toLowerCase(), ext.toUpperCase()]) : new Set(['']);
+    const prefix = pathParts.length ? `${pathParts.join('/')}/` : '';
+
     for (const s of stems) {
-      for (const e of exts) {
-        filenames.add(`${s}.${e}`);
+      if (ext) {
+        for (const e of exts) {
+          variants.add(`${prefix}${s}.${e}`);
+        }
+      } else {
+        variants.add(`${prefix}${s}`);
       }
     }
-  } else {
-    stems.forEach(s => filenames.add(s));
   }
 
-  // Ensure original baseName is prioritized first
-  const prioritized = [baseName, ...Array.from(filenames).filter(f => f !== baseName)];
+  return Array.from(variants);
+}
+
+// Try to load tracks from multiple paths (case-insensitive variants)
+function tryLoadAudio(audio, baseName) {
+  const filenames = buildCaseInsensitiveFilenames(baseName);
 
   const prefixes = [
     '../',
@@ -447,7 +446,7 @@ function tryLoadAudio(audio, baseName) {
 
   const seen = new Set();
   const candidates = [];
-  for (const f of prioritized) {
+  for (const f of filenames) {
     for (const p of prefixes) {
       const url = p + f;
       if (!seen.has(url)) {
@@ -456,7 +455,7 @@ function tryLoadAudio(audio, baseName) {
       }
     }
   }
-  
+
   let index = 0;
   const tryNext = () => {
     if (index >= candidates.length) {
@@ -465,20 +464,20 @@ function tryLoadAudio(audio, baseName) {
     }
     audio.src = candidates[index++];
   };
-  
+
   audio.addEventListener('error', tryNext, { once: false });
   audio.addEventListener('canplay', () => {
     audio.removeEventListener('error', tryNext);
   }, { once: true });
-  
+
   tryNext();
 }
 
-tryLoadAudio(baseTrack, 'ea.mp3');
+tryLoadAudio(baseTrack, 'EA.mp3');
 tryLoadAudio(tapoutTrack, 'tapout.mp3');
-tryLoadAudio(encoreTrack, 'ea2.mp3');
-tryLoadAudio(superEncoreTrack, 'ea3.mp3');
-tryLoadAudio(finaleTrack, 'ea4.mp3');
+tryLoadAudio(encoreTrack, 'EA2.mp3');
+tryLoadAudio(superEncoreTrack, 'EA3.mp3');
+tryLoadAudio(finaleTrack, 'EA4.mp3');
 
 let currentTrack = null;
 let encoreIndex = 0;
