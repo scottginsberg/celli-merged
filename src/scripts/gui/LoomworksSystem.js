@@ -101,6 +101,8 @@ export class LoomworksSystem extends GUIComponent {
     if (index >= text.length) {
       this.typingTimeout = null;
       this.emit('typeComplete');
+      // After typing completes, start untype sequence
+      setTimeout(() => this.startUntypeSequence(), 1200);
       return;
     }
 
@@ -119,6 +121,62 @@ export class LoomworksSystem extends GUIComponent {
     const baseDelay = index < 3 ? 110 : 65;
     const jitter = Math.random() * 55;
     this.typingTimeout = setTimeout(() => this.typeTail(text, index + 1), baseDelay + jitter);
+  }
+
+  /**
+   * Untype sequence: revert back to LOOK, flash to GAZE, build quote
+   */
+  startUntypeSequence() {
+    // Untype tail text back to empty
+    const tailText = this.tailElement.textContent || '';
+    let remaining = tailText.length;
+    
+    const untypeInterval = setInterval(() => {
+      if (remaining <= 0) {
+        clearInterval(untypeInterval);
+        // Reset to LOOK
+        this.preElement.textContent = '';
+        this.coreElement.textContent = 'OO';
+        this.postElement.textContent = 'K';
+        this.container.style.fontSize = '32px';
+        this.container.style.fontWeight = '700';
+        this.container.style.letterSpacing = '0.2em';
+        
+        // Flash to GAZE
+        setTimeout(() => {
+          this.preElement.textContent = 'G';
+          this.coreElement.textContent = 'A';
+          this.postElement.textContent = 'ZE';
+          
+          // Flash effect
+          this.container.style.opacity = '0';
+          setTimeout(() => { this.container.style.opacity = '1'; }, 50);
+          setTimeout(() => { this.container.style.opacity = '0'; }, 150);
+          setTimeout(() => { this.container.style.opacity = '1'; }, 250);
+          
+          // Build quote around GAZE
+          setTimeout(() => {
+            const quoteEl = document.getElementById('quote');
+            const quoteBefore = document.getElementById('quoteBefore');
+            const quoteAfter = document.getElementById('quoteAfter');
+            
+            if (quoteBefore && quoteAfter && quoteEl) {
+              quoteBefore.textContent = '...if you ';
+              quoteBefore.style.display = 'inline';
+              quoteAfter.textContent = ' for long into an abyss, the abyss gazes also into you.';
+              quoteAfter.style.display = 'inline';
+              quoteEl.style.opacity = '1';
+            }
+            
+            this.emit('gazeRevealed');
+          }, 600);
+        }, 400);
+        return;
+      }
+      
+      this.tailElement.textContent = tailText.substring(0, remaining - 1);
+      remaining--;
+    }, 40);
   }
 
   /**

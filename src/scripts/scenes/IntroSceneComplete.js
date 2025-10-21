@@ -450,42 +450,42 @@ export class IntroSceneComplete {
   }
 
   _handlePromptBackspace() {
-    if (this.state.inputText.length <= this.state.promptBaseText.length) {
-      return false;
+    // Allow backspace to trigger restoration even without typing START
+    const hasExtraText = this.state.inputText.length > this.state.promptBaseText.length;
+    
+    if (hasExtraText) {
+      this.state.inputText = this.state.inputText.slice(0, -1);
+      this.state.tEntered = false;
+
+      if (this.state.endSequence.length) {
+        this.state.endSequence = this.state.endSequence.slice(0, -1);
+      }
+
+      if (this.state.inputText.length <= this.state.promptBaseText.length) {
+        this.state.endSequence = '';
+      }
+
+      this._setPromptText(this.state.inputText);
+
+      if (this.state.hiddenInput) {
+        this.state.hiddenInput.value = '';
+      }
     }
 
-    this.state.inputText = this.state.inputText.slice(0, -1);
-    this.state.tEntered = false;
+    // Trigger backspace restoration if burst animation has happened
+    if (this.state.burstAnimStarted) {
+      if (!this.state.celliBackspaceSequenceStarted) {
+        this.state.celliBackspaceSequenceStarted = true;
+        this.state.celliBackspaceSequenceTime = 0;
+      }
 
-    if (this.state.endSequence.length) {
-      this.state.endSequence = this.state.endSequence.slice(0, -1);
-    }
-
-    if (this.state.inputText.length <= this.state.promptBaseText.length) {
-      this.state.endSequence = '';
-    }
-
-    this._setPromptText(this.state.inputText);
-
-    if (this.state.hiddenInput) {
-      this.state.hiddenInput.value = '';
-    }
-
-    if (!this.state.burstAnimStarted) {
-      return true;
-    }
-
-    if (!this.state.celliBackspaceSequenceStarted) {
-      this.state.celliBackspaceSequenceStarted = true;
-      this.state.celliBackspaceSequenceTime = 0;
-    }
-
-    this._updateBackspaceTargetFromPrompt();
-    if (this.state.celliBackspaceTarget > this.state.restoredLetters) {
-      this.state.celliBackspaceSequenceTime = Math.max(
-        this.state.celliBackspaceSequenceTime,
-        0.5
-      );
+      this._updateBackspaceTargetFromPrompt();
+      if (this.state.celliBackspaceTarget > this.state.restoredLetters) {
+        this.state.celliBackspaceSequenceTime = Math.max(
+          this.state.celliBackspaceSequenceTime,
+          0.5
+        );
+      }
     }
 
     return true;

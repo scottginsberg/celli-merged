@@ -18,6 +18,7 @@ import { VisiCellScene } from './scenes/VisiCellScene.js';
 import { CityScene } from './scenes/CityScene.js';
 import CelliRealSceneFull from './scenes/CelliRealScene-Full.js';
 import { FullhandScene } from './scenes/FullhandScene.js';
+import { TheosSequenceScene } from './scenes/TheosSequenceScene.js';
 
 // Import GUI systems
 import { quoteSystem } from './gui/QuoteSystem.js';
@@ -472,10 +473,11 @@ export function registerAllScenes() {
   // Register Execution Environment scene
   sceneManager.registerScene('fullhand', new FullhandScene());
   
+  // Register THE.OS Lattice Grid Sequence (can be integrated into intro or used standalone)
+  sceneManager.registerScene('theos', new TheosSequenceScene());
+  
   // TODO: Register more scenes as they're extracted
   // sceneManager.registerScene('end3', new End3Scene());
-  // sceneManager.registerScene('fullhand', new FullhandScene());
-  // sceneManager.registerScene('cellireal', new CelliRealScene());
 
   console.log(`✅ ${sceneManager.listScenes().length} scenes registered`);
 }
@@ -611,12 +613,8 @@ export async function startApp() {
     // Start animation loop
     startAnimationLoop();
 
-    console.log('🎞️ Preparing standard intro video playlist…');
-    try {
-      await runIntroVideoSequence();
-    } catch (sequenceError) {
-      console.warn('⚠️ Intro video sequence failed or was skipped early:', sequenceError);
-    }
+    // Skip intro video sequence per user request
+    console.log('🎞️ Skipping intro video playlist');
 
     // Transition to intro scene - THIS STARTS THE INTRO SEQUENCE!
     console.log('🎬 Starting intro scene transition...');

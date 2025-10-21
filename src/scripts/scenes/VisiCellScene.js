@@ -1000,6 +1000,36 @@ export class VisiCellScene {
   }
 
   /**
+   * Cancel R infection and matrix effects
+   */
+  _cancelRSequence() {
+    console.log('🛑 Cancelling R sequence');
+    this.state.rInfectionActive = false;
+    
+    // Clear R cells back to normal
+    this.state.rInfectedCells.forEach(cellAddr => {
+      const cellData = this.state.cells.get(cellAddr);
+      if (cellData) {
+        this._setCellValue(cellAddr, '', { suppressClueCheck: true, resetStyle: true });
+      }
+    });
+    this.state.rInfectedCells.clear();
+    this._render();
+    
+    // Remove matrix fall if present
+    const matrixContainer = document.getElementById('visicell-matrix-fall');
+    if (matrixContainer) {
+      matrixContainer.remove();
+    }
+    
+    // Remove ASCII overlay if present
+    const asciiOverlay = document.getElementById('visicell-ascii-overlay');
+    if (asciiOverlay) {
+      asciiOverlay.remove();
+    }
+  }
+
+  /**
    * Start R infection sequence
    */
   _startRInfection() {
@@ -1008,10 +1038,184 @@ export class VisiCellScene {
     console.log('🦠 R infection started');
     this.state.rInfectionActive = true;
     
-    // TODO: Implement R infection visual effects
-    // - Random cells turn red
-    // - R characters appear
-    // - Speech R system activates
+    // R pattern cells (forming letter R)
+    const rPattern = [
+      'B2', 'C2', 'D2',    // Top horizontal
+      'B3', 'D3',          // Sides
+      'B4', 'C4',          // Middle  
+      'B5', 'D5',          // Sides
+      'B6', 'E6'           // Bottom with leg
+    ];
+    
+    // Progressive filling with R
+    rPattern.forEach((cellAddr, index) => {
+      setTimeout(() => {
+        const cellData = this._setCellValue(cellAddr, 'R', { suppressClueCheck: true, resetStyle: true });
+        cellData.style = cellData.style || {};
+        Object.assign(cellData.style, {
+          background: '#ffffff',
+          color: '#000',
+          textAlign: 'center',
+          fontWeight: '700',
+          fontSize: '16px'
+        });
+        this.state.rInfectedCells.add(cellAddr);
+        this._render();
+      }, index * 100);
+    });
+    
+    // After all Rs are placed, turn them green
+    setTimeout(() => {
+      this.state.rInfectedCells.forEach(cellAddr => {
+        const cellData = this.state.cells.get(cellAddr);
+        if (cellData && cellData.style) {
+          cellData.style.background = '#00ff00';
+          cellData.style.color = '#000';
+        }
+      });
+      this._render();
+      
+      // Start matrix fall after green transition
+      setTimeout(() => {
+        this._startMatrixFall();
+      }, 1000);
+    }, rPattern.length * 100 + 500);
+  }
+
+  /**
+   * Start Matrix fall effect
+   */
+  _startMatrixFall() {
+    console.log('💻 Matrix fall effect started');
+    
+    // Create matrix fall container
+    let container = document.getElementById('visicell-matrix-fall');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'visicell-matrix-fall';
+      container.style.cssText = `
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 50;
+        overflow: hidden;
+      `;
+      document.body.appendChild(container);
+    }
+    
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:\'",.<>?';
+    const streamCount = 30;
+    const streams = [];
+    
+    // Create character streams
+    for (let i = 0; i < streamCount; i++) {
+      const stream = document.createElement('div');
+      stream.style.cssText = `
+        position: absolute;
+        left: ${Math.random() * 100}%;
+        top: -100%;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        color: #00ff00;
+        white-space: pre;
+        animation: matrix-fall ${2 + Math.random() * 2}s linear infinite;
+        animation-delay: ${Math.random() * 2}s;
+      `;
+      
+      let text = '';
+      for (let j = 0; j < 20; j++) {
+        text += characters[Math.floor(Math.random() * characters.length)] + '\n';
+      }
+      stream.textContent = text;
+      
+      container.appendChild(stream);
+      streams.push(stream);
+    }
+    
+    // Add keyframe animation if not already present
+    if (!document.getElementById('matrix-fall-keyframes')) {
+      const style = document.createElement('style');
+      style.id = 'matrix-fall-keyframes';
+      style.textContent = `
+        @keyframes matrix-fall {
+          0% {
+            top: -100%;
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          90% {
+            opacity: 1;
+          }
+          100% {
+            top: 100%;
+            opacity: 0;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    // Show ASCII CELLI text overlay
+    setTimeout(() => {
+      this._showAsciiOverlay();
+    }, 2000);
+    
+    // Cleanup after 8 seconds
+    setTimeout(() => {
+      if (container) {
+        container.style.transition = 'opacity 1s';
+        container.style.opacity = '0';
+        setTimeout(() => container.remove(), 1000);
+      }
+    }, 8000);
+  }
+
+  /**
+   * Show ASCII art overlay
+   */
+  _showAsciiOverlay() {
+    let overlay = document.getElementById('visicell-ascii-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'visicell-ascii-overlay';
+      overlay.style.cssText = `
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        font-family: monospace;
+        font-size: 10px;
+        line-height: 1;
+        color: #00ff00;
+        text-shadow: 0 0 10px #00ff00;
+        white-space: pre;
+        z-index: 200;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 1s;
+      `;
+      
+      overlay.textContent = `  ██████  ███████ ██      ██      ██
+ ██      ██      ██      ██      ██
+ ██      █████   ██      ██      ██
+ ██      ██      ██      ██      ██
+  ██████ ███████ ███████ ███████ ██`;
+      
+      document.body.appendChild(overlay);
+    }
+    
+    // Fade in
+    setTimeout(() => {
+      overlay.style.opacity = '1';
+    }, 100);
+    
+    // Fade out after hold
+    setTimeout(() => {
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.remove(), 1000);
+    }, 4000);
   }
 
   /**
@@ -1403,7 +1607,7 @@ export class VisiCellScene {
 
     overlay.style.display = 'flex';
     this._cancelQuestCountdown();
-    this._updateQuestMessage(`Complete the word in cell ${entryCell}`);
+    this._updateQuestMessage(`FIGURE OUT THE INCOMPLETE WORD IN CELL ${entryCell} - THEN PRESS THAT KEY. THE ENTER KEY. THE WORD IS ENTER.`);
   }
 
   _layoutFinishWordMessage(entryCell) {
@@ -1642,6 +1846,11 @@ export class VisiCellScene {
 
     this._render();
     this._applyClueCellHighlight();
+    
+    // Re-enable clue input and trigger onion riddle after a delay
+    setTimeout(() => {
+      this._beginOnionRiddle();
+    }, 1500);
   }
 
   _startQuestSequence() {
@@ -1821,8 +2030,8 @@ export class VisiCellScene {
     clue.entryCell = entryCell;
     clue.promptCell = promptCell;
     clue.clueCell = clueCell;
-    clue.baseInput = '';
-    clue.currentInput = '';
+    clue.baseInput = 'ENTE';
+    clue.currentInput = 'ENTE';
     clue.active = true;
     clue.stage = 'await-command';
     clue.riddleStage = 'await-leave';
@@ -1845,7 +2054,7 @@ export class VisiCellScene {
     clue.clockAcknowledged = false;
 
     clue.initializing = true;
-    this._setCellValue(entryCell, '', { suppressClueCheck: true, resetStyle: true });
+    this._setCellValue(entryCell, 'ENTE', { suppressClueCheck: true, resetStyle: true });
     this._updateClueDisplay();
     clue.initializing = false;
 
@@ -1881,7 +2090,7 @@ export class VisiCellScene {
     this._applyClueCellHighlight();
 
     this._layoutFinishWordMessage(entryCell);
-    this._showClueInstruction(`FINISH THE WORD IN CELL ${entryCell}. FILL IT WITH ENTER.`);
+    this._showClueInstruction(`FIGURE OUT THE INCOMPLETE WORD IN CELL ${entryCell} - THEN PRESS THAT KEY. THE ENTER KEY. THE WORD IS ENTER.`);
     this._selectCell(entryCell);
 
     this._updateQuestOverlayForEntry(entryCell);
@@ -2034,19 +2243,32 @@ export class VisiCellScene {
     }
 
     if (normalized === 'ENTER' && clue.lastTriggeredValue !== 'ENTER') {
+      // Cancel R sequence if it was running
+      this._cancelRSequence();
+      
       clue.currentInput = normalized;
       clue.lastTriggeredValue = 'ENTER';
+      this._showClueInstruction('CORRECT! INITIALIZING R SEQUENCE...');
+      
+      // Trigger R sequence after brief delay
+      setTimeout(() => {
+        this._startRInfection();
+      }, 1000);
+      
       this._startQuestSequence();
       return true;
     }
 
     if (normalized === 'LEAVE') {
       if (clue.riddleStage === 'await-leave' && clue.lastTriggeredValue !== 'LEAVE') {
+        // Cancel R sequence if it was running
+        this._cancelRSequence();
+        
         clue.currentInput = normalized;
         clue.lastTriggeredValue = 'LEAVE';
         this._updatePromptCell('REQUEST ACKNOWLEDGED. HOLD FAST.');
         this._showClueInstruction('CLUE TRAIL INITIATED. WATCH THE GRID.');
-        clue.riddleStage = 'await-onion';
+        clue.riddleStage = 'await-search';
         this._startClueTrailSequence('leave');
         return true;
       }

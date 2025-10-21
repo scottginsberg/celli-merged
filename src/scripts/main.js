@@ -45,26 +45,35 @@ const EXECUTION_ENV_DEFAULT_MODE = 'sequence';
 const SCENE_OPTION_CONFIG = {
   theos: {
     templateUrl: './templates/componentized/theos-sequence.html',
+    componentScene: 'theos',
     badge: {
-      template: 'Template'
+      template: 'Template',
+      component: 'Component'
     },
     indicator: {
-      template: 'Standalone coordinate lattice build'
+      template: 'Standalone coordinate lattice build',
+      component: 'In-app lattice grid sequence'
     },
     unlock: {
-      template: true
+      template: true,
+      component: true
     }
   },
   blackhole: {
     templateUrl: './templates/componentized/theos-sequence.html?start=blackhole',
+    componentScene: 'theos',
+    componentOptions: { startStage: 'blackhole' },
     badge: {
-      template: 'Template'
+      template: 'Template',
+      component: 'Component'
     },
     indicator: {
-      template: 'Standalone singularity sequence'
+      template: 'Standalone singularity sequence',
+      component: 'In-app singularity sequence'
     },
     unlock: {
-      template: true
+      template: true,
+      component: true
     }
   },
   cellireal: {
@@ -620,30 +629,35 @@ function ensureVideoPlaylistUI() {
 
   const overlay = document.createElement('div');
   overlay.id = 'rootVideoPlaylistOverlay';
-  overlay.style.cssText = 'position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.85); z-index:10000; padding:20px;';
+  overlay.style.cssText = 'position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.95); z-index:10000; padding:20px;';
 
   const container = document.createElement('div');
-  container.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:12px; max-width:90vw;';
+  container.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:12px; max-width:90vw; width:100%; height:100%;';
 
   const title = document.createElement('h3');
   title.textContent = 'Root Video Playlist';
   title.style.cssText = 'color:#1abc9c; font-family:"Roboto Mono", monospace; letter-spacing:0.12em; text-transform:uppercase; font-size:16px;';
 
   const subtitle = document.createElement('div');
-  subtitle.style.cssText = 'color:#f0f0f0; font-size:13px; font-family:"Roboto Mono", monospace; opacity:0.85; text-align:center;';
+  subtitle.style.cssText = 'display:none; color:#f0f0f0; font-size:13px; font-family:"Roboto Mono", monospace; opacity:0.85; text-align:center;';
+
+  const freezeFrameGrid = document.createElement('div');
+  freezeFrameGrid.id = 'freezeFrameGrid';
+  freezeFrameGrid.style.cssText = 'position:absolute; inset:20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; align-content:start; pointer-events:none; z-index:1;';
 
   const video = document.createElement('video');
-  video.controls = true;
-  video.style.cssText = 'max-width:82vw; max-height:70vh; border:2px solid rgba(26,188,156,0.6); border-radius:10px; box-shadow:0 0 25px rgba(26,188,156,0.4); background:#000;';
+  video.controls = false;
+  video.style.cssText = 'max-width:82vw; max-height:70vh; border:2px solid rgba(26,188,156,0.6); border-radius:10px; box-shadow:0 0 25px rgba(26,188,156,0.4); background:#000; position:relative; z-index:2;';
 
   const closeBtn = document.createElement('button');
   closeBtn.textContent = 'Close';
-  closeBtn.style.cssText = 'padding:8px 18px; background:#f39c12; border:none; border-radius:20px; color:#000; cursor:pointer; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; font-size:11px;';
+  closeBtn.style.cssText = 'padding:8px 18px; background:#f39c12; border:none; border-radius:20px; color:#000; cursor:pointer; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; font-size:11px; position:relative; z-index:2;';
 
   const controls = document.createElement('div');
-  controls.style.cssText = 'display:flex; gap:12px; align-items:center; flex-wrap:wrap; justify-content:center;';
+  controls.style.cssText = 'display:flex; gap:12px; align-items:center; flex-wrap:wrap; justify-content:center; position:relative; z-index:2;';
   controls.appendChild(closeBtn);
 
+  overlay.appendChild(freezeFrameGrid);
   container.appendChild(title);
   container.appendChild(subtitle);
   container.appendChild(video);
@@ -667,7 +681,7 @@ function ensureVideoPlaylistUI() {
   });
 
   document.body.appendChild(overlay);
-  videoPlaylistUI = { overlay, container, title, subtitle, video, closeBtn };
+  videoPlaylistUI = { overlay, container, title, subtitle, video, closeBtn, freezeFrameGrid };
   return videoPlaylistUI;
 }
 
@@ -687,6 +701,11 @@ function closeVideoPlaylist(options = {}) {
     videoPlaylistUI.video.removeAttribute('src');
     videoPlaylistUI.video.load();
     activeVideoPlaylist = null;
+  }
+
+  // Clear freeze frame grid
+  if (videoPlaylistUI.freezeFrameGrid) {
+    videoPlaylistUI.freezeFrameGrid.innerHTML = '';
   }
 
   videoPlaylistUI.overlay.style.display = 'none';
@@ -713,9 +732,31 @@ async function startRootVideoPlaylist() {
 
   let currentIndex = 0;
 
+  const captureCurrentFrame = async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = ui.video.videoWidth || 640;
+    canvas.height = ui.video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(ui.video, 0, 0, canvas.width, canvas.height);
+    
+    const freezeFrame = document.createElement('div');
+    freezeFrame.style.cssText = 'opacity:0; transform:scale(0.8) translateY(20px); transition:all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); border-radius:8px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.5); border:1px solid rgba(26,188,156,0.4);';
+    
+    const img = new Image();
+    img.src = canvas.toDataURL();
+    img.style.cssText = 'width:100%; height:auto; display:block;';
+    freezeFrame.appendChild(img);
+    
+    ui.freezeFrameGrid.appendChild(freezeFrame);
+    requestAnimationFrame(() => {
+      freezeFrame.style.opacity = '1';
+      freezeFrame.style.transform = 'scale(1) translateY(0)';
+    });
+  };
+
   const updateSubtitle = (index) => {
-    const fileName = uniquePlaylist[index]?.split('/').pop() ?? 'unknown';
-    ui.subtitle.textContent = `Playing ${index + 1} / ${uniquePlaylist.length}: ${decodeURIComponent(fileName)}`;
+    // Filename hidden per user request
+    ui.subtitle.textContent = '';
   };
 
   const playAtIndex = (index) => {
@@ -734,12 +775,23 @@ async function startRootVideoPlaylist() {
     });
   };
 
-  ui.video.onended = () => {
+  ui.video.onended = async () => {
+    // Capture freeze frame before moving to next
+    try {
+      await captureCurrentFrame();
+    } catch (error) {
+      console.warn('⚠️ Failed to capture freeze frame', error);
+    }
+    
     if (currentIndex + 1 < uniquePlaylist.length) {
-      playAtIndex(currentIndex + 1);
+      // Brief pause before next video
+      setTimeout(() => playAtIndex(currentIndex + 1), 400);
     } else {
       showToast('Video playlist finished');
-      closeVideoPlaylist({ silent: true });
+      // Keep overlay open to show grid, add a delay before close
+      setTimeout(() => {
+        closeVideoPlaylist({ silent: true });
+      }, 3000);
     }
   };
 

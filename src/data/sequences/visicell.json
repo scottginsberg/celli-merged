@@ -1,0 +1,260 @@
+{
+  "name": "Visicell Intro Sequence",
+  "description": "Interactive word puzzle followed by R sequence and matrix fall effects",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": 1,
+      "type": "cell_populate",
+      "params": {
+        "target": "randomCell",
+        "value": "ENTE",
+        "storeAs": "targetCell"
+      }
+    },
+    {
+      "id": 2,
+      "type": "log_message",
+      "params": {
+        "target": "sheetLog",
+        "text": "FIGURE OUT THE INCOMPLETE WORD IN CELL {{targetCell}} - THEN PRESS THAT KEY. THE ENTER KEY. THE WORD IS ENTER.",
+        "duration": 5.0
+      }
+    },
+    {
+      "id": 3,
+      "type": "wait_for_key",
+      "params": {
+        "key": "Enter",
+        "timeout": 30.0
+      }
+    },
+    {
+      "id": 4,
+      "type": "delay",
+      "params": {
+        "duration": 0.5
+      }
+    },
+    {
+      "id": 5,
+      "type": "log_message",
+      "params": {
+        "target": "sheetLog",
+        "text": "CORRECT! INITIALIZING R SEQUENCE...",
+        "duration": 2.0
+      }
+    },
+    {
+      "id": 6,
+      "type": "delay",
+      "params": {
+        "duration": 1.0
+      }
+    },
+    {
+      "id": 7,
+      "type": "cell_fill_sequence",
+      "params": {
+        "pattern": "progressive",
+        "value": "R",
+        "cells": [
+          {"x": 2, "y": 2}, {"x": 3, "y": 2}, {"x": 4, "y": 2},
+          {"x": 2, "y": 3}, {"x": 4, "y": 3},
+          {"x": 2, "y": 4}, {"x": 3, "y": 4},
+          {"x": 2, "y": 5}, {"x": 4, "y": 5},
+          {"x": 2, "y": 6}, {"x": 5, "y": 6}
+        ],
+        "delay": 0.1,
+        "duration": 2.0
+      }
+    },
+    {
+      "id": 8,
+      "type": "delay",
+      "params": {
+        "duration": 0.5
+      }
+    },
+    {
+      "id": 9,
+      "type": "animation",
+      "params": {
+        "target": "cells.rPattern",
+        "property": "background",
+        "from": "#ffffff",
+        "to": "#00ff00",
+        "duration": 1.5,
+        "easing": "easeInOut"
+      }
+    },
+    {
+      "id": 10,
+      "type": "delay",
+      "params": {
+        "duration": 1.0
+      }
+    },
+    {
+      "id": 11,
+      "type": "matrix_fall",
+      "params": {
+        "target": "sheet.surroundings",
+        "characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:',.<>?",
+        "streams": 30,
+        "speed": 2.0,
+        "color": "#00ff00",
+        "fadeColor": "#003300",
+        "duration": 8.0
+      }
+    },
+    {
+      "id": 12,
+      "type": "ascii_text_overlay",
+      "params": {
+        "target": "sheet.overlay",
+        "text": [
+          "  ██████  ███████ ██      ██      ██",
+          " ██      ██      ██      ██      ██",
+          " ██      █████   ██      ██      ██",
+          " ██      ██      ██      ██      ██",
+          "  ██████ ███████ ███████ ███████ ██"
+        ],
+        "position": "center",
+        "fadeIn": 1.0,
+        "hold": 3.0,
+        "fadeOut": 1.0
+      }
+    },
+    {
+      "id": 13,
+      "type": "delay",
+      "params": {
+        "duration": 2.0
+      }
+    },
+    {
+      "id": 14,
+      "type": "event",
+      "params": {
+        "eventName": "visicell_sequence_complete",
+        "eventData": {
+          "sequenceComplete": true,
+          "timestamp": "{{now}}"
+        }
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": 1,
+      "fromNode": 1,
+      "fromSocket": "output",
+      "toNode": 2,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 2,
+      "fromNode": 2,
+      "fromSocket": "output",
+      "toNode": 3,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 3,
+      "fromNode": 3,
+      "fromSocket": "output",
+      "toNode": 4,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 4,
+      "fromNode": 4,
+      "fromSocket": "output",
+      "toNode": 5,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 5,
+      "fromNode": 5,
+      "fromSocket": "output",
+      "toNode": 6,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 6,
+      "fromNode": 6,
+      "fromSocket": "output",
+      "toNode": 7,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 7,
+      "fromNode": 7,
+      "fromSocket": "output",
+      "toNode": 8,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 8,
+      "fromNode": 8,
+      "fromSocket": "output",
+      "toNode": 9,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 9,
+      "fromNode": 9,
+      "fromSocket": "output",
+      "toNode": 10,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 10,
+      "fromNode": 10,
+      "fromSocket": "output",
+      "toNode": 11,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 11,
+      "fromNode": 11,
+      "fromSocket": "output",
+      "toNode": 12,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 12,
+      "fromNode": 12,
+      "fromSocket": "output",
+      "toNode": 13,
+      "toSocket": "input",
+      "type": "flow"
+    },
+    {
+      "id": 13,
+      "fromNode": 13,
+      "fromSocket": "output",
+      "toNode": 14,
+      "toSocket": "input",
+      "type": "flow"
+    }
+  ],
+  "metadata": {
+    "author": "Celli Dev Team",
+    "created": "2025-10-19",
+    "tags": ["visicell", "intro", "interactive", "R-sequence", "matrix", "puzzle"]
+  }
+}
+
