@@ -19,6 +19,7 @@ import { SequenceUI } from './sequence/SequenceUI.js';
 import { sceneRegistry } from './sequence/SceneRegistry.js';
 import { registerSceneComponents } from './sequence/registerComponents.js';
 import { screenRecorder } from './tools/ScreenRecorder.js';
+import { runFullhandSequenceFlow } from '../sequences/fullhandSequenceFlow.js';
 
 // Import new systems
 import { permissionManager } from './systems/PermissionManager.js';
@@ -233,10 +234,40 @@ function setExecutionEnvironmentMode(mode, { persist = true, announce = false } 
       : 'Execution environment set to Sequence mode';
     showToast(message);
   }
+
+  if (sceneManager.getCurrentScene && sceneManager.getCurrentScene() === 'fullhand') {
+    const fullhandScene = sceneManager.getSceneModule?.('fullhand');
+    if (fullhandScene && typeof fullhandScene.setMode === 'function') {
+      fullhandScene.setMode(mode);
+    }
+  }
 }
 
 function getExecutionEnvironmentMode() {
   return currentExecutionEnvMode;
+}
+
+async function ensureFullhandSceneActive({ reason = 'manual', enforceSequenceMode = false } = {}) {
+  if (!experienceStarted) {
+    await startExperience({ reason });
+  }
+
+  if (enforceSequenceMode) {
+    setExecutionEnvironmentMode('sequence', { announce: false });
+  }
+
+  const currentScene = sceneManager.getCurrentScene?.();
+  if (currentScene !== 'fullhand') {
+    const transitioned = await sceneManager.transitionTo('fullhand', {
+      mode: getExecutionEnvironmentMode()
+    });
+
+    if (!transitioned) {
+      throw new Error('Failed to transition to Fullhand scene');
+    }
+  }
+
+  return sceneManager.getSceneModule?.('fullhand');
 }
 
 function initializeExecutionEnvironmentMode() {
@@ -1084,6 +1115,38 @@ function setupButtons() {
       }
     });
     console.log('✅ Full Sequence button initialized');
+  }
+
+  const newSequenceBtn = document.getElementById('newSequenceBtn');
+  if (newSequenceBtn) {
+    newSequenceBtn.addEventListener('click', async () => {
+      console.log('🆕 New Sequence button clicked');
+      newSequenceBtn.disabled = true;
+
+      try {
+        const wasFullhand = sceneManager.getCurrentScene?.() === 'fullhand';
+        const fullhandScene = await ensureFullhandSceneActive({
+          reason: 'new-sequence-button',
+          enforceSequenceMode: true
+        });
+
+        if (wasFullhand && fullhandScene) {
+          runFullhandSequenceFlow({ reason: 'new-sequence-button' }).catch((error) => {
+            console.error('❌ Sequence flow failed to start:', error);
+            showToast('Sequence flow failed to start. Check console for details.');
+          });
+          showToast('Restarting Fullhand sequence pipeline…');
+        } else {
+          showToast('Transitioning to Fullhand sequence pipeline…');
+        }
+      } catch (error) {
+        console.error('❌ Failed to launch new sequence pipeline:', error);
+        showToast(`Sequence launch failed: ${error.message || error}`);
+      } finally {
+        newSequenceBtn.disabled = false;
+      }
+    });
+    console.log('✅ New Sequence button initialized');
   }
 
   if (sceneOptionsContainer) {

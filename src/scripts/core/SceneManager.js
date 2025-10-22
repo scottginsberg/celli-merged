@@ -180,6 +180,14 @@ export class SceneManager {
   }
 
   /**
+   * Get scene module instance
+   */
+  getSceneModule(sceneName) {
+    const scene = this.scenes.get(sceneName || this.activeScene);
+    return scene ? scene.module : null;
+  }
+
+  /**
    * Set permission for an action/scene
    */
   setPermission(action, value = true) {

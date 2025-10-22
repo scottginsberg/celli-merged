@@ -12,6 +12,11 @@
 
 import * as THREE from 'three';
 import { ExecutionEnvironment } from './components/ExecutionEnvironment.js';
+import { ScreenShake } from '../effects/ScreenShake.js';
+import {
+  runFullhandSequenceFlow,
+  stopFullhandSequenceFlow
+} from '../../sequences/fullhandSequenceFlow.js';
 
 const EXECUTION_ENV_MODE_STORAGE_KEY = 'fullhand_mode';
 const EXECUTION_ENV_DEFAULT_MODE = 'sequence';
@@ -39,7 +44,10 @@ export class FullhandScene {
       running: false,
       totalTime: 0,
       mode: EXECUTION_ENV_DEFAULT_MODE,
-      
+
+      // Effects
+      screenShake: null,
+
       // Callbacks
       onComplete: null
     };
@@ -81,6 +89,8 @@ export class FullhandScene {
     );
     this.state.camera.position.set(0, 3, 8);
     this.state.camera.lookAt(0, 1, 0);
+
+    this.state.screenShake = new ScreenShake(this.state.camera);
     
     // Base ambient lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
@@ -203,8 +213,12 @@ export class FullhandScene {
 
     if (mode === 'sequence') {
       this._startTyping();
+      runFullhandSequenceFlow({ reason: 'fullhand-mode-toggle' }).catch(error => {
+        console.warn('[FullhandScene] Sequence flow failed to start:', error);
+      });
     } else {
       this._stopTyping();
+      stopFullhandSequenceFlow();
     }
   }
 
@@ -231,7 +245,11 @@ export class FullhandScene {
     if (this.state.execEnv) {
       this.state.execEnv.update(deltaTime || 0.016, this.state.mouse);
     }
-    
+
+    if (this.state.screenShake) {
+      this.state.screenShake.update(deltaTime || 0.016);
+    }
+
     // Gentle camera orbit
     if (this.state.camera) {
       const radius = 8;
@@ -273,9 +291,9 @@ export class FullhandScene {
    */
   destroy() {
     console.log('[FullhandScene] 🗑️ Destroying...');
-    
+
     this.stop();
-    
+
     // Destroy execution environment
     if (this.state.execEnv) {
       this.state.execEnv.destroy();
@@ -288,8 +306,19 @@ export class FullhandScene {
         this.state.renderer.domElement.parentNode.removeChild(this.state.renderer.domElement);
       }
     }
-    
+
+    stopFullhandSequenceFlow();
+
     console.log('[FullhandScene] ✅ Destroyed');
+  }
+
+  triggerSequencePipeline(reason = 'manual') {
+    if (!this.state.running) {
+      console.warn('[FullhandScene] Sequence pipeline requested while scene not running');
+      return Promise.resolve(false);
+    }
+
+    return runFullhandSequenceFlow({ reason });
   }
 }
 

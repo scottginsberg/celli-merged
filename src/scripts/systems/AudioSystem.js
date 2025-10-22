@@ -245,6 +245,16 @@ export class AudioSystem {
       const gainNode = ctx.createGain();
       gainNode.gain.value = options.volume ?? 1.0;
 
+      if (typeof options.loop === 'boolean') {
+        source.loop = options.loop;
+      }
+      if (typeof options.loopStart === 'number') {
+        source.loopStart = options.loopStart;
+      }
+      if (typeof options.loopEnd === 'number') {
+        source.loopEnd = options.loopEnd;
+      }
+
       source.connect(gainNode);
       gainNode.connect(ctx.destination);
 

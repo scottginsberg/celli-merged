@@ -7,6 +7,9 @@
  * Designed for narrative-driven sequences in THE.OS, Execution Environment, etc.
  */
 
+import { audioSystem } from './AudioSystem.js';
+import { sceneManager } from '../core/SceneManager.js';
+
 export class SequenceEngine {
   constructor() {
     this.sequences = new Map();
@@ -14,13 +17,18 @@ export class SequenceEngine {
     this.currentNodeIndex = 0;
     this.sequenceState = {};
     this.paused = false;
+    this.stopRequested = false;
+    this.activeAudioSources = new Map();
     this.hooks = {
       onNodeExecute: [],
       onSequenceStart: [],
       onSequenceEnd: [],
       onDialogue: [],
       onAnimation: [],
-      onEvent: []
+      onEvent: [],
+      onAudio: [],
+      onScreenShake: [],
+      onSceneTransition: []
     };
     this.nodeExecutors = this._createNodeExecutors();
   }
@@ -59,10 +67,17 @@ export class SequenceEngine {
       return false;
     }
 
+    if (this.activeSequence) {
+      console.warn(`Sequence "${this.activeSequence}" interrupted by request to start "${name}"`);
+      this.stop();
+      await Promise.resolve();
+    }
+
     this.activeSequence = name;
     this.currentNodeIndex = 0;
     this.sequenceState = { ...initialState };
     this.paused = false;
+    this.stopRequested = false;
 
     console.log(`▶️ Starting sequence: ${name}`);
     this._callHooks('onSequenceStart', { name, state: this.sequenceState });
@@ -96,7 +111,7 @@ export class SequenceEngine {
    * Execute a single node
    */
   async _executeNode(node, sequence) {
-    if (!node || this.paused) return;
+    if (!node || this.paused || this.stopRequested) return;
 
     console.log(`🎬 Executing node: ${node.type} (${node.id})`);
     this._callHooks('onNodeExecute', { node, state: this.sequenceState });
@@ -107,6 +122,10 @@ export class SequenceEngine {
       await executor.call(this, node, this.sequenceState);
     } else {
       console.warn(`No executor for node type: ${node.type}`);
+    }
+
+    if (this.stopRequested) {
+      return;
     }
 
     // Find and execute next node
@@ -175,9 +194,108 @@ export class SequenceEngine {
       transition: async (node, state) => {
         const { toScene, effect } = node.params || {};
         console.log(`🎬 Transition: to ${toScene} (${effect})`);
-        
+
         // This would trigger scene manager transition
         this._callHooks('onEvent', { type: 'transition', toScene, effect, state });
+      },
+
+      // Audio node
+      audio: async (node) => {
+        const { action = 'play', key, url, volume = 1, loop = false } = node.params || {};
+        const audioKey = key || url;
+
+        if (!audioKey) {
+          console.warn('Audio node missing key/url parameter');
+          return;
+        }
+
+        if (action === 'play') {
+          try {
+            if (url) {
+              await audioSystem.loadAudioBuffer(url, audioKey);
+            }
+
+            const source = audioSystem.playBuffer(audioKey, {
+              volume,
+              loop,
+              onEnded: () => {
+                if (!loop) {
+                  this.activeAudioSources.delete(audioKey);
+                }
+              }
+            });
+
+            if (source) {
+              this.activeAudioSources.set(audioKey, source);
+            }
+
+            this._callHooks('onAudio', {
+              action: 'play',
+              key: audioKey,
+              loop,
+              volume
+            });
+          } catch (error) {
+            console.error(`Audio playback failed for ${audioKey}:`, error);
+          }
+        } else if (action === 'stop') {
+          const source = this.activeAudioSources.get(audioKey);
+          if (source) {
+            try {
+              source.stop();
+            } catch (error) {
+              console.warn('Failed to stop audio source:', error);
+            }
+            this.activeAudioSources.delete(audioKey);
+          }
+
+          this._callHooks('onAudio', {
+            action: 'stop',
+            key: audioKey
+          });
+        }
+      },
+
+      // Screen shake node
+      screenShake: async (node, state) => {
+        const { intensity = 0.1, duration = 500 } = node.params || {};
+        const shaker = state?.screenShake;
+
+        if (shaker && typeof shaker.start === 'function') {
+          shaker.start(intensity, duration);
+        } else {
+          console.warn('Screen shake requested but no screenShake object provided in state');
+        }
+
+        this._callHooks('onScreenShake', { intensity, duration, state });
+
+        if (node.params?.waitForCompletion) {
+          await this._delay(duration);
+        }
+      },
+
+      // Scene transition node
+      sceneTransition: async (node) => {
+        const { toScene, effect, options = {}, waitForCompletion = true } = node.params || {};
+
+        if (!toScene) {
+          console.warn('sceneTransition node missing toScene parameter');
+          return;
+        }
+
+        this._callHooks('onSceneTransition', { toScene, effect, options });
+        this._callHooks('onEvent', {
+          type: 'sceneTransition',
+          toScene,
+          effect,
+          options
+        });
+
+        if (waitForCompletion) {
+          await sceneManager.transitionTo(toScene, options);
+        } else {
+          sceneManager.transitionTo(toScene, options);
+        }
       },
 
       // Event node (trigger custom event)
@@ -325,9 +443,23 @@ export class SequenceEngine {
    * Stop sequence
    */
   stop() {
+    if (!this.activeSequence && !this.stopRequested) {
+      return;
+    }
+
     console.log('⏹️ Sequence stopped');
+    this.stopRequested = true;
     this.activeSequence = null;
     this.paused = false;
+
+    this.activeAudioSources.forEach((source, key) => {
+      try {
+        source.stop();
+      } catch (error) {
+        console.warn(`Failed to stop audio source ${key}:`, error);
+      }
+    });
+    this.activeAudioSources.clear();
   }
 
   /**
