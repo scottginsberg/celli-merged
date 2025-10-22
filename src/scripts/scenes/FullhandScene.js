@@ -12,6 +12,7 @@
 
 import * as THREE from 'three';
 import { ExecutionEnvironment } from './components/ExecutionEnvironment.js';
+import { HouseOfLeavesController } from '../../fullhand/puzzles/HouseOfLeavesController.js';
 
 const EXECUTION_ENV_MODE_STORAGE_KEY = 'fullhand_mode';
 const EXECUTION_ENV_DEFAULT_MODE = 'sequence';
@@ -27,6 +28,7 @@ export class FullhandScene {
       
       // Execution environment (complete system)
       execEnv: null,
+      houseController: null,
       
       // Mouse tracking
       mouse: { x: 0.5, y: 0.5 },
@@ -92,6 +94,17 @@ export class FullhandScene {
     this.state.execEnv.show();
     if (typeof this.state.execEnv.setMode === 'function') {
       this.state.execEnv.setMode(this.state.mode);
+    }
+
+    try {
+      this.state.houseController = new HouseOfLeavesController({
+        scene: this.state.scene,
+        camera: this.state.camera
+      });
+      await this.state.houseController.init();
+    } catch (error) {
+      console.warn('[FullhandScene] Unable to initialise HouseOfLeavesController:', error);
+      this.state.houseController = null;
     }
     
     // Setup mouse tracking
@@ -217,6 +230,10 @@ export class FullhandScene {
 
     const mode = this._resolveRequestedMode(options.mode);
     this.setMode(mode);
+
+    if (this.state.houseController) {
+      this.state.houseController.start();
+    }
   }
 
   /**
@@ -231,7 +248,7 @@ export class FullhandScene {
     if (this.state.execEnv) {
       this.state.execEnv.update(deltaTime || 0.016, this.state.mouse);
     }
-    
+
     // Gentle camera orbit
     if (this.state.camera) {
       const radius = 8;
@@ -240,7 +257,11 @@ export class FullhandScene {
       this.state.camera.position.y = 3 + Math.sin(totalTime * speed * 0.5) * 0.5;
       this.state.camera.lookAt(0, 1.5, 0);
     }
-    
+
+    if (this.state.houseController) {
+      this.state.houseController.update(deltaTime || 0.016, totalTime);
+    }
+
     // Render
     if (this.state.renderer && this.state.scene && this.state.camera) {
       this.state.renderer.render(this.state.scene, this.state.camera);
@@ -266,6 +287,10 @@ export class FullhandScene {
     console.log('⏹️ Stopping Fullhand Scene');
     this.state.running = false;
     this._stopTyping();
+
+    if (this.state.houseController) {
+      this.state.houseController.stop();
+    }
   }
 
   /**
@@ -280,7 +305,12 @@ export class FullhandScene {
     if (this.state.execEnv) {
       this.state.execEnv.destroy();
     }
-    
+
+    if (this.state.houseController) {
+      this.state.houseController.destroy();
+      this.state.houseController = null;
+    }
+
     // Dispose renderer
     if (this.state.renderer) {
       this.state.renderer.dispose();
