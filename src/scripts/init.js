@@ -40,7 +40,8 @@ const INTRO_VIDEO_ASSETS = [
 const KEY_VIDEO_ASSETS = [
   { key: 'video_key_primary', url: './key.MP4', variant: 'primary' },
   { key: 'video_key_alternate_a', url: './Key2.MP4', variant: 'alternate-a' },
-  { key: 'video_key_alternate_b', url: './Key%202.MP4', variant: 'alternate-b' }
+  { key: 'video_key_alternate_b', url: './Key%202.MP4', variant: 'alternate-b' },
+  { key: 'video_key_alternate_c', url: './Key3.mp4', variant: 'alternate-c' }
 ];
 
 const THEME_AUDIO_ASSETS = [
@@ -64,6 +65,68 @@ const OPTIONAL_AUDIO_ASSETS = [
     optional: true,
     tags: ['ui'],
     variant: 'pop-up'
+  }
+];
+
+const VISCELL_AUDIO_ASSETS = [
+  {
+    key: 'audio_visicell_reboot_theme',
+    url: './reboot.mp3',
+    preload: true,
+    tags: ['audio', 'scene', 'visicell', 'music'],
+    metadata: { label: 'VisiCell Reboot Theme', variant: 'reboot' }
+  },
+  {
+    key: 'audio_visicell_telos_theme',
+    url: './telos.mp3',
+    preload: true,
+    tags: ['audio', 'scene', 'visicell', 'music'],
+    metadata: { label: 'VisiCell Telos Theme', variant: 'telos' }
+  }
+];
+
+const FULLHAND_AUDIO_ASSETS = [
+  {
+    key: 'audio_fullhand_leopard_os',
+    url: './leopardOS.mp3',
+    preload: true,
+    tags: ['audio', 'scene', 'fullhand', 'music'],
+    metadata: { label: 'LeopardOS Ambient Score', variant: 'leopard-os' }
+  },
+  {
+    key: 'sfx_fullhand_clicker',
+    url: './clicker.mp3',
+    preload: true,
+    tags: ['audio', 'scene', 'fullhand', 'sfx'],
+    metadata: { label: 'Clicker SFX', variant: 'clicker' }
+  },
+  {
+    key: 'sfx_fullhand_keyspam_primary',
+    url: './EA.mp3',
+    preload: true,
+    tags: ['audio', 'scene', 'fullhand', 'sfx', 'keys'],
+    metadata: { label: 'Key Spam Primary', variant: 'keyspam-a' }
+  },
+  {
+    key: 'sfx_fullhand_keyspam_variant_a',
+    url: './EA2.mp3',
+    preload: true,
+    tags: ['audio', 'scene', 'fullhand', 'sfx', 'keys'],
+    metadata: { label: 'Key Spam Variant A', variant: 'keyspam-b' }
+  },
+  {
+    key: 'sfx_fullhand_keyspam_variant_b',
+    url: './EA3.mp3',
+    preload: true,
+    tags: ['audio', 'scene', 'fullhand', 'sfx', 'keys'],
+    metadata: { label: 'Key Spam Variant B', variant: 'keyspam-c' }
+  },
+  {
+    key: 'sfx_fullhand_keyspam_variant_c',
+    url: './E4.mp3',
+    preload: true,
+    tags: ['audio', 'scene', 'fullhand', 'sfx', 'keys'],
+    metadata: { label: 'Key Spam Variant C', variant: 'keyspam-d' }
   }
 ];
 
@@ -145,6 +208,26 @@ OPTIONAL_AUDIO_ASSETS.forEach(asset => {
     optional,
     tags: ['audio', ...tags],
     metadata: omitPreload(settings, { variant: asset.variant })
+  };
+});
+
+VISCELL_AUDIO_ASSETS.forEach(asset => {
+  assetManifest[asset.key] = {
+    url: asset.url,
+    type: 'audio',
+    preload: asset.preload ?? true,
+    tags: asset.tags || ['audio'],
+    metadata: asset.metadata || {}
+  };
+});
+
+FULLHAND_AUDIO_ASSETS.forEach(asset => {
+  assetManifest[asset.key] = {
+    url: asset.url,
+    type: 'audio',
+    preload: asset.preload ?? true,
+    tags: asset.tags || ['audio'],
+    metadata: asset.metadata || {}
   };
 });
 

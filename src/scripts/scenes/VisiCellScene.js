@@ -14,7 +14,13 @@
  */
 
 import * as THREE from 'three';
+import { assetPool } from '../systems/AssetPool.js';
 import { audioSystem } from '../systems/AudioSystem.js';
+
+const VISCELL_AUDIO_KEYS = {
+  reboot: 'audio_visicell_reboot_theme',
+  telos: 'audio_visicell_telos_theme'
+};
 
 export class VisiCellScene {
   constructor() {
@@ -28,6 +34,9 @@ export class VisiCellScene {
       deathOverlay: null,
       deathSequenceActive: false,
       deathTimeouts: [],
+      audioObjectUrls: new Map(),
+      audioPreparationPromise: null,
+      endAudioAssetKey: VISCELL_AUDIO_KEYS.reboot,
 
       // Spreadsheet state
       cells: new Map(), // key: "A1" -> value: { value, formula, computed, style }
@@ -2828,6 +2837,158 @@ export class VisiCellScene {
     }
   }
 
+  async _prepareSceneAudio() {
+    if (this.state.audioPreparationPromise) {
+      return this.state.audioPreparationPromise;
+    }
+
+    const keysToWarm = Object.values(VISCELL_AUDIO_KEYS).filter(Boolean);
+
+    this.state.audioPreparationPromise = (async () => {
+      await Promise.all(keysToWarm.map(async (assetKey) => {
+        const objectUrl = await this._getAudioObjectUrl(assetKey);
+        const wasPreloaded = assetPool.loaded?.has?.(assetKey) ?? false;
+        if (objectUrl) {
+          console.log(`[VisiCellScene] 🔊 Prepared audio asset ${assetKey} (preloaded=${wasPreloaded})`);
+        } else {
+          console.warn(`[VisiCellScene] ⚠️ Audio asset ${assetKey} unavailable before sequence start`);
+        }
+      }));
+    })();
+
+    return this.state.audioPreparationPromise;
+  }
+
+  async _getAudioObjectUrl(assetKey) {
+    if (!assetKey) return null;
+
+    if (!this.state.audioObjectUrls) {
+      this.state.audioObjectUrls = new Map();
+    }
+
+    if (this.state.audioObjectUrls.has(assetKey)) {
+      return this.state.audioObjectUrls.get(assetKey);
+    }
+
+    const assetEntry = assetPool.assets?.get(assetKey) || null;
+    let assetData = assetEntry?.data || null;
+
+    if (!assetData) {
+      try {
+        assetData = await assetPool.load(assetKey);
+      } catch (error) {
+        console.warn(`[VisiCellScene] ⚠️ Failed to load audio asset ${assetKey}`, error);
+        return null;
+      }
+    }
+
+    if (!assetData) {
+      console.warn(`[VisiCellScene] ⚠️ Audio asset ${assetKey} returned no data`);
+      return null;
+    }
+
+    if (typeof Blob === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+      console.warn(`[VisiCellScene] ⚠️ Browser does not support Blob URLs for audio asset ${assetKey}`);
+      return null;
+    }
+
+    try {
+      const blob = new Blob([assetData], { type: 'audio/mpeg' });
+      const objectUrl = URL.createObjectURL(blob);
+      this.state.audioObjectUrls.set(assetKey, objectUrl);
+      return objectUrl;
+    } catch (error) {
+      console.warn(`[VisiCellScene] ⚠️ Unable to create object URL for ${assetKey}`, error);
+      return null;
+    }
+  }
+
+  async _createAudioElementFromAsset(assetKey, fallbackUrl = null, options = {}) {
+    if (typeof Audio === 'undefined') {
+      return { element: null, assetKey, objectUrl: null };
+    }
+
+    const objectUrl = await this._getAudioObjectUrl(assetKey);
+
+    if (objectUrl) {
+      try {
+        const audio = new Audio(objectUrl);
+        audio.preload = 'auto';
+        if (typeof options.loop === 'boolean') {
+          audio.loop = options.loop;
+        }
+        if (typeof options.volume === 'number') {
+          audio.volume = options.volume;
+        }
+        return { element: audio, assetKey, objectUrl };
+      } catch (error) {
+        console.warn(`[VisiCellScene] ⚠️ Unable to construct audio element for ${assetKey}`, error);
+      }
+    }
+
+    if (fallbackUrl) {
+      try {
+        const audio = new Audio(fallbackUrl);
+        audio.preload = 'auto';
+        if (typeof options.loop === 'boolean') {
+          audio.loop = options.loop;
+        }
+        if (typeof options.volume === 'number') {
+          audio.volume = options.volume;
+        }
+        return { element: audio, assetKey: null, objectUrl: null };
+      } catch (error) {
+        console.warn(`[VisiCellScene] ⚠️ Unable to initialize fallback audio ${fallbackUrl}`, error);
+      }
+    }
+
+    return { element: null, assetKey, objectUrl: null };
+  }
+
+  async _ensureEndAudio() {
+    if (this.state.endAudio) {
+      return this.state.endAudio;
+    }
+
+    const { element } = await this._createAudioElementFromAsset(
+      VISCELL_AUDIO_KEYS.reboot,
+      './reboot.mp3',
+      { loop: false, volume: 0.8 }
+    );
+
+    if (element) {
+      this.state.endAudio = element;
+      this.state.endAudioAssetKey = VISCELL_AUDIO_KEYS.reboot;
+      console.log('[VisiCellScene] ✅ Reboot audio prepared for scene start');
+    }
+
+    return this.state.endAudio;
+  }
+
+  _releaseAudioResources() {
+    if (this.state.endAudio) {
+      try {
+        this.state.endAudio.pause();
+      } catch (error) {
+        console.warn('[VisiCellScene] ⚠️ Error stopping VisiCell audio during cleanup', error);
+      }
+      this.state.endAudio = null;
+    }
+
+    if (this.state.audioObjectUrls && typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+      this.state.audioObjectUrls.forEach((objectUrl, assetKey) => {
+        try {
+          URL.revokeObjectURL(objectUrl);
+        } catch (error) {
+          console.warn(`[VisiCellScene] ⚠️ Failed to revoke audio URL for ${assetKey}`, error);
+        }
+      });
+      this.state.audioObjectUrls.clear();
+    }
+
+    this.state.audioPreparationPromise = null;
+  }
+
   /**
    * Start scene
    */
@@ -2843,28 +3004,24 @@ export class VisiCellScene {
       document.body.style.backgroundColor = '#000';
     }
 
-    if (!this.state.endAudio) {
-      try {
-        this.state.endAudio = new Audio('./end.mp3');
-        this.state.endAudio.preload = 'auto';
-      } catch (error) {
-        console.warn('⚠️ Failed to initialize end.mp3 audio element', error);
-        this.state.endAudio = null;
-      }
-    }
+    await this._prepareSceneAudio();
 
-    if (this.state.endAudio) {
+    const endAudio = await this._ensureEndAudio();
+
+    if (endAudio) {
       try {
-        this.state.endAudio.currentTime = 0;
-        const playPromise = this.state.endAudio.play();
+        endAudio.currentTime = 0;
+        const playPromise = endAudio.play();
         if (playPromise && typeof playPromise.then === 'function') {
           playPromise.catch(err => {
-            console.warn('⚠️ Unable to play end.mp3 during VisiCell Scene', err);
+            console.warn('⚠️ Unable to autoplay reboot.mp3 during VisiCell Scene', err);
           });
         }
       } catch (error) {
-        console.warn('⚠️ Error playing end.mp3 during VisiCell Scene', error);
+        console.warn('⚠️ Error playing reboot.mp3 during VisiCell Scene', error);
       }
+    } else {
+      console.warn('⚠️ Reboot audio unavailable during VisiCell Scene start');
     }
 
     // Show spreadsheet
@@ -2940,7 +3097,7 @@ export class VisiCellScene {
         this.state.endAudio.pause();
         this.state.endAudio.currentTime = 0;
       } catch (error) {
-        console.warn('⚠️ Error stopping end.mp3 audio', error);
+        console.warn('⚠️ Error stopping reboot.mp3 audio', error);
       }
     }
 
@@ -2978,14 +3135,7 @@ export class VisiCellScene {
   async destroy() {
     await this.stop();
 
-    if (this.state.endAudio) {
-      try {
-        this.state.endAudio.pause();
-      } catch (error) {
-        console.warn('⚠️ Error pausing end.mp3 audio during destroy', error);
-      }
-      this.state.endAudio = null;
-    }
+    this._releaseAudioResources();
 
     // Cleanup
     if (this.state.scene) {

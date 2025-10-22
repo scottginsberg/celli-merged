@@ -74,6 +74,7 @@ async function runTests() {
     const writeTests = await import('./write-actions.test.js');
     const integrationTests = await import('./integration.test.js');
     const riddleSmokeTests = await import('./riddle-smoke.test.js');
+    const mediaRegistryTests = await import('./mediaRegistry.test.js');
 
     // Import test runner
     const { TestRunner } = await import('./test-runner.js');
@@ -102,6 +103,9 @@ async function runTests() {
     }
     if (riddleSmokeTests.default) {
       masterRunner.suites.push(...riddleSmokeTests.default.suites);
+    }
+    if (mediaRegistryTests.default) {
+      masterRunner.suites.push(...mediaRegistryTests.default.suites);
     }
 
     // Run all tests

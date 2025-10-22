@@ -248,6 +248,7 @@
         <li><strong>Write/Actions Tests:</strong> Transactions, batching, history</li>
         <li><strong>Integration Tests:</strong> End-to-end scenarios, complex formulas</li>
         <li><strong>Riddle Chain Smoke Tests:</strong> Intro/Wordle/VisiCell/Flash/Puzzle event sequencing</li>
+        <li><strong>Media Registry Tests:</strong> Asset manifest coverage & preload policies</li>
       </ul>
     </div>
 
@@ -260,6 +261,7 @@
       <button class="secondary" id="runWriteBtn" onclick="runWriteTests()">Write Tests</button>
       <button class="secondary" id="runIntegrationBtn" onclick="runIntegrationTests()">Integration Tests</button>
       <button class="secondary" id="runRiddleSmokeBtn" onclick="runRiddleSmokeTests()">Riddle Chain Smoke</button>
+      <button class="secondary" id="runMediaBtn" onclick="runMediaRegistryTests()">Media Registry Tests</button>
       <button class="secondary" onclick="clearOutput()">Clear</button>
     </div>
 
@@ -321,6 +323,7 @@
         const writeTests = await import('./write-actions.test.js');
         const integrationTests = await import('./integration.test.js');
         const riddleSmokeTests = await import('./riddle-smoke.test.js');
+        const mediaRegistryTests = await import('./mediaRegistry.test.js');
 
         // Create master runner
         const masterRunner = new TestRunner();
@@ -346,6 +349,9 @@
         }
         if (riddleSmokeTests.default) {
           masterRunner.suites.push(...riddleSmokeTests.default.suites);
+        }
+        if (mediaRegistryTests.default) {
+          masterRunner.suites.push(...mediaRegistryTests.default.suites);
         }
 
         await masterRunner.run();
@@ -449,6 +455,20 @@
         }
       } catch (error) {
         console.error('Error running riddle chain smoke tests:', error);
+      }
+    };
+
+    window.runMediaRegistryTests = async function() {
+      clearOutput();
+      captureConsole();
+
+      try {
+        const tests = await import('./mediaRegistry.test.js');
+        if (tests.default) {
+          await tests.default.run();
+        }
+      } catch (error) {
+        console.error('Error running media registry tests:', error);
       }
     };
 
