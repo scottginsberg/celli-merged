@@ -34,10 +34,21 @@
         <div>EXEC.ENV → Execution Environment</div>
         <div class="scene-option-desc">Integrated scene - voxel hand, keyboard, character & glowing head</div>
         <div class="scene-mode-toggle" style="margin-top: 8px; display: flex; gap: 8px;">
-          <button class="mode-btn active" data-mode="sequence" data-scene-target="fullhand" 
+          <button class="mode-btn active" data-mode="sequence" data-scene-target="fullhand"
                   style="flex: 1; padding: 6px 12px; background: #4a7cff; border: 1px solid #6a9cff; color: #fff; border-radius: 4px; cursor: pointer; font-size: 11px; transition: all 0.2s; pointer-events: auto;">Sequence</button>
-          <button class="mode-btn" data-mode="debug" data-scene-target="fullhand" 
+          <button class="mode-btn" data-mode="debug" data-scene-target="fullhand"
                   style="flex: 1; padding: 6px 12px; background: #2a2a2f; border: 1px solid #444; color: #ddd; border-radius: 4px; cursor: pointer; font-size: 11px; transition: all 0.2s; pointer-events: auto;">Debug</button>
+        </div>
+        <div class="scene-option-actions">
+          <button
+            type="button"
+            class="scene-option-action"
+            data-scene-action="fullhand-new-sequence"
+            aria-label="Start the Execution Environment House of Leaves sequence"
+          >
+            <span class="scene-option-action-icon" aria-hidden="true">✨</span>
+            <span class="scene-option-action-text">NEW SEQUENCE</span>
+          </button>
         </div>
       </div>
       

@@ -41,6 +41,7 @@ const FULL_SEQUENCE_INTRO_ACTIVE_STAGE = 'intro-active';
 const FULL_SEQUENCE_VOXEL_STAGE = 'voxel';
 const EXECUTION_ENV_MODE_STORAGE_KEY = 'fullhand_mode';
 const EXECUTION_ENV_DEFAULT_MODE = 'sequence';
+const FULLHAND_HOUSE_OF_LEAVES_EVENT = 'celli:fullhand-house-of-leaves';
 
 const SCENE_OPTION_CONFIG = {
   theos: {
@@ -848,6 +849,129 @@ async function startExperience(options = {}) {
   console.groupEnd();
 }
 
+async function waitForExperienceReady(timeout = 6000, interval = 120) {
+  const startTime = Date.now();
+  while (!experienceStarted && Date.now() - startTime < timeout) {
+    await new Promise(resolve => setTimeout(resolve, interval));
+  }
+  return experienceStarted;
+}
+
+async function ensureExperienceReady(reason) {
+  if (experienceStarted) {
+    return true;
+  }
+
+  try {
+    await startExperience({ reason });
+  } catch (error) {
+    console.error('❌ Failed to ensure experience readiness:', error);
+  }
+
+  if (experienceStarted) {
+    return true;
+  }
+
+  if (experienceStarting) {
+    return waitForExperienceReady();
+  }
+
+  return experienceStarted;
+}
+
+function dispatchFullhandHouseOfLeavesEvent(detail = {}) {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+    return false;
+  }
+
+  try {
+    window.dispatchEvent(new CustomEvent(FULLHAND_HOUSE_OF_LEAVES_EVENT, { detail }));
+    return true;
+  } catch (error) {
+    console.warn('⚠️ Unable to dispatch Fullhand House of Leaves event:', error);
+    return false;
+  }
+}
+
+function triggerFullhandHouseOfLeavesFlow(options = {}) {
+  const fullhandModule = typeof sceneManager.getSceneModule === 'function'
+    ? sceneManager.getSceneModule('fullhand')
+    : null;
+
+  if (fullhandModule && typeof fullhandModule.startHouseOfLeavesFlow === 'function') {
+    try {
+      const result = fullhandModule.startHouseOfLeavesFlow(options);
+      if (result) {
+        return true;
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to trigger Fullhand House of Leaves flow via scene module:', error);
+    }
+  }
+
+  return dispatchFullhandHouseOfLeavesEvent(options);
+}
+
+async function startFullhandHouseOfLeavesFlow() {
+  if (!sceneManager.listScenes().includes('fullhand')) {
+    console.warn('⚠️ Fullhand scene not registered — cannot start House of Leaves flow.');
+    showToast('Execution Environment is not available yet.');
+    return;
+  }
+
+  console.log('🌿 NEW SEQUENCE request received — preparing Fullhand → House of Leaves flow.');
+
+  const ready = await ensureExperienceReady('fullhand-house-of-leaves');
+  if (!ready) {
+    showToast('Start the experience first, then try again.');
+    return;
+  }
+
+  const mode = getExecutionEnvironmentMode();
+  const currentScene = typeof sceneManager.getCurrentScene === 'function'
+    ? sceneManager.getCurrentScene()
+    : null;
+
+  if (currentScene === 'fullhand') {
+    const handled = triggerFullhandHouseOfLeavesFlow({
+      source: 'scene-select-button',
+      mode
+    });
+    document.getElementById('sceneSelect')?.classList.remove('visible');
+    showToast(handled ? 'House of Leaves flow triggered' : 'Execution Environment already active');
+    return;
+  }
+
+  const transitionOptions = {
+    mode,
+    flow: 'house-of-leaves',
+    flowSource: 'scene-select-button'
+  };
+
+  try {
+    const transitioned = await sceneManager.transitionTo('fullhand', transitionOptions);
+    if (transitioned) {
+      document.getElementById('sceneSelect')?.classList.remove('visible');
+      const handled = triggerFullhandHouseOfLeavesFlow({
+        source: 'scene-select-button',
+        mode
+      });
+      if (!handled) {
+        dispatchFullhandHouseOfLeavesEvent({
+          source: 'scene-select-button',
+          mode
+        });
+      }
+      showToast('Launching Execution Environment sequence…');
+    } else {
+      showToast('Failed to launch Execution Environment');
+    }
+  } catch (error) {
+    console.error('❌ Failed to start Fullhand House of Leaves flow:', error);
+    showToast(`Unable to start sequence: ${error.message || error}`);
+  }
+}
+
 function setupButtons() {
   const sceneOptionsContainer = document.getElementById('sceneOptions');
 
@@ -895,6 +1019,32 @@ function setupButtons() {
       setExecutionEnvironmentMode(mode, { announce: true });
     });
   });
+
+  const fullhandSequenceButtons = document.querySelectorAll('[data-scene-action="fullhand-new-sequence"]');
+  if (fullhandSequenceButtons.length) {
+    fullhandSequenceButtons.forEach((button) => {
+      button.addEventListener('click', async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (button.disabled) {
+          return;
+        }
+
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+
+        try {
+          await startFullhandHouseOfLeavesFlow();
+        } finally {
+          button.disabled = false;
+          button.removeAttribute('aria-busy');
+        }
+      });
+    });
+
+    console.log('✅ Execution Environment NEW SEQUENCE button initialized');
+  }
 
   // Play button - starts the app and begins intro sequence
   const playBtn = document.getElementById('playBtn');

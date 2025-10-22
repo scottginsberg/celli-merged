@@ -41,8 +41,14 @@ export class FullhandScene {
       mode: EXECUTION_ENV_DEFAULT_MODE,
       
       // Callbacks
-      onComplete: null
+      onComplete: null,
+
+      // House of Leaves flow state
+      houseOfLeavesFlowActive: false,
+      pendingHouseOfLeavesOptions: null
     };
+
+    this._houseOfLeavesEventHandler = null;
   }
 
   /**
@@ -208,15 +214,95 @@ export class FullhandScene {
     }
   }
 
+  startHouseOfLeavesFlow(options = {}) {
+    const detail = { ...options };
+
+    if (!this.state.running) {
+      console.warn('[FullhandScene] House of Leaves flow requested while scene inactive — deferring until start.', detail);
+      this.state.pendingHouseOfLeavesOptions = detail;
+      return false;
+    }
+
+    if (this.state.houseOfLeavesFlowActive) {
+      console.log('[FullhandScene] House of Leaves flow already active.');
+      return true;
+    }
+
+    this.state.houseOfLeavesFlowActive = true;
+    this.state.pendingHouseOfLeavesOptions = null;
+
+    console.log('[FullhandScene] 🌿 Launching House of Leaves flow.', detail);
+
+    if (detail.mode && detail.mode !== this.state.mode) {
+      this.setMode(detail.mode);
+    } else if (this.state.mode !== 'sequence') {
+      this.setMode('sequence');
+    } else {
+      this._startTyping();
+    }
+
+    if (typeof this.state.execEnv?.startHouseOfLeavesFlow === 'function') {
+      try {
+        this.state.execEnv.startHouseOfLeavesFlow(detail);
+      } catch (error) {
+        console.warn('[FullhandScene] Execution environment could not start House of Leaves flow:', error);
+      }
+    } else if (typeof this.state.execEnv?.highlightHouseOfLeaves === 'function') {
+      try {
+        this.state.execEnv.highlightHouseOfLeaves(detail);
+      } catch (error) {
+        console.warn('[FullhandScene] Execution environment highlight failed:', error);
+      }
+    } else {
+      console.log('[FullhandScene] Execution environment does not expose a dedicated House of Leaves hook yet.');
+    }
+
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      try {
+        window.dispatchEvent(new CustomEvent('celli:fullhand-house-of-leaves-started', {
+          detail: { ...detail, scene: 'fullhand' }
+        }));
+      } catch (error) {
+        console.warn('[FullhandScene] Unable to dispatch House of Leaves start event:', error);
+      }
+    }
+
+    return true;
+  }
+
   /**
    * Start scene
    */
   async start(_, options = {}) {
     console.log('[FullhandScene] ▶️ Starting Complete Execution Environment');
     this.state.running = true;
+    this.state.houseOfLeavesFlowActive = false;
 
     const mode = this._resolveRequestedMode(options.mode);
     this.setMode(mode);
+
+    if (typeof window !== 'undefined' && !this._houseOfLeavesEventHandler) {
+      this._houseOfLeavesEventHandler = (event) => {
+        const detail = event?.detail || {};
+        this.startHouseOfLeavesFlow({ ...detail, source: detail.source || 'event' });
+      };
+      window.addEventListener('celli:fullhand-house-of-leaves', this._houseOfLeavesEventHandler);
+    }
+
+    if (options.flow === 'house-of-leaves') {
+      const flowOptions = {
+        source: options.flowSource || 'scene-transition',
+        mode
+      };
+      this.startHouseOfLeavesFlow(flowOptions);
+    } else if (this.state.pendingHouseOfLeavesOptions) {
+      const pending = { ...this.state.pendingHouseOfLeavesOptions };
+      this.state.pendingHouseOfLeavesOptions = null;
+      if (!pending.source) {
+        pending.source = 'deferred';
+      }
+      this.startHouseOfLeavesFlow(pending);
+    }
   }
 
   /**
@@ -266,6 +352,14 @@ export class FullhandScene {
     console.log('⏹️ Stopping Fullhand Scene');
     this.state.running = false;
     this._stopTyping();
+
+    if (typeof window !== 'undefined' && this._houseOfLeavesEventHandler) {
+      window.removeEventListener('celli:fullhand-house-of-leaves', this._houseOfLeavesEventHandler);
+      this._houseOfLeavesEventHandler = null;
+    }
+
+    this.state.pendingHouseOfLeavesOptions = null;
+    this.state.houseOfLeavesFlowActive = false;
   }
 
   /**
