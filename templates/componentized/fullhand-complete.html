@@ -132,31 +132,187 @@
  .gizmo-btn.active { background: #4a7cff; border-color: #6a9cff; }
  
  #loading-overlay {
- position: fixed;
- inset: 0;
- background: #0a0a0a;
- display: flex;
- align-items: center;
- justify-content: center;
- color: #eaeaf2;
- font: 16px/1.4 system-ui;
- z-index: 1000;
- transition: opacity 0.5s;
+  position: fixed;
+  inset: 0;
+  background: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #eaeaf2;
+  font: 16px/1.4 system-ui;
+  z-index: 1000;
+  transition: opacity 0.5s;
  }
  #loading-overlay.hidden { opacity: 0; pointer-events: none; }
- 
+
  .status-text { text-align: center; }
  .status-text .spinner {
- width: 40px;
- height: 40px;
- border: 3px solid #333;
- border-top-color: #4a7cff;
- border-radius: 50%;
- animation: spin 1s linear infinite;
- margin: 0 auto 20px;
+  width: 40px;
+  height: 40px;
+  border: 3px solid #333;
+  border-top-color: #4a7cff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
  }
  @keyframes spin { to { transform: rotate(360deg); } }
- 
+
+ /* Prototype Overlay Stack */
+ .prototype-overlay {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 320px;
+  z-index: 220;
+  pointer-events: none;
+ }
+ .prototype-overlay .prototype-card {
+  pointer-events: auto;
+  background: rgba(18, 20, 32, 0.9);
+  border: 1px solid rgba(90, 130, 255, 0.3);
+  border-radius: 16px;
+  padding: 18px 20px;
+  color: #ecf1ff;
+  font: 13px/1.6 "Inter", system-ui, sans-serif;
+  box-shadow: 0 18px 40px rgba(10, 14, 40, 0.45);
+  backdrop-filter: blur(18px);
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+  transition: opacity 0.6s ease, transform 0.6s ease, box-shadow 0.3s ease;
+ }
+ .prototype-overlay .prototype-card.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+ }
+ .prototype-overlay .prototype-card header {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+ }
+ .prototype-overlay .prototype-card header span {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(90, 130, 255, 0.15);
+  border: 1px solid rgba(90, 130, 255, 0.35);
+  font-size: 12px;
+ }
+ .prototype-overlay .prototype-card p {
+  margin: 0 0 12px 0;
+  color: #bfc6ff;
+ }
+ .prototype-overlay .prototype-card ul {
+  margin: 0 0 12px 16px;
+  padding: 0;
+  color: #ced5ff;
+ }
+ .prototype-overlay button {
+  background: linear-gradient(135deg, rgba(90, 130, 255, 0.85), rgba(120, 150, 255, 0.75));
+  border: 1px solid rgba(120, 160, 255, 0.5);
+  color: #0b0d18;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+ }
+ .prototype-overlay button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(90, 130, 255, 0.35);
+ }
+ .prototype-overlay button:active {
+  transform: translateY(0);
+ }
+ .prototype-overlay .prototype-card.spotlight {
+  box-shadow: 0 22px 50px rgba(140, 180, 255, 0.6);
+  border-color: rgba(160, 195, 255, 0.8);
+ }
+ .prototype-overlay pre {
+  margin: 0;
+  background: rgba(8, 10, 18, 0.9);
+  border: 1px solid rgba(90, 130, 255, 0.25);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: #9de4ff;
+  font-family: "Fira Code", "Courier New", monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  box-shadow: inset 0 0 0 1px rgba(90, 130, 255, 0.1);
+ }
+ .prototype-overlay .prototype-timeline {
+  pointer-events: none;
+  background: rgba(12, 14, 24, 0.92);
+  border: 1px solid rgba(60, 90, 180, 0.35);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #9cabff;
+  font: 12px/1.4 "Inter", system-ui;
+  box-shadow: 0 14px 30px rgba(8, 12, 30, 0.4);
+ }
+ .prototype-overlay .prototype-timeline-bar {
+  margin-top: 8px;
+  width: 100%;
+  height: 4px;
+  background: rgba(32, 38, 70, 0.7);
+  border-radius: 999px;
+  overflow: hidden;
+ }
+ .prototype-overlay .prototype-timeline-progress {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(90, 130, 255, 0.4), rgba(180, 220, 255, 0.85));
+  transition: width 0.5s ease;
+ }
+ .prototype-overlay .media-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+ }
+ .prototype-overlay .media-control span {
+  font-size: 12px;
+  color: rgba(200, 210, 255, 0.85);
+ }
+ .prototype-overlay video {
+  width: 100%;
+  border-radius: 12px;
+  margin-top: 12px;
+  border: 1px solid rgba(90, 130, 255, 0.25);
+  background: rgba(8, 10, 18, 0.8);
+ }
+ .prototype-overlay .prototype-footnote {
+  margin-top: 10px;
+  font-size: 11px;
+  color: rgba(180, 195, 255, 0.75);
+ }
+ @media (max-width: 900px) {
+  .prototype-overlay {
+   left: 16px;
+   right: 16px;
+   bottom: 16px;
+   max-width: none;
+  }
+ }
+ @media (prefers-reduced-motion: reduce) {
+  .prototype-overlay .prototype-card {
+   transition: none;
+  }
+  .prototype-overlay .prototype-timeline-progress {
+   transition: none;
+  }
+ }
+
  /* Modal Windows */
  .modal-window {
  position: fixed;
@@ -382,15 +538,65 @@
  <div id="app"></div>
  
  <div id="loading-overlay">
- <div class="status-text">
- <div class="spinner"></div>
- <div id="status-message">Loading scene...</div>
+  <div class="status-text">
+   <div class="spinner"></div>
+   <div id="status-message">Loading scene...</div>
+  </div>
  </div>
+
+ <div id="prototype-overlay-cluster" class="prototype-overlay">
+  <div class="prototype-card" id="overlay-stage-brief" data-phase="overlay">
+   <header><span>01</span>Overlay Staging</header>
+   <p>Testing layered HUD placement, responsive offsets, and CTA density before wiring React components.</p>
+   <ul>
+    <li>Ensure overlays coexist with debug + gizmo UI.</li>
+    <li>Validate blur/sheen tokens for production themes.</li>
+    <li>Sequence timeline drives reveal choreography.</li>
+   </ul>
+  </div>
+
+  <div class="prototype-card" id="ascii-house-panel" data-phase="ascii">
+   <header><span>02</span>ASCII Habitat Wireframe</header>
+   <p>Embedding micro-habitat ASCII art for lore overlays and ambient storytelling beats.</p>
+   <pre id="ascii-house-art" aria-label="ASCII house blueprint">        /\
+       /  \
+      /----\
+     / |[]| \
+    /__|__|__\
+       ||||
+       ||||
+      [____]
+   </pre>
+   <button id="ascii-focus-button" type="button">Spotlight ASCII House</button>
+  </div>
+
+  <div class="prototype-card" id="media-controls-panel" data-phase="media">
+   <header><span>03</span>Media Loopbacks</header>
+   <p>Previewing audio/video choreography for the production cell — syncing beats with overlay cadence.</p>
+   <div class="media-control">
+    <button id="audio-toggle" type="button">Play Ambient Theme</button>
+    <span id="audio-status" aria-live="polite">idle</span>
+   </div>
+   <audio id="prototype-audio" src="../../theme1.mp3" preload="auto"></audio>
+   <div class="media-control" style="margin-top: 10px;">
+    <button id="video-toggle" type="button">Play Transit Preview</button>
+    <span id="video-status" aria-live="polite">paused</span>
+   </div>
+   <video id="prototype-video" src="../../Intro6.mp4" muted playsinline preload="metadata"></video>
+  </div>
+
+  <div class="prototype-timeline">
+   <div>Prototype timeline — staging ▶ ASCII embed ▶ media sync</div>
+   <div class="prototype-timeline-bar">
+    <div class="prototype-timeline-progress" id="overlay-timeline-progress"></div>
+   </div>
+   <div class="prototype-footnote" data-note-target>Notes pending sequencing pass…</div>
+  </div>
  </div>
- 
+
  <div id="debug-menu">
- <div id="debug-menu-minimize" title="Hide Scene Navigation">-</div>
- <h3>Scene Navigation</h3>
+  <div id="debug-menu-minimize" title="Hide Scene Navigation">-</div>
+  <h3>Scene Navigation</h3>
  <button id="btn-keyboard">JUMP TO KEYBOARD</button>
  <button id="btn-character">JUMP TO CHARACTER</button>
  <button id="btn-head">JUMP TO HEAD</button>
@@ -680,15 +886,158 @@ console.log(`🎮 Execution Environment Mode: ${EXEC_ENV_MODE}`);
 
  // Hide debug UI in sequence mode
  if (EXEC_ENV_MODE === 'sequence') {
- const debugMenu = document.getElementById('debug-menu');
- const debugRestore = document.getElementById('debug-menu-restore');
- const gizmoToolbar = document.getElementById('gizmo-toolbar');
- 
- if (debugMenu) debugMenu.style.display = 'none';
- if (debugRestore) debugRestore.style.display = 'none';
- if (gizmoToolbar) gizmoToolbar.style.display = 'none';
- 
- console.log('? Sequence mode: Debug UI hidden');
+  const debugMenu = document.getElementById('debug-menu');
+  const debugRestore = document.getElementById('debug-menu-restore');
+  const gizmoToolbar = document.getElementById('gizmo-toolbar');
+
+  if (debugMenu) debugMenu.style.display = 'none';
+  if (debugRestore) debugRestore.style.display = 'none';
+  if (gizmoToolbar) gizmoToolbar.style.display = 'none';
+
+  console.log('? Sequence mode: Debug UI hidden');
+ }
+
+ // ===== Prototype Overlay Sequencing (UI + ASCII + Media) =====
+ const overlayCluster = document.getElementById('prototype-overlay-cluster');
+ if (overlayCluster) {
+  const overlayCards = Array.from(overlayCluster.querySelectorAll('.prototype-card'));
+  overlayCards.forEach((card) => card.classList.remove('visible'));
+
+  const timelineProgressEl = document.getElementById('overlay-timeline-progress');
+  const revealSteps = [
+   { delay: 600, id: 'overlay-stage-brief' },
+   { delay: 2200, id: 'ascii-house-panel' },
+   { delay: 4200, id: 'media-controls-panel' }
+  ];
+  const totalDuration = revealSteps.reduce((acc, step) => acc + step.delay, 0) || 1;
+
+  const updateTimeline = (ratio) => {
+   if (!timelineProgressEl) return;
+   const clamped = Math.max(0, Math.min(1, ratio));
+   timelineProgressEl.style.width = `${(clamped * 100).toFixed(1)}%`;
+  };
+
+  const revealCard = (id) => {
+   const target = document.getElementById(id);
+   if (target && !target.classList.contains('visible')) {
+    target.classList.add('visible');
+    target.dispatchEvent(new CustomEvent('prototype:visible', { bubbles: true }));
+   }
+  };
+
+  updateTimeline(0);
+  let cumulativeDelay = 0;
+  revealSteps.forEach((step) => {
+   cumulativeDelay += step.delay;
+   setTimeout(() => {
+    revealCard(step.id);
+    updateTimeline(cumulativeDelay / totalDuration);
+   }, cumulativeDelay);
+  });
+  setTimeout(() => updateTimeline(1), totalDuration + 600);
+
+  const asciiPanel = document.getElementById('ascii-house-panel');
+  const asciiFocusButton = document.getElementById('ascii-focus-button');
+  if (asciiPanel && asciiFocusButton) {
+   asciiFocusButton.addEventListener('click', () => {
+    const spotlightActive = asciiPanel.classList.toggle('spotlight');
+    asciiFocusButton.textContent = spotlightActive ? 'Release Spotlight' : 'Spotlight ASCII House';
+   });
+  }
+
+  const audioEl = document.getElementById('prototype-audio');
+  const audioToggle = document.getElementById('audio-toggle');
+  const audioStatus = document.getElementById('audio-status');
+  const syncAudioState = () => {
+   if (!audioEl || !audioToggle || !audioStatus) return;
+   if (audioEl.paused) {
+    audioStatus.textContent = 'paused';
+    audioToggle.textContent = 'Play Ambient Theme';
+   } else {
+    audioStatus.textContent = `playing (${Math.round(audioEl.currentTime)}s)`;
+    audioToggle.textContent = 'Pause Ambient Theme';
+   }
+  };
+
+  if (audioEl && audioToggle) {
+   audioToggle.addEventListener('click', async () => {
+    try {
+     if (audioEl.paused) {
+      await audioEl.play();
+     } else {
+      audioEl.pause();
+     }
+    } catch (err) {
+     console.warn('[Prototype Overlay] Audio playback blocked', err);
+     if (audioStatus) audioStatus.textContent = 'interaction required';
+    } finally {
+     syncAudioState();
+    }
+   });
+
+   ['play', 'pause', 'ended', 'timeupdate'].forEach((evt) => {
+    audioEl.addEventListener(evt, () => {
+     if (evt === 'ended') {
+      audioEl.currentTime = 0;
+     }
+     syncAudioState();
+    });
+   });
+
+   syncAudioState();
+  }
+
+  const videoEl = document.getElementById('prototype-video');
+  const videoToggle = document.getElementById('video-toggle');
+  const videoStatus = document.getElementById('video-status');
+  const syncVideoState = () => {
+   if (!videoEl || !videoToggle || !videoStatus) return;
+   if (videoEl.paused) {
+    videoStatus.textContent = 'paused';
+    videoToggle.textContent = 'Play Transit Preview';
+   } else {
+    const progress = videoEl.duration ? Math.round((videoEl.currentTime / videoEl.duration) * 100) : 0;
+    videoStatus.textContent = `playing ${progress}%`;
+    videoToggle.textContent = 'Pause Transit Preview';
+   }
+  };
+
+  if (videoEl && videoToggle) {
+   videoToggle.addEventListener('click', async () => {
+    try {
+     if (videoEl.paused) {
+      await videoEl.play();
+     } else {
+      videoEl.pause();
+     }
+    } catch (err) {
+     console.warn('[Prototype Overlay] Video playback blocked', err);
+     if (videoStatus) videoStatus.textContent = 'interaction required';
+    } finally {
+     syncVideoState();
+    }
+   });
+
+   ['play', 'pause', 'timeupdate', 'ended'].forEach((evt) => {
+    videoEl.addEventListener(evt, () => {
+     if (evt === 'ended') {
+      videoEl.currentTime = 0;
+      videoEl.pause();
+     }
+     syncVideoState();
+    });
+   });
+
+   syncVideoState();
+  }
+
+  const noteTarget = overlayCluster.querySelector('[data-note-target]');
+  if (noteTarget) {
+   const now = new Date();
+   const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+   // TODO(Componentization): Extract overlay + media controllers into reusable modules post validation.
+   noteTarget.textContent = `Sequencer locked ${timestamp} — queue componentization of overlay + media controllers.`;
+  }
  }
 
  // ===== Cursor Glitch Effect =====
