@@ -63,79 +63,83 @@
     line-height:1.3;
     width:100%;
     max-width:min(90vw,600px);
-    padding:0 2vw;
+    padding:clamp(0px,1vw,12px) clamp(2vw,6vw,48px);
+    --indent-step:clamp(12px,5vw,56px);
+    --note-indent:clamp(18px,8vw,120px);
   }
 
   #lookInside .look-line {
     opacity:0;
     transition:opacity 1.5s;
     transition-delay:var(--delay,0s);
-    letter-spacing:clamp(1px,1.6vw,10px);
+    letter-spacing:clamp(0.8px,1vw,8px);
     margin-bottom:clamp(6px,2.5vw,15px);
   }
 
   #lookInside .look-heading {
     display:flex;
     align-items:center;
-    gap:clamp(4px,1.5vw,12px);
-    font-size:clamp(32px,12vw,80px);
+    gap:clamp(4px,1.6vw,16px);
+    font-size:clamp(30px,11vw,80px);
     margin-bottom:clamp(12px,3vw,18px);
+    flex-wrap:wrap;
   }
 
   #lookInside .look-heading-text {
     display:flex;
     align-items:center;
-    gap:clamp(4px,1.2vw,10px);
+    gap:clamp(4px,1.8vw,14px);
     position:relative;
+    flex-wrap:wrap;
   }
 
   #portalO {
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    width:clamp(48px,12vw,78px);
-    height:clamp(48px,12vw,78px);
+    width:clamp(36px,12vw,78px);
+    height:clamp(36px,12vw,78px);
     border-radius:50%;
     background:black;
     cursor:pointer;
     pointer-events:auto;
     opacity:0;
     transition:opacity 0.5s;
-    margin:0 clamp(-6px,-1.5vw,-8px);
+    margin:0 clamp(-8px,-1.5vw,-4px);
     position:relative;
     flex-shrink:0;
   }
 
   #lookInside .look-sub-1 {
     font-size:clamp(20px,8vw,56px);
-    padding-left:clamp(0px,6vw,40px);
+    padding-left:calc(var(--indent-step) * 1);
   }
 
   #lookInside .look-sub-2 {
     font-size:clamp(18px,7vw,42px);
-    padding-left:clamp(10px,8vw,80px);
+    padding-left:calc(var(--indent-step) * 2);
   }
 
   #lookInside .look-sub-3 {
     font-size:clamp(16px,6vw,32px);
-    padding-left:clamp(20px,10vw,120px);
+    padding-left:calc(var(--indent-step) * 3);
   }
 
   #lookInside .look-sub-4 {
     font-size:clamp(15px,5.5vw,24px);
-    padding-left:clamp(30px,12vw,160px);
+    padding-left:calc(var(--indent-step) * 4);
   }
 
   #lookInside .look-sub-5 {
     font-size:clamp(14px,5vw,18px);
-    padding-left:clamp(40px,14vw,200px);
+    padding-left:calc(var(--indent-step) * 5);
   }
 
   #lookInside .look-note {
     font-size:clamp(12px,4vw,16px);
-    padding-left:clamp(20px,10vw,120px);
+    padding-left:var(--note-indent);
     font-weight:400;
-    letter-spacing:clamp(1px,1.1vw,6px);
+    letter-spacing:clamp(0.6px,0.9vw,5px);
     line-height:1.4;
     margin-top:clamp(18px,4vw,30px);
   }
@@ -144,16 +148,19 @@
     #lookInside {
       top:50%;
       line-height:1.2;
+      padding:clamp(8px,4vw,20px) clamp(6vw,10vw,40px);
+      --indent-step:clamp(10px,6vw,28px);
+      --note-indent:clamp(14px,9vw,48px);
     }
 
     #lookInside .look-heading {
       flex-direction:column;
       align-items:flex-start;
-      gap:clamp(6px,3vw,12px);
+      gap:clamp(6px,3vw,14px);
     }
 
     #lookInside .look-heading-text {
-      gap:clamp(6px,3vw,12px);
+      gap:clamp(6px,3vw,14px);
     }
   }
   
@@ -750,31 +757,85 @@ let currentTransitIndex = 0;
 let videoStackContainer = null;
 let isStackExpanded = false;
 
+const TRANSIT_VIDEO_STYLE = 'width: 400px; height: auto; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.6); cursor: pointer; transition: all 0.4s; position: absolute; bottom: 0; right: 0;';
+
+function createTransitVideoElement() {
+  const video = document.createElement('video');
+  video.muted = false;
+  video.playsInline = true;
+  video.preload = 'metadata';
+  video.style.cssText = TRANSIT_VIDEO_STYLE;
+  return video;
+}
+
+function getTransitFilenameCandidates(index) {
+  const bases = [`transit${index}`, `Transit${index}`, `TRANSIT${index}`];
+  const extensions = ['.mp4', '.MP4'];
+  const candidates = [];
+
+  bases.forEach(base => {
+    extensions.forEach(ext => {
+      candidates.push(`${base}${ext}`);
+    });
+  });
+
+  return candidates;
+}
+
+function buildRootTransitSrc(filename) {
+  const origin = window.location.origin;
+  if (origin && origin !== 'null') {
+    return `${origin.replace(/\/+$/, '')}/${filename}`;
+  }
+  return `/${filename}`;
+}
+
+async function loadTransitVideo(index) {
+  const candidates = getTransitFilenameCandidates(index);
+  const video = createTransitVideoElement();
+
+  for (const candidate of candidates) {
+    const src = buildRootTransitSrc(candidate);
+
+    const loaded = await new Promise((resolve) => {
+      const onLoaded = () => {
+        video.removeEventListener('error', onError);
+        resolve(true);
+      };
+      const onError = () => {
+        video.removeEventListener('loadeddata', onLoaded);
+        resolve(false);
+      };
+
+      video.addEventListener('loadeddata', onLoaded, { once: true });
+      video.addEventListener('error', onError, { once: true });
+      video.src = src;
+      video.load();
+    });
+
+    if (loaded) {
+      video.dataset.transitFilename = candidate;
+      video.dataset.transitSource = src;
+      return { index, element: video };
+    }
+  }
+
+  return null;
+}
+
 async function startTransitVideoStack() {
   videoStackContainer = document.getElementById('videoStack');
   if (!videoStackContainer) return;
-  
+
   // Scan for transit videos (transit1.mp4 through transit10.mp4)
   const availableVideos = [];
   for (let i = 1; i <= 10; i++) {
-    const video = document.createElement('video');
-    video.src = `transit${i}.mp4`;
-    video.muted = false;
-    video.style.cssText = 'width: 400px; height: auto; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.6); cursor: pointer; transition: all 0.4s; position: absolute; bottom: 0; right: 0;';
-    
-    // Test if video exists
-    await new Promise((resolve) => {
-      video.addEventListener('loadeddata', () => {
-        availableVideos.push({ index: i, element: video });
-        resolve();
-      }, { once: true });
-      
-      video.addEventListener('error', () => {
-        resolve();  // Skip if not found
-      }, { once: true });
-    });
+    const loadedVideo = await loadTransitVideo(i);
+    if (loadedVideo) {
+      availableVideos.push(loadedVideo);
+    }
   }
-  
+
   console.log(`📹 Found ${availableVideos.length} transit videos`);
   transitVideos = availableVideos;
   
