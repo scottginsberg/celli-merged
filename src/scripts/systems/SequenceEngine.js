@@ -20,7 +20,10 @@ export class SequenceEngine {
       onSequenceEnd: [],
       onDialogue: [],
       onAnimation: [],
-      onEvent: []
+      onEvent: [],
+      onAudio: [],
+      onScreenShake: [],
+      onTransition: []
     };
     this.nodeExecutors = this._createNodeExecutors();
   }
@@ -173,24 +176,73 @@ export class SequenceEngine {
 
       // Transition node (scene transition)
       transition: async (node, state) => {
-        const { toScene, effect } = node.params || {};
+        const { toScene, effect, duration } = node.params || {};
         console.log(`🎬 Transition: to ${toScene} (${effect})`);
-        
-        // This would trigger scene manager transition
-        this._callHooks('onEvent', { type: 'transition', toScene, effect, state });
+
+        const payload = { type: 'transition', toScene, effect, duration, state };
+        this._callHooks('onTransition', payload);
+        this._callHooks('onEvent', payload);
+
+        if (duration) {
+          await this._delay(parseFloat(duration) * 1000);
+        }
+      },
+
+      // Scene transition node (explicit)
+      scene_transition: async (node, state) => {
+        const { toScene, effect, duration } = node.params || {};
+        console.log(`🚪 Scene transition: ${toScene} (${effect || 'cut'})`);
+
+        const payload = { type: 'transition', toScene, effect, duration, state };
+        this._callHooks('onTransition', payload);
+        this._callHooks('onEvent', payload);
+
+        if (duration) {
+          await this._delay(parseFloat(duration) * 1000);
+        }
       },
 
       // Event node (trigger custom event)
       event: async (node, state) => {
         const { eventName, eventData } = node.params || {};
         console.log(`⚡ Event: ${eventName}`);
-        
-        this._callHooks('onEvent', { 
-          type: 'custom', 
-          name: eventName, 
-          data: eventData, 
-          state 
+
+        this._callHooks('onEvent', {
+          type: 'custom',
+          name: eventName,
+          data: eventData,
+          state
         });
+      },
+
+      // Audio node (trigger audio playback)
+      audio: async (node, state) => {
+        const { action = 'play', key, clip, volume, loop, stopAfter, fadeIn, fadeOut } = node.params || {};
+        console.log(`🔊 Audio: ${action} ${key || clip || ''}`.trim());
+
+        this._callHooks('onAudio', {
+          action,
+          key,
+          clip,
+          volume,
+          loop,
+          stopAfter,
+          fadeIn,
+          fadeOut,
+          state
+        });
+      },
+
+      // Screen shake node
+      screen_shake: async (node, state) => {
+        const { intensity = 0.5, duration = 0.4, axis = 'xy' } = node.params || {};
+        console.log(`🌪️ Screen shake: intensity ${intensity}, duration ${duration}s, axis ${axis}`);
+
+        this._callHooks('onScreenShake', { intensity, duration, axis, state });
+
+        if (duration) {
+          await this._delay(parseFloat(duration) * 1000);
+        }
       },
 
       // Parameter node (get/set parameter)

@@ -241,6 +241,7 @@ export class AudioSystem {
     try {
       const source = ctx.createBufferSource();
       source.buffer = buffer;
+      source.loop = Boolean(options.loop);
 
       const gainNode = ctx.createGain();
       gainNode.gain.value = options.volume ?? 1.0;

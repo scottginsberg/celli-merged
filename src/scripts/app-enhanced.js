@@ -31,6 +31,9 @@ import { assetPool } from './systems/AssetPool.js';
 import { configSystem } from './systems/ConfigSystem.js';
 import { sequenceEngine } from './systems/SequenceEngine.js';
 
+// Import sequence definitions
+import { registerFullhandSequences, FULLHAND_SEQUENCE_ORDER } from '../sequences/index.js';
+
 // Import initialization
 import {
   initializeSystems,
@@ -59,6 +62,22 @@ let introSceneMusicManaged = false;
 let introSequenceOverlay = null;
 let introSequenceActive = false;
 let introSequenceMusicKey = null;
+
+const sequenceAudioSources = new Map();
+const fullhandSequenceRuntime = {
+  running: false,
+  restartRequested: false,
+  sceneInstance: null
+};
+let sequenceControlsInitialized = false;
+let activeScreenShakeController = null;
+
+const NEW_SEQUENCE_BUTTON_SELECTORS = [
+  '#btn-new-sequence',
+  '#new-sequence-button',
+  '[data-action="new-sequence"]',
+  '[data-control="fullhand-sequence"]'
+];
 
 console.log('%c🎨 Celli - Enhanced Scene System Loading...',
   'background: #8ab4ff; color: #000; font-size: 18px; padding: 10px; font-weight: bold;');
@@ -597,6 +616,7 @@ export async function startApp() {
     // Setup sequence engine hooks
     setupSequenceHooks();
     setupSceneHooks();
+    initializeSequenceControls();
 
     // Create player tuning UI (if enabled)
     if (configSystem.get('debug.enablePlayerTuning') !== false) {
@@ -664,31 +684,371 @@ export async function startApp() {
 // SEQUENCE ENGINE HOOKS
 // ============================================================================
 
+function wireNewSequenceButton() {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  NEW_SEQUENCE_BUTTON_SELECTORS.forEach((selector) => {
+    const element = document.querySelector(selector);
+    if (!element || element.dataset.sequenceHooked === 'true') {
+      return;
+    }
+
+    element.addEventListener('click', () => {
+      runFullhandSequencePipeline({ ensureScene: true });
+    });
+    element.dataset.sequenceHooked = 'true';
+    console.log(`[Sequence] Bound NEW SEQUENCE control: ${selector}`);
+  });
+}
+
+function handleFullhandSequenceEvent(name, data) {
+  if (!name) {
+    return;
+  }
+
+  const sceneEntry = fullhandSequenceRuntime.sceneInstance
+    || sceneManager.scenes?.get('fullhand')?.module;
+
+  if (sceneEntry && typeof sceneEntry.handleSequenceEvent === 'function') {
+    try {
+      sceneEntry.handleSequenceEvent(name, data);
+      return;
+    } catch (error) {
+      console.warn('[Sequence] ⚠️ Fullhand scene failed to handle sequence event:', error);
+    }
+  }
+
+  if (typeof window !== 'undefined' && window.dispatchEvent) {
+    try {
+      window.dispatchEvent(new CustomEvent('celli:fullhand-sequence-event', {
+        detail: { event: name, data, scene: sceneEntry || null }
+      }));
+    } catch (error) {
+      console.warn('[Sequence] ⚠️ Failed to dispatch fallback sequence event:', error);
+    }
+  }
+}
+
+async function handleSequenceAudio(payload = {}) {
+  const {
+    action = 'play',
+    key,
+    clip,
+    volume,
+    loop,
+    stopAfter
+  } = payload;
+
+  const cacheKey = key || clip;
+
+  if (action === 'stopAll') {
+    sequenceAudioSources.forEach((source, sourceKey) => {
+      try {
+        source.stop();
+      } catch (error) {
+        console.warn('[Sequence] ⚠️ Failed to stop audio source:', error);
+      }
+      sequenceAudioSources.delete(sourceKey);
+    });
+    return;
+  }
+
+  if (!cacheKey) {
+    console.warn('[Sequence] ⚠️ Audio node missing key or clip identifier.');
+    return;
+  }
+
+  if (action === 'stop') {
+    const source = sequenceAudioSources.get(cacheKey);
+    if (source) {
+      try {
+        source.stop();
+      } catch (error) {
+        console.warn('[Sequence] ⚠️ Failed to stop audio source:', error);
+      }
+      sequenceAudioSources.delete(cacheKey);
+    }
+    return;
+  }
+
+  if (action !== 'play') {
+    console.warn(`[Sequence] ⚠️ Unsupported audio action: ${action}`);
+    return;
+  }
+
+  if (!clip) {
+    console.warn('[Sequence] ⚠️ Audio play request missing clip path.');
+    return;
+  }
+
+  let buffer = audioSystem.audioBuffers?.get(cacheKey);
+  if (!buffer) {
+    buffer = await audioSystem.loadAudioBuffer(clip, cacheKey);
+  }
+
+  if (!buffer) {
+    console.warn(`[Sequence] ⚠️ Unable to load audio clip: ${clip}`);
+    return;
+  }
+
+  const existingSource = sequenceAudioSources.get(cacheKey);
+  if (existingSource) {
+    try {
+      existingSource.stop();
+    } catch (error) {
+      console.warn('[Sequence] ⚠️ Failed to stop existing audio source:', error);
+    }
+    sequenceAudioSources.delete(cacheKey);
+  }
+
+  const source = audioSystem.playBuffer(buffer, {
+    volume: volume ?? 1,
+    loop: Boolean(loop)
+  });
+
+  if (!source) {
+    return;
+  }
+
+  sequenceAudioSources.set(cacheKey, source);
+  source.onended = () => {
+    if (sequenceAudioSources.get(cacheKey) === source) {
+      sequenceAudioSources.delete(cacheKey);
+    }
+  };
+
+  if (stopAfter) {
+    window.setTimeout(() => {
+      const activeSource = sequenceAudioSources.get(cacheKey);
+      if (activeSource && activeSource === source) {
+        try {
+          activeSource.stop();
+        } catch (error) {
+          console.warn('[Sequence] ⚠️ Failed to stop timed audio source:', error);
+        }
+        sequenceAudioSources.delete(cacheKey);
+      }
+    }, Math.max(0, stopAfter) * 1000);
+  }
+}
+
+function triggerSequenceScreenShake({ intensity = 0.5, duration = 0.4, axis = 'xy' } = {}) {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  if (activeScreenShakeController) {
+    activeScreenShakeController();
+  }
+
+  const element = document.body;
+  if (!element) {
+    return;
+  }
+
+  const baseTransform = element.style.transform || '';
+  const amplitude = 12 * Math.max(0, intensity);
+  const axes = String(axis || 'xy').toLowerCase();
+  const totalDurationMs = Math.max(0, duration) * 1000;
+  const start = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  let frameId = null;
+
+  const cancel = () => {
+    if (frameId) {
+      cancelAnimationFrame(frameId);
+      frameId = null;
+    }
+    element.style.transform = baseTransform;
+    activeScreenShakeController = null;
+  };
+
+  const step = (now) => {
+    const timestamp = now ?? (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const elapsed = timestamp - start;
+    const progress = totalDurationMs === 0 ? 1 : Math.min(elapsed / totalDurationMs, 1);
+    const damp = 1 - progress;
+    const offsetX = axes.includes('x') ? (Math.random() * 2 - 1) * amplitude * damp : 0;
+    const offsetY = axes.includes('y') ? (Math.random() * 2 - 1) * amplitude * damp : 0;
+    const offsetZ = axes.includes('z') ? (Math.random() * 2 - 1) * amplitude * 0.25 * damp : 0;
+
+    element.style.transform = `${baseTransform} translate3d(${offsetX.toFixed(2)}px, ${offsetY.toFixed(2)}px, ${offsetZ.toFixed(2)}px)`;
+
+    if (progress < 1) {
+      frameId = requestAnimationFrame(step);
+    } else {
+      cancel();
+    }
+  };
+
+  frameId = requestAnimationFrame(step);
+  activeScreenShakeController = cancel;
+}
+
+async function runFullhandSequencePipeline({ ensureScene = false } = {}) {
+  if (fullhandSequenceRuntime.running) {
+    fullhandSequenceRuntime.restartRequested = true;
+    console.log('[Sequence] Restart requested for Fullhand pipeline.');
+    return;
+  }
+
+  fullhandSequenceRuntime.running = true;
+
+  try {
+    do {
+      fullhandSequenceRuntime.restartRequested = false;
+
+      if (ensureScene && sceneManager.getCurrentScene() !== 'fullhand') {
+        await sceneManager.transitionTo('fullhand');
+      }
+
+      for (const entry of FULLHAND_SEQUENCE_ORDER) {
+        const result = await sequenceEngine.startSequence(entry.name, {
+          scene: 'fullhand',
+          step: entry.name
+        });
+
+        if (result === false) {
+          console.warn(`[Sequence] ⚠️ Failed to start sequence ${entry.name}`);
+          break;
+        }
+
+        if (fullhandSequenceRuntime.restartRequested) {
+          break;
+        }
+      }
+    } while (fullhandSequenceRuntime.restartRequested);
+  } catch (error) {
+    console.error('Fullhand sequence pipeline failed:', error);
+  } finally {
+    fullhandSequenceRuntime.running = false;
+  }
+}
+
+function initializeSequenceControls() {
+  if (sequenceControlsInitialized) {
+    wireNewSequenceButton();
+    return;
+  }
+  sequenceControlsInitialized = true;
+
+  try {
+    registerFullhandSequences(sequenceEngine);
+  } catch (error) {
+    console.error('Failed to register Fullhand sequences:', error);
+  }
+
+  window.celli = window.celli || {};
+  window.celli.fullhandSequence = {
+    start: (options = {}) => runFullhandSequencePipeline({ ensureScene: options.ensureScene ?? false }),
+    startWithTransition: () => runFullhandSequencePipeline({ ensureScene: true }),
+    restart: () => {
+      fullhandSequenceRuntime.restartRequested = true;
+    },
+    isRunning: () => fullhandSequenceRuntime.running,
+    order: FULLHAND_SEQUENCE_ORDER.map((entry) => entry.name),
+    setSceneInstance: (instance) => {
+      fullhandSequenceRuntime.sceneInstance = instance || null;
+    }
+  };
+
+  wireNewSequenceButton();
+
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('celli:scene-started', (event) => {
+      const startedScene = event?.detail?.scene;
+      if (startedScene === 'fullhand') {
+        wireNewSequenceButton();
+
+        const entry = sceneManager.scenes?.get('fullhand');
+        if (entry?.module && window.celli?.fullhandSequence?.setSceneInstance) {
+          window.celli.fullhandSequence.setSceneInstance(entry.module);
+        }
+      }
+    });
+
+    window.addEventListener('celli:fullhand-ready', (event) => {
+      if (event?.detail?.scene && window.celli?.fullhandSequence?.setSceneInstance) {
+        window.celli.fullhandSequence.setSceneInstance(event.detail.scene);
+      }
+    });
+
+    window.addEventListener('celli:fullhand-destroyed', () => {
+      if (window.celli?.fullhandSequence?.setSceneInstance) {
+        window.celli.fullhandSequence.setSceneInstance(null);
+      }
+    });
+
+    window.addEventListener('celli:fullhand-sequence-start', () => {
+      runFullhandSequencePipeline({ ensureScene: false });
+    });
+
+    window.addEventListener('celli:fullhand-sequence-restart', () => {
+      fullhandSequenceRuntime.restartRequested = true;
+    });
+  }
+}
+
 function setupSequenceHooks() {
   // Hook dialogue events to GUI
   sequenceEngine.on('onDialogue', ({ speaker, text, duration }) => {
     console.log(`💬 Dialogue: ${speaker}: "${text}"`);
     quoteSystem.setText(text, { duration: duration || 3000 });
-    
-    // Optional: TTS
+
     if (configSystem.get('sequence.enableTTS')) {
       audioSystem.speakAnimalese(text);
     }
   });
 
   // Hook animation events
-  sequenceEngine.on('onAnimation', ({ target, property, from, to, duration, easing }) => {
+  sequenceEngine.on('onAnimation', ({ target, property, from, to }) => {
     console.log(`🎨 Animation: ${target}.${property} → ${to}`);
-    // Implement animation system hook here
+    // Implement animation system hook here when animation system is ready
+  });
+
+  // Hook audio triggers
+  sequenceEngine.on('onAudio', (payload) => {
+    Promise.resolve(handleSequenceAudio(payload)).catch((error) => {
+      console.warn('[Sequence] ⚠️ Audio handler failed:', error);
+    });
+  });
+
+  // Hook screen shake events
+  sequenceEngine.on('onScreenShake', (payload) => {
+    try {
+      triggerSequenceScreenShake(payload);
+    } catch (error) {
+      console.warn('[Sequence] ⚠️ Screen shake handler failed:', error);
+    }
+  });
+
+  // Hook explicit scene transitions
+  sequenceEngine.on('onTransition', ({ toScene, effect, duration }) => {
+    if (toScene) {
+      sceneManager.transitionTo(toScene, { effect, duration });
+    }
   });
 
   // Hook custom events
-  sequenceEngine.on('onEvent', ({ type, name, data }) => {
-    console.log(`⚡ Event: ${type} - ${name}`);
-    
+  sequenceEngine.on('onEvent', (eventPayload = {}) => {
+    const { type, name, data, toScene, effect, duration } = eventPayload;
+    const label = name ? ` - ${name}` : '';
+    console.log(`⚡ Event: ${type}${label}`);
+
     if (type === 'transition') {
-      // Scene transition
-      sceneManager.transitionTo(data.toScene);
+      const targetScene = toScene || data?.toScene || name;
+      if (targetScene) {
+        sceneManager.transitionTo(targetScene, {
+          effect: effect ?? data?.effect,
+          duration: duration ?? data?.duration
+        });
+      }
+      return;
+    }
+
+    if (type === 'custom' && name?.startsWith('fullhand.')) {
+      handleFullhandSequenceEvent(name, data);
     }
   });
 
@@ -885,6 +1245,8 @@ window.celliApp = {
   transitionToIntro,
   initialized: false  // Track if app has been initialized
 };
+
+initializeSequenceControls();
 
 console.log('✨ Celli Enhanced App Module Loaded!');
 console.log('📝 Available scenes:', sceneManager.listScenes());

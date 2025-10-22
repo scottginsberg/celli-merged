@@ -24,7 +24,7 @@ export class FullhandScene {
       scene: null,
       camera: null,
       renderer: null,
-      
+
       // Execution environment (complete system)
       execEnv: null,
       
@@ -39,10 +39,21 @@ export class FullhandScene {
       running: false,
       totalTime: 0,
       mode: EXECUTION_ENV_DEFAULT_MODE,
-      
+
       // Callbacks
-      onComplete: null
+      onComplete: null,
+
+      // Sequence tracking
+      sequence: {
+        cursorActive: false,
+        scaleMode: 'idle',
+        cityDropActive: false,
+        gridBootStage: 'idle',
+        history: []
+      }
     };
+
+    this._sequenceBridgeRegistered = false;
   }
 
   /**
@@ -217,6 +228,18 @@ export class FullhandScene {
 
     const mode = this._resolveRequestedMode(options.mode);
     this.setMode(mode);
+
+    this._registerSequenceBridge();
+
+    if (typeof window !== 'undefined' && window.dispatchEvent) {
+      try {
+        window.dispatchEvent(new CustomEvent('celli:fullhand-ready', {
+          detail: { scene: this }
+        }));
+      } catch (error) {
+        console.warn('[FullhandScene] ⚠️ Failed to dispatch fullhand-ready event:', error);
+      }
+    }
   }
 
   /**
@@ -273,9 +296,9 @@ export class FullhandScene {
    */
   destroy() {
     console.log('[FullhandScene] 🗑️ Destroying...');
-    
+
     this.stop();
-    
+
     // Destroy execution environment
     if (this.state.execEnv) {
       this.state.execEnv.destroy();
@@ -288,8 +311,105 @@ export class FullhandScene {
         this.state.renderer.domElement.parentNode.removeChild(this.state.renderer.domElement);
       }
     }
-    
+
+    if (window.celli?.fullhandSequence?.setSceneInstance) {
+      try {
+        window.celli.fullhandSequence.setSceneInstance(null);
+      } catch (error) {
+        console.warn('[FullhandScene] ⚠️ Unable to release sequence bridge:', error);
+      }
+    }
+
+    if (typeof window !== 'undefined' && window.dispatchEvent) {
+      try {
+        window.dispatchEvent(new CustomEvent('celli:fullhand-destroyed', {
+          detail: { scene: this }
+        }));
+      } catch (error) {
+        console.warn('[FullhandScene] ⚠️ Failed to dispatch fullhand-destroyed event:', error);
+      }
+    }
+
     console.log('[FullhandScene] ✅ Destroyed');
+  }
+
+  /**
+   * Register bridge between sequence controller and scene instance
+   */
+  _registerSequenceBridge() {
+    if (this._sequenceBridgeRegistered) {
+      return;
+    }
+    this._sequenceBridgeRegistered = true;
+
+    if (window.celli?.fullhandSequence?.setSceneInstance) {
+      try {
+        window.celli.fullhandSequence.setSceneInstance(this);
+      } catch (error) {
+        console.warn('[FullhandScene] ⚠️ Unable to register sequence bridge:', error);
+      }
+    }
+  }
+
+  /**
+   * Handle sequence engine events routed to this scene
+   */
+  handleSequenceEvent(eventName, data = {}) {
+    if (!eventName) {
+      return;
+    }
+
+    const timestamp = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const historyEntry = { event: eventName, data, timestamp };
+
+    if (Array.isArray(this.state.sequence?.history)) {
+      this.state.sequence.history.push(historyEntry);
+    }
+
+    switch (eventName) {
+      case 'fullhand.cursor.prepare':
+        this.state.sequence.cursorActive = true;
+        break;
+      case 'fullhand.cursor.complete':
+        this.state.sequence.cursorActive = false;
+        break;
+      case 'fullhand.scale.enter':
+        this.state.sequence.scaleMode = 'enter';
+        this.setMode('sequence');
+        break;
+      case 'fullhand.scale.lock':
+        this.state.sequence.scaleMode = 'lock';
+        break;
+      case 'fullhand.scale.complete':
+        this.state.sequence.scaleMode = 'complete';
+        break;
+      case 'fullhand.city.drop.prepare':
+        this.state.sequence.cityDropActive = true;
+        break;
+      case 'fullhand.city.drop.complete':
+        this.state.sequence.cityDropActive = false;
+        break;
+      case 'fullhand.grid.boot.start':
+        this.state.sequence.gridBootStage = 'boot';
+        break;
+      case 'fullhand.grid.boot.complete':
+        this.state.sequence.gridBootStage = 'complete';
+        break;
+      default:
+        break;
+    }
+
+    console.log(`[FullhandScene] 🔁 Sequence event received: ${eventName}`, data || {});
+
+    if (typeof window !== 'undefined' && window.dispatchEvent) {
+      try {
+        window.dispatchEvent(new CustomEvent('celli:fullhand-sequence-event', {
+          detail: { event: eventName, data, scene: this }
+        }));
+      } catch (error) {
+        console.warn('[FullhandScene] ⚠️ Failed to dispatch sequence event:', error);
+      }
+    }
   }
 }
 
