@@ -12,6 +12,8 @@
 import * as THREE from 'three';
 import { puzzleStateManager } from '../systems/PuzzleStateManager.js';
 
+const PIN_DIALOGUE_STORAGE_KEY = 'leave_pin_dialogue_shown';
+
 export class LeaveScene {
   constructor() {
     this.state = {
@@ -35,7 +37,15 @@ export class LeaveScene {
       
       // GIR transformation state
       girActive: false,
-      transformProgress: 0
+      transformProgress: 0,
+
+      // PIN dialogue state
+      pinDialogueShown: false,
+      pinDialogueActive: false,
+      pinDialogueTimeouts: [],
+      pinDialogueOverlay: null,
+      pinDialoguePromise: null,
+      pinDialogueResolve: null
     };
   }
 
@@ -83,6 +93,8 @@ export class LeaveScene {
    */
   async start(state, options = {}) {
     console.log('▶️ Starting LEAVE Scene');
+
+    this._restorePinDialogueState();
 
     const wordleSolved = typeof puzzleStateManager?.isSolved === 'function'
       ? puzzleStateManager.isSolved('wordle-beta')
@@ -308,50 +320,27 @@ export class LeaveScene {
   /**
    * Start labyrinth sequence
    */
-  _startLabyrinth() {
+  async _startLabyrinth() {
+    if (this.state.labyrinthActive) {
+      return;
+    }
+
     console.log('🏚️ Starting House of Leaves labyrinth...');
+
+    if (!this.state.pinDialogueShown) {
+      try {
+        const completed = await this._playPinDialogueSequence();
+        if (completed) {
+          this.state.pinDialogueShown = true;
+          this._persistPinDialogueState();
+        }
+      } catch (error) {
+        console.warn('⚠️ PIN dialogue sequence interrupted:', error);
+      }
+    }
+
     this.state.labyrinthActive = true;
-    
-    // Show labyrinth UI (placeholder)
-    const overlay = document.createElement('div');
-    overlay.id = 'labyrinth-overlay';
-    overlay.style.cssText = `
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 20, 0.98);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      pointer-events: auto;
-    `;
-    
-    overlay.innerHTML = `
-      <div style="max-width: 700px; padding: 40px; text-align: center;">
-        <h2 style="color: #4a90e2; font-family: 'VT323', monospace; font-size: 28px; margin-bottom: 20px;">
-          HOUSE OF LEAVES
-        </h2>
-        <p style="color: #6ba3d8; font-family: 'Courier New', monospace; line-height: 1.8; font-style: italic;">
-          The house is bigger on the inside... Encore's intro flag lights the path for the riddles ahead.
-        </p>
-        <div style="margin-top: 30px; color: #4a90e2; font-family: 'VT323', monospace;">
-          Navigation: Arrow Keys<br>
-          Escape: Return
-        </div>
-        <button id="labyrinth-return" style="margin-top: 30px; padding: 15px 30px; background: #4a90e2; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
-          Return to Main
-        </button>
-      </div>
-    `;
-    
-    document.body.appendChild(overlay);
-    
-    // Return button handler
-    document.getElementById('labyrinth-return').addEventListener('click', () => {
-      console.log('🔙 Returning to main');
-      overlay.remove();
-      this.stop();
-    });
+    this._showLabyrinthOverlay();
   }
 
   /**
@@ -391,6 +380,7 @@ export class LeaveScene {
   async stop() {
     console.log('⏹️ Stopping LEAVE Scene');
     this.state.running = false;
+    this.state.labyrinthActive = false;
 
     // Clean up overlays
     const ozyOverlay = document.getElementById('ozymandias-overlay');
@@ -400,6 +390,8 @@ export class LeaveScene {
 
     const labOverlay = document.getElementById('labyrinth-overlay');
     if (labOverlay) labOverlay.remove();
+
+    this._clearPinDialogueSequence();
   }
 
   /**
@@ -407,7 +399,7 @@ export class LeaveScene {
    */
   async destroy() {
     await this.stop();
-    
+
     // Cleanup resources
     if (this.state.scene) {
       this.state.scene.traverse(obj => {
@@ -425,6 +417,204 @@ export class LeaveScene {
     if (this.state.renderer && this.state.renderer.domElement) {
       this.state.renderer.domElement.remove();
       this.state.renderer.dispose();
+    }
+  }
+
+  _restorePinDialogueState() {
+    if (typeof window === 'undefined') {
+      this.state.pinDialogueShown = false;
+      return;
+    }
+
+    try {
+      const stored = window.localStorage?.getItem(PIN_DIALOGUE_STORAGE_KEY);
+      this.state.pinDialogueShown = stored === 'true';
+    } catch (error) {
+      this.state.pinDialogueShown = false;
+      console.warn('⚠️ Unable to restore PIN dialogue state:', error);
+    }
+  }
+
+  _persistPinDialogueState() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      window.localStorage?.setItem(
+        PIN_DIALOGUE_STORAGE_KEY,
+        this.state.pinDialogueShown ? 'true' : 'false'
+      );
+    } catch (error) {
+      console.warn('⚠️ Unable to persist PIN dialogue state:', error);
+    }
+  }
+
+  _playPinDialogueSequence() {
+    if (this.state.pinDialogueActive && this.state.pinDialoguePromise) {
+      return this.state.pinDialoguePromise;
+    }
+
+    if (typeof document === 'undefined') {
+      return Promise.resolve();
+    }
+
+    this.state.pinDialogueActive = true;
+
+    this._clearPinDialogueSequence();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'pin-dialogue-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(3, 6, 18, 0.85);
+      backdrop-filter: blur(6px);
+      color: #e4ecff;
+      z-index: 1200;
+      pointer-events: none;
+      transition: opacity 360ms ease;
+      opacity: 0;
+    `;
+
+    overlay.innerHTML = `
+      <div style="max-width: 620px; width: 90%; text-align: center; font-family: 'Courier New', monospace; line-height: 1.8; letter-spacing: 0.08em;">
+        <p id="pin-dialogue-line" style="font-size: 20px; color: #9bb6ff; margin: 0;"></p>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => {
+      overlay.style.opacity = '1';
+    });
+
+    this.state.pinDialogueOverlay = overlay;
+
+    const lines = [
+      { text: 'Fine. I\'ll give you the PIN…', delay: 0 },
+      { text: 'But you\'re responsible for what happens next.', delay: 2300 },
+      { text: 'Memorize it. The house doesn\'t like repeats.', delay: 4600 }
+    ];
+
+    const captionEl = overlay.querySelector('#pin-dialogue-line');
+    const timeouts = [];
+
+    lines.forEach((line) => {
+      const timeout = window.setTimeout(() => {
+        if (captionEl) {
+          captionEl.textContent = line.text;
+        }
+      }, line.delay);
+      timeouts.push(timeout);
+    });
+
+    const totalDuration = lines[lines.length - 1].delay + 2800;
+
+    let resolvePromise;
+    const promise = new Promise((resolve) => {
+      resolvePromise = resolve;
+      this.state.pinDialogueResolve = resolve;
+    });
+
+    const completionTimeout = window.setTimeout(() => {
+      overlay.style.opacity = '0';
+      window.setTimeout(() => {
+        if (overlay.parentNode) {
+          overlay.remove();
+        }
+        this.state.pinDialogueOverlay = null;
+        this.state.pinDialogueActive = false;
+        this.state.pinDialogueTimeouts = [];
+        if (typeof resolvePromise === 'function') {
+          resolvePromise(true);
+        }
+        this.state.pinDialogueResolve = null;
+      }, 420);
+    }, totalDuration);
+
+    timeouts.push(completionTimeout);
+    this.state.pinDialogueTimeouts = timeouts;
+
+    this.state.pinDialoguePromise = promise;
+    return promise.finally(() => {
+      this.state.pinDialoguePromise = null;
+      this.state.pinDialogueResolve = null;
+    });
+  }
+
+  _clearPinDialogueSequence() {
+    if (this.state.pinDialogueTimeouts.length) {
+      this.state.pinDialogueTimeouts.forEach((id) => clearTimeout(id));
+      this.state.pinDialogueTimeouts = [];
+    }
+
+    if (this.state.pinDialogueOverlay && this.state.pinDialogueOverlay.parentNode) {
+      this.state.pinDialogueOverlay.remove();
+    }
+
+    this.state.pinDialogueOverlay = null;
+    this.state.pinDialogueActive = false;
+
+    if (typeof this.state.pinDialogueResolve === 'function') {
+      try {
+        this.state.pinDialogueResolve(false);
+      } catch (error) {
+        console.warn('⚠️ Unable to resolve PIN dialogue promise during cleanup:', error);
+      }
+    }
+
+    this.state.pinDialoguePromise = null;
+    this.state.pinDialogueResolve = null;
+  }
+
+  _showLabyrinthOverlay() {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'labyrinth-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 20, 0.98);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      pointer-events: auto;
+    `;
+
+    overlay.innerHTML = `
+      <div style="max-width: 700px; padding: 40px; text-align: center;">
+        <h2 style="color: #4a90e2; font-family: 'VT323', monospace; font-size: 28px; margin-bottom: 20px;">
+          HOUSE OF LEAVES
+        </h2>
+        <p style="color: #6ba3d8; font-family: 'Courier New', monospace; line-height: 1.8; font-style: italic;">
+          The house is bigger on the inside... Encore's intro flag lights the path for the riddles ahead.
+        </p>
+        <div style="margin-top: 30px; color: #4a90e2; font-family: 'VT323', monospace;">
+          Navigation: Arrow Keys<br>
+          Escape: Return
+        </div>
+        <button id="labyrinth-return" style="margin-top: 30px; padding: 15px 30px; background: #4a90e2; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+          Return to Main
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const button = overlay.querySelector('#labyrinth-return');
+    if (button) {
+      button.addEventListener('click', () => {
+        console.log('🔙 Returning to main');
+        overlay.remove();
+        this.stop();
+      });
     }
   }
 }
