@@ -15,6 +15,10 @@
 
 import * as THREE from 'three';
 import { audioSystem } from '../systems/AudioSystem.js';
+import { sequenceEngine } from '../systems/SequenceEngine.js';
+
+const COORDINATE_GRID_SEQUENCE_NAME = 'coordinate_grid_boot';
+const COORDINATE_GRID_SEQUENCE_URL = new URL('../../data/sequences/coordinate_grid_expansion.json', import.meta.url).href;
 
 export class VisiCellScene {
   constructor() {
@@ -82,7 +86,16 @@ export class VisiCellScene {
         currentOffset: null
       },
       clockInterval: null,
-      clockOutsideClickHandler: null
+      clockOutsideClickHandler: null,
+
+      madnessSequence: {
+        triggered: false,
+        running: false
+      },
+      coordinateSequence: {
+        loaded: false,
+        loadingPromise: null
+      }
     };
     
     this._initFunctions();
@@ -732,6 +745,170 @@ export class VisiCellScene {
       this._updatePromptCell('WHAT WERE YOU TRYING TO DO AGAIN?');
       this._showClueInstruction('TOUCHÉ. WHAT WERE YOU TRYING TO DO AGAIN?');
       this._resetClueEntry();
+
+      this._triggerMadnessSequence();
+    }
+  }
+
+  _triggerMadnessSequence() {
+    const clue = this.state.clueTrail;
+    if (clue) {
+      if (clue.madnessTriggered) {
+        return;
+      }
+      clue.madnessTriggered = true;
+      clue.lastTriggeredValue = 'MADNESS.LOOM';
+    }
+
+    const madnessState = this.state.madnessSequence || (this.state.madnessSequence = {
+      triggered: false,
+      running: false
+    });
+
+    if (madnessState.running) {
+      return;
+    }
+
+    madnessState.triggered = true;
+    madnessState.running = true;
+
+    if (this.state.endAudio) {
+      try {
+        this.state.endAudio.pause();
+      } catch (error) {
+        console.warn('⚠️ Unable to pause end.mp3 during MADNESS.LOOM:', error);
+      }
+    }
+
+    this._updatePromptCell('MADNESS.LOOM LOCATED. INITIALIZING NEW SEQUENCE.');
+    this._showClueInstruction('MADNESS.LOOM LOCATED. INITIALIZING NEW SEQUENCE.');
+    this._displayClueMessageAcrossCells('MADNESS LOOM LOCATED', 'A12');
+
+    try {
+      audioSystem.playMusic({
+        key: 'visicell-reboot',
+        url: './reboot.mp3',
+        loop: false,
+        volume: 0.68,
+        fadeInDuration: 0.4
+      });
+    } catch (error) {
+      console.warn('⚠️ Failed to start reboot.mp3 for MADNESS.LOOM:', error);
+    }
+
+    Promise.resolve()
+      .then(() => this._launchMadnessSequenceFlow())
+      .catch(error => {
+        console.error('❌ MADNESS.LOOM sequence failed:', error);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('celli:madness-loom-error', {
+            detail: {
+              error,
+              origin: 'visicell'
+            }
+          }));
+        }
+      })
+      .finally(() => {
+        const state = this.state.madnessSequence;
+        if (state) {
+          state.running = false;
+        }
+      });
+  }
+
+  async _launchMadnessSequenceFlow() {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('celli:madness-loom-init', {
+        detail: {
+          origin: 'visicell',
+          timestamp: Date.now()
+        }
+      }));
+    }
+
+    await this._startCoordinateGridSequence();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('celli:madness-loom-complete', {
+        detail: {
+          origin: 'visicell',
+          timestamp: Date.now()
+        }
+      }));
+    }
+  }
+
+  async _startCoordinateGridSequence() {
+    if (!sequenceEngine || typeof sequenceEngine.loadSequence !== 'function') {
+      console.warn('⚠️ Sequence engine unavailable — cannot start coordinate grid sequence.');
+      return;
+    }
+
+    const sequenceState = this.state.coordinateSequence || (this.state.coordinateSequence = {
+      loaded: false,
+      loadingPromise: null
+    });
+
+    if (!sequenceState.loaded) {
+      if (!sequenceState.loadingPromise) {
+        sequenceState.loadingPromise = sequenceEngine
+          .loadSequence(COORDINATE_GRID_SEQUENCE_NAME, COORDINATE_GRID_SEQUENCE_URL)
+          .then((loaded) => {
+            sequenceState.loaded = loaded;
+            return loaded;
+          })
+          .catch((error) => {
+            console.error('❌ Failed to load coordinate grid sequence:', error);
+            return false;
+          })
+          .finally(() => {
+            sequenceState.loadingPromise = null;
+          });
+      }
+
+      const loaded = await sequenceState.loadingPromise;
+      if (!loaded) {
+        return;
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('celli:coordinate-grid-start', {
+        detail: {
+          origin: 'visicell',
+          sequence: COORDINATE_GRID_SEQUENCE_NAME,
+          timestamp: Date.now()
+        }
+      }));
+    }
+
+    try {
+      await sequenceEngine.startSequence(COORDINATE_GRID_SEQUENCE_NAME, {
+        origin: 'visicell'
+      });
+    } catch (error) {
+      console.error('❌ Coordinate grid sequence execution failed:', error);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('celli:coordinate-grid-failed', {
+          detail: {
+            origin: 'visicell',
+            sequence: COORDINATE_GRID_SEQUENCE_NAME,
+            error
+          }
+        }));
+      }
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('celli:coordinate-grid-complete', {
+        detail: {
+          origin: 'visicell',
+          sequence: COORDINATE_GRID_SEQUENCE_NAME,
+          timestamp: Date.now()
+        }
+      }));
     }
   }
 
@@ -1329,6 +1506,7 @@ export class VisiCellScene {
       riddleStage: 'await-leave',
       onionRiddleScheduled: false,
       clockAcknowledged: false,
+      madnessTriggered: false,
       glitchActive: false
     };
 
@@ -2037,6 +2215,7 @@ export class VisiCellScene {
     clue.riddleStage = 'await-leave';
     clue.onionRiddleScheduled = false;
     clue.clockAcknowledged = false;
+    clue.madnessTriggered = false;
     clue.highlightedCells = new Set([entryCell]);
     if (promptCell) {
       clue.highlightedCells.add(promptCell);
@@ -2052,6 +2231,12 @@ export class VisiCellScene {
     clue.lastShownInvalidValue = null;
     clue.glitchActive = false;
     clue.clockAcknowledged = false;
+    clue.madnessTriggered = false;
+
+    if (this.state.madnessSequence) {
+      this.state.madnessSequence.triggered = false;
+      this.state.madnessSequence.running = false;
+    }
 
     clue.initializing = true;
     this._setCellValue(entryCell, 'ENTE', { suppressClueCheck: true, resetStyle: true });

@@ -101,7 +101,7 @@ const SCENE_OPTION_CONFIG = {
     },
     indicator: {
       template: 'Standalone execution environment',
-      component: 'In-app execution environment'
+      component: 'House of Leaves puzzle entry'
     },
     unlock: {
       template: true,
@@ -114,6 +114,7 @@ let currentSceneMode = DEFAULT_SCENE_MODE;
 let currentExecutionEnvMode = EXECUTION_ENV_DEFAULT_MODE;
 
 let toastTimeoutId = null;
+let coordinateGridChainInProgress = false;
 
 function readStoredSceneMode() {
   try {
@@ -1158,6 +1159,38 @@ function setupButtons() {
 
         if (mode === 'component' && sceneConfig.componentScene) {
           const registeredScenes = sceneManager.listScenes();
+
+          if (sceneName === 'fullhand') {
+            const executionMode = getExecutionEnvironmentMode();
+            if (executionMode === 'sequence') {
+              const targetScene = 'leave';
+              if (!registeredScenes.includes(targetScene)) {
+                console.warn('⚠️ House of Leaves scene not registered.');
+                showToast('House of Leaves puzzle unavailable');
+                return;
+              }
+
+              try {
+                if (!experienceStarted) {
+                  await startExperience({ reason: 'scene-select' });
+                }
+
+                const transitioned = await sceneManager.transitionTo(targetScene, { entry: 'execution-sequence' });
+                if (transitioned) {
+                  document.getElementById('sceneSelect')?.classList.remove('visible');
+                  showToast('Launching House of Leaves puzzle…');
+                } else {
+                  showToast('Failed to launch House of Leaves puzzle');
+                }
+              } catch (error) {
+                console.error('❌ Failed to start House of Leaves puzzle from scene select:', error);
+                showToast(`Puzzle launch failed: ${error.message || error}`);
+              }
+
+              return;
+            }
+          }
+
           if (!registeredScenes.includes(sceneConfig.componentScene)) {
             console.warn(`⚠️ Component scene not registered: ${sceneConfig.componentScene}`);
             showToast('Scene not available in component mode yet.');
@@ -1407,6 +1440,43 @@ window.addEventListener('celli:launchVoxelWorld', async (event) => {
   } catch (error) {
     console.error('❌ Failed to redirect to voxel world template:', error);
     voxelWorldRedirectInProgress = false;
+  }
+});
+
+window.addEventListener('celli:coordinate-grid-complete', async (event) => {
+  const detail = event?.detail || {};
+  if (detail.origin && detail.origin !== 'visicell') {
+    return;
+  }
+
+  if (coordinateGridChainInProgress) {
+    return;
+  }
+
+  coordinateGridChainInProgress = true;
+
+  try {
+    setExecutionEnvironmentMode('sequence', { persist: true });
+
+    if (!experienceStarted) {
+      await startExperience({ reason: 'coordinate-grid-chain' });
+    }
+
+    const transitioned = await sceneManager.transitionTo('fullhand', {
+      mode: 'sequence',
+      entry: detail.sequence || 'coordinate-grid'
+    });
+
+    if (transitioned) {
+      showToast('Launching Execution Environment sequence…');
+    } else {
+      showToast('Execution Environment launch failed');
+    }
+  } catch (error) {
+    console.error('❌ Failed to launch Execution Environment after coordinate grid:', error);
+    showToast('Execution Environment failed to launch');
+  } finally {
+    coordinateGridChainInProgress = false;
   }
 });
 

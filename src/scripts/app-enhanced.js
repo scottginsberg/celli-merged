@@ -19,6 +19,7 @@ import { CityScene } from './scenes/CityScene.js';
 import CelliRealSceneFull from './scenes/CelliRealScene-Full.js';
 import { FullhandScene } from './scenes/FullhandScene.js';
 import { TheosSequenceScene } from './scenes/TheosSequenceScene.js';
+import { LeaveScene } from './scenes/LeaveScene.js';
 
 // Import GUI systems
 import { quoteSystem } from './gui/QuoteSystem.js';
@@ -469,6 +470,9 @@ export function registerAllScenes() {
 
   // Register CelliReal voxel world scene
   sceneManager.registerScene('cellireal', new CelliRealSceneFull());
+
+  // Register House of Leaves sequence
+  sceneManager.registerScene('leave', new LeaveScene());
 
   // Register Execution Environment scene
   sceneManager.registerScene('fullhand', new FullhandScene());
