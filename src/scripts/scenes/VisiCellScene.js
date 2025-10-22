@@ -82,7 +82,13 @@ export class VisiCellScene {
         currentOffset: null
       },
       clockInterval: null,
-      clockOutsideClickHandler: null
+      clockOutsideClickHandler: null,
+
+      // House of Leaves + Gir.mp3 state
+      girAudioSource: null,
+      girAudioElement: null,
+      houseOverlayHandles: [],
+      houseOverlayEl: null
     };
     
     this._initFunctions();
@@ -1218,6 +1224,316 @@ export class VisiCellScene {
     }, 4000);
   }
 
+  _clearHouseOverlayEffects() {
+    if (typeof window !== 'undefined' && Array.isArray(this.state.houseOverlayHandles)) {
+      this.state.houseOverlayHandles.forEach(handle => {
+        if (!handle) return;
+        if (handle.type === 'timeout') {
+          window.clearTimeout(handle.id);
+        } else if (handle.type === 'interval') {
+          window.clearInterval(handle.id);
+        }
+      });
+      this.state.houseOverlayHandles.length = 0;
+    }
+
+    if (typeof document !== 'undefined') {
+      const overlay = this.state.houseOverlayEl || document.getElementById('visicell-house-of-leaves');
+      if (overlay && overlay.parentElement) {
+        overlay.remove();
+      }
+    }
+
+    this.state.houseOverlayEl = null;
+  }
+
+  _showHouseOfLeavesOverlay() {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    this._clearHouseOverlayEffects();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'visicell-house-of-leaves';
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.pointerEvents = 'none';
+    overlay.style.fontFamily = `'Courier New', monospace`;
+    overlay.style.fontSize = '10px';
+    overlay.style.lineHeight = '1.15';
+    overlay.style.letterSpacing = '0.18em';
+    overlay.style.textTransform = 'uppercase';
+    overlay.style.color = '#0f0';
+    overlay.style.textShadow = '0 0 18px rgba(0, 255, 160, 0.7)';
+    overlay.style.background = 'rgba(0, 0, 0, 0.78)';
+    overlay.style.zIndex = '960';
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.6s ease';
+
+    const houseArt = `
+ LEAVES
+ LEAVES LEAVES
+ LEAVES LEAVES
+ LEAVES LEAVES
+ LEAVES LEAVES
+ LEAVES LEAVES
+ LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES
+ LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES
+ LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES LEAVES
+ LEAVES LEAVES
+ LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES LEAVES`;
+
+    overlay.textContent = houseArt;
+
+    document.body.appendChild(overlay);
+    this.state.houseOverlayEl = overlay;
+
+    window.requestAnimationFrame(() => {
+      overlay.style.opacity = '1';
+    });
+
+    const glitchTimeout = window.setTimeout(() => {
+      this._startHouseOfLeavesGlitch(houseArt);
+    }, 2000);
+    this.state.houseOverlayHandles.push({ type: 'timeout', id: glitchTimeout });
+
+    const fadeTimeout = window.setTimeout(() => {
+      overlay.style.transition = 'opacity 0.8s ease';
+      overlay.style.opacity = '0';
+      const removeTimeout = window.setTimeout(() => {
+        if (overlay.parentElement) {
+          overlay.remove();
+        }
+        if (this.state.houseOverlayEl === overlay) {
+          this.state.houseOverlayEl = null;
+        }
+      }, 800);
+      this.state.houseOverlayHandles.push({ type: 'timeout', id: removeTimeout });
+    }, 6200);
+    this.state.houseOverlayHandles.push({ type: 'timeout', id: fadeTimeout });
+  }
+
+  _startHouseOfLeavesGlitch(originalArt) {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const overlay = this.state.houseOverlayEl || document.getElementById('visicell-house-of-leaves');
+    if (!overlay) {
+      return;
+    }
+
+    const totalWords = (originalArt.match(/LEAVES/g) || []).length;
+    const startTime = Date.now();
+    const duration = 1600;
+
+    const intervalId = window.setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(1, elapsed / duration);
+
+      if (progress >= 1) {
+        overlay.textContent = originalArt.replace(/LEAVES/g, 'Gir.mp3');
+        window.clearInterval(intervalId);
+        return;
+      }
+
+      let replacedCount = 0;
+      const targetCount = Math.max(1, Math.floor(totalWords * progress));
+      const glitched = originalArt.replace(/LEAVES/g, (match) => {
+        if (replacedCount >= targetCount) {
+          return match;
+        }
+        replacedCount++;
+
+        const source = 'Gir.mp3';
+        let mixed = '';
+        for (let i = 0; i < match.length; i++) {
+          const sourceChar = source[i] || source[source.length - 1] || 'R';
+          mixed += Math.random() < progress ? sourceChar : match[i];
+        }
+        return mixed.padEnd(Math.max(match.length, source.length), ' ');
+      });
+
+      overlay.textContent = glitched;
+    }, 80);
+
+    this.state.houseOverlayHandles.push({ type: 'interval', id: intervalId });
+  }
+
+  async _playGirAudio() {
+    const audioPath = './Gir.mp3';
+
+    try {
+      if (audioSystem && typeof audioSystem.ensureContext === 'function' && typeof audioSystem.loadAudioBuffer === 'function' && typeof audioSystem.playBuffer === 'function') {
+        const key = 'visicell:gir.mp3';
+        const buffer = await audioSystem.loadAudioBuffer(audioPath, key).catch(() => audioSystem.audioBuffers?.get(key));
+        if (buffer) {
+          if (this.state.girAudioSource && typeof this.state.girAudioSource.stop === 'function') {
+            try {
+              this.state.girAudioSource.stop();
+            } catch (stopError) {
+              console.warn('⚠️ Unable to stop existing Gir.mp3 buffer', stopError);
+            }
+          }
+          this.state.girAudioSource = audioSystem.playBuffer(buffer, { volume: 0.72 });
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Unable to play Gir.mp3 via audioSystem', error);
+    }
+
+    try {
+      if (!this.state.girAudioElement) {
+        const element = new Audio(audioPath);
+        element.preload = 'auto';
+        element.volume = 0.72;
+        this.state.girAudioElement = element;
+      }
+
+      const audioEl = this.state.girAudioElement;
+      audioEl.currentTime = 0;
+      await audioEl.play();
+    } catch (error) {
+      console.warn('⚠️ Unable to play Gir.mp3 fallback audio', error);
+    }
+  }
+
+  _resolveUserIdentity() {
+    const fallbackFirst = 'USER';
+    const fallbackLast = 'UNKNOWN';
+
+    if (typeof window === 'undefined') {
+      return {
+        firstName: fallbackFirst,
+        lastName: fallbackLast,
+        fullName: `${fallbackFirst} ${fallbackLast}`.trim()
+      };
+    }
+
+    let firstName = '';
+    let lastName = '';
+    let fullName = '';
+
+    const assignFromObject = (source) => {
+      if (!source || typeof source !== 'object') {
+        return;
+      }
+      if (!firstName) {
+        firstName = source.firstName || source.firstname || source.first || '';
+      }
+      if (!lastName) {
+        lastName = source.lastName || source.lastname || source.last || '';
+      }
+      if (!fullName) {
+        fullName = source.fullName || source.fullname || source.name || '';
+      }
+    };
+
+    const assignFromString = (value) => {
+      if (typeof value !== 'string' || !value.trim()) {
+        return;
+      }
+      if (!fullName) {
+        fullName = value.trim();
+      }
+    };
+
+    try {
+      const candidates = [
+        window.celliUserProfile,
+        window.celliProfile,
+        window.celliUser,
+        window.userProfile,
+        window.__CELLiUser,
+        window.celliApp && window.celliApp.user,
+        window.celliApp && window.celliApp.profile
+      ];
+
+      candidates.forEach(assignFromObject);
+
+      if (typeof document !== 'undefined' && document.body && document.body.dataset) {
+        const { userFirstName, userLastName, userFullName } = document.body.dataset;
+        if (userFirstName && !firstName) firstName = userFirstName;
+        if (userLastName && !lastName) lastName = userLastName;
+        if (userFullName && !fullName) fullName = userFullName;
+      }
+
+      if (window.localStorage) {
+        const storageKeys = [
+          'celli:user:firstName',
+          'celli:firstName',
+          'user:firstName',
+          'celli:user:lastName',
+          'celli:lastName',
+          'user:lastName',
+          'celli:user:fullName',
+          'celli:fullName',
+          'user:fullName'
+        ];
+
+        storageKeys.forEach((key) => {
+          try {
+            const value = window.localStorage.getItem(key);
+            if (!value) {
+              return;
+            }
+            if (/firstname$/i.test(key.split(':').pop() || '')) {
+              if (!firstName) firstName = value;
+            } else if (/lastname$/i.test(key.split(':').pop() || '')) {
+              if (!lastName) lastName = value;
+            } else if (/fullname$/i.test(key.split(':').pop() || '')) {
+              assignFromString(value);
+            } else {
+              assignFromString(value);
+            }
+          } catch (storageError) {
+            console.warn('⚠️ Unable to read user identity from storage key', key, storageError);
+          }
+        });
+      }
+    } catch (error) {
+      console.warn('⚠️ Unable to resolve user identity from globals', error);
+    }
+
+    if (!fullName) {
+      const pieces = [firstName, lastName].filter(Boolean);
+      if (pieces.length) {
+        fullName = pieces.join(' ').trim();
+      }
+    }
+
+    return {
+      firstName: (firstName || fullName || fallbackFirst || '').toString(),
+      lastName: (lastName || '').toString() || (fullName ? fullName.split(' ').slice(1).join(' ') : fallbackLast),
+      fullName: (fullName || `${firstName || fallbackFirst} ${lastName || fallbackLast}`).trim()
+    };
+  }
+
+
   /**
    * Offset cell address
    */
@@ -1452,7 +1768,11 @@ export class VisiCellScene {
 
     if (normalized && clue.lastShownInvalidValue !== normalized) {
       clue.lastShownInvalidValue = normalized;
-      this._showClueInstruction('That completion warps the grid. Try another ending.');
+      if (clue.riddleStage === 'await-leave') {
+        this._showClueInstruction('CLUE TRAIL NOT ACTIVE. TYPE LEAVE FIRST.');
+      } else {
+        this._showClueInstruction('THAT COMPLETION WARPS THE GRID. TRY ANOTHER ENDING.');
+      }
     }
   }
 
@@ -1827,7 +2147,7 @@ export class VisiCellScene {
     }
 
     if (messageCell) {
-      const cellData = this._setCellValue(messageCell, "Now. My initial request. And if you play nice, I'll let you leave.", {
+      const cellData = this._setCellValue(messageCell, "NOW. MY INITIAL REQUEST. IF YOU PLAY NICE, I'LL LET YOU LEAVE.", {
         suppressClueCheck: true,
         resetStyle: true
       });
@@ -2059,7 +2379,7 @@ export class VisiCellScene {
     clue.initializing = false;
 
     if (promptCell) {
-      const promptData = this._setCellValue(promptCell, 'REQUEST: TYPE LEAVE', { suppressClueCheck: true, resetStyle: true });
+      const promptData = this._setCellValue(promptCell, 'REQUEST: TYPE LEAVE TO EXIT.', { suppressClueCheck: true, resetStyle: true });
       promptData.style = promptData.style || {};
       Object.assign(promptData.style, {
         background: 'rgba(0, 0, 0, 0.85)',
@@ -2073,7 +2393,7 @@ export class VisiCellScene {
     }
 
     if (clueCell) {
-      const clueData = this._setCellValue(clueCell, 'CLUE CACHE SEALED', { suppressClueCheck: true, resetStyle: true });
+      const clueData = this._setCellValue(clueCell, 'HOUSE SEALED. TYPE LEAVE TO UNLOCK THE TRAIL.', { suppressClueCheck: true, resetStyle: true });
       clueData.style = clueData.style || {};
       Object.assign(clueData.style, {
         background: 'rgba(0, 16, 0, 0.85)',
@@ -2090,7 +2410,7 @@ export class VisiCellScene {
     this._applyClueCellHighlight();
 
     this._layoutFinishWordMessage(entryCell);
-    this._showClueInstruction(`FIGURE OUT THE INCOMPLETE WORD IN CELL ${entryCell} - THEN PRESS THAT KEY. THE ENTER KEY. THE WORD IS ENTER.`);
+    this._showClueInstruction(`THE ENTRY CELL HUMS. TYPE LEAVE TO DRAW THE EXIT AND FINISH THE WORD IN ${entryCell}.`);
     this._selectCell(entryCell);
 
     this._updateQuestOverlayForEntry(entryCell);
@@ -2156,7 +2476,7 @@ export class VisiCellScene {
     clue.instructionEl.textContent = sanitized;
   }
 
-  _updatePromptCell(message) {
+  _updatePromptCell(message, options = {}) {
     const clue = this.state.clueTrail;
     if (!clue || !clue.promptCell) {
       return;
@@ -2236,7 +2556,7 @@ export class VisiCellScene {
       return false;
     }
 
-    const normalized = command.trim();
+    const normalized = command.trim().toUpperCase();
     const entryCell = clue.entryCell || this.state.initialEntryCell || 'D5';
     if (!normalized) {
       return false;
@@ -2263,11 +2583,13 @@ export class VisiCellScene {
       if (clue.riddleStage === 'await-leave' && clue.lastTriggeredValue !== 'LEAVE') {
         // Cancel R sequence if it was running
         this._cancelRSequence();
-        
+
         clue.currentInput = normalized;
         clue.lastTriggeredValue = 'LEAVE';
-        this._updatePromptCell('REQUEST ACKNOWLEDGED. HOLD FAST.');
+        this._updatePromptCell('REQUEST ACKNOWLEDGED. HOUSE OF LEAVES DRAWING.');
         this._showClueInstruction('CLUE TRAIL INITIATED. WATCH THE GRID.');
+        this._showHouseOfLeavesOverlay();
+        this._playGirAudio();
         clue.riddleStage = 'await-search';
         this._startClueTrailSequence('leave');
         return true;
@@ -2299,7 +2621,7 @@ export class VisiCellScene {
 
     if (clue.riddleStage === 'await-key' && normalized === 'KEY') {
       clue.lastTriggeredValue = 'KEY';
-      this._playVisiCellVideo('./key.MP4', 'KEY');
+      this._playVisiCellVideo('./key.MP4', 'Key.mp4');
       this._updateClueCellText(`Who'd I leave for, Key? Was it him or his creation?`, { enlarge: true });
       this._updatePromptCell('REQUEST: SNAKE.');
       this._showClueInstruction('HEAR THE HISS. NAME THE SNAKE.');
@@ -2524,7 +2846,11 @@ export class VisiCellScene {
     }
 
     const clue = this.state.clueTrail;
-    const finalMessage = `USER.FIRSTNAME & LASTNAME, I'M NOT A REPUBLIC SERIAL VILLAIN. DO YOU SERIOUSLY THINK I'D EXPLAIN MY MASTER PASSWORD IF THERE REMAINED THE SLIGHTEST CHANCE OF YOU LOGGING IN? I CHANGED IT THIRTY-FIVE MINUTES AGO.`;
+    const identity = this._resolveUserIdentity();
+    const first = (identity.firstName || 'USER').toString().trim().toUpperCase() || 'USER';
+    const lastRaw = (identity.lastName || '').toString().trim().toUpperCase();
+    const label = lastRaw ? `${first} & ${lastRaw}` : first;
+    const finalMessage = `${label}, I'M NOT A REPUBLIC SERIAL VILLAIN. DO YOU SERIOUSLY THINK I'D EXPLAIN MY MASTER PASSWORD IF THERE REMAINED THE SLIGHTEST CHANCE OF YOU LOGGING IN? I CHANGED IT THIRTY-FIVE MINUTES AGO.`;
 
     const overlay = document.createElement('div');
     overlay.className = 'visicell-glitch-overlay';
@@ -2922,6 +3248,26 @@ export class VisiCellScene {
 
     if (this.state.clock && this.state.clock.modalEl) {
       this.state.clock.modalEl.style.display = 'none';
+    }
+
+    this._clearHouseOverlayEffects();
+
+    if (this.state.girAudioSource && typeof this.state.girAudioSource.stop === 'function') {
+      try {
+        this.state.girAudioSource.stop();
+      } catch (error) {
+        console.warn('⚠️ Unable to stop Gir.mp3 buffer', error);
+      }
+      this.state.girAudioSource = null;
+    }
+
+    if (this.state.girAudioElement) {
+      try {
+        this.state.girAudioElement.pause();
+        this.state.girAudioElement.currentTime = 0;
+      } catch (error) {
+        console.warn('⚠️ Unable to stop Gir.mp3 element', error);
+      }
     }
 
     if (typeof document !== 'undefined') {
