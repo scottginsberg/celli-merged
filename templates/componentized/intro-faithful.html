@@ -1,4 +1,25 @@
  <!doctype html>
+<!--
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                                                                               ║
+║  🚨 WARNING: THIS FILE IS NOT USED BY THE MAIN APPLICATION (index.html) 🚨   ║
+║                                                                               ║
+║  This is a STANDALONE TEMPLATE that can be opened directly in a browser.     ║
+║  It is NOT imported or loaded by index.html.                                 ║
+║                                                                               ║
+║  TO MODIFY THE INTRO SEQUENCE IN THE MAIN APP:                               ║
+║  → Edit: src/scripts/scenes/IntroSceneComplete.js                            ║
+║  → NOT: templates/componentized/intro-faithful.html (this file)              ║
+║                                                                               ║
+║  For more information, see:                                                  ║
+║  - templates/componentized/README.md                                         ║
+║  - src/scripts/scenes/README.md                                              ║
+║  - ARCHITECTURE.md                                                           ║
+║                                                                               ║
+║  Last Updated: October 23, 2025                                              ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+-->
 <html lang="en">
 <head>
  <meta charset="utf-8"/>
@@ -7,7 +28,7 @@
  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
  <meta http-equiv="Pragma" content="no-cache" />
  <meta http-equiv="Expires" content="0" />
- <meta name="version" content="5.6-celli-avatar-enhanced" />
+ <meta name="version" content="5.6-celli-avatar-enhanced-STANDALONE-TEMPLATE" />
 <!-- v5.6: Enhanced Celli avatar - raised position, slab-shaped head, larger voxels, pink cheeks, eye lights -->
  <title>Tri-Trail Evolved three.js [v4.2 THE.OS]</title>
  <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -440,9 +461,16 @@ animation: skipCenterPulse 2.2s ease-in-out infinite, idleBloomIncrease 3s ease-
  .r-hint.glow { text-shadow: 0 0 8px #0f0, 0 0 16px #0f0; }
  .r-hint .r-line { display:block; line-height:1.4; }
  .r-hint .r-char { display:inline-block; width:1ch; transition: transform 0.85s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.85s ease, filter 0.85s ease; }
- .r-hint .r-char.falling { transform: translateY(26px); opacity:0; filter: blur(2px); }
- #matrixPleaOverlay { position:absolute; bottom:22px; left:32px; font-family:'VT323', 'Courier New', monospace; font-size:18px; letter-spacing:0.28em; text-transform:uppercase; color:#0f0; text-shadow:0 0 6px rgba(0,255,160,0.7); opacity:0; transform:translateY(8px); pointer-events:none; transition: opacity 0.5s ease, transform 0.45s ease; }
- #matrixPleaOverlay.visible { opacity:0.92; transform:translateY(0); }
+.r-hint .r-char.falling { transform: translateY(26px); opacity:0; filter: blur(2px); }
+#matrixPleaOverlay { position:absolute; bottom:22px; left:32px; font-family:'VT323', 'Courier New', monospace; font-size:18px; letter-spacing:0.28em; text-transform:uppercase; color:#0f0; text-shadow:0 0 6px rgba(0,255,160,0.7); opacity:0; transform:translateY(8px); pointer-events:none; transition: opacity 0.5s ease, transform 0.45s ease; }
+#matrixPleaOverlay.visible { opacity:0.92; transform:translateY(0); }
+@keyframes visicellDegrade {
+0% { filter: blur(0px) brightness(1); transform: translateX(0); }
+25% { filter: blur(0.5px) brightness(0.95); transform: translateX(-1px); }
+50% { filter: blur(1px) brightness(0.9); transform: translateX(1px); }
+75% { filter: blur(0.5px) brightness(0.95); transform: translateX(-1px); }
+100% { filter: blur(0px) brightness(1); transform: translateX(0); }
+}
  #matrixPleaOverlay.glitch { animation: matrixPleaGlitch 0.35s steps(2) infinite; }
  .matrix-plead { text-shadow:0 0 3px rgba(0,255,160,0.5), 0 0 8px rgba(0,255,140,0.35); }
  .matrix-plead-flash { animation: matrixPleaFlash 0.28s ease-out; }
@@ -2862,45 +2890,110 @@ showVisiCalc();
  
  // Create VisiCell content (without CELLI in row 1 - the 3D pixels will be that)
  visiCalc.innerHTML = `
- <div style="border: 2px solid #0f0; padding: 10px; height: calc(100% - 40px); background: #000; opacity: 0; transition: opacity 0.6s ease;" id="visicalc-frame">
- <div style="border-bottom: 1px solid #0f0; padding-bottom: 5px; margin-bottom: 10px; opacity: 0; animation: fadeInVisi 0.4s ease forwards 0.2s; font-size: 13px; font-family: 'Courier New', monospace;">
- <span style="float: left;">VISICELL</span>
- <span style="float: right;">LOOMWORKS CELL</span>
- <div style="clear: both;"></div>
- </div>
- <div style="font-family: 'Courier New', monospace; white-space: pre; line-height: 1.6; font-size: 13px; opacity: 0; animation: fadeInVisi 0.5s ease forwards 0.5s;">
->A1:
-   A     B     C     D     E     F
-1
-2
-3               FINISH
-4               THE WORD
-5         CELL <span id="visicell-entry-target">???</span>
-6               NEEDS ENTER
-7 =STAR =T
-8
-9
-10
-11
-12
-13
-14
-15 =TRANSPOSE()
-16
-17
-18
-19
- 20 LOOMWORKS
- 21
- 22
- 23 <span class="visicell-note-line visicell-note-line--1">&gt;:(</span>
- 24 <span class="visicell-note-line visicell-note-line--2">This isn't Stanley Parable. Don't try that again.</span>
- </div>
- <div id="visicellinput" style="position: absolute; bottom: 24px; left: 36px; right: auto; top: auto; border-top: 1px solid #0f0; padding-top: 10px; opacity: 0; animation: fadeInVisi 0.3s ease forwards 1s; cursor: text; font-family: 'VT323', 'Courier New', monospace; font-size: 16px; letter-spacing: 0.18em; z-index: 100; pointer-events: auto; text-align: left; text-transform: uppercase;">
- <div id="visicellwarning" style="position: absolute; bottom: 100%; left: 0; margin-bottom: 10px; font-size: 13px; line-height: 1.6; font-family: 'Courier New', monospace; letter-spacing: 0.1em; opacity: 0; transition: all 0.3s ease; white-space: nowrap;"></div>
- <span id="visicellprompt">ENTE<span style="animation: blink 1s step-end infinite;">_</span></span>
- </div>
- </div>
+<div style="border: 2px solid #0f0; padding: 10px; height: calc(100% - 40px); background: #000; opacity: 0; transition: opacity 0.6s ease;" id="visicalc-frame">
+<div id="visicell-alt-content" style="display: block; color: #0f0; height: calc(100% - 140px); overflow-y: auto; position: relative;">
+<div style="border-bottom: 1px solid #0f0; padding-bottom: 5px; margin-bottom: 10px; font-size: 13px; font-family: 'Courier New', monospace;">
+<span style="float: left;">VISICELL</span>
+<span style="float: right;">LOOMWORKS CELL</span>
+<div style="clear: both;"></div>
+</div>
+<div id="visicell-initial-grid" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; font-family: 'Courier New', monospace; font-size: 12px; padding: 10px;">
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">FINISH</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">THE WORD</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">CELL</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">???</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">NEEDS</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">ENTER</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">=STAR</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">=T</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">=TRANSPOSE()</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">LOOMWORKS</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;"></div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">&gt;:(</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">This isn't</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">Stanley</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">Parable.</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">Don't try</div>
+<div style="background: rgba(0, 80, 0, 0.8); border: 1px solid rgba(0, 255, 0, 0.7); padding: 8px; min-height: 32px; color: #0f0;">that again.</div>
+</div>
+<div style="position: absolute; bottom: 40px; left: 0; right: 0; color: #0f0; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.4; padding: 0 10px;">FIGURE OUT THE INCOMPLETE WORD IN CELL C8 - THEN PRESS THAT KEY. THE ENTER KEY. THE WORD IS ENTER.</div>
+</div>
+<div id="visicell-quest-popup" style="position: absolute; left: 50%; bottom: -220px; transform: translateX(-50%); width: 420px; padding: 16px; background: rgba(0, 20, 0, 0.95); border: 2px solid rgba(0, 255, 0, 0.6); box-shadow: 0 0 20px rgba(0, 255, 0, 0.3); font-family: 'Courier New', monospace; color: #0f0; font-size: 11px; line-height: 1.8; z-index: 110;">
+<div style="border-bottom: 1px solid rgba(0, 255, 0, 0.5); padding-bottom: 6px; margin-bottom: 10px; font-size: 10px; letter-spacing: 0.2em;">QUEST // VISICELL SIMULATOR</div>
+<div>FIGURE OUT THE INCOMPLETE WORD IN CELL C8 - THEN PRESS THAT KEY. THE ENTER KEY. THE WORD IS ENTER. THIS ISN'T A PARABLE. DON'T TRY THAT AGAIN.</div>
+</div>
+<div id="visicellinput" style="position: absolute; bottom: 24px; left: 36px; right: auto; top: auto; border-top: 1px solid #0f0; padding-top: 10px; opacity: 0; animation: fadeInVisi 0.3s ease forwards 1s; cursor: text; font-family: 'VT323', 'Courier New', monospace; font-size: 16px; letter-spacing: 0.18em; z-index: 100; pointer-events: auto; text-align: left; text-transform: uppercase;">
+<div id="visicellwarning" style="position: absolute; bottom: 100%; left: 0; margin-bottom: 10px; font-size: 13px; line-height: 1.6; font-family: 'Courier New', monospace; letter-spacing: 0.1em; opacity: 0; transition: all 0.3s ease; white-space: nowrap;"></div>
+<span id="visicellprompt">ENTE<span style="animation: blink 1s step-end infinite;">_</span></span>
+</div>
+</div>
  <style>
  @keyframes fadeInVisi {
  from { opacity: 0; transform: translateY(10px); }
@@ -3601,6 +3694,15 @@ function processCommand(cmd, frame) {
     schedulePromptToEnte({ immediateFill: true });
   } else if (normalizedCmd === 'LEAVE') {
     if (!clueTrailComplete) {
+      // Hide initial content and quest popup, show clue sheet
+      const altContent = document.getElementById('visicell-alt-content');
+      if (altContent) {
+        altContent.style.display = 'none';
+      }
+      const questPopup = document.getElementById('visicell-quest-popup');
+      if (questPopup) {
+        questPopup.style.display = 'none';
+      }
       startClueTrail(frame);
     } else {
       triggerLeaveSequence(frame);
@@ -5834,10 +5936,10 @@ function buildClueSheet(frame) {
   container.id = 'visicell-clue-sheet';
   container.style.cssText = `
     position: absolute;
-    left: 36px;
-    right: 36px;
-    bottom: 120px;
-    top: 120px;
+    left: 20px;
+    right: 20px;
+    bottom: 100px;
+    top: 60px;
     display: grid;
     grid-template-columns: 80px 1fr;
     grid-auto-rows: minmax(42px, auto);
@@ -5850,38 +5952,40 @@ function buildClueSheet(frame) {
     letter-spacing: 0.16em;
     text-transform: uppercase;
     overflow: auto;
+    z-index: 50;
   `;
 
   const makeHeaderCell = (text) => {
     const header = document.createElement('div');
     header.textContent = text.toUpperCase();
-    header.style.cssText = '
+    header.style.cssText = `
       font-size: 12px;
       color: #0ff;
       border-bottom: 1px solid rgba(0, 255, 255, 0.3);
       padding-bottom: 6px;
       letter-spacing: 0.2em;
-    ';
+    `;
     return header;
   };
 
   const makeLabelCell = (text) => {
     const label = document.createElement('div');
     label.textContent = text.toUpperCase();
-    label.style.cssText = '
+    label.style.cssText = `
       border: 1px solid rgba(0, 255, 0, 0.35);
       background: rgba(0, 40, 0, 0.6);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 14px;
-    ';
+      color: #0f0;
+    `;
     return label;
   };
 
   const makeContentCell = () => {
     const content = document.createElement('div');
-    content.style.cssText = '
+    content.style.cssText = `
       border: 1px solid rgba(0, 255, 0, 0.35);
       background: rgba(0, 28, 0, 0.65);
       padding: 10px 12px;
@@ -5890,7 +5994,8 @@ function buildClueSheet(frame) {
       word-break: break-word;
       white-space: normal;
       transition: background 0.25s ease, box-shadow 0.25s ease;
-    ';
+      color: #0f0;
+    `;
     return content;
   };
 
@@ -6114,12 +6219,126 @@ function handleClueTrailCommand(command, frame) {
     step.onExecute(hostFrame);
   }
 
+  // Show degrading VisiCell layer for each clue discovered
+  showDegradingVisiCellLayer(step.command);
+
   checkClueTrailCompletion(hostFrame);
   if (!clueTrailPromptLocked && !clueTrailComplete) {
     refreshEntryPrompt();
   }
 
   resetPrompt();
+}
+
+let degradingLayerCount = 0;
+
+function showDegradingVisiCellLayer(clueCommand) {
+  degradingLayerCount++;
+  
+  // Create a layered window/tab overlay showing degrading VisiCell
+  const layerWindow = document.createElement('div');
+  layerWindow.className = 'visicell-degrading-layer';
+  layerWindow.style.cssText = `
+    position: fixed;
+    left: ${20 + degradingLayerCount * 15}px;
+    top: ${20 + degradingLayerCount * 15}px;
+    width: 380px;
+    height: 280px;
+    background: rgba(0, 20, 0, 0.95);
+    border: 2px solid rgba(0, 255, 0, 0.5);
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #0f0;
+    padding: 12px;
+    z-index: ${150 + degradingLayerCount};
+    overflow: hidden;
+    opacity: 0;
+    transform: scale(0.8) translateY(-20px);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: auto;
+  `;
+  
+  // Title bar
+  const titleBar = document.createElement('div');
+  titleBar.style.cssText = `
+    border-bottom: 1px solid rgba(0, 255, 0, 0.4);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  `;
+  titleBar.innerHTML = `<span>VISICELL [LAYER ${degradingLayerCount}] - CLUE: ${clueCommand}</span><span style="cursor: pointer; opacity: 0.7;" class="layer-close">✖</span>`;
+  
+  // Degrading content - show alt VisiCell content with glitch effect
+  const content = document.createElement('div');
+  content.style.cssText = `
+    white-space: pre;
+    line-height: 1.4;
+    opacity: ${1 - (degradingLayerCount * 0.15)};
+    filter: blur(${degradingLayerCount * 0.3}px) brightness(${1 - (degradingLayerCount * 0.1)});
+    animation: visicellDegrade ${2 + degradingLayerCount * 0.5}s ease-in-out infinite;
+  `;
+  
+  // Copy the alt content with degradation (including header)
+  const altContent = document.getElementById('visicell-alt-content');
+  if (altContent) {
+    // Clone the full content including header
+    const clone = altContent.cloneNode(true);
+    clone.style.display = 'block'; // Make it visible in the layer
+    clone.style.opacity = '1';
+    content.appendChild(clone);
+  } else {
+    content.innerHTML = `
+<div style="border-bottom: 1px solid #0f0; padding-bottom: 5px; margin-bottom: 10px; font-size: 11px;">
+<span style="float: left;">VISICELL</span>
+<span style="float: right;">LOOMWORKS CELL</span>
+<div style="clear: both;"></div>
+</div>
+<div style="white-space: pre; line-height: 1.4;">
+>A1:
+   A     B     C     D     E     F
+1
+2
+3               FINISH
+4               THE WORD
+5         CELL ???
+6               NEEDS ENTER
+7 =STAR =T
+8
+9
+10 =TRANSPOSE()
+</div>
+`;
+  }
+  
+  layerWindow.appendChild(titleBar);
+  layerWindow.appendChild(content);
+  document.body.appendChild(layerWindow);
+  
+  // Animate in
+  setTimeout(() => {
+    layerWindow.style.opacity = '1';
+    layerWindow.style.transform = 'scale(1) translateY(0)';
+  }, 50);
+  
+  // Close button handler
+  const closeBtn = titleBar.querySelector('.layer-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      layerWindow.style.opacity = '0';
+      layerWindow.style.transform = 'scale(0.8) translateY(-20px)';
+      setTimeout(() => layerWindow.remove(), 400);
+    });
+  }
+  
+  // Auto-degrade after some time
+  setTimeout(() => {
+    content.style.filter = `blur(${(degradingLayerCount + 2) * 0.5}px) brightness(${0.5 - (degradingLayerCount * 0.1)}) saturate(${0.7 - (degradingLayerCount * 0.1)})`;
+  }, 3000 + (degradingLayerCount * 1000));
 }
 
 function triggerRamsesResponse(frame) {
@@ -8324,6 +8543,8 @@ visicellRebootAudioHandle = visicellRebootAttempt;
  // Stop screen glitch after 2 seconds
  setTimeout(() => {
  document.getElementById('screenGlitch').classList.remove('active');
+ // Mark glitch animation as complete so backspaces can be processed
+ glitchAnimationComplete = true;
  }, 2000);
  }
 
@@ -9852,28 +10073,70 @@ return;
  promptContainer.addEventListener('click', () => {
  if (!SceneManager.can('visicellClick')) return;
  if (!running || burstAnimStarted) return;
- if (!inputAttempted) {
+ 
+ // Only trigger glitch if not already started AND all voxels have settled
+ if (!inputAttempted && !celliGlitchStarted) {
+ const allSettled = voxels.every(v => v.userData.settled);
+ if (allSettled) {
  triggerCelliGlitch();
  inputAttempted = true;
  }
+ }
 
+ // Always focus input when clicked (for keyboard access)
  if (hiddenInput) {
  focusHiddenPromptInput();
  }
  });
  
+ // Queue for pending backspace operations during clear animation
+ let backspaceQueue = [];
+ let processingBackspaceQueue = false;
+
  function handlePromptBackspace() {
- if (!running || !doorwayOpened || burstAnimStarted) return false;
- if (inputText.length <= promptBaseText.length) return false;
-
- inputText = inputText.slice(0, -1);
- tEntered = false;
-
- updatePromptWithChars(inputText);
- promptCursorEl.textContent = '_';
- if (promptEl) {
- promptEl.setAttribute('data-text', inputText + '_');
+ if (!running || !doorwayOpened || burstAnimStarted) {
+ console.log('❌ Backspace blocked: running=', running, 'doorwayOpened=', doorwayOpened, 'burstAnimStarted=', burstAnimStarted);
+ return false;
  }
+ 
+ // First backspace triggers the glitch animation (clear to T)
+ if (!inputAttempted && !celliGlitchStarted) {
+ console.log('🎬 First backspace - checking if voxels settled...');
+ // Check if voxels have settled before starting glitch
+ const allSettled = voxels.every(v => v.userData.settled);
+ if (allSettled) {
+ console.log('✨ Voxels settled - triggering glitch animation');
+ triggerCelliGlitch();
+ inputAttempted = true;
+ // Queue this backspace to be processed after animation
+ backspaceQueue.push(Date.now());
+ if (!processingBackspaceQueue) {
+ processBackspaceQueue();
+ }
+ } else {
+ console.log('⏳ Voxels not settled yet');
+ }
+ return true;
+ }
+
+ // If still in glitch animation, queue the backspace
+ if (celliGlitchStarted && !glitchAnimationComplete) {
+ console.log('📋 Queuing backspace during glitch animation');
+ backspaceQueue.push(Date.now());
+ if (!processingBackspaceQueue) {
+ processBackspaceQueue();
+ }
+ return true;
+ }
+
+ // Normal backspace handling (after glitch animation complete)
+ if (!inputAttempted) {
+ console.log('⚠️ No input attempted yet, backspace ignored');
+ return false; // Still waiting for voxels to settle
+ }
+
+ console.log('🔙 Direct backspace - restoring letter');
+ tEntered = false;
 
  if (hiddenInput) {
  hiddenInput.value = '';
@@ -9889,36 +10152,58 @@ return;
  return true;
  }
 
+ let glitchAnimationComplete = false;
+
+ function processBackspaceQueue() {
+ if (processingBackspaceQueue || backspaceQueue.length === 0) return;
+ processingBackspaceQueue = true;
+ console.log('🔄 Processing backspace queue, length:', backspaceQueue.length);
+
+ const processNext = () => {
+ if (backspaceQueue.length === 0) {
+ processingBackspaceQueue = false;
+ console.log('✅ Backspace queue empty, stopping processor');
+ return;
+ }
+
+ // Wait for glitch animations to complete (2 seconds from glitch start)
+ if (celliGlitchStarted && !glitchAnimationComplete) {
+ console.log('⏳ Waiting for glitch animation to complete...');
+ setTimeout(processNext, 100);
+ return;
+ }
+
+ // Process one queued backspace
+ backspaceQueue.shift();
+ console.log('🔙 Restoring one letter, remaining in queue:', backspaceQueue.length);
+ restoreOneLetter();
+ 
+ // Continue processing queue after a delay
+ setTimeout(processNext, 400);
+ };
+
+ processNext();
+ }
+
  // Keyboard input to trigger final sequence (desktop)
  window.addEventListener('keydown', (e) => {
+ console.log(`⌨️ Doorway input: ${e.key}`); // Log all keys
  if (document.getElementById('visicalc') && !SceneManager.can('visicellClick')) return;
- if (!running || !doorwayOpened || !inputAttempted) return;
+ if (!running || !doorwayOpened) {
+ console.log('🚫 Blocked by running/doorwayOpened check:', { running, doorwayOpened });
+ return;
+ }
 
  if (e.key === 'Backspace') {
  e.preventDefault();
+ console.log('✅ Calling handlePromptBackspace()');
  handlePromptBackspace();
  return;
  }
 
- // T input - starts burst sequence
- if (!tEntered && e.key.toLowerCase() === 't') {
+ // T input - no longer triggers burst, just ignored
+ if (e.key.toLowerCase() === 't') {
  e.preventDefault();
- tEntered = true;
- inputText += 'T';
-
- // Update display
- updatePromptWithChars(inputText);
- promptCursorEl.textContent = '_';
- if (promptEl) {
- promptEl.setAttribute('data-text', inputText + '_');
- }
-
- if (burstTimeout) {
- clearTimeout(burstTimeout);
- }
- burstTimeout = setTimeout(() => {
- triggerBurstToStars();
- }, 500);
  return;
  }
  
@@ -9986,7 +10271,7 @@ return;
  // Mobile input handler
  if (hiddenInput) {
  hiddenInput.addEventListener('beforeinput', (e) => {
- if (!running || !doorwayOpened || !inputAttempted) return;
+ if (!running || !doorwayOpened) return;
  if (e.inputType === 'deleteContentBackward') {
  e.preventDefault();
  handlePromptBackspace();
@@ -9994,7 +10279,7 @@ return;
  });
 
  hiddenInput.addEventListener('input', (e) => {
- if (!running || !doorwayOpened || !inputAttempted) return;
+ if (!running || !doorwayOpened) return;
 
  const value = (e.target.value || '').toUpperCase();
 
@@ -10003,28 +10288,10 @@ return;
  return;
  }
 
- // T input for burst sequence
- if (!tEntered && value.includes('T')) {
+ // T input - no longer triggers burst, just ignored
+ if (value.includes('T')) {
  e.preventDefault();
- tEntered = true;
- inputText += 'T';
-
- updatePromptWithChars(inputText);
- promptCursorEl.textContent = '_';
- if (promptEl) {
- promptEl.setAttribute('data-text', inputText + '_');
- }
-
  e.target.value = '';
-
- if (burstTimeout) {
- clearTimeout(burstTimeout);
- }
- burstTimeout = setTimeout(() => {
- triggerBurstToStars();
- }, 500);
-
- hiddenInput.blur();
  return;
  }
  

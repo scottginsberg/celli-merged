@@ -149,6 +149,7 @@
     </div>
     <div class="control-row">
       <button id="toggle-celli">Toggle Celli</button>
+      <button id="toggle-skele">Toggle Skele</button>
       <button id="toggle-array">Toggle Arraya</button>
     </div>
   </div>
@@ -239,6 +240,7 @@
       dancing: false,
       time: 0,
       celliVisible: true,
+      skeleVisible: true,
       arrayVisible: true,
       sunglasses: false
     };
@@ -632,6 +634,206 @@
       bodyGroup.add(legL.legRoot, legR.legRoot); // FIXED: Attach legs to bodyGroup
 
       root.add(bodyGroup); // Only add bodyGroup to root
+
+      root.userData.bodyGroup = bodyGroup;
+      root.userData.bowGroup = bowGroup;
+      root.userData.faceGroup = faceGroup;
+      root.userData.leftArm = L;
+      root.userData.rightArm = R;
+      root.userData.leftLeg = legL;
+      root.userData.rightLeg = legR;
+
+      root.userData.bodyDimensions = { width: BW, height: BH, depth: BD };
+      root.userData.faceForward = faceZ;
+      const accessorySystem = createAccessorySystem(root, {
+        body: bodyGroup,
+        face: faceGroup,
+        bow: bowGroup
+      });
+      root.userData.accessorySystem = accessorySystem;
+
+      return root;
+    }
+
+    // Skele Avatar Factory (white Celli variant with tally marks)
+    function createSkele() {
+      const MAT_BODY = new THREE.MeshToonMaterial({ color: 0xffffff }); // White body
+      const MAT_DARK = new THREE.MeshToonMaterial({ color: 0x1f2937 });
+      const MAT_WING = new THREE.MeshToonMaterial({ color: 0xffffff, side: THREE.DoubleSide }); // White bow
+
+      function addOutline(child, scale=1.06){
+        const outlineMat = new THREE.MeshBasicMaterial({ color: MAT_DARK.color.getHex(), side: THREE.BackSide });
+        const outline = new THREE.Mesh(child.geometry, outlineMat);
+        outline.scale.setScalar(scale);
+        outline.renderOrder = 10499;
+        child.add(outline);
+        return outline;
+      }
+
+      function triWing(width=0.22, height=0.16, depth=0.02){
+        const shape = new THREE.Shape();
+        shape.moveTo(width/2, 0);
+        shape.lineTo(-width/2, height/2);
+        shape.lineTo(-width/2, -height/2);
+        shape.lineTo(width/2, 0);
+        const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled:false });
+        geo.center();
+        geo.computeVertexNormals();
+        return geo;
+      }
+
+      const root = new THREE.Group();
+      root.scale.setScalar(2.5);
+
+      const BW=.8, BH=.8, BD=.3;
+      const bodyGroup = new THREE.Group();
+      const body = new THREE.Mesh(new RoundedBoxGeometry(BW, BH, BD, 6, .12), MAT_BODY);
+      addOutline(body);
+      bodyGroup.add(body);
+      bodyGroup.position.y = BH/2;
+
+      const faceGroup = new THREE.Group();
+      const faceZ = BD/2 + 0.01;
+      const eyeGeo = new THREE.SphereGeometry(0.05, 16, 12);
+      const eyeL = new THREE.Mesh(eyeGeo, MAT_DARK); 
+      addOutline(eyeL); 
+      eyeL.scale.set(1, 2, .25); 
+      eyeL.position.set(-.12,.13,faceZ);
+      
+      const eyeR = new THREE.Mesh(eyeGeo, MAT_DARK); 
+      addOutline(eyeR); 
+      eyeR.scale.set(1, 2, .25); 
+      eyeR.position.set(.12,.13,faceZ);
+      
+      // NO CHEEK BLUSH - removed for Skele
+      
+      // Nose - two half-triangles (left half on left, right half on right)
+      const noseL_Shape = new THREE.Shape();
+      noseL_Shape.moveTo(0, 0.03);      // top center
+      noseL_Shape.lineTo(-0.04, 0.03);  // top left
+      noseL_Shape.lineTo(-0.025, -0.03); // bottom
+      noseL_Shape.lineTo(0, 0.03);      // back to top
+      
+      const noseR_Shape = new THREE.Shape();
+      noseR_Shape.moveTo(0, 0.03);      // top center
+      noseR_Shape.lineTo(0.04, 0.03);   // top right
+      noseR_Shape.lineTo(0.025, -0.03); // bottom
+      noseR_Shape.lineTo(0, 0.03);      // back to top
+      
+      const noseL = new THREE.Mesh(new THREE.ShapeGeometry(noseL_Shape), MAT_DARK);
+      addOutline(noseL);
+      noseL.position.set(-0.02, 0.02, faceZ);
+      
+      const noseR = new THREE.Mesh(new THREE.ShapeGeometry(noseR_Shape), MAT_DARK);
+      addOutline(noseR);
+      noseR.position.set(0.02, 0.02, faceZ);
+      
+      // Mouth - straight horizontal line
+      const mouthGeo = new THREE.BoxGeometry(0.20, 0.015, 0.01);
+      const mouth = new THREE.Mesh(mouthGeo, MAT_DARK); 
+      addOutline(mouth, 1.03);
+      mouth.position.set(0, -0.12, faceZ);
+      
+      // Tally marks on mouth (skeleton teeth) - 3 vertical lines evenly spaced at their centers
+      const tallyGroup = new THREE.Group();
+      const tallyWidth = 0.012;
+      const tallyHeight = 0.08;
+      const tallyGeo = new THREE.BoxGeometry(tallyWidth, tallyHeight, 0.01);
+      const numTeeth = 3;
+      const tallySpacing = 0.08; // Distance between tallies
+      
+      for (let i = 0; i < numTeeth; i++) {
+        const tally = new THREE.Mesh(tallyGeo, MAT_DARK);
+        addOutline(tally, 1.03);
+        const xPos = (i - 1) * tallySpacing; // -1, 0, 1 * spacing for even distribution
+        
+        tally.position.set(xPos, -0.12, faceZ + 0.001);
+        tally.rotation.z = 0; // Perfectly vertical
+        tallyGroup.add(tally);
+      }
+      
+      faceGroup.add(eyeL, eyeR, noseL, noseR, mouth, tallyGroup);
+      bodyGroup.add(faceGroup);
+
+      const bowGroup = new THREE.Group();
+      const wingL = new THREE.Mesh(triWing(), MAT_WING); 
+      addOutline(wingL);
+      const wingR = new THREE.Mesh(triWing(), MAT_WING); 
+      addOutline(wingR);
+      wingL.rotation.y = 0;
+      wingR.rotation.y = Math.PI;
+      wingL.position.set(-0.18, 0, 0);
+      wingR.position.set(0.18, 0, 0);
+      wingL.scale.set(1.3, 1.3, 1.0);
+      wingR.scale.set(1.3, 1.3, 1.0);
+      const knot = new THREE.Mesh(new THREE.SphereGeometry(0.04, 16, 12), MAT_BODY); 
+      addOutline(knot);
+      knot.scale.set(1.5, 1.5, 1.5);
+      bowGroup.add(wingL, wingR, knot);
+      bowGroup.position.set(0, BH + 0.15, 0);
+      bodyGroup.add(bowGroup);
+
+      const armRadius = .055;
+      const handGeo = new THREE.SphereGeometry(armRadius, 16, 12);
+      const shoulderX = BW * 0.38;
+      const armAttachY = BH * 0.28;
+      const shoulderZ = BD * 0.5 - armRadius * 0.4;
+      const armTilt = THREE.MathUtils.degToRad(-16);
+      const armSweep = THREE.MathUtils.degToRad(18);
+      const armTuck = THREE.MathUtils.degToRad(-12);
+      
+      function makeArm(sign=1){
+        const armRoot = new THREE.Group();
+        const armCurve = new THREE.QuadraticBezierCurve3(
+          new THREE.Vector3(0, -0.02, 0.02),
+          new THREE.Vector3(0.09 * sign, -0.08, 0.05),
+          new THREE.Vector3(0.14 * sign, -0.18, 0.015)
+        );
+        const armGeo = new THREE.TubeGeometry(armCurve, 28, armRadius, 12, false);
+        const upper = new THREE.Mesh(armGeo, MAT_BODY); 
+        addOutline(upper, 1.04);
+        const handGroup = new THREE.Group();
+        const hand = new THREE.Mesh(handGeo, MAT_BODY); 
+        addOutline(hand, 1.04);
+        hand.position.copy(armCurve.getPoint(1));
+        handGroup.add(hand);
+        armRoot.add(upper, handGroup);
+        armRoot.position.set(sign * (shoulderX + armRadius * 0.5), armAttachY, shoulderZ * 0.35);
+        armRoot.rotation.set(armTilt, sign * armSweep, sign * armTuck);
+        armRoot.userData = armRoot.userData || {};
+        armRoot.userData.restRotation = armRoot.rotation.clone();
+        return { armRoot, handGroup, hand };
+      }
+      const L = makeArm(-1), R = makeArm(+1);
+      bodyGroup.add(L.armRoot, R.armRoot);
+
+      const legRadius = .06;
+      const legCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0,0,0), 
+        new THREE.Vector3(0,-.10,.022), 
+        new THREE.Vector3(0,-.17,.036)
+      ]);
+      const legGeo = new THREE.TubeGeometry(legCurve, 12, legRadius, 12, false);
+      const footGeo = new THREE.SphereGeometry(legRadius, 16, 12);
+      
+      function makeLeg(x){
+        const legRoot = new THREE.Group();
+        const leg = new THREE.Mesh(legGeo, MAT_BODY); 
+        addOutline(leg, 1.04);
+        const footGroup = new THREE.Group();
+        const foot = new THREE.Mesh(footGeo, MAT_BODY); 
+        addOutline(foot, 1.04);
+        foot.position.copy(legCurve.getPoint(1));
+        foot.scale.set(1.5,.8,1.2);
+        footGroup.add(foot);
+        legRoot.add(leg, footGroup);
+        legRoot.position.set(x, 0, 0);
+        return { legRoot, footGroup, foot };
+      }
+      const legL = makeLeg(-.20), legR = makeLeg(.20);
+      bodyGroup.add(legL.legRoot, legR.legRoot);
+
+      root.add(bodyGroup);
 
       root.userData.bodyGroup = bodyGroup;
       root.userData.bowGroup = bowGroup;
@@ -1114,6 +1316,13 @@
     celliGroup.userData.baseY = celliGroup.position.y;
     scene.add(celliGroup);
 
+    // Create Skele (center)
+    const skeleGroup = createSkele();
+    skeleGroup.position.set(0, 0.05, 0);
+    skeleGroup.userData.baseX = skeleGroup.position.x;
+    skeleGroup.userData.baseY = skeleGroup.position.y;
+    scene.add(skeleGroup);
+
     // Create real Arraya (center-right) - raise based on curved geometry bounds
     const arrayGroup = createRealArraya();
     const arrayBounds = new THREE.Box3().setFromObject(arrayGroup);
@@ -1207,6 +1416,14 @@
       };
 
       applyToAvatar(celliGroup, 'body', {
+        widthAnchor: 'body',
+        verticalBias: 0.35,
+        forwardOffset: 0.08,
+        extraY: 0.02,
+        tilt: THREE.MathUtils.degToRad(-4)
+      });
+
+      applyToAvatar(skeleGroup, 'body', {
         widthAnchor: 'body',
         verticalBias: 0.35,
         forwardOffset: 0.08,
@@ -1358,6 +1575,61 @@
       // Rotate whole character with subtle nod
       celliGroup.rotation.y = raveState.time * 0.3;
       celliGroup.rotation.x = Math.sin(raveState.time * 1.2) * 0.05 * (0.3 + beatIntensity);
+    }
+
+    function animateSkeleDance(beatIntensity) {
+      if (!skeleGroup.userData.bodyGroup) return;
+      
+      // Bob to beat - WHOLE CHARACTER
+      const baseY = skeleGroup.userData.baseY ?? 0;
+      const rhythmicBob = Math.sin(raveState.time * 2.2) * 0.06; // Slightly different timing than Celli
+      const beatBob = beatIntensity * 0.65;
+      skeleGroup.position.y = baseY + rhythmicBob + beatBob;
+
+      // Stretch body to music with squash on the beat
+      const stretch = 1 + beatIntensity * 0.3 + Math.sin(raveState.time * 2.2 + Math.PI / 3) * 0.06;
+      const squash = 1 / Math.sqrt(stretch);
+      skeleGroup.userData.bodyGroup.scale.set(squash, stretch, squash);
+
+      // Wave arms
+      if (skeleGroup.userData.leftArm && skeleGroup.userData.rightArm) {
+        const armWave = raveState.time * 3.2; // Different wave speed
+        const flapAmplitude = 0.5 + beatIntensity * 0.4;
+        const swayAmplitude = 0.3 + beatIntensity * 0.2;
+
+        const applyArmMotion = (armData, phase) => {
+          const armRoot = armData.armRoot;
+          const rest = armRoot.userData?.restRotation;
+          if (!rest) return;
+          armRoot.rotation.x = rest.x + Math.cos(raveState.time * 1.8 + phase) * swayAmplitude;
+          armRoot.rotation.y = rest.y;
+          armRoot.rotation.z = rest.z + Math.sin(armWave + phase) * flapAmplitude;
+        };
+
+        applyArmMotion(skeleGroup.userData.leftArm, Math.PI / 2); // Offset phase
+        applyArmMotion(skeleGroup.userData.rightArm, -Math.PI / 2);
+      }
+
+      // Bounce legs
+      if (skeleGroup.userData.leftLeg && skeleGroup.userData.rightLeg) {
+        const legBounce = Math.sin(raveState.time * 4.5) * 0.35 * beatIntensity;
+        skeleGroup.userData.leftLeg.legRoot.rotation.x = legBounce;
+        skeleGroup.userData.rightLeg.legRoot.rotation.x = -legBounce;
+      }
+      
+      // Bow flutter
+      if (skeleGroup.userData.bowGroup) {
+        skeleGroup.userData.bowGroup.rotation.z = Math.sin(raveState.time * 5.5) * 0.18;
+        skeleGroup.userData.bowGroup.scale.set(
+          1 + beatIntensity * 0.12,
+          1 + beatIntensity * 0.12,
+          1
+        );
+      }
+      
+      // Rotate whole character with subtle nod - different spin direction
+      skeleGroup.rotation.y = raveState.time * -0.35; // Spinning opposite to Celli
+      skeleGroup.rotation.x = Math.sin(raveState.time * 1.3) * 0.06 * (0.35 + beatIntensity);
     }
 
     function animateArrayDance(beatIntensity) {
@@ -1589,6 +1861,11 @@
       celliGroup.visible = raveState.celliVisible;
     });
 
+    document.getElementById('toggle-skele').addEventListener('click', () => {
+      raveState.skeleVisible = !raveState.skeleVisible;
+      skeleGroup.visible = raveState.skeleVisible;
+    });
+
     document.getElementById('toggle-array').addEventListener('click', () => {
       raveState.arrayVisible = !raveState.arrayVisible;
       arrayGroup.visible = raveState.arrayVisible;
@@ -1629,6 +1906,7 @@
       // Animate elements
       if (raveState.dancing || raveState.musicPlaying) {
         if (raveState.celliVisible) animateCelliDance(beatIntensity);
+        if (raveState.skeleVisible) animateSkeleDance(beatIntensity);
         if (raveState.arrayVisible) animateArrayDance(beatIntensity);
         animateBackgroundDancers(beatIntensity);
       }

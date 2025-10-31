@@ -517,6 +517,12 @@
           if (sequenceInstance && sequenceInstance.triggerFinalCollapse) {
             sequenceInstance.triggerFinalCollapse();
           }
+          
+          // After collapse, transition to fullhand-complete sequence
+          setTimeout(() => {
+            console.log('[THEOS] Lattice sequence complete - transitioning to fullhand-complete.html');
+            window.location.href = './fullhand-complete.html';
+          }, 3000); // Wait 3 seconds after collapse for visual completion
         });
         
         const playPromise = sequenceAudio.play();

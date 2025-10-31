@@ -233,50 +233,124 @@
       position: absolute;
       inset: 0;
       background: #fff;
-      border-radius: 18px;
+      border-radius: 12px;
       border: 2px solid #000;
       box-shadow: 0 16px 32px rgba(0, 0, 0, 0.35);
+      transition: transform 360ms cubic-bezier(.2,.8,.2,1);
+    }
+
+    .pre-form-trifold-button:hover::before {
+      transform: scale(1.1);
     }
 
     .pre-form-trifold-button:focus-visible {
       outline: 3px solid #000;
       outline-offset: 4px;
-      border-radius: 22px;
-    }
-
-    .pre-form-trifold-button__square,
-    .pre-form-trifold-button__triangle,
-    .pre-form-trifold-button__circle {
-      position: absolute;
+      border-radius: 14px;
     }
 
     .pre-form-trifold-button__square {
-      width: 16px;
-      height: 16px;
+      position: absolute;
+      width: 6px;
+      height: 6px;
       background: #111;
-      bottom: 14px;
-      left: 16px;
+      border-radius: 1px;
+      transition: background 360ms cubic-bezier(.2,.8,.2,1), 
+                  transform 360ms cubic-bezier(.2,.8,.2,1),
+                  left 360ms cubic-bezier(.2,.8,.2,1),
+                  top 360ms cubic-bezier(.2,.8,.2,1);
     }
 
     .pre-form-trifold-button__triangle {
+      position: absolute;
       width: 0;
       height: 0;
-      border-left: 10px solid transparent;
-      border-right: 10px solid transparent;
-      border-bottom: 18px solid #111;
-      top: 12px;
-      left: 32px;
-      transform: translateX(-50%);
+      border-left: 3px solid transparent;
+      border-right: 3px solid transparent;
+      border-top: 6px solid #111;
+      transition: border-color 360ms cubic-bezier(.2,.8,.2,1),
+                  border-width 360ms cubic-bezier(.2,.8,.2,1),
+                  transform 360ms cubic-bezier(.2,.8,.2,1),
+                  top 360ms cubic-bezier(.2,.8,.2,1),
+                  left 360ms cubic-bezier(.2,.8,.2,1);
     }
 
     .pre-form-trifold-button__circle {
-      width: 16px;
-      height: 16px;
+      position: absolute;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: #111;
-      bottom: 12px;
-      right: 16px;
       box-shadow: none;
+      transition: background 360ms cubic-bezier(.2,.8,.2,1),
+                  transform 360ms cubic-bezier(.2,.8,.2,1),
+                  bottom 360ms cubic-bezier(.2,.8,.2,1),
+                  left 360ms cubic-bezier(.2,.8,.2,1);
+    }
+
+    /* Row 0: three squares (middle) */
+    .pre-form-trifold-button__square:nth-of-type(1) { top: 10px; left: 22px; }
+    .pre-form-trifold-button__square:nth-of-type(2) { top: 10px; left: 29px; }
+    .pre-form-trifold-button__square:nth-of-type(3) { top: 10px; left: 36px; }
+    
+    /* Row 1: two squares (sides) */
+    .pre-form-trifold-button__square:nth-of-type(4) { top: 17px; left: 15px; }
+    .pre-form-trifold-button__square:nth-of-type(5) { top: 17px; left: 43px; }
+    
+    /* Row 2: two squares (middle-right) */
+    .pre-form-trifold-button__square:nth-of-type(6) { top: 24px; left: 29px; }
+    .pre-form-trifold-button__square:nth-of-type(7) { top: 24px; left: 36px; }
+    
+    /* Row 3: one square (middle) */
+    .pre-form-trifold-button__square:nth-of-type(8) { top: 31px; left: 29px; }
+    
+    /* Row 4: triangle (middle) */
+    .pre-form-trifold-button__triangle { top: 38px; left: 29px; }
+    
+    /* Row 5: circle (middle) */
+    .pre-form-trifold-button__circle { bottom: 10px; left: 29px; }
+
+    /* Hover/near: color changes */
+    .pre-form-trifold-button:hover .pre-form-trifold-button__square,
+    .pre-form-trifold-button.near .pre-form-trifold-button__square {
+      background: #2846ff;
+    }
+
+    .pre-form-trifold-button:hover .pre-form-trifold-button__triangle,
+    .pre-form-trifold-button.near .pre-form-trifold-button__triangle {
+      border-top-color: #ff9d1c;
+    }
+
+    .pre-form-trifold-button:hover .pre-form-trifold-button__circle,
+    .pre-form-trifold-button.near .pre-form-trifold-button__circle {
+      background: #ff185f;
+    }
+
+    /* Hover/near: collapse all squares to top-center position and scale up */
+    .pre-form-trifold-button:hover .pre-form-trifold-button__square,
+    .pre-form-trifold-button.near .pre-form-trifold-button__square {
+      left: 29px !important;
+      top: 10px !important;
+      transform: scale(1.6);
+    }
+
+    /* Hover/near: reposition, rotate 180deg, and scale up triangle to middle */
+    .pre-form-trifold-button:hover .pre-form-trifold-button__triangle,
+    .pre-form-trifold-button.near .pre-form-trifold-button__triangle {
+      border-left-width: 5px;
+      border-right-width: 5px;
+      border-top-width: 10px;
+      top: 28px !important;
+      left: 29px !important;
+      transform: scale(1.4) rotate(180deg);
+    }
+
+    /* Hover/near: reposition and scale up circle to bottom */
+    .pre-form-trifold-button:hover .pre-form-trifold-button__circle,
+    .pre-form-trifold-button.near .pre-form-trifold-button__circle {
+      bottom: 10px !important;
+      left: 29px !important;
+      transform: scale(1.6);
     }
 
     .pre-form-trifold-panel {
@@ -414,29 +488,63 @@
       }
 
       .pre-form-trifold-button::before {
-        border-radius: 16px;
+        border-radius: 10px;
       }
 
       .pre-form-trifold-button__square {
-        width: 14px;
-        height: 14px;
-        bottom: 12px;
-        left: 14px;
+        width: 5px;
+        height: 5px;
       }
 
+      .pre-form-trifold-button__square:nth-of-type(1) { top: 9px; left: 19px; }
+      .pre-form-trifold-button__square:nth-of-type(2) { top: 9px; left: 25px; }
+      .pre-form-trifold-button__square:nth-of-type(3) { top: 9px; left: 31px; }
+      .pre-form-trifold-button__square:nth-of-type(4) { top: 15px; left: 13px; }
+      .pre-form-trifold-button__square:nth-of-type(5) { top: 15px; left: 37px; }
+      .pre-form-trifold-button__square:nth-of-type(6) { top: 21px; left: 25px; }
+      .pre-form-trifold-button__square:nth-of-type(7) { top: 21px; left: 31px; }
+      .pre-form-trifold-button__square:nth-of-type(8) { top: 27px; left: 25px; }
+
       .pre-form-trifold-button__triangle {
-        border-left-width: 9px;
-        border-right-width: 9px;
-        border-bottom-width: 16px;
-        top: 11px;
-        left: 27px;
+        border-left-width: 2.5px;
+        border-right-width: 2.5px;
+        border-top-width: 5px;
+        top: 33px;
+        left: 25px;
       }
 
       .pre-form-trifold-button__circle {
-        width: 14px;
-        height: 14px;
-        bottom: 10px;
-        right: 14px;
+        width: 5px;
+        height: 5px;
+        bottom: 9px;
+        left: 25px;
+      }
+
+      /* Mobile: collapse squares to center */
+      .pre-form-trifold-button:hover .pre-form-trifold-button__square,
+      .pre-form-trifold-button.near .pre-form-trifold-button__square {
+        left: 25px !important;
+        top: 9px !important;
+        transform: scale(1.5);
+      }
+
+      /* Mobile: adjust triangle position, size, and rotate on hover */
+      .pre-form-trifold-button:hover .pre-form-trifold-button__triangle,
+      .pre-form-trifold-button.near .pre-form-trifold-button__triangle {
+        border-left-width: 4.5px;
+        border-right-width: 4.5px;
+        border-top-width: 9px;
+        top: 24px !important;
+        left: 25px !important;
+        transform: scale(1.35) rotate(180deg);
+      }
+
+      /* Mobile: adjust circle position and size on hover */
+      .pre-form-trifold-button:hover .pre-form-trifold-button__circle,
+      .pre-form-trifold-button.near .pre-form-trifold-button__circle {
+        bottom: 9px !important;
+        left: 25px !important;
+        transform: scale(1.5);
       }
 
       .pre-form-trifold-panel {
@@ -469,6 +577,157 @@
       background: #000;
       border: none;
       box-shadow: none;
+      border-radius: 8px;
+      position: relative;
+    }
+    
+    /* Video glitch effect container */
+    .video-glitch-wrapper {
+      position: relative;
+      display: inline-block;
+      z-index: 2;
+    }
+    
+    .video-glitch-wrapper::before,
+    .video-glitch-wrapper::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: 8px;
+    }
+    
+    /* Glitch Style 1: CRT Scan Lines */
+    .video-glitch-wrapper.glitch-crt::before {
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15) 0px,
+        transparent 1px,
+        transparent 2px,
+        rgba(0, 0, 0, 0.15) 3px
+      );
+      animation: crtScanLines 8s linear infinite;
+      z-index: 3;
+    }
+    
+    /* Glitch Style 2: RGB Shift */
+    .video-glitch-wrapper.glitch-rgb::after {
+      background: linear-gradient(90deg, 
+        rgba(255, 0, 0, 0.1) 0%,
+        transparent 33%,
+        rgba(0, 255, 0, 0.1) 66%,
+        rgba(0, 0, 255, 0.1) 100%
+      );
+      animation: rgbShift 4s ease-in-out infinite;
+      mix-blend-mode: screen;
+      z-index: 3;
+    }
+    
+    @keyframes rgbShift {
+      0%, 100% {
+        transform: translateX(0);
+        opacity: 0.3;
+      }
+      25% {
+        transform: translateX(2px);
+        opacity: 0.5;
+      }
+      50% {
+        transform: translateX(-2px);
+        opacity: 0.4;
+      }
+      75% {
+        transform: translateX(1px);
+        opacity: 0.6;
+      }
+    }
+    
+    /* Glitch Style 3: VHS Tracking */
+    .video-glitch-wrapper.glitch-vhs::before {
+      background: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        rgba(255, 255, 255, 0.03) 1px,
+        transparent 2px
+      );
+      animation: vhsTracking 6s linear infinite;
+      z-index: 3;
+    }
+    
+    @keyframes vhsTracking {
+      0% {
+        transform: translateY(0) scaleY(1);
+      }
+      10% {
+        transform: translateY(-2px) scaleY(1.01);
+      }
+      20% {
+        transform: translateY(0) scaleY(1);
+      }
+      30% {
+        transform: translateY(1px) scaleY(0.99);
+      }
+      100% {
+        transform: translateY(0) scaleY(1);
+      }
+    }
+    
+    /* Glitch Style 4: TV Static */
+    .video-glitch-wrapper.glitch-static::after {
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="noise"><feTurbulence baseFrequency="0.9" /></filter><rect width="200" height="200" filter="url(%23noise)" opacity="0.4"/></svg>');
+      background-size: 100px 100px;
+      animation: staticNoise 0.5s infinite, crtStatic 0.5s infinite;
+      mix-blend-mode: overlay;
+      z-index: 3;
+    }
+    
+    @keyframes staticNoise {
+      0% {
+        background-position: 0 0;
+      }
+      100% {
+        background-position: 100px 100px;
+      }
+    }
+    
+    /* Glitch Style 5: Color Test Bars */
+    .video-glitch-wrapper.glitch-colorbars::before {
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.1) 14.28%,
+        rgba(255, 255, 0, 0.08) 14.28%, rgba(255, 255, 0, 0.08) 28.56%,
+        rgba(0, 255, 255, 0.08) 28.56%, rgba(0, 255, 255, 0.08) 42.84%,
+        rgba(0, 255, 0, 0.08) 42.84%, rgba(0, 255, 0, 0.08) 57.12%,
+        rgba(255, 0, 255, 0.08) 57.12%, rgba(255, 0, 255, 0.08) 71.4%,
+        rgba(255, 0, 0, 0.08) 71.4%, rgba(255, 0, 0, 0.08) 85.68%,
+        rgba(0, 0, 255, 0.08) 85.68%, rgba(0, 0, 255, 0.08) 100%
+      );
+      animation: colorBars 12s ease-in-out infinite;
+      mix-blend-mode: screen;
+      z-index: 3;
+    }
+    
+    /* Glitch Style 6: Phosphor Trails */
+    .video-glitch-wrapper.glitch-phosphor::after {
+      background: radial-gradient(
+        ellipse at center,
+        rgba(0, 255, 100, 0.15) 0%,
+        transparent 60%
+      );
+      animation: phosphorGlow 3s ease-in-out infinite;
+      mix-blend-mode: screen;
+      z-index: 3;
+    }
+    
+    @keyframes phosphorGlow {
+      0%, 100% {
+        opacity: 0.3;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.6;
+        transform: scale(1.05);
+      }
     }
 
     .pre-form-video-overlay__message {
@@ -553,6 +812,28 @@
     .focus-frame--intake {
       justify-items: center;
       text-align: center;
+      position: relative;
+      padding-bottom: clamp(1.75rem, 4.5vw, 2.25rem);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: min-content;
+    }
+
+    .focus-frame--intake::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 8px;
+      background: var(--panel-stripe);
+      opacity: 0.95;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    body.inverted .focus-frame--intake::after {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
     .focus-frame--options {
@@ -683,6 +964,18 @@
       transform: scale(0.98);
       filter: saturate(1.2);
     }
+    
+    .form-panel.shake {
+      animation: panel-shake 0.22s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    }
+    
+    @keyframes panel-shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-4px) rotate(-0.4deg); }
+      40% { transform: translateX(4px) rotate(0.4deg); }
+      60% { transform: translateX(-3px) rotate(-0.3deg); }
+      80% { transform: translateX(3px) rotate(0.3deg); }
+    }
 
     /* Keep original focus options visible as visualizer bars when submitted */
     .form-panel.submitted .focus-frame--intake .prompt {
@@ -792,23 +1085,23 @@
       align-items: stretch;
       justify-items: stretch;
       width: auto;
-      height: min(80vh, 420px);
-      max-width: min(75vw, 320px);
+      height: 70vh;
+      max-width: min(75vw, 550px);
       aspect-ratio: 2 / 3;
       background: #fff;
       color: #000;
-      border: 8px solid currentColor;
-      padding: clamp(0.85rem, 3.5vw, 1.25rem);
+      border: 12px solid currentColor;
+      padding: clamp(1.4rem, 4vw, 2rem);
       text-transform: uppercase;
       box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
-      gap: clamp(0.55rem, 2vw, 0.8rem);
+      gap: clamp(0.9rem, 2.5vw, 1.3rem);
     }
 
     .esrb-card__banner {
       display: grid;
       justify-items: center;
-      gap: clamp(0.25rem, 1vw, 0.4rem);
-      font-size: clamp(0.82rem, 2vw, 1.08rem);
+      gap: clamp(0.35rem, 1.2vw, 0.6rem);
+      font-size: clamp(1.2rem, 2.8vw, 1.75rem);
       letter-spacing: 0.24em;
     }
 
@@ -817,7 +1110,7 @@
     }
 
     .esrb-card__strike {
-      font-size: clamp(0.72rem, 1.8vw, 0.9rem);
+      font-size: clamp(1rem, 2.2vw, 1.4rem);
       letter-spacing: 0.2em;
       text-decoration: line-through;
     }
@@ -825,17 +1118,17 @@
     .esrb-card__body {
       display: grid;
       grid-template-columns: auto 1fr;
-      gap: clamp(0.75rem, 2.4vw, 1.1rem);
+      gap: clamp(1.2rem, 3.2vw, 1.8rem);
       align-items: start;
-      border-block: 6px solid currentColor;
-      padding: clamp(0.75rem, 2.5vw, 1.2rem) clamp(0.6rem, 2vw, 0.9rem);
+      border-block: 10px solid currentColor;
+      padding: clamp(1.2rem, 3.5vw, 2rem) clamp(1rem, 2.8vw, 1.5rem);
     }
 
     .esrb-card__rating {
       display: grid;
       place-items: center;
-      min-width: clamp(4.8rem, 18vw, 6.9rem);
-      font-size: clamp(5.2rem, 24vh, 8.2rem);
+      min-width: clamp(8rem, 22vw, 12rem);
+      font-size: clamp(10rem, 35vh, 16rem);
       font-weight: 800;
       letter-spacing: -0.08em;
       line-height: 0.88;
@@ -844,21 +1137,21 @@
     .esrb-card__descriptor {
       margin: 0;
       align-self: center;
-      font-size: clamp(0.72rem, 1.8vw, 0.95rem);
+      font-size: clamp(1rem, 2.2vw, 1.4rem);
       letter-spacing: 0.16em;
       line-height: 1.45;
     }
 
     .esrb-card__footer {
       text-align: center;
-      font-size: clamp(0.85rem, 2vw, 1.1rem);
+      font-size: clamp(1.1rem, 2.6vw, 1.65rem);
       letter-spacing: 0.3em;
     }
 
     @media (max-width: 520px) {
       .esrb-card {
-        height: min(70vh, 360px);
-        max-width: min(82vw, 260px);
+        height: 65vh;
+        max-width: min(82vw, 440px);
       }
     }
 
@@ -871,19 +1164,25 @@
     }
 
     h1 {
-      margin: clamp(0rem, 1vw, 0.5rem) 0 0;
-      font-size: clamp(1.1rem, 2.6vw, 1.6rem);
+      margin: clamp(0.5rem, 1.5vw, 0.85rem) 0 clamp(0.75rem, 2vw, 1rem);
+      font-size: clamp(1.15rem, 2.8vw, 1.7rem);
       text-transform: uppercase;
       text-align: center;
-      line-height: 1.4;
-      letter-spacing: 0.14em;
+      line-height: 1.35;
+      letter-spacing: 0.16em;
+      font-weight: 700;
     }
 
     .prompt {
       margin: 0;
       text-align: center;
-      font-size: clamp(0.95rem, 2.4vw, 1.1rem);
+      font-size: clamp(0.88rem, 2.2vw, 1.05rem);
       text-transform: uppercase;
+      line-height: 1.5;
+      letter-spacing: 0.12em;
+      max-width: 90%;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     .options-shell {
@@ -896,7 +1195,9 @@
       height: 100%;
       min-height: 0;
       overflow: hidden;
+      pointer-events: auto;
     }
+
 
     .options {
       display: grid;
@@ -905,6 +1206,7 @@
       grid-auto-rows: minmax(clamp(3.2rem, 6vh, 3.85rem), auto);
       align-items: stretch;
       justify-items: stretch;
+      padding: clamp(0.65rem, 2vw, 0.85rem);
       padding-right: clamp(0.35rem, 1.2vw, 0.65rem);
       padding-bottom: clamp(0.35rem, 1.5vh, 0.8rem);
       overflow-y: auto;
@@ -914,6 +1216,7 @@
       height: 100%;
       max-height: none;
       overscroll-behavior: contain;
+      pointer-events: auto;
     }
 
     .options::-webkit-scrollbar {
@@ -951,7 +1254,8 @@
       text-transform: uppercase;
       letter-spacing: 0.16em;
       font-weight: 600;
-      cursor: pointer;
+      cursor: pointer !important;
+      pointer-events: auto !important;
       transition: transform 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
       transform: translateY(var(--option-translate));
       transform-origin: left center;
@@ -961,6 +1265,7 @@
       box-shadow: var(--focus-tile-shadow);
       text-align: left;
       width: 100%;
+      user-select: none;
     }
 
     .focus-option::before {
@@ -1029,6 +1334,7 @@
       flex-direction: column;
       gap: clamp(0.25rem, 1vw, 0.4rem);
       padding-right: 0;
+      padding-top: clamp(0.5rem, 2vw, 0.85rem);
       align-items: stretch;
       align-content: stretch;
     }
@@ -1075,6 +1381,8 @@
     .open-zone {
       position: static;
       display: flex;
+      flex-direction: column;
+      align-items: center;
       justify-content: center;
       padding-top: 0;
       margin-top: 0;
@@ -1082,6 +1390,7 @@
       min-height: 0;
       background: none;
       z-index: 0;
+      gap: 0;
     }
 
     .start-button {
@@ -1416,6 +1725,7 @@
         display: flex;
         flex-direction: column;
         gap: clamp(0.2rem, 1vw, 0.35rem);
+        padding-top: clamp(0.35rem, 2vw, 0.65rem);
       }
 
       .options.visualizer-active .focus-option {
@@ -1424,6 +1734,10 @@
         max-height: 0.7rem;
         height: 0.6rem;
         font-size: 0.6rem;
+      }
+
+      .options {
+        padding-top: clamp(1.5rem, 5vw, 2rem);
       }
 
       .wordle-selection-tiles.visualizer-breakaway {
@@ -1510,12 +1824,301 @@
       }
     }
 
+    /* CRT scan line animations for freeze frames */
+    @keyframes crtScanLines {
+      0% {
+        background-position: 0 0;
+      }
+      100% {
+        background-position: 0 100%;
+      }
+    }
+
+    @keyframes crtStatic {
+      0%, 100% {
+        opacity: 0.03;
+      }
+      50% {
+        opacity: 0.08;
+      }
+    }
+
+    @keyframes colorBars {
+      0% {
+        filter: hue-rotate(0deg) saturate(1.5);
+      }
+      20% {
+        filter: hue-rotate(72deg) saturate(1.8);
+      }
+      40% {
+        filter: hue-rotate(144deg) saturate(1.6);
+      }
+      60% {
+        filter: hue-rotate(216deg) saturate(1.9);
+      }
+      80% {
+        filter: hue-rotate(288deg) saturate(1.7);
+      }
+      100% {
+        filter: hue-rotate(360deg) saturate(1.5);
+      }
+    }
+
+    .freeze-frame-crt::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15) 0px,
+        transparent 1px,
+        transparent 2px,
+        rgba(0, 0, 0, 0.15) 3px
+      );
+      pointer-events: none;
+      animation: crtScanLines 8s linear infinite;
+    }
+
+    .freeze-frame-static::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="noise"><feTurbulence baseFrequency="0.9" /></filter><rect width="200" height="200" filter="url(%23noise)" opacity="0.4"/></svg>');
+      background-size: 100px 100px;
+      pointer-events: none;
+      animation: crtStatic 0.5s infinite;
+      mix-blend-mode: overlay;
+    }
+
+    .freeze-frame-colorbars::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        90deg,
+        #ffffff 0%, #ffffff 14.28%,
+        #ffff00 14.28%, #ffff00 28.56%,
+        #00ffff 28.56%, #00ffff 42.84%,
+        #00ff00 42.84%, #00ff00 57.12%,
+        #ff00ff 57.12%, #ff00ff 71.4%,
+        #ff0000 71.4%, #ff0000 85.68%,
+        #0000ff 85.68%, #0000ff 100%
+      );
+      opacity: 0.15;
+      pointer-events: none;
+      animation: colorBars 12s ease-in-out infinite;
+      mix-blend-mode: screen;
+    }
+
     footer {
       text-align: center;
       font-size: 0.65rem;
       text-transform: uppercase;
       letter-spacing: 0.22em;
       color: #6f6f6f;
+    }
+
+    /* Shape platform above submit button */
+    .shape-platform {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+      min-height: 60px;
+      position: relative;
+    }
+
+    .shape-item {
+      transition: transform 0.3s ease;
+      position: relative;
+    }
+
+    .shape-item.jiggle {
+      animation: shape-jiggle 0.5s ease;
+    }
+
+    .shape-item.drop {
+      animation: shape-drop 0.8s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+    }
+
+    @keyframes shape-jiggle {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-8deg) scale(1.05); }
+      50% { transform: rotate(8deg) scale(1.08); }
+      75% { transform: rotate(-6deg) scale(1.05); }
+    }
+
+    @keyframes shape-drop {
+      0% { 
+        transform: translateY(-120px) rotate(0deg) scaleY(1) scaleX(1); 
+      }
+      45% {
+        transform: translateY(-150px) rotate(360deg) scaleY(1.15) scaleX(0.95);
+      }
+      80% { 
+        transform: translateY(0px) rotate(720deg) scaleY(0.65) scaleX(1.2);
+      }
+      88% {
+        transform: translateY(-6px) rotate(720deg) scaleY(1.08) scaleX(0.92);
+      }
+      94% {
+        transform: translateY(0px) rotate(720deg) scaleY(0.95) scaleX(1.03);
+      }
+      100% { 
+        transform: translateY(0px) rotate(720deg) scaleY(1) scaleX(1);
+      }
+    }
+
+    .shape-square {
+      width: 45px;
+      height: 45px;
+      background: var(--tone-blue-bg);
+      border: 3px solid var(--tone-blue-border);
+      border-radius: 8px;
+      box-shadow: var(--tone-blue-shadow);
+    }
+
+    .shape-triangle {
+      width: 0;
+      height: 0;
+      border-left: 28px solid transparent;
+      border-right: 28px solid transparent;
+      border-bottom: 50px solid var(--tone-yellow-bg);
+      filter: drop-shadow(0 0 0 3px var(--tone-yellow-border)) drop-shadow(0 12px 28px rgba(255, 157, 28, 0.32));
+      border-radius: 4px;
+    }
+
+    .shape-circle {
+      width: 50px;
+      height: 50px;
+      background: var(--tone-magenta-bg);
+      border: 3px solid var(--tone-magenta-border);
+      border-radius: 50%;
+      box-shadow: var(--tone-magenta-shadow);
+    }
+
+    /* Star rating system */
+    .star-rating {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      padding: 0.5rem;
+    }
+
+    .star {
+      font-size: 2rem;
+      cursor: pointer;
+      color: var(--option-border);
+      opacity: 0.3;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .star:hover,
+    .star.filled {
+      opacity: 1;
+      transform: scale(1.2);
+    }
+
+    .star.filled {
+      color: var(--tone-yellow-bg);
+      text-shadow: 0 0 10px var(--tone-yellow-bg);
+    }
+
+    .star-rating-copy {
+      text-align: center;
+      font-size: clamp(0.75rem, 2vw, 0.9rem);
+      color: var(--option-fg);
+      opacity: 0.8;
+      margin: 0.75rem 0 0;
+      padding: 0 1rem;
+      line-height: 1.4;
+      letter-spacing: 0.05em;
+    }
+
+    .selection-hint {
+      text-align: center;
+      font-size: clamp(0.8rem, 2.2vw, 1rem);
+      color: var(--tone-yellow-bg);
+      font-weight: 700;
+      margin: 0 0 0.85rem;
+      padding: 0.65rem 1.25rem;
+      line-height: 1.3;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 1;
+      transition: opacity 0.4s ease, transform 0.4s ease, max-height 0.4s ease, margin 0.4s ease, padding 0.4s ease;
+      animation: hint-bounce 2.5s ease-in-out infinite;
+      text-shadow: 0 2px 8px rgba(255, 157, 28, 0.25);
+      max-height: 4rem;
+      overflow: hidden;
+    }
+
+    @keyframes hint-bounce {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-4px);
+      }
+    }
+
+    .selection-hint.hidden {
+      display: none !important;
+      opacity: 0;
+      transform: translateY(-12px);
+      pointer-events: none;
+      max-height: 0;
+      margin: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      animation: none;
+    }
+
+    body.inverted .selection-hint {
+      text-shadow: 0 2px 8px rgba(255, 157, 28, 0.35);
+    }
+
+    /* Line Rider ramp animation */
+    .ramp-active {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .curved-ramp {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    .curved-ramp path {
+      fill: none;
+      stroke: #fff;
+      stroke-width: 5px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 1;
+    }
+
+    body.inverted .curved-ramp path {
+      stroke: #000;
+    }
+
+    .start-button.sliding {
+      position: fixed !important;
+      z-index: 1001;
+    }
+    
+    .shape-platform.attached {
+      /* Positioning handled by JavaScript during animation */
+      pointer-events: none;
     }
   </style>
 </head>
@@ -1526,9 +2129,9 @@
         <h1 id="betaFocusHeading">Before we get started…</h1>
         <p class="prompt">Celli's always looking to the future! What should we add for our beta release? Your absolute MUST HAVE features for a spreadsheet.</p>
       </section>
-      <section class="focus-frame focus-frame--options" aria-label="Focus picker">
-        <div class="options-shell">
-          <div class="options" role="group" aria-label="Beta focus options">
+        <section class="focus-frame focus-frame--options" aria-label="Focus picker">
+          <div class="options-shell">
+            <div class="options" role="group" aria-label="Beta focus options">
             <button type="button" class="focus-option" data-value="Level Editor">Level Editor</button>
             <button type="button" class="focus-option" data-value="Story Mode">Story Mode</button>
             <button type="button" class="focus-option" data-value="Cute Stuff">Cute Stuff</button>
@@ -1558,7 +2161,27 @@
             <button type="button" class="focus-option" data-value="Adult Interactions">Adult Interactions</button>
           </div>
           <div class="open-zone">
-            <button type="button" id="startSequenceButton" class="start-button" aria-disabled="false" title="Solve the Encore Wordle to flag the intro and unlock riddles like GALAXY, Ozymandias, and the Fullhand puzzle." data-tooltip="Encore Wordle">Submit</button>
+            <div class="shape-platform" id="shapePlatform">
+              <div class="shape-item" id="shapeSquare">
+                <div class="shape-square"></div>
+              </div>
+              <div class="shape-item" id="shapeTriangle">
+                <div class="shape-triangle"></div>
+              </div>
+              <div class="shape-item" id="shapeCircle">
+                <div class="shape-circle"></div>
+              </div>
+            </div>
+            <p class="selection-hint" id="selectionHint">Live a little... Pick your top five!</p>
+            <button type="button" id="startSequenceButton" class="start-button" disabled aria-disabled="true" title="Pick at least 5 focus areas to unlock submit">Submit</button>
+            <div class="star-rating" id="starRating">
+              <span class="star" data-value="1">★</span>
+              <span class="star" data-value="2">★</span>
+              <span class="star" data-value="3">★</span>
+              <span class="star" data-value="4">★</span>
+              <span class="star" data-value="5">★</span>
+            </div>
+            <p class="star-rating-copy" id="starRatingCopy">Celli's always looking to the future, what would your dream rating be for the beta version of this form?</p>
           </div>
         </div>
       </section>
@@ -1605,6 +2228,243 @@
       const panel = document.getElementById('betaFocusPanel');
       const form = document.getElementById('betaFocusForm');
 
+      // CRITICAL: Initialize button interactivity BEFORE video sequence
+      // This ensures buttons are clickable immediately
+      const optionsContainer = document.querySelector('.options');
+      let optionButtons = optionsContainer
+        ? Array.from(optionsContainer.querySelectorAll('.focus-option'))
+        : [];
+      
+      // Define these early so buttons can be registered immediately
+      const registeredOptionButtons = new WeakSet();
+      const selectionOrder = [];
+      const COLOR_SEQUENCE = ['tone-white', 'tone-blue', 'tone-yellow', 'tone-magenta'];
+      const toneByButton = new Map();
+      const selectionHistory = [];
+      let selectionSteps = 0;
+      const MINIMUM_SELECTIONS = 5;
+      const startButton = document.getElementById('startSequenceButton');
+      const selectionHint = document.getElementById('selectionHint');
+      let isInverted = false;
+      
+      // Audio elements for click feedback
+      const strumPreviewTrack = new Audio();
+      strumPreviewTrack.preload = 'auto';
+      strumPreviewTrack.loop = false;
+      strumPreviewTrack.volume = 0.65;
+      let strumStopTimeout = null;
+      
+      // Helper: Update button priority prefix
+      function updateButtonPriorityPrefix(button) {
+        if (!button) return;
+        const toneIndex = toneByButton.get(button);
+        const originalValue = button.dataset.value || '';
+        if (typeof toneIndex === 'number') {
+          const priorityNumber = toneIndex % COLOR_SEQUENCE.length;
+          button.textContent = `P${priorityNumber}: ${originalValue}`;
+        } else {
+          button.textContent = originalValue;
+        }
+      }
+      
+      // Helper: Update selection hint
+      function updateSelectionHint() {
+        if (!selectionHint) return;
+        const count = selectionOrder.length;
+        if (count >= MINIMUM_SELECTIONS) {
+          selectionHint.classList.add('hidden');
+        } else {
+          selectionHint.classList.remove('hidden');
+          const remaining = MINIMUM_SELECTIONS - count;
+          if (count === 0) {
+            selectionHint.textContent = "Live a little... Pick your top five!";
+          } else if (remaining === 1) {
+            selectionHint.textContent = "Just one more to unlock the journey!";
+          } else if (remaining === 2) {
+            selectionHint.textContent = "Two more picks to go!";
+          } else if (remaining === 3) {
+            selectionHint.textContent = "Three more picks to go!";
+          } else {
+            selectionHint.textContent = `${remaining} more picks to go!`;
+          }
+        }
+      }
+      
+      // Helper: Update start button state
+      function updateStartButtonState() {
+        if (!startButton) return;
+        const hasMinimumSelections = selectionOrder.length >= MINIMUM_SELECTIONS;
+        const disabled = !hasMinimumSelections;
+        startButton.disabled = disabled;
+        startButton.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+      }
+      
+      // Helper: Play strum preview
+      function playStrumPreview() {
+        if (!strumPreviewTrack) return;
+        if (strumStopTimeout) {
+          clearTimeout(strumStopTimeout);
+          strumStopTimeout = null;
+        }
+        strumPreviewTrack.pause();
+        try {
+          strumPreviewTrack.currentTime = 2.0;  // Start at 2-second mark for the strum
+        } catch (e) {}
+        
+        const playback = strumPreviewTrack.play();
+        if (playback && typeof playback.then === 'function') {
+          playback.catch(() => {});
+        }
+        
+        strumStopTimeout = setTimeout(() => {
+          strumPreviewTrack.pause();
+        }, 360);
+      }
+      
+      // Helper: Play blegh speech
+      function playBleghSpeech() {
+        const synth = window.speechSynthesis;
+        if (!synth || typeof window.SpeechSynthesisUtterance !== 'function') return false;
+        try {
+          synth.cancel();
+          const utterance = new window.SpeechSynthesisUtterance('blegh.');
+          utterance.rate = 0.92;
+          utterance.pitch = 0.8;
+          synth.speak(utterance);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+      
+      // Helper: Get button color key
+      function getButtonColorKey(button) {
+        if (!button) return 'base';
+        for (let i = 0; i < COLOR_SEQUENCE.length; i += 1) {
+          const toneClass = COLOR_SEQUENCE[i];
+          if (button.classList.contains(toneClass)) {
+            return toneClass;
+          }
+        }
+        return 'base';
+      }
+      
+      // Helper: Set inversion state
+      function setInversionState(nextState) {
+        if (isInverted === nextState) return;
+        isInverted = nextState;
+        if (document && document.body) {
+          document.body.classList.toggle('inverted', isInverted);
+        }
+      }
+      
+      // Helper: Evaluate inversion trigger
+      function evaluateInversionTrigger() {
+        if (!optionButtons.length) {
+          setInversionState(false);
+          return;
+        }
+        const counts = new Map();
+        optionButtons.forEach((button) => {
+          const key = getButtonColorKey(button);
+          counts.set(key, (counts.get(key) || 0) + 1);
+        });
+        const expectedMajority = optionButtons.length - 1;
+        const values = Array.from(counts.values());
+        const shouldInvert = values.length === 2 && values.includes(expectedMajority) && values.includes(1);
+        setInversionState(shouldInvert);
+      }
+      
+      // Helper: Trigger panel shake
+      function triggerPanelShake() {
+        if (!panel) return;
+        panel.classList.remove('shake');
+        void panel.offsetWidth;
+        panel.classList.add('shake');
+      }
+      
+      // Early button click handler (full version with audio and UI updates)
+      function earlyHandleClick(event) {
+        const button = event.currentTarget;
+        if (!button) return;
+        
+        const value = button.dataset.value || button.textContent.trim();
+        const normalizedValue = value.toUpperCase();
+        const isActive = button.classList.contains('active-selection');
+        
+        // Play audio feedback
+        let usedBleghPreview = false;
+        if (normalizedValue === 'GAGS') {
+          usedBleghPreview = playBleghSpeech();
+        }
+        if (!usedBleghPreview) {
+          playStrumPreview();
+        }
+        
+        if (isActive) {
+          button.classList.remove('active-selection');
+          button.setAttribute('aria-pressed', 'false');
+          COLOR_SEQUENCE.forEach((cls) => button.classList.remove(cls));
+          toneByButton.delete(button);
+          updateButtonPriorityPrefix(button);
+          const index = selectionOrder.indexOf(button);
+          if (index >= 0) selectionOrder.splice(index, 1);
+          triggerPanelShake();
+          console.log(`❌ Removed ${value} (${selectionOrder.length} selected)`);
+        } else {
+          selectionSteps += 1;
+          selectionHistory.push(value);
+          button.classList.add('active-selection');
+          button.setAttribute('aria-pressed', 'true');
+          COLOR_SEQUENCE.forEach((cls) => button.classList.remove(cls));
+          button.classList.add(COLOR_SEQUENCE[0]);
+          toneByButton.set(button, 0);
+          selectionOrder.push(button);
+          updateButtonPriorityPrefix(button);
+          
+          // Cycle existing tones and update their prefixes
+          if (selectionOrder.length > 1) {
+            selectionOrder.slice(0, -1).forEach((btn) => {
+              const currentIndex = toneByButton.get(btn) ?? 0;
+              const nextIndex = ((currentIndex + 1) % COLOR_SEQUENCE.length + COLOR_SEQUENCE.length) % COLOR_SEQUENCE.length;
+              COLOR_SEQUENCE.forEach((cls) => btn.classList.remove(cls));
+              btn.classList.add(COLOR_SEQUENCE[nextIndex]);
+              toneByButton.set(btn, nextIndex);
+              updateButtonPriorityPrefix(btn);
+            });
+          }
+          triggerPanelShake();
+          console.log(`✅ Added ${value} (${selectionOrder.length} selected)`);
+        }
+        
+        // Update UI elements
+        updateSelectionHint();
+        updateStartButtonState();
+        evaluateInversionTrigger();
+      }
+      
+      // Note: strumPreviewTrack source will be properly initialized after buildTrackCandidates is defined
+      
+      // Early button registration function
+      function earlyRegisterButton(button) {
+        if (!button || registeredOptionButtons.has(button)) return;
+        button.disabled = false;
+        button.removeAttribute('disabled');
+        button.removeAttribute('aria-disabled');
+        button.setAttribute('aria-pressed', 'false');
+        button.addEventListener('click', earlyHandleClick);
+        registeredOptionButtons.add(button);
+      }
+      
+      // Make buttons interactive immediately
+      optionButtons.forEach(earlyRegisterButton);
+      console.log(`✅ Registered ${optionButtons.length} category buttons with click handlers BEFORE video sequence`);
+      
+      // Initialize UI state
+      updateSelectionHint();
+      updateStartButtonState();
+
+      // Hide panel during video sequence
       if (panel) {
         panel.style.visibility = 'hidden';
         panel.setAttribute('aria-hidden', 'true');
@@ -1627,12 +2487,10 @@
         console.warn('⚠️ ESRB card display interrupted:', error);
       }
 
-      const optionsContainer = document.querySelector('.options');
-      let optionButtons = optionsContainer
+      // Re-select buttons in case DOM changed
+      optionButtons = optionsContainer
         ? Array.from(optionsContainer.querySelectorAll('.focus-option'))
         : [];
-      const statusEl = document.getElementById('audioStatus');
-      const escapeButton = document.getElementById('escapeEncoreButton');
 
       const FULL_SEQUENCE_FLAG_KEY = 'celli:fullSequenceActive';
       const FULL_SEQUENCE_STAGE_KEY = 'celli:fullSequenceStage';
@@ -1658,7 +2516,7 @@
       const I_DONT_KNOW_VALUE = "I DON'T KNOW!";
       const BITS_OF_TOMMY_VALUE = 'BITS OF TOMMY & THE GRINCH';
       const GAGS_VALUE = 'GAGS';
-      const registeredOptionButtons = new WeakSet();
+      // Note: registeredOptionButtons is now defined earlier (before video sequence)
       let iDontKnowStage = 0;
       let bitsOfTommyButton = null;
 
@@ -1739,6 +2597,8 @@
 
       const selectionExperience = document.getElementById('submissionExperience');
       const selectionCloud = document.getElementById('selectionCloud');
+      const statusEl = document.getElementById('audioStatus');
+      const escapeButton = document.getElementById('escapeEncoreButton');
 
       const WORDLE_ANSWER = 'CELLI';
       const WORDLE_WORD_LENGTH = WORDLE_ANSWER.length;
@@ -1747,13 +2607,13 @@
       const wordleBoardEl = wordlePuzzleEl ? wordlePuzzleEl.querySelector('.wordle-board') : null;
       const wordleMessageEl = document.getElementById('wordlePuzzleMessage');
       const wordleSelectionTilesEl = document.getElementById('wordleSelectionTiles');
-      const startButton = document.getElementById('startSequenceButton');
+      // Note: startButton is now defined earlier (before video sequence)
       const wordleFocusQueueEl = document.getElementById('wordleFocusQueue');
       const wordleFrame = document.querySelector('.focus-frame--wordle');
       const wordleFocusSlots = wordleFocusQueueEl
         ? Array.from(wordleFocusQueueEl.querySelectorAll('.wordle-focus-slot'))
         : [];
-      const MINIMUM_SELECTIONS = 5;
+      // Note: MINIMUM_SELECTIONS is now defined earlier (before video sequence)
       const wordleRows = [];
       const wordleGuesses = [];
       const wordleFocusQueue = new Array(WORDLE_WORD_LENGTH).fill('');
@@ -1934,18 +2794,9 @@
       }
 
       function setInitialOptionButtonsEnabled(enabled) {
-        optionButtons.forEach((button) => {
-          if (!button) {
-            return;
-          }
-          if (enabled) {
-            button.disabled = false;
-            button.removeAttribute('aria-disabled');
-          } else {
-            button.disabled = true;
-            button.setAttribute('aria-disabled', 'true');
-          }
-        });
+        // Category buttons should always remain enabled
+        // This function is kept for compatibility but does nothing
+        return;
       }
 
       function clearWordleFocusQueue() {
@@ -1955,19 +2806,30 @@
         renderWordleFocusQueue();
       }
 
-      function updateStartButtonState() {
+      // Note: updateStartButtonState() is now defined earlier (before video sequence)
+      // This extended version adds wordle-specific logic
+      const earlyUpdateStartButtonState = updateStartButtonState; // Save early version
+      updateStartButtonState = function() {
         if (!startButton) {
           return;
         }
-        const unlocked = wordleFeaturesRevealed ? wordlePuzzleSolved || firstTrackCompleted : true;
+        // Check if we have minimum selections required
+        const hasMinimumSelections = selectionOrder.length >= MINIMUM_SELECTIONS;
+        
+        // Determine unlock status based on current state
+        const unlocked = wordleFeaturesRevealed 
+          ? wordlePuzzleSolved || firstTrackCompleted 
+          : hasMinimumSelections;
+        
         const disabled = sequencePlaying || !unlocked;
         startButton.disabled = disabled;
         startButton.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+        
         const label = wordleFeaturesRevealed ? 'Start' : 'Submit';
         if (startButton.textContent !== label) {
           startButton.textContent = label;
         }
-      }
+      };
 
       function resetWordlePuzzleState() {
         wordleCurrentRowIndex = 0;
@@ -2041,7 +2903,8 @@
           initializeWordleBoard();
         }
         wordleFeaturesRevealed = true;
-        setInitialOptionButtonsEnabled(false);
+        // Keep buttons enabled - don't disable them
+        // setInitialOptionButtonsEnabled(false);
         renderWordleSelectionTiles();
         activateWordlePuzzle({ initial: true });
         renderWordleFocusQueue();
@@ -2276,6 +3139,39 @@
 
         return candidates;
       }
+      
+      // Now that buildTrackCandidates is defined, properly initialize strumPreviewTrack
+      {
+        const strumCandidates = buildTrackCandidates('EA.mp3');
+        let candidateIndex = 0;
+        
+        const tryNextStrumSource = () => {
+          if (candidateIndex >= strumCandidates.length) {
+            console.warn(`Unable to resolve strum preview audio source. Tried:`, strumCandidates);
+            strumPreviewTrack.removeEventListener('error', handleStrumError);
+            return;
+          }
+          const candidate = strumCandidates[candidateIndex];
+          candidateIndex += 1;
+          strumPreviewTrack.src = candidate;
+          strumPreviewTrack.load();
+        };
+        
+        const handleStrumError = () => {
+          if (strumPreviewTrack.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+            tryNextStrumSource();
+          }
+        };
+        
+        const handleStrumCanPlay = () => {
+          strumPreviewTrack.removeEventListener('error', handleStrumError);
+        };
+        
+        strumPreviewTrack.addEventListener('error', handleStrumError);
+        strumPreviewTrack.addEventListener('canplay', handleStrumCanPlay, { once: true });
+        
+        tryNextStrumSource();
+      }
 
       async function playPreFormVideos() {
         const sequence = [
@@ -2311,6 +3207,29 @@
         video.preload = 'auto';
         video.crossOrigin = 'anonymous';
         video.style.cssText = 'position:relative; z-index:2;';
+        
+        // Wrap video in glitch effect container
+        const videoGlitchWrapper = document.createElement('div');
+        videoGlitchWrapper.className = 'video-glitch-wrapper';
+        videoGlitchWrapper.appendChild(video);
+        
+        // Cycle through 6 glitch effects every 10 seconds
+        const glitchStyles = ['glitch-crt', 'glitch-rgb', 'glitch-vhs', 'glitch-static', 'glitch-colorbars', 'glitch-phosphor'];
+        let currentGlitchIndex = 0;
+        
+        function cycleGlitchEffect() {
+          // Remove all glitch classes
+          glitchStyles.forEach(cls => videoGlitchWrapper.classList.remove(cls));
+          // Add current glitch effect
+          videoGlitchWrapper.classList.add(glitchStyles[currentGlitchIndex]);
+          currentGlitchIndex = (currentGlitchIndex + 1) % glitchStyles.length;
+        }
+        
+        // Start with first glitch effect
+        cycleGlitchEffect();
+        
+        // Cycle glitch effects every 10 seconds
+        const glitchInterval = setInterval(cycleGlitchEffect, 10000);
 
         const trifoldAudio = new Audio();
         trifoldAudio.preload = 'none';
@@ -2359,14 +3278,22 @@
         trifoldButton.setAttribute('aria-expanded', 'false');
         trifoldButton.setAttribute('title', 'Community connections');
 
-        const trifoldSquare = document.createElement('span');
-        trifoldSquare.className = 'pre-form-trifold-button__square';
+        // Create 8 squares for question mark pattern
+        for (let i = 0; i < 8; i++) {
+          const square = document.createElement('span');
+          square.className = 'pre-form-trifold-button__square';
+          trifoldButton.appendChild(square);
+        }
+        
+        // Create triangle
         const trifoldTriangle = document.createElement('span');
         trifoldTriangle.className = 'pre-form-trifold-button__triangle';
+        trifoldButton.appendChild(trifoldTriangle);
+        
+        // Create circle
         const trifoldCircle = document.createElement('span');
         trifoldCircle.className = 'pre-form-trifold-button__circle';
-
-        trifoldButton.append(trifoldSquare, trifoldTriangle, trifoldCircle);
+        trifoldButton.appendChild(trifoldCircle);
 
         const trifoldPanel = document.createElement('div');
         trifoldPanel.className = 'pre-form-trifold-panel';
@@ -2383,21 +3310,21 @@
         const folds = [
           {
             className: 'pre-form-trifold-panel__fold pre-form-trifold-panel__fold--left',
-            heading: 'Stay Tuned',
-            description: 'We are building the beta community hub.'
-          },
-          {
-            className: 'pre-form-trifold-panel__fold pre-form-trifold-panel__fold--center',
-            heading: 'Reddit',
-            linkLabel: 'Reddit',
-            placeholder: 'https://www.reddit.com',
+            heading: 'The Platform Formerly Known as Twitter',
+            linkLabel: 'The Platform Formerly Known as Twitter',
+            placeholder: 'https://twitter.com',
             note: 'Default destination placeholder'
           },
           {
+            className: 'pre-form-trifold-panel__fold pre-form-trifold-panel__fold--center',
+            heading: 'Stay Tuned',
+            description: 'IT\'S JUST THE BEGINNING OF THE END OF THE WORLD AS WE KNOW IT!'
+          },
+          {
             className: 'pre-form-trifold-panel__fold pre-form-trifold-panel__fold--right',
-            heading: 'Twitter',
-            linkLabel: 'Twitter',
-            placeholder: 'https://twitter.com',
+            heading: 'Reddit',
+            linkLabel: 'Reddit',
+            placeholder: 'https://www.reddit.com',
             note: 'Default destination placeholder'
           }
         ];
@@ -2632,10 +3559,30 @@
 
         const skipHint = document.createElement('div');
         skipHint.className = 'pre-form-video-overlay__skip-hint';
-        skipHint.textContent = 'Tap or click anywhere to skip';
+        skipHint.innerHTML = `
+          <div style="font-size: clamp(0.85rem, 2vw, 1rem); letter-spacing: 0.14em;">
+            CLICK ANYWHERE OR ANY <span id="videoKeyWordSkip" style="text-decoration: underline; cursor: pointer;">KEY</span> TO SKIP
+          </div>
+        `;
+        skipHint.style.cssText = 'cursor: pointer; pointer-events: auto;';
         skipHint.hidden = true;
+        
+        // Add click handler for KEY easter egg in skipHint
+        skipHint.addEventListener('click', (event) => {
+          const keyWord = event.target.closest('#videoKeyWordSkip');
+          if (keyWord) {
+            event.stopPropagation();
+            skipHint.hidden = true;
+            if (message) {
+              message.style.display = '';
+              message.textContent = 'Playing easter egg…';
+            }
+            video.pause();
+            playKeyEasterEggVideo();
+          }
+        });
 
-        overlay.append(freezeFrameGrid, trifoldButton, trifoldPanel, video, message, skipHint);
+        overlay.append(freezeFrameGrid, trifoldButton, trifoldPanel, videoGlitchWrapper, message, skipHint);
         document.body.appendChild(overlay);
 
         function createSkipController() {
@@ -2673,12 +3620,53 @@
             ) {
               return;
             }
+            
+            // Check if clicking on the KEY word for easter egg
+            if (event && event.target) {
+              const keyWord = event.target.closest('#videoKeyWordSkip');
+              if (keyWord) {
+                event.stopPropagation();
+                if (resolved) {
+                  return;
+                }
+                resolved = true;
+                closeTrifoldPanel();
+                if (skipHint) {
+                  skipHint.hidden = true;
+                }
+                if (message) {
+                  message.style.display = '';
+                  message.textContent = 'Playing easter egg…';
+                }
+                try {
+                  video.pause();
+                } catch (_) {
+                  // Ignore pause errors
+                }
+                cleanup();
+                // Play key2.mp4 easter egg and wait for it to complete
+                playKeyEasterEggVideo().then(() => {
+                  // After easter egg completes, resolve to continue sequence
+                  if (typeof resolveSkip === 'function') {
+                    resolveSkip('easter-egg-complete');
+                  }
+                }).catch((error) => {
+                  console.warn('⚠️ Easter egg playback error:', error);
+                  if (typeof resolveSkip === 'function') {
+                    resolveSkip('easter-egg-error');
+                  }
+                });
+                return;
+              }
+            }
+            
             if (resolved) {
               return;
             }
             resolved = true;
             closeTrifoldPanel();
             if (message) {
+              message.style.display = '';
               message.textContent = 'Skipping…';
             }
             if (skipHint) {
@@ -2757,15 +3745,22 @@
           const col = (gridPosition % 3) + 1;
           
           const freezeFrame = document.createElement('div');
-          freezeFrame.style.cssText = `opacity:0; transform:scale(0.85); transition:all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.6); position:relative; grid-row:${row}; grid-column:${col};`;
+          freezeFrame.style.cssText = `opacity:0; transform:scale(0.85); transition:all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.6); position:relative; grid-row:${row}; grid-column:${col}; border-radius:6px;`;
+          
+          // Randomly assign CRT effect (different for each frame)
+          const crtEffects = ['freeze-frame-crt', 'freeze-frame-static', 'freeze-frame-colorbars', ''];
+          const randomEffect = crtEffects[frameCount % crtEffects.length];
+          if (randomEffect) {
+            freezeFrame.classList.add(randomEffect);
+          }
           
           const img = new Image();
           img.src = canvas.toDataURL();
-          img.style.cssText = 'width:100%; height:100%; display:block; object-fit:cover; filter:saturate(1.2) contrast(1.1);';
+          img.style.cssText = 'width:100%; height:100%; display:block; object-fit:cover; filter:saturate(1.2) contrast(1.1); border-radius:6px;';
           
           // Add glitch overlay
           const glitchOverlay = document.createElement('div');
-          glitchOverlay.style.cssText = 'position:absolute; inset:0; pointer-events:none; background:linear-gradient(45deg, rgba(255,0,100,0.15) 0%, transparent 30%, rgba(0,255,255,0.12) 70%, transparent 100%); mix-blend-mode:screen; animation:glitchPulse 3s ease-in-out infinite;';
+          glitchOverlay.style.cssText = 'position:absolute; inset:0; pointer-events:none; background:linear-gradient(45deg, rgba(255,0,100,0.15) 0%, transparent 30%, rgba(0,255,255,0.12) 70%, transparent 100%); mix-blend-mode:screen; animation:glitchPulse 3s ease-in-out infinite; border-radius:6px;';
           
           freezeFrame.appendChild(img);
           freezeFrame.appendChild(glitchOverlay);
@@ -2795,7 +3790,8 @@
             }
 
             await playVideoElement(video, overlay, message);
-            message.textContent = 'Tap or click anywhere to skip';
+            // Hide message and show skip hint instead (don't duplicate text)
+            message.style.display = 'none';
             if (skipHint) {
               skipHint.hidden = false;
             }
@@ -2814,6 +3810,7 @@
             }
             
             video.pause();
+            message.style.display = ''; // Show message again
             message.textContent = 'Preparing form sequence…';
           }
         } finally {
@@ -2823,6 +3820,11 @@
             trifoldAudio.pause();
           } catch (_) {
             // ignore
+          }
+          
+          // Clean up glitch interval
+          if (glitchInterval) {
+            clearInterval(glitchInterval);
           }
           
           // Brief pause to show complete grid before closing
@@ -2841,19 +3843,20 @@
 
         for (const candidate of candidates) {
           try {
-            video.pause();
-            video.removeAttribute('src');
-            video.load();
-          } catch (_) {
-            // Ignore reset errors
-          }
-
-          try {
+            // Don't clear src immediately - keep previous video showing until new one loads
             await loadVideoCandidate(video, candidate);
             console.log(`🎬 Loaded ${label} from ${candidate}`);
             return candidate;
           } catch (error) {
             console.warn(`⚠️ Failed to load ${label} from ${candidate}:`, error);
+            // Only clear and reset if loading failed
+            try {
+              video.pause();
+              video.removeAttribute('src');
+              video.load();
+            } catch (_) {
+              // Ignore reset errors
+            }
           }
         }
 
@@ -2889,13 +3892,43 @@
         });
       }
 
+      function createInitialPrompt(overlay) {
+        // Always create the prompt with the KEY word upfront
+        let prompt = overlay.querySelector('.pre-form-video-overlay__start');
+        if (prompt) {
+          return prompt;
+        }
+        
+        prompt = document.createElement('div');
+        prompt.className = 'pre-form-video-overlay__start';
+        prompt.style.cssText = 'cursor: pointer; pointer-events: auto;';
+        prompt.innerHTML = `
+          <div style="font-size: clamp(0.85rem, 2vw, 1rem); letter-spacing: 0.14em;">
+            CLICK ANYWHERE OR ANY <span id="videoKeyWord" style="text-decoration: underline; cursor: pointer;">KEY</span> TO SKIP
+          </div>
+        `;
+        overlay.appendChild(prompt);
+        return prompt;
+      }
+
       async function playVideoElement(video, overlay, messageEl) {
+        // Create the prompt upfront so KEY is always visible
+        const prompt = createInitialPrompt(overlay);
+        
         // Attempt playback until it starts or a non-blocking error occurs
         for (;;) {
           try {
             const playAttempt = video.play();
             if (playAttempt && typeof playAttempt.then === 'function') {
               await playAttempt;
+            }
+            // If autoplay succeeds, hide the message and remove prompt
+            if (messageEl) {
+              messageEl.textContent = 'Playing pre-form video…';
+            }
+            if (prompt && prompt.parentNode) {
+              prompt.style.opacity = '0';
+              setTimeout(() => prompt.remove(), 300);
             }
             return;
           } catch (error) {
@@ -2910,28 +3943,13 @@
 
       function requireUserGesture(video, overlay, messageEl) {
         return new Promise((resolve) => {
-          // Always remove old prompt and create fresh one
+          // Ensure prompt exists (it should have been created by playVideoElement)
           let prompt = overlay.querySelector('.pre-form-video-overlay__start');
-          if (prompt) {
-            prompt.remove();
+          if (!prompt) {
+            prompt = createInitialPrompt(overlay);
           }
-          
-          prompt = document.createElement('div');
-          prompt.className = 'pre-form-video-overlay__start';
-          prompt.style.cssText = 'cursor: pointer; pointer-events: auto;';
-          prompt.innerHTML = `
-            <div style="font-size: clamp(0.85rem, 2vw, 1rem); letter-spacing: 0.14em; margin-bottom: 0.5rem;">
-              PRESS ANY <span id="videoKeyWord" style="text-decoration: underline; cursor: pointer;">KEY</span> TO CONTINUE.
-            </div>
-            <div style="font-size: clamp(0.78rem, 1.8vw, 0.92rem); letter-spacing: 0.12em; margin-bottom: 0.5rem;">
-              OR CLICK ANYWHERE.
-            </div>
-            <div style="font-size: clamp(0.68rem, 1.5vw, 0.8rem); letter-spacing: 0.1em; opacity: 0.7;">
-              HONESTLY, YOU DO YOU.
-            </div>
-          `;
-          overlay.appendChild(prompt);
 
+          // Set up interaction handlers
           let interactionTriggered = false;
 
           const handleInteraction = (isKeyEasterEgg = false) => {
@@ -2948,6 +3966,7 @@
             
             if (isKeyEasterEgg) {
               if (messageEl) {
+                messageEl.style.display = '';
                 messageEl.textContent = 'Playing easter egg…';
               }
               prompt.remove();
@@ -2996,6 +4015,7 @@
                 attempt.then(() => {
                   prompt.remove();
                   if (messageEl) {
+                    messageEl.style.display = '';
                     messageEl.textContent = 'Playing pre-form video…';
                   }
                   resolve();
@@ -3005,12 +4025,14 @@
                   prompt.style.opacity = '1';
                   prompt.style.pointerEvents = 'auto';
                   if (messageEl) {
+                    messageEl.style.display = '';
                     messageEl.textContent = 'Click to continue the form sequence';
                   }
                 });
               } else {
                 prompt.remove();
                 if (messageEl) {
+                  messageEl.style.display = '';
                   messageEl.textContent = 'Playing pre-form video…';
                 }
                 resolve();
@@ -3035,8 +4057,9 @@
           prompt.addEventListener('click', handleClick);
           document.addEventListener('keydown', handleKeyDown, { once: true });
           
+          // Hide the message element since the prompt has the interaction text
           if (messageEl) {
-            messageEl.textContent = 'Press any key or click to continue';
+            messageEl.style.display = 'none';
           }
           try {
             overlay.focus({ preventScroll: true });
@@ -3069,134 +4092,149 @@
       }
 
       async function playKeyEasterEggVideo() {
-        // Use the existing overlay and video element from playPreFormVideos
-        const overlay = document.querySelector('.pre-form-video-overlay');
-        const video = overlay ? overlay.querySelector('video') : null;
-        const message = overlay ? overlay.querySelector('.pre-form-video-overlay__message') : null;
-        const skipHint = overlay ? overlay.querySelector('.pre-form-video-overlay__skip-hint') : null;
-        const freezeFrameGrid = overlay ? overlay.querySelector('.freeze-frame-grid') : null;
+        return new Promise(async (resolve) => {
+          // Use the existing overlay and video element from playPreFormVideos
+          const overlay = document.querySelector('.pre-form-video-overlay');
+          const video = overlay ? overlay.querySelector('video') : null;
+          const message = overlay ? overlay.querySelector('.pre-form-video-overlay__message') : null;
+          const skipHint = overlay ? overlay.querySelector('.pre-form-video-overlay__skip-hint') : null;
+          const freezeFrameGrid = overlay ? overlay.querySelector('.freeze-frame-grid') : null;
+          
+          if (!overlay || !video) {
+            console.warn('⚠️ Video overlay not found for easter egg');
+            resolve();
+            return;
+          }
         
-        if (!overlay || !video) {
-          console.warn('⚠️ Video overlay not found for easter egg');
-          return;
-        }
+          // Load and play key2.mp4
+          const candidates = buildTrackCandidates('key2.mp4');
+          const videoResolved = await resolveVideoSource(video, candidates, 'key2.mp4');
+          if (!videoResolved) {
+            console.warn('⚠️ Unable to load key2.mp4');
+            resolve();
+            return;
+          }
         
-        // Load and play key2.mp4
-        const candidates = buildTrackCandidates('key2.mp4');
-        const resolved = await resolveVideoSource(video, candidates, 'key2.mp4');
-        if (!resolved) {
-          console.warn('⚠️ Unable to load key2.mp4');
-          return;
-        }
-        
-        try {
-          video.currentTime = 0;
-        } catch (_) {}
-        
-        if (message) message.textContent = 'Key Easter Egg';
-        if (skipHint) skipHint.hidden = false;
-        
-        // Auto-play the easter egg
-        const playAttempt = video.play();
-        if (playAttempt && typeof playAttempt.catch === 'function') {
-          await playAttempt.catch((error) => {
-            console.warn('⚠️ Easter egg auto-play blocked:', error);
-          });
-        }
-        
-        // Wait for video to end or be skipped
-        const skipController = createSkipController();
-        await Promise.race([waitForVideoEnd(video), skipController.promise]);
-        skipController.cleanup();
-        
-        // Capture freeze frame for key2.mp4 - takes top-left + middle-left (2x1 vertical)
-        if (freezeFrameGrid && video.videoWidth > 0) {
           try {
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth || 640;
-            canvas.height = video.videoHeight || 480;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Mark grid as having easter egg (changes ring pattern for other frames)
-            freezeFrameGrid.dataset.hasEasterEgg = 'true';
-            
-            // Easter egg takes top-left + middle-left (row 1-2, col 1)
-            const freezeFrame = document.createElement('div');
-            freezeFrame.style.cssText = 'opacity:0; transform:scale(0.85); transition:all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); overflow:hidden; box-shadow:0 8px 24px rgba(255,215,0,0.4); position:relative; grid-row:1 / span 2; grid-column:1; border:2px solid rgba(255,215,0,0.3);';
-            freezeFrame.dataset.easterEgg = 'true';
-            
-            const img = new Image();
-            img.src = canvas.toDataURL();
-            img.style.cssText = 'width:100%; height:100%; display:block; object-fit:cover; filter:saturate(1.4) contrast(1.15) brightness(1.1);';
-            
-            const glitchOverlay = document.createElement('div');
-            glitchOverlay.style.cssText = 'position:absolute; inset:0; pointer-events:none; background:linear-gradient(45deg, rgba(255,215,0,0.25) 0%, transparent 30%, rgba(255,0,255,0.18) 70%, transparent 100%); mix-blend-mode:screen; animation:glitchPulse 3s ease-in-out infinite;';
-            
-            freezeFrame.appendChild(img);
-            freezeFrame.appendChild(glitchOverlay);
-            
-            freezeFrameGrid.appendChild(freezeFrame);
-            requestAnimationFrame(() => {
-              freezeFrame.style.opacity = '1';
-              freezeFrame.style.transform = 'scale(1)';
+            video.currentTime = 0;
+          } catch (_) {}
+          
+          // Hide message and show skip hint (don't duplicate text)
+          if (message) message.style.display = 'none';
+          if (skipHint) skipHint.hidden = false;
+          
+          // Auto-play the easter egg
+          const playAttempt = video.play();
+          if (playAttempt && typeof playAttempt.catch === 'function') {
+            await playAttempt.catch((error) => {
+              console.warn('⚠️ Easter egg auto-play blocked:', error);
             });
-          } catch (error) {
-            console.warn('⚠️ Failed to capture easter egg freeze frame:', error);
           }
-        }
         
-        video.pause();
-        if (skipHint) skipHint.hidden = true;
+          // Wait for video to end or be skipped
+          function createSkipControllerLocal() {
+            let skipResolved = false;
+            let resolveSkip;
+            const skipPromise = new Promise((res) => {
+              resolveSkip = res;
+            });
+            let cleaned = false;
+
+            function cleanup() {
+              if (cleaned) return;
+              cleaned = true;
+              overlay.removeEventListener('pointerdown', handlePointerDown, true);
+              overlay.removeEventListener('keydown', handleKeyDown);
+              overlay.classList.remove('pre-form-video-overlay--skippable');
+            }
+
+            function handlePointerDown(event) {
+              if (
+                event &&
+                event.target &&
+                event.target.closest('.pre-form-trifold-button, .pre-form-trifold-panel')
+              ) {
+                return;
+              }
+              if (skipResolved) return;
+              skipResolved = true;
+              if (message) {
+                message.style.display = '';
+                message.textContent = 'Skipping…';
+              }
+              if (skipHint) skipHint.hidden = true;
+              try { video.pause(); } catch (_) {}
+              cleanup();
+              if (typeof resolveSkip === 'function') resolveSkip('skip');
+            }
+
+            function handleKeyDown(event) {
+              if (!event) return;
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                handlePointerDown(event);
+              }
+            }
+
+            overlay.classList.add('pre-form-video-overlay--skippable');
+            overlay.addEventListener('pointerdown', handlePointerDown, { capture: true });
+            overlay.addEventListener('keydown', handleKeyDown);
+
+            return { promise: skipPromise, cleanup };
+          }
+          
+          const skipController = createSkipControllerLocal();
+          await Promise.race([waitForVideoEnd(video), skipController.promise]);
+          skipController.cleanup();
         
-        function createSkipController() {
-          let resolved = false;
-          let resolveSkip;
-          const skipPromise = new Promise((resolve) => {
-            resolveSkip = resolve;
-          });
-          let cleaned = false;
-
-          function cleanup() {
-            if (cleaned) return;
-            cleaned = true;
-            overlay.removeEventListener('pointerdown', handlePointerDown, true);
-            overlay.removeEventListener('keydown', handleKeyDown);
-            overlay.classList.remove('pre-form-video-overlay--skippable');
-          }
-
-          function handlePointerDown(event) {
-            if (
-              event &&
-              event.target &&
-              event.target.closest('.pre-form-trifold-button, .pre-form-trifold-panel')
-            ) {
-              return;
-            }
-            if (resolved) return;
-            resolved = true;
-            if (message) message.textContent = 'Skipping…';
-            if (skipHint) skipHint.hidden = true;
-            try { video.pause(); } catch (_) {}
-            cleanup();
-            if (typeof resolveSkip === 'function') resolveSkip('skip');
-          }
-
-          function handleKeyDown(event) {
-            if (!event) return;
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              handlePointerDown(event);
+          // Capture freeze frame for key2.mp4 - takes top-left + middle-left (2x1 vertical)
+          if (freezeFrameGrid && video.videoWidth > 0) {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = video.videoWidth || 640;
+              canvas.height = video.videoHeight || 480;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              
+              // Mark grid as having easter egg (changes ring pattern for other frames)
+              freezeFrameGrid.dataset.hasEasterEgg = 'true';
+              
+              // Easter egg takes top-left + middle-left (row 1-2, col 1)
+              const freezeFrame = document.createElement('div');
+              freezeFrame.style.cssText = 'opacity:0; transform:scale(0.85); transition:all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); overflow:hidden; box-shadow:0 8px 24px rgba(255,215,0,0.4); position:relative; grid-row:1 / span 2; grid-column:1; border:2px solid rgba(255,215,0,0.3); border-radius:8px;';
+              freezeFrame.dataset.easterEgg = 'true';
+              // Give easter egg a special color bars effect
+              freezeFrame.classList.add('freeze-frame-colorbars');
+              
+              const img = new Image();
+              img.src = canvas.toDataURL();
+              img.style.cssText = 'width:100%; height:100%; display:block; object-fit:cover; filter:saturate(1.4) contrast(1.15) brightness(1.1); border-radius:8px;';
+              
+              const glitchOverlay = document.createElement('div');
+              glitchOverlay.style.cssText = 'position:absolute; inset:0; pointer-events:none; background:linear-gradient(45deg, rgba(255,215,0,0.25) 0%, transparent 30%, rgba(255,0,255,0.18) 70%, transparent 100%); mix-blend-mode:screen; animation:glitchPulse 3s ease-in-out infinite; border-radius:8px;';
+              
+              freezeFrame.appendChild(img);
+              freezeFrame.appendChild(glitchOverlay);
+              
+              freezeFrameGrid.appendChild(freezeFrame);
+              requestAnimationFrame(() => {
+                freezeFrame.style.opacity = '1';
+                freezeFrame.style.transform = 'scale(1)';
+              });
+            } catch (error) {
+              console.warn('⚠️ Failed to capture easter egg freeze frame:', error);
             }
           }
-
-          overlay.classList.add('pre-form-video-overlay--skippable');
-          overlay.addEventListener('pointerdown', handlePointerDown, { capture: true });
-          overlay.addEventListener('keydown', handleKeyDown);
-
-          return { promise: skipPromise, cleanup };
-        }
+          
+          video.pause();
+          if (skipHint) skipHint.hidden = true;
+          if (message) message.style.display = ''; // Show message again
+          
+          // Resolve the promise to signal completion
+          resolve();
+        });
       }
+        
 
       async function playIntroVideoSequence() {
         return playPreFormVideos();
@@ -3227,8 +4265,8 @@
                 <p class="esrb-card__descriptor">BUT, I WOULDN'T SAY I'M PARTICULARLY MATURE.</p>
               </div>
               <div class="esrb-card__footer" aria-hidden="true">
-                <div style="font-size: clamp(0.72rem, 1.8vw, 0.9rem); margin-bottom: 0.25rem;">NOT YET RATED</div>
-                <div style="font-size: clamp(0.62rem, 1.5vw, 0.75rem); letter-spacing: 0.1em;">100/100, BUT I'M BANKING ON IT.</div>
+                <div style="font-size: clamp(1rem, 2.2vw, 1.4rem); margin-bottom: 0.4rem;">NOT YET RATED</div>
+                <div style="font-size: clamp(0.85rem, 2vw, 1.15rem); letter-spacing: 0.1em;">100/100, BUT I'M BANKING ON IT.</div>
               </div>
             </div>
           `;
@@ -3333,7 +4371,7 @@
       const encoreTrack = createAudioTrack('EA2.mp3');
       const superEncoreTrack = createAudioTrack('EA3.mp3');
       const finaleTrack = createAudioTrack('E4.mp3');
-      const strumPreviewTrack = createAudioTrack('EA.mp3');
+      // Note: strumPreviewTrack is now created earlier (before video sequence) for immediate button click feedback
 
       const tracks = [baseTrack, encoreTrack, superEncoreTrack, finaleTrack];
       tracks.forEach((audio) => {
@@ -3342,11 +4380,7 @@
         getOriginalVolume(audio);
       });
 
-      strumPreviewTrack.preload = 'auto';
-      strumPreviewTrack.crossOrigin = 'anonymous';
-      strumPreviewTrack.loop = false;
-      strumPreviewTrack.volume = 0.65;
-      strumPreviewTrack.dataset.originalVolume = String(strumPreviewTrack.volume);
+      // Note: strumPreviewTrack configuration is now done earlier (before video sequence)
 
       const encoreTracks = [encoreTrack, superEncoreTrack, finaleTrack];
       const encoreLabels = [
@@ -3358,15 +4392,10 @@
       const ENCORE_LABEL = 'ENCORE!';
       const NEAR_DISTANCE = 72;
 
-      const COLOR_SEQUENCE = ['tone-white', 'tone-blue', 'tone-yellow', 'tone-magenta'];
-      const selectionOrder = [];
-      const toneByButton = new Map();
-      const selectionHistory = [];
-      let selectionSteps = 0;
+      // Note: COLOR_SEQUENCE, selectionOrder, toneByButton, selectionHistory, selectionSteps,
+      // strumStopTimeout, and isInverted are now defined earlier (before video sequence) for immediate button interactivity
       let encoreIndex = 0;
       let escapeLabelState = DEFAULT_ESCAPE_LABEL;
-      let isInverted = false;
-      let strumStopTimeout = null;
 
       let audioContext = null;
       let analyser = null;
@@ -3489,10 +4518,10 @@
         }
         attachAudioToAnalyser(audio);
         activeVisualizerTrack = audio;
-        if (!visualizerFrameId) {
-          visualizerFrameId = requestAnimationFrame(renderVisualizer);
+          if (!visualizerFrameId) {
+            visualizerFrameId = requestAnimationFrame(renderVisualizer);
+          }
         }
-      }
 
       function stopVisualizerIfIdle(force) {
         if (!force && activeVisualizerTrack && !activeVisualizerTrack.paused && !activeVisualizerTrack.ended) {
@@ -3585,6 +4614,8 @@
         });
       }
 
+      // Note: stopStrumPreview() and playStrumPreview() are now defined earlier (before video sequence)
+      // This extended version adds audio engine and volume ramping
       function stopStrumPreview() {
         if (strumStopTimeout) {
           clearTimeout(strumStopTimeout);
@@ -3594,15 +4625,11 @@
           return;
         }
         strumPreviewTrack.pause();
-        try {
-          strumPreviewTrack.currentTime = 0;
-        } catch (error) {
-          console.warn('Unable to reset strum preview audio time', error);
-        }
+        // Don't reset currentTime - we set it to 2.0 before playing anyway
         resetAudioVolume(strumPreviewTrack);
       }
 
-      function playStrumPreview() {
+      function playStrumPreviewExtended() {
         if (!strumPreviewTrack) {
           return;
         }
@@ -3652,48 +4679,8 @@
         return COLOR_SEQUENCE[index];
       }
 
-      function getButtonColorKey(button) {
-        if (!button) {
-          return 'base';
-        }
-        for (let i = 0; i < COLOR_SEQUENCE.length; i += 1) {
-          const toneClass = COLOR_SEQUENCE[i];
-          if (button.classList.contains(toneClass)) {
-            return toneClass;
-          }
-        }
-        return 'base';
-      }
-
-      function setInversionState(nextState) {
-        if (isInverted === nextState) {
-          return;
-        }
-        isInverted = nextState;
-        if (document && document.body) {
-          document.body.classList.toggle('inverted', isInverted);
-        }
-      }
-
-      function evaluateInversionTrigger() {
-        if (!optionButtons.length) {
-          setInversionState(false);
-          return;
-        }
-
-        const counts = new Map();
-        optionButtons.forEach((button) => {
-          const key = getButtonColorKey(button);
-          counts.set(key, (counts.get(key) || 0) + 1);
-        });
-
-        const expectedMajority = optionButtons.length - 1;
-        const values = Array.from(counts.values());
-        const shouldInvert =
-          values.length === 2 && values.includes(expectedMajority) && values.includes(1);
-
-        setInversionState(shouldInvert);
-      }
+      // Note: getButtonColorKey(), setInversionState(), and evaluateInversionTrigger()
+      // are now defined earlier (before video sequence) for immediate button interactivity
 
       function updateSubmissionExperienceContent() {
         if (!selectionCloud) {
@@ -3770,14 +4757,7 @@
         }
       }
 
-      function triggerPanelShake() {
-        if (!panel) {
-          return;
-        }
-        panel.classList.remove('shake');
-        void panel.offsetWidth;
-        panel.classList.add('shake');
-      }
+      // Note: triggerPanelShake() is now defined earlier (before video sequence) for immediate button interactivity
 
       function stopOtherTracks(except) {
         tracks.forEach((audio) => {
@@ -3866,30 +4846,57 @@
         });
       }
 
+      function updateButtonPriorityPrefix(button) {
+        if (!button) return;
+        
+        const toneIndex = toneByButton.get(button);
+        const originalValue = button.dataset.value || '';
+        
+        if (typeof toneIndex === 'number') {
+          // Add/update P# prefix based on tone index (wraps 0-3)
+          const priorityNumber = toneIndex % COLOR_SEQUENCE.length;
+          const prefix = `P${priorityNumber}: `;
+          button.textContent = prefix + originalValue;
+          console.log(`   🏷️ ${originalValue} → P${priorityNumber}: ${originalValue}`);
+        } else {
+          // Remove priority prefix when not selected - restore original
+          button.textContent = originalValue;
+        }
+      }
+
       function applyTone(button, toneIndex) {
         const index = ((toneIndex % COLOR_SEQUENCE.length) + COLOR_SEQUENCE.length) % COLOR_SEQUENCE.length;
         COLOR_SEQUENCE.forEach((cls) => button.classList.remove(cls));
         button.classList.add(COLOR_SEQUENCE[index]);
         toneByButton.set(button, index);
+        updateButtonPriorityPrefix(button);
       }
 
       function clearTone(button) {
         COLOR_SEQUENCE.forEach((cls) => button.classList.remove(cls));
         toneByButton.delete(button);
+        updateButtonPriorityPrefix(button);
       }
 
       function cycleExistingTones() {
         if (selectionOrder.length <= 1) {
           return;
         }
+        console.log('🔄 Cycling tones - priority numbers will shift...');
         selectionOrder.slice(0, -1).forEach((btn) => {
           const currentIndex = toneByButton.get(btn) ?? 0;
           applyTone(btn, currentIndex + 1);
+          // applyTone calls updateButtonPriorityPrefix, which updates P# based on new tone index
         });
       }
 
       function getActiveSelections() {
-        return selectionOrder.map((btn) => btn.dataset.value || btn.textContent.trim());
+        return selectionOrder.map((btn) => {
+          // Use dataset.value to get the original value without P# prefix
+          const value = btn.dataset.value || btn.textContent.trim();
+          // Strip P#: prefix if present in textContent fallback
+          return value.replace(/^P\d+:\s*/, '');
+        });
       }
 
       function updateSelectionStatus(extraMessage) {
@@ -3982,6 +4989,10 @@
         if (!button) {
           return;
         }
+        // Ensure button is always enabled and interactive
+        button.disabled = false;
+        button.removeAttribute('disabled');
+        button.removeAttribute('aria-disabled');
         button.setAttribute(
           'aria-pressed',
           button.classList.contains('active-selection') ? 'true' : 'false'
@@ -3997,7 +5008,14 @@
         optionButtons = optionsContainer
           ? Array.from(optionsContainer.querySelectorAll('.focus-option'))
           : [];
-        optionButtons.forEach(registerOptionButton);
+        optionButtons.forEach((button) => {
+          if (button) {
+            button.disabled = false;
+            button.removeAttribute('disabled');
+            button.removeAttribute('aria-disabled');
+          }
+          registerOptionButton(button);
+        });
       }
 
       function createFocusOptionButton(label) {
@@ -4041,7 +5059,9 @@
         }
       }
 
-      function playBleghSpeech() {
+      // Note: playBleghSpeech() is now defined earlier (before video sequence)
+      // This extended version adds stopStrumPreview call
+      function playBleghSpeechExtended() {
         const synth = window.speechSynthesis;
         if (!synth || typeof window.SpeechSynthesisUtterance !== 'function') {
           return false;
@@ -4104,6 +5124,7 @@
           refreshSubmissionExperience();
           evaluateInversionTrigger();
           updateStartButtonState();
+          updateSelectionHint();
           return;
         }
 
@@ -4119,6 +5140,7 @@
         refreshSubmissionExperience();
         evaluateInversionTrigger();
         updateStartButtonState();
+        updateSelectionHint();
       }
 
       if (startButton) {
@@ -4131,17 +5153,9 @@
             updateStatus(`Pick at least ${MINIMUM_SELECTIONS} focus areas before submitting.`);
             return;
           }
-
-          // Store selections in sessionStorage for Rainbow Roadmap
-          const activeSelections = getActiveSelections();
-          try {
-            sessionStorage.setItem('celli:betaFormSelections', JSON.stringify(activeSelections));
-          } catch (e) {
-            console.warn('Could not store selections:', e);
-          }
-
-          // Redirect to Rainbow Roadmap: Off-Road Edition
-          window.location.href = '../../speed.html';
+          
+          // Note: Redirect happens after the ramp animation completes
+          // See slideButtonDownRamp() for the actual redirect logic
         });
       }
 
@@ -4214,6 +5228,363 @@
       updateSelectionStatus();
       updateEscapeLabel(false);
       evaluateInversionTrigger();
+      updateSelectionHint();
+
+      // ============================================
+      // NEW: Star Rating System
+      // ============================================
+      let selectedRating = 0;
+      const stars = document.querySelectorAll('.star');
+      
+      stars.forEach(star => {
+        star.addEventListener('click', () => {
+          selectedRating = parseInt(star.dataset.value);
+          updateStars();
+        });
+        
+        star.addEventListener('mouseenter', () => {
+          const value = parseInt(star.dataset.value);
+          stars.forEach((s, idx) => {
+            if (idx < value) {
+              s.classList.add('filled');
+            } else {
+              s.classList.remove('filled');
+            }
+          });
+        });
+      });
+      
+      document.getElementById('starRating').addEventListener('mouseleave', () => {
+        updateStars();
+      });
+      
+      function updateStars() {
+        stars.forEach((s, idx) => {
+          if (idx < selectedRating) {
+            s.classList.add('filled');
+          } else {
+            s.classList.remove('filled');
+          }
+        });
+      }
+
+      // ============================================
+      // NEW: Shape Jiggle/Drop & Line Rider Ramp
+      // ============================================
+      const shapeSquare = document.getElementById('shapeSquare');
+      const shapeTriangle = document.getElementById('shapeTriangle');
+      const shapeCircle = document.getElementById('shapeCircle');
+      const shapePlatform = document.getElementById('shapePlatform');
+      const shapes = [shapeSquare, shapeTriangle, shapeCircle];
+      // Note: selectionHint is now defined earlier (before video sequence)
+      
+      let rampActive = false;
+      let shapesDropped = false;
+
+      // Note: updateSelectionHint() is now defined earlier (before video sequence)
+
+      if (startButton) {
+        startButton.addEventListener('click', (e) => {
+          if (startButton.disabled || rampActive) {
+            return;
+          }
+          
+          // Check if we have minimum selections before allowing animation
+          if (selectionOrder.length < MINIMUM_SELECTIONS) {
+            e.preventDefault();
+            e.stopPropagation();
+            triggerPanelShake();
+            updateStatus(`Pick at least ${MINIMUM_SELECTIONS} focus areas before submitting.`);
+            return;
+          }
+          
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // First click: jiggle and drop shapes
+          if (!shapesDropped) {
+            shapesDropped = true;
+            
+            shapes.forEach((shape, idx) => {
+              setTimeout(() => {
+                shape.classList.add('jiggle');
+                setTimeout(() => {
+                  shape.classList.remove('jiggle');
+                  shape.classList.add('drop');
+                }, 500);
+              }, idx * 100);
+            });
+            
+            // After shapes land, bump rating to 5 and show message
+            setTimeout(() => {
+              // Animate rating to 5 stars
+              selectedRating = 5;
+              updateStars();
+              
+              // Update copy text with "Let's bump that to a five...."
+              const starRatingCopy = document.getElementById('starRatingCopy');
+              if (starRatingCopy) {
+                starRatingCopy.textContent = "Let's bump that to a five....";
+                starRatingCopy.style.color = 'var(--tone-yellow-bg)';
+                starRatingCopy.style.fontWeight = '700';
+              }
+              
+              // Then attach shapes to button and create ramp
+              attachShapesToButton();
+              setTimeout(() => {
+                createRampAndSlideButton();
+              }, 100);
+            }, 1400);
+            
+            return;
+          }
+        }, true); // Use capture to intercept before other handlers
+      }
+      
+      function attachShapesToButton() {
+        console.log('📎 Attaching shapes to submit button - will move together during slide');
+        // Don't change position yet - let slideButtonDownRamp handle it
+        // Just mark as attached so we know to move them together
+        shapePlatform.classList.add('attached');
+      }
+
+      function createRampAndSlideButton() {
+        if (rampActive) return;
+        rampActive = true;
+        
+        const buttonRect = startButton.getBoundingClientRect();
+        // Start from bottom-right corner of button
+        const startX = buttonRect.right;
+        const startY = buttonRect.bottom;
+        const endX = window.innerWidth + 100;
+        const endY = window.innerHeight + 100;
+        
+        console.log(`🎢 Creating ramp from button bottom-right (${startX}, ${startY}) to (${endX}, ${endY})`);
+        
+        // Create SVG for curved ramp
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'curved-ramp');
+        svg.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; overflow: visible;`;
+        
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        
+        // Create a smooth curved slope from button bottom-right to screen bottom-right (Line Rider style)
+        // Use quadratic bezier for smooth downward curve
+        const cp1X = startX + (endX - startX) * 0.25;
+        const cp1Y = startY + 100; // dip down
+        const cp2X = startX + (endX - startX) * 0.55;
+        const cp2Y = startY + (endY - startY) * 0.7;
+        
+        const pathData = `M ${startX} ${startY} Q ${cp1X} ${cp1Y} ${cp2X} ${cp2Y} T ${endX} ${endY}`;
+        path.setAttribute('d', pathData);
+        path.setAttribute('fill', 'none');
+        
+        // Set stroke properties explicitly
+        const isInverted = document.body.classList.contains('inverted');
+        const strokeColor = isInverted ? '#000' : '#fff';
+        path.setAttribute('stroke', strokeColor);
+        path.setAttribute('stroke-width', '6');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        path.setAttribute('vector-effect', 'non-scaling-stroke');
+        
+        svg.appendChild(path);
+        document.body.appendChild(svg);
+        
+        console.log('🎢 Ramp created, starting draw animation...');
+        
+        // Animate the path drawing (stroke-dasharray technique)
+        const pathLength = path.getTotalLength();
+        console.log(`   Path length: ${pathLength}px`);
+        
+        path.style.strokeDasharray = `${pathLength}`;
+        path.style.strokeDashoffset = `${pathLength}`;
+        
+        // Force a reflow to ensure initial state is applied
+        void path.getBoundingClientRect();
+        
+        // Start the draw animation
+        requestAnimationFrame(() => {
+          path.style.transition = 'stroke-dashoffset 1.2s ease-out';
+          path.style.strokeDashoffset = '0';
+          console.log('   🖊️ Drawing ramp...');
+        });
+        
+        // After ramp is drawn, slide the button
+        setTimeout(() => {
+          console.log('   🛷 Starting button slide down ramp...');
+          slideButtonDownRamp(startButton, svg, path);
+        }, 1300);
+      }
+
+      function slideButtonDownRamp(button, svg, pathElement) {
+        console.log('🛷 slideButtonDownRamp called');
+        
+        // Capture initial positions BEFORE making fixed
+        const buttonRect = button.getBoundingClientRect();
+        const platformRect = shapePlatform.getBoundingClientRect();
+        const platformHeight = platformRect.height || 60;
+        
+        const initialButtonLeft = buttonRect.left;
+        const initialButtonTop = buttonRect.top;
+        const initialButtonWidth = buttonRect.width;
+        const initialButtonHeight = buttonRect.height;
+        const initialButtonCenterX = buttonRect.left + buttonRect.width / 2;
+        const initialButtonCenterY = buttonRect.top + buttonRect.height / 2;
+        
+        console.log(`   Button initial center: (${initialButtonCenterX}, ${initialButtonCenterY})`);
+        console.log(`   Platform height: ${platformHeight}px`);
+        
+        // Make button fixed positioned at its EXACT current location
+        button.style.position = 'fixed';
+        button.style.left = `${initialButtonLeft}px`;
+        button.style.top = `${initialButtonTop}px`;
+        button.style.width = `${initialButtonWidth}px`;
+        button.style.height = `${initialButtonHeight}px`;
+        button.style.margin = '0';
+        button.style.zIndex = '1001';
+        button.style.transform = 'none'; // Reset any existing transforms
+        
+        // Clear any drop animation classes from shapes
+        shapes.forEach(shape => {
+          if (shape) {
+            shape.classList.remove('drop', 'jiggle');
+            shape.style.animation = 'none';
+            shape.style.transform = 'none';
+          }
+        });
+        
+        // Make shape platform fixed at its current position
+        shapePlatform.style.position = 'fixed';
+        shapePlatform.style.left = `${platformRect.left}px`;
+        shapePlatform.style.top = `${platformRect.top}px`;
+        shapePlatform.style.width = `${platformRect.width}px`;
+        shapePlatform.style.height = `${platformRect.height}px`;
+        shapePlatform.style.zIndex = '1002';
+        shapePlatform.style.transform = 'none';
+        shapePlatform.style.display = 'flex';
+        shapePlatform.style.visibility = 'visible';
+        shapePlatform.style.opacity = '1';
+        shapePlatform.style.animation = 'none';
+        
+        console.log(`   Shapes initial: (${platformRect.left}, ${platformRect.top}), size: ${platformRect.width}x${platformRect.height}`);
+        
+        // Manually animate along the path using getPointAtLength
+        const pathLength = pathElement.getTotalLength();
+        const duration = 2500; // ms
+        const startTime = performance.now();
+        
+        // Get the first point on the path (bottom-right of button)
+        const firstPoint = pathElement.getPointAtLength(0);
+        
+        // Calculate offset: we want the button CENTER to start at its current position,
+        // but the path starts at the bottom-right corner
+        const offsetX = initialButtonCenterX - firstPoint.x;
+        const offsetY = initialButtonCenterY - firstPoint.y;
+        
+        console.log(`   Path starts at: (${firstPoint.x}, ${firstPoint.y})`);
+        console.log(`   Offset to center button: (${offsetX}, ${offsetY})`);
+        console.log(`   Initial button center will be: (${firstPoint.x + offsetX}, ${firstPoint.y + offsetY})`);
+        
+        function animateAlongPath(currentTime) {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          
+          if (progress === 0) {
+            console.log(`   🎬 Animation frame 0 - button at (${initialButtonLeft}, ${initialButtonTop})`);
+          }
+          
+          // Dynamic acceleration: ease-in-out with stronger acceleration
+          let easedProgress;
+          if (progress < 0.5) {
+            // First half: ease-in (accelerating)
+            easedProgress = 2 * progress * progress;
+          } else {
+            // Second half: ease-out (decelerating)
+            const p = 1 - progress;
+            easedProgress = 1 - (2 * p * p);
+          }
+          
+          const distance = pathLength * easedProgress;
+          const point = pathElement.getPointAtLength(distance);
+          
+          // Apply offset so button starts at its original position
+          const adjustedX = point.x + offsetX;
+          const adjustedY = point.y + offsetY;
+          
+          // Get tangent for rotation
+          let angle = 0;
+          if (distance < pathLength - 1) {
+            const nextPoint = pathElement.getPointAtLength(Math.min(distance + 2, pathLength));
+            angle = Math.atan2(nextPoint.y - point.y, nextPoint.x - point.x) * (180 / Math.PI);
+          }
+          
+          // Update button position (center it on the adjusted point)
+          const newButtonLeft = adjustedX - initialButtonWidth / 2;
+          const newButtonTop = adjustedY - initialButtonHeight / 2;
+          
+          button.style.left = `${newButtonLeft}px`;
+          button.style.top = `${newButtonTop}px`;
+          button.style.transform = `rotate(${angle + 45}deg)`;
+          
+          // Also move the shape platform to stay above the button
+          if (shapePlatform) {
+            const newPlatformLeft = adjustedX - platformRect.width / 2;
+            const newPlatformTop = newButtonTop - platformHeight;
+            
+            shapePlatform.style.left = `${newPlatformLeft}px`;
+            shapePlatform.style.top = `${newPlatformTop}px`;
+            shapePlatform.style.transform = `rotate(${angle + 45}deg)`;
+            
+            if (progress < 0.05) {
+              console.log(`   🎨 Frame progress ${(progress*100).toFixed(1)}%: button(${newButtonLeft.toFixed(0)}, ${newButtonTop.toFixed(0)}), platform(${newPlatformLeft.toFixed(0)}, ${newPlatformTop.toFixed(0)}), angle: ${angle.toFixed(1)}°`);
+            }
+          }
+          
+          // Fade out near the end
+          if (progress > 0.85) {
+            const fadeProgress = (progress - 0.85) / 0.15;
+            button.style.opacity = (1 - fadeProgress).toString();
+            if (shapePlatform) {
+              shapePlatform.style.opacity = (1 - fadeProgress).toString();
+            }
+          }
+          
+          if (progress < 1) {
+            requestAnimationFrame(animateAlongPath);
+          } else {
+            console.log('   ✅ Button slide complete');
+            // Clean up and redirect
+            setTimeout(() => {
+              if (svg.parentNode) {
+                svg.remove();
+              }
+              // Trigger actual form submission or redirect
+              if (selectionOrder.length >= MINIMUM_SELECTIONS) {
+                const activeSelections = getActiveSelections();
+                try {
+                  sessionStorage.setItem('celli:betaFormSelections', JSON.stringify(activeSelections));
+                  sessionStorage.setItem('celli:betaFormRating', selectedRating.toString());
+                } catch (e) {
+                  console.warn('Could not store selections:', e);
+                }
+                window.location.href = 'submit-train.html';
+              }
+            }, 300);
+          }
+        }
+        
+        console.log('   🎬 Starting animation frame loop...');
+        requestAnimationFrame(animateAlongPath);
+      }
+
+      // ============================================
+      // FIX: Ensure KEY tile appears on initial load
+      // ============================================
+      // The KEY word in the video overlay is now always created upfront
+      // via the createInitialPrompt() function called in playVideoElement()
+      // This ensures it appears on initial load, not just on refresh
+
     })();
   </script>
 </body>
