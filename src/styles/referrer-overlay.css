@@ -3184,15 +3184,15 @@ body.referrer-blackout {
 /* Light Beam from Center */
 .light-beam {
   position: fixed;
-  left: var(--ref-light-beam-center-x, 50vw);
+  right: 0;
   top: var(--ref-light-beam-center-y, 50vh);
-  transform: translate(-50%, -50%);
+  transform: translateY(-50%);
   width: var(--ref-light-beam-target-width, var(--ref-light-beam-width, 900px));
   height: var(--ref-light-beam-target-height, var(--ref-light-beam-height, 400px));
   pointer-events: none;
   z-index: 2147483550;
   opacity: 0;
-  background: radial-gradient(ellipse at 90% center,
+  background: radial-gradient(ellipse 50% 50% at 100% 50%,
     rgba(255, 255, 255, 0.9),
     rgba(255, 255, 255, 0.6) 30%,
     rgba(102, 126, 234, 0.4) 50%,
@@ -3209,7 +3209,7 @@ body.referrer-blackout {
 .light-beam.audio-reactive {
   animation: none;
   opacity: calc(0.35 + var(--chant-reactive, 0) * 0.65);
-  transform: translate(-50%, -50%) scaleX(calc(1 + var(--chant-reactive, 0) * 0.45)) scaleY(calc(1 + var(--chant-reactive, 0) * 0.08));
+  transform: translateY(-50%) scaleX(calc(1 + var(--chant-reactive, 0) * 0.45)) scaleY(calc(1 + var(--chant-reactive, 0) * 0.08));
   filter: blur(calc(var(--ref-light-beam-blur, 15px) * (1 + var(--chant-reactive, 0) * 0.18)));
 }
 
@@ -3236,15 +3236,15 @@ body.referrer-blackout {
 @keyframes beamPulse {
   0% {
     opacity: 0.6;
-    transform: translate(-50%, -50%) scaleX(1);
+    transform: translateY(-50%) scaleX(1);
   }
   50% {
     opacity: 0.9;
-    transform: translate(-50%, -50%) scaleX(1.2);
+    transform: translateY(-50%) scaleX(1.2);
   }
   100% {
     opacity: 0.6;
-    transform: translate(-50%, -50%) scaleX(1);
+    transform: translateY(-50%) scaleX(1);
   }
 }
 
