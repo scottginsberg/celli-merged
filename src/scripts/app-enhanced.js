@@ -36,7 +36,6 @@ import { sequenceEngine } from './systems/SequenceEngine.js';
 import {
   initializeSystems,
   preloadAssets,
-  createPlayerTuningUI,
   initializeDebugCommands
 } from './init.js';
 
@@ -602,14 +601,6 @@ export async function startApp() {
     setupSequenceHooks();
     setupSceneHooks();
 
-    // Create player tuning UI (if enabled)
-    if (configSystem.get('debug.enablePlayerTuning') !== false) {
-      console.log('🎛️ Creating player tuning UI');
-      createPlayerTuningUI();
-    } else {
-      console.log('🎛️ Player tuning UI disabled via config');
-    }
-
     // Initialize debug commands
     initializeDebugCommands();
     console.groupEnd();
@@ -646,7 +637,6 @@ export async function startApp() {
     }, loomworksFallbackDelay);
 
     console.log('✅ App started successfully! Intro sequence playing...');
-    console.log('🎛️ Press `Ctrl+Shift+T` or use tuning button to open tuning panel');
 
   } catch (error) {
     window.celliApp.initialized = false;
@@ -837,15 +827,6 @@ export function getAppContext() {
 // ============================================================================
 
 document.addEventListener('keydown', (e) => {
-  // Ctrl+Shift+T: Toggle tuning UI
-  if (e.ctrlKey && e.shiftKey && e.key === 'T') {
-    e.preventDefault();
-    const ui = document.getElementById('playerTuningUI');
-    if (ui) {
-      ui.style.display = ui.style.display === 'none' ? 'block' : 'none';
-    }
-  }
-
   // Ctrl+Shift+D: Toggle debug info
   if (e.ctrlKey && e.shiftKey && e.key === 'D') {
     e.preventDefault();

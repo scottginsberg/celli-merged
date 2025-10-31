@@ -407,104 +407,6 @@ function setupConfigWatchers() {
   console.groupEnd();
 }
 
-/**
- * Create player tuning UI
- */
-export function createPlayerTuningUI() {
-  const container = document.createElement('div');
-  container.id = 'playerTuningUI';
-  container.style.cssText = `
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    background: rgba(0, 0, 0, 0.9);
-    border: 1px solid #0f0;
-    border-radius: 8px;
-    padding: 15px;
-    max-width: 300px;
-    max-height: 80vh;
-    overflow-y: auto;
-    z-index: 10000;
-    font-family: monospace;
-    font-size: 12px;
-    color: #0f0;
-    display: none;
-  `;
-
-  const title = document.createElement('h3');
-  title.textContent = '🎛️ Tuning Panel';
-  title.style.cssText = 'margin: 0 0 10px 0; font-size: 14px; text-align: center;';
-  container.appendChild(title);
-
-  // Generate controls for player-exposed config
-  const uiData = configSystem.generatePlayerUI();
-  
-  for (const item of uiData) {
-    const group = document.createElement('div');
-    group.style.cssText = 'margin-bottom: 12px; padding: 8px; background: rgba(0, 255, 0, 0.05); border-radius: 4px;';
-
-    const label = document.createElement('label');
-    label.textContent = item.label;
-    label.style.cssText = 'display: block; margin-bottom: 4px; font-weight: bold; font-size: 11px;';
-    group.appendChild(label);
-
-    const input = document.createElement('input');
-    input.type = item.type === 'boolean' ? 'checkbox' : 'number';
-    input.value = item.value;
-    input.step = item.type === 'number' ? '0.01' : undefined;
-    
-    if (item.type === 'boolean') {
-      input.checked = item.value;
-    }
-
-    input.style.cssText = 'width: 100%; padding: 4px; background: #000; border: 1px solid #0f0; color: #0f0; border-radius: 3px;';
-    
-    input.addEventListener('change', () => {
-      const value = input.type === 'checkbox' ? input.checked : parseFloat(input.value);
-      configSystem.set(item.path, value);
-    });
-
-    group.appendChild(input);
-    container.appendChild(group);
-  }
-
-  // Add close button
-  const closeBtn = document.createElement('button');
-  closeBtn.textContent = 'Close';
-  closeBtn.style.cssText = 'width: 100%; padding: 8px; background: #0f0; color: #000; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px;';
-  closeBtn.addEventListener('click', () => {
-    container.style.display = 'none';
-  });
-  container.appendChild(closeBtn);
-
-  document.body.appendChild(container);
-
-  // Add toggle button
-  const toggleBtn = document.createElement('button');
-  toggleBtn.textContent = '🎛️';
-  toggleBtn.title = 'Open Tuning Panel';
-  toggleBtn.style.cssText = `
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    background: rgba(0, 255, 0, 0.2);
-    border: 1px solid #0f0;
-    color: #0f0;
-    font-size: 20px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    z-index: 9999;
-  `;
-  toggleBtn.addEventListener('click', () => {
-    container.style.display = container.style.display === 'none' ? 'block' : 'none';
-  });
-  document.body.appendChild(toggleBtn);
-
-  console.log('🎛️ Player tuning UI created');
-  return { container, toggleBtn };
-}
 
 /**
  * Initialize debug console commands
@@ -516,16 +418,6 @@ export function initializeDebugCommands() {
   window.celli.assets = assetPool;
   window.celli.sequences = sequenceEngine;
   window.celli.audio = audioSystem;
-
-  window.celli.showTuning = () => {
-    const ui = document.getElementById('playerTuningUI');
-    if (ui) ui.style.display = 'block';
-  };
-
-  window.celli.hideTuning = () => {
-    const ui = document.getElementById('playerTuningUI');
-    if (ui) ui.style.display = 'none';
-  };
 
   window.celli.exportConfig = () => {
     const json = configSystem.export();
@@ -548,7 +440,6 @@ export function initializeDebugCommands() {
   console.log('  - celli.assets (asset pool)');
   console.log('  - celli.sequences (sequence engine)');
   console.log('  - celli.audio (audio system)');
-  console.log('  - celli.showTuning() (show tuning UI)');
   console.log('  - celli.exportConfig() (export config)');
   console.log('  - celli.resetConfig() (reset to defaults)');
 }
@@ -556,7 +447,6 @@ export function initializeDebugCommands() {
 export default {
   initializeSystems,
   preloadAssets,
-  createPlayerTuningUI,
   initializeDebugCommands,
   registerDefaultConfig,
   registerAssets

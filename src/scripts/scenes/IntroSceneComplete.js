@@ -73,6 +73,139 @@ const LETTER_PATTERNS = {
   ]
 };
 
+// Compact 3x3 patterns for subtitle text
+const COMPACT_LETTER_PATTERNS = {
+  A: [
+    [0, 1, 0],
+    [1, 0, 1],
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 0, 1]
+  ],
+  D: [
+    [1, 1, 0],
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 1, 0]
+  ],
+  I: [
+    [1, 1, 1],
+    [0, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0],
+    [1, 1, 1]
+  ],
+  V: [
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+    [0, 1, 0],
+    [0, 1, 0]
+  ],
+  N: [
+    [1, 0, 0, 1],
+    [1, 1, 0, 1],
+    [1, 1, 1, 1],
+    [1, 0, 1, 1],
+    [1, 0, 0, 1]
+  ],
+  E: [
+    [1, 1, 1],
+    [1, 0, 0],
+    [1, 1, 0],
+    [1, 0, 0],
+    [1, 1, 1]
+  ],
+  C: [
+    [0, 1, 1],
+    [1, 0, 0],
+    [1, 0, 0],
+    [1, 0, 0],
+    [0, 1, 1]
+  ],
+  O: [
+    [0, 1, 0],
+    [1, 0, 1],
+    [1, 0, 1],
+    [1, 0, 1],
+    [0, 1, 0]
+  ],
+  M: [
+    [1, 0, 0, 0, 1],
+    [1, 1, 0, 1, 1],
+    [1, 0, 1, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1]
+  ],
+  Y: [
+    [1, 0, 1],
+    [1, 0, 1],
+    [0, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0]
+  ],
+  T: [
+    [1, 1, 1],
+    [0, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0]
+  ],
+  S: [
+    [0, 1, 1],
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+    [1, 1, 0]
+  ],
+  '+': [
+    [0, 0, 0],
+    [0, 1, 0],
+    [1, 1, 1],
+    [0, 1, 0],
+    [0, 0, 0]
+  ],
+  ' ': [
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0]
+  ]
+};
+
+// Mask patterns for clickable I's
+const MASK_PATTERNS = {
+  HAPPY: [ // Happy theater mask
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 0, 1, 1, 0, 1, 1],
+    [1, 0, 0, 1, 1, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 0, 0, 0, 0, 1, 1],
+    [1, 0, 1, 1, 1, 1, 0, 1],
+    [0, 1, 1, 1, 1, 1, 1, 0]
+  ],
+  SAD: [ // Sad theater mask
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 0, 1, 1, 0, 1, 1],
+    [1, 0, 0, 1, 1, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 1, 1, 1, 1, 0, 1],
+    [1, 1, 0, 0, 0, 0, 1, 1],
+    [0, 1, 1, 1, 1, 1, 1, 0]
+  ],
+  TROLL: [ // Troll face
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [1, 0, 0, 1, 1, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 1, 1, 1, 1, 0, 1],
+    [1, 0, 0, 1, 1, 0, 0, 1],
+    [0, 1, 1, 0, 0, 1, 1, 0]
+  ]
+};
+
 const COLOR_THEMES = {
   white: {
     base: new THREE.Color(0x2f3547),
@@ -118,6 +251,14 @@ const INTRO_AUDIO_LOOP_DELAY_MS = 4000;
 
 export class IntroSceneComplete {
   constructor() {
+    // Kill referrer overlay immediately when intro scene initializes
+    console.log('🎬 IntroScene constructor - killing referrer overlay');
+    if (typeof window.killReferrerOverlay === 'function') {
+      window.killReferrerOverlay();
+    } else {
+      console.warn('⚠️ killReferrerOverlay not available yet');
+    }
+    
     this.state = {
       running: false,
       totalTime: 0,
@@ -132,6 +273,23 @@ export class IntroSceneComplete {
       spheres: [],
       voxels: [],
       letterVoxels: { C: [], E: [], L1: [], L2: [], I: [] },
+      subtitleVoxels: [], // Subtitle text voxels
+      showSubtitle: false, // Only show on theme2
+      redSquareVoxel: null, // Reference to the red square for hover detection
+      redSquareExpanding: false,
+      redSquareExpansionStart: 0,
+      redSquareExpansionDuration: 3.0, // 3 seconds to fill screen
+      redSquareVideoPlayed: false,
+      redSquareFading: false,
+      redSquareFadeStart: 0,
+      redSquareFadeDuration: 2.5,
+      raycaster: null,
+      mouse: new THREE.Vector2(),
+      liquidShaderMaterial: null, // Liquid shader for red square
+      mouseTrail: [], // Trail of mouse positions for liquid effect
+      maskVoxels: [], // Spawned mask voxels
+      iVoxels: [[], [], []], // Arrays of voxels for each of the three I's in III+
+      clickedMasks: { 0: false, 1: false, 2: false }, // Track which I's have been clicked
       filmPass: null,
       triMesh: null, // Color triangle between spheres
       circleGeoTarget: null, // Target circle geometry for morphing
@@ -185,9 +343,10 @@ export class IntroSceneComplete {
       chimePlayed: false,
       skipShown: false,
       skipBowAnimated: false,
+      skipRequested: false,
       musicStarted: false,
       inputAttempted: false,
-      inputText: '=STAR',
+      inputText: '=STAR', // Match the HTML initial content
       tEntered: false,
       burstAnimStarted: false,
       celliBackspaceSequenceStarted: false,
@@ -227,6 +386,10 @@ export class IntroSceneComplete {
       hellTransformStart: 0,
       hellTransformDuration: 2.2,
       hellProgress: 0,
+      
+      // Queued actions before animation completes
+      queuedActions: [],
+      celliAnimationComplete: false,
 
       // Audio context
       audioCtx: null,
@@ -246,6 +409,8 @@ export class IntroSceneComplete {
       introAudioLoopTimeout: null,
       introAudioLoopScheduled: false,
       introAudioPlayCount: 0,
+      introAudioPaused: false,
+      introAudioSavedGain: 0.7,
 
       // Color theme
       currentTheme: 'white'
@@ -450,11 +615,26 @@ export class IntroSceneComplete {
   }
 
   _handlePromptBackspace() {
-    // Allow backspace to trigger restoration even without typing START
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🔙 BACKSPACE HANDLER CALLED');
+    console.log('  → celliGlitchStarted:', this.state.celliGlitchStarted);
+    console.log('  → restoredLetters:', this.state.restoredLetters);
+    console.log('  → inputText BEFORE:', JSON.stringify(this.state.inputText));
+    console.log('  → promptBaseText:', JSON.stringify(this.state.promptBaseText));
+    
+    // Always remove character from input text for visual feedback
     const hasExtraText = this.state.inputText.length > this.state.promptBaseText.length;
+    console.log('  → hasExtraText:', hasExtraText);
+    console.log('  → inputText.length:', this.state.inputText.length);
+    console.log('  → promptBaseText.length:', this.state.promptBaseText.length);
     
     if (hasExtraText) {
+      console.log('  ✅ HAS EXTRA TEXT - removing one character');
+      
+      // Remove one character from the input text (e.g., removing letters from "STAR" or "END")
       this.state.inputText = this.state.inputText.slice(0, -1);
+      console.log('  → inputText AFTER slice:', JSON.stringify(this.state.inputText));
+      
       this.state.tEntered = false;
 
       if (this.state.endSequence.length) {
@@ -465,30 +645,141 @@ export class IntroSceneComplete {
         this.state.endSequence = '';
       }
 
+      // ALWAYS update visual prompt text
+      console.log('  → Calling _setPromptText with:', JSON.stringify(this.state.inputText));
       this._setPromptText(this.state.inputText);
 
       if (this.state.hiddenInput) {
         this.state.hiddenInput.value = '';
+        console.log('  → hiddenInput cleared');
       }
+    } else {
+      console.log('  ⚠️ NO EXTRA TEXT - not removing character');
     }
 
-    // Trigger backspace restoration if burst animation has happened
-    if (this.state.burstAnimStarted) {
-      if (!this.state.celliBackspaceSequenceStarted) {
-        this.state.celliBackspaceSequenceStarted = true;
-        this.state.celliBackspaceSequenceTime = 0;
+    // After glitch has started, restore ONE letter at a time
+    if (this.state.celliGlitchStarted || this.state.burstAnimStarted) {
+      // Check if there are more letters to restore
+      const maxLetters = Array.isArray(this.state.lettersToRestore) ? this.state.lettersToRestore.length : 4;
+      
+      if (this.state.restoredLetters < maxLetters) {
+        console.log('✅ Restoring one letter, current count:', this.state.restoredLetters);
+        this._restoreOneLetter();
+      } else {
+        console.log('⚠️ All letters already restored');
       }
-
-      this._updateBackspaceTargetFromPrompt();
-      if (this.state.celliBackspaceTarget > this.state.restoredLetters) {
-        this.state.celliBackspaceSequenceTime = Math.max(
-          this.state.celliBackspaceSequenceTime,
-          0.5
-        );
-      }
+    } else {
+      console.log('⚠️ Glitch not started yet, cannot restore');
     }
 
     return true;
+  }
+
+  _restoreOneLetter() {
+    const letterIndex = this.state.restoredLetters;
+    const letterKey = this.state.lettersToRestore[letterIndex];
+    
+    if (!letterKey) {
+      console.log('⚠️ No letter to restore at index', letterIndex);
+      return;
+    }
+
+    console.log(`🔤 Restoring letter: ${letterKey} (index ${letterIndex})`);
+    
+    // Restore voxels for this letter
+    const letterVoxels = this.state.letterVoxels[letterKey];
+    if (letterVoxels && letterVoxels.length) {
+      letterVoxels.forEach((voxel, idx) => {
+        const data = voxel.userData;
+        if (!data) return;
+        
+        // Mark for restoration
+        data.restorePending = true;
+        data.restoreStartTime = this.state.totalTime + idx * 0.015; // Stagger slightly
+        data.restoreDelay = 0.3 + Math.random() * 0.15;
+        
+        // Reset rain state
+        data.rainActive = false;
+        data.burstActive = false;
+        data.glitched = false;
+      });
+    }
+    
+    // Restore the corresponding DOM letter in doorway SVG
+    this._restoreDoorwayLetter(letterKey, letterIndex);
+    
+    // Increment count
+    this.state.restoredLetters++;
+    
+    // Play restoration sound
+    this._playRestoreChime();
+  }
+
+  _restoreDoorwayLetter(letterKey, letterIndex) {
+    // Map letter keys to DOM IDs
+    const letterMap = {
+      'C': 'svg-letter-c',
+      'E': 'svg-letter-e',
+      'L1': 'svg-letter-l1',
+      'L2': 'svg-letter-l2',
+      'I': 'svg-letter-i'
+    };
+    
+    const letterId = letterMap[letterKey];
+    if (!letterId) {
+      console.warn('⚠️ Unknown letter key:', letterKey);
+      return;
+    }
+    
+    // Restore the letter in doorway
+    const letterEl = document.getElementById(letterId);
+    if (letterEl) {
+      letterEl.style.opacity = '1';
+      letterEl.style.transition = 'opacity 0.4s ease-out';
+      console.log(`✅ Restored DOM letter: ${letterKey}`);
+    } else {
+      console.warn(`⚠️ Letter element not found: ${letterId}`);
+    }
+    
+    // Special case: restore bow with C letter (first restoration)
+    if (letterKey === 'C') {
+      const bow = document.getElementById('svg-bow');
+      if (bow) {
+        bow.style.opacity = '1';
+        bow.style.transition = 'opacity 0.4s ease-out';
+        console.log('🎀 Restored bow with C letter');
+      } else {
+        console.warn('⚠️ Bow element not found');
+      }
+    }
+  }
+
+  _playRestoreChime() {
+    if (!this.state.audioCtx) return;
+    
+    try {
+      const now = this.state.audioCtx.currentTime;
+      const osc = this.state.audioCtx.createOscillator();
+      const gain = this.state.audioCtx.createGain();
+      
+      // Melodic chime (C major chord notes)
+      const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+      const noteIndex = this.state.restoredLetters % notes.length;
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(notes[noteIndex], now);
+      
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.08, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      
+      osc.connect(gain);
+      gain.connect(this.state.audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.4);
+    } catch (e) {
+      console.warn('Restore chime sound failed:', e);
+    }
   }
 
   _handleTInput() {
@@ -705,6 +996,12 @@ export class IntroSceneComplete {
   async init() {
     console.log('🎬 Initializing Complete Intro Scene...');
 
+    // Kill referrer overlay to prevent it from showing over intro
+    console.log('🎬 IntroScene init - killing referrer overlay');
+    if (typeof window.killReferrerOverlay === 'function') {
+      window.killReferrerOverlay();
+    }
+
     const app = document.getElementById('app');
     
     // Create renderer
@@ -748,11 +1045,27 @@ export class IntroSceneComplete {
     // Create CELLI voxels
     const { voxels, letterVoxels, tVoxels } = this._createVoxels(scene);
     
+    // Check if construction is complete to determine if subtitle should show
+    const constructionComplete = this._readConstructionCompletionFlag();
+    this.state.showSubtitle = constructionComplete;
+    
+    // Create subtitle voxels if construction is complete (theme2)
+    const voxelGeo = new THREE.BoxGeometry(this.voxelSize * 0.95, this.voxelSize * 0.95, this.voxelSize * 0.15);
+    const edgesGeo = new THREE.EdgesGeometry(voxelGeo);
+    const subtitleVoxels = constructionComplete ? this._createSubtitleVoxels(scene, voxelGeo, edgesGeo) : [];
+    
+    // Store geometries for mask spawning
+    this.state.voxelGeo = voxelGeo;
+    this.state.edgesGeo = edgesGeo;
+    
     // Post-processing
     const { composer, bloomPass, afterimagePass, filmPass } = this._createPostProcessing(renderer, scene, camera);
     
     // Store circle geometry for morphing
     const circleGeoTarget = new THREE.CircleGeometry(0.16, 64);
+    
+    // Initialize raycaster for red square hover detection
+    const raycaster = new THREE.Raycaster();
     
     // Initialize audio
     this._initAudio();
@@ -769,6 +1082,8 @@ export class IntroSceneComplete {
     this.state.voxels = voxels;
     this.state.letterVoxels = letterVoxels;
     this.state.tVoxels = tVoxels;
+    this.state.subtitleVoxels = subtitleVoxels;
+    this.state.raycaster = raycaster;
     this.state.filmPass = filmPass;
     this.state.triMesh = triMesh;
     this.state.circleGeoTarget = circleGeoTarget;
@@ -1140,6 +1455,271 @@ export class IntroSceneComplete {
     return tVoxels;
   }
 
+  _createSubtitleVoxels(scene, voxelGeo, edgesGeo) {
+    const subtitle = "A DIVINE COMEDY IN III+ ACTS";
+    const subtitleVoxels = [];
+    const compactVoxelSize = this.voxelSize * 0.32; // Even smaller voxels for subtitle
+    const compactScale = 0.32;
+    const letterSpacing = compactVoxelSize * 5.5; // Spacing between letters (one block apart)
+    const iiSpacing = compactVoxelSize * 3.8; // Tighter spacing for consecutive I's
+    let iiiCounter = 0; // Track which I in "III+" we're on
+    
+    // Calculate total width (accounting for reduced spacing between consecutive I's)
+    let totalWidth = 0;
+    for (let i = 0; i < subtitle.length; i++) {
+      const char = subtitle[i];
+      const nextChar = i + 1 < subtitle.length ? subtitle[i + 1] : null;
+      if (char === 'I' && nextChar === 'I') {
+        totalWidth += iiSpacing;
+      } else {
+        totalWidth += letterSpacing;
+      }
+    }
+    const startX = -totalWidth / 2;
+    const startY = -0.20; // Further below CELLI letters (CELLI is centered at ~0.35)
+    
+    let currentX = startX;
+    
+    for (let i = 0; i < subtitle.length; i++) {
+      const char = subtitle[i];
+      const pattern = COMPACT_LETTER_PATTERNS[char];
+      
+      // Add red square between E and D in "COMEDY" (center row)
+      if (subtitle.slice(i, i + 6) === 'COMEDY' && subtitle[i] === 'C') {
+        // Between E (i+3) and D (i+4), add red square - calculate based on C position
+        // C is at currentX, O at +1, M at +2, E at +3, D at +4
+        const redSquareX = currentX + letterSpacing * 3.4; // Slightly to the right of E
+        const redSquareY = startY; // Center row
+        
+        const redMat = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(0xff0000), // Red
+          transparent: true,
+          opacity: 0,
+          blending: THREE.NormalBlending,
+          side: THREE.FrontSide
+        });
+        const redEdgeMat = new THREE.LineBasicMaterial({
+          color: new THREE.Color(0xff4444),
+          transparent: true,
+          opacity: 0,
+          linewidth: 1
+        });
+        
+        const redVoxel = new THREE.Mesh(voxelGeo.clone(), redMat);
+        const redEdges = new THREE.LineSegments(edgesGeo.clone(), redEdgeMat);
+        redVoxel.add(redEdges);
+        
+        redVoxel.userData = {
+          targetX: redSquareX,
+          targetY: redSquareY,
+          startY: redSquareY + 1.2 + Math.random() * 0.4,
+          dropDelay: 5.5 + (i + 3) * 0.05 + 0.025, // i+3 is position of E
+          dropSpeed: 0.018 + Math.random() * 0.006,
+          settled: false,
+          jigglePhase: Math.random() * Math.PI * 2,
+          flickerPhase: Math.random() * Math.PI * 2,
+          edges: redEdges,
+          baseScale: compactScale,
+          baseColor: new THREE.Color(0xaa0000),
+          glowColor: new THREE.Color(0xff0000),
+          edgesBaseColor: new THREE.Color(0xcc0000),
+          edgesGlowColor: new THREE.Color(0xff4444),
+          isRedSquare: true
+        };
+        
+        redVoxel.scale.set(compactScale, compactScale, compactScale);
+        redVoxel.position.set(redSquareX, redVoxel.userData.startY, -0.001);
+        redVoxel.visible = false;
+        scene.add(redVoxel);
+        subtitleVoxels.push(redVoxel);
+        
+        // Store reference for hover detection
+        this.state.redSquareVoxel = redVoxel;
+      }
+      
+      if (!pattern) {
+        currentX += letterSpacing;
+        continue;
+      }
+      
+      // Check if this is an I in "III+" (positions 19, 20, 21 in the string)
+      const isIInIII = char === 'I' && i >= 19 && i <= 21;
+      
+      pattern.forEach((row, rowIdx) => {
+        row.forEach((cell, colIdx) => {
+          if (cell === 1) {
+            // Check if this is E and if it's the top or bottom middle square
+            const isE = char === 'E';
+            const isMiddleColumn = colIdx === 1; // Middle column in 3-column pattern
+            const isTopRow = rowIdx === 0;
+            const isBottomRow = rowIdx === 4;
+            const isDarkerSquare = isE && isMiddleColumn && (isTopRow || isBottomRow);
+            
+            const baseColor = isDarkerSquare ? new THREE.Color(0x1a1f2a) : COLOR_THEMES.white.base.clone();
+            const edgeBaseColor = isDarkerSquare ? new THREE.Color(0x2a3342) : COLOR_THEMES.white.edgeBase.clone();
+            
+            const mat = new THREE.MeshBasicMaterial({
+              color: baseColor,
+              transparent: true,
+              opacity: 0,
+              blending: THREE.NormalBlending,
+              side: THREE.FrontSide
+            });
+            const edgeMat = new THREE.LineBasicMaterial({
+              color: edgeBaseColor,
+              transparent: true,
+              opacity: 0,
+              linewidth: 1
+            });
+            
+            const voxel = new THREE.Mesh(voxelGeo.clone(), mat);
+            const edges = new THREE.LineSegments(edgesGeo.clone(), edgeMat);
+            voxel.add(edges);
+            
+            // Calculate center offset based on pattern width
+            const patternWidth = pattern[0].length;
+            const centerOffset = (patternWidth - 1) / 2;
+            
+            const x = currentX + (colIdx - centerOffset) * compactVoxelSize * 1.3;
+            const y = startY + (2 - rowIdx) * compactVoxelSize * 1.3;
+            
+            const glowColor = isDarkerSquare ? new THREE.Color(0x3a4557) : COLOR_THEMES.white.glow.clone();
+            const edgesGlowColor = isDarkerSquare ? new THREE.Color(0x4a5567) : COLOR_THEMES.white.edgeGlow.clone();
+            
+            voxel.userData = {
+              targetX: x,
+              targetY: y,
+              startY: y + 1.2 + Math.random() * 0.4,
+              dropDelay: 5.5 + i * 0.05 + (rowIdx * colIdx) * 0.01, // Start after CELLI finishes spawning (~5.5s)
+              dropSpeed: 0.018 + Math.random() * 0.006,
+              settled: false,
+              jigglePhase: Math.random() * Math.PI * 2,
+              flickerPhase: Math.random() * Math.PI * 2,
+              edges: edges,
+              baseScale: compactScale,
+              baseColor: baseColor,
+              glowColor: glowColor,
+              edgesBaseColor: edgeBaseColor,
+              edgesGlowColor: edgesGlowColor,
+              isDarkerSquare: isDarkerSquare,
+              isClickableI: isIInIII,
+              iIndex: isIInIII ? iiiCounter : -1 // Which I in III+ (0, 1, or 2)
+            };
+            
+            voxel.scale.set(compactScale, compactScale, compactScale);
+            voxel.position.set(x, voxel.userData.startY, -0.001);
+            voxel.visible = false;
+            scene.add(voxel);
+            subtitleVoxels.push(voxel);
+            
+            // Store ALL voxels of each I letter for click detection
+            if (isIInIII) {
+              this.state.iVoxels[iiiCounter].push(voxel);
+            }
+          }
+        });
+      });
+      
+      // Increment iiiCounter after processing each I in "III+"
+      if (isIInIII) {
+        console.log(`🔤 Processed I #${iiiCounter} with ${this.state.iVoxels[iiiCounter].length} voxels`);
+        iiiCounter++;
+      }
+      
+      // Reduce spacing between consecutive I's in "III"
+      const nextChar = i + 1 < subtitle.length ? subtitle[i + 1] : null;
+      if (char === 'I' && nextChar === 'I') {
+        currentX += compactVoxelSize * 3.8; // Much tighter spacing for I-I
+      } else {
+        currentX += letterSpacing;
+      }
+    }
+    
+    return subtitleVoxels;
+  }
+
+  _spawnMaskVoxels(scene, voxelGeo, edgesGeo, maskType, iIndex) {
+    const pattern = MASK_PATTERNS[maskType];
+    if (!pattern) return;
+    
+    const maskVoxels = [];
+    const compactVoxelSize = this.voxelSize * 0.32;
+    const compactScale = 0.32;
+    
+    // Position between CELLI (y ~0.35) and subtitle (y ~-0.20)
+    const maskY = 0.05;
+    const maskX = 0; // Center horizontally
+    
+    pattern.forEach((row, rowIdx) => {
+      row.forEach((cell, colIdx) => {
+        if (cell === 1) {
+          const baseColor = COLOR_THEMES.white.base.clone();
+          const edgeBaseColor = COLOR_THEMES.white.edgeBase.clone();
+          
+          const mat = new THREE.MeshBasicMaterial({
+            color: baseColor,
+            transparent: true,
+            opacity: 0,
+            blending: THREE.NormalBlending,
+            side: THREE.FrontSide
+          });
+          const edgeMat = new THREE.LineBasicMaterial({
+            color: edgeBaseColor,
+            transparent: true,
+            opacity: 0,
+            linewidth: 1
+          });
+          
+          const voxel = new THREE.Mesh(voxelGeo.clone(), mat);
+          const edges = new THREE.LineSegments(edgesGeo.clone(), edgeMat);
+          voxel.add(edges);
+          
+          // Center the pattern
+          const patternWidth = pattern[0].length;
+          const patternHeight = pattern.length;
+          const centerOffsetX = (patternWidth - 1) / 2;
+          const centerOffsetY = (patternHeight - 1) / 2;
+          
+          const x = maskX + (colIdx - centerOffsetX) * compactVoxelSize * 1.3;
+          const y = maskY + (centerOffsetY - rowIdx) * compactVoxelSize * 1.3;
+          
+          const glowColor = COLOR_THEMES.white.glow.clone();
+          const edgesGlowColor = COLOR_THEMES.white.edgeGlow.clone();
+          
+          voxel.userData = {
+            targetX: x,
+            targetY: y,
+            startY: y + 1.5 + Math.random() * 0.5, // Drop from higher
+            dropDelay: 0.1 + (rowIdx * patternWidth + colIdx) * 0.025, // Stagger drop
+            dropSpeed: 0.022 + Math.random() * 0.008,
+            settled: false,
+            jigglePhase: Math.random() * Math.PI * 2,
+            flickerPhase: Math.random() * Math.PI * 2,
+            edges: edges,
+            baseScale: compactScale,
+            baseColor: baseColor,
+            glowColor: glowColor,
+            edgesBaseColor: edgeBaseColor,
+            edgesGlowColor: edgesGlowColor,
+            isMask: true,
+            maskType: maskType,
+            maskIIndex: iIndex,
+            spawnTime: this.state.totalTime || 0 // Track when mask was spawned
+          };
+          
+          voxel.scale.set(compactScale, compactScale, compactScale);
+          voxel.position.set(x, voxel.userData.startY, 0.1); // Slightly forward
+          voxel.visible = true;
+          scene.add(voxel);
+          maskVoxels.push(voxel);
+          this.state.maskVoxels.push(voxel);
+        }
+      });
+    });
+    
+    return maskVoxels;
+  }
+
   _createFlatVoxelGeometry() {
     const size = this.voxelSize * 0.95;
     return new THREE.BoxGeometry(size, size, this.voxelSize * 0.15);
@@ -1234,7 +1814,7 @@ export class IntroSceneComplete {
   }
 
   _setColorPhase(theme) {
-    const palette = this.colorThemes[theme];
+    const palette = COLOR_THEMES[theme];
     if (!palette) {
       return;
     }
@@ -1830,13 +2410,59 @@ export class IntroSceneComplete {
    * Setup event listeners
    */
   _setupEventListeners() {
-    // Click handler for text particles
+    // Click handler for text particles and I voxel clicks
     this._clickHandler = (e) => {
       if (!this.state.running) return;
       
       // Convert screen to world coordinates
       const x = (e.clientX / window.innerWidth) * 2 - 1;
       const y = -(e.clientY / window.innerHeight) * 2 + 1;
+      
+      // Check if clicking on an I voxel (flatten all I voxel arrays)
+      const allIVoxels = this.state.iVoxels.flat().filter(v => v && v.visible);
+      console.log(`🖱️ Click detected - ${allIVoxels.length} clickable I voxels available`);
+      
+      if (this.state.raycaster && allIVoxels.length > 0) {
+        this.state.mouse.set(x, y);
+        this.state.raycaster.setFromCamera(this.state.mouse, this.state.camera);
+        
+        // Try raycasting with recursive search for child meshes
+        const intersects = this.state.raycaster.intersectObjects(allIVoxels, true);
+        console.log(`  → ${intersects.length} intersections found`);
+        
+        if (intersects.length > 0) {
+          // Find the first intersected object that has iIndex, checking parent chain
+          let clickedVoxel = intersects[0].object;
+          let iIndex = clickedVoxel.userData?.iIndex;
+          
+          // If the clicked object doesn't have iIndex, traverse up to find parent with iIndex
+          if (iIndex === undefined) {
+            let current = clickedVoxel.parent;
+            while (current && iIndex === undefined) {
+              iIndex = current.userData?.iIndex;
+              if (iIndex !== undefined) {
+                clickedVoxel = current;
+                break;
+              }
+              current = current.parent;
+            }
+          }
+          
+          console.log(`  → Clicked object: ${clickedVoxel.name || 'unnamed'}`);
+          console.log(`  → Found iIndex: ${iIndex}, already clicked: ${this.state.clickedMasks[iIndex]}`);
+          
+          if (iIndex >= 0 && iIndex <= 2 && !this.state.clickedMasks[iIndex]) {
+            console.log(`🎭 Clicked I #${iIndex} - spawning mask!`);
+            this.state.clickedMasks[iIndex] = true;
+            
+            // Spawn appropriate mask
+            const maskTypes = ['HAPPY', 'SAD', 'TROLL'];
+            const maskType = maskTypes[iIndex];
+            this._spawnMaskVoxels(this.state.scene, this.state.voxelGeo, this.state.edgesGeo, maskType, iIndex);
+          }
+          return; // Don't create text particles if clicking on I
+        }
+      }
       
       // Create text particles at click position
       this._createTextParticlesAtPosition(x, y);
@@ -1845,10 +2471,18 @@ export class IntroSceneComplete {
 
     // Keyboard handler for doorway input
     this._keydownHandler = (e) => {
-      if (!this.state.running) return;
+      console.log('⌨️ KEYDOWN EVENT:', e.key);
+      
+      if (!this.state.running) {
+        console.log('  → Not running, ignoring');
+        return;
+      }
 
       if (this.state.doorwayOpened) {
+        console.log('  → Doorway opened, calling _handleDoorwayInput');
         this._handleDoorwayInput(e);
+      } else {
+        console.log('  → Doorway not opened yet');
       }
     };
     document.addEventListener('keydown', this._keydownHandler);
@@ -1864,9 +2498,19 @@ export class IntroSceneComplete {
           event.preventDefault();
         }
 
+        // Check if CELLI animation is complete
+        const allSettled = this.state.voxels.every(v => v.userData && v.userData.settled);
+        if (!allSettled) {
+          console.log('⏳ CELLI animation not complete, queuing click action');
+          this.state.queuedActions.push({ type: 'click', event });
+          return;
+        }
+
         this.state.inputAttempted = true;
 
+        // Only trigger glitch if not already started
         if (!this.state.celliGlitchStarted) {
+          console.log('✨ All voxels settled, triggering glitch');
           this._triggerCelliGlitchRain();
         }
 
@@ -1884,11 +2528,15 @@ export class IntroSceneComplete {
       this.state.hiddenInput = hiddenInput;
 
       this._hiddenBeforeInputHandler = (evt) => {
+        console.log('📥 HIDDEN INPUT BEFOREINPUT EVENT:', evt.inputType);
+        
         if (!this.state.running || !this.state.doorwayOpened) {
+          console.log('  → Not running or doorway not opened, ignoring');
           return;
         }
 
         if (!this.state.doorwayInputActive) {
+          console.log('  → doorwayInputActive is false, preventing default');
           if (evt && typeof evt.preventDefault === 'function') {
             evt.preventDefault();
           }
@@ -1896,6 +2544,7 @@ export class IntroSceneComplete {
         }
 
         if (evt.inputType === 'deleteContentBackward') {
+          console.log('  → DELETE CONTENT BACKWARD - calling _handlePromptBackspace');
           evt.preventDefault();
           this._handlePromptBackspace();
         }
@@ -1925,10 +2574,1258 @@ export class IntroSceneComplete {
     if (skipBtn) {
       this._skipClickHandler = () => {
         console.log('⏩ Skip button clicked');
+        this.state.skipRequested = true;
         // Skip to doorway phase
         this.state.totalTime = this.state.introCfg.celliEnd;
       };
       skipBtn.addEventListener('click', this._skipClickHandler);
+    }
+    
+    // Mouse move handler for red square hover detection and liquid shader
+    this._mouseMoveHandler = (e) => {
+      if (!this.state.running) {
+        return;
+      }
+      
+      // Always update mouse position for liquid shader
+      this.state.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      this.state.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      
+      // Check for hover to start expansion
+      if (this.state.raycaster && this.state.showSubtitle && this.state.redSquareVoxel) {
+        const voxel = this.state.redSquareVoxel;
+        
+        // Debug: log status periodically (every 60 frames)
+        if (!this._hoverCheckCount) this._hoverCheckCount = 0;
+        this._hoverCheckCount++;
+        
+        if (this._hoverCheckCount % 60 === 0) {
+          console.log('🔴 Red square status:', {
+            visible: voxel.visible,
+            settled: voxel.userData?.settled,
+            expanding: this.state.redSquareExpanding,
+            played: this.state.redSquareVideoPlayed,
+            fading: this.state.redSquareFading,
+            position: voxel.position
+          });
+        }
+        
+        const isReady = voxel.visible && 
+                       voxel.userData && voxel.userData.settled &&
+                       !this.state.redSquareExpanding && 
+                       !this.state.redSquareVideoPlayed &&
+                       !this.state.redSquareFading;
+        
+        if (isReady) {
+          // Detect if on mobile/touch device
+          const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+          
+          // ONLY use raycasting - cursor must be directly on the voxel (NOT children like edges)
+          this.state.raycaster.setFromCamera(this.state.mouse, this.state.camera);
+          
+          // Raycast ONLY the main voxel mesh, not its children (edges, etc.)
+          const intersects = this.state.raycaster.intersectObject(voxel, false);
+          
+          if (intersects.length > 0) {
+            // For mobile: use much more forgiving distance check
+            // For desktop: match exact voxel dimensions
+            const hitPoint = intersects[0].point;
+            const voxelPos = new THREE.Vector3();
+            voxel.getWorldPosition(voxelPos);
+            const distance = hitPoint.distanceTo(voxelPos);
+            
+            // Mobile: 3x the voxel diagonal for easy tapping
+            // Desktop: Exact voxel size (diagonal = sqrt(3) * VOXEL_SIZE ≈ 0.087)
+            const maxDistance = isMobile 
+              ? VOXEL_SIZE * Math.sqrt(3) * 3  // ~0.26 for mobile (very forgiving)
+              : VOXEL_SIZE * Math.sqrt(3);      // ~0.087 for desktop (exact box dimensions)
+            
+            if (distance < maxDistance) {
+              console.log(`🔴 Red square hovered (${isMobile ? 'mobile' : 'desktop'}, distance: ${distance.toFixed(3)}) - starting expansion`);
+            this._startRedSquareExpansion();
+            }
+          }
+        }
+      }
+    };
+    document.addEventListener('mousemove', this._mouseMoveHandler);
+    
+    // Add touch support for mobile - convert touch to mouse position
+    this._touchMoveHandler = (e) => {
+      if (!this.state.running) return;
+      if (e.touches && e.touches.length > 0) {
+        const touch = e.touches[0];
+        // Update mouse position from touch
+        this.state.mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        this.state.mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        
+        // Trigger the same hover detection logic
+        this._mouseMoveHandler(touch);
+      }
+    };
+    document.addEventListener('touchmove', this._touchMoveHandler, { passive: true });
+    
+    // Also check on touchstart for immediate feedback
+    this._touchStartHandler = (e) => {
+      if (!this.state.running) return;
+      if (e.touches && e.touches.length > 0) {
+        const touch = e.touches[0];
+        this.state.mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        this.state.mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+        this._mouseMoveHandler(touch);
+      }
+    };
+    document.addEventListener('touchstart', this._touchStartHandler, { passive: true });
+  }
+
+  /**
+   * Start red square expansion animation
+   */
+  _startRedSquareExpansion() {
+    if (this.state.redSquareExpanding || this.state.redSquareVideoPlayed) {
+      return;
+    }
+    
+    this.state.redSquareExpanding = true;
+    this.state.redSquareExpansionStart = performance.now();
+    console.log('🔴 Starting red square expansion animation');
+    
+    // Ensure voxel is visible and brought to front
+    this.state.redSquareVoxel.visible = true;
+    this.state.redSquareVoxel.renderOrder = 999999; // Extremely high render order to render last
+    
+    // Store original z position
+    if (!this.state.redSquareVoxel.userData.originalZ) {
+      this.state.redSquareVoxel.userData.originalZ = this.state.redSquareVoxel.position.z;
+    }
+    
+    // Move to front - camera at z:2 looking toward z:0, so use z:1.5 to be closest to camera
+    this.state.redSquareVoxel.position.z = 1.5;
+    console.log('🔴 Red square z-position set to 1.5 (closest to camera), renderOrder:', this.state.redSquareVoxel.renderOrder);
+    
+    // Replace material with liquid shader
+    this._applyLiquidShader();
+  }
+  
+  /**
+   * Create and apply liquid shader to red square
+   */
+  _applyLiquidShader() {
+    if (!this.state.redSquareVoxel) return;
+    
+    const liquidMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        baseColor: { value: new THREE.Color(0xff0000) },
+        mousePos: { value: new THREE.Vector2(0.5, 0.5) },
+        opacity: { value: 0.85 },
+        expansionProgress: { value: 0.0 },
+        trailPositions: { value: [] }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vPosition;
+        void main() {
+          vUv = uv;
+          vPosition = position;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+      uniform float time;
+      uniform vec3 baseColor;
+      uniform vec2 mousePos;
+      uniform float opacity;
+      uniform float expansionProgress;
+      varying vec2 vUv;
+      varying vec3 vPosition;
+        
+        // Enhanced noise functions for fluid simulation
+        float hash(vec2 p) {
+          vec3 p3 = fract(vec3(p.xyx) * 0.13);
+          p3 += dot(p3, p3.yzx + 3.333);
+          return fract((p3.x + p3.y) * p3.z);
+        }
+        
+        float noise(vec2 x) {
+          vec2 i = floor(x);
+          vec2 f = fract(x);
+          f = f * f * (3.0 - 2.0 * f);
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+        
+        // Fractal Brownian Motion for organic liquid movement
+        float fbm(vec2 p) {
+          float value = 0.0;
+          float amplitude = 0.5;
+          float frequency = 1.0;
+          for(int i = 0; i < 5; i++) {
+            value += amplitude * noise(p * frequency);
+            frequency *= 2.0;
+            amplitude *= 0.5;
+          }
+          return value;
+        }
+        
+        // Turbulent flow field
+        vec2 flowField(vec2 p, float t) {
+          float angle = fbm(p + vec2(t * 0.1)) * 6.28318;
+          return vec2(cos(angle), sin(angle)) * 0.5;
+        }
+        
+        void main() {
+          vec2 uv = vUv;
+          
+          // Calculate distance and direction from mouse
+          vec2 toMouse = mousePos - uv;
+          float distToMouse = length(toMouse);
+          vec2 dirToMouse = normalize(toMouse);
+          
+          // SMALLER influence area but LONGER trails
+          float viscosity = smoothstep(0.15, 0.0, distToMouse); // Reduced from 0.4 to 0.15
+          
+          // Flowing turbulence like moving through thick liquid
+          vec2 flowOffset = flowField(uv * 3.0, time * 0.3);
+          vec2 turbulence = vec2(
+            fbm(uv * 4.0 + flowOffset + time * 0.15),
+            fbm(uv * 4.0 - flowOffset + time * 0.2)
+          ) * 0.03;
+          
+          // Mouse wake effect - EXTENDED trails with slower decay
+          float trailDecay = exp(-distToMouse * 3.0); // Reduced from 8.0 for longer trails
+          float wake = trailDecay * sin(distToMouse * 35.0 - time * 2.5); // Increased frequency, slower motion
+          vec2 wakeDistortion = dirToMouse * wake * 0.12 * viscosity; // Increased strength
+          
+          // Radial displacement - tighter but stronger in small area
+          float radialPush = smoothstep(0.12, 0.0, distToMouse); // Tighter radius
+          vec2 radialDisplace = -dirToMouse * radialPush * 0.08; // Stronger push
+          
+          // Add persistent trail effect
+          float trailEffect = exp(-distToMouse * 2.0) * sin(time * 1.5 + distToMouse * 20.0);
+          vec2 trailDistortion = dirToMouse * trailEffect * 0.04;
+          
+          // Combine all distortions for liquid-like movement with trails
+          vec2 distortedUV = uv + turbulence + wakeDistortion + radialDisplace + trailDistortion;
+          
+          // Multi-layered color variation for depth
+          float colorNoise1 = fbm(distortedUV * 5.0 + time * 0.1);
+          float colorNoise2 = fbm(distortedUV * 8.0 - time * 0.15);
+          float colorNoise3 = fbm(distortedUV * 12.0 + time * 0.2);
+          
+          // Create rich color variations
+          vec3 darkColor = baseColor * 0.4;
+          vec3 midColor = baseColor * 0.85;
+          vec3 brightColor = baseColor * 1.4;
+          
+          vec3 color = mix(darkColor, midColor, colorNoise1);
+          color = mix(color, brightColor, colorNoise2 * 0.6);
+          
+          // Swirling highlights like light refracting through liquid
+          float swirl = fbm(distortedUV * 6.0 + flowOffset * 2.0 + time * 0.25);
+          float highlight = pow(swirl, 3.0) * 0.7;
+          color += vec3(highlight * 0.6, highlight * 0.3, highlight * 0.15);
+          
+          // Mouse trail glow - tighter core but extended trail
+          float trailGlowCore = smoothstep(0.08, 0.0, distToMouse); // Tight core
+          float trailGlowExtended = smoothstep(0.5, 0.0, distToMouse); // Extended trail
+          float glowPulse = 0.5 + 0.5 * sin(time * 2.0);
+          
+          // Combine core and trail
+          float totalGlow = trailGlowCore * 1.5 + trailGlowExtended * 0.4;
+          color += vec3(
+            totalGlow * (0.8 + glowPulse * 0.2),
+            totalGlow * 0.4,
+            totalGlow * 0.2
+          );
+          
+          // Caustics-like effect (light patterns through liquid)
+          float caustic1 = fbm(uv * 8.0 + time * 0.4);
+          float caustic2 = fbm(uv * 12.0 - time * 0.5);
+          float caustics = pow(max(caustic1, caustic2), 4.0) * 0.3;
+          color += vec3(caustics * 0.5, caustics * 0.3, caustics * 0.1);
+          
+          // Edge darkening for depth
+          float edgeFade = smoothstep(0.0, 0.15, min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y)));
+          color *= 0.4 + 0.6 * edgeFade;
+          
+          // Add subtle shimmer
+          float shimmer = noise(uv * 20.0 + time) * 0.1;
+          color += vec3(shimmer * viscosity);
+          
+          // Edge gradient that fades during expansion
+          float edgeDist = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
+          float edgeGradient = smoothstep(0.0, 0.15, edgeDist); // Gradient from edges
+          float gradientStrength = (1.0 - expansionProgress) * 0.6; // Fade out during expansion
+          color = mix(color * 0.3, color, edgeGradient + gradientStrength);
+          
+          gl_FragColor = vec4(color, opacity);
+        }
+      `,
+      transparent: true,
+      side: THREE.DoubleSide,
+      blending: THREE.NormalBlending,
+      depthWrite: false
+    });
+    
+    this.state.liquidShaderMaterial = liquidMaterial;
+    
+    // Apply material and ensure it's set up correctly
+    const oldMaterial = this.state.redSquareVoxel.material;
+    this.state.redSquareVoxel.material = liquidMaterial;
+    this.state.redSquareVoxel.material.needsUpdate = true;
+    
+    // Dispose old material
+    if (oldMaterial && oldMaterial !== liquidMaterial) {
+      oldMaterial.dispose();
+    }
+    
+    console.log('🌊 Liquid shader applied, material:', {
+      transparent: liquidMaterial.transparent,
+      side: liquidMaterial.side,
+      depthWrite: liquidMaterial.depthWrite,
+      visible: this.state.redSquareVoxel.visible
+    });
+    
+    // Remove edges during liquid effect for cleaner look
+    const edges = this.state.redSquareVoxel.userData.edges;
+    if (edges) {
+      edges.visible = false;
+    }
+  }
+  
+  /**
+   * Update red square expansion
+   */
+  _updateRedSquareExpansion() {
+    if (!this.state.redSquareExpanding || !this.state.redSquareVoxel) {
+      return;
+    }
+    
+    const elapsed = (performance.now() - this.state.redSquareExpansionStart) / 1000;
+    const progress = Math.min(elapsed / this.state.redSquareExpansionDuration, 1);
+    
+    // Debug log first frame
+    if (progress < 0.01 && !this.state.redSquareExpansionLogged) {
+      console.log('🔴 First expansion update frame:', {
+        visible: this.state.redSquareVoxel.visible,
+        position: this.state.redSquareVoxel.position.toArray(),
+        scale: this.state.redSquareVoxel.scale.toArray(),
+        renderOrder: this.state.redSquareVoxel.renderOrder,
+        opacity: this.state.liquidShaderMaterial?.uniforms.opacity.value
+      });
+      this.state.redSquareExpansionLogged = true;
+    }
+    
+    // Different easing functions for width and height for organic feel
+    const easedX = 1 - Math.pow(1 - progress, 2.5); // Faster horizontal expansion
+    const easedY = 1 - Math.pow(1 - progress, 3.5); // Slower vertical expansion
+    const easedZ = 1 - Math.pow(1 - progress, 3);   // Medium depth
+    
+    // Calculate target scales to fill screen with different ratios
+    const camera = this.state.camera;
+    const aspect = window.innerWidth / window.innerHeight;
+    const frustumHeight = camera.top - camera.bottom;
+    const frustumWidth = (camera.right - camera.left);
+    
+    // Organic expansion: width expands faster and further than height
+    const targetScaleX = frustumWidth * 35;  // Extra wide to ensure coverage
+    const targetScaleY = frustumHeight * 28; // Slightly less tall for asymmetry
+    const targetScaleZ = Math.max(frustumWidth, frustumHeight) * 25; // Depth
+    
+    // Apply different expansion rates per axis
+    const baseScale = this.state.redSquareVoxel.userData.baseScale;
+    const currentScaleX = baseScale + (targetScaleX - baseScale) * easedX;
+    const currentScaleY = baseScale + (targetScaleY - baseScale) * easedY;
+    const currentScaleZ = baseScale + (targetScaleZ - baseScale) * easedZ;
+    
+    this.state.redSquareVoxel.scale.set(currentScaleX, currentScaleY, currentScaleZ);
+    
+    // Move to center of screen with organic path
+    const targetX = 0;
+    const targetY = 0;
+    const startX = this.state.redSquareVoxel.userData.targetX;
+    const startY = this.state.redSquareVoxel.userData.targetY;
+    
+    // Use different easing for position to create curved path
+    const posEasedX = 1 - Math.pow(1 - progress, 2.8);
+    const posEasedY = 1 - Math.pow(1 - progress, 3.2);
+    
+    this.state.redSquareVoxel.position.x = startX + (targetX - startX) * posEasedX;
+    this.state.redSquareVoxel.position.y = startY + (targetY - startY) * posEasedY;
+    // Keep at front - camera at z:2, most objects at z:0-1, so z:1.5 is closest
+    this.state.redSquareVoxel.position.z = 1.5; // Closest to camera without being behind it
+    
+    // Add subtle rotation during expansion for organic feel
+    const rotationAmount = Math.sin(progress * Math.PI) * 0.03; // Subtle wave
+    this.state.redSquareVoxel.rotation.z = rotationAmount;
+    
+    // Fade in at start, fade out at end with liquid shader
+    const fadeInDuration = 0.3; // 0.3 seconds to fade in
+    const fadeOutStart = 0.7; // Start fading out at 70% progress
+    
+    let targetOpacity;
+    if (progress < fadeInDuration / this.state.redSquareExpansionDuration) {
+      // Fade in phase
+      const fadeInProgress = progress / (fadeInDuration / this.state.redSquareExpansionDuration);
+      targetOpacity = 0.3 + fadeInProgress * 0.7; // 0.3 to 1.0
+    } else if (progress > fadeOutStart) {
+      // Fade out phase (subtle, preparing for video)
+      const fadeOutProgress = (progress - fadeOutStart) / (1 - fadeOutStart);
+      targetOpacity = 1.0 - fadeOutProgress * 0.15; // 1.0 to 0.85
+    } else {
+      // Full opacity middle phase
+      targetOpacity = 1.0;
+    }
+    
+    // Update liquid shader uniforms if active
+    if (this.state.liquidShaderMaterial) {
+      this.state.liquidShaderMaterial.uniforms.time.value = elapsed;
+      this.state.liquidShaderMaterial.uniforms.expansionProgress.value = progress;
+      // Convert mouse screen coordinates to UV space (0-1)
+      const mouseUV = new THREE.Vector2(
+        (this.state.mouse.x + 1) / 2,  // Convert from -1,1 to 0,1
+        (this.state.mouse.y + 1) / 2  // Convert from -1,1 to 0,1 (no flip needed)
+      );
+      this.state.liquidShaderMaterial.uniforms.mousePos.value = mouseUV;
+      this.state.liquidShaderMaterial.uniforms.opacity.value = targetOpacity;
+    } else {
+      // Fallback for basic material
+      this.state.redSquareVoxel.material.opacity = targetOpacity;
+    }
+    
+    // Check if expansion complete
+    if (progress >= 1 && !this.state.redSquareVideoPlayed) {
+      this.state.redSquareExpanding = false;
+      this.state.redSquareVideoPlayed = true;
+      this._playTaunt5Video();
+    }
+  }
+  
+  /**
+   * Play taunt5.mp4 video
+   */
+  _playTaunt5Video() {
+    console.log('🎬 Playing taunt5.mp4');
+    
+    // Pause intro music
+    this._pauseIntroMusic();
+    
+    // Create shader background canvas for liquid effect during video
+    const shaderCanvas = document.createElement('canvas');
+    shaderCanvas.id = 'video-shader-bg';
+    shaderCanvas.width = window.innerWidth;
+    shaderCanvas.height = window.innerHeight;
+    shaderCanvas.style.position = 'fixed';
+    shaderCanvas.style.top = '0';
+    shaderCanvas.style.left = '0';
+    shaderCanvas.style.width = '100%';
+    shaderCanvas.style.height = '100%';
+    shaderCanvas.style.zIndex = '9999'; // Behind video but above everything else
+    shaderCanvas.style.pointerEvents = 'none';
+    shaderCanvas.style.opacity = '0'; // Start invisible
+    shaderCanvas.style.transition = 'opacity 1.2s ease-in-out';
+    document.body.appendChild(shaderCanvas);
+    
+    // Setup WebGL for shader background
+    this._setupVideoShaderBackground(shaderCanvas);
+    
+    // Fade in shader background using requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        shaderCanvas.style.opacity = '1';
+        console.log('🌊 Shader background fading in');
+      });
+    });
+    
+    // Create video element
+    const video = document.createElement('video');
+    video.src = './static/video/taunt5.mp4';
+    video.style.position = 'fixed';
+    video.style.top = '0';
+    video.style.left = '0';
+    video.style.width = '100%';
+    video.style.height = '100%';
+    video.style.objectFit = 'cover';
+    video.style.zIndex = '10000'; // Above shader background
+    video.style.opacity = '0'; // Start invisible
+    video.style.transition = 'opacity 1.0s ease-in-out';
+    video.style.filter = 'contrast(1.1) saturate(1.2)'; // Enhance video slightly
+    video.autoplay = true;
+    video.controls = false;
+    video.crossOrigin = 'anonymous'; // Required for Web Audio API
+    video.playbackRate = 0.75; // Slow down by 25%
+    
+    // Fade in video once it starts playing
+    video.addEventListener('loadeddata', () => {
+      console.log('🎬 Video loaded (slowed to 75%), fading in');
+      requestAnimationFrame(() => {
+        video.style.opacity = '0.9'; // More visible to show glitch effects
+      });
+    }, { once: true });
+    
+    // Setup audio effects (reverb + echo) with slowdown
+    if (this.state.audioCtx) {
+      this._setupVideoAudioEffects(video, 0.75); // Slow down audio to match video
+    }
+    
+    // Add glitch styles and apply to video
+    this._addVideoGlitchStyles();
+    video.classList.add('video-glitch');
+    
+    // Add to page
+    document.body.appendChild(video);
+    
+    // Remove video when ended and resume music
+    video.addEventListener('ended', () => {
+      console.log('🎬 Video ended, fading out');
+      
+      // Fade out video first
+      video.style.transition = 'opacity 1.2s ease-out';
+      video.style.opacity = '0';
+      
+      // Fade out shader background simultaneously
+      const bgCanvas = document.getElementById('video-shader-bg');
+      if (bgCanvas) {
+        console.log('🌊 Shader background fading out');
+        bgCanvas.style.opacity = '0';
+      }
+      
+      setTimeout(() => {
+        console.log('🎬 Removing video and shader elements');
+      video.remove();
+        
+        if (bgCanvas) {
+          bgCanvas.remove();
+          if (this.state.videoShaderAnimationId) {
+            cancelAnimationFrame(this.state.videoShaderAnimationId);
+            this.state.videoShaderAnimationId = null;
+          }
+        }
+        
+      this._resumeIntroMusic();
+      this._startRedSquareFade();
+        console.log('🎬 Video cleanup complete - starting red square fade');
+      }, 1200);
+    });
+    
+    // Handle errors
+    video.addEventListener('error', (e) => {
+      console.error('❌ Video error:', e);
+      
+      // Fade out on error too
+      video.style.opacity = '0';
+      const bgCanvas = document.getElementById('video-shader-bg');
+      if (bgCanvas) {
+        bgCanvas.style.opacity = '0';
+      }
+      
+      setTimeout(() => {
+      video.remove();
+        if (bgCanvas) {
+          bgCanvas.remove();
+          if (this.state.videoShaderAnimationId) {
+            cancelAnimationFrame(this.state.videoShaderAnimationId);
+            this.state.videoShaderAnimationId = null;
+          }
+        }
+      this._resumeIntroMusic();
+      this._startRedSquareFade();
+      }, 1200);
+    });
+  }
+  
+  /**
+   * Setup shader background for video playback
+   */
+  _setupVideoShaderBackground(canvas) {
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    if (!gl) {
+      console.warn('WebGL not supported for shader background');
+      return;
+    }
+    
+    // Vertex shader
+    const vsSource = `
+      attribute vec2 position;
+      varying vec2 vUv;
+      void main() {
+        vUv = position * 0.5 + 0.5;
+        gl_Position = vec4(position, 0.0, 1.0);
+      }
+    `;
+    
+    // Fragment shader (liquid effect)
+    const fsSource = `
+      precision mediump float;
+      uniform float time;
+      uniform vec2 mousePos;
+      uniform vec2 resolution;
+      varying vec2 vUv;
+      
+      float hash(vec2 p) {
+        vec3 p3 = fract(vec3(p.xyx) * 0.13);
+        p3 += dot(p3, p3.yzx + 3.333);
+        return fract((p3.x + p3.y) * p3.z);
+      }
+      
+      float noise(vec2 x) {
+        vec2 i = floor(x);
+        vec2 f = fract(x);
+        f = f * f * (3.0 - 2.0 * f);
+        float a = hash(i);
+        float b = hash(i + vec2(1.0, 0.0));
+        float c = hash(i + vec2(0.0, 1.0));
+        float d = hash(i + vec2(1.0, 1.0));
+        return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+      }
+      
+      float fbm(vec2 p) {
+        float value = 0.0;
+        float amplitude = 0.5;
+        float frequency = 1.0;
+        for(int i = 0; i < 5; i++) {
+          value += amplitude * noise(p * frequency);
+          frequency *= 2.0;
+          amplitude *= 0.5;
+        }
+        return value;
+      }
+      
+      vec2 flowField(vec2 p, float t) {
+        float angle = fbm(p + vec2(t * 0.1)) * 6.28318;
+        return vec2(cos(angle), sin(angle)) * 0.5;
+      }
+      
+      void main() {
+        vec2 uv = vUv;
+        vec2 toMouse = mousePos - uv;
+        float distToMouse = length(toMouse);
+        vec2 dirToMouse = normalize(toMouse);
+        
+        // Smaller influence, longer trails
+        float viscosity = smoothstep(0.15, 0.0, distToMouse);
+        vec2 flowOffset = flowField(uv * 3.0, time * 0.3);
+        vec2 turbulence = vec2(
+          fbm(uv * 4.0 + flowOffset + time * 0.15),
+          fbm(uv * 4.0 - flowOffset + time * 0.2)
+        ) * 0.03;
+        
+        // Extended trails with slower decay
+        float trailDecay = exp(-distToMouse * 3.0);
+        float wake = trailDecay * sin(distToMouse * 35.0 - time * 2.5);
+        vec2 wakeDistortion = dirToMouse * wake * 0.12 * viscosity;
+        float radialPush = smoothstep(0.12, 0.0, distToMouse);
+        vec2 radialDisplace = -dirToMouse * radialPush * 0.08;
+        
+        // Persistent trail
+        float trailEffect = exp(-distToMouse * 2.0) * sin(time * 1.5 + distToMouse * 20.0);
+        vec2 trailDistortion = dirToMouse * trailEffect * 0.04;
+        
+        vec2 distortedUV = uv + turbulence + wakeDistortion + radialDisplace + trailDistortion;
+        
+        float colorNoise1 = fbm(distortedUV * 5.0 + time * 0.1);
+        float colorNoise2 = fbm(distortedUV * 8.0 - time * 0.15);
+        
+        vec3 darkColor = vec3(0.6, 0.0, 0.0);
+        vec3 midColor = vec3(1.0, 0.0, 0.0);
+        vec3 brightColor = vec3(1.0, 0.4, 0.2);
+        
+        vec3 color = mix(darkColor, midColor, colorNoise1);
+        color = mix(color, brightColor, colorNoise2 * 0.6);
+        
+        float swirl = fbm(distortedUV * 6.0 + flowOffset * 2.0 + time * 0.25);
+        float highlight = pow(swirl, 3.0) * 0.7;
+        color += vec3(highlight * 0.6, highlight * 0.3, highlight * 0.15);
+        
+        // Tighter core but extended trail for glow
+        float trailGlowCore = smoothstep(0.08, 0.0, distToMouse);
+        float trailGlowExtended = smoothstep(0.5, 0.0, distToMouse);
+        float glowPulse = 0.5 + 0.5 * sin(time * 2.0);
+        float totalGlow = trailGlowCore * 1.5 + trailGlowExtended * 0.4;
+        color += vec3(
+          totalGlow * (0.8 + glowPulse * 0.2),
+          totalGlow * 0.4,
+          totalGlow * 0.2
+        );
+        
+        float caustic1 = fbm(uv * 8.0 + time * 0.4);
+        float caustic2 = fbm(uv * 12.0 - time * 0.5);
+        float caustics = pow(max(caustic1, caustic2), 4.0) * 0.3;
+        color += vec3(caustics * 0.5, caustics * 0.3, caustics * 0.1);
+        
+        float edgeFade = smoothstep(0.0, 0.15, min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y)));
+        color *= 0.4 + 0.6 * edgeFade;
+        
+        float shimmer = noise(uv * 20.0 + time) * 0.1;
+        color += vec3(shimmer * viscosity);
+        
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `;
+    
+    // Compile shaders
+    function compileShader(source, type) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error('Shader compile error:', gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+      return shader;
+    }
+    
+    const vertexShader = compileShader(vsSource, gl.VERTEX_SHADER);
+    const fragmentShader = compileShader(fsSource, gl.FRAGMENT_SHADER);
+    
+    const program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.error('Program link error:', gl.getProgramInfoLog(program));
+      return;
+    }
+    
+    // Setup geometry
+    const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+    
+    const positionLoc = gl.getAttribLocation(program, 'position');
+    gl.enableVertexAttribArray(positionLoc);
+    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+    
+    // Get uniform locations
+    const timeLoc = gl.getUniformLocation(program, 'time');
+    const mousePosLoc = gl.getUniformLocation(program, 'mousePos');
+    const resolutionLoc = gl.getUniformLocation(program, 'resolution');
+    
+    gl.useProgram(program);
+    gl.uniform2f(resolutionLoc, canvas.width, canvas.height);
+    
+    // Animation loop
+    const startTime = performance.now();
+    const animate = () => {
+      const currentTime = (performance.now() - startTime) / 1000;
+      
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      
+      gl.uniform1f(timeLoc, currentTime);
+      gl.uniform2f(mousePosLoc, 
+        (this.state.mouse.x + 1) / 2,
+        1 - (this.state.mouse.y + 1) / 2
+      );
+      
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      
+      this.state.videoShaderAnimationId = requestAnimationFrame(animate);
+    };
+    
+    animate();
+  }
+  
+  /**
+   * Add video glitch effect styles
+   */
+  _addVideoGlitchStyles() {
+    // Only add styles once
+    if (document.getElementById('video-glitch-styles')) {
+      return;
+    }
+    
+    const style = document.createElement('style');
+    style.id = 'video-glitch-styles';
+    style.textContent = `
+      @keyframes glitchSlide {
+        0%, 100% { 
+          clip-path: inset(0 0 0 0);
+          transform: translate(0, 0);
+        }
+        5% { 
+          clip-path: inset(10% 0 85% 0);
+          transform: translate(-8px, 0);
+        }
+        10% { 
+          clip-path: inset(54% 0 9% 0);
+          transform: translate(8px, 0);
+        }
+        15% {
+          clip-path: inset(0 0 0 0);
+          transform: translate(0, 0);
+        }
+        20% { 
+          clip-path: inset(11% 0 43% 0);
+          transform: translate(-5px, 0);
+        }
+        25% {
+          clip-path: inset(0 0 0 0);
+          transform: translate(0, 0);
+        }
+        30% { 
+          clip-path: inset(37% 0 24% 0);
+          transform: translate(10px, 0);
+        }
+        35% {
+          clip-path: inset(0 0 0 0);
+          transform: translate(0, 0);
+        }
+        40% { 
+          clip-path: inset(76% 0 2% 0);
+          transform: translate(-6px, 0);
+        }
+        50% { 
+          clip-path: inset(8% 0 66% 0);
+          transform: translate(6px, 0);
+        }
+        60% { 
+          clip-path: inset(44% 0 29% 0);
+          transform: translate(-10px, 0);
+        }
+        70% { 
+          clip-path: inset(29% 0 51% 0);
+          transform: translate(8px, 0);
+        }
+        80% { 
+          clip-path: inset(61% 0 15% 0);
+          transform: translate(-7px, 0);
+        }
+        90% { 
+          clip-path: inset(20% 0 70% 0);
+          transform: translate(5px, 0);
+        }
+      }
+      
+      @keyframes glitchStatic {
+        0%, 100% { 
+          background: transparent;
+          opacity: 1;
+        }
+        2%, 8%, 15%, 23%, 31%, 47%, 56%, 68%, 77%, 89%, 95% {
+          background: 
+            repeating-linear-gradient(
+              0deg,
+              rgba(255,255,255,0.08) 0px,
+              transparent 1px,
+              transparent 2px,
+              rgba(255,255,255,0.08) 3px
+            ),
+            repeating-linear-gradient(
+              90deg,
+              rgba(0,0,0,0.05) 0px,
+              transparent 1px,
+              transparent 2px,
+              rgba(0,0,0,0.05) 3px
+            );
+          opacity: 0.7;
+        }
+      }
+      
+      @keyframes glitchDistort {
+        0%, 100% { 
+          transform: scaleY(1) translateX(0);
+          filter: contrast(1.1) saturate(1.2);
+        }
+        3% { 
+          transform: scaleY(0.98) translateX(-5px);
+          filter: contrast(1.3) brightness(1.1);
+        }
+        7% { 
+          transform: scaleY(1.02) translateX(6px);
+          filter: contrast(0.9) brightness(0.95);
+        }
+        12% { 
+          transform: scaleY(0.99) translateX(-3px);
+          filter: brightness(1.15) contrast(1.2);
+        }
+        18% {
+          transform: scaleY(1) translateX(0);
+          filter: contrast(1.1) saturate(1.2);
+        }
+        25% { 
+          transform: scaleY(1.01) translateX(7px);
+          filter: contrast(1.25) brightness(0.92);
+        }
+        34% { 
+          transform: scaleY(0.985) translateX(-6px);
+          filter: brightness(1.08) contrast(1.15);
+        }
+        42% {
+          transform: scaleY(1) translateX(0);
+          filter: contrast(1.1) saturate(1.2);
+        }
+        51% { 
+          transform: scaleY(1.015) translateX(4px);
+          filter: contrast(1.35) brightness(0.88);
+        }
+        63% { 
+          transform: scaleY(0.99) translateX(-8px);
+          filter: brightness(1.12) contrast(0.95);
+        }
+        74% {
+          transform: scaleY(1) translateX(0);
+          filter: contrast(1.1) saturate(1.2);
+        }
+        82% { 
+          transform: scaleY(1.02) translateX(5px);
+          filter: brightness(1.05) contrast(1.3);
+        }
+        91% { 
+          transform: scaleY(0.985) translateX(-4px);
+          filter: contrast(1.2) brightness(0.97);
+        }
+      }
+      
+      @keyframes glitchRGB {
+        0%, 100% { 
+          filter: contrast(1.1) saturate(1.2);
+        }
+        10% { 
+          filter: 
+            drop-shadow(2px 0 0 rgba(255, 0, 0, 0.3)) 
+            drop-shadow(-2px 0 0 rgba(0, 255, 255, 0.3));
+        }
+        20% {
+          filter: none;
+        }
+        30% { 
+          filter: 
+            drop-shadow(-3px 0 0 rgba(255, 0, 0, 0.6)) 
+            drop-shadow(3px 0 0 rgba(0, 255, 0, 0.6));
+        }
+        40% {
+          filter: none;
+        }
+        50% { 
+          filter: 
+            drop-shadow(5px 0 0 rgba(0, 0, 255, 0.5)) 
+            drop-shadow(-5px 0 0 rgba(255, 255, 0, 0.5));
+        }
+        60% {
+          filter: none;
+        }
+        70% { 
+          filter: 
+            drop-shadow(-4px 0 0 rgba(255, 0, 255, 0.6)) 
+            drop-shadow(4px 0 0 rgba(0, 255, 255, 0.6));
+        }
+        80% {
+          filter: none;
+        }
+      }
+      
+      @keyframes glitchScale {
+        0%, 100% { 
+          transform: scale(1, 1);
+        }
+        33% { 
+          transform: scale(1.02, 0.98);
+        }
+        66% { 
+          transform: scale(0.98, 1.02);
+        }
+      }
+      
+      .video-glitch {
+        position: relative;
+        animation: 
+          glitchSlide 1.2s infinite steps(1),
+          glitchRGB 0.6s infinite,
+          glitchScale 0.9s infinite,
+          glitchDistort 2.1s infinite ease-in-out,
+          glitchStatic 0.4s infinite steps(8);
+      }
+      
+      .video-glitch::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: 
+          repeating-linear-gradient(
+            0deg,
+            rgba(0,0,0,0.15) 0px,
+            transparent 1px,
+            transparent 2px,
+            rgba(0,0,0,0.15) 3px
+          );
+        pointer-events: none;
+        z-index: 10001;
+        mix-blend-mode: multiply;
+        animation: scanlines 0.15s infinite linear;
+        opacity: 0.6;
+      }
+      
+      .video-glitch::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: repeating-linear-gradient(
+          90deg,
+          transparent 0px,
+          rgba(255,255,255,0.03) 1px,
+          transparent 2px
+        );
+        pointer-events: none;
+        z-index: 10002;
+        animation: verticalStatic 0.1s infinite steps(3);
+      }
+      
+      @keyframes scanlines {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(3px); }
+      }
+      
+      @keyframes verticalStatic {
+        0% { transform: translateX(0); }
+        33% { transform: translateX(-1px); }
+        66% { transform: translateX(1px); }
+        100% { transform: translateX(0); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  /**
+   * Start red square fade out
+   */
+  _startRedSquareFade() {
+    if (!this.state.redSquareVoxel || this.state.redSquareFading) {
+      return;
+    }
+    
+    this.state.redSquareFading = true;
+    this.state.redSquareFadeStart = performance.now();
+    console.log('🔴 Starting red square fade out');
+  }
+  
+  /**
+   * Update red square fade
+   */
+  _updateRedSquareFade() {
+    if (!this.state.redSquareFading || !this.state.redSquareVoxel) {
+      return;
+    }
+    
+    const elapsed = (performance.now() - this.state.redSquareFadeStart) / 1000;
+    const totalDuration = this.state.redSquareFadeDuration + 3.0; // Extra time for pulsation
+    const progress = Math.min(elapsed / totalDuration, 1);
+    
+    let currentOpacity;
+    
+    if (progress < 0.5) {
+      // First half: Fade out
+      const fadeProgress = progress / 0.5;
+      const eased = 1 - Math.pow(1 - fadeProgress, 2);
+      currentOpacity = 1.0 - (1.0 * eased * 0.7); // Fade to 30%
+    } else {
+      // Second half: Pulsating restoration
+      const pulseProgress = (progress - 0.5) / 0.5;
+      
+      // Multiple pulsations with increasing frequency
+      const pulse1 = Math.sin(pulseProgress * Math.PI * 3) * 0.15; // 3 pulses
+      const pulse2 = Math.sin(pulseProgress * Math.PI * 7) * 0.08; // 7 faster pulses
+      const pulse3 = Math.sin(pulseProgress * Math.PI * 12) * 0.04; // 12 rapid pulses
+      
+      // Base opacity rises back up during pulsation
+      const baseRise = pulseProgress * 0.4; // Rise from 0.3 to 0.7
+      
+      currentOpacity = 0.3 + baseRise + pulse1 + pulse2 + pulse3;
+      currentOpacity = Math.max(0, Math.min(1, currentOpacity));
+    }
+    
+    // Update shader uniform if using liquid shader, otherwise update material directly
+    if (this.state.liquidShaderMaterial && this.state.redSquareVoxel.material === this.state.liquidShaderMaterial) {
+      this.state.liquidShaderMaterial.uniforms.opacity.value = currentOpacity;
+      // Continue updating shader animation during fade and pulsation
+      this.state.liquidShaderMaterial.uniforms.time.value = elapsed + (this.state.redSquareExpansionDuration || 0);
+      const mouseUV = new THREE.Vector2(
+        (this.state.mouse.x + 1) / 2,
+        (this.state.mouse.y + 1) / 2
+      );
+      this.state.liquidShaderMaterial.uniforms.mousePos.value = mouseUV;
+    } else {
+      this.state.redSquareVoxel.material.opacity = currentOpacity;
+    }
+    
+    if (this.state.redSquareVoxel.userData.edges && this.state.redSquareVoxel.userData.edges.material) {
+      const edgeOpacity = currentOpacity * 0.7;
+      this.state.redSquareVoxel.userData.edges.material.opacity = edgeOpacity;
+    }
+    
+    // Keep shader animating during pulsation
+    if (this.state.liquidShaderMaterial) {
+      this.state.liquidShaderMaterial.uniforms.expansionProgress.value = 1.0; // Full expansion
+    }
+    
+    // Hide when fully complete (after pulsations)
+    if (progress >= 1) {
+      this.state.redSquareVoxel.visible = false;
+      this.state.redSquareFading = false;
+      console.log('🔴 Red square pulsation complete, faded out');
+    }
+  }
+  
+  /**
+   * Setup video audio effects (reverb + echo)
+   */
+  _setupVideoAudioEffects(videoElement, playbackRate = 1.0) {
+    try {
+      const ctx = this.state.audioCtx;
+      
+      // Create media element source (playback rate affects audio automatically via video element)
+      const source = ctx.createMediaElementSource(videoElement);
+      
+      // Create convolver for reverb
+      const convolver = ctx.createConvolver();
+      
+      // Create delay for echo
+      const delay = ctx.createDelay(1.0);
+      delay.delayTime.value = 0.3; // 300ms delay
+      
+      const delayFeedback = ctx.createGain();
+      delayFeedback.gain.value = 0.3; // Echo decay
+      
+      const delayMix = ctx.createGain();
+      delayMix.gain.value = 0.4; // Echo volume
+      
+      // Create reverb impulse response
+      this._createReverbImpulse(convolver, 2.0, 0.4); // 2 second reverb, 40% decay
+      
+      const reverbMix = ctx.createGain();
+      reverbMix.gain.value = 0.5; // Reverb volume
+      
+      const dryGain = ctx.createGain();
+      dryGain.gain.value = 0.7; // Dry signal volume
+      
+      const masterGain = ctx.createGain();
+      masterGain.gain.value = 1.0;
+      
+      // Connect dry signal
+      source.connect(dryGain);
+      dryGain.connect(masterGain);
+      
+      // Connect reverb
+      source.connect(convolver);
+      convolver.connect(reverbMix);
+      reverbMix.connect(masterGain);
+      
+      // Connect echo/delay with feedback
+      source.connect(delay);
+      delay.connect(delayFeedback);
+      delayFeedback.connect(delay); // Feedback loop
+      delay.connect(delayMix);
+      delayMix.connect(masterGain);
+      
+      // Connect to destination
+      masterGain.connect(ctx.destination);
+      
+      console.log(`🎵 Video audio effects applied (reverb + echo) at ${playbackRate}x speed`);
+    } catch (error) {
+      console.warn('⚠️ Failed to apply video audio effects:', error);
+      // Fallback: connect video directly if effects fail
+      try {
+        const source = this.state.audioCtx.createMediaElementSource(videoElement);
+        source.connect(this.state.audioCtx.destination);
+      } catch (e) {
+        console.warn('⚠️ Fallback audio connection failed:', e);
+      }
+    }
+  }
+  
+  /**
+   * Create reverb impulse response
+   */
+  _createReverbImpulse(convolver, duration, decay) {
+    const ctx = this.state.audioCtx;
+    const rate = ctx.sampleRate;
+    const length = rate * duration;
+    const impulse = ctx.createBuffer(2, length, rate);
+    const impulseL = impulse.getChannelData(0);
+    const impulseR = impulse.getChannelData(1);
+    
+    for (let i = 0; i < length; i++) {
+      const n = i / length;
+      impulseL[i] = (Math.random() * 2 - 1) * Math.pow(1 - n, decay);
+      impulseR[i] = (Math.random() * 2 - 1) * Math.pow(1 - n, decay);
+    }
+    
+    convolver.buffer = impulse;
+  }
+  
+  /**
+   * Pause intro music
+   */
+  _pauseIntroMusic() {
+    if (this.state.introAudioCurrentSource) {
+      try {
+        // Store the current gain for resume
+        if (this.state.introAudioGainNode) {
+          this.state.introAudioSavedGain = this.state.introAudioGainNode.gain.value;
+          
+          // Fade out quickly
+          const now = this.state.audioCtx.currentTime;
+          this.state.introAudioGainNode.gain.cancelScheduledValues(now);
+          this.state.introAudioGainNode.gain.setValueAtTime(this.state.introAudioSavedGain, now);
+          this.state.introAudioGainNode.gain.linearRampToValueAtTime(0, now + 0.2);
+        }
+        
+        this.state.introAudioPaused = true;
+        console.log('🎵 Intro music paused');
+      } catch (error) {
+        console.warn('⚠️ Failed to pause intro music:', error);
+      }
+    }
+  }
+  
+  /**
+   * Resume intro music
+   */
+  _resumeIntroMusic() {
+    if (this.state.introAudioPaused && this.state.introAudioGainNode) {
+      try {
+        // Fade back in
+        const now = this.state.audioCtx.currentTime;
+        const targetGain = this.state.introAudioSavedGain || 0.7;
+        this.state.introAudioGainNode.gain.cancelScheduledValues(now);
+        this.state.introAudioGainNode.gain.setValueAtTime(0, now);
+        this.state.introAudioGainNode.gain.linearRampToValueAtTime(targetGain, now + 0.5);
+        
+        this.state.introAudioPaused = false;
+        console.log('🎵 Intro music resumed');
+      } catch (error) {
+        console.warn('⚠️ Failed to resume intro music:', error);
+      }
+    }
+  }
+
+  /**
+   * Animate skip button to bow shape
+   */
+  _animateSkipButtonToBow() {
+    const skipBtn = document.getElementById('skipBtn');
+    if (skipBtn) {
+      console.log('🎀 Animating skip button to bow');
+      skipBtn.classList.add('bow-shape');
+      window.requestAnimationFrame(() => {
+        skipBtn.classList.add('bow-docked');
+      });
+      setTimeout(() => skipBtn.classList.add('rounded-bow'), 400);
+      setTimeout(() => skipBtn.classList.add('illuminating'), 800);
     }
   }
 
@@ -1969,33 +3866,55 @@ export class IntroSceneComplete {
    * Handle doorway input
    */
   _handleDoorwayInput(e) {
-    console.log('⌨️ Doorway input:', e.key);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('⌨️ _handleDoorwayInput called');
+    console.log('  → key:', e.key);
+    console.log('  → inputAttempted:', this.state.inputAttempted);
+    console.log('  → inputText:', JSON.stringify(this.state.inputText));
+    console.log('  → celliAnimationComplete:', this.state.celliAnimationComplete);
+
+    // Check if CELLI animation is complete using the state flag
+    if (!this.state.celliAnimationComplete) {
+      console.log('⏳ CELLI animation not complete, queuing input');
+      e.preventDefault();
+      this.state.queuedActions.push({ type: 'keydown', key: e.key, event: e });
+      return;
+    }
 
     this.state.inputAttempted = true;
 
     if (e.key === 'Backspace') {
+      console.log('  → BACKSPACE key detected, preventing default and calling handler');
       e.preventDefault();
       this._handlePromptBackspace();
       return;
     }
 
     const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
+    console.log('  → Normalized key:', key);
 
     if (key === 'T' && this._tryHandleStartCompletion()) {
+      console.log('  → T key and START completion handled');
       e.preventDefault();
       return;
     }
 
     if (this._handleEndSequenceKey(key)) {
+      console.log('  → END sequence key handled');
       e.preventDefault();
       return;
     }
 
     if (key.length === 1 && /[A-Z0-9]/.test(key)) {
+      console.log('  → Alphanumeric key, adding to inputText');
       e.preventDefault();
       this.state.inputText += key;
+      console.log('  → New inputText:', JSON.stringify(this.state.inputText));
       this._setPromptText(this.state.inputText);
+    } else {
+      console.log('  → Key not handled');
     }
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }
 
   _handleEndSequenceKey(rawKey) {
@@ -2018,7 +3937,8 @@ export class IntroSceneComplete {
       this.state.inputText = `${this.state.promptBaseText}E`;
       this._setPromptText(this.state.inputText);
       this._transformToMagenta();
-      console.log('🟥 Magenta phase triggered (E)');
+      this._dropVoxelsForE(); // Drop some I and C voxels
+      console.log('🟥 Magenta phase triggered (E) - dropping voxels');
       return true;
     }
 
@@ -2027,7 +3947,8 @@ export class IntroSceneComplete {
       this.state.inputText = `${this.state.promptBaseText}EN`;
       this._setPromptText(this.state.inputText);
       this._transformToCyan();
-      console.log('🟦 Cyan phase triggered (N)');
+      this._dropVoxelsForN(); // Drop more voxels
+      console.log('🟦 Cyan phase triggered (N) - dropping more voxels');
       return true;
     }
 
@@ -2036,13 +3957,140 @@ export class IntroSceneComplete {
       this.state.inputText = `${this.state.promptBaseText}END`;
       this._setPromptText(this.state.inputText);
       this._transformToGreenAndHell();
+      this._dropVoxelsForD(); // Drop remaining voxels, form HELL
       console.log('🟩 Green phase triggered (D) - HELL transform starting');
+      
+      // Hide skip button
+      const skipBtn = document.getElementById('skipBtn');
+      if (skipBtn) {
+        skipBtn.style.display = 'none';
+      }
+      
       console.log('🎬 END sequence complete - starting transition');
       this._startEndSequence();
       return true;
     }
 
     return true;
+  }
+
+  _dropVoxelsForE() {
+    // Drop top and bottom rows of I (keep middle vertical bar)
+    const iVoxels = this.state.letterVoxels.I || [];
+    iVoxels.forEach(voxel => {
+      const data = voxel.userData;
+      if (!data) return;
+      
+      // Drop top and bottom horizontal bars of I
+      if (data.gridRow === 0 || data.gridRow === 4) {
+        data.hellDrop = true;
+        data.hellDropPhase = 'fall';
+        data.dropVelocity = -0.03 - Math.random() * 0.02;
+        data.settled = false;
+      }
+    });
+    
+    // Drop some C voxels (top and bottom curves)
+    const cVoxels = this.state.letterVoxels.C || [];
+    cVoxels.forEach(voxel => {
+      const data = voxel.userData;
+      if (!data) return;
+      
+      // Drop top-right and bottom-right of C
+      if ((data.gridRow === 0 || data.gridRow === 4) && data.gridCol > 0) {
+        data.hellDrop = true;
+        data.hellDropPhase = 'fall';
+        data.dropVelocity = -0.025 - Math.random() * 0.015;
+        data.settled = false;
+      }
+    });
+  }
+
+  _dropVoxelsForN() {
+    // Drop more I voxels (sides of remaining bar)
+    const iVoxels = this.state.letterVoxels.I || [];
+    iVoxels.forEach(voxel => {
+      const data = voxel.userData;
+      if (!data) return;
+      
+      // Drop outer columns of I (keep center column)
+      if (data.gridCol !== 2 && !data.hellDrop) {
+        data.hellDrop = true;
+        data.hellDropPhase = 'fall';
+        data.dropVelocity = -0.028 - Math.random() * 0.018;
+        data.settled = false;
+      }
+    });
+    
+    // Drop middle row of C
+    const cVoxels = this.state.letterVoxels.C || [];
+    cVoxels.forEach(voxel => {
+      const data = voxel.userData;
+      if (!data) return;
+      
+      if (data.gridRow === 2 && data.gridCol > 0 && !data.hellDrop) {
+        data.hellDrop = true;
+        data.hellDropPhase = 'fall';
+        data.dropVelocity = -0.026 - Math.random() * 0.016;
+        data.settled = false;
+      }
+    });
+  }
+
+  _dropVoxelsForD() {
+    // Final drops - anything not needed for H
+    // This is handled by _startHellTransform which marks unused voxels
+    // Just ensure the transform starts
+  }
+
+  _transformToMagenta() {
+    console.log('🟥 Transforming voxels to MAGENTA');
+    this._setColorPhase('magenta');
+    this._pulseVoxels(0.2);
+  }
+
+  _transformToCyan() {
+    console.log('🟦 Transforming voxels to CYAN');
+    this._setColorPhase('cyan');
+    this._pulseVoxels(0.2);
+  }
+
+  _transformToGreenAndHell() {
+    console.log('🟩 Transforming voxels to GREEN and starting HELL');
+    this._setColorPhase('green');
+    this._pulseVoxels(0.3);
+    
+    // Start HELL transformation after a brief delay
+    setTimeout(() => {
+      this._startHellTransform();
+    }, 300);
+  }
+
+  _processQueuedActions() {
+    if (this.state.queuedActions.length === 0) {
+      return;
+    }
+
+    console.log(`📋 Processing ${this.state.queuedActions.length} queued actions`);
+    const actions = [...this.state.queuedActions];
+    this.state.queuedActions = [];
+
+    actions.forEach(action => {
+      if (action.type === 'click') {
+        console.log('  → Processing queued click');
+        this.state.inputAttempted = true;
+        if (!this.state.celliGlitchStarted) {
+          this._triggerCelliGlitchRain();
+        }
+        this.state.doorwayInputRequiresClick = false;
+        this.state.doorwayInputActive = true;
+        this._focusHiddenInput();
+      } else if (action.type === 'keydown') {
+        console.log(`  → Processing queued keydown: ${action.key}`);
+        // Re-trigger the keydown handler
+        this._handleDoorwayInput({ key: action.key, preventDefault: () => {} });
+      }
+    });
   }
 
   /**
@@ -2124,37 +4172,478 @@ export class IntroSceneComplete {
   }
 
   _setPromptText(value) {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('📝 _setPromptText called with value:', JSON.stringify(value));
+    
     const promptText = document.getElementById('promptText');
     const promptCursor = document.getElementById('promptCursor');
     const promptEl = document.getElementById('prompt');
 
+    console.log('🔍 promptText element:', promptText);
+    console.log('🔍 promptCursor element:', promptCursor);
+    console.log('🔍 promptEl element:', promptEl);
+
     if (promptText) {
+      console.log('  → promptText.textContent BEFORE:', JSON.stringify(promptText.textContent));
+      
+      // Force immediate visual update
+      promptText.textContent = '';
+      void promptText.offsetHeight; // Force reflow
       promptText.textContent = value;
+      void promptText.offsetHeight; // Force reflow again
+      
+      console.log('  → promptText.textContent AFTER:', JSON.stringify(promptText.textContent));
+      console.log('  → promptText COMPUTED STYLE:', window.getComputedStyle(promptText).display);
+      console.log('  → promptText VISIBILITY:', window.getComputedStyle(promptText).visibility);
+    } else {
+      console.warn('  ⚠️ promptText element NOT FOUND');
     }
+    
     if (promptCursor) {
       promptCursor.textContent = '_';
+      console.log('  → promptCursor updated');
+    } else {
+      console.warn('  ⚠️ promptCursor element NOT FOUND');
     }
+    
     if (promptEl) {
+      console.log('  → promptEl.getAttribute("data-text") BEFORE:', promptEl.getAttribute('data-text'));
+      
       promptEl.setAttribute('data-text', `${value}_`);
+      
+      console.log('  → promptEl.getAttribute("data-text") AFTER:', promptEl.getAttribute('data-text'));
+      
+      // Also update text content if it exists
+      const textSpan = promptEl.querySelector('span');
+      if (textSpan) {
+        console.log('    → Found span inside promptEl');
+        console.log('    → span.textContent BEFORE:', JSON.stringify(textSpan.textContent));
+        textSpan.textContent = '';
+        void textSpan.offsetHeight;
+        textSpan.textContent = value;
+        console.log('    → span.textContent AFTER:', JSON.stringify(textSpan.textContent));
+      } else {
+        console.log('    → No span found inside promptEl');
+        console.log('    → promptEl.innerHTML:', promptEl.innerHTML);
+      }
+    } else {
+      console.warn('  ⚠️ promptEl element NOT FOUND');
     }
+    
+    // Check for any elements with class 'prompt-text' or similar
+    const allPromptElements = document.querySelectorAll('[id*="prompt"], [class*="prompt"]');
+    console.log('🔍 Found', allPromptElements.length, 'elements with "prompt" in id/class:');
+    allPromptElements.forEach((el, idx) => {
+      console.log(`  ${idx}: id="${el.id}", class="${el.className}", tag="${el.tagName}", text="${el.textContent?.substring(0, 50)}"`);
+    });
+    
+    console.log('✅ _setPromptText complete');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }
 
   /**
    * Start END sequence
    */
   _startEndSequence() {
-    console.log('🎬 Starting END sequence');
-    this.state.celliMoveToCornerStarted = true;
-    this.state.celliMoveToCornerTime = 0;
+    console.log('🎬 Starting END sequence with HELL → VisiCell transition');
     
-    // Trigger transition to VisiCalc after animation
+    // Wait for HELL transform to complete (letters moving into place + falling voxels)
     setTimeout(() => {
-      console.log('📊 Transitioning to VisiCalc scene...');
-      // Dispatch custom event for scene transition
+      this._startPromptFlicker();
+    }, 3000); // Wait for HELL letters to settle
+  }
+
+  _startPromptFlicker() {
+    console.log('⚡ Starting prompt flicker');
+    const promptContainer = document.querySelector('.prompt-container');
+    const doorway = document.getElementById('doorway');
+    
+    if (!promptContainer) return;
+
+    // Flicker the white box to outline (simulating light going out)
+    let flickerCount = 0;
+    const maxFlickers = 6;
+    
+    const flickerInterval = setInterval(() => {
+      flickerCount++;
+      const isOn = flickerCount % 2 === 0;
+      
+      if (isOn) {
+        promptContainer.style.background = 'rgba(255, 255, 255, 0.08)';
+        promptContainer.style.border = '2px solid rgba(255, 255, 255, 0.9)';
+      } else {
+        promptContainer.style.background = 'rgba(255, 255, 255, 0.02)';
+        promptContainer.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+      }
+      
+      if (flickerCount >= maxFlickers) {
+        clearInterval(flickerInterval);
+        
+        // Hide doorway background
+        if (doorway) {
+          doorway.style.transition = 'opacity 0.5s';
+          doorway.style.opacity = '0';
+          setTimeout(() => {
+            doorway.style.display = 'none';
+          }, 500);
+        }
+        
+        // Final state: just outline
+        promptContainer.style.background = 'transparent';
+        promptContainer.style.border = '2px solid rgba(255, 255, 255, 0.6)';
+        
+        // Start voxel shrinking and shooting
+        setTimeout(() => {
+          this._shrinkVoxelsToPixels();
+        }, 200);
+      }
+    }, 100);
+  }
+
+  _shrinkVoxelsToPixels() {
+    console.log('🔸 Shrinking HELL voxels to pixels');
+    
+    // Get all visible voxels (HELL letters)
+    const hellVoxels = this.state.voxels.filter(v => 
+      v.visible && v.userData && !v.userData.hellDropPhase
+    );
+    
+    const promptContainer = document.querySelector('.prompt-container');
+    if (!promptContainer) return;
+    
+    // Get prompt box center in world coordinates
+    const promptRect = promptContainer.getBoundingClientRect();
+    const promptCenterX = ((promptRect.left + promptRect.width / 2) / window.innerWidth) * 2 - 1;
+    const promptCenterY = -((promptRect.top + promptRect.height / 2) / window.innerHeight) * 2 + 1;
+    
+    // Start lifting the box up while pixels shoot
+    setTimeout(() => {
+      this._liftBoxToCollectPixels();
+    }, 600); // Start lifting after shrink phase
+    
+    // Shrink each voxel to a pixel
+    hellVoxels.forEach((voxel, idx) => {
+      setTimeout(() => {
+        const startScale = voxel.scale.x;
+        const startPos = { x: voxel.position.x, y: voxel.position.y };
+        const startTime = performance.now();
+        const shrinkDuration = 400;
+        const shootDelay = 200; // Delay before shooting
+        const shootDuration = 700;
+        
+        const shrinkAndShoot = () => {
+          const elapsed = performance.now() - startTime;
+          
+          if (elapsed < shrinkDuration) {
+            // Phase 1: Shrink
+            const progress = elapsed / shrinkDuration;
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const scale = startScale * (1 - eased * 0.97); // Shrink to 3% of original
+            voxel.scale.set(scale, scale, scale);
+            requestAnimationFrame(shrinkAndShoot);
+          } else if (elapsed < shrinkDuration + shootDelay) {
+            // Phase 2: Brief pause
+            requestAnimationFrame(shrinkAndShoot);
+          } else if (elapsed < shrinkDuration + shootDelay + shootDuration) {
+            // Phase 3: Shoot toward rising box
+            const shootElapsed = elapsed - shrinkDuration - shootDelay;
+            const shootProgress = shootElapsed / shootDuration;
+            const eased = shootProgress * shootProgress; // Accelerate toward box
+            
+            // Target moves up as box lifts (simulating collection)
+            const liftOffset = shootProgress * 0.3; // Box rises during shooting
+            
+            // Move toward prompt center (accounting for lift)
+            voxel.position.x = startPos.x + (promptCenterX - startPos.x) * eased;
+            voxel.position.y = startPos.y + (promptCenterY + liftOffset - startPos.y) * eased;
+            
+            // When near target, trigger hit effect
+            if (shootProgress > 0.92 && !voxel.userData.hitTriggered) {
+              voxel.userData.hitTriggered = true;
+              this._triggerPixelHit();
+            }
+            
+            requestAnimationFrame(shrinkAndShoot);
+          } else {
+            // Phase 4: Hide voxel
+            voxel.visible = false;
+          }
+        };
+        
+        shrinkAndShoot();
+      }, idx * 40);
+    });
+    
+    // Track hits for complete infection
+    this.state.pixelHitCount = 0;
+    this.state.totalPixels = hellVoxels.length;
+  }
+
+  _liftBoxToCollectPixels() {
+    console.log('⬆️ Lifting box to collect pixels');
+    const promptContainer = document.querySelector('.prompt-container');
+    if (!promptContainer) return;
+    
+    const startTop = promptContainer.offsetTop;
+    const liftAmount = -80; // Lift 80px up
+    const startTime = performance.now();
+    const duration = 700; // Match pixel shooting duration
+    
+    const liftAnimation = () => {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = progress * progress; // Ease in (accelerate)
+      
+      const top = startTop + liftAmount * eased;
+      promptContainer.style.top = `${top}px`;
+      
+      if (progress < 1) {
+        requestAnimationFrame(liftAnimation);
+      }
+    };
+    
+    liftAnimation();
+  }
+
+  _triggerPixelHit() {
+    this.state.pixelHitCount = (this.state.pixelHitCount || 0) + 1;
+    
+    const promptContainer = document.querySelector('.prompt-container');
+    if (!promptContainer) return;
+    
+    // Flash green on each hit
+    promptContainer.style.background = 'rgba(0, 255, 0, 0.3)';
+    setTimeout(() => {
+      promptContainer.style.background = 'rgba(0, 255, 0, 0.05)';
+    }, 50);
+    
+    // Update border color gradually to green
+    const greenProgress = this.state.pixelHitCount / this.state.totalPixels;
+    const r = Math.floor(255 * (1 - greenProgress));
+    const g = 255;
+    const b = Math.floor(255 * (1 - greenProgress));
+    
+    promptContainer.style.border = `2px solid rgba(${r}, ${g}, ${b}, 0.9)`;
+    promptContainer.style.boxShadow = `0 0 ${greenProgress * 30}px rgba(0, 255, 0, ${greenProgress})`;
+    
+    // When all pixels have hit, start final flicker and fade
+    if (this.state.pixelHitCount >= this.state.totalPixels) {
+      setTimeout(() => {
+        this._flickerAndFadeToWireframe();
+      }, 300);
+    }
+  }
+
+  _flickerAndFadeToWireframe() {
+    console.log('⚡ Flickering and fading to wireframe');
+    const promptContainer = document.querySelector('.prompt-container');
+    if (!promptContainer) return;
+    
+    // Intense flicker effect
+    let flickerCount = 0;
+    const maxFlickers = 12;
+    
+    const flickerInterval = setInterval(() => {
+      flickerCount++;
+      const isOn = flickerCount % 2 === 0;
+      
+      if (isOn) {
+        promptContainer.style.background = 'rgba(0, 255, 0, 0.4)';
+        promptContainer.style.boxShadow = '0 0 40px rgba(0, 255, 0, 1)';
+      } else {
+        promptContainer.style.background = 'rgba(0, 255, 0, 0.05)';
+        promptContainer.style.boxShadow = '0 0 10px rgba(0, 255, 0, 0.3)';
+      }
+      
+      if (flickerCount >= maxFlickers) {
+        clearInterval(flickerInterval);
+        
+        // Final state: transparent with green wireframe
+        promptContainer.style.background = 'transparent';
+        promptContainer.style.border = '2px solid rgba(0, 255, 0, 0.8)';
+        promptContainer.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.5)';
+        
+        // Lift up and slide to center
+        setTimeout(() => {
+          this._liftAndCenter();
+        }, 200);
+      }
+    }, 80);
+  }
+
+  _liftAndCenter() {
+    console.log('⬆️ Lifting cell up and centering');
+    const promptContainer = document.querySelector('.prompt-container');
+    if (!promptContainer) return;
+    
+    // Get current position
+    const startTop = promptContainer.offsetTop;
+    const startLeft = promptContainer.offsetLeft;
+    
+    // Target: center of screen, higher up
+    const targetTop = window.innerHeight / 2 - promptContainer.offsetHeight / 2 - 100; // Lift 100px higher
+    const targetLeft = window.innerWidth / 2 - promptContainer.offsetWidth / 2;
+    
+    const startTime = performance.now();
+    const duration = 1000;
+    
+    const liftAnimation = () => {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = progress * progress * (3 - 2 * progress); // Smooth step
+      
+      const top = startTop + (targetTop - startTop) * eased;
+      const left = startLeft + (targetLeft - startLeft) * eased;
+      
+      promptContainer.style.position = 'fixed';
+      promptContainer.style.top = `${top}px`;
+      promptContainer.style.left = `${left}px`;
+      
+      if (progress < 1) {
+        requestAnimationFrame(liftAnimation);
+      } else {
+        // Now expand orthogonally
+        this._expandOrthogonally();
+      }
+    };
+    
+    liftAnimation();
+  }
+
+  _expandOrthogonally() {
+    console.log('➕ Expanding orthogonally (cross shape)');
+    const promptContainer = document.querySelector('.prompt-container');
+    
+    if (!promptContainer) return;
+    
+    // Target dimensions (VisiCell grid size)
+    const targetWidth = Math.min(window.innerWidth * 0.8, 800);
+    const targetHeight = Math.min(window.innerHeight * 0.7, 600);
+    
+    const startWidth = promptContainer.offsetWidth;
+    const startHeight = promptContainer.offsetHeight;
+    const startTime = performance.now();
+    const duration = 1200;
+    
+    const expandAnimation = () => {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+      
+      // Expand in cross pattern: horizontal first, then vertical
+      const horizontalProgress = Math.min(eased * 2, 1);
+      const verticalProgress = Math.max(0, (eased - 0.5) * 2);
+      
+      const width = startWidth + (targetWidth - startWidth) * horizontalProgress;
+      const height = startHeight + (targetHeight - startHeight) * verticalProgress;
+      
+      promptContainer.style.width = `${width}px`;
+      promptContainer.style.height = `${height}px`;
+      promptContainer.style.left = `${window.innerWidth / 2 - width / 2}px`;
+      promptContainer.style.top = `${window.innerHeight / 2 - height / 2}px`;
+      
+      if (progress < 1) {
+        requestAnimationFrame(expandAnimation);
+      } else {
+        // Fill in diagonals and complete grid
+        this._fillDiagonals();
+      }
+    };
+    
+    expandAnimation();
+  }
+
+  _fillDiagonals() {
+    console.log('⬚ Filling diagonal corners');
+    const promptContainer = document.querySelector('.prompt-container');
+    
+    if (!promptContainer) return;
+    
+    // Animate border radius to 0 (making it rectangular)
+    const startTime = performance.now();
+    const duration = 600;
+    
+    const fillAnimation = () => {
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      const borderRadius = 12 * (1 - progress);
+      promptContainer.style.borderRadius = `${borderRadius}px`;
+      
+      // Intensify green glow
+      const glowSize = 20 + progress * 30;
+      promptContainer.style.boxShadow = `0 0 ${glowSize}px rgba(0, 255, 0, ${0.8 + progress * 0.2})`;
+      
+      if (progress < 1) {
+        requestAnimationFrame(fillAnimation);
+      } else {
+        // Transition to VisiCell scene
+        this._transitionToVisiCell();
+      }
+    };
+    
+    fillAnimation();
+  }
+
+  _transitionToVisiCell() {
+    console.log('📊 Transitioning to VisiCell scene');
+    
+    const promptContainer = document.querySelector('.prompt-container');
+    let cellState = null;
+    
+    // Pass the current cell state for seamless transition
+    if (promptContainer) {
+      const rect = promptContainer.getBoundingClientRect();
+      cellState = {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+        border: promptContainer.style.border,
+        boxShadow: promptContainer.style.boxShadow
+      };
+      
+      console.log('📦 Passing cell state to VisiCell:', cellState);
+    }
+    
+    // Fade out intro scene elements
+    setTimeout(() => {
+      // Hide Three.js canvas
+      if (this.state.renderer && this.state.renderer.domElement) {
+        this.state.renderer.domElement.style.transition = 'opacity 0.5s';
+        this.state.renderer.domElement.style.opacity = '0';
+      }
+      
+      // Hide prompt container
+      if (promptContainer) {
+        promptContainer.style.transition = 'opacity 0.3s';
+        promptContainer.style.opacity = '0';
+      }
+      
+      // Hide doorway
+      const doorway = document.getElementById('doorway');
+      if (doorway) {
+        doorway.style.opacity = '0';
+      }
+    }, 100);
+    
+    // Dispatch custom event for scene transition with special entry flag
+    setTimeout(() => {
       window.dispatchEvent(new CustomEvent('celli:sceneTransition', {
-        detail: { scene: 'visicell' }
+        detail: { 
+          scene: 'visicell',
+          entry: 'hell-infection', // Special entry mode
+          skipIntro: true, // Skip normal VisiCell intro
+          cellState: cellState, // Current green cell state
+          continueAnimation: true // Continue the expansion animation
+        }
       }));
-    }, 2500); // After END animation completes
+      
+      // Stop the intro scene
+      setTimeout(() => {
+        this.stop();
+      }, 500);
+    }, 800);
   }
 
   /**
@@ -2162,6 +4651,12 @@ export class IntroSceneComplete {
    */
   async start(state, options = {}) {
     console.log('▶️ Starting Complete Intro Scene');
+
+    // Kill referrer overlay to prevent it from showing over intro
+    console.log('🎬 IntroScene start - killing referrer overlay');
+    if (typeof window.killReferrerOverlay === 'function') {
+      window.killReferrerOverlay();
+    }
 
     // Hide play overlay
     const playEl = document.getElementById('play');
@@ -2182,10 +4677,10 @@ export class IntroSceneComplete {
       quoteEl.style.opacity = '0';
       quoteEl.classList.remove('glitch', 'glitchMedium', 'glitchIntense', 'scrambling', 'quote--loom');
       
-      // Reset to initial text
+      // Reset to initial text (removed - will be re-implemented)
       const quoteBefore = document.getElementById('quoteBefore');
       if (quoteBefore) {
-        quoteBefore.textContent = '...if you gaze for long into an abyss, the abyss gazes also into you.';
+        quoteBefore.textContent = '';
       }
     }
     
@@ -2277,6 +4772,13 @@ export class IntroSceneComplete {
     const celliAge = t - cfg.loomworksEnd;
     const allVoxelsSettled = celliAge > 5.0;
     
+    // Set celliAnimationComplete and process queued actions
+    if (allVoxelsSettled && !this.state.celliAnimationComplete) {
+      console.log('✅ CELLI animation complete - processing queued actions');
+      this.state.celliAnimationComplete = true;
+      this._processQueuedActions();
+    }
+    
     if (phase === 'doorway' && !this.state.doorwayShown && allVoxelsSettled) {
       const doorwayProgress = (t - cfg.celliEnd) / (cfg.doorwayEnd - cfg.celliEnd);
       if (doorwayProgress > 0.05) {
@@ -2305,6 +4807,16 @@ export class IntroSceneComplete {
     // Update move to corner sequence
     if (this.state.celliMoveToCornerStarted) {
       this._updateMoveToCorner(deltaTime);
+    }
+    
+    // Update red square expansion
+    if (this.state.redSquareExpanding) {
+      this._updateRedSquareExpansion();
+    }
+    
+    // Update red square fade
+    if (this.state.redSquareFading) {
+      this._updateRedSquareFade();
     }
 
     // Update film grain
@@ -2518,21 +5030,26 @@ export class IntroSceneComplete {
       if (!this.state.celliStarted) {
         const loomEl = document.getElementById('loomworks');
         if (loomEl) loomEl.style.display = 'none';
+        
         this.state.celliStarted = true;
         this.state.celliStartTime = t;
       }
       
+      // Update subtitle voxels during CELLI phase (tied to CELLI spawn timing)
+      this._updateSubtitleVoxels(celliAge);
+      
+      // Update mask voxels
+      this._updateMaskVoxels(t);
+      
       // Animate skip button to bow when voxels settle
       if (celliAge > 3.0 && !this.state.skipBowAnimated) {
-        const skipBtn = document.getElementById('skipBtn');
-        if (skipBtn) {
-          skipBtn.classList.add('bow-shape');
-          window.requestAnimationFrame(() => {
-            skipBtn.classList.add('bow-docked');
-          });
-          setTimeout(() => skipBtn.classList.add('rounded-bow'), 400);
-          setTimeout(() => skipBtn.classList.add('illuminating'), 800);
-        }
+        this._animateSkipButtonToBow();
+        this.state.skipBowAnimated = true;
+      }
+      
+      // Also trigger bow animation on skip if not yet animated
+      if (this.state.skipRequested && !this.state.skipBowAnimated) {
+        this._animateSkipButtonToBow();
         this.state.skipBowAnimated = true;
       }
       
@@ -2543,6 +5060,13 @@ export class IntroSceneComplete {
       film.uniforms.noise.value = 0.005;
       film.uniforms.scanAmp.value = 0.002;
       if (tri) tri.visible = false;
+      
+      // Continue updating subtitle voxels during doorway phase
+      const doorwayAge = t - cfg.loomworksEnd;
+      this._updateSubtitleVoxels(doorwayAge);
+      
+      // Update mask voxels
+      this._updateMaskVoxels(t);
     }
   }
 
@@ -2607,7 +5131,7 @@ export class IntroSceneComplete {
   }
 
   /**
-   * Swap quote text to despair message
+   * Swap quote text to despair message (removed - will be re-implemented)
    */
   _swapQuoteToDespair() {
     const quoteEl = document.getElementById('quote');
@@ -2615,7 +5139,7 @@ export class IntroSceneComplete {
     
     const quoteBefore = document.getElementById('quoteBefore');
     if (quoteBefore) {
-      quoteBefore.textContent = 'LOOK on my works, ye Mighty, and despair!';
+      quoteBefore.textContent = '';
     }
     quoteEl.classList.add('quote--loom');
   }
@@ -3263,7 +5787,7 @@ export class IntroSceneComplete {
           voxel.material.opacity = THREE.MathUtils.lerp(voxel.material.opacity, targetOpacity, 0.08);
           voxel.material.needsUpdate = true;
 
-          if (data.baseColor && data.glowColor) {
+          if (data.baseColor && data.glowColor && voxel.material.color) {
             voxel.material.color.lerpColors(data.baseColor, data.glowColor, glowStrength);
           }
 
@@ -3335,10 +5859,158 @@ export class IntroSceneComplete {
         const glowStrength = THREE.MathUtils.clamp(0.4 + flicker * 0.5, 0, 1);
 
         voxel.material.opacity = THREE.MathUtils.lerp(voxel.material.opacity, 0.92, 0.1);
+        if (voxel.material.color && data.baseColor && data.glowColor) {
         voxel.material.color.lerpColors(data.baseColor, data.glowColor, glowStrength);
+        }
         if (data.edges && data.edges.material) {
           data.edges.material.opacity = THREE.MathUtils.lerp(data.edges.material.opacity, 0.75, 0.12);
+          if (data.edges.material.color && data.edgesBaseColor && data.edgesGlowColor) {
           data.edges.material.color.lerpColors(data.edgesBaseColor, data.edgesGlowColor, glowStrength);
+          }
+        }
+      }
+    });
+  }
+
+  _updateSubtitleVoxels(subtitleTime) {
+    if (!this.state.showSubtitle || !this.state.subtitleVoxels.length) {
+      return;
+    }
+
+    this.state.subtitleVoxels.forEach(voxel => {
+      const data = voxel.userData;
+      const localTime = subtitleTime - data.dropDelay;
+
+      if (localTime <= 0) {
+        return;
+      }
+
+      voxel.visible = true;
+
+      if (!data.settled && voxel.position.y > data.targetY) {
+        voxel.position.y -= data.dropSpeed;
+        const targetOpacity = data.isRedSquare ? 0.85 : 0.75;
+        voxel.material.opacity = Math.min(targetOpacity, voxel.material.opacity + 0.05);
+        if (data.edges && data.edges.material) {
+          const edgeOpacity = data.isRedSquare ? 0.65 : 0.55;
+          data.edges.material.opacity = Math.min(edgeOpacity, data.edges.material.opacity + 0.04);
+        }
+      } else if (!data.settled) {
+        voxel.position.y = data.targetY;
+        voxel.material.opacity = data.isRedSquare ? 0.85 : 0.75;
+        if (data.edges && data.edges.material) {
+          data.edges.material.opacity = data.isRedSquare ? 0.65 : 0.55;
+        }
+        data.settled = true;
+      }
+
+      if (data.settled) {
+        data.jigglePhase += 0.015;
+        const jiggle = Math.sin(data.jigglePhase) * 0.001;
+        voxel.position.x = data.targetX + jiggle;
+
+        data.flickerPhase += 0.035;
+        const flicker = 0.5 + 0.5 * Math.sin(data.flickerPhase);
+        
+        // Darker E squares pulse between dark gray and full brightness
+        if (data.isDarkerSquare) {
+          // Slow pulsing cycle (3 second period)
+          const pulseSpeed = 0.02;
+          if (!data.pulsePhase) data.pulsePhase = 0;
+          data.pulsePhase += pulseSpeed;
+          const pulseCycle = Math.sin(data.pulsePhase);
+          
+          // Map cycle: -1 to 0 = stay dark, 0 to 1 = brighten, 1 to 0 = darken back, 0 to -1 = stay dark
+          const pulseStrength = Math.max(0, pulseCycle); // 0 to 1 range
+          
+          // Lerp between dark gray and full white
+          const darkColor = data.baseColor; // 0x1a1f2a
+          const brightColor = new THREE.Color(0xffffff); // Full white
+          if (voxel.material.color && darkColor) {
+          voxel.material.color.lerpColors(darkColor, brightColor, pulseStrength);
+          }
+          
+          const targetOpacity = 0.7 + pulseStrength * 0.2; // 0.7 to 0.9
+          voxel.material.opacity = THREE.MathUtils.lerp(voxel.material.opacity, targetOpacity, 0.06);
+          
+          if (data.edges && data.edges.material) {
+            const darkEdgeColor = data.edgesBaseColor; // 0x2a3342
+            const brightEdgeColor = new THREE.Color(0xffffff);
+            if (data.edges.material.color && darkEdgeColor) {
+            data.edges.material.color.lerpColors(darkEdgeColor, brightEdgeColor, pulseStrength);
+            }
+            const edgeOpacity = 0.5 + pulseStrength * 0.3; // 0.5 to 0.8
+            data.edges.material.opacity = THREE.MathUtils.lerp(data.edges.material.opacity, edgeOpacity, 0.08);
+          }
+        } else {
+          const glowStrength = THREE.MathUtils.clamp(0.3 + flicker * 0.5, 0, 1);
+
+          // Red square glows more intensely
+          const targetOpacity = data.isRedSquare ? 0.9 : 0.8;
+          voxel.material.opacity = THREE.MathUtils.lerp(voxel.material.opacity, targetOpacity, 0.06);
+          if (voxel.material.color && data.baseColor && data.glowColor) {
+          voxel.material.color.lerpColors(data.baseColor, data.glowColor, glowStrength);
+          }
+          if (data.edges && data.edges.material) {
+            const edgeOpacity = data.isRedSquare ? 0.7 : 0.6;
+            data.edges.material.opacity = THREE.MathUtils.lerp(data.edges.material.opacity, edgeOpacity, 0.08);
+            if (data.edges.material.color && data.edgesBaseColor && data.edgesGlowColor) {
+            data.edges.material.color.lerpColors(data.edgesBaseColor, data.edgesGlowColor, glowStrength);
+            }
+          }
+        }
+      }
+    });
+  }
+
+  _updateMaskVoxels(totalTime) {
+    if (!this.state.maskVoxels.length) {
+      return;
+    }
+
+    this.state.maskVoxels.forEach(voxel => {
+      const data = voxel.userData;
+      const localTime = totalTime - (data.spawnTime || 0) - data.dropDelay;
+
+      if (localTime <= 0) {
+        return;
+      }
+
+      voxel.visible = true;
+
+      if (!data.settled && voxel.position.y > data.targetY) {
+        voxel.position.y -= data.dropSpeed;
+        voxel.material.opacity = Math.min(0.75, voxel.material.opacity + 0.05);
+        if (data.edges && data.edges.material) {
+          data.edges.material.opacity = Math.min(0.55, data.edges.material.opacity + 0.04);
+        }
+      } else if (!data.settled) {
+        voxel.position.y = data.targetY;
+        voxel.material.opacity = 0.75;
+        if (data.edges && data.edges.material) {
+          data.edges.material.opacity = 0.55;
+        }
+        data.settled = true;
+      }
+
+      if (data.settled) {
+        data.jigglePhase += 0.015;
+        const jiggle = Math.sin(data.jigglePhase) * 0.001;
+        voxel.position.x = data.targetX + jiggle;
+
+        data.flickerPhase += 0.035;
+        const flicker = 0.5 + 0.5 * Math.sin(data.flickerPhase);
+        const glowStrength = THREE.MathUtils.clamp(0.3 + flicker * 0.5, 0, 1);
+
+        voxel.material.opacity = THREE.MathUtils.lerp(voxel.material.opacity, 0.8, 0.06);
+        if (voxel.material.color && data.baseColor && data.glowColor) {
+        voxel.material.color.lerpColors(data.baseColor, data.glowColor, glowStrength);
+        }
+        if (data.edges && data.edges.material) {
+          data.edges.material.opacity = THREE.MathUtils.lerp(data.edges.material.opacity, 0.6, 0.08);
+          if (data.edges.material.color && data.edgesBaseColor && data.edgesGlowColor) {
+          data.edges.material.color.lerpColors(data.edgesBaseColor, data.edgesGlowColor, glowStrength);
+          }
         }
       }
     });
@@ -3952,6 +6624,9 @@ export class IntroSceneComplete {
     }
     if (this._keydownHandler) {
       document.removeEventListener('keydown', this._keydownHandler);
+    }
+    if (this._mouseMoveHandler) {
+      document.removeEventListener('mousemove', this._mouseMoveHandler);
     }
     if (this._promptClickHandler) {
       const promptContainer = document.querySelector('.prompt-container');

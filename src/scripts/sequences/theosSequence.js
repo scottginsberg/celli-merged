@@ -998,11 +998,11 @@ export function initTheosSequence(options = {}) {
   function triggerFinalCollapse() {
     if (state.finalCollapse) return;
     
-    console.log('[THEOS] Final collapse initiated');
+    console.log('[THEOS] Final collapse initiated - redirecting to fullhand');
     state.finalCollapse = true;
     state.finalCollapseStartTime = state.sequenceTime;
     
-    // Create the final glowing cube at origin
+    // Create the final glitchy white cube at origin
     const finalGeometry = new RoundedBoxGeometry(1, 1, 1, 6, 0.3);
     const finalMaterial = new THREE.MeshStandardMaterial({
       color: 0xffffff,
@@ -1018,7 +1018,235 @@ export function initTheosSequence(options = {}) {
     state.finalCube.scale.setScalar(0.1);
     scene.add(state.finalCube);
     
-    console.log('[THEOS] Final cube created');
+    console.log('[THEOS] Final cube created - starting transition sequence');
+    
+    // Start transition sequence after cube forms
+    setTimeout(() => {
+      startFullhandTransition();
+    }, 3000);
+  }
+  
+  function startFullhandTransition() {
+    console.log('[THEOS] Starting fullhand transition sequence');
+    
+    // Hide all existing elements
+    state.shapes.forEach(mesh => {
+      scene.remove(mesh);
+    });
+    
+    // Create glitchy cube to square transition
+    const transitionState = {
+      phase: 'glitchyCube', // glitchyCube -> flatten -> sputterReveal -> expandCollapse -> spawnCelli
+      glitchIntensity: 0,
+      flattenProgress: 0,
+      sputterLights: [],
+      gridSquares: [],
+      gridSize: 1,
+      gridPhase: 0, // 1x1 -> 2x2 -> 3x3 -> 4x4 -> 5x5 -> 6x6
+      startTime: performance.now()
+    };
+    
+    state.transitionState = transitionState;
+  }
+  
+  function updateTransitionSequence(delta) {
+    if (!state.transitionState) return;
+    
+    const ts = state.transitionState;
+    const elapsed = (performance.now() - ts.startTime) / 1000;
+    
+    if (ts.phase === 'glitchyCube') {
+      // Glitchy cube phase (2 seconds)
+      if (elapsed < 2) {
+        ts.glitchIntensity = Math.min(1, elapsed / 2);
+        
+        if (state.finalCube) {
+          // Glitchy jitter
+          const jitter = ts.glitchIntensity * 2;
+          state.finalCube.position.set(
+            (Math.random() - 0.5) * jitter,
+            (Math.random() - 0.5) * jitter,
+            (Math.random() - 0.5) * jitter
+          );
+          
+          // Random color glitches
+          if (Math.random() < 0.3) {
+            const colors = [0xffffff, 0xff00ff, 0x00ffff, 0xffff00];
+            state.finalCube.material.emissive.setHex(colors[Math.floor(Math.random() * colors.length)]);
+          }
+        }
+      } else {
+        // Move to flatten phase
+        ts.phase = 'flatten';
+        ts.startTime = performance.now();
+        console.log('[THEOS] Transition: flatten phase');
+      }
+    } else if (ts.phase === 'flatten') {
+      // Flatten cube into single square (1 second)
+      if (elapsed < 1) {
+        ts.flattenProgress = elapsed / 1;
+        
+        if (state.finalCube) {
+          // Stop glitching, return to center
+          state.finalCube.position.set(0, 0, 0);
+          state.finalCube.material.emissive.setHex(0xffffff);
+          
+          // Flatten Z scale
+          const scaleZ = THREE.MathUtils.lerp(1, 0.05, ts.flattenProgress);
+          state.finalCube.scale.set(
+            state.finalCube.scale.x,
+            state.finalCube.scale.y,
+            state.finalCube.scale.x * scaleZ
+          );
+        }
+      } else {
+        // Convert cube to single square
+        if (state.finalCube) {
+          scene.remove(state.finalCube);
+        }
+        
+        // Create single flat square
+        const squareGeo = new THREE.PlaneGeometry(10, 10);
+        const squareMat = new THREE.MeshStandardMaterial({
+          color: 0x000000,
+          emissive: 0x000000,
+          emissiveIntensity: 0,
+          side: THREE.DoubleSide
+        });
+        const square = new THREE.Mesh(squareGeo, squareMat);
+        square.position.set(0, 0, 0);
+        scene.add(square);
+        ts.gridSquares = [square];
+        
+        // Move to sputter reveal phase
+        ts.phase = 'sputterReveal';
+        ts.startTime = performance.now();
+        console.log('[THEOS] Transition: sputter reveal phase');
+      }
+    } else if (ts.phase === 'sputterReveal') {
+      // Sputtering lights revealing the monitor (2 seconds)
+      if (elapsed < 2) {
+        const sputterProgress = elapsed / 2;
+        
+        // Random sputtering effect on square
+        if (ts.gridSquares[0]) {
+          if (Math.random() < 0.4) {
+            const brightness = Math.random();
+            ts.gridSquares[0].material.emissiveIntensity = brightness * 0.3;
+          } else {
+            ts.gridSquares[0].material.emissiveIntensity = 0;
+          }
+        }
+        
+        // Gradually increase average brightness
+        if (elapsed > 1 && ts.gridSquares[0]) {
+          const avgBrightness = (elapsed - 1) * 0.3;
+          ts.gridSquares[0].material.emissive.setHex(0xffffff);
+          ts.gridSquares[0].material.emissiveIntensity = Math.max(
+            ts.gridSquares[0].material.emissiveIntensity,
+            avgBrightness
+          );
+        }
+      } else {
+        // Monitor revealed, move to expand/collapse grid phase
+        ts.phase = 'expandCollapse';
+        ts.gridPhase = 0; // Start with 2x2
+        ts.startTime = performance.now();
+        console.log('[THEOS] Transition: expand/collapse grid phase');
+      }
+    } else if (ts.phase === 'expandCollapse') {
+      // Grid expansion/collapse sequence: 2x2, 3x3, 4x4, 5x5, 6x6
+      const gridSizes = [2, 3, 4, 5, 6];
+      const phaseTime = 0.8; // 0.8 seconds per grid size
+      
+      if (ts.gridPhase < gridSizes.length) {
+        const phaseElapsed = elapsed % phaseTime;
+        const expandProgress = Math.min(1, phaseElapsed / (phaseTime * 0.5));
+        const collapseProgress = Math.max(0, (phaseElapsed - phaseTime * 0.5) / (phaseTime * 0.5));
+        
+        // Check if we need to create new grid
+        if (phaseElapsed < 0.05 || ts.gridSquares.length === 0 || ts.gridSquares[0].userData.gridSize !== gridSizes[ts.gridPhase]) {
+          // Remove old grid
+          ts.gridSquares.forEach(sq => {
+            scene.remove(sq);
+            sq.geometry.dispose();
+            sq.material.dispose();
+          });
+          ts.gridSquares = [];
+          
+          // Create new grid
+          const gridSize = gridSizes[ts.gridPhase];
+          const squareSize = 10 / gridSize * 0.85; // Slightly smaller to show gaps
+          const startOffset = -(gridSize - 1) * squareSize / 2;
+          
+          for (let row = 0; row < gridSize; row++) {
+            for (let col = 0; col < gridSize; col++) {
+              const squareGeo = new THREE.PlaneGeometry(squareSize, squareSize);
+              const squareMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                emissive: 0xffffff,
+                emissiveIntensity: 0.3,
+                side: THREE.DoubleSide
+              });
+              const square = new THREE.Mesh(squareGeo, squareMat);
+              square.position.set(
+                startOffset + col * squareSize,
+                startOffset + row * squareSize,
+                0
+              );
+              square.userData.gridSize = gridSize;
+              square.userData.baseScale = 0.01;
+              square.scale.setScalar(0.01);
+              scene.add(square);
+              ts.gridSquares.push(square);
+            }
+          }
+          
+          console.log(`[THEOS] Created ${gridSize}x${gridSize} grid (${ts.gridSquares.length} squares)`);
+        }
+        
+        // Animate squares
+        if (collapseProgress === 0) {
+          // Expand phase
+          ts.gridSquares.forEach(sq => {
+            const targetScale = THREE.MathUtils.lerp(0.01, 1, expandProgress);
+            sq.scale.setScalar(targetScale);
+          });
+        } else {
+          // Collapse phase
+          ts.gridSquares.forEach(sq => {
+            const targetScale = THREE.MathUtils.lerp(1, 0.01, collapseProgress);
+            sq.scale.setScalar(targetScale);
+          });
+        }
+        
+        // Move to next grid size
+        if (elapsed > (ts.gridPhase + 1) * phaseTime) {
+          ts.gridPhase++;
+          if (ts.gridPhase >= gridSizes.length) {
+            // Final collapse complete - redirect to fullhand
+            ts.phase = 'redirecting';
+            ts.startTime = performance.now();
+            console.log('[THEOS] Transition complete - redirecting to fullhand');
+          }
+        }
+      }
+    } else if (ts.phase === 'redirecting') {
+      // Wait a moment then redirect
+      if (elapsed > 0.5) {
+        // Clear grid
+        ts.gridSquares.forEach(sq => {
+          scene.remove(sq);
+          sq.geometry.dispose();
+          sq.material.dispose();
+        });
+        
+        // Redirect to fullhand sequence mode
+        console.log('[THEOS] Redirecting to fullhand sequence...');
+        const fullhandUrl = window.location.origin + window.location.pathname.replace('theos-sequence.html', '../componentized/fullhand-complete.html') + '?mode=sequence';
+        window.location.href = fullhandUrl;
+      }
+    }
   }
 
   function updateCamera(delta) {
@@ -1336,6 +1564,7 @@ export function initTheosSequence(options = {}) {
     applyShapeBehaviours(delta);
     updateConnectors(delta);
     updateFinalCube(delta);
+    updateTransitionSequence(delta);
     updateCamera(delta);
 
     composer.render();

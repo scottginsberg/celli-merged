@@ -95,7 +95,14 @@ export class VisiCellScene {
       coordinateSequence: {
         loaded: false,
         loadingPromise: null
-      }
+      },
+      
+      // Inactivity timeout for R sequence
+      inactivityTimeout: null,
+      inactivityDuration: 5000, // 5 seconds
+      
+      // Skip mode flag
+      isSkipped: false
     };
     
     this._initFunctions();
@@ -361,17 +368,18 @@ export class VisiCellScene {
         width: 80vw;
         height: 60vh;
         max-width: 1200px;
-        background: rgba(0, 0, 0, 0.96);
+        background: rgba(0, 0, 0, 0.96) !important;
         border: 2px solid #0f0;
         border-radius: 20px;
         box-shadow: 0 0 45px rgba(0, 255, 160, 0.35);
         font-family: 'Courier New', monospace;
         color: #0f0;
         overflow: visible;
-        display: none;
+        display: block;
         z-index: 100;
       `;
       document.body.appendChild(container);
+      console.log('✅ Created VisiCell container');
     }
 
     // Create grid
@@ -388,11 +396,11 @@ export class VisiCellScene {
    */
   _generateGridHTML() {
     let html = `
-      <div style="padding: 10px; border-bottom: 1px solid #0f0; background: rgba(0, 0, 0, 0.85);">
+      <div style="padding: 10px 15px; border-bottom: 1px solid #0f0; background: rgba(0, 0, 0, 0.85); border-radius: 20px 20px 0 0;">
         <div style="font-size: 14px; letter-spacing: 0.2em;">VISICELL</div>
         <div id="visicalc-cell-display" style="font-size: 11px; opacity: 0.7; margin-top: 4px;">A1: </div>
       </div>
-      <div style="display: flex; flex-direction: column; height: calc(100% - 60px); overflow: auto;">
+      <div id="visicalc-grid-table-container" style="display: flex; flex-direction: column; height: calc(100% - 60px); overflow: auto;">
         <table style="width: 100%; border-collapse: collapse;">
           <thead>
             <tr>
@@ -741,9 +749,11 @@ export class VisiCellScene {
     if (clue.riddleStage === 'await-clock' && isPast && Math.abs(offsetMinutes) === 35) {
       clue.clockAcknowledged = true;
       clue.riddleStage = 'complete';
+      clue.active = true; // Re-enable input for second LEAVE
+      clue.lastTriggeredValue = null; // Allow LEAVE again
       this._updateClueCellText('TOUCHÉ', { emphasize: true });
       this._updatePromptCell('WHAT WERE YOU TRYING TO DO AGAIN?');
-      this._showClueInstruction('TOUCHÉ. WHAT WERE YOU TRYING TO DO AGAIN?');
+      this._showClueInstruction('TOUCHÉ. WHAT WERE YOU TRYING TO DO AGAIN? (TYPE LEAVE TO DESCEND DEEPER)');
       this._resetClueEntry();
 
       this._triggerMadnessSequence();
@@ -751,9 +761,12 @@ export class VisiCellScene {
   }
 
   _triggerMadnessSequence() {
+    console.log('🌀 MADNESS.LOOM sequence triggered - redirecting immediately');
+    
     const clue = this.state.clueTrail;
     if (clue) {
       if (clue.madnessTriggered) {
+        console.log('⚠️ MADNESS.LOOM already triggered, ignoring duplicate');
         return;
       }
       clue.madnessTriggered = true;
@@ -766,36 +779,24 @@ export class VisiCellScene {
     });
 
     if (madnessState.running) {
+      console.log('⚠️ MADNESS.LOOM sequence already running, ignoring duplicate');
       return;
     }
 
     madnessState.triggered = true;
     madnessState.running = true;
 
+    // Pause any background audio
     if (this.state.endAudio) {
       try {
         this.state.endAudio.pause();
+        console.log('🔇 Paused end.mp3 for MADNESS.LOOM');
       } catch (error) {
         console.warn('⚠️ Unable to pause end.mp3 during MADNESS.LOOM:', error);
       }
     }
 
-    this._updatePromptCell('MADNESS.LOOM LOCATED. INITIALIZING NEW SEQUENCE.');
-    this._showClueInstruction('MADNESS.LOOM LOCATED. INITIALIZING NEW SEQUENCE.');
-    this._displayClueMessageAcrossCells('MADNESS LOOM LOCATED', 'A12');
-
-    try {
-      audioSystem.playMusic({
-        key: 'visicell-reboot',
-        url: './reboot.mp3',
-        loop: false,
-        volume: 0.68,
-        fadeInDuration: 0.4
-      });
-    } catch (error) {
-      console.warn('⚠️ Failed to start reboot.mp3 for MADNESS.LOOM:', error);
-    }
-
+    // No audio, no visual feedback - just redirect immediately
     Promise.resolve()
       .then(() => this._launchMadnessSequenceFlow())
       .catch(error => {
@@ -827,15 +828,13 @@ export class VisiCellScene {
       }));
     }
 
-    await this._startCoordinateGridSequence();
-
+    // Redirect immediately to theos-sequence (relative path)
+    const sequenceUrl = './templates/componentized/theos-sequence.html';
+    
+    console.log(`🌀 Redirecting immediately to theos-sequence: ${sequenceUrl}`);
+    
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('celli:madness-loom-complete', {
-        detail: {
-          origin: 'visicell',
-          timestamp: Date.now()
-        }
-      }));
+      window.location.href = sequenceUrl;
     }
   }
 
@@ -1057,6 +1056,16 @@ export class VisiCellScene {
 
     this.state.cells.set(addr, cellData);
 
+    // Check for MADNESS.LOOM trigger in any cell (case insensitive)
+    // This check runs regardless of suppressClueCheck to catch all user inputs
+    const normalizedValue = (value || '').toString().trim().toUpperCase();
+    if (normalizedValue === 'MADNESS.LOOM' && !suppressClueCheck) {
+      console.log(`🌀 MADNESS.LOOM detected in cell ${addr} - triggering sequence`);
+      setTimeout(() => {
+        this._triggerMadnessSequence();
+      }, 100);
+    }
+
     if (!suppressClueCheck) {
       this._handleClueCellValueChange(addr);
     }
@@ -1174,6 +1183,36 @@ export class VisiCellScene {
         }
       }
     });
+  }
+
+  /**
+   * Cancel inactivity timeout
+   */
+  _cancelInactivityTimeout() {
+    if (this.state.inactivityTimeout) {
+      clearTimeout(this.state.inactivityTimeout);
+      this.state.inactivityTimeout = null;
+      console.log('⏱️ Inactivity timeout cancelled');
+    }
+  }
+
+  /**
+   * Start inactivity timeout - triggers R sequence if user doesn't type
+   */
+  _startInactivityTimeout() {
+    // Cancel any existing timeout
+    this._cancelInactivityTimeout();
+    
+    console.log(`⏱️ Starting ${this.state.inactivityDuration}ms inactivity timeout for R sequence`);
+    
+    this.state.inactivityTimeout = setTimeout(() => {
+      console.log('⏱️ Inactivity timeout expired - starting R sequence');
+      this._showClueInstruction('NO INPUT DETECTED. INITIALIZING R SEQUENCE...');
+      
+      setTimeout(() => {
+        this._startRInfection();
+      }, 1000);
+    }, this.state.inactivityDuration);
   }
 
   /**
@@ -1447,9 +1486,12 @@ export class VisiCellScene {
     const container = this.state.container;
     if (!container) return null;
 
+    // If clueTrail already exists, DON'T return it early
+    // Let it be recreated to ensure fresh state
     if (this.state.clueTrail && this.state.clueTrail.overlayEl && this.state.clueTrail.overlayEl.isConnected) {
-      this.state.clueTrail.overlayEl.style.display = 'flex';
-      return this.state.clueTrail;
+      console.log('🔄 Existing clue trail found - will be reset');
+      // Remove old overlay to force recreation
+      this.state.clueTrail.overlayEl.remove();
     }
 
     const overlay = document.createElement('div');
@@ -1466,7 +1508,7 @@ export class VisiCellScene {
     overlay.style.color = '#0f0';
     overlay.style.textTransform = 'uppercase';
     overlay.style.fontSize = '14px';
-    overlay.style.zIndex = '101';
+    overlay.style.zIndex = '999';
 
     const instruction = document.createElement('div');
     instruction.id = 'visicell-entry-instruction';
@@ -1606,7 +1648,13 @@ export class VisiCellScene {
 
   _handleClueCellValueChange(addr, overrideValue) {
     const clue = this.state.clueTrail;
-    if (!clue || clue.initializing || clue.completedMode) {
+    if (!clue || clue.initializing) {
+      return;
+    }
+    
+    // Allow commands during 'leave' completedMode (onion riddle sequence)
+    // But block during 'enter' completedMode (quest/death sequence)
+    if (clue.completedMode === 'enter') {
       return;
     }
 
@@ -1785,7 +1833,7 @@ export class VisiCellScene {
 
     overlay.style.display = 'flex';
     this._cancelQuestCountdown();
-    this._updateQuestMessage(`FIGURE OUT THE INCOMPLETE WORD IN CELL ${entryCell} - THEN PRESS THAT KEY. THE ENTER KEY. THE WORD IS ENTER.`);
+    this._updateQuestMessage(`FIGURE OUT THE INCOMPLETE WORD IN CELL ${entryCell} - THEN PRESS THAT KEY. THE ENTER KEY. THE WORD IS ENTER.\n\nTHIS ISN'T A PARABLE. DON'T TRY THAT AGAIN.`);
   }
 
   _layoutFinishWordMessage(entryCell) {
@@ -1870,6 +1918,76 @@ export class VisiCellScene {
       return;
     }
 
+    // Define visual styles for each layer - deconstructing from modern to primitive
+    const layerStyles = [
+      // Layer 0: Modern rounded spreadsheet (the one I just introduced)
+      {
+        borderRadius: '18px',
+        background: 'rgba(0, 10, 0, 0.86)',
+        border: '1px solid rgba(0, 255, 160, 0.32)',
+        boxShadow: '0 0 32px rgba(0, 255, 160, 0.22)',
+        fontFamily: `'Courier New', monospace`,
+        cellBorder: '1px solid rgba(0, 255, 160, 0.28)',
+        cellBackground: 'rgba(0, 20, 0, 0.65)',
+        cellPadding: '4px 6px',
+        gridGap: '2px'
+      },
+      // Layer 1: Early GUI spreadsheet (Lotus 1-2-3 / VisiCalc era)
+      {
+        borderRadius: '4px',
+        background: 'rgba(0, 0, 0, 0.92)',
+        border: '2px solid #0f0',
+        boxShadow: 'none',
+        fontFamily: `'Courier New', monospace`,
+        cellBorder: '1px solid #0f0',
+        cellBackground: '#000',
+        cellPadding: '6px 8px',
+        gridGap: '1px'
+      },
+      // Layer 2: Terminal-based grid (ASCII box drawing)
+      {
+        borderRadius: '0',
+        background: '#000',
+        border: '3px double #0f0',
+        boxShadow: 'inset 0 0 20px rgba(0, 255, 0, 0.2)',
+        fontFamily: `'Courier New', monospace`,
+        cellBorder: '1px dashed #0f0',
+        cellBackground: 'transparent',
+        cellPadding: '8px',
+        gridGap: '0',
+        useAsciiChars: true
+      },
+      // Layer 3: Pure text table (ledger paper simulation)
+      {
+        borderRadius: '0',
+        background: 'rgba(10, 20, 10, 0.95)',
+        border: '1px solid #0f0',
+        boxShadow: 'none',
+        fontFamily: `'Courier New', monospace`,
+        cellBorder: 'none',
+        cellBackground: 'transparent',
+        cellPadding: '2px 8px',
+        gridGap: '0',
+        useMonospace: true,
+        showGridLines: false
+      },
+      // Layer 4: Deconstructed - just glowing text fragments
+      {
+        borderRadius: '0',
+        background: 'transparent',
+        border: 'none',
+        boxShadow: '0 0 40px rgba(0, 255, 0, 0.3)',
+        fontFamily: `'Courier New', monospace`,
+        cellBorder: 'none',
+        cellBackground: 'transparent',
+        cellPadding: '4px',
+        gridGap: '8px',
+        minimal: true
+      }
+    ];
+
+    const style = layerStyles[index % layerStyles.length];
+
     const layer = document.createElement('div');
     layer.className = 'visicell-trail-layer';
     layer.style.position = 'absolute';
@@ -1879,14 +1997,17 @@ export class VisiCellScene {
     layer.style.padding = '16px';
     layer.style.width = '70%';
     layer.style.maxWidth = '780px';
-    layer.style.background = 'rgba(0, 10, 0, 0.86)';
-    layer.style.border = '1px solid rgba(0, 255, 160, 0.32)';
-    layer.style.boxShadow = '0 0 32px rgba(0, 255, 160, 0.22)';
-    layer.style.borderRadius = '18px';
+    layer.style.background = style.background;
+    layer.style.border = style.border;
+    layer.style.boxShadow = style.boxShadow;
+    layer.style.borderRadius = style.borderRadius;
     layer.style.pointerEvents = 'none';
     layer.style.opacity = '0';
     layer.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
-    layer.style.zIndex = String(180 + index);
+    layer.style.zIndex = String(200 + index); // Increased from 180 to ensure above other elements
+    layer.style.fontFamily = style.fontFamily;
+    
+    console.log(`🎨 Spawning trail layer ${index} at z-index ${200 + index}`);
 
     const title = document.createElement('div');
     title.textContent = (config.title || `VISICELL STACK ${String(index + 1).padStart(2, '0')}`).toUpperCase();
@@ -1894,6 +2015,7 @@ export class VisiCellScene {
     title.style.letterSpacing = '0.18em';
     title.style.opacity = '0.82';
     title.style.textTransform = 'uppercase';
+    title.style.color = '#0f0';
     layer.appendChild(title);
 
     if (config.hint) {
@@ -1903,6 +2025,7 @@ export class VisiCellScene {
       hint.style.marginTop = '6px';
       hint.style.opacity = '0.82';
       hint.style.letterSpacing = '0.12em';
+      hint.style.color = '#0f0';
       layer.appendChild(hint);
     }
 
@@ -1910,41 +2033,103 @@ export class VisiCellScene {
     const rows = config.rows || 4;
     const grid = document.createElement('div');
     grid.style.marginTop = '12px';
-    grid.style.display = 'grid';
-    grid.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
-    grid.style.gap = '2px';
+    
+    if (style.minimal) {
+      // Layer 4: Minimal deconstructed layout
+      grid.style.display = 'flex';
+      grid.style.flexWrap = 'wrap';
+      grid.style.gap = style.gridGap;
+      grid.style.justifyContent = 'center';
+    } else if (style.useMonospace && !style.showGridLines) {
+      // Layer 3: Text table layout
+      grid.style.display = 'block';
+      grid.style.fontFamily = `'Courier New', monospace`;
+      grid.style.whiteSpace = 'pre';
+      grid.style.lineHeight = '1.4';
+    } else {
+      grid.style.display = 'grid';
+      grid.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
+      grid.style.gap = style.gridGap;
+    }
 
     const entries = Array.isArray(config.entries) ? config.entries : [];
 
-    for (let row = 1; row <= rows; row++) {
-      for (let col = 1; col <= columns; col++) {
-        const cell = document.createElement('div');
-        cell.style.minHeight = '32px';
-        cell.style.display = 'flex';
-        cell.style.alignItems = 'center';
-        cell.style.justifyContent = 'center';
-        cell.style.border = '1px solid rgba(0, 255, 160, 0.28)';
-        cell.style.background = 'rgba(0, 20, 0, 0.65)';
-        cell.style.fontSize = '13px';
-        cell.style.letterSpacing = '0.14em';
-        cell.style.textTransform = 'uppercase';
-        cell.style.padding = '4px 6px';
-
-        const addr = `${String.fromCharCode(64 + col)}${row}`;
-        const entry = entries.find(item => item && item.addr === addr);
-
-        if (entry) {
-          cell.textContent = (entry.text || '').toString().toUpperCase();
-          if (entry.highlight) {
-            cell.style.background = 'rgba(0, 255, 160, 0.18)';
-            cell.style.boxShadow = '0 0 18px rgba(0, 255, 160, 0.45)';
-            cell.style.fontWeight = '700';
-          }
-        } else {
-          cell.innerHTML = '&nbsp;';
+    if (style.useMonospace && !style.showGridLines) {
+      // Layer 3: Build as text table
+      let tableText = '';
+      for (let row = 1; row <= rows; row++) {
+        let rowText = '';
+        for (let col = 1; col <= columns; col++) {
+          const addr = `${String.fromCharCode(64 + col)}${row}`;
+          const entry = entries.find(item => item && item.addr === addr);
+          const text = entry ? (entry.text || '').toString().toUpperCase() : '';
+          rowText += text.padEnd(15, ' ') + ' | ';
         }
+        tableText += rowText + '\n';
+      }
+      grid.textContent = tableText;
+      grid.style.color = '#0f0';
+    } else if (style.minimal) {
+      // Layer 4: Just show highlighted entries as floating fragments
+      entries.filter(e => e && e.highlight).forEach(entry => {
+        const fragment = document.createElement('div');
+        fragment.textContent = (entry.text || '').toString().toUpperCase();
+        fragment.style.color = '#0f0';
+        fragment.style.textShadow = '0 0 10px #0f0';
+        fragment.style.fontSize = '14px';
+        fragment.style.fontWeight = '700';
+        fragment.style.letterSpacing = '0.2em';
+        fragment.style.padding = '4px 8px';
+        grid.appendChild(fragment);
+      });
+    } else {
+      // Layers 0-2: Grid-based layout
+      for (let row = 1; row <= rows; row++) {
+        for (let col = 1; col <= columns; col++) {
+          const cell = document.createElement('div');
+          cell.style.minHeight = '32px';
+          cell.style.display = 'flex';
+          cell.style.alignItems = 'center';
+          cell.style.justifyContent = 'center';
+          cell.style.border = style.cellBorder;
+          cell.style.background = style.cellBackground;
+          cell.style.fontSize = '13px';
+          cell.style.letterSpacing = '0.14em';
+          cell.style.textTransform = 'uppercase';
+          cell.style.padding = style.cellPadding;
+          cell.style.color = '#0f0';
 
-        grid.appendChild(cell);
+          const addr = `${String.fromCharCode(64 + col)}${row}`;
+          const entry = entries.find(item => item && item.addr === addr);
+
+          if (entry) {
+            if (style.useAsciiChars) {
+              // Layer 2: Add ASCII box drawing characters
+              cell.textContent = (entry.text || '').toString().toUpperCase();
+            } else {
+              cell.textContent = (entry.text || '').toString().toUpperCase();
+            }
+            
+            if (entry.highlight) {
+              if (index === 0) {
+                cell.style.background = 'rgba(0, 255, 160, 0.18)';
+                cell.style.boxShadow = '0 0 18px rgba(0, 255, 160, 0.45)';
+                cell.style.fontWeight = '700';
+              } else if (index === 1) {
+                cell.style.background = '#0f0';
+                cell.style.color = '#000';
+                cell.style.fontWeight = '700';
+              } else if (index === 2) {
+                cell.style.textShadow = '0 0 8px #0f0';
+                cell.style.fontWeight = '700';
+              }
+            }
+          } else {
+            cell.innerHTML = style.useAsciiChars ? '░' : '&nbsp;';
+          }
+
+          grid.appendChild(cell);
+        }
       }
     }
 
@@ -1957,6 +2142,7 @@ export class VisiCellScene {
       reference.style.fontSize = '11px';
       reference.style.opacity = '0.78';
       reference.style.letterSpacing = '0.12em';
+      reference.style.color = '#0f0';
       layer.appendChild(reference);
     }
 
@@ -1971,6 +2157,7 @@ export class VisiCellScene {
     window.requestAnimationFrame(() => {
       layer.style.opacity = '1';
       layer.style.transform = `translate(-50%, -50%) scale(${Math.max(0.8, 1 - index * 0.06)}) translateY(${index * -14}px)`;
+      console.log(`✅ Trail layer ${index} now visible - opacity: 1, in DOM:`, layer.isConnected);
     });
   }
 
@@ -2180,17 +2367,41 @@ export class VisiCellScene {
     if (clue) {
       clue.stage = 'end';
       clue.active = false;
-      if (!clue.onionRiddleScheduled) {
-        clue.onionRiddleScheduled = true;
-        const onionTimeout = window.setTimeout(() => this._beginOnionRiddle(), 900);
-        this.state.deathTimeouts.push(onionTimeout);
-      }
+      
+      // Do NOT trigger onion riddle after death sequences
+      // LEAVE path handles SEARCH prompt via _handleNextDoorOpens()
+      // ENTER path should NOT show SEARCH prompt - it's a failure state
+      console.log(`💀 Oregon Trail ending complete (mode: ${mode}) - no onion riddle scheduled`);
     }
   }
 
   _initializeClueTrail() {
     const clue = this._ensureClueTrailState();
     if (!clue) return;
+
+    // Always show the ENTE prompt - both entry methods should be identical
+    console.log('📋 Initializing clue trail (skipIntro mode:', this.state.isSkipped, ')');
+    console.log('📋 Current clue state before init:', clue.riddleStage, clue.stage);
+
+    // ALWAYS clear any previous session state completely
+    console.log('🧹 Clearing all previous clue trail state for fresh start');
+    
+    // Clear any message cells from previous session
+    if (clue.messageCells && clue.messageCells.length > 0) {
+      this._clearClueMessageCells();
+    }
+    
+    // Clear any layer boxes or trail layers from previous session
+    this._clearTrailLayers();
+    
+    // Clear any clue cells that might be showing
+    const resizableCell = document.getElementById('resizable-cell');
+    if (resizableCell) {
+      resizableCell.classList.remove('visible');
+    }
+    
+    // Force reset to initial state
+    console.log('🔄 Forcing reset to initial await-leave state');
 
     const entryCell = this._pickRandomEntryCell();
     this.state.initialEntryCell = entryCell;
@@ -2239,7 +2450,19 @@ export class VisiCellScene {
     }
 
     clue.initializing = true;
-    this._setCellValue(entryCell, 'ENTE', { suppressClueCheck: true, resetStyle: true });
+    
+    // Set ENTE in entry cell with proper styling
+    const entryData = this._setCellValue(entryCell, 'ENTE', { suppressClueCheck: true, resetStyle: true });
+    entryData.style = entryData.style || {};
+    Object.assign(entryData.style, {
+      background: 'rgba(0, 0, 0, 0.85)',
+      color: '#0f0',
+      textAlign: 'center',
+      fontWeight: '600',
+      fontSize: '16px',
+      letterSpacing: '0.2em'
+    });
+    
     this._updateClueDisplay();
     clue.initializing = false;
 
@@ -2271,14 +2494,29 @@ export class VisiCellScene {
       });
     }
 
+    // Layout the "FINISH THE WORD" hint message around entry cell
+    this._layoutFinishWordMessage(entryCell);
+    
+    // Now render everything including the hint message
     this._render();
     this._applyClueCellHighlight();
+    
+    console.log(`✅ Entry cell ${entryCell} initialized with value: ${this._getCellValue(entryCell)}`);
 
-    this._layoutFinishWordMessage(entryCell);
+    // Ensure clue overlay is visible and on top
+    if (clue.overlayEl) {
+      clue.overlayEl.style.display = 'flex';
+      clue.overlayEl.style.zIndex = '999';
+    }
+
     this._showClueInstruction(`FIGURE OUT THE INCOMPLETE WORD IN CELL ${entryCell} - THEN PRESS THAT KEY. THE ENTER KEY. THE WORD IS ENTER.`);
     this._selectCell(entryCell);
 
     this._updateQuestOverlayForEntry(entryCell);
+
+    // Start inactivity timeout - R sequence triggers after 5 seconds if no input
+    this._startInactivityTimeout();
+    console.log('⏱️ Inactivity timeout started - R sequence will trigger in 5 seconds if no input');
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('visicell:entry-cell-selected', {
@@ -2289,7 +2527,7 @@ export class VisiCellScene {
 
   _updateClueDisplay() {
     const clue = this.state.clueTrail;
-    if (!clue) {
+    if (!clue || !clue.entryCell) {
       return;
     }
 
@@ -2307,7 +2545,9 @@ export class VisiCellScene {
           background: 'rgba(0, 0, 0, 0.85)',
           color: '#0f0',
           textAlign: 'center',
-          fontWeight: '600'
+          fontWeight: '600',
+          fontSize: '16px',
+          letterSpacing: '0.2em'
         }
       });
       cellData = this.state.cells.get(clue.entryCell);
@@ -2319,7 +2559,9 @@ export class VisiCellScene {
         background: 'rgba(0, 0, 0, 0.85)',
         color: '#0f0',
         textAlign: 'center',
-        fontWeight: '600'
+        fontWeight: '600',
+        fontSize: '16px',
+        letterSpacing: '0.2em'
       });
 
       if (!clue.initializing) {
@@ -2329,6 +2571,13 @@ export class VisiCellScene {
 
     this._render();
     this._applyClueCellHighlight();
+    
+    // Ensure the cell DOM element shows the current value
+    const cellEl = document.getElementById(`cell-${clue.entryCell}`);
+    if (cellEl && cellEl.textContent !== clue.currentInput) {
+      cellEl.textContent = clue.currentInput;
+      console.log(`🔄 Forced entry cell ${clue.entryCell} display to: ${clue.currentInput}`);
+    }
   }
 
   _showClueInstruction(message) {
@@ -2341,13 +2590,13 @@ export class VisiCellScene {
     clue.instructionEl.textContent = sanitized;
   }
 
-  _updatePromptCell(message) {
+  _updatePromptCell(message, options = {}) {
     const clue = this.state.clueTrail;
     if (!clue || !clue.promptCell) {
       return;
     }
 
-    const text = options && options.preserveCase
+    const text = options.preserveCase
       ? (message || '').toString()
       : (message || '').toString().toUpperCase();
     const promptData = this._setCellValue(clue.promptCell, text, { suppressClueCheck: true, resetStyle: true });
@@ -2427,47 +2676,101 @@ export class VisiCellScene {
       return false;
     }
 
+    // Check for MADNESS.LOOM trigger
+    if (normalized === 'MADNESS.LOOM') {
+      console.log('🌀 MADNESS.LOOM command detected - triggering sequence');
+      this._triggerMadnessSequence();
+      return true;
+    }
+
     if (normalized === 'ENTER' && clue.lastTriggeredValue !== 'ENTER') {
-      // Cancel R sequence if it was running
+      // ENTER should HALT the R sequence, not trigger it
+      // Cancel any pending R sequence timeout
+      this._cancelInactivityTimeout();
       this._cancelRSequence();
       
       clue.currentInput = normalized;
       clue.lastTriggeredValue = 'ENTER';
-      this._showClueInstruction('CORRECT! INITIALIZING R SEQUENCE...');
+      this._showClueInstruction('CORRECT! YOU HALTED THE AUTO-SEQUENCE.');
       
-      // Trigger R sequence after brief delay
-      setTimeout(() => {
-        this._startRInfection();
-      }, 1000);
-      
+      // Start quest sequence WITHOUT R infection
       this._startQuestSequence();
       return true;
     }
 
     if (normalized === 'LEAVE') {
-      if (clue.riddleStage === 'await-leave' && clue.lastTriggeredValue !== 'LEAVE') {
-        // Cancel R sequence if it was running
-        this._cancelRSequence();
+      console.log('LEAVE command - stage:', clue.stage, 'riddleStage:', clue.riddleStage, 'lastTriggered:', clue.lastTriggeredValue);
+      
+      // Allow LEAVE in initial states OR if coming back to it after close
+      // Also allow if in early puzzle stages (await-leave or await-search) to allow restart
+      if (clue.riddleStage === 'await-leave' || 
+          clue.stage === 'await-command' ||
+          (clue.riddleStage === 'await-search' && clue.lastTriggeredValue !== 'SEARCH')) {
         
+        // Cancel any inactivity timeout and R sequence
+        this._cancelInactivityTimeout();
+        this._cancelRSequence();
+
+        console.log('LEAVE: Triggering clue trail sequence');
         clue.currentInput = normalized;
         clue.lastTriggeredValue = 'LEAVE';
+        clue.active = false; // Deactivate input during sequence
+        
+        // Ensure overlay is visible and on top
+        if (clue.overlayEl) {
+          clue.overlayEl.style.display = 'flex';
+          clue.overlayEl.style.zIndex = '999';
+        }
+        
         this._updatePromptCell('REQUEST ACKNOWLEDGED. HOLD FAST.');
         this._showClueInstruction('CLUE TRAIL INITIATED. WATCH THE GRID.');
         clue.riddleStage = 'await-search';
+        
+        // Spawn Layer 0 immediately when LEAVE is entered
+        const entryCell = clue.entryCell || this.state.initialEntryCell || 'D5';
+        this._spawnTrailLayer({
+          title: 'VisiCell Array // Entrypoint',
+          hint: `Anchor cell ${entryCell}. Remember ENTER.`,
+          entries: [
+            { addr: 'A1', text: 'ENTER', highlight: true },
+            { addr: 'B1', text: entryCell, highlight: true },
+            { addr: 'B2', text: 'EAST' },
+            { addr: 'C2', text: 'STEP' }
+          ],
+          reference: `Route responses through ${entryCell}. Type SEARCH when ready.`
+        }, 0);
+        
         this._startClueTrailSequence('leave');
         return true;
       }
-      return false;
+      
+      // If in midst of puzzle and already progressed past SEARCH
+      if (clue.riddleStage !== 'await-leave' && clue.riddleStage !== 'await-search') {
+        this._showClueInstruction('ALREADY IN PROGRESS. CONTINUE WITH THE PUZZLE.');
+        return true;
+      }
+      
+      // Otherwise, invalid at this stage
+      console.log('LEAVE: Cannot leave at this stage');
+      this._showClueInstruction('CANNOT LEAVE AT THIS STAGE.');
+      return true;
     }
 
     if (clue.riddleStage === 'await-search' && normalized === 'SEARCH') {
+      if (clue.lastTriggeredValue === 'SEARCH') {
+        this._showClueInstruction('ALREADY SEARCHED. TYPE KEY TO CONTINUE.');
+        return true;
+      }
+      console.log('🔍 SEARCH command received in entry cell');
       clue.lastTriggeredValue = 'SEARCH';
-      this._updateClueCellText(`You found an onion. It's already peeled.\n\nBut wait, there's something its opposite and its partner. Take the last word of the first line, and remove the term for Richard Unkind. You'll know soulmate.`, { enlarge: true });
+      this._updateClueCellText(`You found an onion. It's already peeled.\n\nBut wait, there's something its opposite and its partner. Take the last word of the first line, and remove the term for Richard Unkind. You'll know their soulmate.`, { enlarge: true });
       this._updatePromptCell('REQUEST: IDENTIFY KEY.');
       this._showClueInstruction('THE GRID FOUND AN ONION. WHO HOLDS THE KEY?');
       clue.riddleStage = 'await-key';
       this._resetClueEntry();
       clue.lastShownInvalidValue = null;
+      
+      // Spawn Layer 1 when SEARCH is entered
       this._spawnTrailLayer({
         title: 'VisiCell Array // Search',
         hint: 'Trace NEXT → DOOR → OPENS.',
@@ -2478,7 +2781,7 @@ export class VisiCellScene {
           { addr: 'B2', text: entryCell, highlight: true }
         ],
         reference: `Route responses through ${entryCell}. Type KEY to unlock the cache.`
-      }, Array.isArray(this.state.clueTrailLayers) ? this.state.clueTrailLayers.length : 0);
+      }, 1);
       return true;
     }
 
@@ -2491,6 +2794,8 @@ export class VisiCellScene {
       clue.riddleStage = 'await-snake';
       this._resetClueEntry();
       clue.lastShownInvalidValue = null;
+      
+      // Spawn Layer 2 when KEY is entered
       this._spawnTrailLayer({
         title: 'VisiCell Array // Key',
         hint: 'ENTER + KEY STILL ALIGN.',
@@ -2501,7 +2806,7 @@ export class VisiCellScene {
           { addr: 'B2', text: entryCell, highlight: true }
         ],
         reference: `Keep responses inside ${entryCell}. Type SNAKE when you hear the hiss.`
-      }, Array.isArray(this.state.clueTrailLayers) ? this.state.clueTrailLayers.length : 0);
+      }, 2);
       return true;
     }
 
@@ -2513,6 +2818,8 @@ export class VisiCellScene {
       clue.riddleStage = 'await-burger';
       this._resetClueEntry();
       clue.lastShownInvalidValue = null;
+      
+      // Spawn Layer 3 when SNAKE is entered
       this._spawnTrailLayer({
         title: 'VisiCell Array // Serpent',
         hint: 'Sneak King slips between ENTER and KEY.',
@@ -2523,7 +2830,7 @@ export class VisiCellScene {
           { addr: 'B2', text: entryCell, highlight: true }
         ],
         reference: `Stay on ${entryCell}. Type BURGER KING to crown the hiss.`
-      }, Array.isArray(this.state.clueTrailLayers) ? this.state.clueTrailLayers.length : 0);
+      }, 3);
       return true;
     }
 
@@ -2535,6 +2842,8 @@ export class VisiCellScene {
       clue.riddleStage = 'await-ramses';
       this._resetClueEntry();
       clue.lastShownInvalidValue = null;
+      
+      // Spawn Layer 4 when BURGER KING is entered
       this._spawnTrailLayer({
         title: 'VisiCell Array // Kingdom',
         hint: 'Cardboard crowns crumble.',
@@ -2545,7 +2854,7 @@ export class VisiCellScene {
           { addr: 'B2', text: entryCell, highlight: true }
         ],
         reference: `Hold ${entryCell}. Type RAMSES II to reveal the password.`
-      }, Array.isArray(this.state.clueTrailLayers) ? this.state.clueTrailLayers.length : 0);
+      }, 4);
       return true;
     }
 
@@ -2561,6 +2870,8 @@ export class VisiCellScene {
       clue.clockAcknowledged = false;
       this._resetClueEntry();
       clue.lastShownInvalidValue = null;
+      
+      // Spawn Layer 5 when RAMSES II is entered
       this._spawnTrailLayer({
         title: 'VisiCell Array // Password',
         hint: 'RAMSES II rewinds the clock.',
@@ -2571,7 +2882,7 @@ export class VisiCellScene {
           { addr: 'B2', text: entryCell, highlight: true }
         ],
         reference: `Adjust the time back thirty-five minutes. ${entryCell} stays armed.`
-      }, Array.isArray(this.state.clueTrailLayers) ? this.state.clueTrailLayers.length : 0);
+      }, 5);
       return true;
     }
 
@@ -2579,6 +2890,17 @@ export class VisiCellScene {
       if (normalized === 'RAMSES II') {
         return true;
       }
+    }
+
+    // Second LEAVE trigger - after completing clock puzzle, enter Layer 3 ASCII
+    if (clue.riddleStage === 'complete' && normalized === 'LEAVE') {
+      if (clue.lastTriggeredValue === 'LEAVE-LAYER3') {
+        this._showClueInstruction('ALREADY IN THE DEEPEST LAYER.');
+        return true;
+      }
+      clue.lastTriggeredValue = 'LEAVE-LAYER3';
+      this._enterLayer3ASCII();
+      return true;
     }
 
     return false;
@@ -2709,7 +3031,12 @@ export class VisiCellScene {
     }
 
     const clue = this.state.clueTrail;
-    const finalMessage = `USER.FIRSTNAME & LASTNAME, I'M NOT A REPUBLIC SERIAL VILLAIN. DO YOU SERIOUSLY THINK I'D EXPLAIN MY MASTER PASSWORD IF THERE REMAINED THE SLIGHTEST CHANCE OF YOU LOGGING IN? I CHANGED IT THIRTY-FIVE MINUTES AGO.`;
+    // Get user's name from browser or use default
+    const userFirstName = window.userName?.split(' ')[0]?.toUpperCase() || 'USER';
+    const userLastName = window.userName?.split(' ').slice(1).join(' ')?.toUpperCase() || '';
+    const fullName = userLastName ? `${userFirstName} ${userLastName}` : userFirstName;
+    
+    const finalMessage = `${fullName}, I'M NOT A REPUBLIC SERIAL VILLAIN. DO YOU SERIOUSLY THINK I'D EXPLAIN MY MASTER PASSWORD IF THERE REMAINED THE SLIGHTEST CHANCE OF YOU LOGGING IN? I CHANGED IT THIRTY-FIVE MINUTES AGO.`;
 
     const overlay = document.createElement('div');
     overlay.className = 'visicell-glitch-overlay';
@@ -2778,24 +3105,156 @@ export class VisiCellScene {
     }
   }
 
-  _beginOnionRiddle() {
-    const clue = this.state.clueTrail;
-    if (!clue) {
+  _enterLayer3ASCII() {
+    if (typeof document === 'undefined') {
       return;
     }
 
+    const container = this.state.container;
+    if (!container) {
+      return;
+    }
+
+    // Create full-screen ASCII overlay
+    const asciiLayer = document.createElement('div');
+    asciiLayer.className = 'visicell-layer3-ascii';
+    asciiLayer.style.position = 'fixed';
+    asciiLayer.style.inset = '0';
+    asciiLayer.style.background = '#000';
+    asciiLayer.style.color = '#0f0';
+    asciiLayer.style.fontFamily = `'Courier New', monospace`;
+    asciiLayer.style.fontSize = '14px';
+    asciiLayer.style.lineHeight = '1.2';
+    asciiLayer.style.padding = '40px';
+    asciiLayer.style.zIndex = '999';
+    asciiLayer.style.display = 'flex';
+    asciiLayer.style.alignItems = 'center';
+    asciiLayer.style.justifyContent = 'center';
+    asciiLayer.style.overflow = 'hidden';
+    asciiLayer.style.whiteSpace = 'pre';
+    asciiLayer.style.letterSpacing = '0.1em';
+
+    const asciiCanvas = document.createElement('div');
+    asciiCanvas.style.textAlign = 'center';
+    asciiLayer.appendChild(asciiCanvas);
+    document.body.appendChild(asciiLayer);
+
+    // ASCII house pattern
+    const house = [
+      "    /\\    ",
+      "   /  \\   ",
+      "  /    \\  ",
+      " /______\\ ",
+      " |  __  | ",
+      " | |  | | ",
+      " | |__| | ",
+      " |______| "
+    ];
+
+    // Start transformation sequence
+    let frame = 0;
+    const frames = [];
+
+    // Frame 0: Original house
+    frames.push(house.join('\n'));
+
+    // Frame 1: Replace with L,E,A,V,E,S pattern
+    const pattern = ['L', 'E', 'A', 'V', 'E', 'S'];
+    const frame1 = house.map(line =>
+      line.split('').map((char, i) =>
+        char !== ' ' ? pattern[i % 6] : char
+      ).join('')
+    );
+    frames.push(frame1.join('\n'));
+
+    // Frame 2: Expand to 2x2
+    const expand2x2 = (char) => {
+      if (char === ' ') return ['  ', '  '];
+      return [char + char, char + char];
+    };
+
+    const expandedLines = [];
+    frame1.forEach(line => {
+      let topLine = '';
+      let bottomLine = '';
+      line.split('').forEach(char => {
+        const [top, bottom] = expand2x2(char);
+        topLine += top;
+        bottomLine += bottom;
+      });
+      expandedLines.push(topLine);
+      expandedLines.push(bottomLine);
+    });
+    frames.push(expandedLines.join('\n'));
+
+    // Frame 3-10: Glitch between expanded and LEAVES blocks
+    for (let i = 0; i < 8; i++) {
+      frames.push(i % 2 === 0 ? expandedLines.join('\n') : 'LLEAVES LLEAVES LLEAVES\nLLEAVES LLEAVES LLEAVES\nEAEAVES EAEAVES EAEAVES\nEAEAVES EAEAVES EAEAVES\nAVEAVES AVEAVES AVEAVES\nAVEAVES AVEAVES AVEAVES\nVESEAVES VESEAVES VESEAVES\nVESEAVES VESEAVES VESEAVES');
+    }
+
+    // Frame 11+: Pure LEAVES
+    frames.push('LEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES');
+
+    // Animate through frames
+    const animate = () => {
+      if (frame < frames.length) {
+        asciiCanvas.textContent = frames[frame];
+        frame++;
+        setTimeout(animate, frame < 3 ? 800 : frame < 11 ? 150 : 600);
+      } else {
+        // Loop the final LEAVES pattern with slight variations
+        const leavesVariations = [
+          'LEAVES LEAVES LEAVES',
+          'LLEAVES EAVES LLEAVES',
+          'LEAVES LEAVES LEAVES',
+          'LEAVESS LEAVES LEAVE'
+        ];
+        let loopFrame = 0;
+        setInterval(() => {
+          const variation = leavesVariations[loopFrame % leavesVariations.length];
+          asciiCanvas.textContent = Array(10).fill(variation).join('\n');
+          loopFrame++;
+        }, 1500);
+      }
+    };
+
+    animate();
+
+    this._showClueInstruction('LAYER 3: MINIMALIST ASCII. THE HOUSE DECONSTRUCTS INTO LEAVES.');
+  }
+
+  _beginOnionRiddle() {
+    const clue = this.state.clueTrail;
+    if (!clue) {
+      console.warn('[VisiCell] Cannot begin onion riddle - no clue trail state');
+      return;
+    }
+
+    console.log('[VisiCell] Beginning onion riddle sequence');
     clue.active = true;
     clue.stage = 'trail';
     clue.riddleStage = 'await-search';
-    clue.lastTriggeredValue = null;
+    clue.lastTriggeredValue = null; // Reset to allow SEARCH
     clue.lastShownInvalidValue = null;
     clue.clockAcknowledged = false;
+    // Clear completedMode to allow command processing to continue
+    // (We keep 'leave' mode active to track progression, but remove the blocking flag)
+    clue.completedMode = null;
+    clue.pendingDeathMode = null;
+    clue.deathSequenceScheduled = false;
+
+    // Ensure overlay is visible and on top
+    if (clue.overlayEl) {
+      clue.overlayEl.style.display = 'flex';
+      clue.overlayEl.style.zIndex = '999';
+    }
 
     this._resetClueEntry();
     this._updatePromptCell('REQUEST: SEARCH.');
-    this._updateClueCellText(`No, I've locked that away. What I have left could make you cry. Why don't you dice that, too. Maybe search around.`, { enlarge: true });
-    this._showClueInstruction('THE CACHE IS RIDDLE-LOCKED. SEARCH IT.');
+    this._updateClueCellText(`NO, I'VE LOCKED THAT AWAY. WHAT I HAVE LEFT COULD MAKE YOU CRY. WHY DON'T YOU DICE THAT, TOO. MAYBE SEARCH AROUND.`, { enlarge: true });
+    this._showClueInstruction(`TYPE 'SEARCH' IN CELL ${clue.entryCell} TO SEARCH THE CACHE.`);
     this._selectCell(clue.entryCell);
+    console.log(`🔍 SEARCH prompt active - user should type SEARCH in entry cell ${clue.entryCell}`);
   }
 
   _handleClueKeydown(e) {
@@ -2806,6 +3265,12 @@ export class VisiCellScene {
 
     if (this.state.focusedCell !== clue.entryCell) {
       return false;
+    }
+
+    // Any keypress cancels the inactivity timeout
+    // User is actively typing, so don't auto-trigger R sequence
+    if (clue.riddleStage === 'await-leave' || clue.stage === 'await-command') {
+      this._cancelInactivityTimeout();
     }
 
     if (e.key === 'Backspace') {
@@ -2858,9 +3323,11 @@ export class VisiCellScene {
   _startClueTrailSequence(mode = 'leave') {
     const clue = this.state.clueTrail;
     if (!clue) {
+      console.error('❌ Cannot start clue trail - clue state not found');
       return;
     }
 
+    console.log(`🚀 Starting clue trail sequence - mode: ${mode}`);
     clue.active = false;
     clue.stage = mode === 'enter' ? 'quest' : 'trail';
     clue.completedMode = mode;
@@ -2870,6 +3337,8 @@ export class VisiCellScene {
     this._showClueInstruction(mode === 'enter'
       ? 'Quest sequence initiated... fudge quietly.'
       : 'Clue trail initiated... watch the grid.');
+    
+    console.log(`📋 Clue trail steps to execute: ${mode === 'enter' ? 3 : 3} steps`);
 
     const entryCell = clue.entryCell || this.state.initialEntryCell || 'D5';
 
@@ -2884,55 +3353,19 @@ export class VisiCellScene {
           delay: 0,
           cell: 'C5',
           value: 'NEXT',
-          message: `Layer 1: Cell C5 glows "NEXT" beside ${entryCell}.`,
-          layerIndex: 0,
-          layer: {
-            title: 'VisiCell Array // Entrypoint',
-            hint: `Anchor cell ${entryCell}. Remember ENTER.`,
-            entries: [
-              { addr: 'A1', text: 'ENTER', highlight: true },
-              { addr: 'B1', text: entryCell, highlight: true },
-              { addr: 'B2', text: 'EAST' },
-              { addr: 'C2', text: 'STEP' }
-            ],
-            reference: `Route responses through ${entryCell}. Type SEARCH when ready.`
-          }
+          message: `Cell C5 glows "NEXT" beside ${entryCell}.`
         },
         {
           delay: 2200,
           cell: 'E3',
           value: 'DOOR',
-          message: 'Layer 2: E3 whispers "DOOR" through the fudged data.',
-          layerIndex: 1,
-          layer: {
-            title: 'VisiCell Array // Fudged',
-            hint: 'FUDGE, NUMBERS, HURRY echo under the countdown.',
-            entries: [
-              { addr: 'A1', text: 'FUDGE', highlight: true },
-              { addr: 'B1', text: 'NUMBERS', highlight: true },
-              { addr: 'C1', text: 'HURRY' },
-              { addr: 'B2', text: entryCell, highlight: true }
-            ],
-            reference: `Return to ${entryCell}. Type KEY when the door answers.`
-          }
+          message: 'E3 whispers "DOOR" through the grid.'
         },
         {
           delay: 4400,
           cell: 'D7',
           value: 'OPENS',
-          message: 'Layer 3: The next door opens.',
-          layerIndex: 2,
-          layer: {
-            title: 'VisiCell Array // Threshold',
-            hint: 'LOOK AND LOOMWORKS STILL WATCH.',
-            entries: [
-              { addr: 'A1', text: 'LOOK' },
-              { addr: 'B1', text: 'LOOMWORKS' },
-              { addr: 'C2', text: 'ENTER', highlight: true },
-              { addr: 'C3', text: entryCell, highlight: true }
-            ],
-            reference: `The next door opens. Hold ${entryCell}.`
-          },
+          message: 'The next door opens.',
           finalInstruction: 'THE NEXT DOOR OPENS.'
         }
       ];
@@ -2940,11 +3373,15 @@ export class VisiCellScene {
     clue.steps = steps;
     this._clearClueTrailTimeouts();
 
+    // Only reveal the cell values on a timed delay
+    // Layers are spawned separately by command handlers (LEAVE, SEARCH, KEY, etc.)
     steps.forEach((step, index) => {
       const timeoutId = window.setTimeout(() => {
+        console.log(`⏰ Executing clue step ${index + 1}/${steps.length} - cell: ${step.cell}, value: ${step.value}`);
         this._revealClueStep(step, index === steps.length - 1);
       }, step.delay);
       this.state.clueStepTimeouts.push(timeoutId);
+      console.log(`⏲️ Scheduled clue step ${index + 1} for ${step.delay}ms from now`);
     });
   }
 
@@ -2969,9 +3406,7 @@ export class VisiCellScene {
     this._render();
     this._applyClueCellHighlight();
 
-    if (step.layer) {
-      this._spawnTrailLayer(step.layer, step.layerIndex || 0);
-    }
+    // No layers spawned here - they're spawned by command handlers
 
     if (step.message) {
       this._showClueInstruction(step.message);
@@ -3018,14 +3453,38 @@ export class VisiCellScene {
    */
   async start(state, options = {}) {
     console.log('▶️ Starting VisiCell Scene');
+    
+    const { entry, skipIntro, cellState, continueAnimation } = options;
 
     this.state.running = true;
+    this.state.isSkipped = skipIntro === true;
+    
+    if (this.state.isSkipped) {
+      console.log('🎬 Skip mode enabled');
+    }
 
     this._silenceExternalAudio();
 
+    // CRITICAL: Set black background IMMEDIATELY before anything else
     if (typeof document !== 'undefined') {
-      this.state.previousBodyBackground = document.body.style.backgroundColor;
-      document.body.style.backgroundColor = '#000';
+      this.state.previousBodyBackground = document.body.style.backgroundColor || '#000';
+      document.body.style.backgroundColor = '#000 !important';
+      document.body.style.background = '#000 !important';
+      // Ensure no transitions on body background
+      document.body.style.transition = 'none';
+      
+      // Also ensure app container is black
+      const app = document.getElementById('app');
+      if (app) {
+        app.style.backgroundColor = '#000';
+        app.style.background = '#000';
+      }
+    }
+
+    // Ensure container exists before proceeding
+    if (!this.state.container) {
+      console.log('⚠️ Container not found, creating UI');
+      this._createSpreadsheetUI();
     }
 
     if (!this.state.endAudio) {
@@ -3052,20 +3511,83 @@ export class VisiCellScene {
       }
     }
 
-    // Show spreadsheet
+    // Ensure container is visible and properly styled
     if (this.state.container) {
       this.state.container.style.display = 'block';
+      this.state.container.style.background = 'rgba(0, 0, 0, 0.96)';
+      this.state.container.style.opacity = '1';
+      console.log('✅ VisiCell container visible');
+      
+      // Ensure grid table is visible
+      const gridTable = document.getElementById('visicalc-grid-table-container');
+      if (gridTable) {
+        gridTable.style.display = 'flex';
+        gridTable.style.opacity = '1';
+        console.log('✅ Grid table visible');
+      }
+    }
+    
+    // Handle special hell-infection entry
+    if (entry === 'hell-infection' && cellState && this.state.container) {
+      console.log('🟢 Hell-infection entry mode - positioning grid at cell state');
+      
+      // Position container at the cell state location  
+      this.state.container.style.position = 'fixed';
+      this.state.container.style.left = `${cellState.left}px`;
+      this.state.container.style.top = `${cellState.top}px`;
+      this.state.container.style.width = `${cellState.width}px`;
+      this.state.container.style.height = `${cellState.height}px`;
+      this.state.container.style.transform = 'none';
+      this.state.container.style.border = cellState.border || '2px solid rgba(0, 255, 0, 0.8)';
+      this.state.container.style.boxShadow = cellState.boxShadow || '0 0 20px rgba(0, 255, 0, 0.5)';
+      this.state.container.style.background = 'rgba(0, 0, 0, 0.96)';
+      
+      // Animate to center and final size
+      setTimeout(() => {
+        this.state.container.style.transition = 'all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        this.state.container.style.left = '50%';
+        this.state.container.style.top = '50%';
+        this.state.container.style.transform = 'translate(-50%, -50%)';
+        this.state.container.style.width = '80vw';
+        this.state.container.style.height = '60vh';
+        this.state.container.style.maxWidth = '1200px';
+        this.state.container.style.borderRadius = '20px';
+        this.state.container.style.boxShadow = '0 0 45px rgba(0, 255, 160, 0.35)';
+      }, 100);
     }
 
     this._clearClueTrailTimeouts();
 
+    // Ensure DOM is ready with a small delay for rendering
+    await new Promise(resolve => setTimeout(resolve, 50));
+
     // Initialize with some demo data
+    console.log('📝 Setting initial cell values');
     this._setCellValue('A1', 'CELLI');
     this._setCellValue('B2', '=ARRAY("fill", 3, 3, 1, "🟦")');
     this._setCellValue('C3', '=SUM(1, 2, 3)');
 
+    console.log('🧮 Recalculating formulas');
     this._recalculate();
+    
+    console.log('🎨 Rendering cells to DOM');
+    this._render();
+    
+    console.log('🎯 Initializing clue trail');
     this._initializeClueTrail();
+    
+    // Final render to ensure everything is visible
+    console.log('🎨 Final render');
+    this._render();
+    
+    console.log('✅ VisiCell initialization complete - checking cell contents');
+    // Verify ENTE cell is populated
+    const clue = this.state.clueTrail;
+    if (clue && clue.entryCell) {
+      const cellValue = this._getCellValue(clue.entryCell);
+      const cellEl = document.getElementById(`cell-${clue.entryCell}`);
+      console.log(`   Entry cell ${clue.entryCell}: value="${cellValue}", DOM="${cellEl?.textContent}"`);
+    }
   }
 
   /**
@@ -3094,6 +3616,12 @@ export class VisiCellScene {
   async stop() {
     console.log('⏹️ Stopping VisiCell Scene');
     this.state.running = false;
+    
+    // Cancel inactivity timeout
+    this._cancelInactivityTimeout();
+    
+    // Reset skip flag
+    this.state.isSkipped = false;
 
     if (this.state.clockInterval && typeof window !== 'undefined') {
       window.clearInterval(this.state.clockInterval);

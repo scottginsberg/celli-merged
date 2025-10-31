@@ -1137,15 +1137,16 @@ function setupButtons() {
       }
 
       const sceneName = option.dataset.scene;
-      if (!sceneName) {
-        console.warn('⚠️ Scene option clicked without data-scene attribute');
+      const targetUrl = option.dataset.url;
+
+      // Allow scene options with only data-url (no data-scene)
+      if (!sceneName && !targetUrl) {
+        console.warn('⚠️ Scene option clicked without data-scene or data-url attribute');
         showToast('Scene target missing');
         return;
       }
 
-      const sceneConfig = SCENE_OPTION_CONFIG[sceneName];
-
-      const targetUrl = option.dataset.url;
+      const sceneConfig = sceneName ? SCENE_OPTION_CONFIG[sceneName] : null;
       if (sceneConfig) {
         const mode = getSceneMode();
 
@@ -1488,12 +1489,103 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('💥 Unhandled promise rejection:', event.reason);
 });
 
+// Hide debug panels and recorder button by default
+function initializeDebugVisibility() {
+  // Hide debug test buttons on play overlay
+  const debugButtons = [
+    'testAudioBtn',
+    'resetThemeBtn',
+    'testVideoBtn',
+    'flashSceneBtn',
+    'playIntroVideoBtn',
+    'playIntroVideoBtn2',
+    'sequenceBuilderBtn',
+    'singleBuilderBtn',
+    'testRunnerBtn'
+  ];
+  
+  debugButtons.forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      btn.style.display = 'none';
+    }
+  });
+  
+  // Hide recorder button initially
+  const recorderBtn = document.getElementById('recorderBtn');
+  if (recorderBtn) {
+    recorderBtn.style.display = 'none';
+  }
+  
+  // Show recorder when [ is pressed
+  let recorderVisible = false;
+  window.addEventListener('keydown', (e) => {
+    if (e.key === '[' && !recorderVisible) {
+      if (recorderBtn) {
+        recorderBtn.style.display = 'block';
+        recorderVisible = true;
+        console.log('🎥 Recorder button revealed');
+      }
+    }
+    
+    // Open sequence map with M key
+    if (e.key === 'M' || e.key === 'm') {
+      if (window.mapModule && window.mapModule.toggle) {
+        window.mapModule.toggle();
+        console.log('🗺️ Map toggled via M key');
+      }
+    }
+  });
+  
+  console.log('🔒 Debug panels hidden, recorder available with [');
+}
+
+// Listen for scene transition events from intro
+window.addEventListener('celli:sceneTransition', async (event) => {
+  const { scene, entry, skipIntro, cellState, continueAnimation } = event.detail || {};
+  
+  console.log('🔄 Scene transition event received:', {
+    scene,
+    entry,
+    skipIntro,
+    cellState,
+    continueAnimation
+  });
+  
+  if (scene === 'visicell') {
+    console.log('📊 Transitioning to VisiCell scene');
+    
+    // Use the SceneManager to transition
+    if (window.SceneManager) {
+      await window.SceneManager.transitionTo('visicell', {
+        entry,
+        skipIntro,
+        cellState,
+        continueAnimation
+      });
+    } else if (window.celliApp && window.celliApp.sceneManager) {
+      await window.celliApp.sceneManager.transitionTo('visicell', {
+        entry,
+        skipIntro,
+        cellState,
+        continueAnimation
+      });
+    } else {
+      console.error('⚠️ No scene manager found for transition');
+    }
+  }
+});
+
 // Start when DOM is ready (only if WebGL is available)
 if (webglAvailable) {
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', () => {
+      init();
+      initializeDebugVisibility();
+    });
   } else {
     init();
+    initializeDebugVisibility();
   }
 }
 
