@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Narrative Builder Demo</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background: #1a1a1a;
+      color: #0f0;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .panel {
+      background: #0a0a0a;
+      border: 2px solid #0f0;
+      padding: 15px;
+      border-radius: 5px;
+    }
+    .panel h2 {
+      margin-top: 0;
+      border-bottom: 1px solid #0f0;
+      padding-bottom: 10px;
+    }
+    button {
+      background: #0a0a0a;
+      color: #0f0;
+      border: 2px solid #0f0;
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #0f0;
+      color: #0a0a0a;
+    }
+    .character {
+      background: #111;
+      padding: 10px;
+      margin: 10px 0;
+      border-left: 3px solid #0f0;
+      cursor: pointer;
+    }
+    .character:hover {
+      background: #1a1a1a;
+    }
+    .conspirator {
+      border-left-color: #f00;
+    }
+    .info {
+      margin: 10px 0;
+      padding: 10px;
+      background: #0d0d0d;
+    }
+    .time-display {
+      font-size: 24px;
+      text-align: center;
+      padding: 10px;
+      background: #0d0d0d;
+      margin-bottom: 20px;
+    }
+    .evidence {
+      padding: 8px;
+      margin: 5px 0;
+      background: #0d0d0d;
+      border-left: 2px solid #ff0;
+    }
+    .evidence.discovered {
+      border-left-color: #0f0;
+    }
+    .clue {
+      padding: 8px;
+      margin: 5px 0;
+      background: #0d0d0d;
+      border-left: 2px solid #0af;
+    }
+    .clue.discovered {
+      border-left-color: #0f0;
+    }
+    .path-info {
+      background: #111;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #666;
+    }
+    .dialogue {
+      background: #111;
+      padding: 15px;
+      margin: 10px 0;
+      border-left: 4px solid #00f;
+    }
+    .full-width {
+      grid-column: 1 / -1;
+    }
+  </style>
+</head>
+<body>
+  <h1>🕵️ NARRATIVE CONSPIRACY BUILDER 🕵️</h1>
+  
+  <div class="time-display" id="timeDisplay">
+    Day 0 - 00:00 | Time until reset: 10:00
+  </div>
+
+  <div style="text-align: center; margin-bottom: 20px;">
+    <button onclick="initNarrative()">Generate New Mystery</button>
+    <button onclick="revealConspiracy()">Reveal Conspiracy (Cheat)</button>
+    <button onclick="showAllConnections()">Show Network</button>
+  </div>
+
+  <div class="container">
+    <div class="panel">
+      <h2>🧑 Characters</h2>
+      <div id="characterList"></div>
+    </div>
+
+    <div class="panel">
+      <h2>📋 Character Details</h2>
+      <div id="characterDetails">Select a character to view details...</div>
+    </div>
+
+    <div class="panel full-width">
+      <h2>🔍 Investigation</h2>
+      <div id="investigation">
+        <p>Start by talking to characters and examining evidence.</p>
+        <button onclick="randomInterrogation()">Random Interrogation</button>
+        <button onclick="randomEvidence()">Search for Evidence</button>
+        <button onclick="searchCluesOnSelected()">Search Selected for Clues</button>
+      </div>
+      <div id="dialogue"></div>
+    </div>
+
+    <div class="panel">
+      <h2>📦 Evidence & Clues</h2>
+      <div id="evidenceList"></div>
+    </div>
+
+    <div class="panel">
+      <h2>📊 Investigation Progress</h2>
+      <div id="progress"></div>
+    </div>
+  </div>
+
+  <script src="narrative-builder.js"></script>
+  <script>
+    let narrativeState = null;
+    let selectedCharacter = null;
+
+    function initNarrative() {
+      narrativeState = NarrativeBuilder.createNarrative(20);
+      
+      // Start the day loop
+      NarrativeBuilder.startDayLoop(narrativeState, onDayReset);
+      
+      console.log('Narrative created!');
+      console.log('Characters:', narrativeState.characters.length);
+      console.log('Conspiracy:', narrativeState.conspiracy.description);
+      
+      updateUI();
+      startTimeUpdate();
+    }
+
+    function onDayReset(state) {
+      console.log(`=== DAY ${state.dayNumber} BEGINS ===`);
+      updateUI();
+    }
+
+    function updateUI() {
+      if (!narrativeState) return;
+      
+      updateCharacterList();
+      updateEvidenceList();
+      updateProgress();
+      updateCharacterDetails();
+    }
+
+    function updateCharacterList() {
+      const list = document.getElementById('characterList');
+      list.innerHTML = '';
+      
+      narrativeState.characters.forEach(char => {
+        const div = document.createElement('div');
+        div.className = 'character' + (char.conspiracyRole ? ' conspirator' : '');
+        div.innerHTML = `
+          <strong>${char.name}</strong><br>
+          <small>${char.occupation} | ${char.mood.name}</small>
+        `;
+        div.onclick = () => selectCharacter(char.id);
+        list.appendChild(div);
+      });
+    }
+
+    function selectCharacter(id) {
+      selectedCharacter = id;
+      updateCharacterDetails();
+    }
+
+    function updateCharacterDetails() {
+      if (!narrativeState || selectedCharacter === null) return;
+      
+      const char = narrativeState.characters[selectedCharacter];
+      const details = document.getElementById('characterDetails');
+      
+      const activity = NarrativeBuilder.getCharacterActivity(char, narrativeState.currentTime);
+      const pathInfo = NarrativeBuilder.getCharacterPathInfo(narrativeState, selectedCharacter);
+      
+      let html = `
+        <div class="info">
+          <h3>${char.name}</h3>
+          <p><strong>Occupation:</strong> ${char.occupation}</p>
+          <p><strong>Mood:</strong> ${char.mood.name}</p>
+          <p><strong>Connections:</strong> ${char.connections.length} people</p>
+          <p><strong>Current Activity:</strong> ${activity.activity} at ${activity.location}</p>
+        </div>
+      `;
+      
+      // Path information
+      if (pathInfo.hasPath) {
+        html += `
+          <div class="path-info">
+            <strong>🎯 Investigation Path:</strong><br>
+            <small>Degrees from mastermind: ${pathInfo.degreesFromMastermind}</small><br>
+            <small>Clues: ${pathInfo.discoveredClues}/${pathInfo.totalClues} discovered</small>
+            ${pathInfo.nextInChain ? `<br><small style="color: #0f0;">⮕ Next: ${pathInfo.nextInChain}</small>` : ''}
+          </div>
+        `;
+      }
+      
+      // Show discovered clues
+      if (char.cluesPointingToNext && char.cluesPointingToNext.length > 0) {
+        const discoveredClues = char.cluesPointingToNext.filter(c => c.discovered);
+        if (discoveredClues.length > 0) {
+          html += '<h4>🔍 Discovered Clues:</h4>';
+          discoveredClues.forEach(clue => {
+            const pointsTo = narrativeState.characters[clue.pointsTo].name;
+            html += `
+              <div class="clue discovered">
+                <strong>${clue.type}:</strong> ${clue.description}<br>
+                <small style="color: #0f0;">⮕ Points to: ${pointsTo}</small>
+              </div>
+            `;
+          });
+        }
+      }
+      
+      html += '<h4>Daily Routine:</h4>';
+      char.routine.forEach(r => {
+        html += `<div class="info"><strong>${r.label}:</strong> ${r.activity} at ${r.location}</div>`;
+      });
+      
+      if (char.knowledge.length > 0) {
+        html += '<h4>What they know:</h4>';
+        char.knowledge.forEach(k => {
+          html += `<div class="info">${k}</div>`;
+        });
+      }
+      
+      html += `
+        <div style="margin-top: 15px;">
+          <button onclick="interrogateSelected('routine')">Ask about routine</button>
+          <button onclick="interrogateSelected('conspiracy')">Ask about conspiracy</button>
+          <button onclick="interrogateSelected('connections')">Ask about connections</button>
+          <button onclick="searchCluesOnSelected()">Search for Clues</button>
+        </div>
+      `;
+      
+      details.innerHTML = html;
+    }
+
+    function updateEvidenceList() {
+      const list = document.getElementById('evidenceList');
+      list.innerHTML = '';
+      
+      // Count all clues
+      let totalClues = 0;
+      let discoveredClueCount = 0;
+      narrativeState.characters.forEach(char => {
+        if (char.cluesPointingToNext) {
+          totalClues += char.cluesPointingToNext.length;
+          discoveredClueCount += char.cluesPointingToNext.filter(c => c.discovered).length;
+        }
+      });
+      
+      // Show clue summary
+      list.innerHTML += `<h4>🔍 Clues: ${discoveredClueCount}/${totalClues}</h4>`;
+      
+      // Show discovered clues grouped by character
+      if (discoveredClueCount > 0) {
+        list.innerHTML += '<div style="max-height: 200px; overflow-y: auto;">';
+        narrativeState.characters.forEach(char => {
+          const discoveredClues = char.cluesPointingToNext ? char.cluesPointingToNext.filter(c => c.discovered) : [];
+          if (discoveredClues.length > 0) {
+            discoveredClues.forEach(clue => {
+              const pointsTo = narrativeState.characters[clue.pointsTo].name;
+              list.innerHTML += `
+                <div class="clue discovered">
+                  <small>From ${char.name}:</small><br>
+                  <strong>${clue.type}</strong><br>
+                  ${clue.description}<br>
+                  <small style="color: #0f0;">⮕ ${pointsTo}</small>
+                </div>
+              `;
+            });
+          }
+        });
+        list.innerHTML += '</div>';
+      }
+      
+      // Show evidence
+      const discovered = narrativeState.evidenceChain.filter(e => e.discovered);
+      const undiscovered = narrativeState.evidenceChain.filter(e => !e.discovered);
+      
+      list.innerHTML += `<h4>📦 Evidence: ${discovered.length}/${narrativeState.evidenceChain.length}</h4>`;
+      
+      if (discovered.length > 0) {
+        list.innerHTML += '<div style="max-height: 150px; overflow-y: auto;">';
+        discovered.forEach(e => {
+          const holder = narrativeState.characters[e.holder];
+          const pointsTo = e.pointsTo ? narrativeState.characters[e.pointsTo].name : 'N/A';
+          list.innerHTML += `
+            <div class="evidence discovered">
+              <strong>${e.type}</strong><br>
+              ${e.description}<br>
+              <small>Held by: ${holder.name} | Points to: ${pointsTo}</small>
+            </div>
+          `;
+        });
+        list.innerHTML += '</div>';
+      }
+    }
+
+    function updateProgress() {
+      const progress = document.getElementById('progress');
+      const discovered = narrativeState.evidenceChain.filter(e => e.discovered).length;
+      const total = narrativeState.evidenceChain.length;
+      const percent = Math.floor((discovered / total) * 100);
+      
+      const victory = NarrativeBuilder.checkVictory(narrativeState);
+      
+      progress.innerHTML = `
+        <div class="info">
+          <p><strong>Evidence Found:</strong> ${discovered} / ${total} (${percent}%)</p>
+          <p><strong>Clues Solved:</strong> ${narrativeState.solvedClues.length}</p>
+          <p><strong>Status:</strong> ${victory ? '✅ SOLVED!' : '🔍 Investigating...'}</p>
+        </div>
+      `;
+      
+      if (victory) {
+        progress.innerHTML += `
+          <div class="info" style="border: 2px solid #0f0; padding: 15px;">
+            <h3>🎉 CASE SOLVED! 🎉</h3>
+            <p>You've uncovered the mastermind!</p>
+          </div>
+        `;
+      }
+    }
+
+    function interrogateSelected(topic) {
+      if (!narrativeState || selectedCharacter === null) return;
+      
+      const result = NarrativeBuilder.interrogate(narrativeState, selectedCharacter, topic, 0.3);
+      
+      const dialogue = document.getElementById('dialogue');
+      dialogue.innerHTML = `
+        <div class="dialogue">
+          <strong>${result.character} (${result.mood}):</strong><br>
+          "${result.response}"
+          ${result.suspicion > 0.5 ? '<br><small style="color: #f00;">They seem nervous...</small>' : ''}
+        </div>
+      ` + dialogue.innerHTML;
+      
+      updateUI();
+    }
+
+    function randomInterrogation() {
+      if (!narrativeState) return;
+      
+      const randomChar = Math.floor(Math.random() * narrativeState.characters.length);
+      const topics = ['routine', 'conspiracy', 'connections'];
+      const topic = topics[Math.floor(Math.random() * topics.length)];
+      
+      selectedCharacter = randomChar;
+      interrogateSelected(topic);
+    }
+
+    function randomEvidence() {
+      if (!narrativeState) return;
+      
+      const undiscovered = narrativeState.evidenceChain.filter(e => !e.discovered);
+      if (undiscovered.length === 0) {
+        alert('All evidence has been discovered!');
+        return;
+      }
+      
+      const evidence = undiscovered[Math.floor(Math.random() * undiscovered.length)];
+      const result = NarrativeBuilder.examineEvidence(narrativeState, evidence.id);
+      
+      const dialogue = document.getElementById('dialogue');
+      if (result && result.success) {
+        dialogue.innerHTML = `
+          <div class="dialogue" style="border-left-color: #ff0;">
+            <strong>📦 Evidence Found!</strong><br>
+            ${result.message}
+            ${result.evidence.isHerring ? '<br><small style="color: #f00;">But this might be a red herring...</small>' : ''}
+          </div>
+        ` + dialogue.innerHTML;
+      } else {
+        dialogue.innerHTML = `
+          <div class="dialogue" style="border-left-color: #666;">
+            <strong>Search Failed</strong><br>
+            Couldn't find anything useful...
+          </div>
+        ` + dialogue.innerHTML;
+      }
+      
+      updateUI();
+    }
+
+    function searchCluesOnSelected() {
+      if (!narrativeState || selectedCharacter === null) return;
+      
+      const result = NarrativeBuilder.searchForClues(narrativeState, selectedCharacter);
+      const dialogue = document.getElementById('dialogue');
+      
+      if (result.success) {
+        dialogue.innerHTML = `
+          <div class="dialogue" style="border-left-color: #0af;">
+            <strong>🔍 Clue Discovered!</strong><br>
+            ${result.message}<br>
+            <small style="color: #0f0;">${result.hint}</small>
+          </div>
+        ` + dialogue.innerHTML;
+        
+        // Auto-select the next person if available
+        if (result.pointsToId !== undefined) {
+          setTimeout(() => {
+            if (confirm(`Investigate ${result.pointsTo} next?`)) {
+              selectCharacter(result.pointsToId);
+            }
+          }, 500);
+        }
+      } else {
+        dialogue.innerHTML = `
+          <div class="dialogue" style="border-left-color: #666;">
+            <strong>Search Failed</strong><br>
+            ${result.message}
+          </div>
+        ` + dialogue.innerHTML;
+      }
+      
+      updateUI();
+    }
+
+    function revealConspiracy() {
+      if (!narrativeState) return;
+      NarrativeBuilder.revealConspiracy(narrativeState);
+      NarrativeBuilder.revealAllPaths(narrativeState);
+      
+      const details = document.getElementById('investigation');
+      const conspiracy = narrativeState.conspiracy;
+      
+      let html = '<div class="info" style="border: 2px solid #f00; padding: 15px;">';
+      html += `<h3>🚨 CONSPIRACY REVEALED 🚨</h3>`;
+      html += `<p><strong>Plot:</strong> ${conspiracy.description}</p>`;
+      html += '<p><strong>Conspirators:</strong></p><ul>';
+      
+      conspiracy.conspirators.forEach(id => {
+        const char = narrativeState.characters[id];
+        html += `<li>${char.name} - ${char.conspiracyRole} (${char.motivations.join(', ')})</li>`;
+      });
+      
+      html += '</ul><p><small>Check console for full path details</small></p></div>';
+      details.innerHTML = html + details.innerHTML;
+    }
+
+    function showAllConnections() {
+      if (!narrativeState) return;
+      
+      console.log('=== SOCIAL NETWORK ===');
+      narrativeState.characters.forEach(char => {
+        const connections = char.connections.map(id => narrativeState.characters[id].name).join(', ');
+        console.log(`${char.name}: ${connections}`);
+      });
+      
+      // Test pathfinding
+      const mastermind = narrativeState.conspiracy.mastermind;
+      const randomChar = narrativeState.characters[Math.floor(Math.random() * narrativeState.characters.length)];
+      const path = NarrativeBuilder.findPath(narrativeState.characters, randomChar.id, mastermind);
+      
+      console.log(`\nPath from ${randomChar.name} to mastermind:`);
+      if (path) {
+        const names = path.map(id => narrativeState.characters[id].name);
+        console.log(names.join(' -> '));
+        console.log(`Degrees of separation: ${path.length - 1}`);
+      } else {
+        console.log('No path found!');
+      }
+    }
+
+    function startTimeUpdate() {
+      setInterval(() => {
+        if (!narrativeState) return;
+        
+        const currentTime = NarrativeBuilder.getCurrentTime(narrativeState);
+        const elapsed = Date.now() - narrativeState.dayStartTime;
+        const remaining = (10 * 60 * 1000) - elapsed;
+        const remainingMin = Math.floor(remaining / 60000);
+        const remainingSec = Math.floor((remaining % 60000) / 1000);
+        
+        document.getElementById('timeDisplay').textContent = 
+          `Day ${narrativeState.dayNumber} - ${currentTime} | Reset in ${remainingMin}:${remainingSec.toString().padStart(2, '0')}`;
+      }, 1000);
+    }
+
+    // Auto-initialize on load
+    window.addEventListener('load', () => {
+      console.log('Narrative Builder loaded!');
+      console.log('Click "Generate New Mystery" to begin.');
+    });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VISICELL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #0f0;
+            overflow: hidden;
+        }
+        
+        #app {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* VisiCell Header */
+        .header {
+            background: #0a0a0a;
+            border-bottom: 2px solid #0f0;
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-title {
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        
+        .datetime-widget {
+            font-size: 14px;
+            padding: 4px 12px;
+            border: 1px solid #0f0;
+            cursor: pointer;
+            background: #000;
+            color: #0f0;
+        }
+        
+        .datetime-widget:hover {
+            background: #0f0;
+            color: #000;
+        }
+        
+        /* Spreadsheet Container */
+        .spreadsheet-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: #000;
+        }
+        
+        .cell-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            gap: 2px;
+            padding: 20px;
+            max-width: 1200px;
+            max-height: 800px;
+            margin: 0 auto;
+        }
+        
+        .cell {
+            background: #001100;
+            border: 1px solid #0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #0f0;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .cell:hover {
+            background: #002200;
+            border-color: #0ff;
+        }
+        
+        .cell.active {
+            background: #0f0;
+            color: #000;
+        }
+        
+        .cell input {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        
+        /* Layer 2 - Box Frame */
+        .layer2-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            min-width: 600px;
+            min-height: 400px;
+            border: 4px double #0f0;
+            background: #000;
+            padding: 40px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            z-index: 100;
+        }
+        
+        .layer2-box.visible {
+            display: flex;
+        }
+        
+        .layer2-text {
+            font-size: 18px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+        
+        /* Resizable Cell */
+        .resizable-cell {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            min-width: 400px;
+            max-width: 800px;
+            padding: 30px;
+            border: 2px solid #0f0;
+            background: #000;
+            color: #0f0;
+            font-size: 16px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            text-align: center;
+            display: none;
+            z-index: 200;
+            animation: resize-cell 1s ease-out;
+        }
+        
+        @keyframes resize-cell {
+            from {
+                transform: translate(-50%, -50%) scale(0.3);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .resizable-cell.visible {
+            display: block;
+        }
+        
+        /* Video Popup */
+        .video-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #000;
+            border: 4px solid #0f0;
+            padding: 20px;
+            display: none;
+            z-index: 300;
+            box-shadow: 0 0 40px #0f0;
+        }
+        
+        .video-popup.visible {
+            display: block;
+        }
+        
+        .video-popup.fading {
+            animation: fade-out 3s ease-out forwards;
+        }
+        
+        @keyframes fade-out {
+            to {
+                opacity: 0;
+            }
+        }
+        
+        .video-popup .titlebar {
+            background: #0f0;
+            color: #000;
+            padding: 8px;
+            margin: -20px -20px 10px -20px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .video-popup video {
+            display: block;
+            max-width: 800px;
+            max-height: 600px;
+        }
+        
+        /* Settings Window */
+        .settings-window {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            background: #000;
+            border: 3px solid #0f0;
+            display: none;
+            z-index: 250;
+        }
+        
+        .settings-window.visible {
+            display: block;
+        }
+        
+        .settings-titlebar {
+            background: #0f0;
+            color: #000;
+            padding: 10px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .settings-close {
+            cursor: pointer;
+            font-size: 20px;
+        }
+        
+        .settings-body {
+            padding: 20px;
+        }
+        
+        .settings-row {
+            margin: 15px 0;
+        }
+        
+        .settings-label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .settings-input {
+            width: 100%;
+            background: #001100;
+            border: 1px solid #0f0;
+            color: #0f0;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Glitch Popup */
+        .glitch-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            min-width: 600px;
+            background: #000;
+            border: 4px solid #0f0;
+            padding: 30px;
+            display: none;
+            z-index: 400;
+            text-align: center;
+        }
+        
+        .glitch-popup.visible {
+            display: block;
+        }
+        
+        .glitch-popup.glitching {
+            animation: glitch 2s ease-in-out;
+        }
+        
+        @keyframes glitch {
+            0%, 100% { transform: translate(-50%, -50%); }
+            10% { transform: translate(-48%, -52%); }
+            20% { transform: translate(-52%, -48%); }
+            30% { transform: translate(-50%, -50%) skew(2deg); }
+            40% { transform: translate(-49%, -51%) skew(-2deg); }
+            50% { transform: translate(-51%, -49%); }
+            60% { transform: translate(-50%, -50%) rotate(1deg); }
+            70% { transform: translate(-50%, -50%) rotate(-1deg); }
+            80% { transform: translate(-48%, -52%); }
+            90% { transform: translate(-52%, -48%); }
+        }
+        
+        .glitch-text {
+            font-size: 16px;
+            line-height: 1.8;
+            opacity: 0;
+            animation: text-appear 2s 2s forwards;
+        }
+        
+        @keyframes text-appear {
+            to { opacity: 1; }
+        }
+        
+        /* Layer 3 - ASCII Mode */
+        .layer3-ascii {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            color: #0f0;
+            display: none;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.2;
+            overflow: hidden;
+            z-index: 500;
+        }
+        
+        .layer3-ascii.visible {
+            display: block;
+        }
+        
+        .ascii-canvas {
+            width: 100%;
+            height: 100%;
+            white-space: pre;
+            letter-spacing: 0.1em;
+        }
+        
+        /* Input Prompt */
+        .input-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 150;
+        }
+        
+        .input-prompt input {
+            padding: 10px 20px;
+            background: #001100;
+            border: 2px solid #0f0;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            text-transform: uppercase;
+            min-width: 400px;
+        }
+        
+        .input-prompt button {
+            padding: 10px 20px;
+            background: #0f0;
+            border: none;
+            color: #000;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .input-prompt button:hover {
+            background: #0ff;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-title">VISICELL</div>
+            <div class="datetime-widget" id="datetime-widget"></div>
+        </div>
+        
+        <!-- Spreadsheet Container -->
+        <div class="spreadsheet-container">
+            <div class="cell-grid" id="cell-grid"></div>
+            
+            <!-- Layer 2 - Box Frame -->
+            <div class="layer2-box" id="layer2-box">
+                <div class="layer2-text">NO, I'VE LOCKED THAT AWAY. WHAT I HAVE LEFT COULD MAKE YOU CRY.
+
+WHY DON'T YOU DICE THAT, TOO. MAYBE SEARCH AROUND.</div>
+            </div>
+            
+            <!-- Resizable Cell for Clues -->
+            <div class="resizable-cell" id="resizable-cell"></div>
+            
+            <!-- Input Prompt -->
+            <div class="input-prompt">
+                <input type="text" id="player-input" placeholder="ENTER COMMAND..." />
+                <button id="submit-btn">SUBMIT</button>
+            </div>
+        </div>
+        
+        <!-- Video Popup -->
+        <div class="video-popup" id="video-popup">
+            <div class="titlebar">KEY.MP4</div>
+            <video id="key-video" controls></video>
+        </div>
+        
+        <!-- Settings Window -->
+        <div class="settings-window" id="settings-window">
+            <div class="settings-titlebar">
+                <span>CLOCK SETTINGS</span>
+                <span class="settings-close" id="settings-close">×</span>
+            </div>
+            <div class="settings-body">
+                <div class="settings-row">
+                    <label class="settings-label">ADJUST TIME (MINUTES BACK):</label>
+                    <input type="number" class="settings-input" id="time-adjust" value="0" min="0" max="60" />
+                </div>
+                <div class="settings-row">
+                    <button class="input-prompt button" id="apply-time" style="width: 100%; padding: 10px; background: #0f0; border: none; color: #000; font-family: 'Courier New', monospace; cursor: pointer;">APPLY</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Glitch Popup -->
+        <div class="glitch-popup" id="glitch-popup">
+            <div class="glitch-text" id="glitch-text"></div>
+        </div>
+        
+        <!-- Layer 3 - ASCII -->
+        <div class="layer3-ascii" id="layer3-ascii">
+            <div class="ascii-canvas" id="ascii-canvas"></div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        const state = {
+            currentLayer: 1,
+            currentClue: 'initial',
+            initTime: Date.now(),
+            timeAdjustment: 0,
+            userName: 'USER'
+        };
+        
+        // Initialize cells
+        const cellGrid = document.getElementById('cell-grid');
+        for (let i = 0; i < 100; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.textContent = '';
+            cellGrid.appendChild(cell);
+        }
+        
+        // DateTime Widget
+        const datetimeWidget = document.getElementById('datetime-widget');
+        function updateDateTime() {
+            const now = new Date(Date.now() - state.timeAdjustment);
+            const timeStr = now.toLocaleTimeString();
+            const dateStr = now.toLocaleDateString();
+            datetimeWidget.textContent = `${dateStr} ${timeStr}`;
+        }
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+        
+        datetimeWidget.addEventListener('click', () => {
+            document.getElementById('settings-window').classList.add('visible');
+        });
+        
+        document.getElementById('settings-close').addEventListener('click', () => {
+            document.getElementById('settings-window').classList.remove('visible');
+        });
+        
+        document.getElementById('apply-time').addEventListener('click', () => {
+            const minutes = parseInt(document.getElementById('time-adjust').value) || 0;
+            state.timeAdjustment = minutes * 60 * 1000;
+            updateDateTime();
+            
+            // Check if adjusted to 35 minutes
+            if (minutes === 35) {
+                showResizableCell("TOUCHÉ");
+                document.getElementById('settings-window').classList.remove('visible');
+            }
+        });
+        
+        // Input Handling
+        const playerInput = document.getElementById('player-input');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        function handleInput() {
+            const input = playerInput.value.trim().toUpperCase();
+            playerInput.value = '';
+            
+            console.log('Input received:', input, 'Current clue:', state.currentClue);
+            
+            if (input === 'LEAVE' && state.currentLayer === 1) {
+                // Go to Layer 2
+                state.currentLayer = 2;
+                document.getElementById('layer2-box').classList.add('visible');
+                state.currentClue = 'search_key';
+                return;
+            }
+            
+            if (input === 'LEAVE' && state.currentLayer === 2 && state.currentClue === 're_leave') {
+                // Go to Layer 3 - ASCII
+                state.currentLayer = 3;
+                document.getElementById('layer2-box').classList.remove('visible');
+                initLayer3ASCII();
+                return;
+            }
+            
+            // Layer 2 puzzle sequence
+            if (state.currentLayer === 2) {
+                if (state.currentClue === 'search_key') {
+                    if (input === 'SEARCH') {
+                        showResizableCell(`YOU FOUND AN ONION. IT'S ALREADY PEELED.
+
+BUT WAIT, THERE'S SOMETHING ITS OPPOSITE AND ITS PARTNER. TAKE THE LAST WORD OF THE FIRST LINE, AND REMOVE THE TERM FOR RICHARD UNKIND. YOU'LL KNOW THEIR SOULMATE.`);
+                        state.currentClue = 'key_next';
+                        return;
+                    }
+                    
+                    if (input === 'KEY') {
+                        playKeyVideo();
+                        state.currentClue = 'snake';
+                        return;
+                    }
+                }
+                
+                if (state.currentClue === 'snake') {
+                    if (input === 'SNAKE') {
+                        showResizableCell("SNEAKY. DO YOU KNOW WHO WAS THE SNEAK KING?");
+                        state.currentClue = 'burger_king';
+                        return;
+                    }
+                }
+                
+                if (state.currentClue === 'burger_king') {
+                    if (input === 'BURGER KING' || input === 'BURGERKING') {
+                        showResizableCell("FINE. HAVE IT YOUR WAY. ENJOY YOUR CARDBOARD KINGDOM OZYMANDIAS. I USED YOUR PASSWORD.");
+                        state.currentClue = 'ramses';
+                        return;
+                    }
+                }
+                
+                if (state.currentClue === 'ramses') {
+                    if (input === 'RAMSES II' || input === 'RAMSES' || input === 'RAMSESII') {
+                        showGlitchPopup();
+                        state.currentClue = 're_leave';
+                        return;
+                    }
+                }
+            }
+        }
+        
+        submitBtn.addEventListener('click', handleInput);
+        playerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleInput();
+            }
+        });
+        
+        // Show Resizable Cell
+        function showResizableCell(text) {
+            const cell = document.getElementById('resizable-cell');
+            cell.textContent = text;
+            cell.classList.add('visible');
+            
+            setTimeout(() => {
+                cell.classList.remove('visible');
+            }, 8000);
+        }
+        
+        // Play Key Video
+        function playKeyVideo() {
+            const popup = document.getElementById('video-popup');
+            const video = document.getElementById('key-video');
+            
+            // Set video source (assuming Key.mp4 exists)
+            video.src = './Key.mp4';
+            popup.classList.add('visible');
+            video.play();
+            
+            video.addEventListener('ended', () => {
+                popup.classList.add('fading');
+                setTimeout(() => {
+                    popup.classList.remove('visible', 'fading');
+                    showResizableCell("NEXT CLUE: WHO'D I LEAVE FOR, KEY? WAS IT HIM OR HIS CREATION?");
+                }, 3000);
+            }, { once: true });
+        }
+        
+        // Glitch Popup
+        function showGlitchPopup() {
+            const popup = document.getElementById('glitch-popup');
+            const text = document.getElementById('glitch-text');
+            
+            const firstName = state.userName.split(' ')[0] || 'USER';
+            const lastName = state.userName.split(' ')[1] || '';
+            
+            text.textContent = `${firstName.toUpperCase()} ${lastName.toUpperCase()}, I'M NOT A REPUBLIC SERIAL VILLAIN. DO YOU SERIOUSLY THINK I'D EXPLAIN MY MASTER PASSWORD IF THERE REMAINED THE SLIGHTEST CHANCE OF YOU LOGGING IN? I CHANGED IT THIRTY-FIVE MINUTES AGO.`;
+            
+            popup.classList.add('visible', 'glitching');
+            
+            setTimeout(() => {
+                popup.classList.remove('glitching');
+            }, 2000);
+            
+            setTimeout(() => {
+                showResizableCell("WHAT WERE YOU TRYING TO DO AGAIN?");
+            }, 5000);
+            
+            setTimeout(() => {
+                popup.classList.remove('visible');
+            }, 7000);
+        }
+        
+        // Layer 3 - ASCII Animation
+        function initLayer3ASCII() {
+            document.getElementById('layer3-ascii').classList.add('visible');
+            const canvas = document.getElementById('ascii-canvas');
+            
+            // ASCII House
+            const house = [
+                "    /\\    ",
+                "   /  \\   ",
+                "  /    \\  ",
+                " /______\\ ",
+                " |  __  | ",
+                " | |  | | ",
+                " | |__| | ",
+                " |______| "
+            ];
+            
+            let step = 0;
+            canvas.textContent = house.join('\n');
+            
+            // Start transformation
+            setTimeout(() => {
+                transformToLeaves(canvas, house);
+            }, 2000);
+        }
+        
+        function transformToLeaves(canvas, originalHouse) {
+            const frames = [];
+            
+            // Step 1: Replace characters with L, E, A, V, E, S pattern
+            const pattern = ['L', 'E', 'A', 'V', 'E', 'S'];
+            let frame1 = originalHouse.map(line => 
+                line.split('').map((char, i) => 
+                    char !== ' ' ? pattern[i % 6] : char
+                ).join('')
+            );
+            
+            // Step 2: Expand each character to 2x2
+            const expand2x2 = (char) => {
+                if (char === ' ') return ['  ', '  '];
+                if (char === 'L') return ['LL', 'LL'];
+                if (char === 'E') return ['EE', 'EE'];
+                if (char === 'A') return ['AA', 'AA'];
+                if (char === 'V') return ['VV', 'VV'];
+                if (char === 'S') return ['SS', 'SS'];
+                return ['  ', '  '];
+            };
+            
+            // Step 3: Create expanded version
+            let expandedLines = [];
+            frame1.forEach(line => {
+                let topLine = '';
+                let bottomLine = '';
+                line.split('').forEach(char => {
+                    const [top, bottom] = expand2x2(char);
+                    topLine += top;
+                    bottomLine += bottom;
+                });
+                expandedLines.push(topLine, bottomLine);
+            });
+            
+            // Step 4: Create "LEAVES" blocks
+            const leavesBlock = [
+                "LLEAVES",
+                "LLEAVES",
+                "EAEAVES",
+                "EAEAVES",
+                "AVEAVES",
+                "AVEAVES",
+                "VESEAVES",
+                "VESEAVES"
+            ];
+            
+            // Animation sequence
+            let currentFrame = 0;
+            const animation = setInterval(() => {
+                if (currentFrame === 0) {
+                    canvas.textContent = originalHouse.join('\n');
+                } else if (currentFrame === 1) {
+                    canvas.textContent = frame1.join('\n');
+                } else if (currentFrame === 2) {
+                    canvas.textContent = expandedLines.join('\n');
+                } else if (currentFrame === 3) {
+                    canvas.textContent = leavesBlock.join('\n');
+                } else if (currentFrame >= 4 && currentFrame < 14) {
+                    // Glitch effect - swap between patterns
+                    const glitchPattern = currentFrame % 2 === 0 ? 
+                        leavesBlock.join('\n') : 
+                        expandedLines.join('\n');
+                    canvas.textContent = glitchPattern;
+                } else {
+                    // Final state - pure LEAVES pattern
+                    canvas.textContent = "LEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES\nLEAVES LEAVES LEAVES";
+                    clearInterval(animation);
+                }
+                currentFrame++;
+            }, 500);
+        }
+        
+        console.log('VISICELL initialized. Type LEAVE to begin the journey.');
+    </script>
+</body>
+</html>
+
+

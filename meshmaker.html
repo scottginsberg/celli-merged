@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Voxel → Organic Rig (Safe Drop-In)</title>
+<style>
+  html,body{margin:0;height:100%;background:#0a0a0a;color:#fff;font-family:sans-serif;overflow:hidden}
+  #info{position:fixed;left:1rem;top:1rem;background:rgba(0,0,0,0.5);padding:.6rem .8rem;border:1px solid #444;border-radius:6px;font-size:12px;max-width:260px}
+  canvas{display:block}
+</style>
+</head>
+<body>
+<div id="info">
+<b>Voxel → Organic Rig Generator</b><br>
+Safe local version — includes pelvis, knees, feet.<br><br>
+Open directly, no build system required.
+</div>
+
+<!-- ✅ Import global THREE safely -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+////////////////////////////////////////////////////////////////////////////////
+// 1. BASIC VOXEL MODEL SETUP
+////////////////////////////////////////////////////////////////////////////////
+
+class VoxelCell{constructor(x,y,z,tag){this.ix=x;this.iy=y;this.iz=z;this.partTag=tag;}}
+
+const VOXELS=[
+  // torso + head
+  new VoxelCell(0,0,0,"Torso"),new VoxelCell(0,1,0,"Torso"),new VoxelCell(0,2,0,"Torso"),
+  new VoxelCell(0,3,0,"Head"),new VoxelCell(0,4,0,"Head"),
+  // pelvis
+  new VoxelCell(0,-1,0,"Pelvis"),
+  // legs (L/R)
+  new VoxelCell(-0.6,-2,0,"Thigh_L"),new VoxelCell(-0.6,-3,0,"Thigh_L"),
+  new VoxelCell(-0.6,-4,0,"Calf_L"), new VoxelCell(-0.6,-5,0,"Calf_L"),
+  new VoxelCell(-0.6,-6,0.3,"Foot_L"),
+  new VoxelCell(0.6,-2,0,"Thigh_R"),new VoxelCell(0.6,-3,0,"Thigh_R"),
+  new VoxelCell(0.6,-4,0,"Calf_R"), new VoxelCell(0.6,-5,0,"Calf_R"),
+  new VoxelCell(0.6,-6,0.3,"Foot_R")
+];
+
+const PART_DEFS={
+  Torso:{parent:null,primitive:"beveledBox"},
+  Head:{parent:"Torso",primitive:"ellipsoid"},
+  Pelvis:{parent:"Torso",primitive:"beveledBox"},
+  Thigh_L:{parent:"Pelvis",primitive:"capsule"},
+  Calf_L:{parent:"Thigh_L",primitive:"capsule"},
+  Foot_L:{parent:"Calf_L",primitive:"beveledBox"},
+  Thigh_R:{parent:"Pelvis",primitive:"capsule"},
+  Calf_R:{parent:"Thigh_R",primitive:"capsule"},
+  Foot_R:{parent:"Calf_R",primitive:"beveledBox"}
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// 2. GEOMETRY HELPERS
+////////////////////////////////////////////////////////////////////////////////
+
+function beveledBoxGeometry(size){
+  const g=new THREE.BoxGeometry(size.x,size.y,size.z,2,2,2);
+  const p=g.attributes.position,v=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);v.multiplyScalar(1.05);p.setXYZ(i,v.x,v.y,v.z);}
+  g.computeVertexNormals();return g;
+}
+function alignGeometryYToDir(g,dir){
+  const up=new THREE.Vector3(0,1,0),q=new THREE.Quaternion().setFromUnitVectors(up,dir.clone().normalize());
+  const p=g.attributes.position,n=g.attributes.normal,v=new THREE.Vector3(),vn=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i).applyQuaternion(q);p.setXYZ(i,v.x,v.y,v.z);}
+  if(n)for(let i=0;i<n.count;i++){vn.fromBufferAttribute(n,i).applyQuaternion(q);n.setXYZ(i,vn.x,vn.y,vn.z);}
+  p.needsUpdate=n.needsUpdate=!0;g.computeVertexNormals();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// 3. CREATURE BUILDER
+////////////////////////////////////////////////////////////////////////////////
+function buildCreature(){
+  const group=new THREE.Group();
+  const bones={},meshes=[],boneList=[];let idx=0;
+
+  function makeBone(tag,pos){
+    const b=new THREE.Bone();b.name=tag;b.position.copy(pos);
+    bones[tag]=b;boneList.push(b);
+    return idx++;
+  }
+
+  const colors={Torso:"#7af",Head:"#fa7",Pelvis:"#ccc",
+    Thigh_L:"#6cf",Calf_L:"#49a",Foot_L:"#357",
+    Thigh_R:"#fc6",Calf_R:"#a64",Foot_R:"#753"};
+
+  for(const [tag,def] of Object.entries(PART_DEFS)){
+    // estimate size from voxels of same tag
+    const pts=VOXELS.filter(v=>v.partTag===tag).map(v=>new THREE.Vector3(v.ix,v.iy,v.iz));
+    if(!pts.length)continue;
+    const bb=new THREE.Box3().setFromPoints(pts);
+    const center=new THREE.Vector3();bb.getCenter(center);
+    const size=new THREE.Vector3();bb.getSize(size).addScalar(0.5);
+    const boneIndex=makeBone(tag,center);
+
+    let geom;
+    if(def.primitive==="ellipsoid"){geom=new THREE.SphereGeometry(0.5,16,12);
+      geom.scale(size.x,size.y,size.z);}
+    else if(def.primitive==="capsule"){const dir=new THREE.Vector3(0,1,0);
+      const len=Math.max(size.y,0.5),rad=Math.max(Math.min(size.x,size.z)/2,0.2);
+      geom=new THREE.CylinderGeometry(rad,rad,len,8,1);alignGeometryYToDir(geom,dir);}
+    else{geom=beveledBoxGeometry(size);}
+    const pos=geom.attributes.position;
+    const si=new Uint16Array(pos.count*4),sw=new Float32Array(pos.count*4);
+    for(let i=0;i<pos.count;i++){si[i*4]=boneIndex;sw[i*4]=1;}
+    geom.setAttribute("skinIndex",new THREE.Uint16BufferAttribute(si,4));
+    geom.setAttribute("skinWeight",new THREE.Float32BufferAttribute(sw,4));
+
+    const mat=new THREE.MeshStandardMaterial({skinning:true,color:colors[tag]||0xaaa,roughness:0.6});
+    const mesh=new THREE.SkinnedMesh(geom,mat);
+    mesh.add(bones[tag]);
+    meshes.push(mesh);group.add(mesh);
+  }
+
+  // parent bones
+  for(const [tag,def] of Object.entries(PART_DEFS)){
+    if(def.parent && bones[tag] && bones[def.parent])bones[def.parent].add(bones[tag]);
+  }
+
+  const skeleton=new THREE.Skeleton(boneList);
+  for(const m of meshes)m.bind(skeleton);
+
+  // pose knees
+  if(bones["Calf_L"])bones["Calf_L"].rotation.x=0.4;
+  if(bones["Calf_R"])bones["Calf_R"].rotation.x=0.4;
+  if(bones["Foot_L"])bones["Foot_L"].rotation.x=-0.3;
+  if(bones["Foot_R"])bones["Foot_R"].rotation.x=-0.3;
+
+  return group;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// 4. SCENE
+////////////////////////////////////////////////////////////////////////////////
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0a0a0a);
+const cam=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,100);
+cam.position.set(6,5,10);
+const controls=new THREE.OrbitControls(cam,renderer.domElement);
+controls.target.set(0,0,0);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x222233,1));
+const dl=new THREE.DirectionalLight(0xffffff,1);dl.position.set(5,10,8);scene.add(dl);
+scene.add(new THREE.GridHelper(40,40,0x444,0x222));
+
+scene.add(buildCreature());
+
+addEventListener("resize",()=>{
+  renderer.setSize(innerWidth,innerHeight);
+  cam.aspect=innerWidth/innerHeight;
+  cam.updateProjectionMatrix();
+});
+
+(function animate(){
+  controls.update();
+  renderer.render(scene,cam);
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>

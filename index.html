@@ -10,6 +10,23 @@
  <meta name="version" content="6.0-celli-real-component-composition" />
  <title>Cell.real - Voxel Spreadsheet [Modular Edition]</title>
  
+ <!-- Immediate hide for referrer controls to prevent flash -->
+ <style>
+  /* Ensure black background by default */
+  html, body {
+    background: #000 !important;
+    background-color: #000 !important;
+  }
+  
+  /* Hide referrer controls menu */
+  #referrerControlsMenu { 
+    display: none !important; 
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+ </style>
+ 
  <!-- Google Fonts -->
  <link rel="preconnect" href="https://fonts.googleapis.com">
  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,6 +45,7 @@
  <link rel="stylesheet" href="src/styles/referrer-overlay.css">
  <link rel="stylesheet" href="src/styles/recorder.css">
  <link rel="stylesheet" href="src/styles/scene-select.css">
+ <link rel="stylesheet" href="src/styles/map.css">
  <link rel="stylesheet" href="src/styles/full-sequence-button.css">
  
  <!-- Mythic Sidebar Entrance Animations -->
@@ -141,6 +159,10 @@
    background: transparent;
    border: none;
    overflow: hidden;
+  }
+
+  .ref-sidebar-btn {
+   transition: background 0.3s ease, border 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
   }
 
   .ref-sidebar.mythic-entrance.note-hover {
@@ -707,6 +729,16 @@
    animation: none;
   }
 
+  .ai-message {
+   font-size: 15px;
+   font-weight: 300;
+   line-height: 1.8;
+   color: #f8f9fa;
+   text-align: center;
+   padding: 40px;
+   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+
   .ai-message-tri-icon {
    display: inline-flex;
    align-items: center;
@@ -735,6 +767,289 @@
    transform: translateY(3px) scale(0.86);
   }
 
+  .ai-message__title {
+   font-weight: 500;
+   margin-bottom: 14px;
+   font-size: 18px;
+   color: #8fb4ff;
+   letter-spacing: 0.5px;
+   text-shadow: 0 0 12px rgba(143, 180, 255, 0.4);
+  }
+
+  .ai-message__body {
+   opacity: 0.9;
+   font-size: 14px;
+  }
+
+  .ai-message__footer {
+   margin-top: 16px;
+   font-size: 12px;
+   opacity: 0.6;
+   letter-spacing: 1px;
+   color: #a0b0c0;
+  }
+
+  /* BadBoolean ad state */
+  .ref-sidebar-btn.badboolean-active {
+   transition: all 0.1s ease-out;
+   will-change: transform, opacity;
+   text-align: center;
+   display: block;
+   width: 100%;
+   background: linear-gradient(135deg, rgba(255, 0, 128, 0.92) 0%, rgba(255, 140, 0, 0.82) 30%, rgba(0, 255, 204, 0.72) 65%, rgba(120, 50, 255, 0.85) 100%);
+   background-size: 280% 280%;
+   border: 3px solid #ff00ff;
+   border-radius: 16px;
+   box-shadow: 0 0 22px #ff4acb, 0 0 48px rgba(0,255,204,0.65), inset 0 0 20px rgba(255,255,255,0.35);
+   animation: rainbow-shift 3s ease infinite;
+   padding: 0;
+   overflow: hidden;
+   cursor: pointer;
+  }
+
+  .badboolean-banner {
+   padding: 28px 20px;
+   display: flex;
+   flex-direction: column;
+   gap: 12px;
+   align-items: center;
+   justify-content: center;
+  }
+
+  .badboolean-topline,
+  .badboolean-subline,
+  .badboolean-mainline,
+  .badboolean-tagline,
+  .badboolean-footer,
+  .badboolean-twist {
+   text-align: center;
+   width: 100%;
+  }
+
+  .badboolean-topline {
+   font-size: 20px;
+   font-weight: 900;
+   text-transform: uppercase;
+   letter-spacing: 2px;
+   color: #ff4acb;
+   text-shadow: 0 0 16px rgba(255, 54, 204, 0.6);
+  }
+
+  .badboolean-subline {
+   font-size: 16px;
+   font-weight: 700;
+   color: #f5ff7d;
+   text-shadow: 0 0 12px rgba(0,0,0,0.8);
+  }
+
+  .badboolean-mainline {
+   font-size: 28px;
+   font-weight: 900;
+   letter-spacing: 3px;
+   color: #61f8ff;
+   text-shadow: 0 0 18px rgba(97,248,255,0.9);
+   margin: 0 auto;
+   white-space: nowrap;
+  }
+
+  .badboolean-tagline {
+   font-size: 14px;
+   font-weight: 500;
+   color: #ff92d0;
+   font-style: italic;
+  }
+
+  .badboolean-footer {
+   font-size: 12px;
+   font-weight: 700;
+   color: #ff5cff;
+  }
+
+  .badboolean-twist {
+   font-size: 11px;
+   font-weight: 500;
+   color: rgba(255,255,255,0.78);
+   text-transform: uppercase;
+   letter-spacing: 0.18em;
+  }
+
+  /* Clean button reset for ToS state */
+  .ref-sidebar-btn.tos-active {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  animation: none !important;
+  opacity: 1 !important;
+  transform: scale(1) !important;
+  text-align: left !important;
+  display: block !important;
+  width: 100% !important;
+  min-height: auto !important;
+  overflow: visible !important;
+  }
+
+  /* ToS card styling (match base card look) */
+  .loom-invite-card--tos {
+   position: relative !important;
+   border-radius: 24px !important;
+   background: linear-gradient(145deg, rgba(102, 126, 234, 0.32), rgba(143, 180, 255, 0.22), rgba(118, 75, 162, 0.28)) !important;
+   backdrop-filter: blur(18px) saturate(220%) !important;
+   -webkit-backdrop-filter: blur(18px) saturate(220%) !important;
+   border: 1px solid rgba(160, 190, 255, 0.4) !important;
+   box-shadow: 0 24px 50px rgba(9, 12, 34, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+   overflow: hidden !important;
+   isolation: isolate !important;
+   padding: 32px 36px !important;
+   min-height: 200px !important;
+  }
+
+  .loom-invite-card--tos::after {
+   content: '' !important;
+   position: absolute !important;
+   inset: 10% 6% !important;
+   border-radius: 20px !important;
+   background: radial-gradient(ellipse at 50% 0%, rgba(143, 180, 255, 0.35), transparent 65%) !important;
+   opacity: 0.65 !important;
+   mix-blend-mode: screen !important;
+   pointer-events: none !important;
+  }
+
+  .loom-invite-stack {
+   position: relative;
+   width: 100%;
+   min-height: 100%;
+  }
+
+  .loom-invite-card__header {
+   position: relative;
+   z-index: 1;
+   padding-bottom: 24px;
+   border-bottom: 1px solid rgba(160, 190, 255, 0.2);
+   margin-bottom: 24px;
+  }
+
+  .loom-invite-card__body {
+   position: relative;
+   z-index: 1;
+   display: flex;
+   flex-direction: column;
+   gap: 16px;
+   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+   color: #f8f9fa;
+  }
+
+  .loom-invite-opening {
+   font-size: 15px;
+   font-weight: 400;
+   line-height: 1.6;
+   color: rgba(255, 255, 255, 0.95);
+   font-style: italic;
+   opacity: 0.9;
+  }
+
+  .loom-invite-body-text {
+   font-size: 14px;
+   font-weight: 300;
+   line-height: 1.7;
+   color: rgba(255, 255, 255, 0.88);
+  }
+
+  .loom-invite-alpha {
+   color: #8fb4ff;
+   font-weight: 500;
+   text-shadow: 0 0 12px rgba(143, 180, 255, 0.6);
+  }
+
+  .loom-invite-divider {
+   font-size: 13px;
+   color: rgba(255, 255, 255, 0.75);
+   text-align: center;
+   padding: 12px 0;
+   border-top: 1px solid rgba(160, 190, 255, 0.15);
+   border-bottom: 1px solid rgba(160, 190, 255, 0.15);
+  }
+
+  .tos-abbrev {
+   color: #8fb4ff;
+   font-weight: 600;
+   cursor: help;
+  }
+
+  .tos-label {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   padding: 12px 16px;
+   background: rgba(102, 126, 234, 0.15);
+   border: 1px solid rgba(143, 180, 255, 0.3);
+   border-radius: 8px;
+   cursor: pointer;
+   transition: all 0.2s ease;
+   font-family: inherit;
+   color: inherit;
+   font-size: 13px;
+  }
+
+  .tos-label:hover {
+   background: rgba(102, 126, 234, 0.25);
+   border-color: rgba(143, 180, 255, 0.5);
+  }
+
+  .tos-label-eternal {
+   color: #ff6b9d;
+   font-weight: 600;
+  }
+
+  .tos-label-arrow {
+   font-size: 18px;
+   transition: transform 0.2s ease;
+  }
+
+  .tos-label[aria-expanded="true"] .tos-label-arrow {
+   transform: rotate(90deg);
+  }
+
+  .tos-expandable {
+   padding: 12px 16px;
+   background: rgba(0, 0, 0, 0.2);
+   border-radius: 6px;
+   font-size: 12px;
+   color: rgba(255, 255, 255, 0.7);
+   font-style: italic;
+  }
+
+  .tos-expandable[hidden] {
+   display: none;
+  }
+
+  .tos-checkbox {
+   display: flex;
+   align-items: center;
+   gap: 12px;
+   padding: 16px;
+   background: rgba(143, 180, 255, 0.08);
+   border-radius: 8px;
+   cursor: pointer;
+  }
+
+  .tos-checkbox input[type="checkbox"] {
+   width: 20px;
+   height: 20px;
+   accent-color: #8fb4ff;
+   cursor: pointer;
+  }
+
+  .tos-checkbox label {
+   font-size: 14px;
+   font-weight: 500;
+   color: rgba(255, 255, 255, 0.95);
+   cursor: pointer;
+  }
+
   .ref-sidebar-btn.loom-invite-active.audio-reactive .ai-message-tri-icon span:nth-child(2) {
    transform: translateY(calc(-6px - var(--chant-reactive, 0) * 8px)) scale(calc(1.12 + var(--chant-reactive, 0) * 0.3));
    opacity: calc(0.9 + var(--chant-reactive, 0) * 0.1);
@@ -746,29 +1061,29 @@
    opacity: calc(0.85 + var(--chant-reactive, 0) * 0.12);
   }
 
-  .loom-invite-pin {
-   position: absolute;
-   width: 18px;
-   height: 18px;
-   border-radius: 50%;
-   background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.5) 40%, rgba(255,30,110,0.25) 100%);
-   box-shadow: 0 0 24px rgba(255, 30, 110, 0.65), 0 0 48px rgba(0, 168, 255, 0.4);
-   opacity: 0;
-   transform: translate3d(0, 0, 0) scale(0.7);
-   will-change: transform, opacity;
-   pointer-events: none;
-   z-index: 2;
-  }
+ .loom-invite-pin {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  transform: translate3d(0, 0, 0) scale(0.7);
+  will-change: transform, opacity;
+  pointer-events: none;
+  z-index: 2;
+ }
 
-  .loom-invite-pin.pin-yellow {
-   background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.5) 40%, rgba(255,182,46,0.3) 100%);
-   box-shadow: 0 0 24px rgba(255, 182, 46, 0.7), 0 0 48px rgba(0, 168, 255, 0.35);
-  }
+ .loom-invite-pin.pin-yellow {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+ }
 
-  .loom-invite-pin.pin-cyan {
-   background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.5) 40%, rgba(0,168,255,0.3) 100%);
-   box-shadow: 0 0 24px rgba(0, 168, 255, 0.7), 0 0 48px rgba(255, 30, 110, 0.35);
-  }
+ .loom-invite-pin.pin-cyan {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+ }
 
   @keyframes loomInvitePinFlight {
    0% {
@@ -787,12 +1102,32 @@
    }
   }
 
+  /* Hide ALL debug/development UI during intro */
+  body.intro-ui-hidden .debug-panel-button,
+  body.intro-ui-hidden .debug-panel,
+  body.intro-ui-hidden #toolsMenu,
+  body.intro-ui-hidden #playerTuningUI,
+  body.intro-ui-hidden #tuningPanelToggle,
+  body.intro-ui-hidden #mapToolsBtn,
+  body.intro-ui-hidden button[title*="Tuning"],
+  body.intro-ui-hidden button[title*="Developer Tools"],
+  body.intro-ui-hidden [class*="tuning"],
+  body.intro-ui-hidden [class*="control-panel"],
+  body.intro-ui-hidden [id*="tuning"],
+  body.intro-ui-hidden [id*="controlPanel"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
   .debug-panel-button {
    position: fixed;
    bottom: 24px;
    left: 24px;
    transform: none;
    padding: 10px 18px;
+   display: none; /* Hidden during intro */
    border-radius: 999px;
    background: rgba(15, 23, 42, 0.85);
    border: 1px solid rgba(148, 163, 184, 0.5);
@@ -973,40 +1308,40 @@
    100% { opacity: 0.4; transform: scaleX(1); }
   }
   
-  /* Giant burst beam for final card entrance */
-  .burst-beam {
-   position: fixed;
-   right: 0;
-   top: 0;
-   width: 100vw;
-   height: 100vh;
-   background: radial-gradient(ellipse 60vw 50vh at 100% 50%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.4) 30%, transparent 60%);
-   mix-blend-mode: screen;
-   pointer-events: none;
-   z-index: 2147483650;
-   opacity: 0;
-   animation: burst-flash 2.5s ease-out forwards;
-   transform-origin: right center;
+ /* Giant burst beam for final card entrance */
+ .burst-beam {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 80vw;
+  height: 100vh;
+  background: radial-gradient(ellipse 50% 50% at 100% 50%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.4) 30%, transparent 60%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 2147483650;
+  opacity: 0;
+  animation: burst-flash 2.5s ease-out forwards;
+  transform-origin: 100% 50%;
+ }
+ 
+ @keyframes burst-flash {
+  0% { 
+   opacity: 0; 
+   transform: scaleX(0.1);
+   filter: brightness(1);
   }
-  
-  @keyframes burst-flash {
-   0% { 
-    opacity: 0; 
-    transform: scaleX(0);
-    filter: brightness(1);
-   }
-   10% { 
-    opacity: 1; 
-    transform: scaleX(0.5);
-    filter: brightness(2);
-   }
-   25% { 
-    opacity: 1; 
-    transform: scaleX(1.3);
-    filter: brightness(1.8);
-   }
-   50% {
-    opacity: 0.8;
+  10% { 
+   opacity: 1; 
+   transform: scaleX(0.4);
+   filter: brightness(2);
+  }
+  25% { 
+   opacity: 1; 
+   transform: scaleX(1);
+   filter: brightness(1.8);
+  }
+  50% {
+   opacity: 0.8;
     transform: scaleX(1.1);
     filter: brightness(1.2);
    }
@@ -1016,9 +1351,409 @@
     filter: brightness(1);
    }
   }
+
+  /* VisiCell Styles */
+  .visicell-container {
+   position: fixed;
+   top: 0;
+   left: 0;
+   width: 100%;
+   height: 100%;
+   background: #000;
+   z-index: 2147483647;
+   font-family: 'Courier New', monospace;
+   color: #0f0;
+  }
+
+  .visicell-datetime-widget {
+   position: absolute;
+   top: 10px;
+   right: 10px;
+   background: #111;
+   border: 2px solid #0f0;
+   padding: 8px 12px;
+   cursor: pointer;
+   transition: all 0.2s;
+   z-index: 10;
+  }
+
+  .visicell-datetime-widget:hover {
+   background: #0f0;
+   color: #000;
+   box-shadow: 0 0 20px #0f0;
+  }
+
+  .visicell-datetime-display {
+   font-size: 14px;
+   font-weight: bold;
+   letter-spacing: 1px;
+  }
+
+  /* Rounded Corner Grid Window (Initial State) */
+  .visicell-grid-window {
+   position: absolute;
+   top: 50%;
+   left: 50%;
+   transform: translate(-50%, -50%);
+   width: 90%;
+   max-width: 1200px;
+   height: 80%;
+   max-height: 800px;
+   background: #000;
+   border: 3px solid #0f0;
+   border-radius: 20px;
+   box-shadow: 0 0 40px rgba(0, 255, 0, 0.6);
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+  }
+
+  .visicell-grid-header {
+   background: #0f0;
+   color: #000;
+   padding: 10px 15px;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   border-bottom: 2px solid #0f0;
+  }
+
+  .visicell-grid-tabs {
+   display: flex;
+   gap: 5px;
+   flex: 1;
+  }
+
+  .visicell-tab {
+   background: #000;
+   color: #0f0;
+   padding: 8px 16px;
+   border: 2px solid #0f0;
+   border-radius: 8px 8px 0 0;
+   cursor: pointer;
+   transition: all 0.2s;
+   font-weight: bold;
+   font-size: 12px;
+   position: relative;
+  }
+
+  .visicell-tab:hover {
+   background: #0a0;
+   color: #000;
+  }
+
+  .visicell-tab.active {
+   background: #0f0;
+   color: #000;
+   border-bottom: 2px solid #000;
+   margin-bottom: -2px;
+  }
+
+  .visicell-grid-layers {
+   flex: 1;
+   position: relative;
+   overflow: hidden;
+  }
+
+  .visicell-grid-layer {
+   position: absolute;
+   top: 0;
+   left: 0;
+   width: 100%;
+   height: 100%;
+   background: #000;
+   padding: 20px;
+   overflow: auto;
+   display: none;
+  }
+
+  .visicell-grid-layer.active {
+   display: block;
+  }
+
+  .visicell-grid-table {
+   display: grid;
+   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+   gap: 2px;
+   width: 100%;
+  }
+
+  .visicell-grid-cell {
+   background: #000;
+   border: 1px solid #0f0;
+   padding: 12px 8px;
+   text-align: center;
+   font-size: 14px;
+   min-height: 40px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   cursor: pointer;
+   transition: all 0.2s;
+   position: relative;
+  }
+
+  .visicell-grid-cell:hover {
+   background: #003300;
+   box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.3);
+  }
+
+  .visicell-grid-cell.editing {
+   background: #001a00;
+   box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.5);
+  }
+
+  .visicell-grid-cell input {
+   background: transparent;
+   border: none;
+   color: #0f0;
+   font-family: 'Courier New', monospace;
+   font-size: 14px;
+   text-align: center;
+   width: 100%;
+   outline: none;
+   text-transform: uppercase;
+  }
+
+  .visicell-grid-cell.r-sequence {
+   animation: rPulse 0.3s ease-out;
+  }
+
+  @keyframes rPulse {
+   0% { transform: scale(1); background: #000; }
+   50% { transform: scale(1.1); background: #0a0; box-shadow: 0 0 20px #0f0; }
+   100% { transform: scale(1); background: #000; }
+  }
+
+  /* Terminal Window (Devolved State) */
+  .visicell-terminal-window {
+   position: absolute;
+   top: 50%;
+   left: 50%;
+   transform: translate(-50%, -50%);
+   width: 80%;
+   max-width: 800px;
+   background: #000;
+   border: 3px solid #0f0;
+   box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+  }
+
+  .visicell-title-bar {
+   background: #0f0;
+   color: #000;
+   padding: 8px 12px;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   font-weight: bold;
+  }
+
+  .visicell-close-btn {
+   background: #000;
+   color: #0f0;
+   border: 2px solid #0f0;
+   font-size: 20px;
+   width: 30px;
+   height: 30px;
+   cursor: pointer;
+   transition: all 0.2s;
+  }
+
+  .visicell-close-btn:hover {
+   background: #0f0;
+   color: #000;
+  }
+
+  .visicell-content {
+   padding: 20px;
+   min-height: 400px;
+   max-height: 60vh;
+   overflow-y: auto;
+  }
+
+  .visicell-output {
+   margin-bottom: 20px;
+   white-space: pre-wrap;
+   line-height: 1.6;
+  }
+
+  .visicell-input-line {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+  }
+
+  .visicell-prompt {
+   color: #0f0;
+   font-weight: bold;
+  }
+
+  .visicell-input {
+   flex: 1;
+   background: transparent;
+   border: none;
+   color: #0f0;
+   font-family: 'Courier New', monospace;
+   font-size: 16px;
+   outline: none;
+   text-transform: uppercase;
+  }
+
+  .visicell-settings-popup {
+   position: fixed;
+   top: 0;
+   left: 0;
+   width: 100%;
+   height: 100%;
+   background: rgba(0, 0, 0, 0.8);
+   z-index: 2147483648;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+  }
+
+  .visicell-settings-window {
+   background: #000;
+   border: 3px solid #0f0;
+   box-shadow: 0 0 40px rgba(0, 255, 0, 0.7);
+   min-width: 400px;
+  }
+
+  .visicell-settings-content {
+   padding: 20px;
+  }
+
+  .visicell-settings-section {
+   margin-bottom: 20px;
+  }
+
+  .visicell-settings-section label {
+   display: block;
+   margin-bottom: 8px;
+   color: #0f0;
+   font-weight: bold;
+  }
+
+  .visicell-time-display {
+   background: #111;
+   border: 2px solid #0f0;
+   padding: 10px;
+   font-size: 18px;
+   text-align: center;
+  }
+
+  .visicell-settings-section input {
+   background: #111;
+   border: 2px solid #0f0;
+   color: #0f0;
+   padding: 8px;
+   width: 100%;
+   font-family: 'Courier New', monospace;
+   font-size: 16px;
+  }
+
+  .visicell-settings-section button {
+   background: #0f0;
+   color: #000;
+   border: none;
+   padding: 10px 20px;
+   margin-top: 10px;
+   cursor: pointer;
+   font-weight: bold;
+   font-family: 'Courier New', monospace;
+   transition: all 0.2s;
+  }
+
+  .visicell-settings-section button:hover {
+   background: #0f0;
+   box-shadow: 0 0 20px #0f0;
+  }
+
+  .visicell-video-popup {
+   position: fixed;
+   top: 0;
+   left: 0;
+   width: 100%;
+   height: 100%;
+   background: rgba(0, 0, 0, 0.95);
+   z-index: 2147483649;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   animation: fadeIn 0.5s ease-in;
+  }
+
+  .visicell-video-window {
+   border: 3px solid #0f0;
+   box-shadow: 0 0 50px rgba(0, 255, 0, 0.8);
+   max-width: 90%;
+   max-height: 90%;
+  }
+
+  .visicell-video-window video {
+   display: block;
+   max-width: 100%;
+   max-height: 90vh;
+  }
+
+  @keyframes fadeIn {
+   from { opacity: 0; }
+   to { opacity: 1; }
+  }
+
+  .visicell-glitch {
+   animation: glitch 0.3s infinite;
+  }
+
+  @keyframes glitch {
+   0% { transform: translate(0); }
+   20% { transform: translate(-2px, 2px); }
+   40% { transform: translate(-2px, -2px); }
+   60% { transform: translate(2px, 2px); }
+   80% { transform: translate(2px, -2px); }
+   100% { transform: translate(0); }
+  }
+
+  .ascii-house-container {
+   position: fixed;
+   top: 0;
+   left: 0;
+   width: 100%;
+   height: 100%;
+   background: #000;
+   z-index: 2147483650;
+   overflow: auto;
+   animation: fadeIn 1s ease-in;
+  }
+
+  .ascii-house-content {
+   padding: 40px;
+   font-family: 'Courier New', monospace;
+   color: #0f0;
+   font-size: 12px;
+   line-height: 1.2;
+   white-space: pre;
+  }
+
+  .ascii-house-content .gir-trigger {
+   color: #ff0;
+   cursor: pointer;
+   text-decoration: underline;
+   animation: pulse 1s infinite;
+  }
+
+  .ascii-house-content .gir-trigger:hover {
+   color: #f00;
+   text-shadow: 0 0 10px #f00;
+  }
+
+  @keyframes pulse {
+   0%, 100% { opacity: 1; }
+   50% { opacity: 0.7; }
+  }
  </style>
 </head>
-<body>
+<body class="intro-ui-hidden">
  <div id="fallback" class="fallback-message" role="alert" aria-live="assertive" style="display:none">
   <div class="fallback-message__content">
    <h1>Celli requires WebGL</h1>
@@ -1085,7 +1820,7 @@
   </div>
   
   <!-- Referrer Glitch Overlay Controls -->
-  <div style="margin-top:16px; padding:10px; background:rgba(102,126,234,0.1); border:1px solid rgba(102,126,234,0.3); border-radius:8px; max-width:550px;">
+  <div id="referrerControlsMenu" style="margin-top:16px; padding:10px; background:rgba(102,126,234,0.1); border:1px solid rgba(102,126,234,0.3); border-radius:8px; max-width:550px; display:none;">
    <div style="color:#667eea; font-size:11px; width:100%; text-align:center; margin-bottom:8px; font-weight:600;">✨ Referrer Glitch Overlay</div>
    <div style="display:flex; gap:8px; flex-wrap:wrap;">
     <input id="manualUrlInput" type="text" placeholder="Enter URL (e.g. reddit.com/r/programming)" style="flex:1; min-width:280px; padding:8px 12px; background:#191a23; border:1px solid rgba(255,255,255,.1); border-radius:6px; color:#e8e8ee; font-size:11px" />
@@ -1101,6 +1836,20 @@
      <span aria-hidden="true">📝</span>
      <span>Beta Form</span>
     </a>
+   </div>
+  </div>
+ </div>
+
+ <!-- Passcode Prompt Overlay -->
+ <div id="passcodeOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:2147483647; backdrop-filter:blur(8px); align-items:center; justify-content:center;">
+  <div style="background:linear-gradient(145deg, rgba(25, 32, 58, 0.95), rgba(18, 26, 48, 0.9)); padding:32px 40px; border-radius:16px; border:1px solid rgba(102,126,234,0.4); box-shadow:0 20px 60px rgba(0,0,0,0.6); max-width:420px; width:90%;">
+   <div style="color:#667eea; font-size:14px; font-weight:700; text-align:center; margin-bottom:8px; letter-spacing:0.1em;">🔐 ACCESS CONTROL</div>
+   <div style="color:#a0a8c0; font-size:12px; text-align:center; margin-bottom:24px; line-height:1.5;">Enter passcode to access debug menu</div>
+   <input id="passcodeInput" type="password" placeholder="Enter passcode" style="width:100%; padding:14px 18px; background:#191a23; border:2px solid rgba(102,126,234,0.3); border-radius:10px; color:#e8e8ee; font-size:16px; text-align:center; letter-spacing:0.3em; font-weight:600; outline:none; transition:border-color 0.2s;" />
+   <div id="passcodeError" style="color:#ff6b6b; font-size:11px; text-align:center; margin-top:12px; min-height:16px; opacity:0; transition:opacity 0.2s;"></div>
+   <div style="display:flex; gap:12px; margin-top:20px;">
+    <button id="passcodeCancel" style="flex:1; padding:12px; background:#2a2a2f; border:1px solid #444; color:#ddd; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;">Cancel</button>
+    <button id="passcodeSubmit" style="flex:1; padding:12px; background:#667eea; border:0; color:#fff; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;">Submit</button>
    </div>
   </div>
  </div>
@@ -1171,6 +1920,11 @@
     <div class="scene-option-desc">Both avatars in a shared rave environment - pulsing lights, music visualization, and dance animations</div>
    </div>
 
+    <div class="scene-option" data-scene="pockit" data-url="./scale-ultra.html" style="border-left: 3px solid #00d4ff;">
+     <div>🌍 POCKIT → Scale Ultra World</div>
+     <div class="scene-option-desc">Explore the procedural voxel world with interior room builder and asset placement</div>
+    </div>
+
     <div class="scene-option" data-scene="sequence-builder" data-url="./tools/sequence-builder/index.html?standalone=true" style="border-left: 3px solid #ff6b6b;">
      <div>🎬 DEV.TOOLS → Sequence Builder</div>
      <div class="scene-option-desc">Visual node-based sequence composer (Press \ in any scene)</div>
@@ -1218,13 +1972,83 @@
  <div id="world"></div>
  <canvas id="view"></canvas>
  
- <!-- UI Elements Container for Scene-Injected HTML -->
- <div id="uiContainer"></div>
+<!-- UI Elements Container for Scene-Injected HTML -->
+<div id="uiContainer"></div>
+
+<!-- Tools Menu removed - production mode -->
+
+<!-- Sequence Builder Overlay Container -->
+<div id="sequence-overlay" style="display: none;"></div>
+
+<!-- VisiCell Container -->
+<div id="visicellContainer" class="visicell-container" style="display: none;">
+ <div class="visicell-datetime-widget" id="visicellDateTime">
+  <div class="visicell-datetime-display" id="visicellDateTimeDisplay">00:00:00</div>
+ </div>
  
- <!-- Sequence Builder Overlay Container -->
- <div id="sequence-overlay" style="display: none;"></div>
+ <!-- Rounded Corner Spreadsheet Grid (Initial State) -->
+ <div class="visicell-grid-window" id="visicellGridWindow">
+  <div class="visicell-grid-header">
+   <div class="visicell-grid-tabs" id="visicellTabs">
+    <div class="visicell-tab active" data-tab="main">VISICELL</div>
+   </div>
+   <button class="visicell-close-btn" id="visicellCloseBtn">×</button>
+  </div>
+  <div class="visicell-grid-layers" id="visicellGridLayers">
+   <div class="visicell-grid-layer active" id="visicellMainGrid" data-layer="main"></div>
+  </div>
+ </div>
  
- <!-- Referrer Glitch Overlay -->
+ <!-- Terminal Window (Devolved State) -->
+ <div class="visicell-terminal-window" id="visicellTerminal" style="display: none;">
+  <div class="visicell-title-bar">
+   <span class="visicell-title">LEAVE?</span>
+   <button class="visicell-close-btn" id="visicellTerminalCloseBtn">×</button>
+  </div>
+  <div class="visicell-content">
+   <div class="visicell-output" id="visicellOutput"></div>
+   <div class="visicell-input-line">
+    <span class="visicell-prompt">&gt;</span>
+    <input type="text" class="visicell-input" id="visicellInput" autocomplete="off" spellcheck="false" />
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- VisiCell DateTime Settings Popup -->
+<div id="visicellDateTimeSettings" class="visicell-settings-popup" style="display: none;">
+ <div class="visicell-settings-window">
+  <div class="visicell-title-bar">
+   <span class="visicell-title">DATE/TIME SETTINGS</span>
+   <button class="visicell-close-btn" id="visicellSettingsCloseBtn">×</button>
+  </div>
+  <div class="visicell-settings-content">
+   <div class="visicell-settings-section">
+    <label>CURRENT TIME</label>
+    <div class="visicell-time-display" id="visicellCurrentTime"></div>
+   </div>
+   <div class="visicell-settings-section">
+    <label>ADJUST TIME (MINUTES)</label>
+    <input type="number" id="visicellTimeOffset" value="0" min="-999" max="999" />
+    <button id="visicellApplyTime">APPLY</button>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- VisiCell Video Popup -->
+<div id="visicellVideoPopup" class="visicell-video-popup" style="display: none;">
+ <div class="visicell-video-window">
+  <video id="visicellVideo" autoplay></video>
+ </div>
+</div>
+
+<!-- ASCII House of Leaves Container -->
+<div id="asciiHouseContainer" class="ascii-house-container" style="display: none;">
+ <div class="ascii-house-content" id="asciiHouseContent"></div>
+</div>
+
+<!-- Referrer Glitch Overlay -->
 <div id="referrerStageRoot" class="referrer-stage-root">
  <div id="celliRefOverlay" class="celli-ref-overlay" aria-hidden="true">
   <div class="celli-ref-mask"></div>
@@ -1270,7 +2094,7 @@
           </div>
           <div class="loom-invite-card__content">
             <strong class="loom-invite-card__headline">Claim your Loomworks access</strong>
-            <span class="loom-invite-card__subline loom-invite-card__subline--audio" data-active="false">Streaming CallYouByMyName.mp3</span>
+            <span class="loom-invite-card__subline loom-invite-card__subline--audio" data-active="false">Now Playing: CallYouByMyName.mp3</span>
           </div>
         </div>
       </div>
@@ -1315,11 +2139,55 @@
  }
  </script>
 
- <!-- Main Application -->
- <script type="module" src="./src/scripts/main.js"></script>
+<!-- Main Application -->
+<script type="module" src="./src/scripts/main.js"></script>
 
- <!-- Referrer Glitch Overlay Logic -->
- <script type="module">
+<!-- Map Navigation Module -->
+<script type="module">
+ import { map } from './src/scripts/tools/Map.js';
+ window.mapModule = map;
+ console.log('🗺️ Map module loaded - Press M to open');
+</script>
+
+<!-- Early referrer overlay kill check (must run before main referrer script) -->
+<script>
+(function() {
+  try {
+    const betaRedirectStatus = document.body?.dataset?.betaRedirectComplete;
+    const fullSequenceStage = sessionStorage.getItem('celli:fullSequenceStage');
+    
+    if (betaRedirectStatus === 'true' || fullSequenceStage === 'beta') {
+      console.log('⚡ IMMEDIATE KILL: Hiding referrer overlay on page load');
+      
+      // Set global flag to prevent any overlay triggers
+      window.__referrerOverlayKilled = true;
+      
+      const refRoot = document.getElementById('referrerStageRoot');
+      if (refRoot) {
+        refRoot.style.cssText = 'display: none !important; opacity: 0 !important; visibility: hidden !important; z-index: -9999 !important; pointer-events: none !important;';
+      }
+      
+      // Also hide the overlay itself
+      const overlay = document.getElementById('celliRefOverlay');
+      if (overlay) {
+        overlay.style.cssText = 'display: none !important;';
+        overlay.setAttribute('aria-hidden', 'true');
+      }
+      
+      // Ensure black background
+      document.documentElement.style.background = '#000';
+      document.body.style.background = '#000';
+      
+      console.log('✅ Referrer overlay completely suppressed');
+    }
+  } catch (e) {
+    console.warn('Early overlay kill error:', e);
+  }
+})();
+</script>
+
+<!-- Referrer Glitch Overlay Logic -->
+<script type="module">
   import { voxelShatter } from './src/scripts/effects/VoxelShatter.js';
   /*
     Celli Referrer Glitch Overlay
@@ -1329,6 +2197,23 @@
   
   console.log('🚀 REFERRER OVERLAY SCRIPT STARTING');
   console.error('=== DIAGNOSTIC MODE - CHECK FOR ERRORS BELOW ===');
+  
+  // Early check: If coming from redirect, kill overlay immediately
+  (function earlyKillCheck() {
+    try {
+      const betaRedirectStatus = document.body?.dataset?.betaRedirectComplete;
+      const fullSequenceStage = sessionStorage.getItem('celli:fullSequenceStage');
+      const betaStage = 'beta';
+      
+      if (betaRedirectStatus === 'true' || fullSequenceStage === betaStage) {
+        console.log('⚡ Early kill: Detected redirect status, preparing to hide referrer overlay');
+        // Set a flag that will be checked by killReferrerOverlay
+        window.__shouldKillReferrer = true;
+      }
+    } catch (e) {
+      console.warn('Early kill check error:', e);
+    }
+  })();
   
   const overlay = document.getElementById('celliRefOverlay');
   const refStageRoot = document.getElementById('referrerStageRoot');
@@ -1403,6 +2288,61 @@
   const APP_BASE_URL = computeAppBaseUrl();
   const BETA_FOCUS_FORM_URL = new URL('templates/componentized/beta-focus-form.html?fullsequence=beta', APP_BASE_URL).toString();
 
+  // Kill the referrer overlay by hiding it beneath a black canvas
+  function killReferrerOverlay(){
+    try{
+      console.log('🔪 Killing referrer overlay - hiding completely');
+      
+      // Set global flag to prevent any future overlay opens
+      window.__referrerOverlayKilled = true;
+      
+      // Hide referrer stage root completely
+      const refStageRoot = document.getElementById('referrerStageRoot');
+      if(refStageRoot){
+        refStageRoot.style.cssText = 'display: none !important; opacity: 0 !important; visibility: hidden !important; z-index: -9999 !important; pointer-events: none !important;';
+      }
+      
+      // Also hide overlay and sidebar
+      const overlay = document.getElementById('celliRefOverlay');
+      if(overlay){
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.style.cssText = 'display: none !important;';
+      }
+      
+      const refSidebar = document.getElementById('refSidebar');
+      if(refSidebar){
+        refSidebar.style.display = 'none';
+      }
+      
+      // Deactivate referrer state
+      deactivateReferrerStageRoot();
+      setReferrerOverlayActiveState(false);
+      
+      // Ensure world/view are visible for new scenes
+      const world = document.getElementById('world');
+      const view = document.getElementById('view');
+      if(world){
+        world.style.display = '';
+        world.style.zIndex = '';
+      }
+      if(view){
+        view.style.display = '';
+        view.style.zIndex = '';
+      }
+      
+      // Remove any existing kill canvas - no longer needed since we're hiding overlay directly
+      const existingCanvas = document.getElementById('referrerKillCanvas');
+      if(existingCanvas){
+        existingCanvas.remove();
+        console.log('  Removed existing kill canvas');
+      }
+      
+      console.log('✅ Referrer overlay killed - hidden completely and blocked from reopening');
+    }catch(e){
+      console.error('❌ Error killing referrer overlay:', e);
+    }
+  }
+
   // Immediate blackout + redirect helper to avoid laggy pixel sweep
   function blackoutUnderPage(){
     try{
@@ -1424,6 +2364,7 @@
 
   function redirectToBetaFormImmediate(){
     try{ markBetaRedirectPending(); }catch(e){}
+    killReferrerOverlay(); // Kill referrer overlay before redirect
     blackoutUnderPage();
     try{
       window.location.assign(BETA_FOCUS_FORM_URL);
@@ -2231,7 +3172,7 @@
         ${LOOM_INVITE_EMBLEM}
         <div class="loom-invite-card__content">
           <strong class="loom-invite-card__headline">Claim your Loomworks access</strong>
-          <span class="loom-invite-card__subline">Tap to open the crystalline invitation.</span>
+          <span class="loom-invite-card__subline">Now Playing: CallYouByMyName.mp3</span>
         </div>
       </div>
     </div>
@@ -3485,6 +4426,231 @@
   } else {
     console.error('❌ quickLinkedIn button not found!');
   }
+
+  // =============================================================================
+  // AUTO-DETECTION & PASSCODE SYSTEM
+  // =============================================================================
+
+  const CORRECT_PASSCODE = '12346';
+  const referrerControlsMenu = document.getElementById('referrerControlsMenu');
+  const passcodeOverlay = document.getElementById('passcodeOverlay');
+  const passcodeInput = document.getElementById('passcodeInput');
+  const passcodeError = document.getElementById('passcodeError');
+  const passcodeSubmit = document.getElementById('passcodeSubmit');
+  const passcodeCancel = document.getElementById('passcodeCancel');
+
+  // Detect referrer and auto-trigger appropriate overlay
+  function detectAndTriggerReferrer() {
+    try {
+      // Check if we're coming back from a redirect (beta form, speed.html, etc.)
+      const betaRedirectStatus = document.body.dataset.betaRedirectComplete;
+      const fullSequenceStage = sessionStorage.getItem(FULL_SEQUENCE_STAGE_KEY);
+      
+      console.log('🔍 Checking redirect status:', { betaRedirectStatus, fullSequenceStage });
+      
+      // Skip auto-trigger if:
+      // 1. Coming back from beta redirect
+      // 2. Already in beta stage
+      // 3. Referrer overlay was already killed
+      if (betaRedirectStatus === 'true' || fullSequenceStage === FULL_SEQUENCE_BETA_STAGE) {
+        console.log('⏭️ Skipping referrer auto-trigger - already in sequence or redirected from beta');
+        killReferrerOverlay(); // Ensure it stays hidden
+        return;
+      }
+
+      console.log('✅ Not a redirect - proceeding with referrer detection');
+
+      const referrer = document.referrer || '';
+      const urlParams = new URLSearchParams(window.location.search);
+      const refParam = urlParams.get('ref') || '';
+
+      console.log('🔍 Referrer detection:', { referrer, refParam });
+
+      let targetUrl = null;
+
+      // Check URL parameter first
+      if (refParam) {
+        const refLower = refParam.toLowerCase();
+        if (refLower === 'hn' || refLower === 'hackernews') {
+          targetUrl = 'https://news.ycombinator.com';
+        } else if (refLower === 'reddit') {
+          targetUrl = 'https://www.reddit.com/r/all';
+        } else if (refLower === 'twitter' || refLower === 'zeed' || refLower === 'x') {
+          targetUrl = 'zeed';
+        } else if (refLower === 'facebook') {
+          targetUrl = 'facebook';
+        } else if (refLower === 'linkedin') {
+          targetUrl = 'linkedin';
+        }
+      }
+
+      // Check actual referrer if no param
+      if (!targetUrl && referrer) {
+        const refLower = referrer.toLowerCase();
+        if (/news\.ycombinator\.com/.test(refLower)) {
+          targetUrl = 'https://news.ycombinator.com';
+        } else if (/(^|\/\/|\.)reddit\.com/.test(refLower)) {
+          targetUrl = 'https://www.reddit.com/r/all';
+        } else if (/(^|\/\/|\.)(twitter\.com|x\.com)/.test(refLower)) {
+          targetUrl = 'zeed';
+        } else if (/(^|\/\/|\.)facebook\.com/.test(refLower)) {
+          targetUrl = 'facebook';
+        } else if (/(^|\/\/|\.)linkedin\.com/.test(refLower)) {
+          targetUrl = 'linkedin';
+        }
+      }
+
+      // Default to LinkedIn if no specific referrer detected
+      if (!targetUrl) {
+        targetUrl = 'linkedin';
+        console.log('📌 No specific referrer detected, defaulting to LinkedIn');
+      }
+
+      // Auto-trigger overlay after a brief delay
+      if (targetUrl) {
+        console.log('🚀 Auto-triggering overlay for:', targetUrl);
+        setTimeout(() => {
+          triggerOverlay(targetUrl).catch((err) => {
+            console.error('Auto-trigger error:', err);
+          });
+        }, 500);
+      }
+    } catch (error) {
+      console.error('❌ Referrer detection error:', error);
+      
+      // Check again if we're coming from redirect before defaulting
+      const betaRedirectStatus = document.body.dataset.betaRedirectComplete;
+      const fullSequenceStage = sessionStorage.getItem(FULL_SEQUENCE_STAGE_KEY);
+      
+      if (betaRedirectStatus === 'true' || fullSequenceStage === FULL_SEQUENCE_BETA_STAGE) {
+        console.log('⏭️ Error handler: Skipping default trigger - coming from redirect');
+        return;
+      }
+      
+      // Default to LinkedIn on error (only if not from redirect)
+      setTimeout(() => {
+        triggerOverlay('linkedin').catch(console.error);
+      }, 500);
+    }
+  }
+
+  // Show passcode prompt
+  function showPasscodePrompt() {
+    if (passcodeOverlay) {
+      passcodeOverlay.style.display = 'flex';
+      if (passcodeInput) {
+        passcodeInput.value = '';
+        passcodeInput.focus();
+      }
+      if (passcodeError) {
+        passcodeError.style.opacity = '0';
+        passcodeError.textContent = '';
+      }
+    }
+  }
+
+  // Hide passcode prompt
+  function hidePasscodePrompt() {
+    if (passcodeOverlay) {
+      passcodeOverlay.style.display = 'none';
+    }
+    if (passcodeInput) {
+      passcodeInput.value = '';
+    }
+    if (passcodeError) {
+      passcodeError.style.opacity = '0';
+      passcodeError.textContent = '';
+    }
+  }
+
+  // Verify passcode
+  function verifyPasscode() {
+    const enteredCode = passcodeInput ? passcodeInput.value.trim() : '';
+    
+    if (enteredCode === CORRECT_PASSCODE) {
+      console.log('✅ Passcode correct - showing debug menu');
+      hidePasscodePrompt();
+      if (referrerControlsMenu) {
+        referrerControlsMenu.style.setProperty('display', 'block', 'important');
+        referrerControlsMenu.style.setProperty('opacity', '1', 'important');
+        referrerControlsMenu.style.setProperty('visibility', 'visible', 'important');
+        referrerControlsMenu.style.setProperty('pointer-events', 'auto', 'important');
+      }
+      // Store in session so menu stays visible
+      sessionStorage.setItem('celli:debugMenuUnlocked', 'true');
+    } else {
+      console.log('❌ Incorrect passcode');
+      if (passcodeError) {
+        passcodeError.textContent = 'Incorrect passcode';
+        passcodeError.style.opacity = '1';
+      }
+      if (passcodeInput) {
+        passcodeInput.style.borderColor = 'rgba(255, 107, 107, 0.6)';
+        passcodeInput.value = '';
+        setTimeout(() => {
+          if (passcodeInput) {
+            passcodeInput.style.borderColor = '';
+          }
+        }, 500);
+      }
+    }
+  }
+
+  // Passcode button handlers
+  if (passcodeSubmit) {
+    passcodeSubmit.addEventListener('click', verifyPasscode);
+  }
+
+  if (passcodeCancel) {
+    passcodeCancel.addEventListener('click', hidePasscodePrompt);
+  }
+
+  if (passcodeInput) {
+    passcodeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        verifyPasscode();
+      } else if (e.key === 'Escape') {
+        hidePasscodePrompt();
+      }
+    });
+  }
+
+  // Tilde and slash key listener
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '~' || e.key === '`' || e.key === '/') {
+      e.preventDefault();
+      console.log('🔑 Passcode key pressed - showing passcode prompt');
+      showPasscodePrompt();
+    }
+  });
+
+  // Wait for DOM to be fully ready before auto-triggering
+  function initializeReferrerSystem() {
+    // Check if debug menu was already unlocked in this session
+    if (sessionStorage.getItem('celli:debugMenuUnlocked') === 'true') {
+      if (referrerControlsMenu) {
+        referrerControlsMenu.style.setProperty('display', 'block', 'important');
+        referrerControlsMenu.style.setProperty('opacity', '1', 'important');
+        referrerControlsMenu.style.setProperty('visibility', 'visible', 'important');
+        referrerControlsMenu.style.setProperty('pointer-events', 'auto', 'important');
+      }
+    } else {
+      // Auto-detect and trigger referrer overlay on page load
+      detectAndTriggerReferrer();
+    }
+  }
+
+  // Initialize after DOM is fully loaded to prevent menu flash
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeReferrerSystem);
+  } else {
+    // DOM already loaded
+    initializeReferrerSystem();
+  }
+
+  // =============================================================================
+  // END AUTO-DETECTION & PASSCODE SYSTEM
+  // =============================================================================
   
   // Sidebar controls
   bindOverlayButton(refSidebarClose, hideSidebar);
@@ -3718,32 +4884,95 @@
     noteHoverSequenceStarted = true;
     clearNoteStageTimeouts();
 
-    sidebar.classList.remove('stage-float');
-    sidebar.classList.add('stage-sweep', 'note-hover');
-
-    const noteCrystal = ackBtn.querySelector('.ref-note-crystal');
-    if (noteCrystal) {
-      noteCrystal.classList.add('ref-note-crystal--hover');
+    // Store original transform to preserve positioning
+    const originalTransform = window.getComputedStyle(sidebar).transform;
+    
+    // Add immediate button-press feedback: scale down quickly for both button and backing card
+    // Use transform-origin to ensure scaling happens from center without movement
+    ackBtn.style.transformOrigin = 'center';
+    ackBtn.style.transform = 'scale(0.94)';
+    ackBtn.style.transition = 'transform 0.08s ease-out';
+    
+    sidebar.style.transformOrigin = 'center';
+    // Preserve any existing transforms by extracting translate and combining with scale
+    if (originalTransform && originalTransform !== 'none') {
+      const matrix = originalTransform.match(/matrix\((.+)\)/);
+      if (matrix) {
+        const values = matrix[1].split(', ');
+        const translateX = values[4];
+        const translateY = values[5];
+        sidebar.style.transform = `translate(${translateX}px, ${translateY}px) scale(0.94)`;
+      } else {
+        sidebar.style.transform = `${originalTransform} scale(0.94)`;
+      }
+    } else {
+      sidebar.style.transform = 'scale(0.94)';
     }
+    sidebar.style.transition = 'transform 0.08s ease-out';
 
-    triggerTriColorBurst(1.1);
+    // Quick recovery to slightly larger than original
+    const pressRecoverTimeout = setTimeout(() => {
+      ackBtn.style.transform = 'scale(1.02)';
+      ackBtn.style.transition = 'transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      
+      if (originalTransform && originalTransform !== 'none') {
+        const matrix = originalTransform.match(/matrix\((.+)\)/);
+        if (matrix) {
+          const values = matrix[1].split(', ');
+          const translateX = values[4];
+          const translateY = values[5];
+          sidebar.style.transform = `translate(${translateX}px, ${translateY}px) scale(1.02)`;
+        } else {
+          sidebar.style.transform = `${originalTransform} scale(1.02)`;
+        }
+      } else {
+        sidebar.style.transform = 'scale(1.02)';
+      }
+      sidebar.style.transition = 'transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    }, 80);
+    noteStageTimeouts.push(pressRecoverTimeout);
 
-    // Delay burst light until after card is centered (950ms centering animation + 200ms buffer)
+    // Return to normal scale before wriggle sequence
+    const pressNormalizeTimeout = setTimeout(() => {
+      ackBtn.style.transform = '';
+      ackBtn.style.transition = '';
+      ackBtn.style.transformOrigin = '';
+      sidebar.style.transform = '';
+      sidebar.style.transition = '';
+      sidebar.style.transformOrigin = '';
+    }, 250);
+    noteStageTimeouts.push(pressNormalizeTimeout);
+
+    // Start the main sequence after button press animation
+    const mainSequenceTimeout = setTimeout(() => {
+      sidebar.classList.remove('stage-float');
+      sidebar.classList.add('stage-sweep', 'note-hover');
+
+      const noteCrystal = ackBtn.querySelector('.ref-note-crystal');
+      if (noteCrystal) {
+        noteCrystal.classList.add('ref-note-crystal--hover');
+      }
+
+      triggerTriColorBurst(1.1);
+    }, 280);
+    noteStageTimeouts.push(mainSequenceTimeout);
+
+    // Delay burst light until after card is centered and animations settle (950ms centering + 1050ms buffer)
     const burstTimeout = setTimeout(() => {
       triggerNoteHoverEffects();
-    }, 1150);
+    }, 2280);
     noteStageTimeouts.push(burstTimeout);
 
     const rumbleTimeout = setTimeout(() => {
       sidebar.classList.add('stage-rumble');
-    }, 1200);
+    }, 1480);
     noteStageTimeouts.push(rumbleTimeout);
 
     const expandTimeout = setTimeout(() => {
       sidebar.classList.remove('stage-rumble');
       sidebar.classList.add('stage-expand');
       revealAiMessage();
-    }, 2400);
+    }, 2680);
     noteStageTimeouts.push(expandTimeout);
   }
 
@@ -3753,10 +4982,8 @@
     const burstBeam = document.createElement('div');
     burstBeam.className = 'burst-beam';
 
-    if (brickHoles.length > 0) {
-      const avgY = brickHoles.reduce((sum, h) => sum + h.y, 0) / brickHoles.length;
-      burstBeam.style.background = `radial-gradient(ellipse at right ${avgY}px, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.35) 30%, transparent 60%)`;
-    }
+    // Don't override background - let CSS handle edge alignment
+    // CSS uses: ellipse 50% 50% at 100% 50% for perfect right-edge centering
 
     document.body.appendChild(burstBeam);
 
@@ -3804,6 +5031,8 @@
     if (!refSidebarAck) {
       return;
     }
+    // Clean up state classes
+    refSidebarAck.classList.remove('badboolean-active', 'tos-active');
     refSidebarAck.classList.add('loom-invite-base');
     refSidebarAck.innerHTML = BASE_INVITE_TEMPLATE;
     refSidebarAck.removeAttribute('style');
@@ -3833,21 +5062,23 @@
       heading.style.fontSize = '16px';
       heading.style.letterSpacing = '0.05em';
       heading.style.fontWeight = '600';
+      heading.style.marginTop = '8px';
       heading.style.marginBottom = '18px';
+      heading.style.paddingTop = '6px';
       heading.style.textAlign = 'center';
       heading.style.color = '#f8f9fa';
     }
 
     ackBtn.innerHTML = `
-        <div class="ai-message" style="font-size: 15px; font-weight: 300; line-height: 1.8; color: #f8f9fa; text-align: center;padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">
+        <div class="ai-message">
           <div class="ai-message-tri-icon" aria-hidden="true">
             <span></span>
             <span></span>
             <span></span>
           </div>
-          <div style="font-weight: 500; margin-bottom: 14px; font-size: 18px; color: #8fb4ff; letter-spacing: 0.5px; text-shadow: 0 0 12px rgba(143, 180, 255, 0.4);">AI-Enhanced Content Discovery</div>
-          <div style="opacity: 0.9; font-size: 14px;">Analyzing your browsing patterns to deliver personalized recommendations with unprecedented accuracy.</div>
-          <div style="margin-top: 16px; font-size: 12px; opacity: 0.6; letter-spacing: 1px; color: #a0b0c0;">Powered by Celli: Where Data Comes to Life</div>
+          <div class="ai-message__title">AI-Enhanced Content Discovery</div>
+          <div class="ai-message__body">Analyzing your browsing patterns to deliver personalized recommendations with unprecedented accuracy.</div>
+          <div class="ai-message__footer">Powered by Celli: Where Data Comes to Life</div>
         </div>
       `;
     ackBtn.style.background = 'linear-gradient(135deg, rgba(15, 25, 45, 0.7), rgba(25, 35, 55, 0.8))';
@@ -3883,42 +5114,19 @@
 
     triggerTriColorBurst(1.35);
 
-    ackBtn.style.transition = 'all 0.1s ease-out';
-    ackBtn.style.willChange = 'transform, opacity';
-    ackBtn.style.textAlign = 'center';
-    ackBtn.style.display = 'flex';
-    ackBtn.style.flexDirection = 'column';
-    ackBtn.style.alignItems = 'center';
-    ackBtn.style.justifyContent = 'center';
-
+    // Clean up previous state classes
+    ackBtn.classList.remove('loom-invite-base', 'tos-active');
+    ackBtn.classList.add('badboolean-active');
     ackBtn.innerHTML = `
-        <div class="badboolean-banner" style="padding: 28px 20px; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center;">
-          <div class="badboolean-topline" data-wave-line data-wave-boost="0.9" style="font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #ff4acb; text-shadow: 0 0 16px rgba(255, 54, 204, 0.6); text-align: center; width: 100%; display: flex; justify-content: center; align-items: center;">
-            ARE YOU A TOTAL ZERO?
-          </div>
-          <div class="badboolean-subline" data-wave-line data-wave-boost="0.8" style="font-size: 16px; font-weight: 700; color: #f5ff7d; text-shadow: 0 0 12px rgba(0,0,0,0.8); text-align: center; width: 100%; display: flex; justify-content: center; align-items: center;">
-            💋 SINGLES IN YOUR AREA 💋
-          </div>
-          <div class="badboolean-mainline" data-wave-line data-wave-boost="1.5" style="font-size: 28px; font-weight: 900; letter-spacing: 3px; color: #61f8ff; text-shadow: 0 0 18px rgba(97,248,255,0.9); text-align: center; width: 100%; display: flex; justify-content: center; align-items: center;">
-            BADBOOLEAN.COM
-          </div>
-          <div class="badboolean-tagline" data-wave-line data-wave-boost="0.6" style="font-size: 14px; font-weight: 500; color: #ff92d0; font-style: italic; text-align: center; width: 100%; display: flex; justify-content: center; align-items: center;">
-            True love never felt so false.
-          </div>
-          <div class="badboolean-footer" data-wave-line data-wave-boost="0.85" style="font-size: 12px; font-weight: 700; color: #ff5cff; text-align: center; width: 100%; display: flex; justify-content: center; align-items: center;">
-            🔥 CLICK HERE NOW!!! 🔥
-          </div>
-          <div class="badboolean-twist" data-wave-line data-wave-boost="0.4" style="font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.78); text-transform: uppercase; letter-spacing: 0.18em; text-align: center; width: 100%; display: flex; justify-content: center; align-items: center;">
-            * compatibility test completed — you passed.
-          </div>
+        <div class="badboolean-banner">
+          <div class="badboolean-topline" data-wave-line data-wave-boost="0.9">ARE YOU A TOTAL ZERO?</div>
+          <div class="badboolean-subline" data-wave-line data-wave-boost="0.8">💋 SINGLES IN YOUR AREA 💋</div>
+          <div class="badboolean-mainline" data-wave-line data-wave-boost="1.5">BADBOOLEAN.COM</div>
+          <div class="badboolean-tagline" data-wave-line data-wave-boost="0.6">True love never felt so false.</div>
+          <div class="badboolean-footer" data-wave-line data-wave-boost="0.85">🔥 CLICK HERE NOW!!! 🔥</div>
+          <div class="badboolean-twist" data-wave-line data-wave-boost="0.4">* compatibility test completed — you passed.</div>
         </div>
       `;
-    ackBtn.style.background = 'linear-gradient(135deg, rgba(255, 0, 128, 0.92) 0%, rgba(255, 140, 0, 0.82) 30%, rgba(0, 255, 204, 0.72) 65%, rgba(120, 50, 255, 0.85) 100%)';
-    ackBtn.style.backgroundSize = '280% 280%';
-    ackBtn.style.border = '3px solid #ff00ff';
-    ackBtn.style.boxShadow = '0 0 22px #ff4acb, 0 0 48px rgba(0,255,204,0.65), inset 0 0 20px rgba(255,255,255,0.35)';
-    ackBtn.style.animation = 'rainbow-shift 3s ease infinite';
-    ackBtn.style.padding = '0';
     ackBtn.setAttribute('aria-label', 'Open the Loomworks invitation');
 
     console.log('  🎪🎪🎪 BADBOOLEAN AD ACTIVE! 🎪🎪🎪');
@@ -3955,7 +5163,8 @@
     const h3 = sidebar.querySelector('h3');
     const paragraphs = sidebar.querySelectorAll('p');
 
-    ackBtn.classList.remove('loom-invite-base');
+    // Clean up previous state classes
+    ackBtn.classList.remove('loom-invite-base', 'badboolean-active');
 
     cancelExtraInviteSchedule();
 
@@ -3985,18 +5194,22 @@
     ackBtn.style.opacity = '0';
     ackBtn.style.willChange = 'transform, opacity';
     
-    // Transform entire sidebar into unified hazy glass crystal
-    sidebar.style.background = 'linear-gradient(135deg, rgba(15, 25, 45, 0.65), rgba(25, 35, 55, 0.75), rgba(20, 30, 50, 0.7))';
-    sidebar.style.backdropFilter = 'blur(40px) saturate(200%) brightness(1.1)';
-    sidebar.style.webkitBackdropFilter = 'blur(40px) saturate(200%) brightness(1.1)';
-    sidebar.style.border = '1px solid rgba(143, 180, 255, 0.4)';
+    // Remove sidebar background plating - let the card stand alone
+    sidebar.style.background = 'transparent';
+    sidebar.style.backdropFilter = 'none';
+    sidebar.style.webkitBackdropFilter = 'none';
+    sidebar.style.border = 'none';
     sidebar.style.borderRadius = '24px';
     sidebar.style.padding = '0';
-    sidebar.style.overflow = 'hidden';
-    sidebar.style.boxShadow = '0 8px 40px rgba(0, 0, 0, 0.5), 0 0 80px rgba(102, 126, 234, 0.25), inset 0 2px 0 rgba(255, 255, 255, 0.15), inset 0 -2px 20px rgba(102, 126, 234, 0.1)';
+    sidebar.style.overflow = 'visible';
+    sidebar.style.boxShadow = 'none';
+    sidebar.style.width = 'auto';
+    sidebar.style.minWidth = '560px';
+    sidebar.style.maxWidth = '90vw';
 
     ensureTriColorActive();
-    triggerTriColorBurst(isAltVersion ? 1.45 : 1.2);
+    // Delay burst until card is in place to prevent mid-frame flash
+    setTimeout(() => triggerTriColorBurst(isAltVersion ? 1.45 : 1.2), 300);
 
     // Choose opening text based on version
     const openingText = isAltVersion 
@@ -4038,18 +5251,18 @@
 
       markInviteActive(true);
 
-      // Reset button to transparent (content defines styling now)
-      ackBtn.style.background = 'transparent';
-      ackBtn.style.backdropFilter = 'none';
-      ackBtn.style.webkitBackdropFilter = 'none';
-      ackBtn.style.border = 'none';
-      ackBtn.style.borderRadius = '0';
-      ackBtn.style.padding = '0';
-      ackBtn.style.boxShadow = 'none';
-      ackBtn.style.animation = '';
+      // Use clean class to reset button styling
+      ackBtn.classList.remove('badboolean-active');
+      ackBtn.classList.add('tos-active');
+
+      // Clear all inline styles from button so card can render properly
+      ackBtn.style.cssText = '';
       ackBtn.style.opacity = '1';
-      ackBtn.style.transform = 'scale(1)';
-      ackBtn.style.textAlign = 'left';
+      ackBtn.style.transition = 'all 0.3s ease-out';
+
+      // Ensure focus for light beam and tri-color
+      updateTriColorFocus();
+      updateLightBeamFocus(document.querySelector('.loom-invite-card--tos'));
 
       // Start glitching "alpha" text
       setTimeout(() => glitchAlphaText(), 500);
@@ -4477,6 +5690,7 @@
       logBurstDebug('scheduleBetaFormRedirect:timeout-fired');
       try {
         markBetaRedirectPending();
+        killReferrerOverlay(); // Kill referrer overlay before redirect
         window.location.assign(BETA_FOCUS_FORM_URL);
       } catch (error) {
         console.error('⚠️ Unable to redirect to beta focus form', error);
@@ -4585,6 +5799,7 @@
     const stage = document.getElementById('betaVideoStage');
     if (!overlay || !video) {
       try {
+        killReferrerOverlay(); // Kill referrer overlay before redirect
         window.location.href = BETA_FOCUS_FORM_URL;
       } catch (error) {
         console.error('⚠️ Fallback navigation failed:', error);
@@ -5236,6 +6451,12 @@
   });
   
   async function triggerOverlay(url) {
+    // Check if overlay has been killed (coming from redirect)
+    if (window.__referrerOverlayKilled) {
+      console.log('⛔ triggerOverlay() blocked - overlay has been killed');
+      return;
+    }
+    
     // Detect source type from URL
     const urlLower = (url || '').toLowerCase();
     const isHN = /news\.ycombinator\.com/.test(urlLower);
@@ -5367,14 +6588,36 @@
   }
   
   function openOverlay() {
+    // Check if overlay has been killed (coming from redirect)
+    if (window.__referrerOverlayKilled) {
+      console.log('⛔ openOverlay() blocked - overlay has been killed');
+      return;
+    }
+    
+    console.log('🚀 openOverlay() called - making referrer overlay visible');
+    
     overlay.setAttribute('aria-hidden', 'false');
     ensureReferrerSequenceSession();
     setReferrerOverlayActiveState(true);
     if (bodyEl) {
       bodyEl.style.overflow = 'hidden';
     }
+    
+    // Make referrer overlay visible (in case it was hidden by kill script)
+    if (refStageRoot) {
+      console.log('  Clearing inline styles from refStageRoot');
+      refStageRoot.style.cssText = '';
+      refStageRoot.style.display = '';
+      refStageRoot.style.opacity = '';
+      refStageRoot.style.visibility = '';
+      refStageRoot.style.zIndex = '';
+      refStageRoot.style.pointerEvents = '';
+    }
+    
     activateReferrerStageRoot();
     updateLightBeamFocus();
+    
+    console.log('✅ Overlay opened successfully');
   }
 
   function dismiss() {
@@ -5382,6 +6625,7 @@
     if (bodyEl) {
       bodyEl.style.overflow = '';
     }
+    
     deactivateReferrerStageRoot();
     setReferrerOverlayActiveState(false);
     hideSidebar();
@@ -5390,6 +6634,16 @@
     resetLightBeamFocus();
     clearBetaFallbackTimeout();
     delete document.body.dataset.betaRedirectComplete;
+    
+    // Always hide the debug controls menu (unless unlocked)
+    const referrerControlsMenu = document.getElementById('referrerControlsMenu');
+    const isUnlocked = sessionStorage.getItem('celli:debugMenuUnlocked') === 'true';
+    if (referrerControlsMenu && !isUnlocked) {
+      referrerControlsMenu.style.setProperty('display', 'none', 'important');
+      referrerControlsMenu.style.setProperty('opacity', '0', 'important');
+      referrerControlsMenu.style.setProperty('visibility', 'hidden', 'important');
+      referrerControlsMenu.style.setProperty('pointer-events', 'none', 'important');
+    }
   }
   
   function showSidebar(url, withImpact = false) {
@@ -5411,7 +6665,7 @@
       setTimeout(() => refSidebar.classList.remove('bouncing'), 600);
     }
 
-    triggerBurstLight();
+    // burst light removed - only appears during invite card animation
 
     setTimeout(() => startMagneticCursor(), 800);
     updateLightBeamFocus();
@@ -5568,7 +6822,7 @@
     refTooltip.classList.add('active');
   }
   
-  function createFlyingTooltip(url, linkElement) {
+  function createFlyingTooltip(url, linkElement, clickX = null, clickY = null) {
     // Create a NEW independent tooltip for animation
     const tooltip = document.createElement('div');
     tooltip.className = 'ref-tooltip active';
@@ -5585,13 +6839,15 @@
     applyTooltipTheme(tooltip, detectPlatformFromElement(linkElement));
     document.body.appendChild(tooltip);
 
-    // Position above the link element
+    // Position above the cursor if provided, else above the link element
     const rect = linkElement.getBoundingClientRect();
     const { tooltipWidth, edgePadding, verticalOffset } = getTooltipMetrics();
     const viewportWidth = window.innerWidth || document.documentElement.clientWidth || tooltipWidth;
 
-    let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
-    const top = Math.max(12, rect.top - verticalOffset);
+    let left = (clickX != null)
+      ? Math.max(edgePadding, Math.min(clickX - (tooltipWidth / 2), viewportWidth - tooltipWidth - edgePadding))
+      : rect.left + (rect.width / 2) - (tooltipWidth / 2);
+    const top = Math.max(12, (clickY != null ? clickY : rect.top) - verticalOffset);
 
     if (left < edgePadding) left = edgePadding;
     if (left + tooltipWidth > viewportWidth - edgePadding) {
@@ -6106,12 +7362,12 @@
       const bullet = document.createElement('div');
       bullet.className = 'visual-bullet';
       
-      // Add random spread
-      const spreadX = (Math.random() - 0.5) * spread;
-      const spreadY = (Math.random() - 0.5) * spread;
+      // Start just beside cursor, minimal offset for rocket burst effect
+      const spreadX = (Math.random() - 0.5) * (spread * 0.3); // Reduce horizontal spread
+      const rocketOffsetY = -15 - (Math.random() * 10); // Start 15-25px above cursor
       
       const finalX = clickX + spreadX;
-      const finalY = clickY + spreadY;
+      const finalY = clickY + rocketOffsetY;
       
       bullet.style.cssText = `
         position: fixed;
@@ -6152,7 +7408,8 @@
   
   function playRandomWavGunSound(clickX, clickY) {
     if (!PREPARED_GUN_SOUNDS.length) {
-      console.warn('⚠️ No gun sound WAV files available');
+      console.warn('⚠️ No gun sound WAV files available - falling back to synthesized');
+      playSynthesizedGunSound(1, clickX, clickY);
       return;
     }
     
@@ -6174,15 +7431,29 @@
       spawnVisualBullet(clickX, clickY, delay, burstPattern.spread);
     }
     
-    // Play the audio
+    // Play the audio with fallback
     const audio = new Audio(soundPath);
     audio.volume = 0.6;
     audio.preload = 'auto';
     
+    // Fallback to synthesized sound if file fails to load
+    let audioFailed = false;
+    audio.addEventListener('error', (error) => {
+      if (!audioFailed) {
+        audioFailed = true;
+        console.warn(`⚠️ Failed to load gun sound ${soundPath}, using synthesized fallback:`, error);
+        playSynthesizedGunSound(MAX_SYNTHESIZED_SOUNDS + 1, clickX, clickY);
+      }
+    }, { once: true });
+    
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === 'function') {
       playPromise.catch((error) => {
-        console.warn(`⚠️ Unable to play gun sound ${soundPath}:`, error);
+        if (!audioFailed) {
+          audioFailed = true;
+          console.warn(`⚠️ Unable to play gun sound ${soundPath}, using synthesized fallback:`, error);
+          playSynthesizedGunSound(MAX_SYNTHESIZED_SOUNDS + 1, clickX, clickY);
+        }
       });
     }
   }
@@ -6847,7 +8118,7 @@
     const sidebarRevealDelay = TOOLTIP_ANIMATION_DURATION + TOOLTIP_CHARGE_DURATION + 200;
 
     const launchTooltip = () => {
-      const flyingTooltip = createFlyingTooltip(activeUrl, linkElement);
+      const flyingTooltip = createFlyingTooltip(activeUrl, linkElement, clickX, clickY);
       morphTooltipToSidebar(flyingTooltip, linkElement, { chargeDuration: TOOLTIP_CHARGE_DURATION });
     };
 
@@ -7682,6 +8953,7 @@
   }
   
   window.triggerOverlay = triggerOverlay;
+  window.killReferrerOverlay = killReferrerOverlay;
 
   console.log('✅ Referrer Glitch Overlay initialized');
   console.log('📋 Ready to test: Click "Hacker News" or "Reddit" button in Play overlay');
@@ -7729,9 +9001,865 @@
              }
            }, 1000);  // Wait 1s for intro to initialize
          }
-       }, 500);
-     }
+      }, 500);
+    }
    });
+
+  // =============================================================================
+  // VISICELL SYSTEM
+  // =============================================================================
+
+  const VisiCell = {
+    container: null,
+    gridWindow: null,
+    gridLayers: null,
+    tabs: null,
+    mainGrid: null,
+    terminalWindow: null,
+    output: null,
+    input: null,
+    dateTimeWidget: null,
+    dateTimeDisplay: null,
+    settingsPopup: null,
+    videoPopup: null,
+    asciiHouseContainer: null,
+    
+    state: {
+      started: false,
+      rGagActive: false,
+      rGagTimeout: null,
+      rGagInterval: null,
+      currentStage: 'initial', // initial, search, key, snake, burgerking, ramses, touche
+      timeOffset: 0, // minutes offset from real time
+      initTime: null,
+      passwordChangeTime: null, // 35 minutes before init
+      cells: [],
+      tabCount: 0,
+      editingCell: null,
+    },
+    
+    init() {
+      this.container = document.getElementById('visicellContainer');
+      this.gridWindow = document.getElementById('visicellGridWindow');
+      this.gridLayers = document.getElementById('visicellGridLayers');
+      this.tabs = document.getElementById('visicellTabs');
+      this.mainGrid = document.getElementById('visicellMainGrid');
+      this.terminalWindow = document.getElementById('visicellTerminal');
+      this.output = document.getElementById('visicellOutput');
+      this.input = document.getElementById('visicellInput');
+      this.dateTimeWidget = document.getElementById('visicellDateTime');
+      this.dateTimeDisplay = document.getElementById('visicellDateTimeDisplay');
+      this.settingsPopup = document.getElementById('visicellDateTimeSettings');
+      this.videoPopup = document.getElementById('visicellVideoPopup');
+      this.asciiHouseContainer = document.getElementById('asciiHouseContainer');
+      
+      // Event listeners
+      document.getElementById('visicellCloseBtn').addEventListener('click', () => this.close());
+      document.getElementById('visicellTerminalCloseBtn').addEventListener('click', () => this.close());
+      document.getElementById('visicellSettingsCloseBtn').addEventListener('click', () => this.closeSettings());
+      this.dateTimeWidget.addEventListener('click', () => this.openSettings());
+      document.getElementById('visicellApplyTime').addEventListener('click', () => this.applyTimeOffset());
+      
+      if (this.input) {
+        this.input.addEventListener('keydown', (e) => this.handleTerminalInput(e));
+      }
+      
+      // Start time tracking
+      this.state.initTime = Date.now();
+      this.state.passwordChangeTime = this.state.initTime - (35 * 60 * 1000);
+      this.updateDateTime();
+      setInterval(() => this.updateDateTime(), 1000);
+    },
+    
+    show() {
+      if (!this.container) this.init();
+      
+      this.container.style.display = 'block';
+      this.gridWindow.style.display = 'none'; // Hide filled header grid
+      this.terminalWindow.style.display = 'flex'; // Show quest log terminal
+      this.state.started = true;
+      
+      // Hide skip button when VisiCell shows
+      const skipBtn = document.getElementById('skipBtn');
+      if (skipBtn) {
+        skipBtn.style.display = 'none';
+      }
+      
+      // Show quest log immediately
+      this.showQuestLog();
+    },
+    
+    showQuestLog() {
+      // Switch to terminal view
+      this.gridWindow.style.display = 'none';
+      this.terminalWindow.style.display = 'flex';
+      
+      // Clear terminal output
+      this.output.textContent = '';
+      
+      // Print quest log header
+      this.printLine('═══════════════════════════════════════════════════');
+      this.printLine('          VISICELL QUEST LOG - ENTE RIDDLE         ');
+      this.printLine('═══════════════════════════════════════════════════');
+      this.printLine('');
+      this.printLine('No, I\'ve locked that away.');
+      this.printLine('What I have left could make you cry.');
+      this.printLine('Why don\'t you dice that, too.');
+      this.printLine('Maybe search around.');
+      this.printLine('');
+      this.printLine('───────────────────────────────────────────────────');
+      this.printLine('');
+      this.printLine('Type SEARCH to begin the quest...');
+      this.printLine('');
+      
+      // Set terminal mode to handle clue commands
+      this.state.terminalMode = true;
+      this.state.currentStage = 'clue_trail';
+      this.state.discoveredCommands = ['SEARCH'];
+    },
+    
+    close() {
+      this.container.style.display = 'none';
+      this.state.started = false;
+      this.cancelRGag();
+    },
+    
+    createGrid(rows, cols) {
+      const table = document.createElement('div');
+      table.className = 'visicell-grid-table';
+      table.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+      
+      this.state.cells = [];
+      
+      for (let i = 0; i < rows * cols; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'visicell-grid-cell';
+        cell.dataset.index = i;
+        
+        cell.addEventListener('click', () => this.startCellEdit(cell));
+        
+        table.appendChild(cell);
+        this.state.cells.push(cell);
+      }
+      
+      this.mainGrid.innerHTML = '';
+      this.mainGrid.appendChild(table);
+    },
+    
+    startCellEdit(cell) {
+      // Cancel R gag when user starts editing
+      this.cancelRGag();
+      
+      if (this.state.editingCell) {
+        this.state.editingCell.classList.remove('editing');
+      }
+      
+      this.state.editingCell = cell;
+      cell.classList.add('editing');
+      
+      const currentValue = cell.textContent;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentValue;
+      input.maxLength = 20;
+      
+      cell.textContent = '';
+      cell.appendChild(input);
+      input.focus();
+      input.select();
+      
+      const finishEdit = () => {
+        const value = input.value.trim().toUpperCase();
+        cell.textContent = value;
+        cell.classList.remove('editing');
+        this.state.editingCell = null;
+        
+        // Check if LEAVE was entered
+        if (value === 'LEAVE') {
+          this.handleLeaveCommand();
+        }
+      };
+      
+      input.addEventListener('blur', finishEdit);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          finishEdit();
+        } else if (e.key === 'Escape') {
+          cell.textContent = currentValue;
+          cell.classList.remove('editing');
+          this.state.editingCell = null;
+        }
+      });
+    },
+    
+    startRGag() {
+      this.cancelRGag();
+      this.state.rGagTimeout = setTimeout(() => {
+        this.state.rGagActive = true;
+        this.playRGag();
+      }, 3000);
+    },
+    
+    cancelRGag() {
+      if (this.state.rGagTimeout) {
+        clearTimeout(this.state.rGagTimeout);
+        this.state.rGagTimeout = null;
+      }
+      if (this.state.rGagInterval) {
+        clearInterval(this.state.rGagInterval);
+        this.state.rGagInterval = null;
+      }
+      this.state.rGagActive = false;
+    },
+    
+    playRGag() {
+      const rSequence = [
+        'R',
+        'RR',
+        'RRR',
+        'RRRR',
+        'RRRRR',
+        'RRRRRR',
+        'RRRRRRR',
+        'RRRRRRRR'
+      ];
+      
+      let index = 0;
+      let cellIndex = 0;
+      
+      this.state.rGagInterval = setInterval(() => {
+        if (!this.state.rGagActive || index >= rSequence.length) {
+          clearInterval(this.state.rGagInterval);
+          this.state.rGagInterval = null;
+          return;
+        }
+        
+        if (cellIndex < this.state.cells.length) {
+          const cell = this.state.cells[cellIndex];
+          cell.textContent = rSequence[index];
+          cell.classList.add('r-sequence');
+          
+          setTimeout(() => {
+            cell.classList.remove('r-sequence');
+          }, 300);
+          
+          cellIndex++;
+          index++;
+        }
+      }, 200);
+    },
+    
+    handleLeaveCommand() {
+      // Cancel R gag
+      this.cancelRGag();
+      
+      // Show quest log terminal
+      this.showQuestLog();
+    },
+    
+    addClueTab(tabName, content) {
+      this.state.tabCount++;
+      const tabId = `tab-${this.state.tabCount}`;
+      
+      // Create new tab
+      const tab = document.createElement('div');
+      tab.className = 'visicell-tab';
+      tab.dataset.tab = tabId;
+      tab.textContent = tabName;
+      
+      // Create new layer
+      const layer = document.createElement('div');
+      layer.className = 'visicell-grid-layer';
+      layer.dataset.layer = tabId;
+      layer.innerHTML = content;
+      
+      // Add click handler to tab
+      tab.addEventListener('click', () => this.switchTab(tabId));
+      
+      // Deactivate current tab/layer
+      this.tabs.querySelectorAll('.visicell-tab').forEach(t => t.classList.remove('active'));
+      this.gridLayers.querySelectorAll('.visicell-grid-layer').forEach(l => l.classList.remove('active'));
+      
+      // Add new tab/layer
+      this.tabs.appendChild(tab);
+      this.gridLayers.appendChild(layer);
+      
+      // Activate new tab
+      tab.classList.add('active');
+      layer.classList.add('active');
+      
+      // Add input handlers for this layer
+      this.setupLayerInputs(layer, tabId);
+    },
+    
+    setupLayerInputs(layer, layerId) {
+      const inputs = layer.querySelectorAll('input[data-clue-input]');
+      inputs.forEach(input => {
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            const command = input.value.trim().toUpperCase();
+            this.processClueCommand(command, layerId);
+          }
+        });
+      });
+    },
+    
+    switchTab(tabId) {
+      this.tabs.querySelectorAll('.visicell-tab').forEach(t => {
+        if (t.dataset.tab === tabId) {
+          t.classList.add('active');
+        } else {
+          t.classList.remove('active');
+        }
+      });
+      
+      this.gridLayers.querySelectorAll('.visicell-grid-layer').forEach(l => {
+        if (l.dataset.layer === tabId) {
+          l.classList.add('active');
+        } else {
+          l.classList.remove('active');
+        }
+      });
+    },
+    
+    getClueContent(stage) {
+      switch (stage) {
+        case 'search':
+          return `
+            <div style="padding: 40px; font-size: 16px; line-height: 1.8;">
+              <p>NO, I'VE LOCKED THAT AWAY. WHAT I HAVE LEFT COULD MAKE YOU CRY.</p>
+              <p>WHY DON'T YOU DICE THAT, TOO. MAYBE SEARCH AROUND.</p>
+              <p style="margin-top: 30px;">ENTER COMMAND: <input type="text" data-clue-input style="background:#000;border:2px solid #0f0;color:#0f0;padding:8px;font-family:'Courier New',monospace;text-transform:uppercase;width:300px;" /></p>
+            </div>
+          `;
+        
+        case 'key':
+          return `
+            <div style="padding: 40px; font-size: 14px; line-height: 1.6;">
+              <p>YOU FOUND AN ONION. IT'S ALREADY PEELED.</p>
+              <p style="margin-top: 20px;">BUT WAIT, THERE'S SOMETHING ITS OPPOSITE AND ITS PARTNER.</p>
+              <p>TAKE THE LAST WORD OF THE FIRST LINE, AND REMOVE THE</p>
+              <p>TERM FOR RICHARD UNKIND. YOU'LL KNOW THEIR SOULMATE.</p>
+              <p style="margin-top: 30px;">ENTER COMMAND: <input type="text" data-clue-input style="background:#000;border:2px solid #0f0;color:#0f0;padding:8px;font-family:'Courier New',monospace;text-transform:uppercase;width:300px;" /></p>
+            </div>
+          `;
+        
+        case 'snake':
+          return `
+            <div style="padding: 40px; font-size: 16px; line-height: 1.8;">
+              <p>PLAYING KEY.MP4...</p>
+              <p style="margin-top: 20px;">WHO'D I LEAVE FOR, KEY? WAS IT HIM OR HIS CREATION?</p>
+              <p style="margin-top: 30px;">ENTER COMMAND: <input type="text" data-clue-input style="background:#000;border:2px solid #0f0;color:#0f0;padding:8px;font-family:'Courier New',monospace;text-transform:uppercase;width:300px;" /></p>
+            </div>
+          `;
+        
+        case 'burgerking':
+          return `
+            <div style="padding: 40px; font-size: 16px; line-height: 1.8;">
+              <p>SNEAKY. DO YOU KNOW WHO WAS THE SNEAK KING?</p>
+              <p style="margin-top: 30px;">ENTER COMMAND: <input type="text" data-clue-input style="background:#000;border:2px solid #0f0;color:#0f0;padding:8px;font-family:'Courier New',monospace;text-transform:uppercase;width:300px;" /></p>
+            </div>
+          `;
+        
+        case 'ramses':
+          return `
+            <div style="padding: 40px; font-size: 16px; line-height: 1.8;">
+              <p>FINE. HAVE IT YOUR WAY. ENJOY YOUR CARDBOARD KINGDOM OZYMANDIAS.</p>
+              <p>I USED YOUR PASSWORD.</p>
+              <p style="margin-top: 30px;">ENTER COMMAND: <input type="text" data-clue-input style="background:#000;border:2px solid #0f0;color:#0f0;padding:8px;font-family:'Courier New',monospace;text-transform:uppercase;width:300px;" /></p>
+            </div>
+          `;
+        
+        case 'touche':
+          return `
+            <div style="padding: 40px; font-size: 20px; line-height: 1.8; text-align: center;">
+              <p style="font-size: 32px; color: #0ff; text-shadow: 0 0 20px #0ff;">TOUCHÉ</p>
+              <p style="margin-top: 40px;">WHAT WERE YOU TRYING TO DO AGAIN?</p>
+            </div>
+          `;
+        
+        default:
+          return '<div style="padding: 40px;">UNKNOWN STAGE</div>';
+      }
+    },
+    
+    processClueCommand(cmd, layerId) {
+      switch (this.state.currentStage) {
+        case 'search':
+          if (cmd === 'SEARCH') {
+            this.state.currentStage = 'key';
+            this.addClueTab('CLUE #2', this.getClueContent('key'));
+          }
+          break;
+        
+        case 'key':
+          if (cmd === 'KEY') {
+            this.playVideo('key.mp4');
+            this.state.currentStage = 'snake';
+            this.addClueTab('CLUE #3', this.getClueContent('snake'));
+          }
+          break;
+        
+        case 'snake':
+          if (cmd === 'SNAKE') {
+            this.state.currentStage = 'burgerking';
+            this.addClueTab('CLUE #4', this.getClueContent('burgerking'));
+          }
+          break;
+        
+        case 'burgerking':
+          if (cmd === 'BURGER KING' || cmd === 'BURGERKING') {
+            this.state.currentStage = 'ramses';
+            this.addClueTab('CLUE #5', this.getClueContent('ramses'));
+          }
+          break;
+        
+        case 'ramses':
+          if (cmd === 'RAMSES II' || cmd === 'RAMSESII' || cmd === 'RAMSES') {
+            this.showGlitchPopup();
+          }
+          break;
+      }
+    },
+    
+    handleTerminalInput(e) {
+      if (e.key === 'Enter') {
+        const command = this.input.value.trim().toUpperCase();
+        this.input.value = '';
+        
+        if (command) {
+          this.printLine(`> ${command}`);
+          this.processTerminalCommand(command);
+        }
+      }
+    },
+    
+    processTerminalCommand(cmd) {
+      // Handle clue trail commands
+      if (this.state.currentStage === 'clue_trail') {
+        this.handleClueCommand(cmd);
+        return;
+      }
+      
+      // MADNESS.LOOM trigger
+      if (cmd === 'MADNESS.LOOM') {
+        this.launchCoordinateLattice();
+        return;
+      }
+      
+      if (cmd === 'LEAVE') {
+        this.transitionToASCIIHouse();
+        return;
+      }
+      
+      this.printLine('UNKNOWN COMMAND IN TERMINAL MODE.');
+      this.printLine('');
+    },
+    
+    handleClueCommand(cmd) {
+      if (!this.state.discoveredCommands) {
+        this.state.discoveredCommands = ['SEARCH'];
+      }
+      
+      this.printLine(`> ${cmd}`);
+      this.printLine('');
+      
+      if (cmd === 'SEARCH' && this.state.discoveredCommands.includes('SEARCH')) {
+        this.printLine('SEARCH RESULT: ONION LOCATED.');
+        this.printLine('OPPOSITE + PARTNER REQUIRED.');
+        this.printLine('');
+        this.printLine('YOU FOUND AN ONION. IT\'S ALREADY PEELED.');
+        this.printLine('');
+        this.printLine('BUT WAIT, THERE\'S SOMETHING ABOUT ITS OPPOSITE');
+        this.printLine('AND ITS PARTNER. TAKE THE LAST WORD OF THE');
+        this.printLine('FIRST LINE, AND REMOVE THE TERM FOR RICHARD UNKIND.');
+        this.printLine('YOU\'LL KNOW ITS SOULMATE.');
+        this.printLine('');
+        this.showDegradingVisiCell('SEARCH');
+        this.printLine('');
+        this.printLine('New command unlocked: KEY');
+        this.state.discoveredCommands.push('KEY');
+      } else if (cmd === 'KEY' && this.state.discoveredCommands.includes('KEY')) {
+        this.printLine('KEY FILE LOCATED: KEY.MP4');
+        this.printLine('');
+        this.printLine('WHO\'D I LEAVE FOR, KEY?');
+        this.printLine('WAS IT HIM OR HIS CREATION?');
+        this.printLine('');
+        this.showDegradingVisiCell('KEY');
+        this.printLine('');
+        this.printLine('New command unlocked: SNAKE');
+        this.state.discoveredCommands.push('SNAKE');
+      } else if (cmd === 'SNAKE' && this.state.discoveredCommands.includes('SNAKE')) {
+        this.printLine('PROMPT: IDENTIFY THE SNEAK KING');
+        this.printLine('');
+        this.printLine('SNEAKY. DO YOU KNOW WHO WAS THE SNEAK KING?');
+        this.printLine('');
+        this.showDegradingVisiCell('SNAKE');
+        this.printLine('');
+        this.printLine('New command unlocked: BURGER KING');
+        this.state.discoveredCommands.push('BURGER KING');
+      } else if (cmd === 'BURGER KING' && this.state.discoveredCommands.includes('BURGER KING')) {
+        this.printLine('PASSWORD ACCEPTED. ACCESS GRANTED.');
+        this.printLine('');
+        this.printLine('FINE. HAVE IT YOUR WAY.');
+        this.printLine('ENJOY YOUR CARDBOARD KINGDOM OZYMANDIAS.');
+        this.printLine('I USED YOUR PASSWORD.');
+        this.printLine('');
+        this.showDegradingVisiCell('BURGER KING');
+        this.printLine('───────────────────────────────────────────────────');
+        this.printLine('ALL CLUES DISCOVERED! QUEST COMPLETE!');
+        this.printLine('───────────────────────────────────────────────────');
+      } else {
+        const availableCommands = this.state.discoveredCommands.join(', ');
+        this.printLine(`UNKNOWN COMMAND. Available: ${availableCommands}`);
+        this.printLine('');
+      }
+    },
+    
+    showDegradingVisiCell(clueName) {
+      if (!this.state.degradingLayerCount) {
+        this.state.degradingLayerCount = 0;
+      }
+      this.state.degradingLayerCount++;
+      
+      // Create degrading VisiCell window
+      const layer = document.createElement('div');
+      layer.className = 'visicell-degrading-layer';
+      layer.style.cssText = `
+        position: fixed;
+        left: ${20 + this.state.degradingLayerCount * 15}px;
+        top: ${20 + this.state.degradingLayerCount * 15}px;
+        width: 380px;
+        height: 280px;
+        background: rgba(0, 20, 0, 0.95);
+        border: 2px solid rgba(0, 255, 0, 0.5);
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        color: #0f0;
+        padding: 12px;
+        z-index: ${150 + this.state.degradingLayerCount};
+        overflow: hidden;
+        opacity: 0;
+        transform: scale(0.8) translateY(-20px);
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        pointer-events: auto;
+      `;
+      
+      const titleBar = document.createElement('div');
+      titleBar.style.cssText = `
+        border-bottom: 1px solid rgba(0, 255, 0, 0.4);
+        padding-bottom: 6px;
+        margin-bottom: 8px;
+        font-size: 10px;
+        letter-spacing: 0.15em;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      `;
+      titleBar.innerHTML = `<span>VISICELL [LAYER ${this.state.degradingLayerCount}] - CLUE: ${clueName}</span><span style="cursor: pointer; opacity: 0.7;" class="layer-close">✖</span>`;
+      
+      const content = document.createElement('div');
+      content.style.cssText = `
+        white-space: pre;
+        line-height: 1.4;
+        opacity: ${1 - (this.state.degradingLayerCount * 0.15)};
+        filter: blur(${this.state.degradingLayerCount * 0.3}px) brightness(${1 - (this.state.degradingLayerCount * 0.1)});
+      `;
+      
+      content.innerHTML = `<div style="border-bottom: 1px solid #0f0; padding-bottom: 5px; margin-bottom: 10px; font-size: 11px;">
+<span style="float: left;">VISICELL</span>
+<span style="float: right;">LOOMWORKS CELL</span>
+<div style="clear: both;"></div>
+</div>
+<div style="white-space: pre; line-height: 1.4;">
+>A1:
+   A     B     C     D     E     F
+1
+2
+3               FINISH
+4               THE WORD
+5         CELL ???
+6               NEEDS ENTER
+7 =STAR =T
+8
+9
+10 =TRANSPOSE()
+</div>`;
+      
+      layer.appendChild(titleBar);
+      layer.appendChild(content);
+      document.body.appendChild(layer);
+      
+      // Animate in
+      setTimeout(() => {
+        layer.style.opacity = '1';
+        layer.style.transform = 'scale(1) translateY(0)';
+      }, 50);
+      
+      // Close button handler
+      const closeBtn = titleBar.querySelector('.layer-close');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          layer.style.opacity = '0';
+          layer.style.transform = 'scale(0.8) translateY(-20px)';
+          setTimeout(() => layer.remove(), 400);
+        });
+      }
+      
+      // Auto-degrade after some time
+      setTimeout(() => {
+        content.style.filter = `blur(${(this.state.degradingLayerCount + 2) * 0.5}px) brightness(${0.5 - (this.state.degradingLayerCount * 0.1)}) saturate(${0.7 - (this.state.degradingLayerCount * 0.1)})`;
+      }, 3000 + (this.state.degradingLayerCount * 1000));
+    },
+    
+    playVideo(filename) {
+      const video = document.getElementById('visicellVideo');
+      video.src = filename;
+      video.load();
+      
+      this.videoPopup.style.display = 'flex';
+      
+      video.addEventListener('ended', () => {
+        setTimeout(() => {
+          this.videoPopup.style.opacity = '0';
+          setTimeout(() => {
+            this.videoPopup.style.display = 'none';
+            this.videoPopup.style.opacity = '1';
+          }, 3000);
+        }, 100);
+      }, { once: true });
+      
+      video.addEventListener('error', () => {
+        console.warn('Video not found:', filename);
+        this.videoPopup.style.display = 'none';
+        this.printLine('[VIDEO FILE NOT FOUND]');
+      }, { once: true });
+    },
+    
+    showGlitchPopup() {
+      const glitchText = document.createElement('div');
+      glitchText.className = 'visicell-glitch';
+      glitchText.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#000;border:3px solid #0f0;padding:40px;z-index:2147483651;font-family:Courier New,monospace;color:#0f0;font-size:18px;max-width:80%;box-shadow:0 0 50px rgba(0,255,0,0.9);';
+      
+      // Get user's name from session or use placeholder
+      const firstName = 'USER';
+      const lastName = 'UNKNOWN';
+      
+      glitchText.innerHTML = `
+        ${firstName} ${lastName},<br><br>
+        I'M NOT A REPUBLIC SERIAL VILLAIN.<br>
+        DO YOU SERIOUSLY THINK I'D EXPLAIN MY MASTER PASSWORD<br>
+        IF THERE REMAINED THE SLIGHTEST CHANCE OF YOU LOGGING IN?<br><br>
+        I CHANGED IT THIRTY-FIVE MINUTES AGO.
+      `;
+      
+      document.body.appendChild(glitchText);
+      
+      setTimeout(() => {
+        glitchText.classList.remove('visicell-glitch');
+        
+        // After glitch, show message in a new tab
+        setTimeout(() => {
+          glitchText.remove();
+          this.addClueTab('RAMSES', this.getClueContent('touche'));
+        }, 1000);
+      }, 2000);
+    },
+    
+    printLine(text) {
+      this.output.textContent += text + '\n';
+      this.output.scrollTop = this.output.scrollHeight;
+    },
+    
+    updateDateTime() {
+      const now = new Date(Date.now() + (this.state.timeOffset * 60 * 1000));
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      this.dateTimeDisplay.textContent = `${hours}:${minutes}:${seconds}`;
+    },
+    
+    openSettings() {
+      this.settingsPopup.style.display = 'flex';
+      this.updateSettingsDisplay();
+    },
+    
+    closeSettings() {
+      this.settingsPopup.style.display = 'none';
+    },
+    
+    updateSettingsDisplay() {
+      const now = new Date(Date.now() + (this.state.timeOffset * 60 * 1000));
+      document.getElementById('visicellCurrentTime').textContent = now.toLocaleString();
+      document.getElementById('visicellTimeOffset').value = this.state.timeOffset;
+    },
+    
+    applyTimeOffset() {
+      const offset = parseInt(document.getElementById('visicellTimeOffset').value) || 0;
+      this.state.timeOffset = offset;
+      this.updateDateTime();
+      this.updateSettingsDisplay();
+      
+      // Check if time is set to 35 minutes before init
+      const currentAdjustedTime = Date.now() + (this.state.timeOffset * 60 * 1000);
+      const timeDiff = Math.abs(currentAdjustedTime - this.state.passwordChangeTime);
+      
+      // If within 1 minute of the password change time
+      if (timeDiff < 60 * 1000 && this.state.currentStage === 'ramses') {
+        this.closeSettings();
+        setTimeout(() => {
+          this.showToucheMessage();
+        }, 500);
+      }
+    },
+    
+    showToucheMessage() {
+      this.printLine('');
+      this.printLine('TOUCHÉ');
+      this.printLine('');
+      this.printLine('WHAT WERE YOU TRYING TO DO AGAIN?');
+      this.printLine('');
+      this.state.currentStage = 'touche';
+    },
+    
+    transitionToASCIIHouse() {
+      this.container.style.display = 'none';
+      this.asciiHouseContainer.style.display = 'block';
+      
+      const asciiArt = `
+                    ___________
+                   |           |
+                   |   HOUSE   |
+                   |    OF     |
+                   |   LEAVES  |
+                   |___________|
+                  /             \\
+                 /               \\
+                /                 \\
+               /___________________\\
+              |  _____     _____   |
+              | |     |   |     |  |
+              | |     |   |     |  |
+              | |_____|   |_____|  |
+              |                    |
+              |      _________     |
+              |     |         |    |
+              |     |   THE   |    |
+              |     |  LEAVES |    |
+              |     |_________|    |
+              |                    |
+               \\__________________/
+
+
+      A HOUSE FULL OF LEAVES...
+      BUT WHICH LEAVES?
+
+      `;
+      
+      const content = document.getElementById('asciiHouseContent');
+      content.innerHTML = '';
+      
+      // Type out the ASCII art
+      let index = 0;
+      const typeInterval = setInterval(() => {
+        if (index < asciiArt.length) {
+          content.textContent += asciiArt[index];
+          index++;
+        } else {
+          clearInterval(typeInterval);
+          
+          // Add GIR.MP3 trigger after delay
+          setTimeout(() => {
+            content.innerHTML += '\n\n      THE WORD <span class="gir-trigger">LEAVES</span> ECHOES...';
+            
+            document.querySelector('.gir-trigger').addEventListener('click', () => {
+              content.innerHTML += '\n\n      GIR.MP3 → ♪♫♪ TRANSMISSION ACTIVE ♫♪♫';
+            });
+          }, 1000);
+        }
+      }, 10);
+    },
+    
+    launchCoordinateLattice() {
+      this.printLine('');
+      this.printLine('INITIALIZING COORDINATE LATTICE GRID SEQUENCE...');
+      this.printLine('MADNESS.LOOM PROTOCOL ENGAGED...');
+      this.printLine('');
+      
+      // Trigger THE.OS lattice sequence
+      setTimeout(() => {
+        this.close();
+        
+        // Navigate to the theos-sequence page
+        window.location.href = './templates/componentized/theos-sequence.html';
+      }, 1000);
+    }
+  };
+
+  // Hook into scene selection
+  document.addEventListener('DOMContentLoaded', () => {
+    const sceneOptions = document.querySelectorAll('.scene-option[data-scene="visicell"]');
+    sceneOptions.forEach(option => {
+      option.addEventListener('click', () => {
+        if (!VisiCell.state.started) {
+          VisiCell.show();
+        }
+      });
+    });
+    
+    // Tools Menu removed - production mode
+    // M key opens map, not tools
+    const introComplete = localStorage.getItem('celli:introConstructionComplete') === 'true';
+    
+    if (introComplete) {
+      // Intro already completed, remove UI hiding class after play overlay
+      const playOverlay = document.getElementById('play');
+      if (playOverlay) {
+        const observer = new MutationObserver(() => {
+          if (playOverlay.style.display === 'none') {
+            // Remove intro-ui-hidden class
+            document.body.classList.remove('intro-ui-hidden');
+          }
+        });
+        observer.observe(playOverlay, { attributes: true, attributeFilter: ['style'] });
+      }
+    } else {
+      // Intro not complete yet, wait for intro completion event
+      window.addEventListener('celli:construction-complete', () => {
+        console.log('🎬 Intro complete');
+        
+        // Remove intro-ui-hidden class
+        document.body.classList.remove('intro-ui-hidden');
+      });
+    }
+    
+    // M key opens Sequence Map (production mode - no tools menu)
+    document.addEventListener('keydown', (e) => {
+      if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.altKey) {
+        // Check if user is not typing in an input field
+        const activeElement = document.activeElement;
+        const isTyping = activeElement && (
+          activeElement.tagName === 'INPUT' || 
+          activeElement.tagName === 'TEXTAREA' || 
+          activeElement.isContentEditable
+        );
+        
+        if (!isTyping) {
+          // Open sequence map
+          if (window.mapModule && window.mapModule.toggle) {
+            window.mapModule.toggle();
+            console.log('🗺️ Toggling Sequence Map (M key pressed)');
+          } else {
+            console.warn('⚠️ Map module not available');
+          }
+        }
+      }
+    });
+    
+    console.log('⌨️  Press M to open Sequence Map');
+  });
+
  </script>
 
 </body>

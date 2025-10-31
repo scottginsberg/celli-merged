@@ -1,0 +1,3510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>THE.OS — The Ontological System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Space+Mono:wght@400;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#000;color:#fff;overflow:hidden;font-family:'IBM Plex Mono',monospace;}
+  #container{position:fixed;inset:0}
+  #start{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:100;padding:1.2rem 2rem;border:3px solid #ff4400;background:#000;color:#ff4400;font-family:'Space Mono',monospace;font-size:2rem;cursor:pointer;transition:.3s;letter-spacing:2px;text-shadow:0 0 10px #ff4400}
+  #start:hover{background:#ff4400;color:#000;text-shadow:none;box-shadow:0 0 30px #ff4400}
+  .hide{opacity:0!important;pointer-events:none!important;transform:translate(-50%,-50%) scale(.8)!important;transition:opacity .5s,transform .5s!important}
+  
+  /* Spaceship Mode Button */
+  #spaceship-btn{position:fixed;top:20px;right:20px;z-index:150;padding:12px 24px;border:2px solid #ffffff;background:rgba(255,255,255,0.1);color:#ffffff;font-family:'Space Mono',monospace;font-size:0.9rem;cursor:pointer;transition:.3s;letter-spacing:1px;text-transform:uppercase;backdrop-filter:blur(5px)}
+  #spaceship-btn:hover{background:rgba(255,255,255,0.3);box-shadow:0 0 20px rgba(255,255,255,0.6)}
+  #spaceship-btn.active{background:#ffffff;color:#000;box-shadow:0 0 30px rgba(255,255,255,0.8)}
+  
+  /* Intro Dialogue */
+  #intro-dialogue{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.92);border:2px solid #ff4400;padding:40px 60px;max-width:700px;z-index:200;box-shadow:0 0 40px rgba(255,68,0,0.6);text-align:center}
+  #intro-dialogue.visible{display:block}
+  #intro-dialogue p{color:#ffdca8;font-size:1.5rem;line-height:1.8;margin:0 0 30px 0;font-family:'IBM Plex Mono',monospace;letter-spacing:0.5px}
+  #intro-dialogue button{padding:12px 30px;background:#ff4400;border:none;color:#000;font-weight:bold;cursor:pointer;font-size:1rem;letter-spacing:1.5px;transition:.2s;font-family:'Space Mono',monospace}
+  #intro-dialogue button:hover{background:#ff6600;box-shadow:0 0 20px rgba(255,68,0,.8);transform:scale(1.05)}
+  
+  /* Settings Panel */
+  #settings-panel{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.95);border:3px solid #ff4400;padding:30px;min-width:400px;max-width:500px;z-index:1000;box-shadow:0 0 30px rgba(255,68,0,0.8)}
+  #settings-panel h2{margin:0 0 20px 0;color:#ff4400;text-align:center;text-shadow:0 0 10px rgba(255,68,0,.8);font-size:1.5rem;letter-spacing:2px}
+  #settings-panel.visible{display:block}
+  .settings-section{margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,68,0,.3)}
+  .settings-option{margin-bottom:16px}
+  .settings-option label{display:flex;align-items:center;color:#ffdca8;font-size:13px;letter-spacing:.6px;cursor:pointer;user-select:none}
+  .settings-option input[type=checkbox]{margin-right:10px;cursor:pointer;width:18px;height:18px}
+  .slider-control{margin-bottom:16px}
+  .slider-control label{display:flex;justify-content:space-between;align-items:center;color:#ffdca8;font-size:12px;letter-spacing:.6px;margin-bottom:6px;text-transform:uppercase}
+  .slider-control span.value{color:#ff9f3d;font-weight:600;font-size:11px;letter-spacing:.5px}
+  .slider-control input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:2px;background:rgba(255,68,0,.25);outline:none}
+  .slider-control input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:#ff4400;box-shadow:0 0 12px rgba(255,68,0,.7);cursor:pointer}
+  .slider-control input[type=range]::-moz-range-thumb{width:14px;height:14px;border:none;border-radius:50%;background:#ff4400;box-shadow:0 0 12px rgba(255,68,0,.7);cursor:pointer}
+  .slider-group.disabled{opacity:.35;pointer-events:none;filter:saturate(.4)}
+  #close-settings{margin-top:20px;width:100%;padding:12px;background:#ff4400;border:none;color:#000;font-weight:bold;cursor:pointer;font-size:14px;letter-spacing:1px;transition:.2s}
+  #close-settings:hover{background:#ff6600;box-shadow:0 0 20px rgba(255,68,0,.6)}
+</style>
+</head>
+<body>
+  <div id="container"></div>
+  <button id="start">:: BEGIN ::</button>
+  <button id="spaceship-btn" style="display:none">Spaceship Mode</button>
+  
+  <!-- Intro Dialogue -->
+  <div id="intro-dialogue">
+    <p>I think I just need to... take it all in.</p>
+    <button id="continue-btn">CONTINUE</button>
+  </div>
+  
+  <!-- Audio -->
+  <audio id="telos-audio" src="telos.mp3" loop></audio>
+  
+  <!-- Settings Panel -->
+  <div id="settings-panel">
+    <h2>VISUAL SETTINGS</h2>
+    
+    <div class="settings-section">
+      <div class="settings-option">
+        <label>
+          <input type="checkbox" id="toggle-bloom" checked>
+          <span>Bloom Effect</span>
+        </label>
+      </div>
+      
+      <div class="settings-option">
+        <label>
+          <input type="checkbox" id="toggle-dof" checked>
+          <span>Depth of Field</span>
+        </label>
+      </div>
+      
+      <div class="settings-option">
+        <label>
+          <input type="checkbox" id="toggle-grain" checked>
+          <span>Film Grain</span>
+        </label>
+      </div>
+      
+      <div class="settings-option">
+        <label>
+          <input type="checkbox" id="toggle-vignette" checked>
+          <span>Vignette</span>
+        </label>
+      </div>
+    </div>
+    
+    <div class="settings-section slider-group" id="bloom-controls">
+      <div class="slider-control">
+        <label>Bloom Strength <span id="bloom-strength-value" class="value">1.5</span></label>
+        <input type="range" id="bloom-strength" min="0.5" max="3.0" step="0.1" value="1.5">
+      </div>
+    </div>
+    
+    <div class="settings-section slider-group" id="dof-controls">
+      <div class="slider-control">
+        <label>DOF Focus <span id="dof-focus-value" class="value">8.0</span></label>
+        <input type="range" id="dof-focus" min="2.0" max="20.0" step="0.5" value="8.0">
+      </div>
+      <div class="slider-control">
+        <label>DOF Aperture <span id="dof-aperture-value" class="value">0.025</span></label>
+        <input type="range" id="dof-aperture" min="0.001" max="0.05" step="0.001" value="0.025">
+      </div>
+    </div>
+    
+    <div class="settings-section slider-group" id="grain-controls">
+      <div class="slider-control">
+        <label>Grain Intensity <span id="grain-intensity-value" class="value">0.15</span></label>
+        <input type="range" id="grain-intensity" min="0.0" max="0.5" step="0.05" value="0.15">
+      </div>
+    </div>
+    
+    <div class="settings-section">
+      <h3 style="color:#ff6600;margin-bottom:10px;font-size:14px;text-transform:uppercase;letter-spacing:1px">Debug Toggles</h3>
+      <div class="settings-option">
+        <label><input type="checkbox" id="toggle-concentric-rings" checked><span>Concentric Rings</span></label>
+      </div>
+      <div class="settings-option">
+        <label><input type="checkbox" id="toggle-vertical-rings" checked><span>Vertical Rings</span></label>
+      </div>
+      <div class="settings-option">
+        <label><input type="checkbox" id="toggle-secondary-ring" checked><span>Secondary Ring</span></label>
+      </div>
+      <div class="settings-option">
+        <label><input type="checkbox" id="toggle-black-shell" checked><span>Black Shell</span></label>
+      </div>
+      <div class="settings-option">
+        <label><input type="checkbox" id="toggle-inner-cubes" checked><span>Inner Cube Sphere</span></label>
+      </div>
+      <div class="settings-option">
+        <label><input type="checkbox" id="toggle-outer-cubes" checked><span>Outer Cube Sphere</span></label>
+      </div>
+      <div class="settings-option">
+        <label><input type="checkbox" id="toggle-torus-cubes" checked><span>Torus Cubes</span></label>
+      </div>
+      <div class="settings-option">
+        <label><input type="checkbox" id="toggle-binary-particles" checked><span>Binary Particles</span></label>
+      </div>
+      <div class="settings-option">
+        <label><input type="checkbox" id="toggle-spaghettification" checked><span>Spaghettification</span></label>
+      </div>
+      <div class="settings-option">
+        <label><input type="checkbox" id="toggle-wireframe-cage" checked><span>Wireframe Cage</span></label>
+      </div>
+      <div class="settings-option">
+        <label><input type="checkbox" id="toggle-pyramids" checked><span>Wormhole Pyramids</span></label>
+      </div>
+      <div class="settings-option">
+        <label><input type="checkbox" id="toggle-scene-props" checked><span>Scene Props (Dice/Cards/Pawns)</span></label>
+      </div>
+    </div>
+    
+    <button id="close-settings">CLOSE [ESC]</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/BokehShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/BokehPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+
+<script>
+/* =========================
+   THE.OS - The Ontological System
+   Riddle Sequence
+   ========================= */
+
+const RIDDLE_MONOLOGUE = [
+  "I am neither something nor nothing.",
+  "I am not full, yet I am not empty.",
+  "I exist in potential, waiting to be defined.",
+  "",
+  "I am the space between",
+
+ "the presence and absence.",
+  "The placeholder. The void with a name.",
+  "The container that holds infinity",
+  "until it holds one thing.",
+  "",
+  "I am undefined.",
+  "I am null.",
+  "I am the empty cell.",
+  "",
+  "What am I?"
+];
+
+const CORRECT_ANSWERS = ['cell', 'a cell', 'the cell', 'undefined', 'null', 'empty cell', 'void'];
+
+/* =========================
+   Setup
+   ========================= */
+let renderer, scene, camera, clock, composer, bloomPass, bokehPass, filmGrainPass;
+let tablet, tabletCanvas, tabletTexture, tabletCtx;
+let blackHole, blackHoleGroup;
+let inputField, inputFieldMesh;
+let sequenceStarted = false;
+let riddleIndex = 0;
+let audioCtx;
+let answered = false;
+
+// Camera orbit controls
+let cameraOrbit = {
+  isRotating: false,
+  previousMousePosition: { x: 0, y: 0 },
+  rotation: { x: 0, y: 0 }, // x = vertical, y = horizontal
+  distance: 20, // Distance from black hole at (0, 0, -8)
+  target: new THREE.Vector3(0, 0, -8)
+};
+
+// Spaceship mode
+let spaceshipMode = {
+  active: false,
+  position: new THREE.Vector3(0, 0, 50),
+  velocity: new THREE.Vector3(0, 0, -0.5),
+  rotation: { pitch: 0, yaw: 0, roll: 0 },
+  forwardSpeed: 0.5,
+  turnSpeed: 0.02,
+  boostSpeed: 2.0,
+  keys: {}
+};
+
+// Mouse interaction
+let mouseInteraction = {
+  position: new THREE.Vector2(),
+  worldPosition: new THREE.Vector3(),
+  influence: 0,
+  targetInfluence: 0,
+  deformationStrength: 0.3,
+  springback: 0.1
+};
+
+// Settings
+let settings = {
+  bloom: true,
+  dof: true,
+  grain: true,
+  vignette: true,
+  bloomStrength: 1.5,
+  dofFocus: 8.0,
+  dofAperture: 0.025,
+  grainIntensity: 0.15,
+  // Debug toggles
+  showConcentriRings: true,
+  showVerticalRings: true,
+  showSecondaryRing: true,
+  showBlackShell: true,
+  showInnerCubes: true,
+  showOuterCubes: true,
+  showTorusCubes: true,
+  showBinaryParticles: true,
+  showSpaghettification: true,
+  showWireframeCage: true,
+  showPyramids: true,
+  showSceneProps: true
+};
+
+function init(){
+  const container = document.getElementById('container');
+  
+  // Renderer
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  container.appendChild(renderer.domElement);
+  
+  // Scene & Camera
+  scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x000000, 10, 50);
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+  // Initial position set by orbit controls (will be updated in animate loop)
+  camera.position.set(0, 0, 4);
+  camera.lookAt(cameraOrbit.target);
+  
+  clock = new THREE.Clock();
+  
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0x222244, 0.3);
+  scene.add(ambientLight);
+  
+  // Post-processing
+  composer = new THREE.EffectComposer(renderer);
+  const renderPass = new THREE.RenderPass(scene, camera);
+  composer.addPass(renderPass);
+  
+  // Bloom
+  bloomPass = new THREE.UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    settings.bloomStrength,  // strength
+    0.4,  // radius
+    0.85  // threshold
+  );
+  composer.addPass(bloomPass);
+  
+  // Depth of Field (Bokeh)
+  bokehPass = new THREE.BokehPass(scene, camera, {
+    focus: settings.dofFocus,
+    aperture: settings.dofAperture,
+    maxblur: 0.01,
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
+  composer.addPass(bokehPass);
+  
+  // Film Grain + Vignette
+  filmGrainPass = new THREE.ShaderPass({
+    uniforms: {
+      tDiffuse: { value: null },
+      time: { value: 0 },
+      grainIntensity: { value: settings.grainIntensity },
+      vignetteIntensity: { value: 0.5 }
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform float time;
+      uniform float grainIntensity;
+      uniform float vignetteIntensity;
+      varying vec2 vUv;
+      
+      // Hash function for noise
+      float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+      }
+      
+      void main() {
+        vec4 color = texture2D(tDiffuse, vUv);
+        
+        // Film grain
+        vec2 noiseCoord = vUv * vec2(1920.0, 1080.0) + time;
+        float noise = hash(noiseCoord);
+        float grain = (noise - 0.5) * grainIntensity;
+        color.rgb += grain;
+        
+        // Vignette
+        vec2 center = vUv - 0.5;
+        float vignette = 1.0 - dot(center, center) * vignetteIntensity;
+        color.rgb *= vignette;
+        
+        gl_FragColor = color;
+      }
+    `
+  });
+  composer.addPass(filmGrainPass);
+  
+  // Final copy pass - must have renderToScreen = true
+  const copyPass = new THREE.ShaderPass(THREE.CopyShader);
+  copyPass.renderToScreen = true;
+  composer.addPass(copyPass);
+  
+  console.log('✅ Post-processing initialized');
+  console.log('   Bloom:', bloomPass);
+  console.log('   Bokeh:', bokehPass);
+  console.log('   Film Grain:', filmGrainPass);
+  
+  createBlackHole();
+  createTablet();
+  createInputField();
+  setupSettings();
+  setupCameraControls();
+  setupSpaceshipControls();
+  setupMouseInteraction();
+  
+  // Show spaceship button after init
+  document.getElementById('spaceship-btn').style.display = 'block';
+  
+  window.addEventListener('resize', onResize);
+  
+  animate();
+}
+
+/* =========================
+   Mouse Interaction
+   ========================= */
+function setupMouseInteraction() {
+  window.addEventListener('mousemove', (e) => {
+    // Normalize mouse position to -1 to 1
+    mouseInteraction.position.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouseInteraction.position.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    
+    // Use raycaster to project mouse into 3D space at black hole's Z depth
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouseInteraction.position, camera);
+    
+    // Create a plane at the black hole's position
+    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 8); // Z = -8
+    const intersectPoint = new THREE.Vector3();
+    raycaster.ray.intersectPlane(plane, intersectPoint);
+    
+    if (intersectPoint) {
+      mouseInteraction.worldPosition.copy(intersectPoint);
+      
+      // Calculate distance to black hole center
+      const distanceToCenter = mouseInteraction.worldPosition.distanceTo(new THREE.Vector3(0, 0, -8));
+      
+      // Set target influence based on proximity (stronger when closer)
+      if (distanceToCenter < 10) {
+        mouseInteraction.targetInfluence = Math.max(0, 1 - distanceToCenter / 10);
+      } else {
+        mouseInteraction.targetInfluence = 0;
+      }
+    }
+  });
+  
+  window.addEventListener('mouseleave', () => {
+    mouseInteraction.targetInfluence = 0;
+  });
+}
+
+function updateMouseInfluence() {
+  // Spring back smoothly
+  mouseInteraction.influence += (mouseInteraction.targetInfluence - mouseInteraction.influence) * mouseInteraction.springback;
+}
+
+/* =========================
+   Camera Orbit Controls
+   ========================= */
+function setupCameraControls() {
+  renderer.domElement.addEventListener('mousedown', (e) => {
+    if (spaceshipMode.active) return;
+    cameraOrbit.isRotating = true;
+    cameraOrbit.previousMousePosition = { x: e.clientX, y: e.clientY };
+  });
+  
+  renderer.domElement.addEventListener('mousemove', (e) => {
+    if (!cameraOrbit.isRotating || spaceshipMode.active) return;
+    
+    const deltaX = e.clientX - cameraOrbit.previousMousePosition.x;
+    const deltaY = e.clientY - cameraOrbit.previousMousePosition.y;
+    
+    cameraOrbit.rotation.y += deltaX * 0.005;
+    cameraOrbit.rotation.x += deltaY * 0.005;
+    
+    // Clamp vertical rotation
+    cameraOrbit.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraOrbit.rotation.x));
+    
+    cameraOrbit.previousMousePosition = { x: e.clientX, y: e.clientY };
+  });
+  
+  renderer.domElement.addEventListener('mouseup', () => {
+    cameraOrbit.isRotating = false;
+  });
+  
+  renderer.domElement.addEventListener('mouseleave', () => {
+    cameraOrbit.isRotating = false;
+  });
+  
+  // Mouse wheel for zoom
+  renderer.domElement.addEventListener('wheel', (e) => {
+    if (spaceshipMode.active) return;
+    e.preventDefault();
+    cameraOrbit.distance += e.deltaY * 0.02;
+    cameraOrbit.distance = Math.max(8, Math.min(40, cameraOrbit.distance));
+  });
+}
+
+function updateCameraPosition() {
+  if (spaceshipMode.active) {
+    updateSpaceshipCamera();
+  } else {
+    const x = cameraOrbit.target.x + cameraOrbit.distance * Math.sin(cameraOrbit.rotation.y) * Math.cos(cameraOrbit.rotation.x);
+    const y = cameraOrbit.target.y + cameraOrbit.distance * Math.sin(cameraOrbit.rotation.x);
+    const z = cameraOrbit.target.z + cameraOrbit.distance * Math.cos(cameraOrbit.rotation.y) * Math.cos(cameraOrbit.rotation.x);
+    
+    camera.position.set(x, y, z);
+    camera.lookAt(cameraOrbit.target);
+  }
+}
+
+/* =========================
+   Spaceship Controls
+   ========================= */
+function setupSpaceshipControls() {
+  // Keyboard listeners - only when in spaceship mode
+  window.addEventListener('keydown', (e) => {
+    if (spaceshipMode.active && !answered) {
+      spaceshipMode.keys[e.key.toLowerCase()] = true;
+      // Prevent default for spaceship controls
+      if (['w', 's', 'a', 'd', ' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+      }
+    }
+  });
+  
+  window.addEventListener('keyup', (e) => {
+    if (spaceshipMode.active) {
+      spaceshipMode.keys[e.key.toLowerCase()] = false;
+    }
+  });
+  
+  // Spaceship mode toggle button
+  document.getElementById('spaceship-btn').addEventListener('click', toggleSpaceshipMode);
+}
+
+function toggleSpaceshipMode() {
+  spaceshipMode.active = !spaceshipMode.active;
+  const btn = document.getElementById('spaceship-btn');
+  
+  if (spaceshipMode.active) {
+    btn.classList.add('active');
+    btn.textContent = 'Orbit Mode';
+    
+    // Initialize spaceship position - start at an angle facing the black hole
+    // Spawn near the tablet/frame at (0, 0, 5), slightly to the side and up
+    spaceshipMode.position.set(3, 2, 8); // Near frame, offset to side
+    spaceshipMode.velocity.set(0, 0, -0.5);
+    
+    // Calculate initial rotation to face black hole at (0, 0, -8)
+    const blackHolePos = new THREE.Vector3(0, 0, -8);
+    const dirToBlackHole = new THREE.Vector3()
+      .subVectors(blackHolePos, spaceshipMode.position)
+      .normalize();
+    
+    spaceshipMode.rotation = {
+      pitch: Math.asin(dirToBlackHole.y),
+      yaw: Math.atan2(dirToBlackHole.x, -dirToBlackHole.z),
+      roll: 0
+    };
+    
+    // Scale up the black hole so it appears massive
+    if (blackHole) {
+      blackHole.scale.set(20, 20, 20);
+    }
+    
+    // Hide tablet during spaceship mode
+    if (tablet) {
+      tablet.visible = false;
+    }
+    if (inputField) {
+      inputField.visible = false;
+    }
+  } else {
+    btn.classList.remove('active');
+    btn.textContent = 'Spaceship Mode';
+    
+    // Restore scene scale
+    if (blackHole) {
+      blackHole.scale.set(1, 1, 1);
+    }
+    
+    // Show tablet again
+    if (tablet) {
+      tablet.visible = true;
+    }
+    if (inputField) {
+      inputField.visible = true;
+    }
+  }
+}
+
+function updateSpaceshipCamera() {
+  const delta = clock.getDelta();
+  
+  // Handle controls - WASD and Arrow keys
+  if (spaceshipMode.keys['w'] || spaceshipMode.keys['arrowup']) {
+    spaceshipMode.rotation.pitch += spaceshipMode.turnSpeed;
+  }
+  if (spaceshipMode.keys['s'] || spaceshipMode.keys['arrowdown']) {
+    spaceshipMode.rotation.pitch -= spaceshipMode.turnSpeed;
+  }
+  if (spaceshipMode.keys['a'] || spaceshipMode.keys['arrowleft']) {
+    spaceshipMode.rotation.yaw += spaceshipMode.turnSpeed;
+  }
+  if (spaceshipMode.keys['d'] || spaceshipMode.keys['arrowright']) {
+    spaceshipMode.rotation.yaw -= spaceshipMode.turnSpeed;
+  }
+  
+  // Space bar for boost
+  const currentSpeed = spaceshipMode.keys[' '] ? spaceshipMode.boostSpeed : spaceshipMode.forwardSpeed;
+  
+  // Clamp pitch
+  spaceshipMode.rotation.pitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, spaceshipMode.rotation.pitch));
+  
+  // Calculate forward direction based on rotation
+  const forward = new THREE.Vector3(
+    Math.sin(spaceshipMode.rotation.yaw) * Math.cos(spaceshipMode.rotation.pitch),
+    Math.sin(spaceshipMode.rotation.pitch),
+    -Math.cos(spaceshipMode.rotation.yaw) * Math.cos(spaceshipMode.rotation.pitch)
+  );
+  
+  // Update position
+  spaceshipMode.velocity.copy(forward).multiplyScalar(currentSpeed);
+  spaceshipMode.position.add(spaceshipMode.velocity);
+  
+  // Set camera position and rotation
+  camera.position.copy(spaceshipMode.position);
+  
+  // Look in direction of travel
+  const lookTarget = new THREE.Vector3().copy(spaceshipMode.position).add(forward);
+  camera.lookAt(lookTarget);
+  
+  // Apply roll for more dynamic feel
+  camera.rotation.z = -spaceshipMode.rotation.yaw * 0.3;
+}
+
+/* =========================
+   Settings
+   ========================= */
+function setupSettings() {
+  const settingsPanel = document.getElementById('settings-panel');
+  const closeBtn = document.getElementById('close-settings');
+  
+  // ESC to toggle settings
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      settingsPanel.classList.toggle('visible');
+      
+      // Debug: log pass structures when opening settings
+      if (settingsPanel.classList.contains('visible')) {
+        console.log('🔧 Bloom Pass:', bloomPass);
+        console.log('🔧 Bloom Pass enabled:', bloomPass ? bloomPass.enabled : 'N/A');
+        console.log('🔧 Bloom Pass strength:', bloomPass ? bloomPass.strength : 'N/A');
+        console.log('🔧 Bokeh Pass:', bokehPass);
+        if (bokehPass && bokehPass.materialBokeh) {
+          console.log('🔧 Bokeh materialBokeh uniforms:', bokehPass.materialBokeh.uniforms);
+        }
+        if (bokehPass && bokehPass.uniforms) {
+          console.log('🔧 Bokeh direct uniforms:', bokehPass.uniforms);
+        }
+      }
+    }
+  });
+  
+  // Close button
+  closeBtn.addEventListener('click', () => {
+    settingsPanel.classList.remove('visible');
+  });
+  
+  // Toggle checkboxes
+  document.getElementById('toggle-bloom').addEventListener('change', (e) => {
+    settings.bloom = e.target.checked;
+    if (bloomPass) {
+      bloomPass.enabled = settings.bloom;
+      console.log('🌟 Bloom enabled:', settings.bloom);
+    }
+    updateBloomControlsState();
+  });
+  
+  document.getElementById('toggle-dof').addEventListener('change', (e) => {
+    settings.dof = e.target.checked;
+    if (bokehPass) {
+      bokehPass.enabled = settings.dof;
+      console.log('📷 DOF enabled:', settings.dof);
+    }
+    updateDofControlsState();
+  });
+  
+  document.getElementById('toggle-grain').addEventListener('change', (e) => {
+    settings.grain = e.target.checked;
+    updateGrainControlsState();
+  });
+  
+  document.getElementById('toggle-vignette').addEventListener('change', (e) => {
+    settings.vignette = e.target.checked;
+  });
+  
+  // Bloom strength slider
+  const bloomStrength = document.getElementById('bloom-strength');
+  const bloomStrengthValue = document.getElementById('bloom-strength-value');
+  bloomStrength.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    settings.bloomStrength = val;
+    bloomStrengthValue.textContent = val.toFixed(1);
+    if (bloomPass) {
+      bloomPass.strength = val;
+      console.log('🌟 Bloom strength set to:', val);
+    }
+  });
+  
+  // DOF sliders
+  const dofFocus = document.getElementById('dof-focus');
+  const dofFocusValue = document.getElementById('dof-focus-value');
+  dofFocus.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    settings.dofFocus = val;
+    dofFocusValue.textContent = val.toFixed(1);
+    if (bokehPass) {
+      // BokehPass stores uniforms in materialBokeh
+      if (bokehPass.materialBokeh && bokehPass.materialBokeh.uniforms && bokehPass.materialBokeh.uniforms.focus) {
+        bokehPass.materialBokeh.uniforms.focus.value = val;
+      }
+      // Also try direct uniforms (different versions of Three.js)
+      if (bokehPass.uniforms && bokehPass.uniforms.focus) {
+        bokehPass.uniforms.focus.value = val;
+      }
+    }
+  });
+  
+  const dofAperture = document.getElementById('dof-aperture');
+  const dofApertureValue = document.getElementById('dof-aperture-value');
+  dofAperture.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    settings.dofAperture = val;
+    dofApertureValue.textContent = val.toFixed(3);
+    if (bokehPass) {
+      // BokehPass stores uniforms in materialBokeh
+      if (bokehPass.materialBokeh && bokehPass.materialBokeh.uniforms && bokehPass.materialBokeh.uniforms.aperture) {
+        bokehPass.materialBokeh.uniforms.aperture.value = val * 10; // BokehPass uses different scale
+      }
+      // Also try direct uniforms
+      if (bokehPass.uniforms && bokehPass.uniforms.aperture) {
+        bokehPass.uniforms.aperture.value = val * 10;
+      }
+    }
+  });
+  
+  // Grain intensity slider
+  const grainIntensity = document.getElementById('grain-intensity');
+  const grainIntensityValue = document.getElementById('grain-intensity-value');
+  grainIntensity.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    settings.grainIntensity = val;
+    grainIntensityValue.textContent = val.toFixed(2);
+    // Grain is applied in animate loop
+  });
+  
+  function updateBloomControlsState() {
+    const bloomControls = document.getElementById('bloom-controls');
+    if (settings.bloom) {
+      bloomControls.classList.remove('disabled');
+    } else {
+      bloomControls.classList.add('disabled');
+    }
+  }
+  
+  function updateDofControlsState() {
+    const dofControls = document.getElementById('dof-controls');
+    if (settings.dof) {
+      dofControls.classList.remove('disabled');
+    } else {
+      dofControls.classList.add('disabled');
+    }
+  }
+  
+  function updateGrainControlsState() {
+    const grainControls = document.getElementById('grain-controls');
+    if (settings.grain) {
+      grainControls.classList.remove('disabled');
+    } else {
+      grainControls.classList.add('disabled');
+    }
+  }
+  
+  // Debug toggles
+  document.getElementById('toggle-concentric-rings').addEventListener('change', (e) => {
+    settings.showConcentriRings = e.target.checked;
+  });
+  
+  document.getElementById('toggle-vertical-rings').addEventListener('change', (e) => {
+    settings.showVerticalRings = e.target.checked;
+  });
+  
+  document.getElementById('toggle-secondary-ring').addEventListener('change', (e) => {
+    settings.showSecondaryRing = e.target.checked;
+  });
+  
+  document.getElementById('toggle-black-shell').addEventListener('change', (e) => {
+    settings.showBlackShell = e.target.checked;
+  });
+  
+  document.getElementById('toggle-inner-cubes').addEventListener('change', (e) => {
+    settings.showInnerCubes = e.target.checked;
+  });
+  
+  document.getElementById('toggle-outer-cubes').addEventListener('change', (e) => {
+    settings.showOuterCubes = e.target.checked;
+  });
+  
+  document.getElementById('toggle-torus-cubes').addEventListener('change', (e) => {
+    settings.showTorusCubes = e.target.checked;
+  });
+  
+  document.getElementById('toggle-binary-particles').addEventListener('change', (e) => {
+    settings.showBinaryParticles = e.target.checked;
+  });
+  
+  document.getElementById('toggle-spaghettification').addEventListener('change', (e) => {
+    settings.showSpaghettification = e.target.checked;
+  });
+  
+  document.getElementById('toggle-wireframe-cage').addEventListener('change', (e) => {
+    settings.showWireframeCage = e.target.checked;
+  });
+  
+  document.getElementById('toggle-pyramids').addEventListener('change', (e) => {
+    settings.showPyramids = e.target.checked;
+  });
+  
+  document.getElementById('toggle-scene-props').addEventListener('change', (e) => {
+    settings.showSceneProps = e.target.checked;
+  });
+  
+  // Initialize control states
+  updateBloomControlsState();
+  updateDofControlsState();
+  updateGrainControlsState();
+}
+
+/* =========================
+   Black Hole
+   ========================= */
+function createBlackHole(){
+  blackHoleGroup = new THREE.Group();
+  
+  // === EVENT HORIZON - Black core ===
+  const eventHorizonGeo = new THREE.SphereGeometry(1.5, 32, 32);
+  const eventHorizonMat = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    transparent: true,
+    opacity: 1.0
+  });
+  const eventHorizon = new THREE.Mesh(eventHorizonGeo, eventHorizonMat);
+  
+  // Store base positions for mouse deformation
+  eventHorizon.userData.basePositions = new Float32Array(eventHorizonGeo.attributes.position.count * 3);
+  for (let i = 0; i < eventHorizonGeo.attributes.position.count; i++) {
+    eventHorizon.userData.basePositions[i * 3] = eventHorizonGeo.attributes.position.getX(i);
+    eventHorizon.userData.basePositions[i * 3 + 1] = eventHorizonGeo.attributes.position.getY(i);
+    eventHorizon.userData.basePositions[i * 3 + 2] = eventHorizonGeo.attributes.position.getZ(i);
+  }
+  
+  blackHoleGroup.add(eventHorizon);
+  blackHoleGroup.userData.eventHorizon = eventHorizon;
+  
+  // === SOFT CONCENTRIC RINGS - Flattened disk shape, red-orange ===
+  const ringGroup = new THREE.Group();
+  for (let i = 0; i < 12; i++) {
+    const radius = 1.8 + i * 0.4;
+    // Flatten toward edges like an accretion disk
+    const thickness = 0.35 * (1.0 - (i / 12) * 0.7); // Decreases from 0.35 to ~0.1
+    const ringGeo = new THREE.TorusGeometry(radius, thickness, 8, 32);
+    
+    // Smooth fade from bright red-orange to transparent
+    const fade = 1.0 - (i / 12);
+    const colorIntensity = fade * fade; // Quadratic falloff for smoother blend
+    
+    const ringMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(0.9 * colorIntensity, 0.25 * colorIntensity, 0.05 * colorIntensity),
+      emissive: new THREE.Color(0.85 * fade, 0.3 * fade, 0.08 * fade),
+      emissiveIntensity: 2.8 * fade,
+    transparent: true,
+      opacity: 0.5 * fade,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.renderOrder = 1;
+    ringGroup.add(ring);
+  }
+  
+  blackHoleGroup.add(ringGroup);
+  blackHoleGroup.userData.rings = ringGroup;
+  
+  // === VERTICAL TORUS GROUP - Multiple concentric rings with gradient (billboards to camera) ===
+  const verticalTorusGroup = new THREE.Group();
+  
+  // Create multiple vertical torus rings with gradient - more red-orange, thinner
+  const numVerticalRings = 8;
+  for (let i = 0; i < numVerticalRings; i++) {
+    const radius = 3.5 - i * 0.15;
+    const thickness = 0.18 - i * 0.015; // Even thinner rings
+    const fade = 1.0 - (i / numVerticalRings);
+    
+    const torusGeo = new THREE.TorusGeometry(radius, thickness, 16, 64);
+    const torusMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(0.9 * fade, 0.35 * fade, 0.08 * fade),
+      emissive: new THREE.Color(0.85 * fade, 0.35 * fade, 0.12 * fade),
+      emissiveIntensity: 4.5 * fade,
+      transparent: true,
+      opacity: 0.6 * fade,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    
+    const torus = new THREE.Mesh(torusGeo, torusMat);
+    torus.renderOrder = 2;
+    verticalTorusGroup.add(torus);
+  }
+  
+  // Cube instances around the main (first) torus ring - red-orange
+  const cubeGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+  const cubeMat = new THREE.MeshStandardMaterial({
+    color: 0xe85500,
+    emissive: 0xd94400,
+    emissiveIntensity: 3.2
+  });
+  
+  const numCubes = 80;
+  for (let i = 0; i < numCubes; i++) {
+    const angle = (i / numCubes) * Math.PI * 2;
+    const cube = new THREE.Mesh(cubeGeo, cubeMat.clone());
+    cube.position.x = Math.cos(angle) * 3.5;
+    cube.position.z = Math.sin(angle) * 3.5;
+    cube.position.y = (Math.random() - 0.5) * 0.6;
+    cube.userData.angle = angle;
+    cube.userData.radius = 3.5;
+    cube.userData.speed = 0.5 + Math.random() * 0.5;
+    cube.userData.bobSpeed = 1 + Math.random() * 2;
+    cube.userData.bobOffset = Math.random() * Math.PI * 2;
+    cube.renderOrder = 3;
+    verticalTorusGroup.add(cube);
+  }
+  
+  blackHoleGroup.add(verticalTorusGroup);
+  blackHoleGroup.userData.verticalTorusGroup = verticalTorusGroup;
+  
+  // === SECONDARY VERTICAL RING - Less bloomy, soft gradient red-orange ===
+  const secondaryVerticalRing = new THREE.Group();
+  
+  // Create a softer, less intense vertical ring with gradient layers
+  const numSecondaryRings = 6;
+  for (let i = 0; i < numSecondaryRings; i++) {
+    const radius = 4.2 - i * 0.12;
+    const thickness = 0.18 - i * 0.015;
+    const fade = 1.0 - (i / numSecondaryRings);
+    
+    const torusGeo = new THREE.TorusGeometry(radius, thickness, 12, 48);
+    const torusMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(0.7 * fade, 0.22 * fade, 0.04 * fade),
+      emissive: new THREE.Color(0.6 * fade, 0.2 * fade, 0.05 * fade),
+      emissiveIntensity: 1.8 * fade,
+    transparent: true,
+      opacity: 0.4 * fade,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    
+    const torus = new THREE.Mesh(torusGeo, torusMat);
+    torus.renderOrder = 2;
+    secondaryVerticalRing.add(torus);
+  }
+  
+  blackHoleGroup.add(secondaryVerticalRing);
+  blackHoleGroup.userData.secondaryVerticalRing = secondaryVerticalRing;
+  
+  // === DENSE BLACK SHELL - Very dense cube sphere to block inner vertical rings ===
+  const blackShell = new THREE.Group();
+  const shellRadius = 2.2;
+  const shellCount = 600;
+  const shellCubeSize = 0.22;
+  const shellCubeGeo = new THREE.BoxGeometry(shellCubeSize, shellCubeSize, shellCubeSize);
+  const shellCubeMat = new THREE.MeshStandardMaterial({
+    color: 0x0a0a0a,
+    emissive: 0x000000,
+    emissiveIntensity: 0.1,
+    transparent: false,
+    roughness: 1.0,
+    metalness: 0.1,
+    depthWrite: true
+  });
+  
+  for (let i = 0; i < shellCount; i++) {
+    const phi = Math.acos(-1 + (2 * i) / shellCount);
+    const theta = Math.sqrt(shellCount * Math.PI) * phi;
+    
+    const cube = new THREE.Mesh(shellCubeGeo, shellCubeMat.clone());
+    const x = shellRadius * Math.cos(theta) * Math.sin(phi);
+    const y = shellRadius * Math.sin(theta) * Math.sin(phi);
+    const z = shellRadius * Math.cos(phi);
+    cube.position.set(x, y, z);
+    cube.lookAt(0, 0, 0);
+    cube.userData = { baseRadius: shellRadius, phi, theta };
+    cube.renderOrder = 5;
+    blackShell.add(cube);
+  }
+  
+  blackHoleGroup.add(blackShell);
+  blackHoleGroup.userData.blackShell = blackShell;
+  blackHoleGroup.userData.shellPhase = 0;
+  
+  // === INNER CUBE SPHERE - Black cubes (visible through rings, expands to outer rings) ===
+  const innerCubeSphere = new THREE.Group();
+  const innerRadius = 2.5;
+  const innerCount = 220;
+  const innerCubeSize = 0.3;
+  const innerCubeGeo = new THREE.BoxGeometry(innerCubeSize, innerCubeSize, innerCubeSize);
+  const innerCubeMat = new THREE.MeshStandardMaterial({
+    color: 0x2a2a2a,
+    emissive: 0x1a1a1a,
+    emissiveIntensity: 1.0,
+    transparent: false,
+    roughness: 0.7,
+    metalness: 0.4,
+    depthWrite: true,
+    depthTest: true
+  });
+  
+  for (let i = 0; i < innerCount; i++) {
+    const phi = Math.acos(-1 + (2 * i) / innerCount);
+    const theta = Math.sqrt(innerCount * Math.PI) * phi;
+    
+    const cube = new THREE.Mesh(innerCubeGeo, innerCubeMat.clone());
+    const x = innerRadius * Math.cos(theta) * Math.sin(phi);
+    const y = innerRadius * Math.sin(theta) * Math.sin(phi);
+    const z = innerRadius * Math.cos(phi);
+    cube.position.set(x, y, z);
+    cube.lookAt(0, 0, 0);
+    cube.userData = { baseRadius: innerRadius, phi, theta };
+    cube.renderOrder = 10; // Render after other elements
+    innerCubeSphere.add(cube);
+  }
+  
+  blackHoleGroup.add(innerCubeSphere);
+  blackHoleGroup.userData.innerCubeSphere = innerCubeSphere;
+  blackHoleGroup.userData.innerPhase = 0;
+  
+  // === OUTER CUBE SPHERE - Pulsating ===
+  const outerCubeSphere = new THREE.Group();
+  const outerRadius = 4.5;
+  const outerCount = 250;
+  const outerCubeSize = 0.25;
+  const outerCubeGeo = new THREE.BoxGeometry(outerCubeSize, outerCubeSize, outerCubeSize);
+  const outerCubeMat = new THREE.MeshStandardMaterial({
+    color: 0x331100,
+    emissive: 0x220000,
+    emissiveIntensity: 0.8,
+    transparent: true,
+    opacity: 0.5
+  });
+  
+  for (let i = 0; i < outerCount; i++) {
+    const phi = Math.acos(-1 + (2 * i) / outerCount);
+    const theta = Math.sqrt(outerCount * Math.PI) * phi;
+    
+    const cube = new THREE.Mesh(outerCubeGeo, outerCubeMat.clone());
+    const x = outerRadius * Math.cos(theta) * Math.sin(phi);
+    const y = outerRadius * Math.sin(theta) * Math.sin(phi);
+    const z = outerRadius * Math.cos(phi);
+    cube.position.set(x, y, z);
+    cube.lookAt(0, 0, 0);
+    cube.userData = { baseRadius: outerRadius, phi, theta };
+    outerCubeSphere.add(cube);
+  }
+  
+  blackHoleGroup.add(outerCubeSphere);
+  blackHoleGroup.userData.outerCubeSphere = outerCubeSphere;
+  blackHoleGroup.userData.outerPhase = 0;
+  
+  // === POINT LIGHTS - Pulsating orange glow ===
+  const lights = [];
+  
+  const mainLight = new THREE.PointLight(0xff4400, 8, 20);
+  mainLight.position.set(0, 0, 0);
+  blackHoleGroup.add(mainLight);
+  lights.push(mainLight);
+  
+  const accentLight1 = new THREE.PointLight(0xff6600, 6, 15);
+  accentLight1.position.set(0, 2, 0);
+  blackHoleGroup.add(accentLight1);
+  lights.push(accentLight1);
+  
+  const accentLight2 = new THREE.PointLight(0xff3300, 4, 12);
+  accentLight2.position.set(0, -2, 0);
+  blackHoleGroup.add(accentLight2);
+  lights.push(accentLight2);
+  
+  blackHoleGroup.userData.lights = lights;
+  
+  // Position the whole black hole group
+  blackHoleGroup.position.z = -8;
+  
+  // Initialize spawning cubes array
+  blackHoleGroup.userData.spawnTimer = 0;
+  blackHoleGroup.userData.cubes = [];
+  
+  // === BINARY PARTICLES - Sparse glowing 0s and 1s that get sucked in ===
+  blackHoleGroup.userData.binarySpawnTimer = 0;
+  blackHoleGroup.userData.binaryParticles = [];
+  
+  // === SCENE BUILDER PROPS - Dice, cards, pawns that get sucked in ===
+  blackHoleGroup.userData.propSpawnTimer = 0;
+  blackHoleGroup.userData.props = [];
+  
+  // === WIREFRAME CAGE - Orange-red sphere cage with wormhole poles ===
+  const cageRadius = 8.5; // Beyond the max expansion of outer cubes (4.5 * 1.6 = 7.2)
+  const cageGeo = new THREE.SphereGeometry(cageRadius, 32, 24);
+  
+  // Distort the sphere to create wormhole at poles
+  const positions = cageGeo.attributes.position;
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i);
+    const y = positions.getY(i);
+    const z = positions.getZ(i);
+    
+    // Calculate distance from Y axis (latitude)
+    const distFromYAxis = Math.sqrt(x * x + z * z);
+    const latitude = Math.atan2(distFromYAxis, y);
+    
+    // Pull vertices inward at poles (latitude near 0 or PI)
+    const poleDistance = Math.min(latitude, Math.PI - latitude);
+    const poleFactor = Math.pow(Math.sin(poleDistance), 0.4); // Sharper curve at poles
+    
+    // Create tunnel by reducing radius near poles
+    const tunnelRadius = cageRadius * 0.15; // Wormhole tunnel radius
+    const newRadius = tunnelRadius + (cageRadius - tunnelRadius) * poleFactor;
+    
+    // Recalculate position
+    const length = Math.sqrt(x * x + y * y + z * z);
+    const scale = newRadius / length;
+    
+    positions.setXYZ(i, x * scale, y * scale, z * scale);
+  }
+  
+  positions.needsUpdate = true;
+  cageGeo.computeVertexNormals();
+  
+  // Add custom shader material for glowing wireframe near poles
+  const cageMat = new THREE.ShaderMaterial({
+    uniforms: {
+      color: { value: new THREE.Color(0xff4400) },
+      glowColor: { value: new THREE.Color(0xffaa00) },
+      opacity: { value: 0.3 },
+      time: { value: 0 },
+      cageRadius: { value: cageRadius }
+    },
+    vertexShader: `
+      varying vec3 vPosition;
+      varying float vGlow;
+      uniform float cageRadius;
+      
+      void main() {
+        vPosition = position;
+        
+        // Calculate distance from poles (Y axis extremes)
+        float distFromYAxis = length(position.xz);
+        float latitude = atan(distFromYAxis, position.y);
+        float poleDistance = min(latitude, 3.14159 - latitude);
+        
+        // Glow intensity increases near poles
+        vGlow = 1.0 - smoothstep(0.0, 1.2, poleDistance);
+        
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 color;
+      uniform vec3 glowColor;
+      uniform float opacity;
+      uniform float time;
+      varying vec3 vPosition;
+      varying float vGlow;
+      
+      void main() {
+        // Mix base color with glow color based on proximity to poles
+        vec3 finalColor = mix(color, glowColor, vGlow * 0.8);
+        
+        // Add pulsing to glow
+        float pulse = sin(time * 2.0) * 0.2 + 0.8;
+        float glowIntensity = vGlow * pulse;
+        
+        // Increase opacity near poles
+        float finalOpacity = opacity + glowIntensity * 0.5;
+        
+        gl_FragColor = vec4(finalColor, finalOpacity);
+      }
+    `,
+    transparent: true,
+    wireframe: true,
+    side: THREE.DoubleSide
+  });
+  
+  const cage = new THREE.Mesh(cageGeo, cageMat);
+  cage.renderOrder = 5;
+  
+  // Store base positions for animation
+  cage.userData.basePositions = new Float32Array(positions.count * 3);
+  for (let i = 0; i < positions.count; i++) {
+    cage.userData.basePositions[i * 3] = positions.getX(i);
+    cage.userData.basePositions[i * 3 + 1] = positions.getY(i);
+    cage.userData.basePositions[i * 3 + 2] = positions.getZ(i);
+  }
+  
+  blackHoleGroup.add(cage);
+  blackHoleGroup.userData.cage = cage;
+  blackHoleGroup.userData.cageRadius = cageRadius;
+  
+  // === WORMHOLE PYRAMIDS - Pyramids at each pole pointing inward ===
+  const pyramidHeight = 2.5;
+  const pyramidRadius = 1.2;
+  const pyramidGeo = new THREE.ConeGeometry(pyramidRadius, pyramidHeight, 4); // 4 sides = pyramid
+  const pyramidMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.3,
+    metalness: 0.1,
+    roughness: 0.2,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.2
+  });
+  
+  // Top pyramid pointing down (inward)
+  const topPyramid = new THREE.Mesh(pyramidGeo, pyramidMat);
+  topPyramid.position.set(0, cageRadius * 0.85, 0); // Near the top pole
+  topPyramid.rotation.x = Math.PI; // Point down
+  topPyramid.renderOrder = 5;
+  
+  // Add metallic disk at base
+  const diskGeo = new THREE.CylinderGeometry(pyramidRadius, pyramidRadius, 0.15, 32);
+  const diskMat = new THREE.MeshStandardMaterial({
+    color: 0x888888,
+    metalness: 1.0,
+    roughness: 0.3,
+    transparent: false
+  });
+  const topDisk = new THREE.Mesh(diskGeo, diskMat);
+  topDisk.position.set(0, -pyramidHeight / 2, 0); // At base of pyramid
+  topDisk.renderOrder = 5;
+  topPyramid.add(topDisk);
+  
+  // Add taller cylinder behind disk
+  const tallCylinderGeo = new THREE.CylinderGeometry(pyramidRadius * 0.8, pyramidRadius * 0.8, 0.6, 32);
+  const tallCylinder = new THREE.Mesh(tallCylinderGeo, diskMat.clone());
+  tallCylinder.position.set(0, -pyramidHeight / 2 - 0.3, 0); // Behind the disk
+  tallCylinder.renderOrder = 5;
+  topPyramid.add(tallCylinder);
+  
+  // Add another cylinder of original size behind tall cylinder
+  const thirdCylinderGeo = new THREE.CylinderGeometry(pyramidRadius, pyramidRadius, 0.15, 32);
+  const thirdCylinder = new THREE.Mesh(thirdCylinderGeo, diskMat.clone());
+  thirdCylinder.position.set(0, -pyramidHeight / 2 - 0.675, 0); // Behind tall cylinder
+  thirdCylinder.renderOrder = 5;
+  topPyramid.add(thirdCylinder);
+  
+  // Add fourth cylinder of original size for extended cables
+  const fourthCylinderGeo = new THREE.CylinderGeometry(pyramidRadius, pyramidRadius, 0.15, 32);
+  const fourthCylinder = new THREE.Mesh(fourthCylinderGeo, diskMat.clone());
+  fourthCylinder.position.set(0, -pyramidHeight / 2 - 1.55, 0); // Behind cable section
+  fourthCylinder.renderOrder = 5;
+  topPyramid.add(fourthCylinder);
+  
+  // Create curved twisted cables connecting bases and pointing outward (short)
+  const numCables = 12;
+  const cableLength = 1.5;
+  for (let i = 0; i < numCables; i++) {
+    const angle = (i / numCables) * Math.PI * 2;
+    const startRadius = pyramidRadius * 0.9;
+    
+    // Create a curved path for the cable
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, -pyramidHeight / 2 - 0.675, 0), // Start at third cylinder
+      new THREE.Vector3(
+        Math.cos(angle) * startRadius * 0.3,
+        -pyramidHeight / 2 - 0.8,
+        Math.sin(angle) * startRadius * 0.3
+      ),
+      new THREE.Vector3(
+        Math.cos(angle) * startRadius * 0.7,
+        -pyramidHeight / 2 - 1.0,
+        Math.sin(angle) * startRadius * 0.7
+      ),
+      new THREE.Vector3(
+        Math.cos(angle) * startRadius,
+        -pyramidHeight / 2 - 1.3,
+        Math.sin(angle) * startRadius
+      )
+    ]);
+    
+    // Create tube geometry with twist
+    const tubeGeo = new THREE.TubeGeometry(curve, 20, 0.03, 8, false);
+    
+    // Apply twist to the tube
+    const positions = tubeGeo.attributes.position;
+    for (let j = 0; j < positions.count; j++) {
+      const y = positions.getY(j);
+      const x = positions.getX(j);
+      const z = positions.getZ(j);
+      
+      // Calculate twist based on position along cable
+      const normalizedY = (y + pyramidHeight / 2 + 1.3) / 1.3;
+      const twistAngle = normalizedY * Math.PI * 2;
+      
+      // Apply rotation around the cable axis
+      const radius = Math.sqrt(Math.pow(x - Math.cos(angle) * startRadius * normalizedY, 2) + 
+                               Math.pow(z - Math.sin(angle) * startRadius * normalizedY, 2));
+      const currentAngle = Math.atan2(z - Math.sin(angle) * startRadius * normalizedY, 
+                                     x - Math.cos(angle) * startRadius * normalizedY);
+      const newAngle = currentAngle + twistAngle;
+      
+      const centerX = Math.cos(angle) * startRadius * normalizedY;
+      const centerZ = Math.sin(angle) * startRadius * normalizedY;
+      
+      positions.setX(j, centerX + Math.cos(newAngle) * radius);
+      positions.setZ(j, centerZ + Math.sin(newAngle) * radius);
+    }
+    positions.needsUpdate = true;
+    
+    const cableMat = new THREE.MeshStandardMaterial({
+      color: 0x666666,
+      metalness: 0.8,
+      roughness: 0.4
+    });
+    const cable = new THREE.Mesh(tubeGeo, cableMat);
+    cable.renderOrder = 5;
+    topPyramid.add(cable);
+  }
+  
+  // Create longer extended tube wires from fourth cylinder with multiple iterations
+  // Each iteration extends further back with less radial spread
+  const numExtendedCables = 8;
+  const numIterations = 3;
+  
+  for (let iteration = 0; iteration < numIterations; iteration++) {
+    // Progressive parameters: more back, less radial with each iteration
+    const radialMultiplier = 3.5 - iteration * 1.2; // Start at 3.5, reduce to 1.1
+    const backwardBase = 2.5 + iteration * 2.0; // Start at 2.5, increase to 6.5
+    const spreadMultiplier = 1.4 - iteration * 0.4; // Start at 1.4, reduce to 0.6
+    
+    for (let i = 0; i < numExtendedCables; i++) {
+      const angle = (i / numExtendedCables) * Math.PI * 2;
+      const startRadius = pyramidRadius * 0.95;
+      
+      // Start from fourth cylinder edge
+      const startPoint = new THREE.Vector3(
+        Math.cos(angle) * startRadius,
+        -pyramidHeight / 2 - 1.55,
+        Math.sin(angle) * startRadius
+      );
+      
+      // Extended endpoint - progressively more back, less radial
+      const backwardExtension = backwardBase + Math.random() * 2.0;
+      const radialSpread = radialMultiplier;
+      const endPoint = new THREE.Vector3(
+        Math.cos(angle) * radialSpread,
+        -pyramidHeight / 2 - 1.55 - backwardExtension,
+        Math.sin(angle) * radialSpread
+      );
+      
+      // Create Bezier curve with control points for organic flow
+      const c1 = new THREE.Vector3().lerpVectors(startPoint, endPoint, 0.33)
+        .add(new THREE.Vector3(
+          (Math.random() - 0.5) * spreadMultiplier,
+          (Math.random() - 0.5) * spreadMultiplier,
+          (Math.random() - 0.5) * spreadMultiplier
+        ));
+      
+      const c2 = new THREE.Vector3().lerpVectors(startPoint, endPoint, 0.66)
+        .add(new THREE.Vector3(
+          (Math.random() - 0.5) * spreadMultiplier,
+          (Math.random() - 0.5) * spreadMultiplier,
+          (Math.random() - 0.5) * spreadMultiplier
+        ));
+      
+      const extendedCurve = new THREE.CubicBezierCurve3(startPoint, c1, c2, endPoint);
+      
+      // Create tube geometry - thinner for later iterations
+      const tubeRadius = 0.04 - iteration * 0.005;
+      const extendedTubeGeo = new THREE.TubeGeometry(extendedCurve, 48, tubeRadius, 8, false);
+      const extendedCableMat = new THREE.MeshStandardMaterial({
+        color: 0x555555,
+        metalness: 0.85,
+        roughness: 0.35
+      });
+      const extendedCable = new THREE.Mesh(extendedTubeGeo, extendedCableMat);
+      extendedCable.renderOrder = 5;
+      topPyramid.add(extendedCable);
+    }
+  }
+  
+  // Add yellow-orange inner cone pointing toward wormhole
+  const innerConeHeight = pyramidHeight * 0.55;
+  const innerConeRadius = pyramidRadius * 0.45;
+  const innerConeGeo = new THREE.ConeGeometry(innerConeRadius, innerConeHeight, 4);
+  const innerConeMat = new THREE.MeshStandardMaterial({
+    color: 0xffaa00,
+    emissive: 0xff8800,
+    emissiveIntensity: 0.6,
+    transparent: false,
+    metalness: 0.3,
+    roughness: 0.4
+  });
+  const innerCone = new THREE.Mesh(innerConeGeo, innerConeMat);
+  // Position so base is flush with pyramid base
+  innerCone.position.set(0, -pyramidHeight / 2 + innerConeHeight / 2, 0);
+  innerCone.renderOrder = 6;
+  topPyramid.add(innerCone);
+  
+  // Add red-orange glowing sphere at the tip (moves with cone)
+  const tipSphereGeo = new THREE.SphereGeometry(0.2, 16, 16);
+  const tipSphereMat = new THREE.MeshStandardMaterial({
+    color: 0xff5500,
+    emissive: 0xff4400,
+    emissiveIntensity: 2.5,
+    metalness: 0.3,
+    roughness: 0.2,
+    transparent: false
+  });
+  const tipSphere = new THREE.Mesh(tipSphereGeo, tipSphereMat);
+  tipSphere.position.set(0, -pyramidHeight / 2 + innerConeHeight, 0); // At the cone tip
+  tipSphere.renderOrder = 7;
+  topPyramid.add(tipSphere);
+  
+  // Add red-orange light at the tip (pointed vertex)
+  const topPyramidLight = new THREE.PointLight(0xff4400, 5, 10);
+  topPyramidLight.position.set(0, pyramidHeight / 2, 0); // Tip at +Y in local space (cone default)
+  topPyramid.add(topPyramidLight);
+  
+  // Create sand particles inside pyramid using instanced cubes
+  const numSandParticles = 120;
+  const sandGeo = new THREE.BoxGeometry(0.06, 0.06, 0.06);
+  const sandMat = new THREE.MeshStandardMaterial({
+    color: 0xffcc88,
+    roughness: 0.9,
+    metalness: 0.1
+  });
+  
+  const sandInstancedMesh = new THREE.InstancedMesh(sandGeo, sandMat, numSandParticles);
+  const sandParticles = [];
+  const dummy = new THREE.Object3D();
+  
+  for (let i = 0; i < numSandParticles; i++) {
+    // Random position inside pyramid bounds
+    const yPos = (Math.random() - 0.5) * pyramidHeight * 0.8;
+    const maxRadius = pyramidRadius * (1 - Math.abs(yPos) / (pyramidHeight / 2)) * 0.9;
+    const angle = Math.random() * Math.PI * 2;
+    const r = Math.random() * maxRadius;
+    
+    const position = new THREE.Vector3(
+      Math.cos(angle) * r,
+      yPos,
+      Math.sin(angle) * r
+    );
+    
+    dummy.position.copy(position);
+    dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+    dummy.updateMatrix();
+    sandInstancedMesh.setMatrixAt(i, dummy.matrix);
+    
+    sandParticles.push({
+      position: position,
+      velocity: new THREE.Vector3(0, 0, 0),
+      rotation: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI),
+      rotVelocity: new THREE.Euler((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.1)
+    });
+  }
+  
+  sandInstancedMesh.instanceMatrix.needsUpdate = true;
+  topPyramid.add(sandInstancedMesh);
+  topPyramid.userData.sandParticles = sandParticles;
+  topPyramid.userData.sandInstancedMesh = sandInstancedMesh;
+  
+  // Recursive function to add fractal pyramids at corners
+  function addFractalPyramids(parentPyramid, currentRadius, currentHeight, iteration, maxIterations) {
+    if (iteration >= maxIterations) return;
+    
+    const scale = 0.4; // Scale factor for each iteration
+    const childRadius = currentRadius * scale;
+    const childHeight = currentHeight * scale;
+    
+    const childGeo = new THREE.ConeGeometry(childRadius, childHeight, 4);
+    // Create hazier glass material for fractal pyramids
+    const childMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.15, // More transparent than main pyramid
+      metalness: 0.05,
+      roughness: 0.1,
+      emissive: 0xffffff,
+      emissiveIntensity: 0.1
+    });
+    
+    // 4 corners of the pyramid base (cone base is at -Y in local space)
+    const corners = [
+      new THREE.Vector3(currentRadius, -currentHeight / 2, 0),
+      new THREE.Vector3(-currentRadius, -currentHeight / 2, 0),
+      new THREE.Vector3(0, -currentHeight / 2, currentRadius),
+      new THREE.Vector3(0, -currentHeight / 2, -currentRadius)
+    ];
+    
+    corners.forEach(corner => {
+      const childPyramid = new THREE.Mesh(childGeo, childMat.clone());
+      childPyramid.position.copy(corner);
+      
+      // Point inward - toward the wormhole center
+      const inwardDir = corner.clone().normalize().multiplyScalar(-1);
+      const targetPos = corner.clone().add(inwardDir.multiplyScalar(2));
+      childPyramid.lookAt(targetPos);
+      
+      // Only add spotlights at first iteration to avoid exceeding max uniforms
+      if (iteration === 0) {
+        // Add spotlight at base pointing toward wormhole center
+        const spotlight = new THREE.SpotLight(0xff4400, 3, 20, Math.PI / 6, 0.5, 1);
+        spotlight.position.set(0, -childHeight / 2, 0); // At base of child pyramid
+        
+        // Target points toward center (will be updated in animate loop)
+        const target = new THREE.Object3D();
+        target.position.set(0, 0, 0); // Local center
+        childPyramid.add(target);
+        spotlight.target = target;
+        
+        childPyramid.add(spotlight);
+        childPyramid.userData.spotlight = spotlight;
+      }
+      
+      childPyramid.renderOrder = 5;
+      parentPyramid.add(childPyramid);
+      
+      // Recurse to next iteration
+      addFractalPyramids(childPyramid, childRadius, childHeight, iteration + 1, maxIterations);
+    });
+  }
+  
+  // Add 3 iterations of fractal pyramids
+  addFractalPyramids(topPyramid, pyramidRadius, pyramidHeight, 0, 3);
+  
+  cage.add(topPyramid); // Add to cage so it rotates with it
+  blackHoleGroup.userData.topPyramid = topPyramid;
+  
+  // Bottom pyramid pointing up (inward)
+  const bottomPyramid = new THREE.Mesh(pyramidGeo, pyramidMat.clone());
+  bottomPyramid.position.set(0, -cageRadius * 0.85, 0); // Near the bottom pole
+  bottomPyramid.rotation.x = 0; // Point up (default orientation)
+  bottomPyramid.renderOrder = 5;
+  
+  // Add metallic disk at base
+  const bottomDisk = new THREE.Mesh(diskGeo, diskMat.clone());
+  bottomDisk.position.set(0, -pyramidHeight / 2, 0); // At base of pyramid
+  bottomDisk.renderOrder = 5;
+  bottomPyramid.add(bottomDisk);
+  
+  // Add taller cylinder behind disk
+  const bottomTallCylinder = new THREE.Mesh(tallCylinderGeo, diskMat.clone());
+  bottomTallCylinder.position.set(0, -pyramidHeight / 2 - 0.3, 0); // Behind the disk
+  bottomTallCylinder.renderOrder = 5;
+  bottomPyramid.add(bottomTallCylinder);
+  
+  // Add another cylinder of original size behind tall cylinder
+  const bottomThirdCylinder = new THREE.Mesh(thirdCylinderGeo, diskMat.clone());
+  bottomThirdCylinder.position.set(0, -pyramidHeight / 2 - 0.675, 0); // Behind tall cylinder
+  bottomThirdCylinder.renderOrder = 5;
+  bottomPyramid.add(bottomThirdCylinder);
+  
+  // Add fourth cylinder of original size for extended cables
+  const bottomFourthCylinder = new THREE.Mesh(fourthCylinderGeo, diskMat.clone());
+  bottomFourthCylinder.position.set(0, -pyramidHeight / 2 - 1.55, 0); // Behind cable section
+  bottomFourthCylinder.renderOrder = 5;
+  bottomPyramid.add(bottomFourthCylinder);
+  
+  // Create curved twisted cables connecting bases and pointing outward (short)
+  for (let i = 0; i < numCables; i++) {
+    const angle = (i / numCables) * Math.PI * 2;
+    const startRadius = pyramidRadius * 0.9;
+    
+    // Create a curved path for the cable
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, -pyramidHeight / 2 - 0.675, 0), // Start at third cylinder
+      new THREE.Vector3(
+        Math.cos(angle) * startRadius * 0.3,
+        -pyramidHeight / 2 - 0.8,
+        Math.sin(angle) * startRadius * 0.3
+      ),
+      new THREE.Vector3(
+        Math.cos(angle) * startRadius * 0.7,
+        -pyramidHeight / 2 - 1.0,
+        Math.sin(angle) * startRadius * 0.7
+      ),
+      new THREE.Vector3(
+        Math.cos(angle) * startRadius,
+        -pyramidHeight / 2 - 1.3,
+        Math.sin(angle) * startRadius
+      )
+    ]);
+    
+    // Create tube geometry with twist
+    const tubeGeo = new THREE.TubeGeometry(curve, 20, 0.03, 8, false);
+    
+    // Apply twist to the tube
+    const positions = tubeGeo.attributes.position;
+    for (let j = 0; j < positions.count; j++) {
+      const y = positions.getY(j);
+      const x = positions.getX(j);
+      const z = positions.getZ(j);
+      
+      // Calculate twist based on position along cable
+      const normalizedY = (y + pyramidHeight / 2 + 1.3) / 1.3;
+      const twistAngle = normalizedY * Math.PI * 2;
+      
+      // Apply rotation around the cable axis
+      const radius = Math.sqrt(Math.pow(x - Math.cos(angle) * startRadius * normalizedY, 2) + 
+                               Math.pow(z - Math.sin(angle) * startRadius * normalizedY, 2));
+      const currentAngle = Math.atan2(z - Math.sin(angle) * startRadius * normalizedY, 
+                                     x - Math.cos(angle) * startRadius * normalizedY);
+      const newAngle = currentAngle + twistAngle;
+      
+      const centerX = Math.cos(angle) * startRadius * normalizedY;
+      const centerZ = Math.sin(angle) * startRadius * normalizedY;
+      
+      positions.setX(j, centerX + Math.cos(newAngle) * radius);
+      positions.setZ(j, centerZ + Math.sin(newAngle) * radius);
+    }
+    positions.needsUpdate = true;
+    
+    const cableMat = new THREE.MeshStandardMaterial({
+      color: 0x666666,
+      metalness: 0.8,
+      roughness: 0.4
+    });
+    const cable = new THREE.Mesh(tubeGeo, cableMat);
+    cable.renderOrder = 5;
+    bottomPyramid.add(cable);
+  }
+  
+  // Create longer extended tube wires from fourth cylinder with multiple iterations
+  // Each iteration extends further back with less radial spread
+  for (let iteration = 0; iteration < numIterations; iteration++) {
+    // Progressive parameters: more back, less radial with each iteration
+    const radialMultiplier = 3.5 - iteration * 1.2; // Start at 3.5, reduce to 1.1
+    const backwardBase = 2.5 + iteration * 2.0; // Start at 2.5, increase to 6.5
+    const spreadMultiplier = 1.4 - iteration * 0.4; // Start at 1.4, reduce to 0.6
+    
+    for (let i = 0; i < numExtendedCables; i++) {
+      const angle = (i / numExtendedCables) * Math.PI * 2;
+      const startRadius = pyramidRadius * 0.95;
+      
+      // Start from fourth cylinder edge
+      const startPoint = new THREE.Vector3(
+        Math.cos(angle) * startRadius,
+        -pyramidHeight / 2 - 1.55,
+        Math.sin(angle) * startRadius
+      );
+      
+      // Extended endpoint - progressively more back, less radial
+      const backwardExtension = backwardBase + Math.random() * 2.0;
+      const radialSpread = radialMultiplier;
+      const endPoint = new THREE.Vector3(
+        Math.cos(angle) * radialSpread,
+        -pyramidHeight / 2 - 1.55 - backwardExtension,
+        Math.sin(angle) * radialSpread
+      );
+      
+      // Create Bezier curve with control points for organic flow
+      const c1 = new THREE.Vector3().lerpVectors(startPoint, endPoint, 0.33)
+        .add(new THREE.Vector3(
+          (Math.random() - 0.5) * spreadMultiplier,
+          (Math.random() - 0.5) * spreadMultiplier,
+          (Math.random() - 0.5) * spreadMultiplier
+        ));
+      
+      const c2 = new THREE.Vector3().lerpVectors(startPoint, endPoint, 0.66)
+        .add(new THREE.Vector3(
+          (Math.random() - 0.5) * spreadMultiplier,
+          (Math.random() - 0.5) * spreadMultiplier,
+          (Math.random() - 0.5) * spreadMultiplier
+        ));
+      
+      const extendedCurve = new THREE.CubicBezierCurve3(startPoint, c1, c2, endPoint);
+      
+      // Create tube geometry - thinner for later iterations
+      const tubeRadius = 0.04 - iteration * 0.005;
+      const extendedTubeGeo = new THREE.TubeGeometry(extendedCurve, 48, tubeRadius, 8, false);
+      const extendedCableMat = new THREE.MeshStandardMaterial({
+        color: 0x555555,
+        metalness: 0.85,
+        roughness: 0.35
+      });
+      const extendedCable = new THREE.Mesh(extendedTubeGeo, extendedCableMat);
+      extendedCable.renderOrder = 5;
+      bottomPyramid.add(extendedCable);
+    }
+  }
+  
+  // Add yellow-orange inner cone pointing toward wormhole
+  const bottomInnerCone = new THREE.Mesh(innerConeGeo, innerConeMat.clone());
+  // Position so base is flush with pyramid base
+  bottomInnerCone.position.set(0, -pyramidHeight / 2 + innerConeHeight / 2, 0);
+  bottomInnerCone.renderOrder = 6;
+  bottomPyramid.add(bottomInnerCone);
+  
+  // Add red-orange glowing sphere at the tip (moves with cone)
+  const bottomTipSphere = new THREE.Mesh(tipSphereGeo, tipSphereMat.clone());
+  bottomTipSphere.position.set(0, -pyramidHeight / 2 + innerConeHeight, 0); // At the cone tip
+  bottomTipSphere.renderOrder = 7;
+  bottomPyramid.add(bottomTipSphere);
+  
+  // Add red-orange light at the tip (pointed vertex)
+  const bottomPyramidLight = new THREE.PointLight(0xff4400, 5, 10);
+  bottomPyramidLight.position.set(0, pyramidHeight / 2, 0); // Tip at +Y in local space
+  bottomPyramid.add(bottomPyramidLight);
+  
+  // Create sand particles inside bottom pyramid using instanced cubes
+  const bottomSandInstancedMesh = new THREE.InstancedMesh(sandGeo, sandMat.clone(), numSandParticles);
+  const bottomSandParticles = [];
+  
+  for (let i = 0; i < numSandParticles; i++) {
+    // Random position inside pyramid bounds
+    const yPos = (Math.random() - 0.5) * pyramidHeight * 0.8;
+    const maxRadius = pyramidRadius * (1 - Math.abs(yPos) / (pyramidHeight / 2)) * 0.9;
+    const angle = Math.random() * Math.PI * 2;
+    const r = Math.random() * maxRadius;
+    
+    const position = new THREE.Vector3(
+      Math.cos(angle) * r,
+      yPos,
+      Math.sin(angle) * r
+    );
+    
+    dummy.position.copy(position);
+    dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+    dummy.updateMatrix();
+    bottomSandInstancedMesh.setMatrixAt(i, dummy.matrix);
+    
+    bottomSandParticles.push({
+      position: position,
+      velocity: new THREE.Vector3(0, 0, 0),
+      rotation: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI),
+      rotVelocity: new THREE.Euler((Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.1, (Math.random() - 0.5) * 0.1)
+    });
+  }
+  
+  bottomSandInstancedMesh.instanceMatrix.needsUpdate = true;
+  bottomPyramid.add(bottomSandInstancedMesh);
+  bottomPyramid.userData.sandParticles = bottomSandParticles;
+  bottomPyramid.userData.sandInstancedMesh = bottomSandInstancedMesh;
+  
+  // Add 3 iterations of fractal pyramids (using same function)
+  addFractalPyramids(bottomPyramid, pyramidRadius, pyramidHeight, 0, 3);
+  
+  cage.add(bottomPyramid); // Add to cage so it rotates with it
+  blackHoleGroup.userData.bottomPyramid = bottomPyramid;
+  
+  // Add to scene
+  scene.add(blackHoleGroup);
+  blackHole = blackHoleGroup;
+}
+
+/* =========================
+   Binary Particle Creation
+   ========================= */
+function createBinaryParticle(position) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  
+  // Random 0 or 1
+  const digit = Math.random() > 0.5 ? '1' : '0';
+  
+  // Red-orange glowing text
+  ctx.fillStyle = '#ff6600';
+  ctx.font = 'bold 48px "Space Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(digit, 32, 32);
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  const material = new THREE.SpriteMaterial({
+    map: texture,
+    color: 0xff5500,
+    transparent: true,
+    opacity: 0.8,
+    blending: THREE.AdditiveBlending
+  });
+  
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(0.8, 0.8, 1);
+  sprite.position.copy(position);
+  
+  sprite.userData.birthTime = clock.getElapsedTime();
+  sprite.userData.spiralAngle = Math.random() * Math.PI * 2;
+  sprite.userData.spiralSpeed = 0.8 + Math.random() * 1.2;
+  
+  return sprite;
+}
+
+/* =========================
+   Scene Builder Props
+   ========================= */
+function createDiceProp() {
+  const size = 0.4;
+  const geo = new THREE.BoxGeometry(size, size, size);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.3,
+    metalness: 0.1
+  });
+  const dice = new THREE.Mesh(geo, mat);
+  
+  // Add dots (simplified)
+  const dotGeo = new THREE.SphereGeometry(0.05, 8, 8);
+  const dotMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+  for (let i = 0; i < 6; i++) {
+    const dot = new THREE.Mesh(dotGeo, dotMat);
+    const pos = size / 2 + 0.01;
+    if (i === 0) dot.position.set(pos, 0, 0);
+    else if (i === 1) dot.position.set(-pos, 0, 0);
+    else if (i === 2) dot.position.set(0, pos, 0);
+    else if (i === 3) dot.position.set(0, -pos, 0);
+    else if (i === 4) dot.position.set(0, 0, pos);
+    else dot.position.set(0, 0, -pos);
+    dice.add(dot);
+  }
+  
+  return dice;
+}
+
+function createCardProp() {
+  const width = 0.5;
+  const height = 0.7;
+  const depth = 0.02;
+  
+  const geo = new THREE.BoxGeometry(width, height, depth);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.4,
+    metalness: 0.1
+  });
+  const card = new THREE.Mesh(geo, mat);
+  
+  // Add simple red diamond/heart in center
+  const symbolGeo = new THREE.CircleGeometry(0.1, 16);
+  const symbolMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+  const symbol = new THREE.Mesh(symbolGeo, symbolMat);
+  symbol.position.z = depth / 2 + 0.01;
+  card.add(symbol);
+  
+  return card;
+}
+
+function createPawnProp() {
+  const group = new THREE.Group();
+  
+  // Base
+  const baseGeo = new THREE.CylinderGeometry(0.15, 0.2, 0.1, 16);
+  const baseMat = new THREE.MeshStandardMaterial({
+    color: 0x333333,
+    roughness: 0.6,
+    metalness: 0.2
+  });
+  const base = new THREE.Mesh(baseGeo, baseMat);
+  base.position.y = 0.05;
+  group.add(base);
+  
+  // Body
+  const bodyGeo = new THREE.CylinderGeometry(0.1, 0.12, 0.4, 16);
+  const body = new THREE.Mesh(bodyGeo, baseMat);
+  body.position.y = 0.3;
+  group.add(body);
+  
+  // Head
+  const headGeo = new THREE.SphereGeometry(0.12, 16, 16);
+  const head = new THREE.Mesh(headGeo, baseMat);
+  head.position.y = 0.6;
+  group.add(head);
+  
+  return group;
+}
+
+function createBuildingProp() {
+  const group = new THREE.Group();
+  const variant = Math.floor(Math.random() * 3);
+  
+  if (variant === 0) {
+    // Simple box building
+    const width = 0.4 + Math.random() * 0.3;
+    const height = 0.8 + Math.random() * 0.6;
+    const depth = 0.4 + Math.random() * 0.3;
+    
+    const buildingGeo = new THREE.BoxGeometry(width, height, depth);
+    const buildingMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color().setHSL(0, 0, 0.6 + Math.random() * 0.2),
+      roughness: 0.75,
+      metalness: 0.15
+    });
+    const building = new THREE.Mesh(buildingGeo, buildingMat);
+    building.position.y = height / 2;
+    group.add(building);
+    
+    // Windows
+    const windowMat = new THREE.MeshBasicMaterial({
+      color: 0xffeb99,
+      emissive: 0xffeb99,
+      emissiveIntensity: 0.5
+    });
+    const floors = Math.floor(height / 0.25);
+    for (let f = 1; f < floors; f++) {
+      const y = (f / floors) * height;
+      for (let w = 0; w < 2; w++) {
+        const windowGeo = new THREE.PlaneGeometry(0.08, 0.12);
+        const window = new THREE.Mesh(windowGeo, windowMat);
+        window.position.set((w - 0.5) * width * 0.6, y, depth / 2 + 0.01);
+        group.add(window);
+      }
+    }
+  } else if (variant === 1) {
+    // Stepped building
+    const sections = 2 + Math.floor(Math.random() * 2);
+    let currentY = 0;
+    for (let s = 0; s < sections; s++) {
+      const scale = 1 - s * 0.2;
+      const sectionHeight = 0.3 + Math.random() * 0.2;
+      const sectionGeo = new THREE.BoxGeometry(0.5 * scale, sectionHeight, 0.5 * scale);
+      const sectionMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color().setHSL(0, 0, 0.55 + s * 0.05),
+        roughness: 0.75,
+        metalness: 0.15
+      });
+      const section = new THREE.Mesh(sectionGeo, sectionMat);
+      section.position.y = currentY + sectionHeight / 2;
+      group.add(section);
+      currentY += sectionHeight;
+    }
+  } else {
+    // Cylinder tower
+    const radius = 0.15 + Math.random() * 0.1;
+    const height = 0.9 + Math.random() * 0.5;
+    const towerGeo = new THREE.CylinderGeometry(radius, radius * 1.1, height, 12);
+    const towerMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color().setHSL(0.55, 0.2, 0.6),
+      roughness: 0.7,
+      metalness: 0.2
+    });
+    const tower = new THREE.Mesh(towerGeo, towerMat);
+    tower.position.y = height / 2;
+    group.add(tower);
+  }
+  
+  return group;
+}
+
+function createTreeProp() {
+  const group = new THREE.Group();
+  
+  // Trunk
+  const trunkHeight = 0.5 + Math.random() * 0.3;
+  const trunkGeo = new THREE.CylinderGeometry(0.04, 0.05, trunkHeight, 6);
+  const trunkMat = new THREE.MeshStandardMaterial({
+    color: 0x4a3828,
+    roughness: 0.9
+  });
+  const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+  trunk.position.y = trunkHeight / 2;
+  group.add(trunk);
+  
+  // Foliage (simple sphere cluster)
+  const foliageMat = new THREE.MeshStandardMaterial({
+    color: 0x3a5a2a,
+    roughness: 0.8
+  });
+  const foliageCount = 3 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < foliageCount; i++) {
+    const foliageGeo = new THREE.SphereGeometry(0.15 + Math.random() * 0.1, 6, 6);
+    const foliage = new THREE.Mesh(foliageGeo, foliageMat);
+    const angle = (i / foliageCount) * Math.PI * 2;
+    foliage.position.set(
+      Math.cos(angle) * 0.1,
+      trunkHeight + 0.1 + Math.random() * 0.1,
+      Math.sin(angle) * 0.1
+    );
+    group.add(foliage);
+  }
+  
+  return group;
+}
+
+function createBobAvatar() {
+  const group = new THREE.Group();
+  
+  // Body (voxel style)
+  const bodyGeo = new THREE.BoxGeometry(0.3, 0.4, 0.2);
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: 0x4a7cff,
+    roughness: 0.6,
+    metalness: 0.3
+  });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 0.3;
+  group.add(body);
+  
+  // Head (cube)
+  const headGeo = new THREE.BoxGeometry(0.25, 0.25, 0.25);
+  const headMat = new THREE.MeshStandardMaterial({
+    color: 0xffcc99,
+    roughness: 0.7
+  });
+  const head = new THREE.Mesh(headGeo, headMat);
+  head.position.y = 0.625;
+  group.add(head);
+  
+  // Eyes (simple)
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  const eyeGeo = new THREE.BoxGeometry(0.05, 0.05, 0.02);
+  const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+  leftEye.position.set(-0.07, 0.65, 0.13);
+  group.add(leftEye);
+  const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+  rightEye.position.set(0.07, 0.65, 0.13);
+  group.add(rightEye);
+  
+  // Arms
+  const armGeo = new THREE.BoxGeometry(0.1, 0.3, 0.1);
+  const leftArm = new THREE.Mesh(armGeo, bodyMat);
+  leftArm.position.set(-0.2, 0.3, 0);
+  group.add(leftArm);
+  const rightArm = new THREE.Mesh(armGeo, bodyMat);
+  rightArm.position.set(0.2, 0.3, 0);
+  group.add(rightArm);
+  
+  // Legs
+  const legGeo = new THREE.BoxGeometry(0.12, 0.25, 0.12);
+  const leftLeg = new THREE.Mesh(legGeo, bodyMat);
+  leftLeg.position.set(-0.08, 0.025, 0);
+  group.add(leftLeg);
+  const rightLeg = new THREE.Mesh(legGeo, bodyMat);
+  rightLeg.position.set(0.08, 0.025, 0);
+  group.add(rightLeg);
+  
+  return group;
+}
+
+function createPaletteAvatar() {
+  const group = new THREE.Group();
+  
+  // Body (artistic palette shape)
+  const bodyGeo = new THREE.BoxGeometry(0.35, 0.35, 0.15);
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: 0xff6b9d,
+    roughness: 0.5,
+    metalness: 0.2
+  });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 0.3;
+  group.add(body);
+  
+  // Paint splotches on body
+  const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00];
+  colors.forEach((color, i) => {
+    const splotchGeo = new THREE.SphereGeometry(0.04, 6, 6);
+    const splotchMat = new THREE.MeshBasicMaterial({ color });
+    const splotch = new THREE.Mesh(splotchGeo, splotchMat);
+    splotch.position.set(
+      (i % 2 - 0.5) * 0.2,
+      0.3 + (Math.floor(i / 2) - 0.5) * 0.15,
+      0.08
+    );
+    group.add(splotch);
+  });
+  
+  // Head
+  const headGeo = new THREE.BoxGeometry(0.22, 0.22, 0.22);
+  const headMat = new THREE.MeshStandardMaterial({
+    color: 0xffddbb,
+    roughness: 0.7
+  });
+  const head = new THREE.Mesh(headGeo, headMat);
+  head.position.y = 0.575;
+  group.add(head);
+  
+  // Beret (artist hat)
+  const beretGeo = new THREE.CylinderGeometry(0.15, 0.12, 0.08, 16);
+  const beretMat = new THREE.MeshStandardMaterial({
+    color: 0x8b0000,
+    roughness: 0.8
+  });
+  const beret = new THREE.Mesh(beretGeo, beretMat);
+  beret.position.y = 0.73;
+  beret.rotation.z = 0.2;
+  group.add(beret);
+  
+  return group;
+}
+
+function createKeyboardProp() {
+  const group = new THREE.Group();
+  
+  // Base
+  const baseGeo = new THREE.BoxGeometry(0.8, 0.05, 0.3);
+  const baseMat = new THREE.MeshStandardMaterial({
+    color: 0x2a2a2a,
+    roughness: 0.6,
+    metalness: 0.4
+  });
+  const base = new THREE.Mesh(baseGeo, baseMat);
+  base.position.y = 0.025;
+  group.add(base);
+  
+  // Keys (simplified grid)
+  const keyMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a,
+    roughness: 0.5,
+    metalness: 0.3
+  });
+  const keySize = 0.04;
+  const keyHeight = 0.02;
+  const keyGeo = new THREE.BoxGeometry(keySize, keyHeight, keySize);
+  
+  const rows = 4;
+  const cols = 12;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const key = new THREE.Mesh(keyGeo, keyMat);
+      key.position.set(
+        (c - cols / 2) * (keySize + 0.005) + 0.025,
+        0.06,
+        (r - rows / 2) * (keySize + 0.005) + 0.025
+      );
+      group.add(key);
+    }
+  }
+  
+  // Space bar
+  const spaceGeo = new THREE.BoxGeometry(0.3, keyHeight, keySize);
+  const space = new THREE.Mesh(spaceGeo, keyMat);
+  space.position.set(0, 0.06, 0.12);
+  group.add(space);
+  
+  return group;
+}
+
+function spawnProp(blackHoleGroup) {
+  // Expanded prop types: dice, card, pawn, building, tree, bob, palette, keyboard
+  const propType = Math.floor(Math.random() * 9);
+  let prop;
+  let scale = 1.0;
+  
+  if (propType === 0) {
+    prop = createDiceProp();
+  } else if (propType === 1) {
+    prop = createCardProp();
+  } else if (propType === 2) {
+    prop = createPawnProp();
+  } else if (propType === 3) {
+    prop = createBuildingProp();
+    scale = 0.4 + Math.random() * 0.3; // Smaller buildings
+  } else if (propType === 4) {
+    prop = createTreeProp();
+    scale = 0.6 + Math.random() * 0.4;
+  } else if (propType === 5) {
+    prop = createBobAvatar();
+    scale = 0.8 + Math.random() * 0.2;
+  } else if (propType === 6) {
+    prop = createPaletteAvatar();
+    scale = 0.8 + Math.random() * 0.2;
+  } else if (propType === 7) {
+    prop = createKeyboardProp();
+    scale = 0.5 + Math.random() * 0.3;
+  } else {
+    // Another building variant
+    prop = createBuildingProp();
+    scale = 0.3 + Math.random() * 0.2;
+  }
+  
+  // Apply scale
+  prop.scale.set(scale, scale, scale);
+  
+  // Random spawn position around black hole
+  const spawnRadius = 15 + Math.random() * 5;
+  const angle = Math.random() * Math.PI * 2;
+  const elevation = (Math.random() - 0.5) * 10;
+  
+  prop.position.set(
+    Math.cos(angle) * spawnRadius,
+    elevation,
+    Math.sin(angle) * spawnRadius
+  );
+  
+  // Random rotation
+  prop.rotation.set(
+    Math.random() * Math.PI * 2,
+    Math.random() * Math.PI * 2,
+    Math.random() * Math.PI * 2
+  );
+  
+  prop.userData.rotVelocity = new THREE.Vector3(
+    (Math.random() - 0.5) * 2,
+    (Math.random() - 0.5) * 2,
+    (Math.random() - 0.5) * 2
+  );
+  prop.userData.birthTime = clock.getElapsedTime();
+  
+  blackHoleGroup.add(prop);
+  return prop;
+}
+
+/* =========================
+   Floating Tablet
+   ========================= */
+function createTablet(){
+  const width = 8;
+  const height = 6;
+  const depth = 0.15;
+  const borderWidth = 0.2;
+  
+  // Canvas for tablet screen
+  const canvasWidth = 1024;
+  const canvasHeight = 768;
+  tabletCanvas = document.createElement('canvas');
+  tabletCanvas.width = canvasWidth;
+  tabletCanvas.height = canvasHeight;
+  tabletCtx = tabletCanvas.getContext('2d');
+  
+  // Clear with transparent gradient
+  clearTabletCanvas();
+  
+  tabletTexture = new THREE.CanvasTexture(tabletCanvas);
+  tabletTexture.minFilter = THREE.LinearFilter;
+  tabletTexture.magFilter = THREE.LinearFilter;
+  
+  // Screen material - white hazy glass
+  const screenMat = new THREE.MeshPhysicalMaterial({
+    map: tabletTexture,
+    transparent: true,
+    opacity: 0.95,
+    roughness: 0.1,
+    metalness: 0.1,
+    clearcoat: 0.5,
+    clearcoatRoughness: 0.2,
+    transmission: 0.1,
+    envMapIntensity: 1.0,
+    side: THREE.FrontSide
+  });
+  
+  // Border material - orange-red
+  const borderMat = new THREE.MeshStandardMaterial({
+    color: 0xff4400,
+    emissive: 0xff2200,
+    emissiveIntensity: 0.4,
+    roughness: 0.3,
+    metalness: 0.7
+  });
+  
+  // Create tablet group
+  tablet = new THREE.Group();
+  
+  // Screen
+  const screenGeo = new THREE.PlaneGeometry(width, height);
+  const screenMesh = new THREE.Mesh(screenGeo, screenMat);
+  screenMesh.userData.isScreen = true;
+  tablet.add(screenMesh);
+  
+  // Borders (frame)
+  // Top
+  const topBorder = new THREE.Mesh(
+    new THREE.BoxGeometry(width + borderWidth * 2, borderWidth, depth),
+    borderMat
+  );
+  topBorder.position.y = height / 2 + borderWidth / 2;
+  tablet.add(topBorder);
+  
+  // Bottom
+  const bottomBorder = new THREE.Mesh(
+    new THREE.BoxGeometry(width + borderWidth * 2, borderWidth, depth),
+    borderMat
+  );
+  bottomBorder.position.y = -(height / 2 + borderWidth / 2);
+  tablet.add(bottomBorder);
+  
+  // Left
+  const leftBorder = new THREE.Mesh(
+    new THREE.BoxGeometry(borderWidth, height, depth),
+    borderMat
+  );
+  leftBorder.position.x = -(width / 2 + borderWidth / 2);
+  tablet.add(leftBorder);
+  
+  // Right
+  const rightBorder = new THREE.Mesh(
+    new THREE.BoxGeometry(borderWidth, height, depth),
+    borderMat
+  );
+  rightBorder.position.x = width / 2 + borderWidth / 2;
+  tablet.add(rightBorder);
+  
+  // Minimize icon (black circle) - top right
+  const iconGeo = new THREE.CircleGeometry(0.2, 32);
+  const iconMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  const minimizeIcon = new THREE.Mesh(iconGeo, iconMat);
+  minimizeIcon.position.set(width / 2 - 0.4, height / 2 - 0.4, 0.08);
+  minimizeIcon.userData.isMinimize = true;
+  tablet.add(minimizeIcon);
+  
+  // Back panel
+  const backGeo = new THREE.PlaneGeometry(width, height);
+  const backMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a,
+    roughness: 0.9,
+    metalness: 0.1
+  });
+  const backPanel = new THREE.Mesh(backGeo, backMat);
+  backPanel.position.z = -depth / 2 - 0.01;
+  backPanel.rotation.y = Math.PI;
+  tablet.add(backPanel);
+  
+  tablet.position.set(0, 0, 5);
+  scene.add(tablet);
+  
+  // Add click handler for minimize
+  window.addEventListener('click', onTabletClick);
+}
+
+function clearTabletCanvas(){
+  const w = tabletCanvas.width;
+  const h = tabletCanvas.height;
+  
+  // White hazy gradient background
+  const gradient = tabletCtx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w*0.7);
+  gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+  gradient.addColorStop(0.5, 'rgba(245, 245, 250, 0.90)');
+  gradient.addColorStop(1, 'rgba(235, 235, 245, 0.85)');
+  
+  tabletCtx.fillStyle = gradient;
+  tabletCtx.fillRect(0, 0, w, h);
+  
+  // Subtle glass texture
+  tabletCtx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+  for(let i = 0; i < 50; i++){
+    const x = Math.random() * w;
+    const y = Math.random() * h;
+    const r = Math.random() * 3 + 1;
+    tabletCtx.beginPath();
+    tabletCtx.arc(x, y, r, 0, Math.PI * 2);
+    tabletCtx.fill();
+  }
+}
+
+function writeToTablet(text, clear = false){
+  if(clear) clearTabletCanvas();
+  
+  const w = tabletCanvas.width;
+  const h = tabletCanvas.height;
+  
+  // Text styling
+  tabletCtx.font = '36px "IBM Plex Mono", monospace';
+  tabletCtx.fillStyle = '#1a1a1a';
+  tabletCtx.textAlign = 'center';
+  tabletCtx.textBaseline = 'top';
+  
+  const lines = text.split('\n');
+  const lineHeight = 48;
+  const startY = (h - lines.length * lineHeight) / 2;
+  
+  lines.forEach((line, i) => {
+    tabletCtx.fillText(line, w / 2, startY + i * lineHeight);
+  });
+  
+  tabletTexture.needsUpdate = true;
+}
+
+/* =========================
+   3D Input Field
+   ========================= */
+function createInputField(){
+  const width = 6;
+  const height = 0.8;
+  
+  // Create canvas for input
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  
+  // White background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Border
+  ctx.strokeStyle = '#ff4400';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(0, 0, canvas.width, canvas.height);
+  
+  // Prompt
+  ctx.font = '32px "Space Mono", monospace';
+  ctx.fillStyle = '#444';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('> ', 20, canvas.height / 2);
+  
+  const inputTexture = new THREE.CanvasTexture(canvas);
+  inputTexture.minFilter = THREE.LinearFilter;
+  inputTexture.magFilter = THREE.LinearFilter;
+  
+  const inputMat = new THREE.MeshBasicMaterial({
+    map: inputTexture,
+    transparent: true,
+    opacity: 0
+  });
+  
+  const inputGeo = new THREE.PlaneGeometry(width, height);
+  inputFieldMesh = new THREE.Mesh(inputGeo, inputMat);
+  inputFieldMesh.position.set(0, -2.5, 5.1);
+  inputFieldMesh.userData.canvas = canvas;
+  inputFieldMesh.userData.ctx = ctx;
+  inputFieldMesh.userData.text = '';
+  inputFieldMesh.userData.texture = inputTexture;
+  scene.add(inputFieldMesh);
+  
+  inputField = inputFieldMesh;
+  
+  // Keyboard listener
+  window.addEventListener('keydown', onKeyPress);
+}
+
+function updateInputDisplay(){
+  const canvas = inputField.userData.canvas;
+  const ctx = inputField.userData.ctx;
+  const text = inputField.userData.text;
+  
+  // Clear
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Border
+  ctx.strokeStyle = '#ff4400';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(0, 0, canvas.width, canvas.height);
+  
+  // Prompt and text
+  ctx.font = '32px "Space Mono", monospace';
+  ctx.fillStyle = '#1a1a1a';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('> ' + text, 20, canvas.height / 2);
+  
+  // Cursor
+  const cursorX = 60 + ctx.measureText(text).width;
+  if(Math.floor(Date.now() / 500) % 2 === 0){
+    ctx.fillRect(cursorX, canvas.height / 2 - 16, 3, 32);
+  }
+  
+  inputField.userData.texture.needsUpdate = true;
+}
+
+function onKeyPress(e){
+  if(!sequenceStarted || answered) return;
+  
+  const key = e.key;
+  
+  if(key === 'Enter'){
+    checkAnswer();
+  } else if(key === 'Backspace'){
+    inputField.userData.text = inputField.userData.text.slice(0, -1);
+    updateInputDisplay();
+  } else if(key.length === 1 && inputField.userData.text.length < 30){
+    inputField.userData.text += key;
+    updateInputDisplay();
+  }
+}
+
+function checkAnswer(){
+  const answer = inputField.userData.text.toLowerCase().trim();
+  
+  if(CORRECT_ANSWERS.includes(answer)){
+    answered = true;
+    writeToTablet('Correct.\n\nYou understand.\n\nThe cell is the foundation.\nThe void that becomes.', true);
+    playSuccessSound();
+    
+    // Fade out input
+    gsap.to(inputField.material, {
+      opacity: 0,
+      duration: 1
+    });
+    
+    // Show conclusion
+    setTimeout(() => {
+      writeToTablet('THE.OS\nThe Ontological System\n\nEvery cell holds potential.\nEvery system, a universe.', true);
+    }, 4000);
+    
+  } else {
+    inputField.userData.text = '';
+    updateInputDisplay();
+    playErrorSound();
+    
+    // Flash tablet red briefly
+    const originalColor = tablet.children[1].material.emissive.clone();
+    tablet.children[1].material.emissive.setHex(0xff0000);
+    setTimeout(() => {
+      tablet.children[1].material.emissive.copy(originalColor);
+    }, 200);
+  }
+}
+
+function onTabletClick(event){
+  if(!tablet) return;
+  
+  const mouse = new THREE.Vector2();
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(mouse, camera);
+  
+  const intersects = raycaster.intersectObjects(tablet.children, true);
+  
+  if(intersects.length > 0){
+    const obj = intersects[0].object;
+    if(obj.userData.isMinimize){
+      minimizeTablet();
+    }
+  }
+}
+
+function minimizeTablet(){
+  gsap.to(tablet.scale, {
+    x: 0.01,
+    y: 0.01,
+    z: 0.01,
+    duration: 0.8,
+    ease: 'power2.in'
+  });
+  
+  gsap.to(inputField.scale, {
+    x: 0.01,
+    y: 0.01,
+    z: 0.01,
+    duration: 0.8,
+    ease: 'power2.in'
+  });
+  
+  // Focus on black hole
+  gsap.to(camera.position, {
+    z: 2,
+    duration: 3,
+    ease: 'power1.inOut'
+  });
+}
+
+/* =========================
+   Start Sequence
+   ========================= */
+function startSequence(){
+  sequenceStarted = true;
+  typeRiddleLines();
+  
+  // Play telos audio
+  const telosAudio = document.getElementById('telos-audio');
+  if(telosAudio){
+    telosAudio.volume = 0.5;
+    telosAudio.play().catch(err => console.log('Audio playback failed:', err));
+  }
+  
+  // Fade in input field after riddle
+  setTimeout(() => {
+    gsap.to(inputField.material, {
+      opacity: 1,
+      duration: 1
+    });
+  }, RIDDLE_MONOLOGUE.join('\n').length * 50 + 2000);
+}
+
+function typeRiddleLines(){
+  let fullText = '';
+  let lineIndex = 0;
+  
+  function typeLine(){
+    if(lineIndex >= RIDDLE_MONOLOGUE.length) return;
+    
+    const line = RIDDLE_MONOLOGUE[lineIndex];
+    let charIndex = 0;
+    
+    function typeChar(){
+      if(charIndex < line.length){
+        fullText += line[charIndex];
+        writeToTablet(fullText, true);
+        charIndex++;
+        setTimeout(typeChar, 30 + Math.random() * 40);
+      } else {
+        fullText += '\n';
+        lineIndex++;
+        setTimeout(typeLine, 400);
+      }
+    }
+    
+    typeChar();
+  }
+  
+  typeLine();
+}
+
+/* =========================
+   Audio
+   ========================= */
+function playSuccessSound(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const now = audioCtx.currentTime;
+  
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(440, now);
+  osc.frequency.exponentialRampToValueAtTime(880, now + 0.2);
+  
+  gain.gain.setValueAtTime(0.3, now);
+  gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+  
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  
+  osc.start(now);
+  osc.stop(now + 0.5);
+}
+
+function playErrorSound(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const now = audioCtx.currentTime;
+  
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(200, now);
+  
+  gain.gain.setValueAtTime(0.2, now);
+  gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+  
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  
+  osc.start(now);
+  osc.stop(now + 0.15);
+}
+
+/* =========================
+   Animation Loop
+   ========================= */
+function animate(){
+  requestAnimationFrame(animate);
+  
+  const delta = clock.getDelta();
+  const time = clock.getElapsedTime();
+  
+  // Update mouse influence with spring physics
+  updateMouseInfluence();
+  
+  // Update camera position from orbit controls
+  updateCameraPosition();
+  
+  // Animate black hole
+  if(blackHole){
+    // === EVENT HORIZON - Slow rotate and mouse deformation ===
+    if(blackHole.userData.eventHorizon){
+      blackHole.userData.eventHorizon.rotation.z += delta * 0.5;
+      
+      // Apply mouse deformation to vertices
+      if (mouseInteraction.influence > 0.01) {
+        const positions = blackHole.userData.eventHorizon.geometry.attributes.position;
+        const basePositions = blackHole.userData.eventHorizon.userData.basePositions;
+        
+        for (let i = 0; i < positions.count; i++) {
+          const baseX = basePositions[i * 3];
+          const baseY = basePositions[i * 3 + 1];
+          const baseZ = basePositions[i * 3 + 2];
+          
+          // Convert to world space
+          const vertexWorldPos = new THREE.Vector3(baseX, baseY, baseZ - 8);
+          const distToMouse = vertexWorldPos.distanceTo(mouseInteraction.worldPosition);
+          
+          if (distToMouse < 5) {
+            const deformStrength = (1 - distToMouse / 5) * mouseInteraction.influence * mouseInteraction.deformationStrength;
+            const dirToMouse = new THREE.Vector3()
+              .subVectors(mouseInteraction.worldPosition, vertexWorldPos)
+              .normalize();
+            
+            positions.setXYZ(
+              i,
+              baseX + dirToMouse.x * deformStrength * 1.5,
+              baseY + dirToMouse.y * deformStrength * 1.5,
+              baseZ + dirToMouse.z * deformStrength * 1.5
+            );
+          } else {
+            positions.setXYZ(i, baseX, baseY, baseZ);
+          }
+        }
+        
+        positions.needsUpdate = true;
+        blackHole.userData.eventHorizon.geometry.computeVertexNormals();
+      }
+    }
+    
+    // === WIREFRAME CAGE - Slow rotation and flowing animation ===
+    if(blackHole.userData.cage){
+      blackHole.userData.cage.visible = settings.showWireframeCage;
+      if(settings.showWireframeCage){
+        blackHole.userData.cage.rotation.y += delta * 0.15;
+        blackHole.userData.cage.rotation.x += delta * 0.08;
+        
+        // Update shader time uniform for glowing effect
+        if(blackHole.userData.cage.material.uniforms){
+          blackHole.userData.cage.material.uniforms.time.value = time;
+        }
+        
+        // Animate vertices flowing toward wormhole poles
+        const cage = blackHole.userData.cage;
+        const positions = cage.geometry.attributes.position;
+        const basePositions = cage.userData.basePositions;
+        const cageRadius = blackHole.userData.cageRadius;
+        
+        for (let i = 0; i < positions.count; i++) {
+          const baseX = basePositions[i * 3];
+          const baseY = basePositions[i * 3 + 1];
+          const baseZ = basePositions[i * 3 + 2];
+          
+          // Calculate flow toward poles
+          const distFromYAxis = Math.sqrt(baseX * baseX + baseZ * baseZ);
+          const latitude = Math.atan2(distFromYAxis, baseY);
+          
+          // Wave effect that flows along Y axis toward poles
+          const yNormalized = baseY / cageRadius; // -1 to 1
+          const wavePhase = time * 1.5 + yNormalized * Math.PI * 2;
+          const flowWave = Math.sin(wavePhase) * 0.08;
+          
+          // Pull toward Y axis (wormhole tunnel) with pulsing
+          const poleDistance = Math.min(latitude, Math.PI - latitude);
+          const flowStrength = (1 - Math.sin(poleDistance)) * (1 + flowWave);
+          
+          // Apply inward flow
+          let flowFactor = 1 - flowStrength * 0.15;
+          
+          // === SWALLOWING ANIMATION - Traveling wave that expands/contracts the tube ===
+          // Only affect vertices near the poles (in the wormhole tunnel)
+          if (poleDistance < 1.0) { // Near poles
+            // Create traveling waves moving toward center (poles)
+            const swallowSpeed = 2.5;
+            const swallowFrequency = 3.0;
+            
+            // Determine if this is top or bottom pole
+            const isTopPole = baseY > 0;
+            const direction = isTopPole ? -1 : 1; // Direction toward pole
+            
+            // Wave travels along Y axis toward the pole
+            const swallowPhase = time * swallowSpeed + Math.abs(yNormalized) * Math.PI * swallowFrequency * direction;
+            const swallowWave = Math.sin(swallowPhase) * 0.5 + 0.5; // 0 to 1
+            
+            // Modulate the wave strength based on distance from pole
+            const tunnelDepth = 1.0 - poleDistance; // 0 at equator, 1 at pole
+            const swallowAmount = swallowWave * tunnelDepth * 0.25;
+            
+            // Apply swallowing: alternate between wider and narrower
+            flowFactor += swallowAmount * Math.sin(swallowPhase * 2);
+          }
+          
+          positions.setXYZ(
+            i,
+            baseX * flowFactor,
+            baseY * (1 + Math.abs(flowStrength) * 0.05), // Slight elongation along Y
+            baseZ * flowFactor
+          );
+        }
+        
+        positions.needsUpdate = true;
+        
+        // === WORMHOLE PYRAMIDS - Track wormhole position and pulsate ===
+        if(blackHole.userData.topPyramid && blackHole.userData.bottomPyramid && settings.showPyramids){
+          const cageRadius = blackHole.userData.cageRadius;
+          
+          // Calculate the inward flow at the poles (where wormhole is)
+          const wavePhase = time * 1.5 + Math.PI * 2; // At the poles
+          const flowWave = Math.sin(wavePhase) * 0.08;
+          const flowStrength = (1 + flowWave);
+          const flowFactor = 1 - flowStrength * 0.15;
+          
+          // Calculate wormhole center positions (moving with flow)
+          const wormholeTopY = cageRadius * 0.85 * (1 + Math.abs(flowStrength) * 0.05);
+          const wormholeBottomY = -cageRadius * 0.85 * (1 + Math.abs(flowStrength) * 0.05);
+          const wormholeRadius = cageRadius * flowFactor * 0.3;
+          
+          // Pulsate the pyramids with the wormhole flow
+          const pulsateScale = 1 + flowWave * 0.2;
+          blackHole.userData.topPyramid.scale.set(pulsateScale, pulsateScale, pulsateScale);
+          blackHole.userData.bottomPyramid.scale.set(pulsateScale, pulsateScale, pulsateScale);
+          
+          // Recursive function to update all spotlight targets in the fractal pyramid tree
+          function updateSpotlightTargets(parentPyramid, wormholeY) {
+            parentPyramid.children.forEach(child => {
+              if(child.userData.spotlight){
+                // Convert wormhole center to local coordinates of this child pyramid
+                const worldCenter = new THREE.Vector3(0, wormholeY, 0);
+                const localCenter = parentPyramid.worldToLocal(worldCenter.clone());
+                child.userData.spotlight.target.position.copy(localCenter.sub(child.position));
+              }
+              // Recursively update children of this child
+              if(child.children.length > 0) {
+                updateSpotlightTargets(child, wormholeY);
+              }
+            });
+          }
+          
+          // Update spotlight targets for all fractal pyramids
+          updateSpotlightTargets(blackHole.userData.topPyramid, wormholeTopY);
+          updateSpotlightTargets(blackHole.userData.bottomPyramid, wormholeBottomY);
+          
+          // === SAND PARTICLE PHYSICS - Respond to cage rotation ===
+          // Helper function to update sand particles in a pyramid
+          function updateSandParticles(pyramid, pyramidHeight, pyramidRadius) {
+            if (!pyramid.userData.sandParticles || !pyramid.userData.sandInstancedMesh) return;
+            
+            const particles = pyramid.userData.sandParticles;
+            const instancedMesh = pyramid.userData.sandInstancedMesh;
+            const dummy = new THREE.Object3D();
+            
+            // Get world "down" direction based on cage rotation
+            const worldUp = new THREE.Vector3(0, 1, 0);
+            const worldPos = new THREE.Vector3();
+            pyramid.getWorldPosition(worldPos);
+            const localUp = pyramid.worldToLocal(worldUp.clone().add(worldPos));
+            const gravityDir = localUp.clone().sub(new THREE.Vector3()).normalize().multiplyScalar(-1);
+            
+            particles.forEach((particle, i) => {
+              const pos = particle.position;
+              const vel = particle.velocity;
+              const rot = particle.rotation;
+              const rotVel = particle.rotVelocity;
+              
+              // Apply gravity
+              vel.add(gravityDir.clone().multiplyScalar(delta * 5.0));
+              
+              // Apply velocity
+              pos.add(vel.clone().multiplyScalar(delta * 60));
+              
+              // Apply rotation velocity
+              rot.x += rotVel.x;
+              rot.y += rotVel.y;
+              rot.z += rotVel.z;
+              
+              // Damping
+              vel.multiplyScalar(0.98);
+              
+              // Check pyramid bounds (cone shape)
+              const distFromCenter = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
+              const maxRadiusAtY = pyramidRadius * (1 - Math.abs(pos.y) / (pyramidHeight / 2)) * 0.85;
+              
+              // Constrain to cone bounds
+              if (distFromCenter > maxRadiusAtY && maxRadiusAtY > 0.01) {
+                const angle = Math.atan2(pos.z, pos.x);
+                pos.x = Math.cos(angle) * maxRadiusAtY;
+                pos.z = Math.sin(angle) * maxRadiusAtY;
+                vel.x *= -0.3;
+                vel.z *= -0.3;
+                rotVel.x += (Math.random() - 0.5) * 0.05;
+                rotVel.z += (Math.random() - 0.5) * 0.05;
+              }
+              
+              // Floor collision
+              if (pos.y < -pyramidHeight / 2 + 0.1) {
+                pos.y = -pyramidHeight / 2 + 0.1;
+                vel.y *= -0.4;
+                if (Math.abs(vel.y) < 0.01) vel.y = 0;
+                rotVel.x += (Math.random() - 0.5) * 0.05;
+                rotVel.z += (Math.random() - 0.5) * 0.05;
+              }
+              
+              // Ceiling collision (cone tip)
+              if (pos.y > pyramidHeight / 2 - 0.1) {
+                pos.y = pyramidHeight / 2 - 0.1;
+                vel.y *= -0.4;
+                rotVel.x += (Math.random() - 0.5) * 0.05;
+                rotVel.z += (Math.random() - 0.5) * 0.05;
+              }
+              
+              // Update instance matrix
+              dummy.position.copy(pos);
+              dummy.rotation.copy(rot);
+              dummy.updateMatrix();
+              instancedMesh.setMatrixAt(i, dummy.matrix);
+            });
+            
+            instancedMesh.instanceMatrix.needsUpdate = true;
+          }
+          
+          // Update sand for both pyramids
+          updateSandParticles(blackHole.userData.topPyramid, 2.5, 1.2);
+          updateSandParticles(blackHole.userData.bottomPyramid, 2.5, 1.2);
+        }
+      }
+    }
+    
+    // Toggle pyramid visibility
+    if(blackHole.userData.topPyramid && blackHole.userData.bottomPyramid){
+      blackHole.userData.topPyramid.visible = settings.showPyramids;
+      blackHole.userData.bottomPyramid.visible = settings.showPyramids;
+    }
+    
+    // === UNIFIED PULSATION - All rings synchronized ===
+    const masterPulse = Math.sin(time * 1.2);
+    
+    // === CONCENTRIC RINGS - Rotation, cascading expansion, and mouse deformation ===
+    if(blackHole.userData.rings){
+      blackHole.userData.rings.visible = settings.showConcentriRings;
+      if(settings.showConcentriRings){
+        blackHole.userData.rings.rotation.y += delta * 0.3;
+        
+        // Each ring expands individually - outer rings expand more and flatten
+        blackHole.userData.rings.children.forEach((ring, index) => {
+          // Base pulse for all rings
+          const basePulse = masterPulse * 0.225 + 0.925;
+          
+          // Additional expansion for outer rings (increases with distance)
+          const expansionMultiplier = 1 + (index / 12) * 0.5; // Outer rings get up to 50% more expansion
+          const additionalExpansion = masterPulse * 0.15 * (index / 12);
+          
+          let ringPulse = (basePulse + additionalExpansion) * expansionMultiplier;
+          
+          // Apply mouse deformation - push ring toward/away from mouse
+          if (mouseInteraction.influence > 0.01) {
+            const ringRadius = 1.8 + index * 0.4;
+            const ringWorldPos = new THREE.Vector3(0, 0, -8);
+            const distToMouse = ringWorldPos.distanceTo(mouseInteraction.worldPosition);
+            
+            // If mouse is near this ring's radius, deform it
+            if (Math.abs(distToMouse - ringRadius) < 3) {
+              const deformStrength = (1 - Math.abs(distToMouse - ringRadius) / 3) * mouseInteraction.influence * 0.15;
+              ringPulse *= (1 + deformStrength);
+            }
+          }
+          
+          // Flatten as it expands - Y scale contracts when horizontal expands
+          const flattenFactor = 1 / (1 + (ringPulse - 1) * 0.6); // Compress Y more as expansion increases
+          
+          ring.scale.set(ringPulse, ringPulse * flattenFactor, ringPulse);
+        });
+      }
+    }
+    
+    // === VERTICAL TORUS GROUP - Billboard to camera with gradient rings ===
+    if(blackHole.userData.verticalTorusGroup){
+      blackHole.userData.verticalTorusGroup.visible = settings.showVerticalRings;
+      if(settings.showVerticalRings){
+        // Get world position of black hole
+        const blackHoleWorldPos = new THREE.Vector3();
+        blackHole.getWorldPosition(blackHoleWorldPos);
+        
+        // Calculate direction from black hole to camera in XZ plane
+        const camToBlackHole = new THREE.Vector3(
+          camera.position.x - blackHoleWorldPos.x,
+          0, // Ignore Y to keep vertical
+          camera.position.z - blackHoleWorldPos.z
+        );
+        
+        // Calculate angle to face camera
+        const angle = Math.atan2(camToBlackHole.x, camToBlackHole.z);
+        
+        // Rotate entire group to face camera (vertical orientation)
+        blackHole.userData.verticalTorusGroup.rotation.y = angle;
+        
+        // Apply individual scaling to each ring in the group
+        blackHole.userData.verticalTorusGroup.children.forEach((child, ringIndex) => {
+          // Skip if this is a cube (only scale the torus rings)
+          if (child.userData.angle !== undefined) return;
+          
+          // Base pulse for all rings
+          let verticalPulse = masterPulse * 0.225 + 0.925;
+          
+          // Calculate this ring's radius (from creation: 3.5 - i * 0.15)
+          const ringRadius = 3.5 - ringIndex * 0.15;
+          
+          // Apply mouse deformation based on each ring's individual radius
+          if (mouseInteraction.influence > 0.01) {
+            const ringWorldPos = new THREE.Vector3(0, 0, -8);
+            const distToMouse = ringWorldPos.distanceTo(mouseInteraction.worldPosition);
+            
+            // Deform based on proximity to this specific ring's radius
+            const distanceFromRing = Math.abs(distToMouse - ringRadius);
+            if (distanceFromRing < 2.5) {
+              const deformStrength = (1 - distanceFromRing / 2.5) * mouseInteraction.influence * 0.25;
+              
+              // Inner rings scale less, outer rings scale more (creates separation)
+              const ringFactor = 1 - (ringIndex / 8) * 0.3; // Inner rings get 0.7x, outer get 1.0x
+              verticalPulse *= (1 + deformStrength * ringFactor);
+            }
+          }
+          
+          child.scale.set(verticalPulse, verticalPulse, verticalPulse);
+        });
+        
+        // === TORUS CUBES - Orbit, bob, and pulsate with rings ===
+        if(settings.showTorusCubes){
+          blackHole.userData.verticalTorusGroup.children.forEach(cube => {
+            if(cube.userData.angle !== undefined) {
+              cube.visible = true;
+              cube.userData.angle += delta * cube.userData.speed;
+              cube.position.x = Math.cos(cube.userData.angle) * cube.userData.radius;
+              cube.position.z = Math.sin(cube.userData.angle) * cube.userData.radius;
+              cube.position.y = Math.sin(time * cube.userData.bobSpeed + cube.userData.bobOffset) * 0.3;
+              
+              // Pulsate cube scale in sync with rings
+              const cubePulse = masterPulse * 0.3 + 1;
+              cube.scale.set(cubePulse, cubePulse, cubePulse);
+            }
+          });
+        } else {
+          blackHole.userData.verticalTorusGroup.children.forEach(cube => {
+            if(cube.userData.angle !== undefined) {
+              cube.visible = false;
+            }
+          });
+        }
+      }
+    }
+    
+    // === SECONDARY VERTICAL RING - Billboard to camera, softer pulsation ===
+    if(blackHole.userData.secondaryVerticalRing){
+      blackHole.userData.secondaryVerticalRing.visible = settings.showSecondaryRing;
+      if(settings.showSecondaryRing){
+        // Get world position of black hole
+        const blackHoleWorldPos = new THREE.Vector3();
+        blackHole.getWorldPosition(blackHoleWorldPos);
+        
+        // Calculate direction from black hole to camera in XZ plane
+        const camToBlackHole = new THREE.Vector3(
+          camera.position.x - blackHoleWorldPos.x,
+          0,
+          camera.position.z - blackHoleWorldPos.z
+        );
+        
+        // Calculate angle to face camera
+        const angle = Math.atan2(camToBlackHole.x, camToBlackHole.z);
+        
+        // Rotate to face camera (vertical orientation)
+        blackHole.userData.secondaryVerticalRing.rotation.y = angle;
+        
+        // Softer pulsation in sync with concentric rings (0.85 to 1.05)
+        let secondaryPulse = masterPulse * 0.1 + 0.95;
+        
+        // Apply mouse deformation to secondary ring
+        if (mouseInteraction.influence > 0.01) {
+          const ringWorldPos = new THREE.Vector3(0, 0, -8);
+          const distToMouse = ringWorldPos.distanceTo(mouseInteraction.worldPosition);
+          
+          // Deform based on proximity
+          if (distToMouse < 9) {
+            const deformStrength = (1 - distToMouse / 9) * mouseInteraction.influence * 0.15;
+            secondaryPulse *= (1 + deformStrength);
+          }
+        }
+        
+        blackHole.userData.secondaryVerticalRing.scale.set(secondaryPulse, secondaryPulse, secondaryPulse);
+      }
+    }
+    
+    // === DENSE BLACK SHELL - Slow inverse pulsation and mouse deformation ===
+    if(blackHole.userData.blackShell){
+      blackHole.userData.blackShell.visible = settings.showBlackShell;
+      if(settings.showBlackShell){
+      // Subtle inverse pulse - contracts when rings expand
+      const shellPulse = -masterPulse * 0.12 + 1;
+      
+      blackHole.userData.blackShell.children.forEach((cube, i) => {
+        const { baseRadius, phi, theta } = cube.userData;
+        let radius = baseRadius * shellPulse;
+        
+        // Calculate base position
+        let x = radius * Math.cos(theta) * Math.sin(phi);
+        let y = radius * Math.sin(theta) * Math.sin(phi);
+        let z = radius * Math.cos(phi);
+        
+        // Apply mouse deformation - push inward toward mouse
+        if (mouseInteraction.influence > 0.01) {
+          const cubeWorldPos = new THREE.Vector3(x, y, z - 8);
+          const distToMouse = cubeWorldPos.distanceTo(mouseInteraction.worldPosition);
+          
+          if (distToMouse < 8) {
+            const deformStrength = (1 - distToMouse / 8) * mouseInteraction.influence * mouseInteraction.deformationStrength;
+            const dirToMouse = new THREE.Vector3()
+              .subVectors(mouseInteraction.worldPosition, cubeWorldPos)
+              .normalize();
+            
+            x += dirToMouse.x * deformStrength * 2;
+            y += dirToMouse.y * deformStrength * 2;
+            z += dirToMouse.z * deformStrength * 2;
+          }
+        }
+        
+        cube.position.set(x, y, z);
+        
+        // Maintain tangent orientation
+        cube.lookAt(0, 0, 0);
+      });
+      
+      blackHole.userData.blackShell.rotation.y += delta * 0.15;
+      }
+    }
+    
+    // === INNER CUBE SPHERE - Pulsate and mouse deformation ===
+    if(blackHole.userData.innerCubeSphere){
+      blackHole.userData.innerCubeSphere.visible = settings.showInnerCubes;
+      if(settings.showInnerCubes){
+      // Inverse pulse - expands dramatically when rings contract (0.4 to 2.1)
+      const innerPulse = -masterPulse * 0.85 + 1.25;
+      
+      blackHole.userData.innerCubeSphere.children.forEach((cube, i) => {
+        const { baseRadius, phi, theta } = cube.userData;
+        let radius = baseRadius * innerPulse;
+        
+        // Calculate base position
+        let x = radius * Math.cos(theta) * Math.sin(phi);
+        let y = radius * Math.sin(theta) * Math.sin(phi);
+        let z = radius * Math.cos(phi);
+        
+        // Apply mouse deformation
+        if (mouseInteraction.influence > 0.01) {
+          const cubeWorldPos = new THREE.Vector3(x, y, z - 8);
+          const distToMouse = cubeWorldPos.distanceTo(mouseInteraction.worldPosition);
+          
+          if (distToMouse < 10) {
+            const deformStrength = (1 - distToMouse / 10) * mouseInteraction.influence * mouseInteraction.deformationStrength;
+            const dirToMouse = new THREE.Vector3()
+              .subVectors(mouseInteraction.worldPosition, cubeWorldPos)
+              .normalize();
+            
+            x += dirToMouse.x * deformStrength * 3;
+            y += dirToMouse.y * deformStrength * 3;
+            z += dirToMouse.z * deformStrength * 3;
+          }
+        }
+        
+        cube.position.set(x, y, z);
+        
+        // Maintain tangent orientation (face away from center)
+        cube.lookAt(0, 0, 0);
+        
+        // Pulsing emissive intensity for dramatic effect
+        const wave = Math.sin(time * 3 + i * 0.08);
+        cube.material.emissiveIntensity = 1.0 + wave * 0.5;
+      });
+      
+      blackHole.userData.innerCubeSphere.rotation.y -= delta * 0.3;
+      }
+    }
+    
+    // === OUTER CUBE SPHERE - Dramatic expansion and mouse deformation ===
+    if(blackHole.userData.outerCubeSphere){
+      blackHole.userData.outerCubeSphere.visible = settings.showOuterCubes;
+      if(settings.showOuterCubes){
+      // Expand dramatically with rings (0.6 to 1.6)
+      const outerPulse = masterPulse * 0.5 + 1.1;
+      
+      blackHole.userData.outerCubeSphere.children.forEach((cube, i) => {
+        const { baseRadius, phi, theta } = cube.userData;
+        let radius = baseRadius * outerPulse;
+        
+        // Calculate base position
+        let x = radius * Math.cos(theta) * Math.sin(phi);
+        let y = radius * Math.sin(theta) * Math.sin(phi);
+        let z = radius * Math.cos(phi);
+        
+        // Apply mouse deformation
+        if (mouseInteraction.influence > 0.01) {
+          const cubeWorldPos = new THREE.Vector3(x, y, z - 8);
+          const distToMouse = cubeWorldPos.distanceTo(mouseInteraction.worldPosition);
+          
+          if (distToMouse < 12) {
+            const deformStrength = (1 - distToMouse / 12) * mouseInteraction.influence * mouseInteraction.deformationStrength;
+            const dirToMouse = new THREE.Vector3()
+              .subVectors(mouseInteraction.worldPosition, cubeWorldPos)
+              .normalize();
+            
+            x += dirToMouse.x * deformStrength * 4;
+            y += dirToMouse.y * deformStrength * 4;
+            z += dirToMouse.z * deformStrength * 4;
+          }
+        }
+        
+        cube.position.set(x, y, z);
+        
+        // Maintain tangent orientation (face away from center)
+        cube.lookAt(0, 0, 0);
+        
+        // Pulsing opacity with dramatic waves
+        const wave = Math.sin(time * 2.5 + i * 0.08);
+        cube.material.opacity = 0.45 + wave * 0.2;
+        cube.material.emissiveIntensity = 0.8 + wave * 0.4;
+      });
+      
+      blackHole.userData.outerCubeSphere.rotation.y += delta * 0.2;
+      }
+    }
+    
+    // === LIGHTS - Pulsate with master pulse for color visibility ===
+    if(blackHole.userData.lights){
+      const breathe = Math.sin(time * 2) * 0.3 + 1;
+      blackHole.userData.lights[0].intensity = 8 + breathe * 6;
+      blackHole.userData.lights[1].intensity = 6 + breathe * 4;
+      blackHole.userData.lights[2].intensity = 4 + breathe * 3;
+    }
+      
+    // === BLOOM - Pulsate dramatically to reveal colors ===
+      if(bloomPass){
+      const bloomBreath = Math.abs(masterPulse);
+      bloomPass.strength = settings.bloomStrength + bloomBreath * 1.2;
+    }
+    
+    // === BINARY PARTICLES - Spawn and animate glowing 0s and 1s ===
+    if(sequenceStarted && settings.showBinaryParticles){
+      blackHole.userData.binarySpawnTimer += delta;
+      
+      // Spawn binary particles frequently
+      if(blackHole.userData.binarySpawnTimer > 0.3){
+        blackHole.userData.binarySpawnTimer = 0;
+        
+        const angle = Math.random() * Math.PI * 2;
+        const elevation = (Math.random() - 0.5) * Math.PI * 0.6;
+        const distance = 20 + Math.random() * 15;
+        
+        const position = new THREE.Vector3(
+          Math.cos(angle) * Math.cos(elevation) * distance,
+          Math.sin(elevation) * distance,
+          Math.sin(angle) * Math.cos(elevation) * distance - 8
+        );
+        
+        const particle = createBinaryParticle(position);
+        scene.add(particle);
+        blackHole.userData.binaryParticles.push(particle);
+      }
+      
+      // Animate existing binary particles
+      for(let i = blackHole.userData.binaryParticles.length - 1; i >= 0; i--){
+        const particle = blackHole.userData.binaryParticles[i];
+        const elapsed = time - particle.userData.birthTime;
+        
+        const distToCenter = Math.sqrt(
+          particle.position.x ** 2 + 
+          particle.position.y ** 2 + 
+          (particle.position.z + 8) ** 2
+        );
+        
+        // Pull toward center
+        const acceleration = 1 + elapsed * 0.8;
+        const pullForce = delta * acceleration * 8;
+        
+        // Spiral motion
+        particle.userData.spiralAngle += delta * particle.userData.spiralSpeed;
+        
+        const direction = new THREE.Vector3(-particle.position.x, -particle.position.y, -particle.position.z - 8);
+        direction.normalize();
+        
+        const spiralOffset = new THREE.Vector3(
+          Math.cos(particle.userData.spiralAngle) * distToCenter * 0.15,
+          Math.sin(particle.userData.spiralAngle * 0.5) * distToCenter * 0.08,
+          Math.sin(particle.userData.spiralAngle) * distToCenter * 0.15
+        );
+        
+        particle.position.x += (direction.x + spiralOffset.x) * pullForce;
+        particle.position.y += (direction.y + spiralOffset.y) * pullForce;
+        particle.position.z += (direction.z + spiralOffset.z) * pullForce;
+        
+        // Pulsate glow
+        const pulse = Math.sin(time * 3 + particle.userData.birthTime * 5) * 0.3 + 0.7;
+        particle.material.opacity = 0.8 * pulse;
+        
+        // Scale based on distance
+        const scale = 0.8 * (distToCenter / 25);
+        particle.scale.set(scale, scale, 1);
+        
+        // Fade and remove when close
+        if(distToCenter < 2.5){
+          particle.material.opacity -= delta * 3;
+          if(particle.material.opacity <= 0){
+            scene.remove(particle);
+            blackHole.userData.binaryParticles.splice(i, 1);
+          }
+        }
+      }
+    }
+    
+    // === SCENE BUILDER PROPS - Spawn and animate props being sucked in ===
+    if(sequenceStarted && settings.showSceneProps){
+      blackHole.userData.propSpawnTimer += delta;
+      
+      // Spawn props occasionally (every 3-5 seconds)
+      if(blackHole.userData.propSpawnTimer > 3 + Math.random() * 2){
+        blackHole.userData.propSpawnTimer = 0;
+        const prop = spawnProp(blackHole);
+        blackHole.userData.props.push(prop);
+      }
+      
+      // Animate existing props
+      for(let i = blackHole.userData.props.length - 1; i >= 0; i--){
+        const prop = blackHole.userData.props[i];
+        prop.visible = true;
+        const elapsed = time - prop.userData.birthTime;
+        
+        const distToCenter = Math.sqrt(
+          prop.position.x ** 2 + 
+          prop.position.y ** 2 + 
+          prop.position.z ** 2
+        );
+        
+        // Acceleration toward center
+        const acceleration = 1 + elapsed * 0.8;
+        const pullForce = delta * acceleration * 8;
+        
+        // Move toward center
+        const direction = new THREE.Vector3(-prop.position.x, -prop.position.y, -prop.position.z);
+        direction.normalize();
+        
+        prop.position.x += direction.x * pullForce;
+        prop.position.y += direction.y * pullForce;
+        prop.position.z += direction.z * pullForce;
+        
+        // Tumbling rotation
+        prop.rotation.x += prop.userData.rotVelocity.x * delta;
+        prop.rotation.y += prop.userData.rotVelocity.y * delta;
+        prop.rotation.z += prop.userData.rotVelocity.z * delta;
+        
+        // Increase rotation speed as it gets closer
+        prop.userData.rotVelocity.multiplyScalar(1 + delta * 0.5);
+        
+        // Remove when reaching center
+        if(distToCenter < 1.5){
+          blackHole.remove(prop);
+          blackHole.userData.props.splice(i, 1);
+        }
+      }
+    } else if (sequenceStarted) {
+      // Hide all props when toggle is off
+      for(let i = 0; i < blackHole.userData.props.length; i++){
+        blackHole.userData.props[i].visible = false;
+      }
+    }
+    
+    // === SPAGHETTIFICATION - Spawn and animate cubes ===
+    if(sequenceStarted && settings.showSpaghettification){
+      blackHole.userData.spawnTimer += delta;
+      
+      if(blackHole.userData.spawnTimer > 0.2){
+        blackHole.userData.spawnTimer = 0;
+        
+        // Spawn new cube
+        const angle = Math.random() * Math.PI * 2;
+        const elevation = (Math.random() - 0.5) * Math.PI * 0.5;
+        const distance = 25 + Math.random() * 10;
+        
+        const cubeGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+        const cubeMat = new THREE.MeshStandardMaterial({
+          color: 0x0a0a0a,
+          transparent: true,
+          opacity: 0.95,
+          emissive: 0x0a0a0a,
+          emissiveIntensity: 0.1
+        });
+        
+        const cube = new THREE.Mesh(cubeGeo, cubeMat);
+        cube.position.set(
+          Math.cos(angle) * Math.cos(elevation) * distance,
+          Math.sin(elevation) * distance,
+          Math.sin(angle) * Math.cos(elevation) * distance - 8
+        );
+        
+        cube.userData.spiralAngle = angle;
+        cube.userData.spiralSpeed = 1.0 + Math.random() * 2.0;
+        cube.userData.birthTime = time;
+        
+        scene.add(cube);
+        blackHole.userData.cubes.push(cube);
+      }
+      
+      // Animate existing cubes
+      for(let i = blackHole.userData.cubes.length - 1; i >= 0; i--){
+        const cube = blackHole.userData.cubes[i];
+        const elapsed = time - cube.userData.birthTime;
+        
+        const distToCenter = Math.sqrt(
+          cube.position.x ** 2 + 
+          cube.position.y ** 2 + 
+          (cube.position.z + 8) ** 2
+        );
+        
+        // Acceleration toward center
+        const acceleration = 1 + elapsed * 1.2;
+        const pullForce = delta * acceleration * 12;
+        
+        // Spiral motion
+        cube.userData.spiralAngle += delta * cube.userData.spiralSpeed * (1 + elapsed * 0.8);
+        
+        // Move toward center with spiral
+        const direction = new THREE.Vector3(-cube.position.x, -cube.position.y, -cube.position.z - 8);
+        direction.normalize();
+        
+        const spiralOffset = new THREE.Vector3(
+          Math.cos(cube.userData.spiralAngle) * distToCenter * 0.1,
+          Math.sin(cube.userData.spiralAngle * 0.7) * distToCenter * 0.05,
+          Math.sin(cube.userData.spiralAngle) * distToCenter * 0.1
+        );
+        
+        cube.position.x += (direction.x + spiralOffset.x) * pullForce;
+        cube.position.y += (direction.y + spiralOffset.y) * pullForce;
+        cube.position.z += (direction.z + spiralOffset.z) * pullForce;
+        
+        // Spaghettification - stretch toward center
+        const stretchFactor = 1 + (1 / Math.max(distToCenter, 0.5)) * 2;
+        cube.scale.set(1 / stretchFactor, 1 / stretchFactor, stretchFactor);
+        
+        // Rotation
+        cube.rotation.x += delta * (2 + elapsed);
+        cube.rotation.y += delta * (1.5 + elapsed * 0.5);
+        
+        // Fade and remove when close
+        if(distToCenter < 1.5){
+          cube.material.opacity -= delta * 2;
+          if(cube.material.opacity <= 0){
+            scene.remove(cube);
+            blackHole.userData.cubes.splice(i, 1);
+          }
+        }
+      }
+    }
+  }
+  
+  // Gentle tablet float
+  if(tablet && sequenceStarted){
+    tablet.position.y = Math.sin(time * 0.5) * 0.2;
+    tablet.rotation.y = Math.sin(time * 0.3) * 0.05;
+    inputField.position.y = -2.5 + Math.sin(time * 0.5 + 1) * 0.15;
+  }
+  
+  // Update input cursor
+  if(sequenceStarted && !answered){
+    updateInputDisplay();
+  }
+  
+  // Update post-processing effects
+  if(filmGrainPass){
+    filmGrainPass.uniforms.time.value = time;
+    filmGrainPass.uniforms.grainIntensity.value = settings.grain ? settings.grainIntensity : 0;
+    filmGrainPass.uniforms.vignetteIntensity.value = settings.vignette ? 0.5 : 0;
+  }
+  
+  composer.render();
+}
+
+/* =========================
+   Resize
+   ========================= */
+function onResize(){
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
+  
+  // Update post-processing passes
+  if(bokehPass){
+    bokehPass.renderTargetDepth.setSize(window.innerWidth, window.innerHeight);
+  }
+}
+
+/* =========================
+   Init on Start
+   ========================= */
+document.getElementById('start').addEventListener('click', () => {
+  document.getElementById('start').classList.add('hide');
+  init();
+  
+  // Show intro dialogue after a brief moment
+  setTimeout(() => {
+    document.getElementById('intro-dialogue').classList.add('visible');
+  }, 500);
+});
+
+// Continue button - start sequence after intro dialogue
+document.getElementById('continue-btn').addEventListener('click', () => {
+  document.getElementById('intro-dialogue').classList.remove('visible');
+  setTimeout(startSequence, 500);
+});
+
+// GSAP for animations
+const gsap = {
+  to: (target, vars) => {
+    const duration = (vars.duration || 1) * 1000;
+    const startTime = Date.now();
+    const startValues = {};
+    
+    Object.keys(vars).forEach(key => {
+      if(key !== 'duration' && key !== 'ease'){
+        startValues[key] = target[key];
+      }
+    });
+    
+    function animate(){
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      Object.keys(vars).forEach(key => {
+        if(key !== 'duration' && key !== 'ease'){
+          const start = startValues[key];
+          const end = vars[key];
+          target[key] = start + (end - start) * progress;
+        }
+      });
+      
+      if(progress < 1){
+        requestAnimationFrame(animate);
+      }
+    }
+    
+    animate();
+  }
+};
+</script>
+</body>
+</html>
+

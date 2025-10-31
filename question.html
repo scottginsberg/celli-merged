@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>5×7 “?” Pixel Icon (stable render)</title>
+<style>
+  :root{
+    --icon-size: 200px;
+    --cols: 5;
+    --rows: 8;
+    --pad: 16px;
+    --gap: 2px;
+    --bg: #fff;
+    --fg: #111;
+    --radius: 22px;
+    --shadow: 0 10px 25px rgba(0,0,0,.16), inset 0 0 0 1px rgba(0,0,0,.05);
+    --anim: 360ms cubic-bezier(.2,.8,.2,1);
+    --proximity: 110;
+  }
+
+  *{ box-sizing:border-box }
+  body{
+    min-height:100svh; display:grid; place-items:center;
+    background:#f6f8ff;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  }
+
+  .icon-wrap{ width:var(--icon-size); height:var(--icon-size); position:relative; display:grid; place-items:center; }
+  .icon{
+    position:relative; width:100%; height:100%; background:var(--bg);
+    border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; isolation:isolate;
+  }
+  .stage{ position:absolute; inset:var(--pad); }
+
+  /* hook pixels (squares) */
+  .pixel{
+    position:absolute;
+    background: var(--fg);
+    border-radius: 4px;
+    transition: transform var(--anim), border-radius var(--anim), filter var(--anim), opacity var(--anim);
+    box-shadow: 0 1px 0 rgba(255,255,255,.25) inset, 0 1px 6px rgba(0,0,0,.15);
+    will-change: transform;
+    z-index: 1;
+  }
+
+  /* upside-down triangle tip */
+  .tri{
+    position:absolute; 
+    width:0; 
+    height:0;
+    transition: transform var(--anim);
+    filter: drop-shadow(0 1px 6px rgba(0,0,0,.15));
+    z-index: 2;
+  }
+
+  /* dot (circle) */
+  .dot{
+    position:absolute;
+    background: var(--fg);
+    border-radius: 999px;
+    transition: transform var(--anim);
+    box-shadow: 0 1px 0 rgba(255,255,255,.25) inset, 0 1px 6px rgba(0,0,0,.15);
+    z-index: 3;
+  }
+
+  /* collapse: all hook squares compress to one cell */
+  .icon.near .pixel{
+    border-radius:8px; filter:saturate(1.07);
+  }
+
+  /* focus ring */
+  .icon::after{
+    content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    box-shadow: 0 0 0 0 rgba(17,17,17,0); transition: box-shadow var(--anim);
+  }
+  .icon.near::after, .icon:hover::after{ box-shadow: 0 0 0 8px rgba(17,17,17,.08) inset; }
+
+  .hint{ position:absolute; top:calc(100% + 10px); font-size:12px; color:#334; opacity:.8; }
+</style>
+</head>
+<body>
+
+<div class="icon-wrap">
+  <div class="icon" id="icon">
+    <div class="stage" id="stage" aria-hidden="true"></div>
+  </div>
+  <div class="hint">Move cursor near the icon</div>
+</div>
+
+<script>
+/*
+Mask (5×7):
+NYYYN
+YNNNY
+NNYYN
+NNYNN
+NNTNN
+NNNNN
+NNCNN
+
+Y = square, T = upside-down triangle tip, C = circle (dot)
+*/
+(function(){
+  const icon  = document.getElementById('icon');
+  const stage = document.getElementById('stage');
+
+  const mask = [
+    "NYYYN",
+    "YNNNY",
+    "YNNNY",
+    "NNYYN",
+    "NNYNN",
+    "NNTNN",
+    "NNNNN",
+    "NNCNN"
+  ];
+
+  const COLS = 5, ROWS = 8;
+  const gap  = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap')) || 2;
+  const pixels = [];
+  let tip = null, dot = null;
+
+  const collapseTarget = { c: 2, r: 1 }; // collapse into middle top block of the hook
+
+  function cellSize(){
+    const r = stage.getBoundingClientRect();
+    const w = (r.width  - gap*(COLS-1)) / COLS;
+    const h = (r.height - gap*(ROWS-1)) / ROWS;
+    // Use smaller dimension to keep cells square
+    const size = Math.min(w, h);
+    return { w: size, h: size };
+  }
+  function gridToOffsets(c, r){
+    const { w, h } = cellSize();
+    return { x: c * (w + gap), y: r * (h + gap) };
+  }
+
+  function place(el, c, r){
+    const { x, y } = gridToOffsets(c, r);
+    const { w, h } = cellSize();
+    el.style.setProperty('--x', `${x}px`);
+    el.style.setProperty('--y', `${y}px`);
+    el.style.width = `${w}px`;
+    el.style.height = `${h}px`;
+    el.style.transform = `translate(${x}px, ${y}px)`;
+    el.dataset.col = c; el.dataset.row = r;
+    el.dataset.x = x;
+    el.dataset.y = y;
+  }
+  function setCollapse(el, c, r){
+    const { x, y } = gridToOffsets(c, r);
+    el.style.setProperty('--x-collapse', `${x}px`);
+    el.style.setProperty('--y-collapse', `${y}px`);
+    el.dataset.collapseX = x;
+    el.dataset.collapseY = y;
+    el.dataset.collapseCol = c; el.dataset.collapseRow = r;
+  }
+  function placeTriangle(el, c, r){
+    const { x, y } = gridToOffsets(c, r);
+    const { w, h } = cellSize();
+    el.style.setProperty('--x', `${x}px`);
+    el.style.setProperty('--y', `${y}px`);
+    el.style.borderLeft = `${w/2}px solid transparent`;
+    el.style.borderRight = `${w/2}px solid transparent`;
+    el.style.borderTop = `${h}px solid #111`;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    el.dataset.col = c; el.dataset.row = r;
+    el.dataset.x = x;
+    el.dataset.y = y;
+  }
+
+  function build(){
+    // Clear (in case of rebuild after resize)
+    stage.innerHTML = "";
+    pixels.length = 0; tip = null; dot = null;
+
+    // Build from mask
+    for(let r=0; r<ROWS; r++){
+      for(let c=0; c<COLS; c++){
+        const ch = mask[r][c];
+        if(ch === 'Y'){
+          const el = document.createElement('div');
+          el.className = 'pixel';
+          stage.appendChild(el);
+          place(el, c, r);
+          setCollapse(el, collapseTarget.c, collapseTarget.r);
+          pixels.push(el);
+        }else if(ch === 'T'){
+          const el = document.createElement('div');
+          el.className = 'tri';
+          stage.appendChild(el);
+          placeTriangle(el, c, r);
+          tip = el;
+        }else if(ch === 'C'){
+          const el = document.createElement('div');
+          el.className = 'dot';
+          stage.appendChild(el);
+          place(el, c, r);
+          dot = el;
+        }
+      }
+    }
+  }
+
+  function refresh(){
+    // recompute for current sizes
+    pixels.forEach(el=>{
+      const c = +el.dataset.col, r = +el.dataset.row;
+      place(el, c, r);
+      const cc = +el.dataset.collapseCol, rr = +el.dataset.collapseRow;
+      const p = gridToOffsets(cc, rr);
+      el.style.setProperty('--x-collapse', `${p.x}px`);
+      el.style.setProperty('--y-collapse', `${p.y}px`);
+      el.dataset.collapseX = p.x;
+      el.dataset.collapseY = p.y;
+    });
+    if(tip){ placeTriangle(tip, +tip.dataset.col, +tip.dataset.row); }
+    if(dot){ place(dot, +dot.dataset.col, +dot.dataset.row); }
+  }
+
+  // Proximity trigger
+  const prox = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--proximity')) || 110;
+  function updateProximity(pt){
+    const rect = icon.getBoundingClientRect();
+    const insideX = (pt.clientX >= rect.left - prox && pt.clientX <= rect.right + prox);
+    const insideY = (pt.clientY >= rect.top  - prox && pt.clientY <= rect.bottom + prox);
+    const wasNear = icon.classList.contains('near');
+    const isNear = insideX && insideY;
+    icon.classList.toggle('near', isNear);
+    
+    // Update pixel transforms when proximity changes
+    if(wasNear !== isNear){
+      pixels.forEach(el=>{
+        if(isNear){
+          const x = +el.dataset.collapseX;
+          const y = +el.dataset.collapseY;
+          el.style.transform = `translate(${x}px, ${y}px)`;
+        } else {
+          const x = +el.dataset.x;
+          const y = +el.dataset.y;
+          el.style.transform = `translate(${x}px, ${y}px)`;
+        }
+      });
+      // Update triangle position too
+      if(tip){
+        if(isNear){
+          const { x, y } = gridToOffsets(collapseTarget.c, collapseTarget.r);
+          const { w } = cellSize();
+          tip.style.left = `${x + w/2}px`;
+          tip.style.top = `${y}px`;
+        } else {
+          const x = +tip.dataset.x;
+          const y = +tip.dataset.y;
+          tip.style.left = `${x}px`;
+          tip.style.top = `${y}px`;
+        }
+      }
+    }
+  }
+  document.addEventListener('mousemove', e=>updateProximity(e), { passive:true });
+  document.addEventListener('touchmove', e=>{
+    if(e.touches && e.touches[0]) updateProximity(e.touches[0]);
+  }, { passive:true });
+
+  // Ensure layout has dimensions before placing:
+  function initAfterLayout(){
+    build();
+    // one extra frame to ensure correct rects, then final refresh
+    requestAnimationFrame(()=>refresh());
+  }
+  if (document.readyState === 'complete'){
+    requestAnimationFrame(initAfterLayout);
+  } else {
+    window.addEventListener('load', ()=>requestAnimationFrame(initAfterLayout), { once:true });
+  }
+
+  // Keep crisp on resize
+  new ResizeObserver(()=>{ refresh(); }).observe(stage);
+})();
+</script>
+</body>
+</html>

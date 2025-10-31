@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Low Poly Ant Model</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        canvas {
+            display: block;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: monospace;
+            font-size: 14px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">Low Poly Ant Model<br>Drag to rotate • Scroll to zoom</div>
+    <div id="controls" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); padding: 15px 30px; border-radius: 10px; color: white; font-family: monospace;">
+        <label for="fidelity" style="margin-right: 10px;">Fidelity:</label>
+        <input type="range" id="fidelity" min="1" max="3" value="2" step="1" style="width: 200px; vertical-align: middle;">
+        <span id="fidelityLabel" style="margin-left: 10px;">Medium</span>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 6);
+        camera.lookAt(0, 0, 0);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+        
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+        
+        const fillLight = new THREE.DirectionalLight(0x4466ff, 0.3);
+        fillLight.position.set(-5, 5, -5);
+        scene.add(fillLight);
+        
+        const groundGeometry = new THREE.PlaneGeometry(20, 20);
+        const groundMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x2d3561,
+            roughness: 0.8
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -1;
+        ground.receiveShadow = true;
+        scene.add(ground);
+        
+        let currentFidelity = 2;
+        let ant = null;
+        let leftAntenna = null;
+        let rightAntenna = null;
+        let abdomen = null;
+        let legs = [];
+        
+        function createAnt(fidelity) {
+            // Clear existing ant
+            if (ant) {
+                scene.remove(ant);
+            }
+            
+            ant = new THREE.Group();
+            legs = [];
+            
+            // Fidelity settings
+            const settings = {
+                1: { // Low poly
+                    headSegments: [4, 3],
+                    eyeSegments: [3, 3],
+                    eyeOmmatidiaCount: 0,
+                    mandibleSegments: 3,
+                    mandibleTeeth: 0,
+                    thoraxSegments: [4, 3],
+                    abdomenSegments: [4, 3],
+                    legSegments: 4,
+                    antennaSegments: 3
+                },
+                2: { // Medium poly
+                    headSegments: [6, 5],
+                    eyeSegments: [5, 4],
+                    eyeOmmatidiaCount: 6,
+                    mandibleSegments: 4,
+                    mandibleTeeth: 2,
+                    thoraxSegments: [6, 5],
+                    abdomenSegments: [6, 5],
+                    legSegments: 5,
+                    antennaSegments: 4
+                },
+                3: { // High poly
+                    headSegments: [8, 7],
+                    eyeSegments: [7, 6],
+                    eyeOmmatidiaCount: 12,
+                    mandibleSegments: 5,
+                    mandibleTeeth: 4,
+                    thoraxSegments: [8, 7],
+                    abdomenSegments: [8, 7],
+                    legSegments: 6,
+                    antennaSegments: 5
+                }
+            };
+            
+            const config = settings[fidelity];
+            
+            const antMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1a1a1a,
+                roughness: 0.6,
+                flatShading: true
+            });
+            
+            const jointMaterial = new THREE.MeshStandardMaterial({
+                color: 0x2a2a2a,
+                roughness: 0.5,
+                flatShading: true
+            });
+            
+            const eyeMaterial = new THREE.MeshStandardMaterial({
+                color: 0xff6b6b,
+                emissive: 0x660000,
+                roughness: 0.3,
+                flatShading: true
+            });
+            
+            const ommatidiaMaterial = new THREE.MeshStandardMaterial({
+                color: 0x330000,
+                roughness: 0.2,
+                flatShading: true
+            });
+            
+            // HEAD - more elongated/oval like real ants
+            const headGeometry = new THREE.SphereGeometry(0.28, config.headSegments[0], config.headSegments[1]);
+            const head = new THREE.Mesh(headGeometry, antMaterial);
+            head.scale.set(0.9, 1.1, 1.4); // Elongated forward and slightly taller
+            head.position.set(0, 0.42, 1.3);
+            head.castShadow = true;
+            ant.add(head);
+            
+            // EYES with ommatidia (facets) - positioned more to sides/back
+            const eyeGeometry = new THREE.SphereGeometry(0.09, config.eyeSegments[0], config.eyeSegments[1]);
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.24, 0.48, 1.3);
+            leftEye.castShadow = true;
+            ant.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.24, 0.48, 1.3);
+            rightEye.castShadow = true;
+            ant.add(rightEye);
+            
+            // Add ommatidia (eye facets)
+            if (config.eyeOmmatidiaCount > 0) {
+                const ommatidiaGeo = new THREE.SphereGeometry(0.018, 3, 3);
+                for (let i = 0; i < config.eyeOmmatidiaCount; i++) {
+                    const theta = (i / config.eyeOmmatidiaCount) * Math.PI * 2;
+                    const phi = Math.PI / 4;
+                    
+                    const ommatidiaL = new THREE.Mesh(ommatidiaGeo, ommatidiaMaterial);
+                    ommatidiaL.position.set(
+                        -0.24 + Math.sin(theta) * Math.sin(phi) * 0.09,
+                        0.48 + Math.cos(phi) * 0.09,
+                        1.3 + Math.cos(theta) * Math.sin(phi) * 0.09
+                    );
+                    ant.add(ommatidiaL);
+                    
+                    const ommatidiaR = new THREE.Mesh(ommatidiaGeo, ommatidiaMaterial);
+                    ommatidiaR.position.set(
+                        0.24 + Math.sin(theta) * Math.sin(phi) * 0.09,
+                        0.48 + Math.cos(phi) * 0.09,
+                        1.3 + Math.cos(theta) * Math.sin(phi) * 0.09
+                    );
+                    ant.add(ommatidiaR);
+                }
+            }
+            
+            // ANTENNAE - elbowed structure like real ants
+            function createAntenna(side) {
+                const antenna = new THREE.Group();
+                
+                // Scape (base segment) - goes up/out from head
+                const scapeJoint = new THREE.Group();
+                const scapeGeo = new THREE.CylinderGeometry(0.025, 0.03, 0.25, config.antennaSegments);
+                const scape = new THREE.Mesh(scapeGeo, antMaterial);
+                scape.position.y = 0.125;
+                scape.castShadow = true;
+                scapeJoint.add(scape);
+                scapeJoint.rotation.z = -side * Math.PI / 4;
+                scapeJoint.rotation.x = -Math.PI / 12;
+                antenna.add(scapeJoint);
+                
+                // Elbow joint - sharp 90° bend
+                const elbowJoint = new THREE.Group();
+                const elbowGeo = new THREE.SphereGeometry(0.03, 4, 4);
+                const elbow = new THREE.Mesh(elbowGeo, jointMaterial);
+                elbow.castShadow = true;
+                elbowJoint.add(elbow);
+                elbowJoint.position.y = 0.25;
+                scapeJoint.add(elbowJoint);
+                
+                // Funiculus (main antenna segment after elbow) - bends forward
+                const funiculusJoint = new THREE.Group();
+                const funiculusGeo = new THREE.CylinderGeometry(0.018, 0.022, 0.6, config.antennaSegments);
+                const funiculus = new THREE.Mesh(funiculusGeo, antMaterial);
+                funiculus.position.y = 0.3;
+                funiculus.castShadow = true;
+                funiculusJoint.add(funiculus);
+                funiculusJoint.rotation.z = side * Math.PI / 3;
+                funiculusJoint.rotation.x = Math.PI / 2.5;
+                elbowJoint.add(funiculusJoint);
+                
+                // Store joints for animation
+                antenna.userData.scapeJoint = scapeJoint;
+                antenna.userData.elbowJoint = elbowJoint;
+                antenna.userData.funiculusJoint = funiculusJoint;
+                
+                return antenna;
+            }
+            
+            leftAntenna = createAntenna(-1);
+            leftAntenna.position.set(-0.1, 0.62, 1.42);
+            ant.add(leftAntenna);
+            
+            rightAntenna = createAntenna(1);
+            rightAntenna.position.set(0.1, 0.62, 1.42);
+            ant.add(rightAntenna);
+            
+            // MANDIBLES - Smaller, more pointed
+            function createMandible(side) {
+                const mandibleGroup = new THREE.Group();
+                
+                const mandibleGeo = new THREE.ConeGeometry(0.05, 0.18, config.mandibleSegments);
+                const mandible = new THREE.Mesh(mandibleGeo, antMaterial);
+                mandible.rotation.z = side * Math.PI / 2;
+                mandible.rotation.x = Math.PI / 2.3;
+                mandible.castShadow = true;
+                mandibleGroup.add(mandible);
+                
+                // Add teeth for higher fidelity
+                if (config.mandibleTeeth > 0) {
+                    for (let i = 0; i < config.mandibleTeeth; i++) {
+                        const toothGeo = new THREE.ConeGeometry(0.015, 0.04, 3);
+                        const tooth = new THREE.Mesh(toothGeo, antMaterial);
+                        tooth.position.set(0, -0.06 - i * 0.03, 0.02);
+                        tooth.rotation.x = Math.PI / 4;
+                        mandibleGroup.add(tooth);
+                    }
+                }
+                
+                mandibleGroup.position.set(side * 0.08, 0.28, 1.52);
+                return mandibleGroup;
+            }
+            
+            ant.add(createMandible(-1));
+            ant.add(createMandible(1));
+            
+            // THORAX (mesosoma) - more elongated and angular
+            const thoraxGeo = new THREE.SphereGeometry(0.38, config.thoraxSegments[0], config.thoraxSegments[1]);
+            const thorax = new THREE.Mesh(thoraxGeo, antMaterial);
+            thorax.scale.set(0.95, 1, 1.6); // More elongated
+            thorax.position.set(0, 0.38, 0.65);
+            thorax.castShadow = true;
+            ant.add(thorax);
+            
+            // PETIOLE (first node) - tall bump, not flat cylinder
+            const petioleGeo = new THREE.SphereGeometry(0.12, config.thoraxSegments[0], config.thoraxSegments[1]);
+            const petiole = new THREE.Mesh(petioleGeo, antMaterial);
+            petiole.scale.set(0.7, 1.4, 0.8); // Tall and narrow
+            petiole.position.set(0, 0.48, -0.05);
+            petiole.castShadow = true;
+            ant.add(petiole);
+            
+            // Narrow connector between petiole and postpetiole
+            const connector1Geo = new THREE.CylinderGeometry(0.06, 0.06, 0.1, config.legSegments);
+            const connector1 = new THREE.Mesh(connector1Geo, antMaterial);
+            connector1.position.set(0, 0.32, -0.2);
+            connector1.castShadow = true;
+            ant.add(connector1);
+            
+            // POSTPETIOLE (second node) - smaller tall bump
+            const postpetioleGeo = new THREE.SphereGeometry(0.14, config.thoraxSegments[0], config.thoraxSegments[1]);
+            const postpetiole = new THREE.Mesh(postpetioleGeo, antMaterial);
+            postpetiole.scale.set(0.85, 1.2, 0.9);
+            postpetiole.position.set(0, 0.42, -0.32);
+            postpetiole.castShadow = true;
+            ant.add(postpetiole);
+            
+            // Narrow connector between postpetiole and gaster
+            const connector2Geo = new THREE.CylinderGeometry(0.08, 0.08, 0.12, config.legSegments);
+            const connector2 = new THREE.Mesh(connector2Geo, antMaterial);
+            connector2.position.set(0, 0.32, -0.5);
+            connector2.castShadow = true;
+            ant.add(connector2);
+            
+            // ABDOMEN/GASTER - large oval segment
+            const abdomenGeo = new THREE.SphereGeometry(0.48, config.abdomenSegments[0], config.abdomenSegments[1]);
+            abdomen = new THREE.Mesh(abdomenGeo, antMaterial);
+            abdomen.scale.set(1, 0.95, 1.6); // More oval
+            abdomen.position.set(0, 0.32, -0.95);
+            abdomen.castShadow = true;
+            ant.add(abdomen);
+            
+            // LEGS - properly angled: UP from body, then DOWN to ground
+            function createLeg(side, segment, angle, attachZ) {
+                const leg = new THREE.Group();
+                
+                // Coxa (hip) - short segment that goes outward and upward
+                const coxaJoint = new THREE.Group();
+                const coxaGeo = new THREE.CylinderGeometry(0.025, 0.028, 0.12, config.legSegments);
+                const coxa = new THREE.Mesh(coxaGeo, antMaterial);
+                coxa.position.y = 0.06;
+                coxa.castShadow = true;
+                coxaJoint.add(coxa);
+                // Coxa angles outward and slightly upward (CRITICAL: positive Y rotation for upward)
+                coxaJoint.rotation.z = side * (Math.PI / 2.5 + angle);
+                coxaJoint.rotation.y = 0.15; // Slight upward tilt
+                leg.add(coxaJoint);
+                
+                // Joint between coxa and femur
+                const coxaFemurJoint = new THREE.Group();
+                const joint1Geo = new THREE.SphereGeometry(0.03, config.legSegments, config.legSegments);
+                const joint1 = new THREE.Mesh(joint1Geo, jointMaterial);
+                joint1.castShadow = true;
+                coxaFemurJoint.add(joint1);
+                coxaFemurJoint.position.y = 0.12;
+                coxaJoint.add(coxaFemurJoint);
+                
+                // Femur (thigh) - longer segment, angled downward from raised position
+                const femurJoint = new THREE.Group();
+                const femurGeo = new THREE.CylinderGeometry(0.024, 0.02, 0.4, config.legSegments);
+                const femur = new THREE.Mesh(femurGeo, antMaterial);
+                femur.position.y = -0.2;
+                femur.castShadow = true;
+                femurJoint.add(femur);
+                // Femur bends downward (negative x rotation from raised coxa position)
+                femurJoint.rotation.x = -Math.PI / 3.5; // Angled down
+                coxaFemurJoint.add(femurJoint);
+                
+                // Knee joint
+                const kneeJoint = new THREE.Group();
+                const joint2Geo = new THREE.SphereGeometry(0.028, config.legSegments, config.legSegments);
+                const joint2 = new THREE.Mesh(joint2Geo, jointMaterial);
+                joint2.castShadow = true;
+                kneeJoint.add(joint2);
+                kneeJoint.position.y = -0.4;
+                femurJoint.add(kneeJoint);
+                
+                // Tibia (shin) - continues downward, longer and thinner
+                const tibiaJoint = new THREE.Group();
+                const tibiaGeo = new THREE.CylinderGeometry(0.02, 0.016, 0.55, config.legSegments);
+                const tibia = new THREE.Mesh(tibiaGeo, antMaterial);
+                tibia.position.y = -0.275;
+                tibia.castShadow = true;
+                tibiaJoint.add(tibia);
+                // Tibia continues downward trajectory
+                tibiaJoint.rotation.x = Math.PI / 6;
+                kneeJoint.add(tibiaJoint);
+                
+                // Ankle joint
+                const ankleJoint = new THREE.Group();
+                const joint3Geo = new THREE.SphereGeometry(0.02, Math.max(3, config.legSegments - 1), Math.max(3, config.legSegments - 1));
+                const joint3 = new THREE.Mesh(joint3Geo, jointMaterial);
+                joint3.castShadow = true;
+                ankleJoint.add(joint3);
+                ankleJoint.position.y = -0.55;
+                tibiaJoint.add(ankleJoint);
+                
+                // Tarsus (foot) - very thin, final ground contact
+                const footGeo = new THREE.CylinderGeometry(0.014, 0.01, 0.1, config.legSegments);
+                const foot = new THREE.Mesh(footGeo, antMaterial);
+                foot.position.y = -0.05;
+                foot.rotation.x = Math.PI / 8;
+                foot.castShadow = true;
+                ankleJoint.add(foot);
+                
+                // Attach from SIDE of thorax
+                leg.position.set(side * 0.32, 0.38, attachZ);
+                
+                // Store joints for animation
+                leg.userData.coxaJoint = coxaJoint;
+                leg.userData.coxaFemurJoint = coxaFemurJoint;
+                leg.userData.femurJoint = femurJoint;
+                leg.userData.kneeJoint = kneeJoint;
+                leg.userData.tibiaJoint = tibiaJoint;
+                leg.userData.ankleJoint = ankleJoint;
+                leg.userData.side = side;
+                leg.userData.segment = segment;
+                
+                return leg;
+            }
+            
+            // Front legs - attach to front of thorax, angle forward
+            const frontLegL = createLeg(-1, 0, 0.25, 1.05);
+            ant.add(frontLegL);
+            legs.push(frontLegL);
+            
+            const frontLegR = createLeg(1, 0, 0.25, 1.05);
+            ant.add(frontLegR);
+            legs.push(frontLegR);
+            
+            // Middle legs - attach to middle of thorax, perpendicular
+            const midLegL = createLeg(-1, 1, 0, 0.65);
+            ant.add(midLegL);
+            legs.push(midLegL);
+            
+            const midLegR = createLeg(1, 1, 0, 0.65);
+            ant.add(midLegR);
+            legs.push(midLegR);
+            
+            // Back legs - attach to rear of thorax, angle backward
+            const backLegL = createLeg(-1, 2, -0.3, 0.25);
+            ant.add(backLegL);
+            legs.push(backLegL);
+            
+            const backLegR = createLeg(1, 2, -0.3, 0.25);
+            ant.add(backLegR);
+            legs.push(backLegR);
+            
+            scene.add(ant);
+        }
+        
+        // Initialize ant
+        createAnt(currentFidelity);
+        
+        // Fidelity slider control
+        const fidelitySlider = document.getElementById('fidelity');
+        const fidelityLabel = document.getElementById('fidelityLabel');
+        const fidelityNames = { 1: 'Low', 2: 'Medium', 3: 'High' };
+        
+        fidelitySlider.addEventListener('input', (e) => {
+            const newFidelity = parseInt(e.target.value);
+            fidelityLabel.textContent = fidelityNames[newFidelity];
+            currentFidelity = newFidelity;
+            
+            // Store current rotation before rebuilding
+            const currentRotation = { x: rotation.x, y: rotation.y };
+            
+            // Rebuild ant with new fidelity
+            createAnt(currentFidelity);
+            
+            // Restore rotation
+            rotation = currentRotation;
+        });
+        
+        // Mouse controls
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let rotation = { x: 0, y: 0 };
+        
+        renderer.domElement.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+        
+        renderer.domElement.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+                
+                rotation.y += deltaX * 0.005;
+                rotation.x += deltaY * 0.005;
+                
+                rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotation.x));
+                
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            }
+        });
+        
+        renderer.domElement.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+        
+        renderer.domElement.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            camera.position.z += e.deltaY * 0.01;
+            camera.position.z = Math.max(3, Math.min(15, camera.position.z));
+        });
+        
+        // Scuttling animation system
+        let time = 0;
+        let walkCycle = 0;
+        const walkSpeed = 3;
+        
+        function animateScuttle() {
+            // Tripod gait: insects walk with alternating tripods
+            // Group 1: front-left, middle-right, back-left
+            // Group 2: front-right, middle-left, back-right
+            
+            legs.forEach((leg, i) => {
+                if (!leg || !leg.userData.coxaFemurJoint) return;
+                
+                const side = leg.userData.side;
+                const segment = leg.userData.segment;
+                
+                // Determine which tripod group this leg belongs to
+                // Group 1: legs 0, 3, 4 (FL, MR, BL)
+                // Group 2: legs 1, 2, 5 (FR, ML, BR)
+                const isGroup1 = (i === 0 || i === 3 || i === 4);
+                const phase = isGroup1 ? 0 : Math.PI;
+                
+                const cyclePos = walkCycle + phase;
+                
+                // Lift/step cycle
+                const liftAmount = Math.max(0, Math.sin(cyclePos)) * 0.2;
+                const swingAmount = Math.cos(cyclePos) * 0.15;
+                
+                // Coxa swing forward/back
+                leg.userData.coxaJoint.rotation.x = swingAmount * 0.3;
+                
+                // Coxa-femur joint lifts leg up
+                leg.userData.coxaFemurJoint.rotation.x = liftAmount * 0.4;
+                
+                // Femur adjusts angle during stride
+                leg.userData.femurJoint.rotation.x = -Math.PI / 3.5 + swingAmount * 0.2;
+                
+                // Knee bend during lift
+                leg.userData.kneeJoint.rotation.x = -liftAmount * 0.5;
+                
+                // Tibia extends during step
+                leg.userData.tibiaJoint.rotation.x = Math.PI / 6 - liftAmount * 0.3;
+            });
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            time += 0.01;
+            walkCycle += 0.05 * walkSpeed;
+            
+            if (ant) {
+                ant.rotation.y = rotation.y;
+                ant.rotation.x = rotation.x;
+                
+                // Body bob while walking
+                ant.position.y = Math.sin(walkCycle * 2) * 0.02;
+            }
+            
+            // Animate antennae - realistic sensing motion
+            if (leftAntenna && leftAntenna.userData.scapeJoint) {
+                leftAntenna.userData.scapeJoint.rotation.z = -Math.PI / 4 + Math.sin(time * 2.5) * 0.12;
+                leftAntenna.userData.scapeJoint.rotation.y = Math.sin(time * 1.8) * 0.1;
+                leftAntenna.userData.funiculusJoint.rotation.x = Math.PI / 2.5 + Math.sin(time * 3 + 0.5) * 0.15;
+            }
+            
+            if (rightAntenna && rightAntenna.userData.scapeJoint) {
+                rightAntenna.userData.scapeJoint.rotation.z = Math.PI / 4 + Math.sin(time * 2.5) * 0.12;
+                rightAntenna.userData.scapeJoint.rotation.y = Math.sin(time * 1.8 + Math.PI) * 0.1;
+                rightAntenna.userData.funiculusJoint.rotation.x = Math.PI / 2.5 + Math.sin(time * 3 + 0.5) * 0.15;
+            }
+            
+            // Scuttle animation
+            animateScuttle();
+            
+            // Abdomen breathing
+            if (abdomen) {
+                abdomen.rotation.x = Math.sin(time * 1.5) * 0.02;
+                abdomen.scale.z = 1.6 + Math.sin(time * 2) * 0.05;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        animate();
+    </script>
+</body>
+</html>

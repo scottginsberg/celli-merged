@@ -1,0 +1,5160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Asset Geometry Evaluator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1a1a1a;
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+      overflow: hidden;
+    }
+    
+    .container {
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      background: #1a1a1a;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    
+    header h1 {
+      font-size: 1.5em;
+      margin: 0 0 5px 0;
+    }
+    
+    header p {
+      font-size: 0.9em;
+      opacity: 0.9;
+      margin: 0;
+    }
+    
+    .main-content {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 0;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    .sidebar {
+      background: #2a2a2a;
+      border-right: 2px solid #444;
+      padding: 15px;
+      overflow-y: auto;
+      color: #e0e0e0;
+    }
+    
+    .viewer {
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      background: #1a1a1a;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    h2 {
+      color: #e0e0e0;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 8px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #b0b0b0;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 2px solid #444;
+      border-radius: 6px;
+      font-size: 13px;
+      transition: border-color 0.3s;
+      background: #333;
+      color: #e0e0e0;
+    }
+    
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+      font-family: monospace;
+    }
+    
+    button {
+      width: 100%;
+      padding: 12px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-bottom: 10px;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    button.secondary {
+      background: #6c757d;
+    }
+    
+    button.success {
+      background: #28a745;
+    }
+    
+    button.danger {
+      background: #dc3545;
+    }
+    
+    #renderContainer {
+      flex: 1;
+      background: #000;
+      overflow: hidden;
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    
+    #renderContainer canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    
+    .status {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+      display: block;
+    }
+    
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+    
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+    
+    .status.loading {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+      display: block;
+    }
+    
+    #evaluationResults {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      max-height: 400px;
+      overflow-y: auto;
+      display: none;
+    }
+    
+    #evaluationResults.show {
+      display: block;
+    }
+    
+    #evaluationResults h3 {
+      margin-top: 15px;
+      color: #667eea;
+    }
+    
+    #evaluationResults pre {
+      background: white;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      font-size: 13px;
+    }
+    
+    .score-display {
+      font-size: 36px;
+      font-weight: bold;
+      text-align: center;
+      padding: 20px;
+      margin: 15px 0;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .screenshots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin: 15px 0;
+    }
+    
+    .screenshots-grid img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 2px solid #e0e0e0;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    .screenshots-grid img:hover {
+      transform: scale(1.05);
+      border-color: #667eea;
+    }
+    
+    .help-text {
+      font-size: 12px;
+      color: #777;
+      margin-top: 5px;
+      font-style: italic;
+    }
+    
+    /* Rapid Review Mode Styles - HUD Overlay */
+    #reviewMode {
+      display: none;
+      background: rgba(0, 0, 0, 0.92);
+      border: 2px solid #667eea;
+      border-radius: 12px;
+      padding: 20px;
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 350px;
+      max-height: 80vh;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(10px);
+      color: #e0e0e0;
+    }
+    
+    #reviewMode.active {
+      display: block;
+    }
+    
+    #reviewMode.collapsed {
+      width: 50px;
+      height: 50px;
+      padding: 0;
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    .review-actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .review-actions button {
+      flex: 1;
+      padding: 15px;
+      font-size: 18px;
+      margin: 0;
+    }
+    
+    .review-actions button.thumbs-up {
+      background: #28a745;
+    }
+    
+    .review-actions button.thumbs-down {
+      background: #dc3545;
+    }
+    
+    .review-actions button.skip {
+      background: #ffc107;
+      color: #333;
+    }
+    
+    .tag-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+    
+    .tag-buttons button {
+      width: auto;
+      padding: 8px 16px;
+      font-size: 13px;
+      margin: 0;
+      background: #6c757d;
+    }
+    
+    .tag-buttons button.active {
+      background: #dc3545;
+    }
+    
+    .review-notes {
+      margin-bottom: 15px;
+    }
+    
+    .review-export {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .review-export button {
+      margin: 0;
+    }
+    
+    .review-counter {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 6px;
+      text-align: center;
+      margin-bottom: 15px;
+      font-weight: 600;
+      color: #667eea;
+    }
+    
+    .mode-toggle {
+      background: #ffc107 !important;
+      color: #333 !important;
+    }
+    
+    /* Layout Mode Styles - HUD Overlay */
+    #layoutMode {
+      display: none;
+      background: rgba(0, 0, 0, 0.92);
+      border: 2px solid #28a745;
+      border-radius: 12px;
+      padding: 20px;
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 350px;
+      max-height: 80vh;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(10px);
+      color: #e0e0e0;
+    }
+    
+    #layoutMode.active {
+      display: block;
+    }
+    
+    #layoutMode.collapsed {
+      width: 50px;
+      height: 50px;
+      padding: 0;
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    .layout-selector {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+    }
+    
+    .layout-category {
+      margin-bottom: 12px;
+    }
+    
+    .layout-category-header {
+      font-weight: 600;
+      color: #28a745;
+      margin-bottom: 6px;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .layout-category-header::before {
+      content: '▼';
+      font-size: 10px;
+      transition: transform 0.2s;
+    }
+    
+    .layout-category-header.collapsed::before {
+      transform: rotate(-90deg);
+    }
+    
+    .layout-room-list {
+      margin-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .layout-room-list.hidden {
+      display: none;
+    }
+    
+    .layout-room-item {
+      padding: 8px 12px;
+      background: rgba(40, 167, 69, 0.1);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+    
+    .layout-room-item:hover {
+      background: rgba(40, 167, 69, 0.2);
+      transform: translateX(4px);
+    }
+    
+    .layout-room-item.active {
+      background: rgba(40, 167, 69, 0.4);
+      border-left: 3px solid #28a745;
+      font-weight: 600;
+    }
+    
+    .layout-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+    
+    .layout-controls button {
+      margin: 0;
+      flex: 1;
+      min-width: 120px;
+    }
+    
+    .layout-toggle {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .layout-toggle label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    
+    .layout-stats {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+    
+    .layout-stats-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      font-size: 13px;
+    }
+    
+    .layout-stats-label {
+      color: #666;
+    }
+    
+    .layout-stats-value {
+      font-weight: 600;
+      color: #28a745;
+    }
+    
+    /* Asset Hierarchy Styles */
+    .category-section {
+      margin-bottom: 8px;
+    }
+    
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      user-select: none;
+      transition: all 0.2s;
+    }
+    
+    .category-header:hover {
+      transform: translateX(2px);
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+    
+    .category-header.collapsed {
+      opacity: 0.7;
+    }
+    
+    .expand-icon {
+      font-size: 10px;
+      transition: transform 0.2s;
+      margin-left: auto;
+    }
+    
+    .category-header.collapsed .expand-icon {
+      transform: rotate(-90deg);
+    }
+    
+    .category-count {
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+    
+    .subcategory-section {
+      margin-left: 12px;
+      margin-top: 4px;
+    }
+    
+    .subcategory-section.hidden {
+      display: none;
+    }
+    
+    .subcategory-header {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 8px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      color: #555;
+    }
+    
+    .subcategory-header:hover {
+      background: #e0e0e0;
+    }
+    
+    .subcategory-list {
+      margin-left: 12px;
+      margin-top: 4px;
+    }
+    
+    .subcategory-list.hidden {
+      display: none;
+    }
+    
+    .asset-item-hierarchical {
+      padding: 6px 10px;
+      margin: 2px 0;
+      background: white;
+      border-radius: 4px;
+      border-left: 3px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+    
+    .asset-item-hierarchical:hover {
+      background: #e8f0fe;
+      border-left-color: #667eea;
+      transform: translateX(2px);
+    }
+    
+    .asset-item-hierarchical.selected {
+      background: #d0e0ff;
+      border-left-color: #667eea;
+      font-weight: 600;
+    }
+    
+    .asset-size-badge {
+      font-size: 9px;
+      padding: 2px 5px;
+      border-radius: 8px;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-left: auto;
+    }
+    
+    .asset-size-badge.small { background: #c8e6c9; color: #2e7d32; }
+    .asset-size-badge.medium { background: #bbdefb; color: #1565c0; }
+    .asset-size-badge.large { background: #ffe0b2; color: #e65100; }
+    .asset-size-badge.xlarge { background: #ffcdd2; color: #c62828; }
+    
+    .sort-btn {
+      transition: all 0.2s;
+    }
+    
+    .sort-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .sort-btn.active {
+      background: #667eea !important;
+      color: white !important;
+    }
+    
+    #assetHierarchy::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    #assetHierarchy::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+    
+    #assetHierarchy::-webkit-scrollbar-thumb {
+      background: #667eea;
+      border-radius: 4px;
+    }
+    
+    #assetHierarchy::-webkit-scrollbar-thumb:hover {
+      background: #764ba2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎨 3D Asset Geometry Evaluator</h1>
+      <p>AI-powered hyper-specific geometry and realism analysis</p>
+    </header>
+    
+    <div class="main-content">
+      <aside class="sidebar">
+        <h2>🏗️ Building Constructor</h2>
+        
+        <div class="form-group">
+          <label for="roomCount">Number of Rooms:</label>
+          <input type="number" id="roomCount" value="5" min="1" max="20" style="width: 100%;">
+        </div>
+        
+        <div style="display: flex; gap: 5px; margin-bottom: 8px;">
+          <button id="buildingSmartMode" class="secondary" style="flex: 1; font-size: 11px; padding: 6px;">🤖 Smart Gen</button>
+        </div>
+        <button id="generateBuilding" class="success">🏠 Generate Building</button>
+        <button id="generateSingleRoom" style="background: linear-gradient(135deg, #ff8c4a 0%, #ef6c3a 100%);">🎲 Random Room</button>
+        <button id="trulyRandom" style="background: linear-gradient(135deg, #4aff8c 0%, #3aef6c 100%);">✨ Truly Random</button>
+        <button id="generatePrisonBlock" style="background: linear-gradient(135deg, #666666 0%, #444444 100%); color: white;">🔒 Prison Block</button>
+        
+        <div class="form-group" style="margin-top: 20px;">
+          <label for="roomType">Room Type:</label>
+          <select id="roomType">
+            <option value="random">🎲 Random</option>
+            <option value="bedroom">Bedroom</option>
+            <option value="bathroom">Bathroom</option>
+            <option value="kitchen">Kitchen</option>
+            <option value="living">Living Room</option>
+            <option value="dining">Dining Room</option>
+            <option value="office">Office</option>
+            <option value="hallway">Hallway</option>
+            <option value="classroom">Classroom</option>
+            <option value="gymnasium">Gymnasium</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="floorPattern">Floor Pattern:</label>
+          <select id="floorPattern">
+            <option value="random">🎲 Random</option>
+            <option value="hardwood-short">Hardwood Short</option>
+            <option value="hardwood-long">Hardwood Long</option>
+            <option value="hardwood-herringbone">Herringbone</option>
+            <option value="hardwood-parquet">Parquet</option>
+            <option value="tile-broad">Tile Broad</option>
+            <option value="tile-industrial">Tile Industrial</option>
+            <option value="carpet-plush">Carpet Plush</option>
+            <option value="carpet-short">Carpet Short</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="doorStyle">Door Style:</label>
+          <select id="doorStyle">
+            <option value="random">🎲 Random</option>
+            <option value="modern">Modern</option>
+            <option value="traditional">Traditional</option>
+            <option value="rustic">Rustic</option>
+            <option value="industrial">Industrial</option>
+            <option value="glass">Glass</option>
+            <option value="barn">Barn</option>
+          </select>
+        </div>
+        
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">
+        
+        <h2>3D Asset Preview</h2>
+        
+        <div class="form-group">
+          <label for="searchInput">🔍 Search Assets:</label>
+          <input type="text" id="searchInput" placeholder="Search by name, tag, or description...">
+        </div>
+        
+        <div class="form-group">
+          <label>Filter by:</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+            <select id="filterRoom" style="font-size: 12px; padding: 6px;">
+              <option value="">All Rooms</option>
+            </select>
+            <select id="filterSize" style="font-size: 12px; padding: 6px;">
+              <option value="">All Sizes</option>
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+              <option value="xlarge">X-Large</option>
+            </select>
+          </div>
+          <select id="filterSurface" style="font-size: 12px; padding: 6px;">
+            <option value="">All Surfaces</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Sort by:</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+            <button class="sort-btn active" data-sort="name" style="padding: 6px; font-size: 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Name</button>
+            <button class="sort-btn" data-sort="size" style="padding: 6px; font-size: 12px; background: #ddd; color: #333; border: none; border-radius: 4px; cursor: pointer;">Size</button>
+            <button class="sort-btn" data-sort="volume" style="padding: 6px; font-size: 12px; background: #ddd; color: #333; border: none; border-radius: 4px; cursor: pointer;">Volume</button>
+            <button class="sort-btn" data-sort="price" style="padding: 6px; font-size: 12px; background: #ddd; color: #333; border: none; border-radius: 4px; cursor: pointer;">Price</button>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label style="margin: 0;">Asset Library:</label>
+            <span id="assetCount" style="font-size: 12px; color: #667eea; font-weight: 600;">0 assets</span>
+          </div>
+          <div id="assetHierarchy" style="max-height: 400px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 6px; padding: 8px; background: white;"></div>
+        </div>
+        
+        <div class="form-group">
+          <label for="assetSpec">Asset Spec (JSON):</label>
+          <textarea id="assetSpec" placeholder='{"x": 0, "z": 0, "rotation": 0}'>{}</textarea>
+          <div class="help-text">Optional: Customize asset properties</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="apiKey">AI API Key (Optional):</label>
+          <input type="password" id="apiKey" placeholder="sk-ant-...">
+          <div class="help-text">For Anthropic Claude API</div>
+        </div>
+        
+        <button id="toggleReviewMode" class="mode-toggle">🚀 Rapid Review Mode</button>
+        <button id="toggleLayoutMode" class="mode-toggle" style="background: #28a745 !important; color: white !important;">🏗️ Layout Test Mode</button>
+        <button id="loadAsset" class="secondary">Load Asset Preview</button>
+        <button id="captureScreenshots" disabled>Capture Multi-Angle</button>
+        <button id="assetFall" class="secondary">🌧️ Asset Rainfall</button>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+          <button id="spawnAntPerson" class="secondary" style="font-size: 12px; padding: 8px;">🐜 Ant-Sized Person</button>
+          <button id="spawnToyPerson" class="secondary" style="font-size: 12px; padding: 8px;">🧸 Toy-Sized Person</button>
+        </div>
+        
+        <button id="toggleFirstPerson" class="mode-toggle" style="background: #4CAF50 !important; color: white !important;">🎮 First-Person Mode</button>
+        <button id="advanceDay" style="background: #b794f6; font-weight: bold;">⏭️ Next Day</button>
+        <button id="testStomp" style="background: #dc2626; font-weight: bold;">👟 Test Stomp</button>
+        
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">
+        
+        <h2>🏢 Vantage Point Mode</h2>
+        
+        <div class="form-group">
+          <label for="buildingStories">Number of Stories:</label>
+          <input type="number" id="buildingStories" value="10" min="1" max="50" style="width: 100%;">
+        </div>
+        
+        <button id="toggleVantageMode" class="mode-toggle" style="background: #ff6b6b !important; color: white !important;">🏙️ Vantage Point Mode</button>
+        <button id="toggleHallway" class="secondary">🚪 Toggle Hallway</button>
+        
+        <div style="font-size: 11px; margin-top: 10px; padding: 8px; background: rgba(255, 107, 107, 0.1); border-radius: 4px;">
+          <strong>Vantage Point Mode:</strong><br>
+          Creates a high-rise building with an infinite hallway system.<br>
+          Enter doors to explore rooms mapped to building windows.<br>
+          Rooms are clipped to only be visible through their windows.
+        </div>
+        
+        <div style="font-size: 11px; margin-top: 10px; padding: 8px; background: rgba(76, 175, 80, 0.1); border-radius: 4px;">
+          <strong>First-Person Controls:</strong><br>
+          WASD - Move | Q/E - Scale | Mouse - Look<br>
+          <strong>Day <span id="dayNumber">1</span>:</strong> <span id="dayStatus">Tiny people gathering...</span>
+        </div>
+        
+        <button id="evaluateBtn" disabled>🤖 Evaluate with AI</button>
+        <button id="exportReport" class="success" disabled>Export Report</button>
+        <button id="clearBtn" class="danger">Clear</button>
+        
+        <div id="status" class="status"></div>
+      </aside>
+      
+      <main class="viewer">
+        <!-- Rapid Review Mode Panel -->
+        <div id="reviewMode">
+          <div class="review-counter">
+            <span id="reviewCount">0</span> assets reviewed
+          </div>
+          
+          <div class="review-actions">
+            <button class="thumbs-up" id="thumbsUp">👍 Good</button>
+            <button class="thumbs-down" id="thumbsDown">👎 Needs Work</button>
+            <button class="skip" id="skipAsset">⏭️ Skip</button>
+          </div>
+          
+          <div class="tag-buttons">
+            <button class="tag-btn" data-tag="Incorrect geometry">⚠️ Incorrect Geometry</button>
+            <button class="tag-btn" data-tag="Low fidelity">📉 Low Fidelity</button>
+            <button class="tag-btn" data-tag="Orientation issue">🔄 Orientation Issue</button>
+            <button class="tag-btn" data-tag="Scale problem">📏 Scale Problem</button>
+            <button class="tag-btn" data-tag="Missing details">🔍 Missing Details</button>
+            <button class="tag-btn" data-tag="Material issue">🎨 Material Issue</button>
+          </div>
+          
+          <div class="review-notes">
+            <label for="reviewNotesInput">Additional Notes:</label>
+            <textarea id="reviewNotesInput" placeholder="Enter any specific issues or comments..."></textarea>
+          </div>
+          
+          <div class="review-export">
+            <button id="exportReview" class="success">📋 Copy Report</button>
+            <button id="downloadReview" class="success">💾 Download Report</button>
+            <button id="clearReviews" class="danger">🗑️ Clear All Reviews</button>
+          </div>
+        </div>
+        
+        <!-- Layout Test Mode Panel -->
+        <div id="layoutMode">
+          <h3 style="margin: 0 0 15px 0; color: #28a745;">🏗️ Room Layout Tester</h3>
+          
+          <div class="layout-stats">
+            <div class="layout-stats-row">
+              <span class="layout-stats-label">Template:</span>
+              <span class="layout-stats-value" id="layoutTemplate">None</span>
+            </div>
+            <div class="layout-stats-row">
+              <span class="layout-stats-label">Dimensions:</span>
+              <span class="layout-stats-value" id="layoutDimensions">-</span>
+            </div>
+            <div class="layout-stats-row">
+              <span class="layout-stats-label">Props Spawned:</span>
+              <span class="layout-stats-value" id="layoutPropsCount">0</span>
+            </div>
+          </div>
+          
+          <div class="layout-controls">
+            <button id="layoutRegenerate" class="secondary">🔄 Regenerate</button>
+            <button id="layoutAutoRotate" class="secondary">↻ Auto Rotate</button>
+            <button id="layoutSmartMode" class="secondary">🤖 Smart Generation</button>
+          </div>
+          
+          <div class="layout-toggle">
+            <label>
+              <input type="checkbox" id="layoutFloor" checked>
+              <span>Floor</span>
+            </label>
+            <label>
+              <input type="checkbox" id="layoutWalls" checked>
+              <span>Walls</span>
+            </label>
+            <label>
+              <input type="checkbox" id="layoutCeiling" checked>
+              <span>Ceiling</span>
+            </label>
+          </div>
+          
+          <div class="layout-selector">
+            <h4 style="margin: 0 0 10px 0;">Select Room Template:</h4>
+            <div id="layoutRoomCategories"></div>
+          </div>
+        </div>
+        
+        <div id="renderContainer"></div>
+        
+        <div id="evaluationResults">
+          <h2>Evaluation Results</h2>
+          <div id="resultsContent"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+  
+  <!-- Pedestrian Interaction Systems -->
+  <script src="js/pedestrian-interaction-core.js"></script>
+  <script src="js/pedestrian-ai.js"></script>
+  <script src="js/dialogue-system.js"></script>
+  <script src="js/food-interaction.js"></script>
+  
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  
+  <script type="module">
+    import * as THREE from 'three';
+    import { GeometryEvaluator } from './js/evaluator/geometry-evaluator.js';
+    import { BuildingConstructor, getRandomRoomType } from './js/building-constructor.js';
+    import { DoorFrameSystem, getRandomDoorStyle } from './js/door-system.js';
+    import { 
+      ASSET_METADATA, 
+      filterAssets as filterAssetsLegacy, 
+      sortAssets,
+      getRooms,
+      getSurfaces,
+      getAssetMetadata as getAssetMetadataLegacy
+    } from './js/assets/asset-metadata.js';
+    import { getAvailableAssets, getAssetMetadata as getRegistryMetadata } from './js/assets/asset-registry.js';
+    import { InfiniteHallwaySystem } from './js/infinite-hallway-system.js';
+    import { VantagePointSystem } from './js/vantage-point-system.js';
+    
+    // ==================== MICRO CITY SYSTEM ====================
+    import { MicroCityCore } from './js/micro-city/MicroCityCore.js';
+    import { MicroCityEvents } from './js/micro-city/EventBus.js';
+    import { ScaleConstants } from './js/micro-city/ScaleConstants.js';
+    
+    // ==================== ROOM GENERATION SYSTEM ====================
+    import { RoomGenerationSystem } from './js/room-generation/RoomGenerationSystem.js';
+    import { HotSpotManager } from './js/room-generation/HotSpotManager.js';
+    import { AssetMarriageSystem } from './js/room-generation/AssetMarriageSystem.js';
+    import { SurfaceTopperSystem } from './js/room-generation/SurfaceTopperSystem.js';
+    
+    // ==================== ASSET METADATA MERGER ====================
+    // Build complete asset list from both legacy metadata and registry
+    function buildCompleteAssetMetadata() {
+      const allAssets = {};
+      
+      // Start with all assets from the registry
+      const availableAssetIds = getAvailableAssets();
+      
+      availableAssetIds.forEach(assetId => {
+        const registryMeta = getRegistryMetadata(assetId);
+        const legacyMeta = getAssetMetadataLegacy(assetId);
+        
+        // Merge metadata, prioritizing legacy for detailed info, but ensuring registry assets are included
+        if (legacyMeta) {
+          // Use legacy metadata as base (more detailed)
+          allAssets[assetId] = { ...legacyMeta };
+        } else if (registryMeta) {
+          // Asset exists in registry but not in legacy metadata - create from registry metadata
+          allAssets[assetId] = {
+            id: assetId,
+            name: registryMeta.name || assetId.replace(/([A-Z])/g, ' $1').trim().replace(/^./, str => str.toUpperCase()),
+            category: registryMeta.category || 'other',
+            subcategory: registryMeta.subcategory || 'uncategorized',
+            rooms: registryMeta.rooms || [],
+            surfaces: registryMeta.surfaces || ['floor'],
+            size: registryMeta.size || calculateSize(registryMeta.dimensions),
+            dimensions: registryMeta.dimensions || { width: 0.5, height: 0.5, depth: 0.5 },
+            volume: registryMeta.volume || calculateVolume(registryMeta.dimensions),
+            weight: registryMeta.weight || 'medium',
+            interactive: registryMeta.interactive || false,
+            tags: registryMeta.tags || [registryMeta.category || 'prop'],
+            description: registryMeta.description || `${registryMeta.name || assetId}`,
+            price: registryMeta.price || 100,
+            required: false,
+            placementRules: registryMeta.placementRules || []
+          };
+        } else {
+          // Asset has no metadata at all - create minimal defaults (warning suppressed, shown in summary)
+          allAssets[assetId] = {
+            id: assetId,
+            name: assetId.replace(/([A-Z])/g, ' $1').trim().replace(/^./, str => str.toUpperCase()),
+            category: 'other',
+            subcategory: 'uncategorized',
+            rooms: [],
+            surfaces: ['floor'],
+            size: 'medium',
+            dimensions: { width: 0.5, height: 0.5, depth: 0.5 },
+            volume: 0.125,
+            weight: 'medium',
+            interactive: false,
+            tags: ['uncategorized'],
+            description: `${assetId} (no metadata)`,
+            price: 100,
+            required: false,
+            placementRules: []
+          };
+        }
+      });
+      
+      return allAssets;
+    }
+    
+    // Helper to calculate size from dimensions
+    function calculateSize(dimensions) {
+      if (!dimensions) return 'medium';
+      const maxDim = Math.max(dimensions.width || 0, dimensions.height || 0, dimensions.depth || 0);
+      if (maxDim < 0.3) return 'small';
+      if (maxDim < 1.0) return 'medium';
+      if (maxDim < 2.0) return 'large';
+      return 'xlarge';
+    }
+    
+    // Helper to calculate volume from dimensions
+    function calculateVolume(dimensions) {
+      if (!dimensions) return 0.125;
+      return (dimensions.width || 0.5) * (dimensions.height || 0.5) * (dimensions.depth || 0.5);
+    }
+    
+    // Build complete asset metadata on load
+    const COMPLETE_ASSET_METADATA = buildCompleteAssetMetadata();
+    
+    // Log asset loading summary
+    console.log(`📦 Asset Library Loaded: ${Object.keys(COMPLETE_ASSET_METADATA).length} total assets`);
+    const categoryCounts = {};
+    Object.values(COMPLETE_ASSET_METADATA).forEach(asset => {
+      categoryCounts[asset.category] = (categoryCounts[asset.category] || 0) + 1;
+    });
+    console.log('📊 Assets by category:', categoryCounts);
+    
+    // Check for assets with minimal metadata
+    const missingMetadata = Object.values(COMPLETE_ASSET_METADATA).filter(asset => asset.category === 'other');
+    if (missingMetadata.length > 0) {
+      console.log(`ℹ️ ${missingMetadata.length} assets in "other" category (using defaults):`, missingMetadata.map(a => a.id).join(', '));
+    }
+    
+    // Override filter function to use complete metadata
+    function filterAssets(criteria) {
+      return Object.values(COMPLETE_ASSET_METADATA).filter(asset => {
+        if (criteria.category && asset.category !== criteria.category) return false;
+        if (criteria.subcategory && asset.subcategory !== criteria.subcategory) return false;
+        if (criteria.room && asset.rooms && !asset.rooms.includes(criteria.room)) return false;
+        if (criteria.surface && asset.surfaces && !asset.surfaces.includes(criteria.surface)) return false;
+        if (criteria.size && asset.size !== criteria.size) return false;
+        if (criteria.search) {
+          const searchLower = criteria.search.toLowerCase();
+          const matchesName = asset.name.toLowerCase().includes(searchLower);
+          const matchesTags = asset.tags && asset.tags.some(tag => tag.toLowerCase().includes(searchLower));
+          const matchesDescription = asset.description && asset.description.toLowerCase().includes(searchLower);
+          const matchesId = asset.id.toLowerCase().includes(searchLower);
+          if (!matchesName && !matchesTags && !matchesDescription && !matchesId) return false;
+        }
+        return true;
+      });
+    }
+    
+    // Override getAssetMetadata to use complete metadata
+    function getAssetMetadata(id) {
+      return COMPLETE_ASSET_METADATA[id] || null;
+    }
+    
+    // UI Elements - Building Constructor
+    const roomCount = document.getElementById('roomCount');
+    const generateBuildingBtn = document.getElementById('generateBuilding');
+    const generateSingleRoomBtn = document.getElementById('generateSingleRoom');
+    const trulyRandomBtn = document.getElementById('trulyRandom');
+    const generatePrisonBlockBtn = document.getElementById('generatePrisonBlock');
+    const roomTypeSelect = document.getElementById('roomType');
+    const floorPatternSelect = document.getElementById('floorPattern');
+    const doorStyleSelect = document.getElementById('doorStyle');
+    
+    // UI Elements - Asset Evaluator
+    const searchInput = document.getElementById('searchInput');
+    const filterRoom = document.getElementById('filterRoom');
+    const filterSize = document.getElementById('filterSize');
+    const filterSurface = document.getElementById('filterSurface');
+    const assetHierarchy = document.getElementById('assetHierarchy');
+    const assetCount = document.getElementById('assetCount');
+    const assetSpec = document.getElementById('assetSpec');
+    const apiKey = document.getElementById('apiKey');
+    const loadAssetBtn = document.getElementById('loadAsset');
+    const captureBtn = document.getElementById('captureScreenshots');
+    const assetFallBtn = document.getElementById('assetFall');
+    const spawnAntPersonBtn = document.getElementById('spawnAntPerson');
+    const spawnToyPersonBtn = document.getElementById('spawnToyPerson');
+    const evaluateBtn = document.getElementById('evaluateBtn');
+    const exportBtn = document.getElementById('exportReport');
+    const clearBtn = document.getElementById('clearBtn');
+    const status = document.getElementById('status');
+    const resultsDiv = document.getElementById('evaluationResults');
+    const resultsContent = document.getElementById('resultsContent');
+    const renderContainer = document.getElementById('renderContainer');
+    
+    // Rapid Review Mode UI Elements
+    const toggleReviewModeBtn = document.getElementById('toggleReviewMode');
+    const reviewModePanel = document.getElementById('reviewMode');
+    const thumbsUpBtn = document.getElementById('thumbsUp');
+    const thumbsDownBtn = document.getElementById('thumbsDown');
+    const skipAssetBtn = document.getElementById('skipAsset');
+    const tagButtons = document.querySelectorAll('.tag-btn');
+    const reviewNotesInput = document.getElementById('reviewNotesInput');
+    const exportReviewBtn = document.getElementById('exportReview');
+    const downloadReviewBtn = document.getElementById('downloadReview');
+    const clearReviewsBtn = document.getElementById('clearReviews');
+    const reviewCountDisplay = document.getElementById('reviewCount');
+    
+    // Layout Mode UI Elements
+    const toggleLayoutModeBtn = document.getElementById('toggleLayoutMode');
+    const layoutModePanel = document.getElementById('layoutMode');
+    const layoutRegenerateBtn = document.getElementById('layoutRegenerate');
+    const layoutAutoRotateBtn = document.getElementById('layoutAutoRotate');
+    const layoutFloorChk = document.getElementById('layoutFloor');
+    const layoutWallsChk = document.getElementById('layoutWalls');
+    const layoutCeilingChk = document.getElementById('layoutCeiling');
+    const layoutRoomCategories = document.getElementById('layoutRoomCategories');
+    const layoutTemplateDisplay = document.getElementById('layoutTemplate');
+    const layoutDimensionsDisplay = document.getElementById('layoutDimensions');
+    const layoutPropsCountDisplay = document.getElementById('layoutPropsCount');
+    
+    // First-Person & Pedestrian UI Elements
+    const toggleFirstPersonBtn = document.getElementById('toggleFirstPerson');
+    const advanceDayBtn = document.getElementById('advanceDay');
+    const testStompBtn = document.getElementById('testStomp');
+    const dayNumberDisplay = document.getElementById('dayNumber');
+    const dayStatusDisplay = document.getElementById('dayStatus');
+    
+    // Vantage Point Mode UI Elements
+    const toggleVantageModeBtn = document.getElementById('toggleVantageMode');
+    const toggleHallwayBtn = document.getElementById('toggleHallway');
+    const buildingStoriesInput = document.getElementById('buildingStories');
+    
+    // State
+    let evaluator = null;
+    let currentAsset = null;
+    let screenshots = [];
+    let assetFallActive = false;
+    let fallingAssets = [];
+    
+    // Floor offset constant (floor thickness)
+    const FLOOR_OFFSET = 0.02; // Height of floor surface above y=0
+    
+    // Pedestrian Interaction State
+    let interactionSystem = null;
+    let pedestrianAI = null;
+    let dialogueSystem = null;
+    let foodInteractionSystem = null;
+    let tinyPeople = [];
+    let structures = [];
+    let resources = [];
+    let currentDay = 1;
+    
+    // First-Person Mode State
+    let firstPersonMode = false;
+    let playerMesh = null;
+    let keys = {};
+    let lastTime = 0;
+    
+    // Rapid Review Mode State
+    let reviewModeActive = false;
+    let reviews = [];
+    let currentReviewTags = new Set();
+    let gizmoHelpers = [];
+    
+    // Layout Mode State
+    let layoutModeActive = false;
+    let currentLayoutRoom = null;
+    let currentLayoutTemplate = null;
+    let layoutAutoRotate = false;
+    let layoutRoomTemplates = {};
+    let useSmartGeneration = false; // Toggle between template and smart AI generation
+    let roomGenerationSystem = null; // Smart room generation system
+    
+    // Building Constructor State
+    let useBuildingSmartGen = false; // Toggle for building constructor smart gen
+    
+    // Vantage Point Mode State
+    let vantageModeActive = false;
+    let infiniteHallwaySystem = null;
+    let vantagePointSystem = null;
+    
+    // Initialize evaluator
+    async function init() {
+      evaluator = new GeometryEvaluator({
+        screenshotWidth: 1024,
+        screenshotHeight: 1024,
+        apiEndpoint: 'https://api.anthropic.com/v1/messages'
+      });
+      evaluator.init(renderContainer);
+      
+      // Initialize Pedestrian Interaction Systems
+      interactionSystem = new PedestrianInteractionSystem();
+      pedestrianAI = new PedestrianAI(interactionSystem);
+      dialogueSystem = new DialogueSystem(interactionSystem);
+      foodInteractionSystem = new FoodInteractionSystem(interactionSystem, dialogueSystem);
+      
+      // Initialize Infinite Hallway System
+      infiniteHallwaySystem = new InfiniteHallwaySystem(
+        evaluator.renderer.scene,
+        evaluator.renderer.camera
+      );
+      
+      // Initialize Vantage Point System
+      vantagePointSystem = new VantagePointSystem(
+        evaluator.renderer.scene,
+        evaluator.renderer.camera,
+        infiniteHallwaySystem
+      );
+      
+      // Initialize Micro City System
+      window.microCityCore = new MicroCityCore({
+        initialCitizens: 5,
+        startScale: 0.01,  // Ant-sized
+        autoResourceSpawn: true
+      });
+      
+      // Setup micro city event listeners
+      setupMicroCityListeners();
+      
+      // Add micro city controls to UI
+      createMicroCityUI();
+      
+      // Initialize Room Generation System
+      if (evaluator && evaluator.renderer) {
+        // Create asset registry compatible with RoomGenerationSystem
+        const assetRegistry = createAssetRegistryForRoomGen();
+        roomGenerationSystem = new RoomGenerationSystem(
+          evaluator.renderer.scene,
+          assetRegistry
+        );
+        console.log('✓ Smart Room Generation System initialized');
+      }
+      
+      // Setup click interaction handler for doors/lids
+      setupInteractivity();
+      
+      // Setup new asset library system
+      populateFilters();
+      setupAssetLibraryListeners();
+      renderAssetHierarchy();
+      
+      showStatus('Asset library loaded. Search, filter, and click to select assets.', 'info');
+      
+      // Setup Rapid Review Mode handlers
+      setupReviewMode();
+      
+      // Setup Layout Mode handlers
+      setupLayoutMode();
+      
+      // Setup keyboard navigation (Q = previous, E = next)
+      setupKeyboardNavigation();
+      
+      // Setup First-Person Mode handlers
+      setupFirstPersonMode();
+      
+      // Setup Day System handlers
+      setupDaySystem();
+      
+      // Setup Vantage Point Mode handlers
+      setupVantagePointMode();
+      
+      // Setup Building Constructor handlers
+      setupBuildingConstructor();
+      
+      // Setup Building Constructor Mode (smart generation toggle)
+      setupBuildingConstructorMode();
+      
+      // Create player mesh
+      createPlayerMesh();
+      
+      // Setup window resize handler
+      setupResizeHandler();
+      
+      // Start animation loop
+      startAnimationLoop();
+    }
+    
+    // ==================== RESIZE HANDLER ====================
+    
+    function setupResizeHandler() {
+      // Handle window resize to maintain proper aspect ratio
+      function handleResize() {
+        if (!evaluator || !evaluator.renderer) return;
+        
+        const container = renderContainer;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        // Update Three.js renderer
+        evaluator.renderer.resize(width, height);
+      }
+      
+      // Attach resize listener
+      window.addEventListener('resize', handleResize);
+      
+      // Initial resize to fit container
+      handleResize();
+    }
+    
+    // ==================== RAPID REVIEW MODE ====================
+    
+    function setupReviewMode() {
+      // Toggle review mode
+      toggleReviewModeBtn.addEventListener('click', () => {
+        reviewModeActive = !reviewModeActive;
+        reviewModePanel.classList.toggle('active', reviewModeActive);
+        toggleReviewModeBtn.textContent = reviewModeActive ? '✖️ Exit Review Mode' : '🚀 Rapid Review Mode';
+        
+        if (reviewModeActive) {
+          showStatus('Rapid Review Mode activated. Click objects to show orientation gizmos.', 'info');
+        } else {
+          clearGizmos();
+          showStatus('Rapid Review Mode deactivated.', 'info');
+        }
+      });
+      
+      // Tag button toggling
+      tagButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tag = btn.getAttribute('data-tag');
+          if (currentReviewTags.has(tag)) {
+            currentReviewTags.delete(tag);
+            btn.classList.remove('active');
+          } else {
+            currentReviewTags.add(tag);
+            btn.classList.add('active');
+          }
+        });
+      });
+      
+      // Thumbs up
+      thumbsUpBtn.addEventListener('click', () => {
+        submitReview('good');
+      });
+      
+      // Thumbs down
+      thumbsDownBtn.addEventListener('click', () => {
+        submitReview('needs-work');
+      });
+      
+      // Skip
+      skipAssetBtn.addEventListener('click', () => {
+        submitReview('skip');
+      });
+      
+      // Export review
+      exportReviewBtn.addEventListener('click', () => {
+        copyReviewsToClipboard();
+      });
+      
+      // Download review
+      downloadReviewBtn.addEventListener('click', () => {
+        downloadReviews();
+      });
+      
+      // Clear reviews
+      clearReviewsBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to clear all reviews?')) {
+          reviews = [];
+          updateReviewCount();
+          showStatus('All reviews cleared.', 'info');
+        }
+      });
+    }
+    
+    function submitReview(rating) {
+      if (!currentSelectedAsset) {
+        showStatus('No asset selected to review.', 'error');
+        return;
+      }
+      
+      const review = {
+        assetId: currentSelectedAsset.id,
+        assetName: currentSelectedAsset.name,
+        rating: rating,
+        tags: Array.from(currentReviewTags),
+        notes: reviewNotesInput.value.trim(),
+        timestamp: new Date().toISOString()
+      };
+      
+      reviews.push(review);
+      updateReviewCount();
+      
+      // Clear current review
+      currentReviewTags.clear();
+      tagButtons.forEach(btn => btn.classList.remove('active'));
+      reviewNotesInput.value = '';
+      clearGizmos();
+      
+      // Show status
+      const ratingText = rating === 'good' ? '👍 Good' : rating === 'needs-work' ? '👎 Needs Work' : '⏭️ Skipped';
+      showStatus(`Review submitted: ${review.assetName} - ${ratingText}`, 'success');
+      
+      // Auto-load next asset if available (find next in hierarchy)
+      const allAssets = filterAssets(currentFilters);
+      const sorted = sortAssets(allAssets, currentSort, currentSortOrder);
+      const currentIndex = sorted.findIndex(a => a.id === currentSelectedAsset.id);
+      if (currentIndex >= 0 && currentIndex < sorted.length - 1) {
+        selectAsset(sorted[currentIndex + 1]);
+        renderAssetHierarchy(); // Re-render to update selection
+      }
+    }
+    
+    function updateReviewCount() {
+      reviewCountDisplay.textContent = reviews.length;
+    }
+    
+    function generateReviewReport() {
+      let report = '='.repeat(60) + '\n';
+      report += 'ASSET REVIEW REPORT\n';
+      report += `Generated: ${new Date().toLocaleString()}\n`;
+      report += `Total Reviews: ${reviews.length}\n`;
+      report += '='.repeat(60) + '\n\n';
+      
+      // System Instructions for Fidelity Pass
+      report += 'FIDELITY IMPROVEMENT GUIDELINES:\n';
+      report += '-'.repeat(60) + '\n';
+      report += 'When addressing low-fidelity assets, consider these approaches:\n\n';
+      report += '1. BLOCKING: Break objects into logical components\n';
+      report += '   - Shirts: front panel, back panel, sleeve tubes\n';
+      report += '   - Complex objects: separate blocking for each major part\n\n';
+      report += '2. VERTEX DEFORMATION: Add organic shape at low cost\n';
+      report += '   - Use sin/cos waves for wrinkles, folds, curves\n';
+      report += '   - Radial puff for pillows, cushions (bulgeFactor)\n';
+      report += '   - Pincushion for basins, concave surfaces\n';
+      report += '   - Multi-frequency waves for cloth rumples\n\n';
+      report += '3. CLOSED GEOMETRIES: Prevent see-through artifacts\n';
+      report += '   - Use SphereGeometry with proper thetaLength/phiLength\n';
+      report += '   - Add inner meshes (BackSide material) for thickness\n';
+      report += '   - Cap open ends with CircleGeometry or discs\n\n';
+      report += '4. ROUNDED EDGES: Simple but effective detail\n';
+      report += '   - TorusGeometry for rims, edges, handles\n';
+      report += '   - SphereGeometry end caps on cylinders\n';
+      report += '   - Beveled corners using small boxes/toruses\n\n';
+      report += '5. COMMON PITFALLS TO AVOID:\n';
+      report += '   - Half-torus handles: Check rotation (x, y, z order)\n';
+      report += '   - Sphere hemispheres: Verify thetaStart/thetaLength\n';
+      report += '   - Layered objects: Ensure proper offset (z-fighting)\n';
+      report += '   - Scale after deformation: Apply transforms first\n';
+      report += '   - Open tubes: Add RingGeometry end caps for realism\n\n';
+      report += '6. PROCEDURAL TEXTURES: Low-cost visual improvement\n';
+      report += '   - Canvas-based patterns (wood, fabric, metal)\n';
+      report += '   - Combine with CanvasTexture for detail\n\n';
+      report += '7. INSTANCED MESHES: Performance for repeated elements\n';
+      report += '   - Bristles, sprinkles, tiles, rivets\n';
+      report += '   - Set individual matrices for variation\n\n';
+      report += '='.repeat(60) + '\n\n';
+      
+      // Summary stats
+      const goodCount = reviews.filter(r => r.rating === 'good').length;
+      const needsWorkCount = reviews.filter(r => r.rating === 'needs-work').length;
+      const skippedCount = reviews.filter(r => r.rating === 'skip').length;
+      
+      report += 'SUMMARY:\n';
+      report += `  👍 Good: ${goodCount}\n`;
+      report += `  👎 Needs Work: ${needsWorkCount}\n`;
+      report += `  ⏭️ Skipped: ${skippedCount}\n\n`;
+      
+      // Assets needing work
+      const needsWorkAssets = reviews.filter(r => r.rating === 'needs-work');
+      if (needsWorkAssets.length > 0) {
+        report += '='.repeat(60) + '\n';
+        report += 'ASSETS NEEDING WORK:\n';
+        report += '='.repeat(60) + '\n\n';
+        
+        needsWorkAssets.forEach((review, index) => {
+          report += `${index + 1}. ${review.assetName} (${review.assetId})\n`;
+          
+          if (review.tags.length > 0) {
+            report += `   Issues: ${review.tags.join(', ')}\n`;
+          }
+          
+          if (review.notes) {
+            report += `   Notes: ${review.notes}\n`;
+          }
+          
+          report += `   Reviewed: ${new Date(review.timestamp).toLocaleString()}\n\n`;
+        });
+      }
+      
+      // All reviews (detailed)
+      report += '='.repeat(60) + '\n';
+      report += 'ALL REVIEWS (DETAILED):\n';
+      report += '='.repeat(60) + '\n\n';
+      
+      reviews.forEach((review, index) => {
+        const ratingSymbol = review.rating === 'good' ? '👍' : review.rating === 'needs-work' ? '👎' : '⏭️';
+        report += `[${index + 1}] ${ratingSymbol} ${review.assetName}\n`;
+        report += `    ID: ${review.assetId}\n`;
+        report += `    Rating: ${review.rating}\n`;
+        
+        if (review.tags.length > 0) {
+          report += `    Tags: ${review.tags.join(', ')}\n`;
+        }
+        
+        if (review.notes) {
+          report += `    Notes: ${review.notes}\n`;
+        }
+        
+        report += `    Timestamp: ${new Date(review.timestamp).toLocaleString()}\n\n`;
+      });
+      
+      return report;
+    }
+    
+    async function copyReviewsToClipboard() {
+      if (reviews.length === 0) {
+        showStatus('No reviews to export.', 'error');
+        return;
+      }
+      
+      const report = generateReviewReport();
+      
+      try {
+        await navigator.clipboard.writeText(report);
+        showStatus(`✓ Review report copied to clipboard! (${reviews.length} reviews)`, 'success');
+      } catch (err) {
+        showStatus('Failed to copy to clipboard. Use download instead.', 'error');
+        console.error(err);
+      }
+    }
+    
+    function downloadReviews() {
+      if (reviews.length === 0) {
+        showStatus('No reviews to download.', 'error');
+        return;
+      }
+      
+      const report = generateReviewReport();
+      const blob = new Blob([report], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `asset-review-report-${new Date().toISOString().split('T')[0]}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      showStatus(`✓ Review report downloaded! (${reviews.length} reviews)`, 'success');
+    }
+    
+    function createGizmoForObject(object) {
+      const { renderer } = evaluator;
+      const scene = renderer.scene;
+      
+      // Create axes helper showing local orientation
+      const axesHelper = new THREE.AxesHelper(0.15);
+      
+      // Position helper at object's world position
+      const worldPos = new THREE.Vector3();
+      object.getWorldPosition(worldPos);
+      axesHelper.position.copy(worldPos);
+      
+      // Apply object's world rotation to show local axes
+      const worldQuaternion = new THREE.Quaternion();
+      object.getWorldQuaternion(worldQuaternion);
+      axesHelper.setRotationFromQuaternion(worldQuaternion);
+      
+      scene.add(axesHelper);
+      gizmoHelpers.push(axesHelper);
+      
+      // Also add label showing rotation
+      const rotation = object.rotation;
+      console.log(`Object rotation (local):`, {
+        x: THREE.MathUtils.radToDeg(rotation.x).toFixed(1) + '°',
+        y: THREE.MathUtils.radToDeg(rotation.y).toFixed(1) + '°',
+        z: THREE.MathUtils.radToDeg(rotation.z).toFixed(1) + '°'
+      });
+    }
+    
+    function clearGizmos() {
+      const { renderer } = evaluator;
+      const scene = renderer.scene;
+      
+      gizmoHelpers.forEach(gizmo => {
+        scene.remove(gizmo);
+        if (gizmo.geometry) gizmo.geometry.dispose();
+        if (gizmo.material) gizmo.material.dispose();
+      });
+      gizmoHelpers = [];
+    }
+    
+    // ==================== LAYOUT TEST MODE ====================
+    
+    function setupLayoutMode() {
+      // Load room templates
+      loadRoomTemplates();
+      
+      // Toggle layout mode
+      toggleLayoutModeBtn.addEventListener('click', () => {
+        layoutModeActive = !layoutModeActive;
+        layoutModePanel.classList.toggle('active', layoutModeActive);
+        toggleLayoutModeBtn.textContent = layoutModeActive ? '✖️ Exit Layout Mode' : '🏗️ Layout Test Mode';
+        
+        if (layoutModeActive) {
+          // Disable review mode
+          if (reviewModeActive) {
+            reviewModeActive = false;
+            reviewModePanel.classList.remove('active');
+            toggleReviewModeBtn.textContent = '🚀 Rapid Review Mode';
+            clearGizmos();
+          }
+          
+          // Clear current asset
+          if (currentAsset) {
+            evaluator.clear();
+            currentAsset = null;
+          }
+          
+          showStatus('Layout Test Mode activated. Select a room template to test prop placement.', 'info');
+          
+          // Setup orbit controls for layout mode
+          if (evaluator && evaluator.renderer && evaluator.renderer.controls) {
+            evaluator.renderer.controls.autoRotate = layoutAutoRotate;
+          }
+        } else {
+          clearLayoutRoom();
+          showStatus('Layout Test Mode deactivated.', 'info');
+        }
+      });
+      
+      // Regenerate button
+      layoutRegenerateBtn.addEventListener('click', () => {
+        if (currentLayoutTemplate) {
+          buildLayoutRoom(currentLayoutTemplate);
+          showStatus('Room regenerated with new randomization.', 'success');
+        }
+      });
+      
+      // Auto-rotate button
+      layoutAutoRotateBtn.addEventListener('click', () => {
+        layoutAutoRotate = !layoutAutoRotate;
+        layoutAutoRotateBtn.textContent = layoutAutoRotate ? '⏸ Auto Rotate' : '↻ Auto Rotate';
+        layoutAutoRotateBtn.style.background = layoutAutoRotate ? '#ff6b6b' : '';
+        
+        if (evaluator && evaluator.renderer && evaluator.renderer.controls) {
+          evaluator.renderer.controls.autoRotate = layoutAutoRotate;
+        }
+      });
+      
+      // Smart Generation mode toggle
+      const layoutSmartModeBtn = document.getElementById('layoutSmartMode');
+      if (layoutSmartModeBtn) {
+        layoutSmartModeBtn.addEventListener('click', () => {
+          useSmartGeneration = !useSmartGeneration;
+          layoutSmartModeBtn.textContent = useSmartGeneration ? '📋 Template Mode' : '🤖 Smart Generation';
+          layoutSmartModeBtn.style.background = useSmartGeneration ? '#667eea' : '';
+          
+          showStatus(useSmartGeneration ? 
+            '🤖 Smart Generation ON - Wall-aware, surface toppers, asset marriages' : 
+            '📋 Template Mode ON - Using predefined object placements', 
+            'info'
+          );
+          
+          // Regenerate current room with new mode
+          if (currentLayoutTemplate) {
+            buildLayoutRoom(currentLayoutTemplate);
+          }
+        });
+      }
+      
+      // Floor/Walls/Ceiling toggles
+      [layoutFloorChk, layoutWallsChk, layoutCeilingChk].forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+          if (currentLayoutTemplate) {
+            buildLayoutRoom(currentLayoutTemplate);
+          }
+        });
+      });
+    }
+    
+    function loadRoomTemplates() {
+      // Define basic room templates
+      layoutRoomTemplates = {
+        'Bedrooms': [
+          { id: 'bedroom-small', name: 'Small Bedroom', width: 3, depth: 3, height: 2.5, objects: [
+            { type: 'bed', x: 0.5, z: 1.5, rotation: 0, required: true },
+            { type: 'nightstand', x: 2, z: 1.5, rotation: 0, required: false },
+            { type: 'dresser', x: 1.5, z: 0.3, rotation: 0, required: false },
+            { type: 'lamp', x: 2, z: 1.5, rotation: 0, required: false }
+          ]},
+          { id: 'bedroom-large', name: 'Master Bedroom', width: 5, depth: 5, height: 2.5, objects: [
+            { type: 'bed', x: 2.5, z: 3, rotation: 0, required: true },
+            { type: 'nightstand', x: 1.2, z: 3.5, rotation: 0, required: false },
+            { type: 'nightstand', x: 3.8, z: 3.5, rotation: Math.PI, required: false },
+            { type: 'dresser', x: 0.5, z: 0.5, rotation: 0, required: true },
+            { type: 'desklamp', x: 1.2, z: 3.5, rotation: 0, required: false },
+            { type: 'mirror', x: 2.5, z: 0.2, rotation: 0, required: false }
+          ]}
+        ],
+        'Living Rooms': [
+          { id: 'living-cozy', name: 'Cozy Living Room', width: 4, depth: 4, height: 2.5, objects: [
+            { type: 'couch', x: 2, z: 3, rotation: 0, required: true },
+            { type: 'coffeetable', x: 2, z: 1.5, rotation: 0, required: true },
+            { type: 'tvstand', x: 2, z: 0.3, rotation: 0, required: true },
+            { type: 'tv', x: 2, z: 0.3, rotation: 0, required: true },
+            { type: 'plant', x: 0.3, z: 0.3, rotation: 0, required: false },
+            { type: 'floorlamp', x: 3.7, z: 3.5, rotation: 0, required: false }
+          ]},
+          { id: 'living-large', name: 'Large Living Room', width: 6, depth: 5, height: 2.5, objects: [
+            { type: 'couch', x: 3, z: 4, rotation: 0, required: true },
+            { type: 'couch', x: 1, z: 2.5, rotation: Math.PI/2, required: false },
+            { type: 'coffeetable', x: 3, z: 2.5, rotation: 0, required: true },
+            { type: 'tvstand', x: 3, z: 0.5, rotation: 0, required: true },
+            { type: 'tv', x: 3, z: 0.5, rotation: 0, required: true },
+            { type: 'bookshelf', x: 0.3, z: 0.5, rotation: 0, required: false },
+            { type: 'plant', x: 5.7, z: 0.3, rotation: 0, required: false },
+            { type: 'artframe', x: 3, z: 4.9, rotation: Math.PI, required: false }
+          ]}
+        ],
+        'Kitchens': [
+          { id: 'kitchen-small', name: 'Small Kitchen', width: 3, depth: 3, height: 2.5, objects: [
+            { type: 'counter', x: 0.3, z: 1.5, rotation: 0, required: true },
+            { type: 'refrigerator', x: 0.3, z: 0.5, rotation: 0, required: true },
+            { type: 'microwave', x: 0.3, z: 2.3, rotation: 0, required: false },
+            { type: 'sink', x: 0.3, z: 1.5, rotation: 0, required: true }
+          ]},
+          { id: 'kitchen-large', name: 'Large Kitchen', width: 5, depth: 4, height: 2.5, objects: [
+            { type: 'counter', x: 0.5, z: 2, rotation: 0, required: true },
+            { type: 'counter', x: 2.5, z: 0.5, rotation: Math.PI/2, required: true },
+            { type: 'refrigerator', x: 0.5, z: 3.5, rotation: 0, required: true },
+            { type: 'microwave', x: 2.5, z: 0.5, rotation: 0, required: false },
+            { type: 'sink', x: 0.5, z: 1, rotation: 0, required: true },
+            { type: 'diningtable', x: 3.5, z: 2, rotation: 0, required: false },
+            { type: 'chair', x: 3, z: 2, rotation: Math.PI/2, required: false },
+            { type: 'chair', x: 4, z: 2, rotation: -Math.PI/2, required: false }
+          ]}
+        ],
+        'Bathrooms': [
+          { id: 'bathroom-small', name: 'Small Bathroom', width: 2, depth: 2, height: 2.5, objects: [
+            { type: 'toilet', x: 0.5, z: 0.5, rotation: 0, required: true },
+            { type: 'sink', x: 1.5, z: 0.3, rotation: 0, required: true },
+            { type: 'mirror', x: 1.5, z: 0.1, rotation: 0, required: false }
+          ]},
+          { id: 'bathroom-large', name: 'Full Bathroom', width: 3, depth: 2.5, height: 2.5, objects: [
+            { type: 'toilet', x: 0.5, z: 0.5, rotation: 0, required: true },
+            { type: 'sink', x: 1.5, z: 0.3, rotation: 0, required: true },
+            { type: 'bathtub', x: 2.5, z: 1.5, rotation: 0, required: true },
+            { type: 'mirror', x: 1.5, z: 0.1, rotation: 0, required: false },
+            { type: 'towelrack', x: 2.9, z: 1, rotation: Math.PI/2, required: false }
+          ]}
+        ],
+        'Offices': [
+          { id: 'office-small', name: 'Home Office', width: 3, depth: 3, height: 2.5, objects: [
+            { type: 'computerdesk', x: 1.5, z: 0.5, rotation: 0, required: true },
+            { type: 'chair', x: 1.5, z: 1.2, rotation: Math.PI, required: true },
+            { type: 'bookshelf', x: 0.3, z: 1.5, rotation: 0, required: false },
+            { type: 'desklamp', x: 1.2, z: 0.5, rotation: 0, required: false }
+          ]},
+          { id: 'office-large', name: 'Executive Office', width: 5, depth: 4, height: 2.5, objects: [
+            { type: 'computerdesk', x: 2.5, z: 0.8, rotation: 0, required: true },
+            { type: 'chair', x: 2.5, z: 1.8, rotation: Math.PI, required: true },
+            { type: 'bookshelf', x: 0.3, z: 2, rotation: 0, required: true },
+            { type: 'bookshelf', x: 4.7, z: 2, rotation: Math.PI, required: false },
+            { type: 'couch', x: 2.5, z: 3.5, rotation: 0, required: false },
+            { type: 'coffeetable', x: 2.5, z: 2.5, rotation: 0, required: false },
+            { type: 'plant', x: 0.5, z: 0.5, rotation: 0, required: false }
+          ]}
+        ],
+        'Kids Rooms': [
+          { id: 'kids-boy', name: 'Boys Room', width: 4, depth: 4, height: 2.5, objects: [
+            { type: 'bed', x: 0.8, z: 3, rotation: 0, required: true, size: 'child' },
+            { type: 'nightstand', x: 1.5, z: 3.2, rotation: 0, required: false },
+            { type: 'desk', x: 3.5, z: 0.5, rotation: 0, required: true },
+            { type: 'chair', x: 3.5, z: 1.2, rotation: Math.PI, required: true },
+            { type: 'toybox', x: 0.5, z: 0.5, rotation: 0, required: false },
+            { type: 'basketball', x: 1.2, z: 0.8, rotation: 0, required: false },
+            { type: 'poster', x: 2, z: 0.1, rotation: 0, required: false }
+          ]},
+          { id: 'kids-girl', name: 'Girls Room', width: 4, depth: 4, height: 2.5, objects: [
+            { type: 'bed', x: 0.8, z: 3, rotation: 0, required: true, size: 'child' },
+            { type: 'nightstand', x: 1.5, z: 3.2, rotation: 0, required: false },
+            { type: 'desk', x: 3.5, z: 0.5, rotation: 0, required: true },
+            { type: 'chair', x: 3.5, z: 1.2, rotation: Math.PI, required: true },
+            { type: 'toybox', x: 0.5, z: 0.5, rotation: 0, required: false },
+            { type: 'teddybear', x: 0.8, z: 3.5, rotation: 0, required: false },
+            { type: 'mirror', x: 3.5, z: 3.9, rotation: 0, required: false }
+          ]}
+        ],
+        'School Rooms': [
+          { id: 'classroom', name: 'Classroom', width: 8, depth: 6, height: 3.0, objects: [
+            { type: 'teacherdesk', x: 4, z: 0.8, rotation: 0, required: true },
+            { type: 'chair', x: 4, z: 1.5, rotation: Math.PI, required: true },
+            { type: 'chalkboard', x: 4, z: 0.1, rotation: 0, required: true },
+            { type: 'schooldesk', x: 2, z: 2.5, rotation: 0, required: true },
+            { type: 'schooldesk', x: 4, z: 2.5, rotation: 0, required: true },
+            { type: 'schooldesk', x: 6, z: 2.5, rotation: 0, required: true },
+            { type: 'schooldesk', x: 2, z: 4, rotation: 0, required: false },
+            { type: 'schooldesk', x: 4, z: 4, rotation: 0, required: false },
+            { type: 'schooldesk', x: 6, z: 4, rotation: 0, required: false },
+            { type: 'bookshelf', x: 0.3, z: 3, rotation: 0, required: false },
+            { type: 'trophycase', x: 7.5, z: 3, rotation: Math.PI/2, required: false }
+          ]},
+          { id: 'teachers-lounge', name: 'Teachers Lounge', width: 5, depth: 4, height: 2.5, objects: [
+            { type: 'couch', x: 1, z: 3, rotation: 0, required: true },
+            { type: 'coffeetable', x: 1, z: 1.8, rotation: 0, required: true },
+            { type: 'counter', x: 4.5, z: 2, rotation: Math.PI/2, required: true },
+            { type: 'microwave', x: 4.5, z: 1.5, rotation: Math.PI/2, required: false },
+            { type: 'refrigerator', x: 4.5, z: 3, rotation: Math.PI/2, required: true },
+            { type: 'chair', x: 3, z: 0.8, rotation: 0, required: false },
+            { type: 'chair', x: 3.8, z: 0.8, rotation: 0, required: false },
+            { type: 'filingcabinet', x: 0.3, z: 0.5, rotation: 0, required: false },
+            { type: 'plant', x: 4.5, z: 0.5, rotation: 0, required: false }
+          ]}
+        ],
+        'Gym & Recreation': [
+          { id: 'gymnasium', name: 'Gymnasium', width: 12, depth: 8, height: 4.0, objects: [
+            { type: 'basketballhoop', x: 2, z: 0.5, rotation: 0, required: true },
+            { type: 'basketballhoop', x: 10, z: 7.5, rotation: Math.PI, required: true },
+            { type: 'bench', x: 0.5, z: 4, rotation: Math.PI/2, required: false },
+            { type: 'bench', x: 11.5, z: 4, rotation: -Math.PI/2, required: false },
+            { type: 'gymmat', x: 4, z: 4, rotation: 0, required: false },
+            { type: 'gymmat', x: 8, z: 4, rotation: 0, required: false },
+            { type: 'waterfountain', x: 0.5, z: 7, rotation: 0, required: false }
+          ]},
+          { id: 'locker-room', name: 'Locker Room', width: 6, depth: 5, height: 2.5, objects: [
+            { type: 'locker', x: 0.2, z: 1, rotation: 0, required: true },
+            { type: 'locker', x: 0.2, z: 1.6, rotation: 0, required: true },
+            { type: 'locker', x: 0.2, z: 2.2, rotation: 0, required: true },
+            { type: 'locker', x: 0.2, z: 2.8, rotation: 0, required: true },
+            { type: 'locker', x: 0.2, z: 3.4, rotation: 0, required: true },
+            { type: 'locker', x: 0.2, z: 4.0, rotation: 0, required: true },
+            { type: 'bench', x: 1.5, z: 2.5, rotation: 0, required: true },
+            { type: 'bench', x: 4.5, z: 2.5, rotation: 0, required: true },
+            { type: 'locker', x: 5.8, z: 1, rotation: Math.PI, required: true },
+            { type: 'locker', x: 5.8, z: 1.6, rotation: Math.PI, required: true },
+            { type: 'locker', x: 5.8, z: 2.2, rotation: Math.PI, required: true },
+            { type: 'locker', x: 5.8, z: 2.8, rotation: Math.PI, required: true },
+            { type: 'locker', x: 5.8, z: 3.4, rotation: Math.PI, required: true },
+            { type: 'locker', x: 5.8, z: 4.0, rotation: Math.PI, required: true }
+          ]}
+        ]
+      };
+      
+      // Populate UI
+      layoutRoomCategories.innerHTML = '';
+      
+      Object.keys(layoutRoomTemplates).forEach(category => {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'layout-category';
+        
+        const categoryHeader = document.createElement('div');
+        categoryHeader.className = 'layout-category-header';
+        categoryHeader.textContent = category;
+        
+        const roomList = document.createElement('div');
+        roomList.className = 'layout-room-list';
+        
+        layoutRoomTemplates[category].forEach(template => {
+          const roomItem = document.createElement('div');
+          roomItem.className = 'layout-room-item';
+          roomItem.textContent = template.name;
+          roomItem.dataset.templateId = template.id;
+          
+          roomItem.addEventListener('click', () => {
+            document.querySelectorAll('.layout-room-item').forEach(item => {
+              item.classList.remove('active');
+            });
+            roomItem.classList.add('active');
+            buildLayoutRoom(template);
+          });
+          
+          roomList.appendChild(roomItem);
+        });
+        
+        categoryHeader.addEventListener('click', () => {
+          categoryHeader.classList.toggle('collapsed');
+          roomList.classList.toggle('hidden');
+        });
+        
+        categoryDiv.appendChild(categoryHeader);
+        categoryDiv.appendChild(roomList);
+        layoutRoomCategories.appendChild(categoryDiv);
+      });
+    }
+    
+    /**
+     * Create asset registry adapter for RoomGenerationSystem
+     */
+    function createAssetRegistryForRoomGen() {
+      const registry = {};
+      
+      // Map common asset types to evaluator's addAsset function
+      const assetTypeMap = {
+        // Furniture
+        'bed': 'bed',
+        'nightstand': 'nightstand',
+        'dresser': 'dresser',
+        'desk': 'desk',
+        'chair': 'chair',
+        'officeChair': 'chair',
+        'diningChair': 'chair',
+        'sofa': 'couch',
+        'couch': 'couch',
+        'armchair': 'armchair',
+        'coffeeTable': 'coffeetable',
+        'diningTable': 'diningtable',
+        'bookshelf': 'bookshelf',
+        'wardrobe': 'wardrobe',
+        'tvStand': 'tvstand',
+        
+        // Electronics
+        'tv': 'tv',
+        'computerMonitor': 'computermonitor',
+        'keyboard': 'keyboard',
+        'mouse': 'mouse',
+        
+        // Decor
+        'lamp': 'desklamp',
+        'tableLamp': 'desklamp',
+        'floorLamp': 'floorlamp',
+        'plant': 'plant',
+        'mirror': 'mirror',
+        'picture': 'artframe',
+        'painting': 'artframe',
+        'clock': 'wallclock',
+        
+        // Kitchen
+        'refrigerator': 'refrigerator',
+        'oven': 'oven',
+        'microwave': 'microwave',
+        'sink': 'sink',
+        'counter': 'counter',
+        'kitchenCounter': 'counter',
+        
+        // Bathroom
+        'toilet': 'toilet',
+        'bathtub': 'bathtub',
+        'shower': 'shower',
+        'bathroomSink': 'sink',
+        'towelRack': 'towelrack',
+        
+        // Office
+        'computerDesk': 'computerdesk',
+        
+        // Institutional (School, Gym)
+        'locker': 'locker',
+        'bench': 'bench',
+        'gymmat': 'gymmat',
+        'basketballhoop': 'basketballhoop',
+        'chalkboard': 'chalkboard',
+        'whiteboard': 'whiteboard',
+        'schooldesk': 'schooldesk',
+        'waterfountain': 'waterfountain',
+        'teacherdesk': 'teacherdesk',
+        'filingcabinet': 'filingcabinet',
+        'trophycase': 'trophycase',
+        
+        // Small items (will be created as simple meshes if not in registry)
+        'notebook': null,
+        'pen': null,
+        'book': null,
+        'magazine': null,
+        'remoteControl': null,
+        'toybox': null,
+        'basketball': null,
+        'poster': null,
+        'teddybear': null
+      };
+      
+      // For each asset type, create a wrapper function
+      for (const [newName, oldName] of Object.entries(assetTypeMap)) {
+        if (oldName) {
+          registry[newName] = function() {
+            try {
+              const assetGroup = evaluator.renderer.addAsset(oldName, { x: 0, z: 0, rotation: 0 });
+              return assetGroup;
+            } catch (error) {
+              console.warn(`Failed to create asset ${newName} (${oldName}):`, error);
+              return createFallbackMesh(newName);
+            }
+          };
+        } else {
+          // Create fallback for small items
+          registry[newName] = function() {
+            return createFallbackMesh(newName);
+          };
+        }
+      }
+      
+      return registry;
+    }
+    
+    /**
+     * Create simple fallback mesh for missing assets
+     */
+    function createFallbackMesh(assetType) {
+      const group = new THREE.Group();
+      
+      // Create simple colored box based on type
+      const sizes = {
+        notebook: { w: 0.15, h: 0.01, d: 0.2, color: 0x4a90e2 },
+        pen: { w: 0.01, h: 0.01, d: 0.12, color: 0x333333 },
+        book: { w: 0.12, h: 0.02, d: 0.18, color: 0x8b4513 },
+        magazine: { w: 0.2, h: 0.005, d: 0.25, color: 0xe74c3c },
+        remoteControl: { w: 0.05, h: 0.02, d: 0.15, color: 0x2c3e50 },
+        toybox: { w: 0.6, h: 0.4, d: 0.4, color: 0xff6b6b },
+        basketball: { w: 0.24, h: 0.24, d: 0.24, color: 0xff8800, sphere: true },
+        poster: { w: 0.6, h: 0.8, d: 0.01, color: 0x4a90e2 },
+        teddybear: { w: 0.15, h: 0.25, d: 0.12, color: 0x8b4513 },
+        default: { w: 0.1, h: 0.1, d: 0.1, color: 0xcccccc }
+      };
+      
+      const size = sizes[assetType] || sizes.default;
+      
+      let geometry;
+      if (size.sphere) {
+        geometry = new THREE.SphereGeometry(size.w / 2, 16, 16);
+      } else {
+        geometry = new THREE.BoxGeometry(size.w, size.h, size.d);
+      }
+      
+      const material = new THREE.MeshStandardMaterial({ color: size.color, roughness: 0.7 });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      
+      // Position at proper height (center of object at y=0)
+      if (!size.sphere) {
+        mesh.position.y = size.h / 2;
+      } else {
+        mesh.position.y = size.w / 2;
+      }
+      
+      group.add(mesh);
+      return group;
+    }
+    
+    async function buildLayoutRoom(template) {
+      clearLayoutRoom();
+      
+      currentLayoutTemplate = template;
+      
+      // Update stats
+      layoutTemplateDisplay.textContent = template.name;
+      layoutDimensionsDisplay.textContent = `${template.width}×${template.depth}×${template.height}m`;
+      
+      const { renderer } = evaluator;
+      const scene = renderer.scene;
+      
+      // Check if smart generation is enabled
+      if (useSmartGeneration && roomGenerationSystem) {
+        await buildSmartLayoutRoom(template);
+        return;
+      }
+      
+      // Create room group
+      currentLayoutRoom = new THREE.Group();
+      currentLayoutRoom.name = 'LayoutRoom';
+      
+      // Create floor
+      if (layoutFloorChk.checked) {
+        const floorGeo = new THREE.PlaneGeometry(template.width, template.depth);
+        const floorMat = new THREE.MeshStandardMaterial({ 
+          color: 0x8b7355, 
+          roughness: 0.9,
+          metalness: 0.0
+        });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(template.width / 2, 0, template.depth / 2);
+        floor.receiveShadow = true;
+        currentLayoutRoom.add(floor);
+      }
+      
+      // Create walls
+      if (layoutWallsChk.checked) {
+        const wallMat = new THREE.MeshStandardMaterial({ 
+          color: 0xe8e8e8, 
+          side: THREE.DoubleSide,
+          roughness: 0.8
+        });
+        
+        // Back wall
+        const backWall = new THREE.Mesh(
+          new THREE.PlaneGeometry(template.width, template.height),
+          wallMat
+        );
+        backWall.position.set(template.width / 2, template.height / 2, 0);
+        backWall.receiveShadow = true;
+        currentLayoutRoom.add(backWall);
+        
+        // Left wall
+        const leftWall = new THREE.Mesh(
+          new THREE.PlaneGeometry(template.depth, template.height),
+          wallMat
+        );
+        leftWall.rotation.y = Math.PI / 2;
+        leftWall.position.set(0, template.height / 2, template.depth / 2);
+        leftWall.receiveShadow = true;
+        currentLayoutRoom.add(leftWall);
+        
+        // Right wall
+        const rightWall = new THREE.Mesh(
+          new THREE.PlaneGeometry(template.depth, template.height),
+          wallMat
+        );
+        rightWall.rotation.y = -Math.PI / 2;
+        rightWall.position.set(template.width, template.height / 2, template.depth / 2);
+        rightWall.receiveShadow = true;
+        currentLayoutRoom.add(rightWall);
+        
+        // Front wall (partial - for entrance visibility)
+        const frontLeftWall = new THREE.Mesh(
+          new THREE.PlaneGeometry(template.width * 0.3, template.height),
+          wallMat
+        );
+        frontLeftWall.rotation.y = Math.PI;
+        frontLeftWall.position.set(template.width * 0.15, template.height / 2, template.depth);
+        frontLeftWall.receiveShadow = true;
+        currentLayoutRoom.add(frontLeftWall);
+        
+        const frontRightWall = new THREE.Mesh(
+          new THREE.PlaneGeometry(template.width * 0.3, template.height),
+          wallMat
+        );
+        frontRightWall.rotation.y = Math.PI;
+        frontRightWall.position.set(template.width * 0.85, template.height / 2, template.depth);
+        frontRightWall.receiveShadow = true;
+        currentLayoutRoom.add(frontRightWall);
+      }
+      
+      // Create ceiling
+      if (layoutCeilingChk.checked) {
+        const ceilingGeo = new THREE.PlaneGeometry(template.width, template.depth);
+        const ceilingMat = new THREE.MeshStandardMaterial({ 
+          color: 0xffffff, 
+          roughness: 0.9
+        });
+        const ceiling = new THREE.Mesh(ceilingGeo, ceilingMat);
+        ceiling.rotation.x = Math.PI / 2;
+        ceiling.position.set(template.width / 2, template.height, template.depth / 2);
+        ceiling.receiveShadow = true;
+        currentLayoutRoom.add(ceiling);
+      }
+      
+      // Add room to scene first
+      scene.add(currentLayoutRoom);
+      
+      // Spawn props using the evaluator's asset system
+      let spawnedCount = 0;
+      const surfacesForToppers = []; // Track surfaces for topper placement
+      
+      for (const obj of template.objects) {
+        try {
+          // Pass all properties from template (including size, color, etc.)
+          const assetSpec = {
+            x: obj.x,
+            z: obj.z,
+            rotation: obj.rotation || 0,
+            ...obj // Spread all additional properties (size, color, etc.)
+          };
+          
+          const assetGroup = evaluator.renderer.addAsset(obj.type, assetSpec);
+          
+          if (assetGroup) {
+            // Parent the asset to the room group
+            scene.remove(assetGroup); // Remove from scene root
+            currentLayoutRoom.add(assetGroup);
+            spawnedCount++;
+            
+            // Track surfaces for topper placement
+            const surfaceTypes = ['desk', 'computerdesk', 'teacherdesk', 'nightstand', 'dresser', 
+                                 'counter', 'coffeetable', 'endtable', 'bookshelf'];
+            if (surfaceTypes.includes(obj.type)) {
+              surfacesForToppers.push({
+                type: obj.type,
+                position: { x: obj.x, y: 0, z: obj.z },
+                rotation: obj.rotation || 0,
+                mesh: assetGroup
+              });
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to spawn asset ${obj.type}:`, error);
+        }
+      }
+      
+      // Add surface toppers (books, pens, etc.)
+      for (const surface of surfacesForToppers) {
+        await addSurfaceToppers(surface, template, currentLayoutRoom);
+        spawnedCount += 2; // Approximate topper count
+      }
+      
+      // Update prop count
+      layoutPropsCountDisplay.textContent = spawnedCount;
+      
+      // Position camera for good view
+      const centerX = template.width / 2;
+      const centerZ = template.depth / 2;
+      renderer.camera.position.set(
+        centerX + template.width * 0.8,
+        template.height * 1.2,
+        centerZ + template.depth * 0.8
+      );
+      renderer.controls.target.set(centerX, template.height * 0.4, centerZ);
+      renderer.controls.update();
+      
+      showStatus(`Built ${template.name} with ${spawnedCount} props.`, 'success');
+    }
+    
+    /**
+     * Add surface toppers (books, pens, etc.) to surfaces in template mode
+     */
+    async function addSurfaceToppers(surface, template, roomGroup) {
+      const topperRules = {
+        desk: ['book', 'pen', 'notebook'],
+        computerdesk: ['pen', 'notebook', 'book'],
+        teacherdesk: ['pen', 'book', 'notebook'],
+        nightstand: ['book'],
+        dresser: [],
+        counter: [],
+        coffeetable: ['magazine', 'remoteControl'],
+        endtable: ['book'],
+        bookshelf: ['book', 'book', 'book']
+      };
+      
+      const toppers = topperRules[surface.type] || [];
+      if (toppers.length === 0) return;
+      
+      // Determine surface bounds (approximate)
+      const surfaceDims = {
+        desk: { width: 1.2, depth: 0.6, height: 0.75 },
+        computerdesk: { width: 1.2, depth: 0.6, height: 0.75 },
+        teacherdesk: { width: 1.4, depth: 0.7, height: 0.75 },
+        nightstand: { width: 0.45, depth: 0.4, height: 0.5 },
+        coffeetable: { width: 1.0, depth: 0.6, height: 0.4 },
+        endtable: { width: 0.5, depth: 0.5, height: 0.5 },
+        bookshelf: { width: 0.8, depth: 0.3, height: 1.8 }
+      };
+      
+      const dims = surfaceDims[surface.type] || { width: 0.5, depth: 0.5, height: 0.5 };
+      const surfaceHeight = dims.height;
+      
+      // Place toppers
+      for (let i = 0; i < toppers.length; i++) {
+        const topperType = toppers[i];
+        
+        // Calculate position on surface (with some randomness)
+        const localX = (Math.random() - 0.5) * dims.width * 0.6;
+        const localZ = (Math.random() - 0.5) * dims.depth * 0.6;
+        
+        // Rotate to surface orientation
+        const cos = Math.cos(surface.rotation);
+        const sin = Math.sin(surface.rotation);
+        
+        const worldX = surface.position.x + (localX * cos - localZ * sin);
+        const worldZ = surface.position.z + (localX * sin + localZ * cos);
+        
+        try {
+          const topperSpec = {
+            x: worldX,
+            z: worldZ,
+            rotation: surface.rotation + (Math.random() - 0.5) * 0.3 // Slight random rotation
+          };
+          
+          const topperMesh = evaluator.renderer.addAsset(topperType, topperSpec);
+          
+          if (topperMesh) {
+            evaluator.renderer.scene.remove(topperMesh);
+            roomGroup.add(topperMesh);
+            
+            // Adjust height to sit on surface
+            topperMesh.position.y = surfaceHeight;
+          }
+        } catch (error) {
+          console.warn(`Failed to add topper ${topperType}:`, error);
+        }
+      }
+    }
+    
+    /**
+     * Generate a variation of a template with subtle changes
+     */
+    function generateTemplateVariation(template) {
+      const variated = {
+        ...template,
+        objects: []
+      };
+      
+      // Asset substitution rules (similar items that can be swapped)
+      const substitutions = {
+        nightstand: ['nightstand', 'endtable', 'nightstand', 'nightstand'], // Weighted toward original
+        desk: ['desk', 'computerdesk', 'desk', 'desk'],
+        chair: ['chair', 'officechair', 'chair', 'chair'],
+        lamp: ['lamp', 'desklamp', 'floorlamp'],
+        plant: ['plant', 'plant', 'flowerpot'],
+        artframe: ['artframe', 'poster', 'painting', 'artframe'],
+        bookshelf: ['bookshelf', 'bookshelf', 'shelf']
+      };
+      
+      for (const obj of template.objects) {
+        // Skip optional items occasionally (20% chance)
+        if (!obj.required && Math.random() < 0.2) {
+          continue;
+        }
+        
+        const variatedObj = { ...obj };
+        
+        // Apply position jitter (±15cm for most items, ±5cm for required/large items)
+        const jitterAmount = obj.required ? 0.05 : 0.15;
+        variatedObj.x += (Math.random() - 0.5) * jitterAmount;
+        variatedObj.z += (Math.random() - 0.5) * jitterAmount;
+        
+        // Keep items within room bounds
+        variatedObj.x = Math.max(0.3, Math.min(template.width - 0.3, variatedObj.x));
+        variatedObj.z = Math.max(0.3, Math.min(template.depth - 0.3, variatedObj.z));
+        
+        // Apply rotation variation (±15 degrees)
+        if (variatedObj.rotation !== undefined) {
+          variatedObj.rotation += (Math.random() - 0.5) * (Math.PI / 12); // ±15 degrees
+        }
+        
+        // Occasionally substitute similar items (30% chance for non-required)
+        if (!obj.required && substitutions[obj.type] && Math.random() < 0.3) {
+          const options = substitutions[obj.type];
+          variatedObj.type = options[Math.floor(Math.random() * options.length)];
+        }
+        
+        variated.objects.push(variatedObj);
+      }
+      
+      // Occasionally add bonus items (10% chance per category)
+      const bonusItems = {
+        bedroom: [
+          { type: 'plant', x: 0.5, z: 0.5, rotation: 0 },
+          { type: 'lamp', x: template.width - 0.5, z: template.depth - 0.5, rotation: 0 },
+          { type: 'artframe', x: template.width / 2, z: 0.1, rotation: 0 }
+        ],
+        living: [
+          { type: 'plant', x: 0.5, z: 0.5, rotation: 0 },
+          { type: 'artframe', x: template.width / 2, z: 0.1, rotation: 0 },
+          { type: 'floorlamp', x: template.width - 0.5, z: template.depth - 0.5, rotation: 0 }
+        ],
+        office: [
+          { type: 'plant', x: 0.5, z: 0.5, rotation: 0 },
+          { type: 'bookshelf', x: 0.3, z: template.depth / 2, rotation: Math.PI / 2 }
+        ]
+      };
+      
+      // Detect room type from template ID
+      let roomCategory = 'bedroom';
+      if (template.id.includes('living')) roomCategory = 'living';
+      else if (template.id.includes('office')) roomCategory = 'office';
+      else if (template.id.includes('kids')) roomCategory = 'bedroom';
+      
+      if (bonusItems[roomCategory] && Math.random() < 0.1) {
+        const bonus = bonusItems[roomCategory][Math.floor(Math.random() * bonusItems[roomCategory].length)];
+        variated.objects.push({ ...bonus, required: false });
+      }
+      
+      return variated;
+    }
+    
+    /**
+     * Build room using smart AI generation system (template-based variation)
+     */
+    async function buildSmartLayoutRoom(template) {
+      const { renderer } = evaluator;
+      const scene = renderer.scene;
+      
+      // Create room group
+      currentLayoutRoom = new THREE.Group();
+      currentLayoutRoom.name = 'LayoutRoom';
+      
+      // Add floor, walls, ceiling (same as template mode)
+      if (layoutFloorChk.checked) {
+        const floorGeo = new THREE.PlaneGeometry(template.width, template.depth);
+        const floorMat = new THREE.MeshStandardMaterial({ 
+          color: 0x8b7355, 
+          roughness: 0.9,
+          metalness: 0.0
+        });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(template.width / 2, 0, template.depth / 2);
+        floor.receiveShadow = true;
+        currentLayoutRoom.add(floor);
+      }
+      
+      if (layoutWallsChk.checked) {
+        const wallMat = new THREE.MeshStandardMaterial({ 
+          color: 0xe8e8e8, 
+          side: THREE.DoubleSide,
+          roughness: 0.8
+        });
+        
+        // Back wall
+        const backWall = new THREE.Mesh(
+          new THREE.PlaneGeometry(template.width, template.height),
+          wallMat
+        );
+        backWall.position.set(template.width / 2, template.height / 2, 0);
+        backWall.receiveShadow = true;
+        currentLayoutRoom.add(backWall);
+        
+        // Left wall
+        const leftWall = new THREE.Mesh(
+          new THREE.PlaneGeometry(template.depth, template.height),
+          wallMat
+        );
+        leftWall.rotation.y = Math.PI / 2;
+        leftWall.position.set(0, template.height / 2, template.depth / 2);
+        leftWall.receiveShadow = true;
+        currentLayoutRoom.add(leftWall);
+        
+        // Right wall
+        const rightWall = new THREE.Mesh(
+          new THREE.PlaneGeometry(template.depth, template.height),
+          wallMat
+        );
+        rightWall.rotation.y = -Math.PI / 2;
+        rightWall.position.set(template.width, template.height / 2, template.depth / 2);
+        rightWall.receiveShadow = true;
+        currentLayoutRoom.add(rightWall);
+        
+        // Front wall (partial)
+        const frontLeftWall = new THREE.Mesh(
+          new THREE.PlaneGeometry(template.width * 0.3, template.height),
+          wallMat
+        );
+        frontLeftWall.rotation.y = Math.PI;
+        frontLeftWall.position.set(template.width * 0.15, template.height / 2, template.depth);
+        frontLeftWall.receiveShadow = true;
+        currentLayoutRoom.add(frontLeftWall);
+        
+        const frontRightWall = new THREE.Mesh(
+          new THREE.PlaneGeometry(template.width * 0.3, template.height),
+          wallMat
+        );
+        frontRightWall.rotation.y = Math.PI;
+        frontRightWall.position.set(template.width * 0.85, template.height / 2, template.depth);
+        frontRightWall.receiveShadow = true;
+        currentLayoutRoom.add(frontRightWall);
+      }
+      
+      if (layoutCeilingChk.checked) {
+        const ceilingGeo = new THREE.PlaneGeometry(template.width, template.depth);
+        const ceilingMat = new THREE.MeshStandardMaterial({ 
+          color: 0xffffff, 
+          roughness: 0.9
+        });
+        const ceiling = new THREE.Mesh(ceilingGeo, ceilingMat);
+        ceiling.rotation.x = Math.PI / 2;
+        ceiling.position.set(template.width / 2, template.height, template.depth / 2);
+        ceiling.receiveShadow = true;
+        currentLayoutRoom.add(ceiling);
+      }
+      
+      // Add room to scene
+      scene.add(currentLayoutRoom);
+      
+      // Generate variation of the template
+      console.log(`🤖 Generating smart variation of ${template.name}...`);
+      
+      const variatedTemplate = generateTemplateVariation(template);
+      
+      // Spawn props from the variated template
+      let spawnedCount = 0;
+      const surfacesForToppers = [];
+      
+      for (const obj of variatedTemplate.objects) {
+        try {
+          const assetSpec = {
+            x: obj.x,
+            z: obj.z,
+            rotation: obj.rotation || 0,
+            ...obj
+          };
+          
+          const assetGroup = evaluator.renderer.addAsset(obj.type, assetSpec);
+          
+          if (assetGroup) {
+            scene.remove(assetGroup);
+            currentLayoutRoom.add(assetGroup);
+            spawnedCount++;
+            
+            // Track surfaces
+            const surfaceTypes = ['desk', 'computerdesk', 'teacherdesk', 'nightstand', 'dresser', 
+                                 'counter', 'coffeetable', 'endtable', 'bookshelf'];
+            if (surfaceTypes.includes(obj.type)) {
+              surfacesForToppers.push({
+                type: obj.type,
+                position: { x: obj.x, y: 0, z: obj.z },
+                rotation: obj.rotation || 0,
+                mesh: assetGroup
+              });
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to spawn asset ${obj.type}:`, error);
+        }
+      }
+      
+      // Add surface toppers with smart generation
+      for (const surface of surfacesForToppers) {
+        await addSurfaceToppers(surface, variatedTemplate, currentLayoutRoom);
+        spawnedCount += 2;
+      }
+      
+      // Update stats
+      layoutPropsCountDisplay.textContent = spawnedCount;
+      
+      showStatus(`✨ Smart variation: ${spawnedCount} items with subtle changes`, 'success');
+      
+      // Position camera for good view
+      const centerX = template.width / 2;
+      const centerZ = template.depth / 2;
+      renderer.camera.position.set(
+        centerX + template.width * 0.8,
+        template.height * 1.2,
+        centerZ + template.depth * 0.8
+      );
+      renderer.controls.target.set(centerX, template.height * 0.4, centerZ);
+      renderer.controls.update();
+    }
+    
+    function clearLayoutRoom() {
+      if (currentLayoutRoom) {
+        const { renderer } = evaluator;
+        const scene = renderer.scene;
+        scene.remove(currentLayoutRoom);
+        
+        // Dispose of geometries and materials
+        currentLayoutRoom.traverse(obj => {
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) {
+            if (Array.isArray(obj.material)) {
+              obj.material.forEach(mat => mat.dispose());
+            } else {
+              obj.material.dispose();
+            }
+          }
+        });
+        
+        currentLayoutRoom = null;
+      }
+      
+      // Clear smart generation system
+      if (roomGenerationSystem) {
+        roomGenerationSystem.clear();
+      }
+      
+      layoutPropsCountDisplay.textContent = '0';
+    }
+    
+    // Setup interactive element click handling
+    function setupInteractivity() {
+      const { renderer } = evaluator;
+      const canvas = renderContainer.querySelector('canvas');
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+      
+      canvas.addEventListener('click', (event) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        raycaster.setFromCamera(mouse, renderer.camera);
+        
+        // If in review mode, show gizmos on any clicked object
+        if (reviewModeActive) {
+          const allSceneObjects = [];
+          renderer.scene.traverse(child => {
+            if (child.isMesh) allSceneObjects.push(child);
+          });
+          
+          const intersects = raycaster.intersectObjects(allSceneObjects, false);
+          
+          if (intersects.length > 0) {
+            clearGizmos();
+            createGizmoForObject(intersects[0].object);
+            return; // Don't process interactive clicks in review mode
+          }
+        }
+        
+        // Check for interactive objects (doors, lids)
+        const interactiveObjects = renderer.interactive || [];
+        const allObjects = [];
+        
+        // Gather all meshes from interactive groups
+        interactiveObjects.forEach(group => {
+          group.traverse(child => {
+            if (child.isMesh) allObjects.push(child);
+          });
+        });
+        
+        const intersects = raycaster.intersectObjects(allObjects, false);
+        
+        if (intersects.length > 0) {
+          // Find parent interactive group
+          let interactiveGroup = intersects[0].object;
+          while (interactiveGroup && !interactiveGroup.userData.isDoor && !interactiveGroup.userData.isLid) {
+            interactiveGroup = interactiveGroup.parent;
+          }
+          
+          if (interactiveGroup && (interactiveGroup.userData.isDoor || interactiveGroup.userData.isLid)) {
+            handleInteractiveClick(interactiveGroup);
+          }
+        }
+      });
+    }
+    
+    // Handle clicking interactive elements (doors, lids)
+    function handleInteractiveClick(group) {
+      const isOpen = group.userData.isOpen;
+      const targetRotation = isOpen ? 0 : -Math.PI / 2; // Close or open 90 degrees
+      
+      // Smooth animation
+      const duration = 500; // ms
+      const startTime = Date.now();
+      const startRotation = group.rotation.y;
+      
+      // If it has hingeOffset, animate around hinge point
+      const hingeOffset = group.userData.hingeOffset || new THREE.Vector3(0, 0, 0);
+      const originalPosition = group.position.clone();
+      
+      function animate() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3); // Ease-out cubic
+        
+        const currentRotation = startRotation + (targetRotation - startRotation) * eased;
+        
+        // Rotate around hinge point
+        group.position.copy(originalPosition);
+        group.position.add(hingeOffset);
+        group.rotation.y = currentRotation;
+        group.position.sub(
+          hingeOffset.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), currentRotation)
+        );
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          group.userData.isOpen = !isOpen;
+        }
+      }
+      
+      animate();
+    }
+    
+    // State for filtering and sorting
+    let currentFilters = {
+      search: '',
+      room: '',
+      size: '',
+      surface: ''
+    };
+    let currentSort = 'name';
+    let currentSortOrder = 'asc';
+    let currentSelectedAsset = null;
+    
+    // Populate filter dropdowns
+    function populateFilters() {
+      // Populate rooms
+      getRooms().forEach(room => {
+        const option = document.createElement('option');
+        option.value = room;
+        option.textContent = room.charAt(0).toUpperCase() + room.slice(1);
+        filterRoom.appendChild(option);
+      });
+      
+      // Populate surfaces
+      getSurfaces().forEach(surface => {
+        const option = document.createElement('option');
+        option.value = surface;
+        option.textContent = surface.charAt(0).toUpperCase() + surface.slice(1);
+        filterSurface.appendChild(option);
+      });
+    }
+    
+    // Render asset hierarchy
+    function renderAssetHierarchy() {
+      assetHierarchy.innerHTML = '';
+      
+      // Apply filters
+      const filtered = filterAssets(currentFilters);
+      
+      // Apply sorting
+      const sorted = sortAssets(filtered, currentSort, currentSortOrder);
+      
+      // Update count
+      assetCount.textContent = `${sorted.length} asset${sorted.length !== 1 ? 's' : ''}`;
+      
+      if (sorted.length === 0) {
+        assetHierarchy.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">No assets match your filters</div>';
+        return;
+      }
+      
+      // Group by category and subcategory
+      const hierarchy = {};
+      sorted.forEach(asset => {
+        if (!hierarchy[asset.category]) {
+          hierarchy[asset.category] = {};
+        }
+        const subcategory = asset.subcategory || 'other';
+        if (!hierarchy[asset.category][subcategory]) {
+          hierarchy[asset.category][subcategory] = [];
+        }
+        hierarchy[asset.category][subcategory].push(asset);
+      });
+      
+      // Render hierarchy
+      Object.keys(hierarchy).sort().forEach(category => {
+        const categorySection = createCategorySection(category, hierarchy[category]);
+        assetHierarchy.appendChild(categorySection);
+      });
+    }
+    
+    function createCategorySection(category, subcategories) {
+      const section = document.createElement('div');
+      section.className = 'category-section';
+      
+      const totalAssets = Object.values(subcategories).reduce((sum, assets) => sum + assets.length, 0);
+      
+      const header = document.createElement('div');
+      header.className = 'category-header';
+      header.innerHTML = `
+        <span>${getCategoryIcon(category)}</span>
+        <span style="flex: 1; text-transform: capitalize;">${category}</span>
+        <span class="category-count">${totalAssets}</span>
+        <span class="expand-icon">▼</span>
+      `;
+      
+      const contentDiv = document.createElement('div');
+      
+      Object.keys(subcategories).sort().forEach(subcategory => {
+        const subcategorySection = createSubcategorySection(subcategory, subcategories[subcategory]);
+        contentDiv.appendChild(subcategorySection);
+      });
+      
+      header.addEventListener('click', () => {
+        header.classList.toggle('collapsed');
+        contentDiv.classList.toggle('hidden');
+      });
+      
+      section.appendChild(header);
+      section.appendChild(contentDiv);
+      
+      return section;
+    }
+    
+    function createSubcategorySection(subcategory, assets) {
+      const section = document.createElement('div');
+      section.className = 'subcategory-section';
+      
+      const header = document.createElement('div');
+      header.className = 'subcategory-header';
+      header.innerHTML = `
+        <span class="expand-icon">▼</span>
+        <span style="text-transform: capitalize;">${subcategory}</span>
+        <span style="opacity: 0.6; font-size: 11px; margin-left: auto;">(${assets.length})</span>
+      `;
+      
+      const list = document.createElement('div');
+      list.className = 'subcategory-list';
+      
+      assets.forEach(asset => {
+        const item = document.createElement('div');
+        item.className = 'asset-item-hierarchical';
+        if (currentSelectedAsset && currentSelectedAsset.id === asset.id) {
+          item.classList.add('selected');
+        }
+        item.innerHTML = `
+          <span>${getAssetIcon(asset.category)}</span>
+          <span style="flex: 1;">${asset.name}</span>
+          <span class="asset-size-badge ${asset.size}">${asset.size[0].toUpperCase()}</span>
+        `;
+        
+        item.addEventListener('click', () => {
+          selectAsset(asset);
+          document.querySelectorAll('.asset-item-hierarchical').forEach(i => i.classList.remove('selected'));
+          item.classList.add('selected');
+        });
+        
+        list.appendChild(item);
+      });
+      
+      header.addEventListener('click', () => {
+        header.classList.toggle('collapsed');
+        list.classList.toggle('hidden');
+      });
+      
+      section.appendChild(header);
+      section.appendChild(list);
+      
+      return section;
+    }
+    
+    function getCategoryIcon(category) {
+      const icons = {
+        furniture: '🪑',
+        kitchen: '🍽️',
+        bathroom: '🚿',
+        electronics: '📺',
+        decor: '🎨',
+        lighting: '💡',
+        office: '📝',
+        cleaning: '🧹',
+        clothing: '👕',
+        toys: '🧸',
+        games: '🎲',
+        school: '🏫',
+        food: '🍎',
+        groceries: '🛒',
+        beverages: '🥤',
+        utensils: '🍴',
+        baby: '👶',
+        bags: '🎒',
+        city: '🏙️',
+        pets: '🐾',
+        outdoor: '🌳',
+        other: '📦'
+      };
+      return icons[category] || '📦';
+    }
+    
+    function getAssetIcon(category) {
+      const icons = {
+        furniture: '🪑',
+        kitchen: '🔪',
+        bathroom: '🚰',
+        electronics: '💻',
+        decor: '🖼️',
+        lighting: '💡',
+        office: '✏️',
+        cleaning: '🧹',
+        clothing: '👔',
+        toys: '🧸',
+        games: '🎯',
+        school: '📚',
+        food: '🍏',
+        groceries: '🛒',
+        beverages: '☕',
+        utensils: '🍴',
+        baby: '🍼',
+        bags: '💼',
+        city: '🏙️',
+        pets: '🐕',
+        outdoor: '🌲',
+        other: '❓'
+      };
+      return icons[category] || '❓';
+    }
+    
+    function selectAsset(asset) {
+      currentSelectedAsset = asset;
+      currentAsset = asset;
+      
+      // Auto-load the asset
+      try {
+        const spec = JSON.parse(assetSpec.value || '{}');
+        evaluator.renderer.clearAssets();
+        currentAsset = evaluator.renderer.addAsset(asset.id, spec);
+        
+        if (currentAsset) {
+          showStatus(`Asset "${asset.name}" loaded successfully.`, 'success');
+          captureBtn.disabled = false;
+          resultsDiv.classList.remove('show');
+        } else {
+          showStatus(`Failed to load asset "${asset.id}".`, 'error');
+        }
+      } catch (error) {
+        showStatus(`Error: ${error.message}`, 'error');
+      }
+    }
+    
+    // Setup event listeners for search and filters
+    function setupAssetLibraryListeners() {
+      // Search
+      searchInput.addEventListener('input', (e) => {
+        currentFilters.search = e.target.value;
+        renderAssetHierarchy();
+      });
+      
+      // Filters
+      filterRoom.addEventListener('change', (e) => {
+        currentFilters.room = e.target.value;
+        renderAssetHierarchy();
+      });
+      
+      filterSize.addEventListener('change', (e) => {
+        currentFilters.size = e.target.value;
+        renderAssetHierarchy();
+      });
+      
+      filterSurface.addEventListener('change', (e) => {
+        currentFilters.surface = e.target.value;
+        renderAssetHierarchy();
+      });
+      
+      // Sort buttons
+      document.querySelectorAll('.sort-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const sortBy = btn.dataset.sort;
+          
+          if (currentSort === sortBy) {
+            currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+            currentSort = sortBy;
+            currentSortOrder = 'asc';
+          }
+          
+          document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          
+          renderAssetHierarchy();
+        });
+      });
+    }
+    
+    // Load asset on button click (now uses selected asset from hierarchy)
+    loadAssetBtn.addEventListener('click', () => {
+      if (currentSelectedAsset) {
+        selectAsset(currentSelectedAsset);
+      } else {
+        showStatus('Please select an asset from the library first.', 'error');
+      }
+    });
+    
+    // Capture screenshots
+    captureBtn.addEventListener('click', () => {
+      if (!currentAsset) {
+        showStatus('No asset loaded.', 'error');
+        return;
+      }
+      
+      showStatus('Capturing multi-angle screenshots...', 'loading');
+      
+      setTimeout(() => {
+        const angles = evaluator.renderer.getStandardAngles();
+        screenshots = evaluator.renderer.takeMultiAngleScreenshots(angles);
+        
+        showStatus(`Captured ${screenshots.length} screenshots. Ready for evaluation.`, 'success');
+        evaluateBtn.disabled = false;
+        exportBtn.disabled = false;
+        
+        // Display screenshots
+        displayScreenshots(screenshots, angles);
+      }, 100);
+    });
+    
+    // Evaluate with AI
+    evaluateBtn.addEventListener('click', async () => {
+      const key = apiKey.value.trim();
+      if (!key) {
+        showStatus('Please enter your Anthropic API key.', 'error');
+        return;
+      }
+      
+      if (!currentAsset || screenshots.length === 0) {
+        showStatus('Please load an asset and capture screenshots first.', 'error');
+        return;
+      }
+      
+      showStatus('Sending to AI for evaluation... This may take 30-60 seconds.', 'loading');
+      evaluateBtn.disabled = true;
+      
+      try {
+        evaluator.options.apiKey = key;
+        const assetId = assetSelect.value;
+        const spec = JSON.parse(assetSpec.value || '{}');
+        
+        const result = await evaluator.evaluateAsset(assetId, spec);
+        
+        if (result.aiResponse && result.aiResponse.success) {
+          displayEvaluation(result);
+          showStatus('Evaluation complete!', 'success');
+        } else {
+          showStatus(`Evaluation failed: ${result.aiResponse?.error || 'Unknown error'}`, 'error');
+        }
+      } catch (error) {
+        showStatus(`Error: ${error.message}`, 'error');
+      } finally {
+        evaluateBtn.disabled = false;
+      }
+    });
+    
+    // Export report
+    exportBtn.addEventListener('click', () => {
+      if (evaluator.evaluationResults.length === 0) {
+        showStatus('No evaluation results to export.', 'error');
+        return;
+      }
+      
+      const html = evaluator.generateHTMLReport();
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `asset-evaluation-report-${Date.now()}.html`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      showStatus('Report exported successfully.', 'success');
+    });
+    
+    // Asset Fall
+    assetFallBtn.addEventListener('click', () => {
+      if (!evaluator) return;
+      
+      assetFallActive = !assetFallActive;
+      
+      if (assetFallActive) {
+        assetFallBtn.textContent = '⏸️ Stop Rainfall';
+        assetFallBtn.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%)';
+        showStatus('Asset rainfall started! Watch them fall...', 'info');
+        startAssetRainfall();
+      } else {
+        assetFallBtn.textContent = '🌧️ Asset Rainfall';
+        assetFallBtn.style.background = '';
+        showStatus('Asset rainfall stopped.', 'info');
+        stopAssetRainfall();
+      }
+    });
+    
+    // Asset Rainfall System
+    function startAssetRainfall() {
+      // Use complete asset registry instead of legacy metadata
+      const allAssetIds = getAvailableAssets();
+      
+      let assetIndex = 0;
+      
+      // Spawn new asset every 0.5 seconds
+      const spawnInterval = setInterval(() => {
+        if (!assetFallActive) {
+          clearInterval(spawnInterval);
+          return;
+        }
+        
+        // Pick next asset in sequence
+        const assetId = allAssetIds[assetIndex % allAssetIds.length];
+        assetIndex++;
+        
+        // Random horizontal position
+        const x = (Math.random() - 0.5) * 8;
+        const z = (Math.random() - 0.5) * 8;
+        const y = 10 + Math.random() * 5; // Start height
+        
+        // Create asset
+        const asset = evaluator.renderer.addAsset(assetId, { x: x, z: z });
+        if (asset) {
+          asset.position.y = y;
+          asset.rotation.set(
+            Math.random() * Math.PI * 2,
+            Math.random() * Math.PI * 2,
+            Math.random() * Math.PI * 2
+          );
+          
+          fallingAssets.push({
+            object: asset,
+            velocity: -2 - Math.random() * 3,
+            rotationSpeed: {
+              x: (Math.random() - 0.5) * 0.1,
+              y: (Math.random() - 0.5) * 0.1,
+              z: (Math.random() - 0.5) * 0.1
+            }
+          });
+        }
+      }, 500);
+      
+      // Animation loop
+      function animateFallingAssets() {
+        if (!assetFallActive) return;
+        
+        // Update all falling assets
+        fallingAssets.forEach((item, index) => {
+          item.object.position.y += item.velocity * 0.016;
+          item.object.rotation.x += item.rotationSpeed.x;
+          item.object.rotation.y += item.rotationSpeed.y;
+          item.object.rotation.z += item.rotationSpeed.z;
+          
+          // Remove if fallen through floor
+          if (item.object.position.y < FLOOR_OFFSET - 2) {
+            evaluator.renderer.scene.remove(item.object);
+            item.object.traverse(node => {
+              if (node.geometry) node.geometry.dispose();
+              if (node.material) {
+                if (Array.isArray(node.material)) {
+                  node.material.forEach(mat => mat.dispose());
+                } else {
+                  node.material.dispose();
+                }
+              }
+            });
+            fallingAssets.splice(index, 1);
+          }
+        });
+        
+        requestAnimationFrame(animateFallingAssets);
+      }
+      
+      animateFallingAssets();
+    }
+    
+    function stopAssetRainfall() {
+      // Clean up all falling assets
+      fallingAssets.forEach(item => {
+        evaluator.renderer.scene.remove(item.object);
+        item.object.traverse(node => {
+          if (node.geometry) node.geometry.dispose();
+          if (node.material) {
+            if (Array.isArray(node.material)) {
+              node.material.forEach(mat => mat.dispose());
+            } else {
+              node.material.dispose();
+            }
+          }
+        });
+      });
+      fallingAssets = [];
+    }
+    
+    // Clear
+    clearBtn.addEventListener('click', () => {
+      if (assetFallActive) {
+        assetFallActive = false;
+        stopAssetRainfall();
+        assetFallBtn.textContent = '🌧️ Asset Rainfall';
+        assetFallBtn.style.background = '';
+      }
+      
+      evaluator.renderer.clearAssets();
+      currentAsset = null;
+      screenshots = [];
+      resultsDiv.classList.remove('show');
+      captureBtn.disabled = true;
+      evaluateBtn.disabled = true;
+      exportBtn.disabled = true;
+      showStatus('Cleared. Ready for next asset.', 'info');
+    });
+    
+    // Setup keyboard navigation (Q/E for prev/next asset)
+    function setupKeyboardNavigation() {
+      document.addEventListener('keydown', (event) => {
+        // Ignore if typing in input/textarea
+        if (event.target.tagName === 'INPUT' || 
+            event.target.tagName === 'TEXTAREA' || 
+            event.target.tagName === 'SELECT') {
+          return;
+        }
+        
+        // Ignore if in first-person mode (Q/E used for scaling)
+        if (firstPersonMode) {
+          return;
+        }
+        
+        const key = event.key.toLowerCase();
+        
+        if (key === 'q') {
+          event.preventDefault();
+          navigateToPreviousAsset();
+        } else if (key === 'e') {
+          event.preventDefault();
+          navigateToNextAsset();
+        }
+      });
+    }
+    
+    // Navigate to previous asset
+    function navigateToPreviousAsset() {
+      const allAssets = filterAssets(currentFilters);
+      const sorted = sortAssets(allAssets, currentSort, currentSortOrder);
+      
+      if (!currentSelectedAsset || sorted.length === 0) {
+        showStatus('No assets available', 'info');
+        return;
+      }
+      
+      const currentIndex = sorted.findIndex(a => a.id === currentSelectedAsset.id);
+      
+      if (currentIndex > 0) {
+        selectAsset(sorted[currentIndex - 1]);
+        renderAssetHierarchy();
+        showStatus('Previous asset loaded (Q)', 'info');
+      } else {
+        showStatus('Already at first asset', 'info');
+      }
+    }
+    
+    // Navigate to next asset
+    function navigateToNextAsset() {
+      const allAssets = filterAssets(currentFilters);
+      const sorted = sortAssets(allAssets, currentSort, currentSortOrder);
+      
+      if (sorted.length === 0) {
+        showStatus('No assets available', 'info');
+        return;
+      }
+      
+      if (!currentSelectedAsset) {
+        // No asset selected, load first
+        selectAsset(sorted[0]);
+        renderAssetHierarchy();
+        showStatus('First asset loaded (E)', 'info');
+        return;
+      }
+      
+      const currentIndex = sorted.findIndex(a => a.id === currentSelectedAsset.id);
+      
+      if (currentIndex >= 0 && currentIndex < sorted.length - 1) {
+        selectAsset(sorted[currentIndex + 1]);
+        renderAssetHierarchy();
+        showStatus('Next asset loaded (E)', 'info');
+      } else {
+        showStatus('Already at last asset', 'info');
+      }
+    }
+    
+    // Helper: Show status message
+    function showStatus(message, type) {
+      status.textContent = message;
+      status.className = `status ${type}`;
+    }
+    
+    // Helper: Display screenshots
+    function displayScreenshots(screenshots, angles) {
+      resultsContent.innerHTML = `
+        <h3>📸 Captured Screenshots</h3>
+        <div class="screenshots-grid">
+          ${screenshots.map((screenshot, i) => `
+            <div>
+              <img src="${screenshot}" alt="Angle ${i}" onclick="window.open('${screenshot}')">
+              <p style="text-align: center; font-size: 11px; margin-top: 5px;">
+                ${['Front-right', 'Front-left', 'Back-right', 'Back-left', 'Top-down', 'Side'][i]}
+              </p>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      resultsDiv.classList.add('show');
+    }
+    
+    // Helper: Display evaluation
+    function displayEvaluation(result) {
+      const ai = result.aiResponse;
+      
+      resultsContent.innerHTML = `
+        <div class="score-display">
+          Overall Score: ${ai.score || 'N/A'} / 10
+        </div>
+        
+        <h3>🔍 Critical Issues</h3>
+        <pre>${ai.criticalIssues || 'None identified'}</pre>
+        
+        <h3>✅ Recommended Corrections</h3>
+        <pre>${ai.recommendations || 'None provided'}</pre>
+        
+        <h3>💻 Code Suggestions</h3>
+        <pre>${ai.codeSuggestions || 'None provided'}</pre>
+        
+        <h3>📄 Full Response</h3>
+        <pre>${ai.fullResponse}</pre>
+      `;
+      
+      resultsDiv.classList.add('show');
+    }
+    
+    // ==================== FIRST-PERSON MODE ====================
+    
+    function setupFirstPersonMode() {
+      // Toggle first-person mode
+      toggleFirstPersonBtn.addEventListener('click', () => {
+        firstPersonMode = !firstPersonMode;
+        toggleFirstPersonBtn.textContent = firstPersonMode ? '✖️ Exit First-Person' : '🎮 First-Person Mode';
+        
+        if (firstPersonMode) {
+          enableFirstPersonCamera();
+          showStatus('First-Person Mode activated. Use WASD to move, Q/E to scale.', 'info');
+        } else {
+          disableFirstPersonCamera();
+          showStatus('First-Person Mode deactivated.', 'info');
+        }
+      });
+      
+      // Keyboard input
+      document.addEventListener('keydown', (e) => {
+        if (firstPersonMode) {
+          keys[e.key.toLowerCase()] = true;
+        }
+      });
+      
+      document.addEventListener('keyup', (e) => {
+        if (firstPersonMode) {
+          keys[e.key.toLowerCase()] = false;
+        }
+      });
+      
+      // Spawn buttons
+      spawnAntPersonBtn.addEventListener('click', () => spawnTinyPerson('ant'));
+      spawnToyPersonBtn.addEventListener('click', () => spawnTinyPerson('toy'));
+    }
+    
+    function enableFirstPersonCamera() {
+      if (!evaluator || !evaluator.renderer) return;
+      
+      const { camera, controls } = evaluator.renderer;
+      
+      // Disable orbit controls FIRST to prevent them from overriding camera
+      if (controls) {
+        controls.enabled = false;
+      }
+      
+      // Position camera at player height and current player position
+      const playerHeight = 1.8 * (interactionSystem.player.scale || 1.0);
+      const player = interactionSystem.player;
+      camera.position.set(player.x, playerHeight, player.z);
+      
+      // Initialize camera yaw/pitch from current camera direction
+      const direction = new THREE.Vector3();
+      camera.getWorldDirection(direction);
+      cameraYaw = Math.atan2(direction.x, -direction.z);
+      cameraPitch = Math.asin(direction.y);
+      
+      // Lock pointer for mouse look
+      const canvas = renderContainer.querySelector('canvas');
+      canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
+      canvas.addEventListener('click', () => {
+        if (firstPersonMode) {
+          canvas.requestPointerLock();
+        }
+      });
+      
+      // Mouse movement for looking
+      document.addEventListener('mousemove', onMouseMove);
+    }
+    
+    function disableFirstPersonCamera() {
+      if (!evaluator || !evaluator.renderer) return;
+      
+      const { camera, controls } = evaluator.renderer;
+      
+      // Exit pointer lock
+      document.exitPointerLock = document.exitPointerLock || document.mozExitPointerLock;
+      document.exitPointerLock();
+      
+      document.removeEventListener('mousemove', onMouseMove);
+      
+      // Re-enable orbit controls and reset target to player position
+      if (controls) {
+        const player = interactionSystem.player;
+        controls.target.set(player.x, 0.5, player.z);
+        controls.enabled = true;
+        controls.update();
+      }
+    }
+    
+    let cameraYaw = 0;
+    let cameraPitch = 0;
+    
+    function onMouseMove(e) {
+      if (!firstPersonMode || !document.pointerLockElement) return;
+      
+      const sensitivity = 0.002;
+      cameraYaw += e.movementX * sensitivity;  // Fixed: was -= (inverted left/right)
+      cameraPitch -= e.movementY * sensitivity;
+      
+      // Clamp pitch
+      cameraPitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraPitch));
+      
+      updateCameraRotation();
+    }
+    
+    function updateCameraRotation() {
+      if (!evaluator || !evaluator.renderer) return;
+      
+      const { camera } = evaluator.renderer;
+      const direction = new THREE.Vector3();
+      direction.x = Math.sin(cameraYaw) * Math.cos(cameraPitch);
+      direction.y = Math.sin(cameraPitch);
+      direction.z = -Math.cos(cameraYaw) * Math.cos(cameraPitch);
+      direction.normalize();
+      
+      const playerHeight = 1.8 * (interactionSystem.player.scale || 1.0);
+      const playerPos = interactionSystem.player;
+      
+      // Determine camera elevation based on room state
+      let cameraElevation = playerHeight;
+      if (playerState.isInsideRoom) {
+        const currentRoom = generatedRooms.get(playerState.currentRoomId);
+        if (currentRoom) {
+          cameraElevation = currentRoom.elevation + playerHeight;
+        }
+      }
+      
+      camera.position.set(playerPos.x, cameraElevation, playerPos.z);
+      camera.lookAt(
+        playerPos.x + direction.x,
+        cameraElevation + direction.y,
+        playerPos.z + direction.z
+      );
+    }
+    
+    function updateFirstPersonMovement(deltaTime) {
+      if (!firstPersonMode) return;
+      
+      const speed = 5 * deltaTime * (interactionSystem.player.scale || 1.0);
+      const player = interactionSystem.player;
+      
+      // Forward/backward
+      const forward = new THREE.Vector3(Math.sin(cameraYaw), 0, -Math.cos(cameraYaw));
+      const right = new THREE.Vector3(Math.cos(cameraYaw), 0, Math.sin(cameraYaw));
+      
+      if (keys['w']) {
+        player.x += forward.x * speed;
+        player.z += forward.z * speed;
+      }
+      if (keys['s']) {
+        player.x -= forward.x * speed;
+        player.z -= forward.z * speed;
+      }
+      if (keys['a']) {
+        player.x -= right.x * speed;
+        player.z -= right.z * speed;
+      }
+      if (keys['d']) {
+        player.x += right.x * speed;
+        player.z += right.z * speed;
+      }
+      
+      // Scale change (only if not in vantage mode to avoid conflicting with E key interaction)
+      if (!vantageModeActive) {
+        if (keys['q']) {
+          player.scale = Math.max(0.01, player.scale - 0.5 * deltaTime);
+        }
+        if (keys['e']) {
+          player.scale = Math.min(2.0, player.scale + 0.5 * deltaTime);
+        }
+      }
+      
+      // Update player mesh and interaction system
+      player.y = player.z;  // Map z to y for 2D interaction
+      player.height = 180 * player.scale;
+      
+      // Determine player elevation (hallway or room)
+      let playerElevation = FLOOR_OFFSET;
+      if (playerState.isInsideRoom) {
+        const currentRoom = generatedRooms.get(playerState.currentRoomId);
+        if (currentRoom) {
+          playerElevation = currentRoom.elevation + FLOOR_OFFSET;
+        }
+      }
+      
+      if (playerMesh) {
+        playerMesh.position.set(player.x, playerElevation, player.z);
+        playerMesh.scale.set(player.scale, player.scale, player.scale);
+      }
+      
+      updateCameraRotation();
+    }
+    
+    // ==================== DAY SYSTEM ====================
+    
+    function setupDaySystem() {
+      advanceDayBtn.addEventListener('click', advanceDay);
+      testStompBtn.addEventListener('click', testStompAnimation);
+      
+      // Initialize Day 1
+      initializeDay1();
+    }
+    
+    function advanceDay() {
+      currentDay++;
+      
+      if (currentDay > 3) {
+        currentDay = 3;
+        showStatus('Village is complete!', 'info');
+        return;
+      }
+      
+      dayNumberDisplay.textContent = currentDay;
+      
+      switch (currentDay) {
+        case 2:
+          transitionToDay2();
+          break;
+        case 3:
+          transitionToDay3();
+          break;
+      }
+      
+      showStatus(`Advanced to Day ${currentDay}`, 'success');
+    }
+    
+    function initializeDay1() {
+      dayStatusDisplay.textContent = 'Ant-sized people gathering resources...';
+      
+      // Start micro city system with ant-sized citizens
+      if (window.microCityCore) {
+        window.microCityCore.reset();
+        window.microCityCore.start();
+        
+        // Set time scale to 2x for visible progression
+        window.microCityCore.timeSystem.setTimeScale(2.0);
+        
+        showStatus('Day 1: Ant-sized micro civilization starting...', 'info');
+      } else {
+        // Fallback: spawn simple ant people
+        for (let i = 0; i < 5; i++) {
+          spawnTinyPerson('ant');
+        }
+        showStatus('Day 1: Tiny people are gathering resources', 'info');
+      }
+    }
+    
+    function transitionToDay2() {
+      dayStatusDisplay.textContent = 'Micro city expanding...';
+      
+      if (window.microCityCore && window.microCityCore.running) {
+        // Accelerate time to see tent/hut building
+        window.microCityCore.timeSystem.setTimeScale(5.0);
+        
+        // Spawn additional generation 0 citizens to boost population (in same corner)
+        const cornerX = -3;
+        const cornerZ = -3;
+        
+        for (let i = 0; i < 3; i++) {
+          window.microCityCore.spawnCitizen({
+            generation: 0,
+            scale: 0.01, // Ant-sized
+            position: {
+              x: cornerX + Math.random() * 0.3,
+              y: 0,
+              z: cornerZ + Math.random() * 0.3
+            }
+          });
+        }
+        
+        showStatus('Day 2: Micro civilization building tents and huts!', 'success');
+      } else {
+        // Fallback
+        for (let i = 0; i < 3; i++) {
+          spawnTinyPerson('ant');
+        }
+        buildCampsiteInRoom();
+        showStatus('Day 2: Tiny people are building a campsite!', 'success');
+      }
+    }
+    
+    function transitionToDay3() {
+      dayStatusDisplay.textContent = 'Villages and towns emerging!';
+      
+      if (window.microCityCore && window.microCityCore.running) {
+        // Accelerate time even more to see village/town evolution
+        window.microCityCore.timeSystem.setTimeScale(10.0);
+        
+        // Force spawn some Gen 1 citizens to accelerate generational progression (in same corner)
+        const cornerX = -3;
+        const cornerZ = -3;
+        const gen0Citizens = window.microCityCore.getCitizensByGeneration(0);
+        
+        if (gen0Citizens.length > 0) {
+          for (let i = 0; i < 2; i++) {
+            window.microCityCore.spawnCitizen({
+              generation: 1,
+              scale: 0.01 * 0.75, // Gen 1 is 75% of Gen 0 size
+              position: {
+                x: cornerX + Math.random() * 0.25,
+                y: 0,
+                z: cornerZ + Math.random() * 0.25
+              }
+            });
+          }
+        }
+        
+        showStatus('Day 3: Multiple generations building villages!', 'success');
+      } else {
+        // Fallback
+        buildVillageInRoom();
+        showStatus('Day 3: A tiny village has been built!', 'success');
+      }
+    }
+    
+    function buildCampsiteInRoom() {
+      if (!evaluator || !evaluator.renderer) return;
+      
+      const scene = evaluator.renderer.scene;
+      
+      // Find suitable floor locations (in corners and edges)
+      const clusterLocations = [
+        { x: -3, z: -3 },  // Corner 1
+        { x: 3, z: -3 },   // Corner 2
+        { x: 0, z: 3 }     // Center back
+      ];
+      
+      clusterLocations.forEach((loc, i) => {
+        // Create tent
+        const tent = createTent();
+        tent.position.set(loc.x + Math.random() * 0.2, FLOOR_OFFSET, loc.z + Math.random() * 0.2);
+        tent.rotation.y = Math.random() * Math.PI * 2;
+        scene.add(tent);
+        structures.push({ type: 'tent', mesh: tent });
+      });
+      
+      showStatus(`Built ${clusterLocations.length} tents at ant scale`, 'success');
+    }
+    
+    function buildVillageInRoom() {
+      if (!evaluator || !evaluator.renderer) return;
+      
+      const scene = evaluator.renderer.scene;
+      
+      // Create house clusters
+      const houseLocations = [
+        { x: -4, z: -4 }, { x: -4, z: -2 },
+        { x: 4, z: -4 }, { x: 4, z: -2 },
+        { x: -2, z: 4 }, { x: 2, z: 4 }
+      ];
+      
+      houseLocations.forEach(loc => {
+        const house = createHouse();
+        house.position.set(loc.x + Math.random() * 0.1, FLOOR_OFFSET, loc.z + Math.random() * 0.1);
+        house.rotation.y = Math.random() * Math.PI * 2;
+        scene.add(house);
+        structures.push({ type: 'house', mesh: house });
+      });
+      
+      showStatus(`Built ${houseLocations.length} tiny houses`, 'success');
+    }
+    
+    // ==================== VANTAGE POINT MODE ====================
+    
+    function setupBuildingConstructorMode() {
+      // Smart Generation toggle for Building Constructor
+      const buildingSmartModeBtn = document.getElementById('buildingSmartMode');
+      if (buildingSmartModeBtn) {
+        buildingSmartModeBtn.addEventListener('click', () => {
+          useBuildingSmartGen = !useBuildingSmartGen;
+          buildingSmartModeBtn.textContent = useBuildingSmartGen ? '📋 Template' : '🤖 Smart Gen';
+          buildingSmartModeBtn.style.background = useBuildingSmartGen ? '#667eea' : '';
+          buildingSmartModeBtn.style.color = useBuildingSmartGen ? 'white' : '';
+          
+          showStatus(useBuildingSmartGen ? 
+            '🤖 Building Constructor: Smart Generation ON' : 
+            '📋 Building Constructor: Template Mode', 
+            'info'
+          );
+        });
+      }
+    }
+    
+    function setupVantagePointMode() {
+      // Toggle vantage point mode
+      toggleVantageModeBtn.addEventListener('click', () => {
+        vantageModeActive = !vantageModeActive;
+        
+        if (vantageModeActive) {
+          const numStories = parseInt(buildingStoriesInput.value) || 10;
+          activateVantageMode(numStories);
+        } else {
+          deactivateVantageMode();
+        }
+      });
+      
+      // Toggle hallway
+      toggleHallwayBtn.addEventListener('click', () => {
+        if (infiniteHallwaySystem) {
+          infiniteHallwaySystem.toggle();
+          const isActive = infiniteHallwaySystem.active;
+          toggleHallwayBtn.textContent = isActive ? '✖️ Hide Hallway' : '🚪 Show Hallway';
+          showStatus(isActive ? 'Hallway system activated' : 'Hallway system deactivated', 'info');
+        }
+      });
+      
+      // E key to interact with doors in vantage mode
+      document.addEventListener('keydown', (e) => {
+        if (e.key.toLowerCase() === 'e' && vantageModeActive && firstPersonMode) {
+          handleDoorInteraction();
+        }
+      });
+    }
+    
+    function activateVantageMode(numStories) {
+      if (!vantagePointSystem) return;
+      
+      // Clear any existing room/building modes
+      if (layoutModeActive) {
+        layoutModeActive = false;
+        layoutModePanel.classList.remove('active');
+        toggleLayoutModeBtn.textContent = '🏗️ Layout Test Mode';
+        clearLayoutRoom();
+      }
+      
+      // Activate vantage point system
+      vantagePointSystem.activate(numStories);
+      
+      // Enable clipping in renderer
+      if (evaluator && evaluator.renderer && evaluator.renderer.renderer) {
+        evaluator.renderer.renderer.localClippingEnabled = true;
+      }
+      
+      // Position camera to view building
+      if (evaluator && evaluator.renderer) {
+        const { camera, controls } = evaluator.renderer;
+        camera.position.set(25, numStories * 1.5, 30);
+        if (controls) {
+          controls.target.set(0, numStories * 1.5, -20);
+          controls.update();
+        }
+      }
+      
+      // Update button text
+      toggleVantageModeBtn.textContent = '✖️ Exit Vantage Mode';
+      toggleVantageModeBtn.style.background = '#ff4757';
+      
+      // Enable hallway button
+      toggleHallwayBtn.disabled = false;
+      
+      showStatus(`Vantage Point Mode activated with ${numStories}-story building`, 'success');
+    }
+    
+    function deactivateVantageMode() {
+      if (!vantagePointSystem) return;
+      
+      // Deactivate vantage point system
+      vantagePointSystem.deactivate();
+      
+      // Disable clipping in renderer
+      if (evaluator && evaluator.renderer && evaluator.renderer.renderer) {
+        evaluator.renderer.renderer.localClippingEnabled = false;
+      }
+      
+      // Update button text
+      toggleVantageModeBtn.textContent = '🏙️ Vantage Point Mode';
+      toggleVantageModeBtn.style.background = '';
+      
+      // Disable hallway button
+      toggleHallwayBtn.disabled = true;
+      toggleHallwayBtn.textContent = '🚪 Toggle Hallway';
+      
+      // Reset camera
+      if (evaluator && evaluator.renderer) {
+        const { camera, controls } = evaluator.renderer;
+        camera.position.set(3, 3, 3);
+        if (controls) {
+          controls.target.set(0, 1, 0);
+          controls.update();
+        }
+      }
+      
+      showStatus('Vantage Point Mode deactivated', 'info');
+    }
+    
+    // State for door interactions in vantage mode
+    let generatedRooms = new Map(); // doorId -> room data
+    let playerState = {
+      isInsideRoom: false,
+      currentRoomId: null,
+      currentFloorLevel: 0
+    };
+    
+    function handleDoorInteraction() {
+      if (!evaluator || !evaluator.renderer) return;
+      
+      const player = interactionSystem.player;
+      const camera = evaluator.renderer.camera;
+      
+      // Raycast forward to find doors
+      const raycaster = new THREE.Raycaster();
+      const direction = new THREE.Vector3();
+      camera.getWorldDirection(direction);
+      raycaster.set(camera.position, direction);
+      
+      // Find all door objects in the scene
+      const doorObjects = [];
+      evaluator.renderer.scene.traverse(child => {
+        if (child.userData && (child.userData.isDoor || child.userData.doorId)) {
+          doorObjects.push(child);
+        }
+      });
+      
+      // Check for nearby doors (within 2m)
+      const intersects = raycaster.intersectObjects(doorObjects, true);
+      
+      if (intersects.length > 0 && intersects[0].distance < 2.0) {
+        const doorObject = intersects[0].object;
+        let door = doorObject;
+        
+        // Find parent door group
+        while (door && !door.userData.doorId && door.parent) {
+          door = door.parent;
+        }
+        
+        if (door && door.userData.doorId) {
+          interactWithDoor(door);
+        }
+      } else {
+        showStatus('No door nearby. Move closer and face a door to interact.', 'info');
+      }
+    }
+    
+    function interactWithDoor(door) {
+      const doorId = door.userData.doorId;
+      
+      // Check if room already generated for this door
+      if (generatedRooms.has(doorId)) {
+        const roomData = generatedRooms.get(doorId);
+        // Teleport to room
+        teleportToRoom(roomData);
+        showStatus(`Entered ${roomData.type} (already generated)`, 'success');
+        return;
+      }
+      
+      // Open the door (animate)
+      openDoorAnimation(door);
+      
+      // Generate room behind door
+      const roomType = getRandomRoomType();
+      const roomData = generateRoomBehindDoor(door, roomType);
+      
+      // Store room data
+      generatedRooms.set(doorId, roomData);
+      
+      // Teleport player to the room
+      teleportToRoom(roomData);
+      
+      showStatus(`Generated and entered ${roomType}!`, 'success');
+    }
+    
+    function openDoorAnimation(door) {
+      // Animate door opening
+      const doorPanel = door.children.find(child => child.userData.isDoorPanel);
+      if (doorPanel) {
+        const targetRotation = doorPanel.userData.isOpen ? 0 : Math.PI / 2;
+        const duration = 500;
+        const startTime = Date.now();
+        const startRotation = doorPanel.rotation.y;
+        
+        function animate() {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          
+          doorPanel.rotation.y = startRotation + (targetRotation - startRotation) * eased;
+          
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            doorPanel.userData.isOpen = !doorPanel.userData.isOpen;
+          }
+        }
+        
+        animate();
+      }
+    }
+    
+    function generateRoomBehindDoor(door, roomType) {
+      // Get door position and orientation
+      const doorPos = new THREE.Vector3();
+      door.getWorldPosition(doorPos);
+      
+      // Calculate floor level from door position
+      const floorHeight = 3.0; // Standard floor height
+      const floorLevel = Math.round(doorPos.y / floorHeight);
+      const roomElevation = floorLevel * floorHeight;
+      
+      // Determine which side of hallway (for window placement)
+      const isLeftDoor = door.userData.side === 'left';
+      
+      // Create room at proper elevation
+      let room;
+      
+      if (useBuildingSmartGen && roomGenerationSystem) {
+        // Use smart generation system
+        console.log(`🤖 Generating ${roomType} with smart system...`);
+        
+        room = new THREE.Group();
+        room.name = `SmartRoom_${roomType}`;
+        
+        try {
+          const result = roomGenerationSystem.generateRoom(roomType, {
+            width: 4,
+            depth: 4,
+            height: 2.5
+          });
+          
+          // Add all generated objects to room group
+          for (const asset of result.furniture) {
+            if (asset.mesh) {
+              room.add(asset.mesh);
+            }
+          }
+          
+          console.log(`✨ Smart gen: ${result.stats.furniture} furniture, ${result.stats.toppers} toppers`);
+        } catch (error) {
+          console.error('Smart generation failed, falling back to template:', error);
+          const buildingConstructor = new BuildingConstructor(evaluator.renderer.scene);
+          room = buildingConstructor.constructRoom(roomType, 0);
+        }
+      } else {
+        // Use traditional BuildingConstructor
+        const buildingConstructor = new BuildingConstructor(evaluator.renderer.scene);
+        room = buildingConstructor.constructRoom(roomType, 0);
+      }
+      
+      // Calculate room size (BuildingConstructor creates rooms of varying sizes)
+      let roomSize = 4; // Default
+      let maxBound = 0;
+      room.traverse(child => {
+        if (child.isMesh && child.geometry) {
+          const bbox = new THREE.Box3().setFromObject(child);
+          const size = Math.max(bbox.max.x - bbox.min.x, bbox.max.z - bbox.min.z);
+          if (size > maxBound) maxBound = size;
+        }
+      });
+      if (maxBound > 0) roomSize = maxBound / 2;
+      
+      // Position room DIRECTLY behind the door (not rotated)
+      // Hallway runs along Z axis, rooms extend along X axis
+      const roomOffset = new THREE.Vector3(
+        isLeftDoor ? -roomSize : roomSize, // Room extends away from hallway
+        roomElevation,
+        doorPos.z // Aligned with door position along hallway
+      );
+      
+      room.position.copy(roomOffset);
+      // No rotation needed - rooms are already oriented correctly
+      room.rotation.y = 0;
+      
+      // Add window to exterior wall with view of ACTUAL building exterior
+      const windowData = createRoomWindow(room, isLeftDoor, roomElevation, floorLevel);
+      
+      // Mark room for visibility management
+      room.userData.isInteriorRoom = true;
+      room.userData.roomId = door.userData.doorId;
+      room.userData.floorLevel = floorLevel;
+      room.userData.roomElevation = roomElevation;
+      room.userData.windowData = windowData;
+      room.userData.roomSize = roomSize;
+      room.userData.isLeftSide = isLeftDoor;
+      room.userData.doorPosition = doorPos.clone();
+      
+      // Initially hide room (will be shown when player enters)
+      room.visible = false;
+      
+      evaluator.renderer.scene.add(room);
+      
+      // Calculate player spawn position (just inside the door entrance)
+      const playerSpawnPos = new THREE.Vector3(
+        doorPos.x + (isLeftDoor ? -1.5 : 1.5), // 1.5m into the room from door
+        roomElevation,
+        doorPos.z
+      );
+      
+      return {
+        type: roomType,
+        position: roomOffset,
+        playerSpawnPosition: playerSpawnPos,
+        rotation: room.rotation.y,
+        doorId: door.userData.doorId,
+        group: room,
+        floorLevel: floorLevel,
+        elevation: roomElevation,
+        isLeftSide: isLeftDoor,
+        roomSize: roomSize
+      };
+    }
+    
+    function createRoomWindow(room, isLeftDoor, elevation, floorLevel) {
+      const windowWidth = 2.0;
+      const windowHeight = 1.5;
+      const windowSillHeight = 0.8;
+      const windowCenterHeight = windowSillHeight + windowHeight / 2;
+      
+      // Find and modify the exterior wall to create window opening
+      let wallToModify = null;
+      let wallPosition = null;
+      
+      room.traverse(child => {
+        if (child.isMesh && child.geometry && child.geometry.type === 'BoxGeometry') {
+          const localPos = child.position.clone();
+          const params = child.geometry.parameters;
+          
+          // Identify exterior wall based on position
+          // Room has no rotation, so:
+          // Left door: exterior wall is at NEGATIVE X (room extends left)
+          // Right door: exterior wall is at POSITIVE X (room extends right)
+          const targetX = isLeftDoor ? -2 : 2; // Look for outer wall
+          
+          // Check if this is the exterior wall (tall and at the correct X position)
+          if (params && params.height > 2 && params.width < 0.5) {
+            // This is likely a wall (thin in one dimension)
+            if (Math.abs(localPos.x - targetX) < 2) {
+              // Found a wall near the target position
+              if (!wallToModify || Math.abs(localPos.x) > Math.abs(wallPosition.x)) {
+                // Take the wall that's furthest from center (exterior wall)
+                wallToModify = child;
+                wallPosition = localPos.clone();
+              }
+            }
+          }
+        }
+      });
+      
+      if (wallToModify) {
+        // Remove the solid wall and create wall segments around the window
+        const wallThickness = 0.1;
+        const wallHeight = 2.5;
+        const roomDepth = 4; // Standard room depth
+        const wallMat = wallToModify.material;
+        
+        // Remove original wall
+        room.remove(wallToModify);
+        wallToModify.geometry.dispose();
+        
+        // Create wall segments (left, right, top, bottom of window)
+        const segments = [
+          // Left of window
+          { width: wallThickness, height: wallHeight, depth: (roomDepth - windowWidth) / 2,
+            x: wallPosition.x, y: wallHeight / 2, z: -roomDepth / 2 + (roomDepth - windowWidth) / 4 },
+          // Right of window
+          { width: wallThickness, height: wallHeight, depth: (roomDepth - windowWidth) / 2,
+            x: wallPosition.x, y: wallHeight / 2, z: roomDepth / 2 - (roomDepth - windowWidth) / 4 },
+          // Below window
+          { width: wallThickness, height: windowSillHeight, depth: windowWidth,
+            x: wallPosition.x, y: windowSillHeight / 2, z: 0 },
+          // Above window
+          { width: wallThickness, height: wallHeight - (windowSillHeight + windowHeight), depth: windowWidth,
+            x: wallPosition.x, y: windowSillHeight + windowHeight + (wallHeight - (windowSillHeight + windowHeight)) / 2, z: 0 }
+        ];
+        
+        segments.forEach(seg => {
+          const geo = new THREE.BoxGeometry(seg.width, seg.height, seg.depth);
+          const mesh = new THREE.Mesh(geo, wallMat);
+          mesh.position.set(seg.x, seg.y, seg.z);
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          room.add(mesh);
+        });
+        
+        // Add window frame
+        const frameMat = new THREE.MeshStandardMaterial({ color: 0xa0826d, roughness: 0.6 });
+        const frameThickness = 0.05;
+        
+        // Frame pieces (top, bottom, left, right)
+        const frames = [
+          { w: frameThickness, h: frameThickness, d: windowWidth + frameThickness * 2,
+            x: wallPosition.x, y: windowSillHeight + windowHeight, z: 0 }, // Top
+          { w: frameThickness, h: frameThickness, d: windowWidth + frameThickness * 2,
+            x: wallPosition.x, y: windowSillHeight, z: 0 }, // Bottom
+          { w: frameThickness, h: windowHeight, d: frameThickness,
+            x: wallPosition.x, y: windowCenterHeight, z: -windowWidth / 2 }, // Left
+          { w: frameThickness, h: windowHeight, d: frameThickness,
+            x: wallPosition.x, y: windowCenterHeight, z: windowWidth / 2 } // Right
+        ];
+        
+        frames.forEach(f => {
+          const geo = new THREE.BoxGeometry(f.w, f.h, f.d);
+          const mesh = new THREE.Mesh(geo, frameMat);
+          mesh.position.set(f.x, f.y, f.z);
+          mesh.castShadow = true;
+          room.add(mesh);
+        });
+        
+        // Add transparent glass pane
+        const glassMat = new THREE.MeshStandardMaterial({
+          color: 0x88ccff,
+          transparent: true,
+          opacity: 0.15,
+          roughness: 0.1,
+          metalness: 0.1
+        });
+        const glassGeo = new THREE.PlaneGeometry(windowWidth, windowHeight);
+        const glass = new THREE.Mesh(glassGeo, glassMat);
+        glass.position.set(wallPosition.x, windowCenterHeight, 0);
+        // Rotate glass to be perpendicular to X axis (facing inward)
+        glass.rotation.y = isLeftDoor ? Math.PI / 2 : -Math.PI / 2;
+        room.add(glass);
+      }
+      
+      return {
+        width: windowWidth,
+        height: windowHeight,
+        sillHeight: windowSillHeight,
+        centerHeight: windowCenterHeight,
+        wallX: wallPosition ? wallPosition.x : (isLeftDoor ? 2 : -2),
+        position: { x: wallPosition ? wallPosition.x : 0, y: windowCenterHeight, z: 0 }
+      };
+    }
+    
+    
+    function teleportToRoom(roomData) {
+      const player = interactionSystem.player;
+      
+      // Teleport player to spawn position (near door entrance)
+      const spawnPos = roomData.playerSpawnPosition || roomData.position;
+      player.x = spawnPos.x;
+      player.z = spawnPos.z;
+      player.y = spawnPos.z;
+      
+      // Update player state
+      playerState.isInsideRoom = true;
+      playerState.currentRoomId = roomData.doorId;
+      playerState.currentFloorLevel = roomData.floorLevel;
+      playerState.roomSize = roomData.roomSize || 4;
+      playerState.roomCenterX = roomData.position.x;
+      playerState.roomCenterZ = roomData.position.z;
+      
+      // Update player mesh position at room elevation
+      if (playerMesh) {
+        playerMesh.position.set(
+          player.x,
+          roomData.elevation + FLOOR_OFFSET,
+          player.z
+        );
+      }
+      
+      // Update camera at elevated position
+      if (firstPersonMode && evaluator && evaluator.renderer) {
+        const camera = evaluator.renderer.camera;
+        const playerHeight = 1.8 * (player.scale || 1.0);
+        camera.position.set(
+          player.x,
+          roomData.elevation + playerHeight,
+          player.z
+        );
+      }
+      
+      // Toggle visibility: show room, hide/modify main building
+      updateRoomVisibility(roomData.doorId, true);
+      
+      showStatus(`Entered ${roomData.type}`, 'info');
+    }
+    
+    function updateRoomVisibility(roomId, isEntering) {
+      if (!evaluator || !evaluator.renderer) return;
+      
+      const scene = evaluator.renderer.scene;
+      
+      if (isEntering) {
+        // Player entering room - show interior AND exterior for accurate window view
+        scene.traverse(child => {
+          // Show THIS room
+          if (child.userData.isInteriorRoom) {
+            if (child.userData.roomId === roomId) {
+              child.visible = true; // Show this room
+            } else {
+              child.visible = false; // Hide other rooms
+            }
+          }
+          
+          // Show ALL hallway elements (visible through window from inside)
+          if (child.userData.isHallwaySegment || child.userData.isHallwayWall || 
+              child.userData.isHallwayFloor || child.userData.isHallwayCeiling) {
+            child.visible = true;
+          }
+          
+          // Show vantage building (visible through window)
+          if (child.userData.isVantageBuilding) {
+            child.visible = true;
+          }
+          
+          // Show any doors (part of hallway)
+          if (child.userData.isDoorPanel || child.userData.isDoor) {
+            child.visible = true;
+          }
+        });
+        
+        // Note: We're NOT hiding the exterior world - the player can see it through the window
+        // The room's walls naturally occlude most of the exterior except through the window opening
+        
+      } else {
+        // Player exiting room - return to hallway view
+        scene.traverse(child => {
+          if (child.userData.isInteriorRoom) {
+            child.visible = false; // Hide all rooms
+          }
+          
+          if (child.userData.isHallwaySegment) {
+            child.visible = true; // Show hallway
+          }
+          
+          if (child.userData.isVantageBuilding) {
+            child.visible = true;
+          }
+        });
+        
+        playerState.isInsideRoom = false;
+        playerState.currentRoomId = null;
+      }
+    }
+    
+    // Add check in animation loop to manage visibility based on player position
+    function updatePlayerBasedVisibility() {
+      if (!playerState.isInsideRoom) return;
+      
+      const player = interactionSystem.player;
+      const currentRoom = generatedRooms.get(playerState.currentRoomId);
+      
+      if (!currentRoom) return;
+      
+      // Check if player has moved outside room bounds using actual room size
+      const roomSize = playerState.roomSize || 4;
+      const roomCenterX = playerState.roomCenterX || currentRoom.position.x;
+      const roomCenterZ = playerState.roomCenterZ || currentRoom.position.z;
+      
+      const distFromRoomCenter = Math.sqrt(
+        Math.pow(player.x - roomCenterX, 2) +
+        Math.pow(player.z - roomCenterZ, 2)
+      );
+      
+      // Exit room mode if player is beyond room bounds (with generous margin)
+      const exitThreshold = roomSize * 2; // Double the room size for generous bounds
+      if (distFromRoomCenter > exitThreshold) {
+        updateRoomVisibility(playerState.currentRoomId, false);
+        
+        // Lower player back to hallway level
+        if (playerMesh) {
+          playerMesh.position.y = FLOOR_OFFSET;
+        }
+        
+        if (firstPersonMode && evaluator && evaluator.renderer) {
+          const camera = evaluator.renderer.camera;
+          const playerHeight = 1.8 * (player.scale || 1.0);
+          camera.position.y = playerHeight;
+        }
+        
+        showStatus('Returned to hallway', 'info');
+      }
+    }
+    
+    // ==================== PRISON BLOCK GENERATOR ====================
+    
+    function generatePrisonBlock() {
+      const group = new THREE.Group();
+      
+      // Prison block parameters
+      const cellWidth = 2.5;
+      const cellDepth = 3.0;
+      const cellHeight = 2.8;
+      const hallwayWidth = 3.0;
+      const wallThickness = 0.2;
+      const barSpacing = 0.15;
+      const numCellsPerSide = 4;
+      
+      // Materials
+      const concreteMat = new THREE.MeshStandardMaterial({ 
+        color: 0x888888, 
+        roughness: 0.9, 
+        metalness: 0.1 
+      });
+      const barMat = new THREE.MeshStandardMaterial({ 
+        color: 0x333333, 
+        roughness: 0.6, 
+        metalness: 0.8 
+      });
+      const floorMat = new THREE.MeshStandardMaterial({ 
+        color: 0x666666, 
+        roughness: 0.95 
+      });
+      
+      // Create two levels
+      for (let level = 0; level < 2; level++) {
+        const yOffset = level * cellHeight;
+        
+        // Floor for this level
+        const floorWidth = (cellWidth + wallThickness) * 2 + hallwayWidth;
+        const floorDepth = (cellDepth + wallThickness) * numCellsPerSide;
+        const floor = new THREE.Mesh(
+          new THREE.BoxGeometry(floorWidth, 0.3, floorDepth),
+          floorMat
+        );
+        floor.position.set(0, yOffset, 0);
+        floor.receiveShadow = true;
+        group.add(floor);
+        
+        // Create cells on both sides of hallway
+        for (let side = 0; side < 2; side++) {
+          const sideOffset = side === 0 ? -(hallwayWidth / 2 + cellWidth / 2) : (hallwayWidth / 2 + cellWidth / 2);
+          
+          for (let i = 0; i < numCellsPerSide; i++) {
+            const zPos = (i - numCellsPerSide / 2 + 0.5) * (cellDepth + wallThickness);
+            
+            // Cell back wall
+            const backWall = new THREE.Mesh(
+              new THREE.BoxGeometry(cellWidth, cellHeight, wallThickness),
+              concreteMat
+            );
+            const backOffset = side === 0 ? -(cellDepth / 2 + wallThickness / 2) : (cellDepth / 2 + wallThickness / 2);
+            backWall.position.set(sideOffset, yOffset + cellHeight / 2, zPos + backOffset);
+            backWall.castShadow = true;
+            backWall.receiveShadow = true;
+            group.add(backWall);
+            
+            // Cell side walls
+            const leftWall = new THREE.Mesh(
+              new THREE.BoxGeometry(wallThickness, cellHeight, cellDepth),
+              concreteMat
+            );
+            leftWall.position.set(
+              sideOffset - cellWidth / 2 - wallThickness / 2,
+              yOffset + cellHeight / 2,
+              zPos
+            );
+            leftWall.castShadow = true;
+            leftWall.receiveShadow = true;
+            group.add(leftWall);
+            
+            const rightWall = new THREE.Mesh(
+              new THREE.BoxGeometry(wallThickness, cellHeight, cellDepth),
+              concreteMat
+            );
+            rightWall.position.set(
+              sideOffset + cellWidth / 2 + wallThickness / 2,
+              yOffset + cellHeight / 2,
+              zPos
+            );
+            rightWall.castShadow = true;
+            rightWall.receiveShadow = true;
+            group.add(rightWall);
+            
+            // Cell bars (front)
+            const numBars = Math.floor(cellWidth / barSpacing);
+            for (let b = 0; b < numBars; b++) {
+              const barX = sideOffset - cellWidth / 2 + (b / (numBars - 1)) * cellWidth;
+              const bar = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.02, 0.02, cellHeight, 8),
+                barMat
+              );
+              const frontOffset = side === 0 ? (cellDepth / 2) : -(cellDepth / 2);
+              bar.position.set(barX, yOffset + cellHeight / 2, zPos + frontOffset);
+              bar.castShadow = true;
+              group.add(bar);
+            }
+            
+            // Horizontal bars
+            for (let h = 0; h < 3; h++) {
+              const barY = yOffset + (h / 2) * cellHeight;
+              const horizontalBar = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.02, 0.02, cellWidth, 8),
+                barMat
+              );
+              horizontalBar.rotation.z = Math.PI / 2;
+              const frontOffset = side === 0 ? (cellDepth / 2) : -(cellDepth / 2);
+              horizontalBar.position.set(sideOffset, barY, zPos + frontOffset);
+              horizontalBar.castShadow = true;
+              group.add(horizontalBar);
+            }
+            
+            // Simple bunk bed inside cell
+            const bunkBase = new THREE.Mesh(
+              new THREE.BoxGeometry(0.8, 0.1, 1.8),
+              new THREE.MeshStandardMaterial({ color: 0x4a4a4a })
+            );
+            const bedOffset = side === 0 ? -(cellDepth / 3) : (cellDepth / 3);
+            bunkBase.position.set(sideOffset - cellWidth / 3, yOffset + 0.4, zPos + bedOffset);
+            bunkBase.castShadow = true;
+            group.add(bunkBase);
+            
+            // Top bunk
+            const topBunk = new THREE.Mesh(
+              new THREE.BoxGeometry(0.8, 0.1, 1.8),
+              new THREE.MeshStandardMaterial({ color: 0x4a4a4a })
+            );
+            topBunk.position.set(sideOffset - cellWidth / 3, yOffset + 1.5, zPos + bedOffset);
+            topBunk.castShadow = true;
+            group.add(topBunk);
+            
+            // Toilet
+            const toilet = new THREE.Mesh(
+              new THREE.BoxGeometry(0.4, 0.5, 0.5),
+              new THREE.MeshStandardMaterial({ color: 0xffffff })
+            );
+            const toiletOffset = side === 0 ? (cellDepth / 4) : -(cellDepth / 4);
+            toilet.position.set(sideOffset + cellWidth / 3, yOffset + 0.25, zPos + toiletOffset);
+            toilet.castShadow = true;
+            group.add(toilet);
+          }
+        }
+        
+        // Ceiling for this level (if second level)
+        if (level === 1) {
+          const ceiling = new THREE.Mesh(
+            new THREE.BoxGeometry(floorWidth, 0.2, floorDepth),
+            concreteMat
+          );
+          ceiling.position.set(0, yOffset + cellHeight, 0);
+          ceiling.receiveShadow = true;
+          group.add(ceiling);
+        }
+        
+        // Hallway floor marker (darker strip)
+        const hallwayFloor = new THREE.Mesh(
+          new THREE.BoxGeometry(hallwayWidth - 0.2, 0.05, floorDepth),
+          new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.95 })
+        );
+        hallwayFloor.position.set(0, yOffset + 0.15, 0);
+        group.add(hallwayFloor);
+      }
+      
+      // Create staircase connecting levels
+      const stairWidth = 2.0;
+      const stairHeight = cellHeight;
+      const numSteps = 12;
+      const stepHeight = stairHeight / numSteps;
+      const stepDepth = 0.3;
+      
+      const stairStartZ = ((numCellsPerSide / 2) * (cellDepth + wallThickness)) + 1;
+      
+      for (let i = 0; i < numSteps; i++) {
+        const step = new THREE.Mesh(
+          new THREE.BoxGeometry(stairWidth, stepHeight * (i + 1), stepDepth),
+          concreteMat
+        );
+        step.position.set(
+          0,
+          stepHeight * (i + 0.5),
+          stairStartZ + i * stepDepth
+        );
+        step.castShadow = true;
+        step.receiveShadow = true;
+        group.add(step);
+      }
+      
+      // Stair railings
+      const railingHeight = 1.0;
+      const railingMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.7 });
+      
+      for (let side = 0; side < 2; side++) {
+        const railingX = side === 0 ? -stairWidth / 2 : stairWidth / 2;
+        const railing = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.04, 0.04, numSteps * stepDepth, 8),
+          railingMat
+        );
+        railing.rotation.x = Math.PI / 2;
+        railing.position.set(
+          railingX,
+          cellHeight / 2 + railingHeight / 2,
+          stairStartZ + (numSteps * stepDepth) / 2
+        );
+        railing.castShadow = true;
+        group.add(railing);
+      }
+      
+      return group;
+    }
+    
+    // ==================== BUILDING CONSTRUCTOR ====================
+    
+    function setupBuildingConstructor() {
+      // Generate Building button
+      generateBuildingBtn.addEventListener('click', () => {
+        const numRooms = parseInt(roomCount.value) || 5;
+        
+        showStatus(`Generating building with ${numRooms} rooms...`, 'loading');
+        
+        try {
+          evaluator.renderer.clearAssets();
+          
+          const buildingConstructor = new BuildingConstructor(evaluator.renderer.scene);
+          const building = buildingConstructor.generateRandomHouse(numRooms);
+          evaluator.renderer.scene.add(building);
+          
+          // Position camera to view the building
+          evaluator.renderer.camera.position.set(10, 8, 10);
+          evaluator.renderer.controls.target.set(0, 0, 0);
+          evaluator.renderer.controls.update();
+          
+          showStatus(`✓ Building generated with ${numRooms} rooms!`, 'success');
+        } catch (error) {
+          showStatus(`Error generating building: ${error.message}`, 'error');
+          console.error(error);
+        }
+      });
+      
+      // Generate Single Room button
+      generateSingleRoomBtn.addEventListener('click', () => {
+        const roomType = roomTypeSelect.value;
+        const selectedRoomType = roomType === 'random' ? getRandomRoomType() : roomType;
+        
+        showStatus(`Generating ${selectedRoomType}...`, 'loading');
+        
+        try {
+          evaluator.renderer.clearAssets();
+          
+          const buildingConstructor = new BuildingConstructor(evaluator.renderer.scene);
+          const room = buildingConstructor.constructRoom(selectedRoomType, 0);
+          evaluator.renderer.scene.add(room);
+          
+          // Position camera to view the room
+          evaluator.renderer.camera.position.set(4, 3, 4);
+          evaluator.renderer.controls.target.set(0, 1, 0);
+          evaluator.renderer.controls.update();
+          
+          showStatus(`✓ ${selectedRoomType} generated!`, 'success');
+        } catch (error) {
+          showStatus(`Error generating room: ${error.message}`, 'error');
+          console.error(error);
+        }
+      });
+      
+      // Truly Random button
+      trulyRandomBtn.addEventListener('click', () => {
+        showStatus('Generating truly random room...', 'loading');
+        
+        try {
+          evaluator.renderer.clearAssets();
+          
+          const buildingConstructor = new BuildingConstructor(evaluator.renderer.scene);
+          const randomRoomType = getRandomRoomType();
+          const room = buildingConstructor.constructRoom(randomRoomType, 0);
+          evaluator.renderer.scene.add(room);
+          
+          // Position camera to view the room
+          evaluator.renderer.camera.position.set(4, 3, 4);
+          evaluator.renderer.controls.target.set(0, 1, 0);
+          evaluator.renderer.controls.update();
+          
+          showStatus(`✓ Random ${randomRoomType} generated!`, 'success');
+        } catch (error) {
+          showStatus(`Error generating random room: ${error.message}`, 'error');
+          console.error(error);
+        }
+      });
+      
+      // Prison Block button
+      generatePrisonBlockBtn.addEventListener('click', () => {
+        showStatus('Generating prison block...', 'loading');
+        
+        try {
+          evaluator.renderer.clearAssets();
+          
+          const prisonBlock = generatePrisonBlock();
+          evaluator.renderer.scene.add(prisonBlock);
+          
+          // Position camera to view the prison block
+          evaluator.renderer.camera.position.set(12, 6, 12);
+          evaluator.renderer.controls.target.set(0, 2, 0);
+          evaluator.renderer.controls.update();
+          
+          showStatus('✓ Prison block generated!', 'success');
+        } catch (error) {
+          showStatus(`Error generating prison block: ${error.message}`, 'error');
+          console.error(error);
+        }
+      });
+    }
+    
+    // ==================== CHARACTER CREATION ====================
+    
+    function createPlayerMesh() {
+      if (!evaluator || !evaluator.renderer) return;
+      
+      const scene = evaluator.renderer.scene;
+      const scale = interactionSystem.player.scale || 1.0;
+      
+      playerMesh = createCharacterMesh(scale, 0x2ecc71);
+      
+      // Spawn player in back-right corner of room to keep props visible
+      const startX = 4;
+      const startZ = 4;
+      playerMesh.position.set(startX, FLOOR_OFFSET, startZ);
+      scene.add(playerMesh);
+      
+      // Initialize player position in corner
+      interactionSystem.player.x = startX;
+      interactionSystem.player.y = startZ;
+      interactionSystem.player.z = startZ;
+    }
+    
+    function createCharacterMesh(bodyScale, shirtColor) {
+      const group = new THREE.Group();
+      
+      // Body proportions
+      const torsoW = 0.5 * bodyScale;
+      const torsoH = 0.8 * bodyScale;
+      const torsoD = 0.3 * bodyScale;
+      
+      // Torso
+      const torsoGeo = new THREE.BoxGeometry(torsoW, torsoH, torsoD);
+      const torsoMat = new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.6 });
+      const torso = new THREE.Mesh(torsoGeo, torsoMat);
+      torso.position.y = torsoH / 2;
+      torso.castShadow = true;
+      group.add(torso);
+      
+      // Head
+      const headSize = 0.38 * bodyScale;
+      const headGeo = new THREE.BoxGeometry(headSize, headSize, headSize * 0.9);
+      const headMat = new THREE.MeshStandardMaterial({ color: 0xFFE0BD, roughness: 0.7 });
+      const head = new THREE.Mesh(headGeo, headMat);
+      head.position.y = torsoH + headSize / 2 + 0.05 * bodyScale;
+      head.castShadow = true;
+      group.add(head);
+      
+      // Arms
+      const armW = 0.14 * bodyScale;
+      const armH = 0.42 * bodyScale;
+      const armMat = new THREE.MeshStandardMaterial({ color: 0x86C7FF, roughness: 0.6 });
+      
+      // Left arm
+      const armL = new THREE.Group();
+      const armLUpper = new THREE.Mesh(new THREE.BoxGeometry(armW, armH, armW), armMat);
+      armLUpper.position.y = -armH / 2;
+      armLUpper.castShadow = true;
+      armL.add(armLUpper);
+      armL.position.set(-torsoW / 2 - armW / 2 - 0.02 * bodyScale, torsoH * 0.8, 0);
+      group.add(armL);
+      
+      // Right arm
+      const armR = new THREE.Group();
+      const armRUpper = new THREE.Mesh(new THREE.BoxGeometry(armW, armH, armW), armMat);
+      armRUpper.position.y = -armH / 2;
+      armRUpper.castShadow = true;
+      armR.add(armRUpper);
+      armR.position.set(torsoW / 2 + armW / 2 + 0.02 * bodyScale, torsoH * 0.8, 0);
+      group.add(armR);
+      
+      // Legs with knees
+      const legW = 0.16 * bodyScale;
+      const legH = 0.48 * bodyScale;
+      const shinH = 0.46 * bodyScale;
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x4A5568, roughness: 0.7 });
+      const shinMat = new THREE.MeshStandardMaterial({ color: 0x5A6678, roughness: 0.7 });
+      
+      // Left leg
+      const legL = new THREE.Group();
+      const legLThigh = new THREE.Mesh(new THREE.BoxGeometry(legW, legH, legW), legMat);
+      legLThigh.position.y = -legH / 2;
+      legLThigh.castShadow = true;
+      legL.add(legLThigh);
+      
+      const legLShinPivot = new THREE.Group();
+      legLShinPivot.position.y = -legH;
+      legLThigh.add(legLShinPivot);
+      
+      const legLShin = new THREE.Mesh(new THREE.BoxGeometry(legW * 0.85, shinH, legW * 0.85), shinMat);
+      legLShin.position.y = -shinH / 2;
+      legLShin.castShadow = true;
+      legLShinPivot.add(legLShin);
+      
+      const footW = 0.24 * bodyScale;
+      const footH = 0.08 * bodyScale;
+      const footD = 0.32 * bodyScale;
+      const footMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.8 });
+      const legLFoot = new THREE.Mesh(new THREE.BoxGeometry(footW, footH, footD), footMat);
+      legLFoot.position.set(0, -shinH - footH / 2, footD * 0.15);
+      legLFoot.castShadow = true;
+      legLShinPivot.add(legLFoot);
+      
+      legL.position.set(-torsoW / 4, 0, 0);
+      legL.userData.thigh = legLThigh;
+      legL.userData.shinPivot = legLShinPivot;
+      legL.userData.foot = legLFoot;
+      group.add(legL);
+      
+      // Right leg
+      const legR = new THREE.Group();
+      const legRThigh = new THREE.Mesh(new THREE.BoxGeometry(legW, legH, legW), legMat);
+      legRThigh.position.y = -legH / 2;
+      legRThigh.castShadow = true;
+      legR.add(legRThigh);
+      
+      const legRShinPivot = new THREE.Group();
+      legRShinPivot.position.y = -legH;
+      legRThigh.add(legRShinPivot);
+      
+      const legRShin = new THREE.Mesh(new THREE.BoxGeometry(legW * 0.85, shinH, legW * 0.85), shinMat);
+      legRShin.position.y = -shinH / 2;
+      legRShin.castShadow = true;
+      legRShinPivot.add(legRShin);
+      
+      const legRFoot = new THREE.Mesh(new THREE.BoxGeometry(footW, footH, footD), footMat);
+      legRFoot.position.set(0, -shinH - footH / 2, footD * 0.15);
+      legRFoot.castShadow = true;
+      legRShinPivot.add(legRFoot);
+      
+      legR.position.set(torsoW / 4, 0, 0);
+      legR.userData.thigh = legRThigh;
+      legR.userData.shinPivot = legRShinPivot;
+      legR.userData.foot = legRFoot;
+      group.add(legR);
+      
+      // Store references
+      group.userData.legLeft = legL;
+      group.userData.legRight = legR;
+      group.userData.armLeft = armL;
+      group.userData.armRight = armR;
+      group.userData.bodyScale = bodyScale;
+      
+      // Calculate offset to place feet exactly at y=0 (includes foot height)
+      const feetOffset = legH + shinH + footH;
+      group.position.y = feetOffset;
+      
+      return group;
+    }
+    
+    // Create tent at ant scale
+    function createTent() {
+      const group = new THREE.Group();
+      
+      const tentGeometry = new THREE.ConeGeometry(0.025, 0.04, 4);
+      const tentMaterial = new THREE.MeshStandardMaterial({ color: 0xd2691e });
+      const tent = new THREE.Mesh(tentGeometry, tentMaterial);
+      tent.position.y = 0.02 + FLOOR_OFFSET;
+      tent.rotation.y = Math.PI / 4;
+      tent.castShadow = true;
+      tent.receiveShadow = true;
+      group.add(tent);
+      
+      return group;
+    }
+    
+    // Create house at ant scale
+    function createHouse() {
+      const group = new THREE.Group();
+      
+      // Walls
+      const wallGeometry = new THREE.BoxGeometry(0.04, 0.04, 0.04);
+      const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xd4a574 });
+      const walls = new THREE.Mesh(wallGeometry, wallMaterial);
+      walls.position.y = 0.02 + FLOOR_OFFSET;
+      walls.castShadow = true;
+      walls.receiveShadow = true;
+      group.add(walls);
+      
+      // Roof
+      const roofGeometry = new THREE.ConeGeometry(0.033, 0.025, 4);
+      const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
+      const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+      roof.position.y = 0.053 + FLOOR_OFFSET;
+      roof.rotation.y = Math.PI / 4;
+      roof.castShadow = true;
+      group.add(roof);
+      
+      // Door
+      const doorGeometry = new THREE.BoxGeometry(0.0125, 0.02, 0.0025);
+      const doorMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 });
+      const door = new THREE.Mesh(doorGeometry, doorMaterial);
+      door.position.set(0, 0.01 + FLOOR_OFFSET, 0.021);
+      group.add(door);
+      
+      return group;
+    }
+    
+    // ==================== SPAWNING SYSTEM ====================
+    
+    function spawnTinyPerson(sizeType) {
+      if (!evaluator || !evaluator.renderer) return;
+      
+      const scale = sizeType === 'ant' ? 0.02 : 0.35;
+      const scene = evaluator.renderer.scene;
+      
+      const x = (Math.random() - 0.5) * 8;
+      const z = (Math.random() - 0.5) * 8;
+      
+      const personGroup = createCharacterMesh(scale, Math.random() * 0xffffff);
+      personGroup.position.set(x, 0, z);
+      scene.add(personGroup);
+      
+      const tinyPerson = {
+        mesh: personGroup,
+        x: x,
+        y: z,
+        z: z,
+        scale: scale,
+        sizeType: sizeType,
+        state: 'idle',
+        target: null,
+        speed: 0.3 + Math.random() * 0.3,
+        animTime: Math.random() * Math.PI * 2
+      };
+      
+      tinyPeople.push(tinyPerson);
+      showStatus(`Spawned ${sizeType}-sized person at (${x.toFixed(1)}, ${z.toFixed(1)})`, 'success');
+      
+      return tinyPerson;
+    }
+    
+    function testStompAnimation() {
+      showStatus('Stomp test: Spawn a pedestrian first to see stomp animation', 'info');
+    }
+    
+    // ==================== ANIMATION LOOP ====================
+    
+    function startAnimationLoop() {
+      function animate(timestamp) {
+        const deltaTime = (timestamp - lastTime) / 1000;
+        lastTime = timestamp;
+        
+        const dt = Math.min(deltaTime, 0.1);
+        
+        // Update first-person movement
+        updateFirstPersonMovement(dt);
+        
+        // Update tiny people
+        updateTinyPeople(dt);
+        
+        // Update interaction system
+        if (interactionSystem) {
+          interactionSystem.update(dt);
+        }
+        
+        // Update vantage point system
+        if (vantageModeActive && vantagePointSystem) {
+          vantagePointSystem.update();
+        }
+        
+        // Update player position for hallway system
+        if (infiniteHallwaySystem && infiniteHallwaySystem.active) {
+          const player = interactionSystem.player;
+          infiniteHallwaySystem.setPlayerPosition(player.x, player.height / 100, player.z);
+        }
+        
+        // Update room visibility based on player position
+        updatePlayerBasedVisibility();
+        
+        requestAnimationFrame(animate);
+      }
+      
+      lastTime = performance.now();
+      requestAnimationFrame(animate);
+    }
+    
+    function updateTinyPeople(deltaTime) {
+      tinyPeople.forEach(person => {
+        // Simple wandering behavior
+        if (!person.target || Math.random() < 0.01) {
+          person.target = {
+            x: (Math.random() - 0.5) * 8,
+            z: (Math.random() - 0.5) * 8
+          };
+        }
+        
+        if (person.target) {
+          const dx = person.target.x - person.x;
+          const dz = person.target.z - person.z;
+          const dist = Math.sqrt(dx * dx + dz * dz);
+          
+          if (dist > 0.1) {
+            person.x += (dx / dist) * person.speed * deltaTime;
+            person.z += (dz / dist) * person.speed * deltaTime;
+            person.y = person.z;
+            
+            person.mesh.position.set(person.x, FLOOR_OFFSET, person.z);
+            
+            // Simple walk animation
+            person.animTime += deltaTime * 6;
+            animateWalking(person.mesh, person.animTime);
+          }
+        }
+      });
+    }
+    
+    function animateWalking(mesh, animTime) {
+      const legLeft = mesh.userData.legLeft;
+      const legRight = mesh.userData.legRight;
+      
+      if (legLeft && legRight) {
+        const leftAngle = Math.sin(animTime) * 0.3;
+        const rightAngle = Math.sin(animTime + Math.PI) * 0.3;
+        
+        legLeft.rotation.x = leftAngle;
+        legRight.rotation.x = rightAngle;
+        
+        if (legLeft.userData.shinPivot) {
+          legLeft.userData.shinPivot.rotation.x = Math.max(0, -leftAngle * 0.5);
+        }
+        if (legRight.userData.shinPivot) {
+          legRight.userData.shinPivot.rotation.x = Math.max(0, -rightAngle * 0.5);
+        }
+      }
+      
+      const armLeft = mesh.userData.armLeft;
+      const armRight = mesh.userData.armRight;
+      
+      if (armLeft && armRight) {
+        armLeft.rotation.x = Math.sin(animTime + Math.PI) * 0.2;
+        armRight.rotation.x = Math.sin(animTime) * 0.2;
+      }
+    }
+    
+    // ==================== MICRO CITY SYSTEM INTEGRATION ====================
+    
+    function setupMicroCityListeners() {
+      const microCity = window.microCityCore;
+      
+      // Listen for key events
+      microCity.on(MicroCityEvents.CITIZEN_SPAWNED, (data) => {
+        console.log(`👤 Citizen spawned (Gen ${data.generation})`);
+        createCitizenMesh(data.citizenId);
+      });
+      
+      microCity.on(MicroCityEvents.CITIZEN_DIED, (data) => {
+        console.log(`💀 Citizen died (Gen ${data.generation}, Age: ${data.age.toFixed(1)})`);
+        removeCitizenMesh(data.citizenId);
+      });
+      
+      microCity.on(MicroCityEvents.GENERATION_ADVANCED, (data) => {
+        console.log(`🌍 Generation ${data.generation} emerged! Scale: ${data.scale.toFixed(4)}`);
+        updateMicroCityStats();
+      });
+      
+      microCity.on(MicroCityEvents.CONSTRUCTION_COMPLETED, (data) => {
+        console.log(`🏗️ ${data.type} completed (Gen ${data.generation})`);
+        createStructureMesh(data.structure);
+      });
+      
+      // Update stats periodically
+      setInterval(updateMicroCityStats, 1000);
+    }
+    
+    function createMicroCityUI() {
+      // Add micro city panel to sidebar
+      const sidebar = document.querySelector('.sidebar');
+      if (!sidebar) return;
+      
+      const microCityPanel = document.createElement('div');
+      microCityPanel.className = 'form-group';
+      microCityPanel.innerHTML = `
+        <h2>🏙️ Micro City System</h2>
+        <div id="microCityStats" style="background: #333; padding: 10px; border-radius: 4px; margin-bottom: 10px; font-family: monospace; font-size: 0.85em;">
+          <div>Population: <span id="mcPopulation">0</span></div>
+          <div>Generations: <span id="mcGenerations">0</span></div>
+          <div>Structures: <span id="mcStructures">0</span></div>
+          <div>FPS: <span id="mcFPS">60</span></div>
+        </div>
+        <button id="mcStart" class="primary" style="width: 100%; margin-bottom: 5px;">▶️ Start Simulation</button>
+        <button id="mcPause" class="secondary" style="width: 100%; margin-bottom: 5px;">⏸️ Pause</button>
+        <button id="mcSpawnCitizen" class="secondary" style="width: 100%; margin-bottom: 5px;">👤 Spawn Citizen</button>
+        <button id="mcReset" class="secondary" style="width: 100%;">🔄 Reset</button>
+        <div style="margin-top: 10px;">
+          <label>Time Scale: <span id="mcTimeScale">1.0</span>x</label>
+          <input type="range" id="mcTimeScaleSlider" min="0.1" max="10" step="0.1" value="1" style="width: 100%;">
+        </div>
+      `;
+      
+      sidebar.appendChild(microCityPanel);
+      
+      // Setup button handlers
+      document.getElementById('mcStart').addEventListener('click', () => {
+        window.microCityCore.start();
+        showStatus('Micro City simulation started', 'success');
+      });
+      
+      document.getElementById('mcPause').addEventListener('click', () => {
+        if (window.microCityCore.running) {
+          window.microCityCore.pause();
+          showStatus('Micro City simulation paused', 'info');
+        } else {
+          window.microCityCore.resume();
+          showStatus('Micro City simulation resumed', 'success');
+        }
+      });
+      
+      document.getElementById('mcSpawnCitizen').addEventListener('click', () => {
+        const cornerX = -3;
+        const cornerZ = -3;
+        window.microCityCore.spawnCitizen({
+          generation: 0,
+          scale: 0.01, // Ant-sized
+          position: {
+            x: cornerX + Math.random() * 0.3,
+            y: 0,
+            z: cornerZ + Math.random() * 0.3
+          }
+        });
+        showStatus('New ant-sized citizen spawned in corner', 'success');
+      });
+      
+      document.getElementById('mcReset').addEventListener('click', () => {
+        window.microCityCore.reset();
+        clearAllCitizenMeshes();
+        showStatus('Micro City system reset', 'info');
+      });
+      
+      document.getElementById('mcTimeScaleSlider').addEventListener('input', (e) => {
+        const scale = parseFloat(e.target.value);
+        window.microCityCore.timeSystem.setTimeScale(scale);
+        document.getElementById('mcTimeScale').textContent = scale.toFixed(1);
+      });
+    }
+    
+    function updateMicroCityStats() {
+      const stats = window.microCityCore.getStats();
+      
+      document.getElementById('mcPopulation').textContent = stats.citizens.totalPopulation;
+      document.getElementById('mcGenerations').textContent = stats.generations.length;
+      document.getElementById('mcStructures').textContent = stats.structures.totalCompleted;
+      document.getElementById('mcFPS').textContent = stats.fps;
+    }
+    
+    // Citizen mesh management
+    const citizenMeshes = new Map(); // citizenId -> THREE.Group
+    
+    function createCitizenMesh(citizenId) {
+      const citizen = window.microCityCore.getCitizen(citizenId);
+      if (!citizen) return;
+      
+      // Use the actual citizen scale (0.01 for ant-sized, 0.0075 for Gen 1, etc.)
+      const size = citizen.scale; // Direct scale - ant-sized is 0.01
+      const color = getGenerationColor(citizen.generation);
+      
+      // Create character using existing pedestrian system
+      const characterMesh = createCharacterMesh(size, color);
+      
+      // Position at citizen location
+      characterMesh.position.set(citizen.position.x, citizen.position.y, citizen.position.z);
+      
+      // Store citizen metadata
+      characterMesh.userData.citizenId = citizenId;
+      characterMesh.userData.generation = citizen.generation;
+      characterMesh.userData.scale = size;
+      
+      evaluator.renderer.scene.add(characterMesh);
+      citizenMeshes.set(citizenId, characterMesh);
+    }
+    
+    function removeCitizenMesh(citizenId) {
+      const mesh = citizenMeshes.get(citizenId);
+      if (mesh) {
+        evaluator.renderer.scene.remove(mesh);
+        citizenMeshes.delete(citizenId);
+      }
+    }
+    
+    function clearAllCitizenMeshes() {
+      for (const mesh of citizenMeshes.values()) {
+        evaluator.renderer.scene.remove(mesh);
+      }
+      citizenMeshes.clear();
+    }
+    
+    function getGenerationColor(generation) {
+      const colors = [
+        0xff6b6b, // Gen 0: Red
+        0x4ecdc4, // Gen 1: Cyan
+        0xffe66d, // Gen 2: Yellow
+        0x95e1d3, // Gen 3: Mint
+        0xf38181, // Gen 4: Pink
+        0x6c5ce7, // Gen 5: Purple
+        0x00b894, // Gen 6: Green
+        0xfd79a8  // Gen 7+: Rose
+      ];
+      return colors[Math.min(generation, colors.length - 1)];
+    }
+    
+    // Structure mesh management
+    function createStructureMesh(structure) {
+      const group = new THREE.Group();
+      
+      // Simple structure representation (box)
+      const size = structure.scale * 0.5;
+      const geometry = new THREE.BoxGeometry(size, size * 0.5, size);
+      const material = new THREE.MeshStandardMaterial({
+        color: getStructureColor(structure.tier),
+        roughness: 0.8
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      group.add(mesh);
+      
+      // Position
+      group.position.set(structure.position.x, structure.position.y + size * 0.25, structure.position.z);
+      
+      evaluator.renderer.scene.add(group);
+    }
+    
+    function getStructureColor(tier) {
+      const colors = [
+        0x8b7355, // Tent: Brown
+        0xd2b48c, // Hut: Tan
+        0xa0826d, // House: Wood
+        0x808080, // Village: Gray
+        0xc0c0c0, // Town: Silver
+        0xffd700, // City: Gold
+        0xff6b6b  // Megacity: Red
+      ];
+      return colors[Math.min(tier, colors.length - 1)];
+    }
+    
+    // Update citizen meshes each frame
+    function updateCitizenMeshes() {
+      if (!window.microCityCore || !window.microCityCore.running) return;
+      
+      for (const [citizenId, mesh] of citizenMeshes.entries()) {
+        const citizen = window.microCityCore.getCitizen(citizenId);
+        if (citizen) {
+          // Update position (mesh scale already set in createCitizenMesh)
+          mesh.position.set(citizen.position.x, citizen.position.y, citizen.position.z);
+        }
+      }
+    }
+    
+    // Hook into animation loop
+    const originalAnimateFunction = evaluator && evaluator.renderer ? evaluator.renderer.animate : null;
+    if (originalAnimateFunction) {
+      evaluator.renderer.animate = function() {
+        originalAnimateFunction.call(evaluator.renderer);
+        
+        // Update micro city
+        if (window.microCityCore && window.microCityCore.running) {
+          const deltaTime = evaluator.renderer.clock.getDelta();
+          window.microCityCore.update(deltaTime);
+          updateCitizenMeshes();
+        }
+      };
+    }
+    
+    // ==================== END MICRO CITY INTEGRATION ====================
+    
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>
+

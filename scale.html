@@ -1,0 +1,2195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pockit — Pocket Dimension of the Origin Point</title>
+  <style>
+    html, body { height: 100%; margin: 0; overflow: hidden; background: #0d0f14; }
+    #ui { position: fixed; left: 12px; bottom: 12px; color: #e7f0ff; font: 12px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; background: rgba(18,24,38,.6); border: 1px solid rgba(255,255,255,.15); border-radius: 8px; padding: 10px 12px; backdrop-filter: blur(6px); }
+    #ui kbd { background: #141925; border: 1px solid rgba(255,255,255,.15); border-bottom-color: rgba(0,0,0,.4); border-radius: 5px; padding: 0 5px; margin: 0 2px; font: 11px/18px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #cfe3ff; display: inline-block; }
+    #hud, #tests { position: fixed; right: 12px; color: #cfe3ff; font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: rgba(18,24,38,.6); border: 1px solid rgba(255,255,255,.15); border-radius: 8px; padding: 10px 12px; min-width: 240px; backdrop-filter: blur(6px); }
+    #hud { bottom: 12px; }
+    #tests { bottom: 110px; max-height: 40vh; overflow: auto; }
+    #title { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); color: #e7f0ff; font: 600 14px/1.2 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; letter-spacing: 0.2px; background: rgba(18,24,38,.6); border: 1px solid rgba(255,255,255,.15); border-radius: 10px; padding: 8px 12px; backdrop-filter: blur(6px); }
+    #welcome { position: fixed; top: 12px; left: 12px; color: #e7f0ff; font: 600 13px/1.2 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: rgba(18,24,38,.6); border: 1px solid rgba(255,255,255,.15); border-radius: 10px; padding: 8px 12px; backdrop-filter: blur(6px); z-index: 30; }
+    #viewportFrame { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 44vw; height: 44vh; border: 2px dashed rgba(188,217,255,0.85); border-radius: 8px; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.25); pointer-events: none; opacity: 0; transition: opacity .15s ease; }
+    #viewportFrame.active { opacity: 1; }
+    /* Speed slider */
+    #speedRow { margin-top: 8px; display: flex; align-items: center; gap: 8px; user-select: none; }
+    #speedRow label { opacity: 0.9; }
+    #speedSlider { position: relative; height: 18px; width: 220px; cursor: ew-resize; }
+    #speedSlider .track { position: absolute; left: 0; right: 0; top: 7px; height: 4px; background: rgba(188,217,255,0.35); border-radius: 2px; }
+    #speedSlider .thumb { position: absolute; top: 2px; left: 100px; width: 14px; height: 14px; border-radius: 7px; background: #bcd9ff; box-shadow: 0 1px 0 rgba(0,0,0,0.3), 0 0 0 2px rgba(18,24,38,0.4) inset; }
+    /* Tower slider */
+    #towerRow { margin-top: 8px; display: flex; align-items: center; gap: 8px; user-select: none; }
+    #towerRow label { opacity: 0.9; }
+    #towerSlider { position: relative; height: 18px; width: 220px; cursor: ew-resize; }
+    #towerSlider .track { position: absolute; left: 0; right: 0; top: 7px; height: 4px; background: rgba(188,217,255,0.35); border-radius: 2px; }
+    #towerSlider .thumb { position: absolute; top: 2px; left: 100px; width: 14px; height: 14px; border-radius: 7px; background: #bcd9ff; box-shadow: 0 1px 0 rgba(0,0,0,0.3), 0 0 0 2px rgba(18,24,38,0.4) inset; }
+    /* Reticle */
+    #reticle { position: fixed; left: 50%; top: 50%; width: 14px; height: 14px; margin-left: -7px; margin-top: -7px; pointer-events: none; opacity: 0.85; }
+    #reticle:before, #reticle:after { content: ""; position: absolute; background: #bcd9ff; }
+    #reticle:before { left: 6px; top: 0; width: 2px; height: 14px; box-shadow: 0 0 0 1px rgba(18,24,38,0.35) inset; }
+    #reticle:after { top: 6px; left: 0; width: 14px; height: 2px; box-shadow: 0 0 0 1px rgba(18,24,38,0.35) inset; }
+    /* Tooltip */
+    #tooltip { position: fixed; pointer-events: none; background: rgba(17,24,38,0.9); color: #e7f0ff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 6px 8px; font: 12px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; transform: translate(-50%, -120%); white-space: nowrap; z-index: 50; display: none; }
+  </style>
+</head>
+<body>
+  <div id="title">Pockit</div>
+  <div id="welcome">Pockit — the Pocket Dimension of the Origin Point</div>
+  <div id="popup"></div>
+  <div id="tooltip"></div>
+  <div id="ui">
+    <div><strong>Controls</strong></div>
+    <div id="controlsContent"></div>
+    <div id="teleports" style="margin-top:8px; display:flex; gap:6px;"><button id="btnSpawn">Teleport: Spawn</button><button id="btnTower">Teleport: Tower</button></div>
+    <div class="row" id="lensRow" style="margin-top:8px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <div>
+        <label>Focal Length <span id="focalVal">35</span>mm</label><br/>
+        <input type="range" id="focalSlider" min="10" max="120" step="1" value="35" style="width:220px;" />
+      </div>
+      <div>
+        <label>Film Gauge <span id="gaugeVal">35</span>mm</label><br/>
+        <input type="range" id="gaugeSlider" min="10" max="70" step="1" value="35" style="width:220px;" />
+      </div>
+      <div>
+        <label>Fisheye <span id="fishVal">0.00</span></label><br/>
+        <input type="range" id="fishSlider" min="0" max="0.7" step="0.01" value="0" style="width:220px;" />
+      </div>
+    </div>
+    <div id="towerRow"><label>Tower Scale</label><div id="towerSlider"><div class="track"></div><div class="thumb"></div></div></div>
+    <div>Portal mode: <span id="portalModeIndicator">same</span></div>
+    <div>Colliding the slab center <em>sticks</em> you so you shrink.</div>
+    <div id="speedRow"><label>Speed</label><div id="speedSlider"><div class="track"></div><div class="thumb"></div></div></div>
+  </div>
+  <div id="tests"></div>
+  <div id="hud"></div>
+  <div id="viewportFrame"></div>
+  <div id="reticle"></div>
+
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+    import { SimplexNoise } from 'https://unpkg.com/three@0.160.0/examples/jsm/math/SimplexNoise.js';
+
+    // Global configuration for core tunables
+    const CONFIG = {
+      PLAYER_DEFAULT_SCALE: 1.6,
+      PLAYER_MIN_SCALE: 0.1,
+      GRAVITY: -9.81,
+      SHRINK_RATE: 0.65,
+      GROW_RATE: 0.65,
+      CITY_RADIUS: 42,
+      CITY_STEP: 5,
+      CITY_DENSITY_THRESHOLD: 0.45,
+      CITY_NOISE_SCALE: 0.1
+    };
+
+    // === Scene & Renderer ===
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf2f6ff);
+    scene.fog = new THREE.FogExp2(0xe8f1ff, 0.012);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    // === Camera (first-person) ===
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.02, 500);
+    camera.position.set(0, 0, 0);
+    camera.rotation.set(0,0,0);
+
+    // Lights
+    const hemi = new THREE.HemisphereLight(0xddeeff, 0xbfd3ff, 1.1); scene.add(hemi);
+    const sun = new THREE.DirectionalLight(0xffffff, 1.15); sun.castShadow = true; sun.position.set(12, 18, 10); sun.shadow.mapSize.set(2048,2048); scene.add(sun);
+    const fill = new THREE.AmbientLight(0xffffff, 0.25); scene.add(fill);
+
+    // World root: all environment lives under this so we can rescale the world
+    const worldRoot = new THREE.Group();
+    scene.add(worldRoot);
+
+    // Ground + grid
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ color: 0xe9f1ff, roughness: 0.95 }));
+    ground.receiveShadow = true; ground.rotation.x = -Math.PI/2; worldRoot.add(ground);
+    const grid = new THREE.GridHelper(300, 300, 0x9dbbe8, 0xb2c6ed); grid.material.opacity = 0.25; grid.material.transparent = true; worldRoot.add(grid);
+    // View walls
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xe1e9f8, roughness: 0.9 });
+    const wallGeo = new THREE.PlaneGeometry(300, 60);
+    const backWall = new THREE.Mesh(wallGeo, wallMat); backWall.position.set(0, 30, -60); worldRoot.add(backWall);
+    const leftWall = new THREE.Mesh(wallGeo, wallMat); leftWall.position.set(-60, 30, 0); leftWall.rotation.y = Math.PI/2; worldRoot.add(leftWall);
+    const rightWall = new THREE.Mesh(wallGeo, wallMat); rightWall.position.set(60, 30, 0); rightWall.rotation.y = -Math.PI/2; worldRoot.add(rightWall);
+    // Tower (sandbox side)
+    const tower = new THREE.Group(); worldRoot.add(tower);
+    // Move sandbox tower to opposite quadrant for a distinct vantage point
+    tower.position.set(-18, 0, 20);
+    const TOWER_H = 14;
+    const towerBase = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 3.2, TOWER_H, 24), new THREE.MeshStandardMaterial({ color: 0xb5c6de, roughness: 0.75 }));
+    towerBase.position.set(0, TOWER_H/2, 0); tower.add(towerBase);
+    // Apartment tower (opposite city)
+    const APT_TOWER_H = 16;
+    const APT_X = 22, APT_Z = -24;
+    const aptTower = new THREE.Group(); worldRoot.add(aptTower);
+    aptTower.position.set(APT_X, 0, APT_Z);
+    const aptBase = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 3.3, APT_TOWER_H, 24), new THREE.MeshStandardMaterial({ color: 0xaec1db, roughness: 0.78 }));
+    aptBase.position.set(0, APT_TOWER_H/2, 0); aptTower.add(aptBase);
+    // Spawn at top of tower
+    let towerScale = 1.0;
+    function getTowerTopSpawnWorld(){
+      const local = new THREE.Vector3(0, TOWER_H + 1.8, 2.8);
+      const m = new THREE.Matrix4(); tower.updateMatrixWorld();
+      return local.applyMatrix4(tower.matrixWorld);
+    }
+    // Room with window/balcony and a table
+    const room = new THREE.Group(); aptTower.add(room);
+    // Floor and walls atop apartment tower, with window facing city (toward -X,+Z)
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 10), new THREE.MeshStandardMaterial({ color: 0xe5edf9, roughness: 0.9 })); floor.position.set(0, APT_TOWER_H + 0.1, 0); room.add(floor);
+    const wallBack = new THREE.Mesh(new THREE.BoxGeometry(12, 3, 0.2), new THREE.MeshStandardMaterial({ color: 0xdbe6f7, roughness: 0.95 })); wallBack.position.set(0, APT_TOWER_H + 1.5, -5); room.add(wallBack);
+    const wallLeft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 10), new THREE.MeshStandardMaterial({ color: 0xdbe6f7, roughness: 0.95 })); wallLeft.position.set(-6, APT_TOWER_H + 1.5, 0); room.add(wallLeft);
+    const wallRight = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, 10), new THREE.MeshStandardMaterial({ color: 0xdbe6f7, roughness: 0.95 })); wallRight.position.set(6, APT_TOWER_H + 1.5, 0); room.add(wallRight);
+    // Balcony facing city
+    const balcony = new THREE.Mesh(new THREE.BoxGeometry(4, 0.15, 1.5), new THREE.MeshStandardMaterial({ color: 0xc8d8f2, roughness: 0.8 })); balcony.position.set(0, APT_TOWER_H + 0.9, 5.8); room.add(balcony);
+    const railingL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.9, 1.5), new THREE.MeshStandardMaterial({ color: 0xbcd1ee, roughness: 0.9 })); railingL.position.set(-2, APT_TOWER_H + 1.35, 5.8); room.add(railingL);
+    const railingR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.9, 1.5), new THREE.MeshStandardMaterial({ color: 0xbcd1ee, roughness: 0.9 })); railingR.position.set(2, APT_TOWER_H + 1.35, 5.8); room.add(railingR);
+    // Small table inside room
+    const table = new THREE.Group(); room.add(table);
+    const tableTop = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.18, 1.4), new THREE.MeshStandardMaterial({ color: 0xcdb79e, roughness: 0.7 }));
+    tableTop.position.set(0, APT_TOWER_H + 0.9, 0.8);
+    table.add(tableTop);
+    const legGeo = new THREE.BoxGeometry(0.18, 0.9, 0.18);
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x9c8265, roughness: 0.8 });
+    const legs = [ new THREE.Mesh(legGeo, legMat), new THREE.Mesh(legGeo, legMat), new THREE.Mesh(legGeo, legMat), new THREE.Mesh(legGeo, legMat) ];
+    legs[0].position.set(-1.3, APT_TOWER_H + 0.45, 0.1);
+    legs[1].position.set( 1.3, APT_TOWER_H + 0.45, 0.1);
+    legs[2].position.set(-1.3, APT_TOWER_H + 0.45, 1.5);
+    legs[3].position.set( 1.3, APT_TOWER_H + 0.45, 1.5);
+    legs.forEach(l => { l.castShadow = true; l.receiveShadow = true; room.add(l); });
+    // table extents for collision
+    const tableMin = new THREE.Vector3(tableTop.position.x - 1.4, 0, tableTop.position.z - 0.7);
+    const tableMax = new THREE.Vector3(tableTop.position.x + 1.4, 0, tableTop.position.z + 0.7);
+
+    // Decorative view objects and buildings live here
+    const worldObjects = new THREE.Group(); worldRoot.add(worldObjects);
+
+    // World generator for buildings and decor
+    class WorldGenerator {
+      constructor(root){ this.root = root; this.noise = new SimplexNoise(); }
+      addWindowsToBuilding(b){
+        const box = new THREE.Box3().setFromObject(b);
+        const size = new THREE.Vector3(); box.getSize(size);
+        const w = size.x, h = size.y, d = size.z;
+        const rows = Math.max(2, Math.floor(h / 2.2));
+        const colsX = Math.max(2, Math.floor(w / 1.2));
+        const colsZ = Math.max(2, Math.floor(d / 1.2));
+        const windowW = Math.min(0.8, (w - 0.6) / colsX);
+        const windowH = Math.min(0.9, (h - 1.0) / rows);
+        const inset = 0.06;
+        const mat = new THREE.MeshStandardMaterial({ color: 0x8aa6c7, emissive: 0x0b1727, emissiveIntensity: 0.15, roughness: 0.4, metalness: 0.1 });
+        const mkPanel = (pw, ph) => new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), mat);
+        const yBase = -h/2 + 0.6;
+        const addFacade = (isX) => {
+          const cols = isX ? colsZ : colsX;
+          for (let side of [+1, -1]){
+            for (let r=0;r<rows;r++){
+              for (let c=0;c<cols;c++){
+                if ((r + c) % 2 !== 0) continue;
+                const panel = mkPanel(windowH, windowW);
+                panel.rotation.y = isX ? Math.PI/2 * side : 0;
+                const y = yBase + r * ((h - 1.2) / rows) + windowH/2;
+                if (isX){
+                  const z = -d/2 + 0.3 + c * ((d - 0.6) / colsZ) + windowW/2;
+                  panel.position.set(side*(w/2 - inset), y, z);
+                } else {
+                  const x = -w/2 + 0.3 + c * ((w - 0.6) / colsX) + windowW/2;
+                  panel.position.set(x, y, side*(d/2 - inset));
+                }
+                b.add(panel);
+              }
+            }
+          }
+        };
+        addFacade(true); addFacade(false);
+      }
+      spawnCity(numHint=160){
+        const centerX = -22, centerZ = 24;
+        const step = CONFIG.CITY_STEP, radius = CONFIG.CITY_RADIUS, s = CONFIG.CITY_NOISE_SCALE;
+        const palette = [0xbec7d8, 0xcfd7e6, 0xaeb9cc, 0xd8e1f0];
+        for (let gx=-radius; gx<=radius; gx+=step){
+          for (let gz=-radius; gz<=radius; gz+=step){
+            const nx = (gx+999.3) * s, nz = (gz-454.7) * s;
+            const densityValue = (this.noise.noise(nx, nz) + 1) * 0.5;
+            if (densityValue < CONFIG.CITY_DENSITY_THRESHOLD) continue;
+            const heightValue = (this.noise.noise(nx*2.0, nz*2.0) + 1) * 0.5;
+            const h = 4 + heightValue * 25;
+            const w = 2.6 + (densityValue * 3.8);
+            const d = 2.6 + (1-densityValue) * 3.8;
+            const x = centerX + gx + (Math.random()*2-1)*1.4;
+            const z = centerZ + gz + (Math.random()*2-1)*1.4;
+            const archetype = Math.random();
+            const group = new THREE.Group();
+            const baseMat = new THREE.MeshStandardMaterial({ color: palette[(Math.abs(gx+gz)|0)%palette.length], roughness: 0.85, metalness: 0.05, emissive: 0x0d1a2a, emissiveIntensity: 0.05 });
+            const addBox = (bw,bh,bd,px,py,pz)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd), baseMat.clone()); m.position.set(px, py, pz); m.castShadow=true; m.receiveShadow=true; group.add(m); };
+            if (archetype < 0.25){
+              // L-shape
+              addBox(w, h, d*0.6, 0, h/2, 0);
+              addBox(w*0.6, h*0.7, d, -w*0.2, h*0.35, d*0.2);
+            } else if (archetype < 0.5){
+              // T-shape
+              addBox(w, h, d*0.5, 0, h/2, 0);
+              addBox(w*0.4, h*0.9, d, 0, h*0.45, d*0.2);
+            } else if (archetype < 0.8){
+              // setbacks
+              addBox(w, h*0.65, d, 0, h*0.325, 0);
+              addBox(w*0.7, h*0.35, d*0.7, 0, h*0.825, 0);
+            } else {
+              addBox(w, h, d, 0, h/2, 0);
+            }
+            group.position.set(x, 0, z);
+            group.userData.isBuilding = true; group.userData.mass = 5.0;
+            this.root.add(group);
+            this.addWindowsToBuilding(group);
+          }
+        }
+        // Ambient decorative meshes
+        const decoPalette = [0x9dc3ff, 0xffc9a9, 0xb0ffd1, 0xf1b8ff, 0xfff3a6];
+        const geos = [ new THREE.BoxGeometry(1,1,1), new THREE.SphereGeometry(0.6,24,16), new THREE.ConeGeometry(0.7,1.2,5), new THREE.TorusKnotGeometry(0.35,0.12,60,10) ];
+        for (let i=0;i<22;i++){
+          const geo = geos[Math.floor(Math.random()*geos.length)];
+          const mat = new THREE.MeshStandardMaterial({ color: decoPalette[i % decoPalette.length], roughness: 0.6, metalness: 0.15 });
+          const m = new THREE.Mesh(geo, mat);
+          m.castShadow = true; m.receiveShadow = true;
+          const r = 18 + Math.random()*26; const ang = Math.random()*Math.PI*2;
+          m.position.set(Math.cos(ang)*r, 2.5 + Math.random()*4.5, Math.sin(ang)*r);
+          m.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, 0);
+          m.userData.mass = 1.0; this.root.add(m);
+        }
+      }
+    }
+
+    // === Simple City Generator (pluckable buildings) ===
+    function addWindowsToBuilding(b){
+      // Add recessed window quads on all four sides in an alternating grid
+      const box = new THREE.Box3().setFromObject(b);
+      const size = new THREE.Vector3(); box.getSize(size);
+      const w = size.x, h = size.y, d = size.z;
+      const rows = Math.max(2, Math.floor(h / 2.2));
+      const colsX = Math.max(2, Math.floor(w / 1.2));
+      const colsZ = Math.max(2, Math.floor(d / 1.2));
+      const windowW = Math.min(0.8, (w - 0.6) / colsX);
+      const windowH = Math.min(0.9, (h - 1.0) / rows);
+      const inset = 0.06;
+      const mat = new THREE.MeshStandardMaterial({ color: 0x8aa6c7, emissive: 0x0b1727, emissiveIntensity: 0.15, roughness: 0.4, metalness: 0.1 });
+      const mkPanel = (pw, ph) => new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), mat);
+      const yBase = -h/2 + 0.6;
+      // +X / -X facades
+      for (const side of [+1, -1]){
+        for (let r=0;r<rows;r++){
+          for (let c=0;c<colsZ;c++){
+            if ((r + c) % 2 !== 0) continue;
+            const panel = mkPanel(windowH, windowW);
+            panel.rotation.y = Math.PI/2 * side;
+            const y = yBase + r * ((h - 1.2) / rows) + windowH/2;
+            const z = -d/2 + 0.3 + c * ((d - 0.6) / colsZ) + windowW/2;
+            panel.position.set(side*(w/2 - inset), y, z);
+            b.add(panel);
+          }
+        }
+      }
+      // +Z / -Z facades
+      for (const side of [+1, -1]){
+        for (let r=0;r<rows;r++){
+          for (let c=0;c<colsX;c++){
+            if ((r + c) % 2 !== 0) continue;
+            const panel = mkPanel(windowH, windowW);
+            panel.rotation.y = 0;
+            const y = yBase + r * ((h - 1.2) / rows) + windowH/2;
+            const x = -w/2 + 0.3 + c * ((w - 0.6) / colsX) + windowW/2;
+            panel.position.set(x, y, side*(d/2 - inset));
+            b.add(panel);
+          }
+        }
+      }
+    }
+    // Procedural city generation
+    const worldGen = new WorldGenerator(worldObjects);
+    worldGen.spawnCity(160);
+
+    // ===== People Spawner (wandering & pluckable) =====
+    const occupations = [
+      'Analyst','Courier','Engineer','Archivist','Janitor','Technician','Driver','Chauffeur','Chef','Barista','Accountant','Auditor','Researcher','Intern','Consultant','Inspector','Broker','Medic','Paramedic','Nurse','Porter','Receptionist','Librarian','Chemist','Biologist','Geologist','Architect','Planner','Surveyor','Foreman','Supervisor','Security','Guard','Officer','Pilot','Dispatcher','Writer','Editor','Translator','Professor','Lecturer','Student','Agent','Operative','Handler','Courier','Archivist'
+    ];
+    const figures = [];
+    const figureHits = [];
+    function makeBox(w,h,d,color){ const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), new THREE.MeshStandardMaterial({ color, roughness:.6, metalness:.1 })); m.castShadow = true; return m; }
+    function spawnFigure(x=0,z=0){
+      const L = 1.4;
+      const pivot = new THREE.Group();
+      pivot.position.set(x, 2.0 + L, z);
+      worldObjects.add(pivot);
+      const body = new THREE.Group(); body.position.y = -L; pivot.add(body);
+      const lineGeo = new THREE.BufferGeometry(); lineGeo.setAttribute('position', new THREE.Float32BufferAttribute([0,0,0, 0,-L,0], 3));
+      const line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0xbcd9ff })); line.visible = false; pivot.add(line);
+      const torso = makeBox(0.5, 0.8, 0.3, 0x5db0ff); torso.position.y = 0; body.add(torso);
+      const head = makeBox(0.38, 0.38, 0.35, 0xffe08a); head.position.y = 0.8/2 + 0.38/2 + 0.03; body.add(head);
+      // Arms
+      const shoulderY = 0.8/2 - 0.05;
+      function arm(side=1){
+        const g = new THREE.Group(); g.position.set(side*0.5/2 + side*0.06, shoulderY, 0);
+        const upper = makeBox(0.14, 0.42, 0.14, 0x86c7ff); upper.position.y = -0.42/2; g.add(upper);
+        const lower = makeBox(0.12, 0.38, 0.12, 0x9cd3ff); lower.position.y = -0.42; upper.add(lower);
+        g.userData = { upper, lower };
+        return g;
+      }
+      const armL = arm(-1), armR = arm(+1); body.add(armL, armR);
+      // Legs
+      const hipY = -0.8/2 + 0.05;
+      function leg(side=1){
+        const g = new THREE.Group(); g.position.set(side*0.22, hipY, 0);
+        const thigh = makeBox(0.16, 0.48, 0.16, 0x86c7ff); thigh.position.y = -0.48/2; g.add(thigh);
+        const shin = makeBox(0.14, 0.46, 0.14, 0x9cd3ff); shin.position.y = -0.48; thigh.add(shin);
+        const footH = 0.08, footW = 0.18, footD = 0.26;
+        const foot = makeBox(footW, footH, footD, 0x3b4d70);
+        foot.position.y = -0.46/2 - footH/2;
+        foot.position.z = footD/2 - 0.02;
+        foot.name = 'foot';
+        shin.add(foot);
+        g.userData = { thigh, shin, foot };
+        return g;
+      }
+      const legL = leg(-1), legR = leg(+1); body.add(legL, legR);
+      const hit = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.5, 0.5), new THREE.MeshBasicMaterial({ visible:false })); hit.position.y = 0.3; body.add(hit); figureHits.push(hit);
+      // Occupation tag
+      const occ = occupations[Math.floor(Math.random()*occupations.length)];
+      pivot.userData.occupation = occ;
+      let picked = false, targetAnchorY = pivot.position.y; let angle = (Math.random()*0.1 - 0.05), angVel = 0; const damping = 0.055, gAcc = 9.8;
+      const speed = 1.2 + Math.random()*0.6; const bounds = { x: 12, z: 12 }; let dest = new THREE.Vector3(pivot.position.x, 0, pivot.position.z); let gait = Math.random()*Math.PI*2; let stallTimer = 0;
+      function isPointFree(px, pz){
+        // Only consider buildings as obstacles
+        for (const o of worldObjects.children){ if (!o.userData?.isBuilding) continue; const bb = new THREE.Box3().setFromObject(o); if (px >= bb.min.x-0.6 && px <= bb.max.x+0.6 && pz >= bb.min.z-0.6 && pz <= bb.max.z+0.6) return false; }
+        return true;
+      }
+      function chooseDest(){
+        for (let tries=0; tries<12; tries++){
+          const rx=(Math.random()*2-1)*bounds.x + pivot.position.x;
+          const rz=(Math.random()*2-1)*bounds.z + pivot.position.z;
+          if (isPointFree(rx, rz)){ dest.set(rx, 0, rz); return; }
+        }
+        dest.set(pivot.position.x + (Math.random()*2-1)*2, 0, pivot.position.z + (Math.random()*2-1)*2);
+      }
+      chooseDest();
+      function setPicked(on){ picked = on; line.visible = on; if (on) targetAnchorY = pivot.position.y; }
+      function setDragging(on){ pivot.userData.dragging = !!on; }
+      function setDragTarget(p){
+        // Move anchor target to cursor ray point near the frame; no artificial lift
+        targetAnchorY = p.y;
+        pivot.position.x = p.x;
+        pivot.position.z = p.z;
+      }
+      function update(dt){
+        const physicsDriven = !!pivot.userData.vel;
+        const desiredGroundAnchorY = L + 0.9; const targetY = picked ? targetAnchorY : desiredGroundAnchorY;
+        // Only drive Y toward target when not physics-driven (so gravity can act)
+        if (!physicsDriven){ pivot.position.y = THREE.MathUtils.damp(pivot.position.y, targetY, 4, dt); }
+        if (picked){
+          const angAcc = - (gAcc / L) * Math.sin(angle) - damping * angVel; angVel += angAcc * dt; angle += angVel * dt;
+          // Feet kicking animation
+          const kRate = 8.0, kAmp = 0.9; gait += kRate * dt;
+          legL.userData.thigh.rotation.x = Math.sin(gait) * kAmp;
+          legR.userData.thigh.rotation.x = Math.sin(gait + Math.PI) * kAmp;
+          legL.userData.shin.rotation.x = Math.max(0, -Math.sin(gait)) * 0.6;
+          legR.userData.shin.rotation.x = Math.max(0, -Math.sin(gait+Math.PI)) * 0.6;
+          legL.userData.foot.rotation.x = -0.2 + Math.sin(gait+Math.PI/2)*0.3;
+          legR.userData.foot.rotation.x = -0.2 + Math.sin(gait+Math.PI/2+Math.PI)*0.3;
+          armL.rotation.x = Math.sin(gait*0.6) * 0.2; armR.rotation.x = -armL.rotation.x;
+        } else if (!physicsDriven) {
+          angle = THREE.MathUtils.damp(angle, 0, 6, dt); angVel = THREE.MathUtils.damp(angVel, 0, 6, dt);
+          // Avoid buildings with simple steering; recover if stalled
+          const to = new THREE.Vector3(dest.x - pivot.position.x, 0, dest.z - pivot.position.z);
+          const dist = to.length();
+          if (dist < 0.2) { chooseDest(); stallTimer = 0; } else {
+            to.normalize();
+            // steer away from nearby worldObjects (treat as obstacles)
+            let steer = new THREE.Vector3();
+            const pos = new THREE.Vector3(pivot.position.x, 0, pivot.position.z);
+            const maxInfluenceR = 3.5;
+            for (const o of worldObjects.children){
+              if (!o.userData?.isBuilding) continue;
+              const bb = new THREE.Box3().setFromObject(o);
+              const center = new THREE.Vector3(); bb.getCenter(center);
+              const rad = 0.5 * new THREE.Vector3().subVectors(bb.max, bb.min).length();
+              const delta = new THREE.Vector3(center.x - pos.x, 0, center.z - pos.z);
+              const d = delta.length();
+              if (d < rad + maxInfluenceR){
+                const away = delta.normalize().multiplyScalar(-1);
+                const w = 1 - (d - rad) / Math.max(0.001, maxInfluenceR);
+                steer.addScaledVector(away, Math.max(0, w));
+              }
+            }
+            const dir = to.addScaledVector(steer, 0.7).normalize();
+            const before = new THREE.Vector3(pivot.position.x, 0, pivot.position.z);
+            pivot.position.x += dir.x * speed * dt; pivot.position.z += dir.z * speed * dt;
+            if (before.distanceTo(new THREE.Vector3(pivot.position.x, 0, pivot.position.z)) < 0.001){ stallTimer += dt; if (stallTimer > 0.6){ chooseDest(); stallTimer = 0; } }
+            body.rotation.y = THREE.MathUtils.damp(body.rotation.y, Math.atan2(dir.x, dir.z), 6, dt);
+            const stepRate = 4.0; gait += stepRate * (speed/1.35) * dt; const stepAmp = 0.6;
+            legL.userData.thigh.rotation.x = Math.sin(gait) * stepAmp; legR.userData.thigh.rotation.x = Math.sin(gait + Math.PI) * stepAmp;
+            legL.userData.shin.rotation.x = Math.max(0, -Math.sin(gait+0.3)) * 0.5; legR.userData.shin.rotation.x = Math.max(0, -Math.sin(gait+Math.PI+0.3)) * 0.5;
+            legL.userData.foot.rotation.x = -0.15 + Math.sin(gait+Math.PI/2)*0.25; legR.userData.foot.rotation.x = -0.15 + Math.sin(gait+Math.PI/2+Math.PI)*0.25;
+            armL.rotation.x = -Math.sin(gait) * 0.35; armR.rotation.x = Math.sin(gait) * 0.35; torso.position.y = Math.sin(gait*2) * 0.05; }
+        } else {
+          // physics-driven: relax dangle angle toward 0
+          angle = THREE.MathUtils.damp(angle, 0, 6, dt); angVel = THREE.MathUtils.damp(angVel, 0, 6, dt);
+        }
+        pivot.rotation.z = picked ? angle : THREE.MathUtils.damp(pivot.rotation.z, 0, 6, dt);
+        line.geometry.attributes.position.setXYZ(0, 0, 0, 0); line.geometry.attributes.position.setXYZ(1, 0, -L, 0); line.geometry.attributes.position.needsUpdate = true;
+      }
+      // mark figure so selection can start dragging and skip physics
+      body.__isFigure = true; pivot.__isFigure = true; hit.__isFigure = true;
+      pivot.userData.relScale = 1.0;
+      const fig = { pivot, body, hit, update, setPicked, setDragging, setDragTarget, get picked(){ return picked; }, L, __isFigure: true };
+      // cross-link so selection from scene nodes can find the figure API
+      pivot.userData.figRef = fig; body.userData.figRef = fig; hit.userData.figRef = fig;
+      figures.push(fig);
+      return fig;
+    }
+    // Spawn about 8 people scattered near city
+    for (let i=0;i<8;i++){ const x = -20 + (Math.random()*2-1)*8; const z = 24 + (Math.random()*2-1)*8; spawnFigure(x,z); }
+
+    // Dragging figures by mouse
+    const raycaster = new THREE.Raycaster(); const ndc = new THREE.Vector2();
+    let draggingFigure = null; let dragDepth = 3.0;
+    let draggingObject = null; // { obj: THREE.Object3D, frame: THREE.Group }
+    let draggingFrame = null;
+    const suppressedGravity = new Set();
+    function highlightFigure(fig, on){
+      const col = on ? 0xffeb66 : null;
+      fig.body.traverse(n => { if (n.isMesh && n.material && n.material.color){ if (on){ if (!n.userData._orig) n.userData._orig = n.material.color.getHex(); n.material.color.setHex(col); } else if (n.userData._orig){ n.material.color.setHex(n.userData._orig); delete n.userData._orig; } } });
+    }
+    function updateFigureHover(clientX, clientY){
+      const rect = renderer.domElement.getBoundingClientRect(); ndc.x = ((clientX - rect.left) / rect.width) * 2 - 1; ndc.y = -(((clientY - rect.top) / rect.height) * 2 - 1);
+      raycaster.setFromCamera(ndc, camera);
+      const interF = raycaster.intersectObjects(figureHits, true)[0];
+      figures.forEach(f => highlightFigure(f, false));
+      if (interF){ const f = figures.find(F=>F.hit===interF.object); if (f) {
+        highlightFigure(f, true);
+        // Tooltip with occupation and squish hint when tiny
+        const occ = f.pivot?.userData?.occupation || 'Citizen';
+        let relS = f.pivot?.userData?.relScale || 1.0; try { relS = getWorldScale(f.pivot).y; } catch {}
+        const text = relS <= 0.8 ? `${occ} — F to Squish` : `${occ}`;
+        showTooltip(clientX, clientY, text);
+      } } else { renderer.domElement.title = ''; }
+    }
+    function getFrameDims(frame){
+      if (!frame) return { w:1, h:1 };
+      const w = frame.userData?.width || frame.userData?.plane?.geometry?.parameters?.width || 1;
+      const h = frame.userData?.height || frame.userData?.plane?.geometry?.parameters?.height || 1;
+      return { w, h };
+    }
+    function clientToFrameLocal(frame, clientX, clientY){
+      const rect = renderer.domElement.getBoundingClientRect();
+      ndc.x = ((clientX - rect.left) / rect.width) * 2 - 1; ndc.y = -(((clientY - rect.top) / rect.height) * 2 - 1);
+      raycaster.setFromCamera(ndc, camera);
+      const n = new THREE.Vector3(0,0,1).applyQuaternion(frame.quaternion);
+      const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(n, frame.position);
+      const hit = new THREE.Vector3();
+      if (!raycaster.ray.intersectPlane(plane, hit)) return null;
+      // transform to frame local space and clamp to frame rectangle
+      const inv = new THREE.Matrix4().copy(frame.matrixWorld).invert();
+      const local = hit.clone().applyMatrix4(inv);
+      const { w, h } = getFrameDims(frame);
+      local.x = THREE.MathUtils.clamp(local.x, -w/2, w/2);
+      local.y = THREE.MathUtils.clamp(local.y, -h/2, h/2);
+      local.z = 0; // on plane
+      return local;
+    }
+
+    // === The portrait slab ===
+    const slab = new THREE.Group(); worldRoot.add(slab);
+    const SLAB_WIDTH = 4.0, SLAB_HEIGHT = 3.0, SLAB_DEPTH = 0.18, EDGE_BAND = 0.16, COLLISION_EPS = 0.02;
+    const body = new THREE.Mesh(new THREE.BoxGeometry(SLAB_WIDTH, SLAB_HEIGHT, SLAB_DEPTH), new THREE.MeshStandardMaterial({ color: 0x1c2333, metalness: 0.2, roughness: 0.7 }));
+    body.castShadow = true; body.receiveShadow = true; slab.add(body);
+    const frame = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(SLAB_WIDTH + 0.06, SLAB_HEIGHT + 0.06, SLAB_DEPTH + 0.02)), new THREE.LineBasicMaterial({ color: 0xbcd9ff }));
+    frame.position.z = 0.001; slab.add(frame);
+    const interior = new THREE.Mesh(new THREE.PlaneGeometry(SLAB_WIDTH * 0.94, SLAB_HEIGHT * 0.94), new THREE.MeshStandardMaterial({ color: 0x0f1524, emissive: 0x0b1a33, emissiveIntensity: 0.3 }));
+    interior.position.z = SLAB_DEPTH/2 + 0.002; slab.add(interior);
+    slab.position.set(0, SLAB_HEIGHT/2, -8);
+
+    // === Avatars ===
+    const player = new THREE.Group(); scene.add(player);
+    // Spawn at the balcony edge to avoid clipping
+    // Spawn at balcony top plus nominal player radius (no dependency on later constants)
+    const START_POS = new THREE.Vector3(APT_X, APT_TOWER_H + 1.62, APT_Z + 5.8);
+    const avatarSize = 0.6; // 60cm at scale 1
+    // Replace visible avatar with a simple person construct for the player
+    function makePlayerPerson(){
+      const grp = new THREE.Group();
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.6, 0.2), new THREE.MeshStandardMaterial({ color: 0x5db0ff, roughness: 0.5 })); torso.position.y = 0.3; grp.add(torso);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, 0.24), new THREE.MeshStandardMaterial({ color: 0xffe08a, roughness: 0.6 })); head.position.y = 0.3+0.28/2+0.06; grp.add(head);
+      function leg(side){ const g=new THREE.Group(); g.position.set(side*0.12, 0.12, 0); const th=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.24,0.1),new THREE.MeshStandardMaterial({color:0x86c7ff})); th.position.y=-0.12; g.add(th); const sh=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.22,0.09),new THREE.MeshStandardMaterial({color:0x9cd3ff})); sh.position.y=-0.23; th.add(sh); return {g,th,sh}; }
+      const L = leg(-1), R = leg(1); grp.add(L.g, R.g);
+      grp.userData.legs = { L, R };
+      return grp;
+    }
+    const playerFigure = makePlayerPerson(); player.add(playerFigure);
+    // Visual rectangle at camera height representing the player
+    const playerRectMat = new THREE.MeshBasicMaterial({ color: 0x88c9ff, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
+    const playerRect = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 1.2), playerRectMat);
+    scene.add(playerRect);
+    // Mouse-controlled cube (separate entity)
+    const mouseAvatar = new THREE.Group(); scene.add(mouseAvatar);
+    const mouseCube = new THREE.Mesh(new THREE.BoxGeometry(avatarSize, avatarSize, avatarSize), new THREE.MeshStandardMaterial({ color: 0xffb078, roughness: 0.5, metalness: 0.1 }));
+    mouseCube.castShadow = true; mouseCube.position.y = avatarSize/2; mouseAvatar.add(mouseCube);
+
+    // Pickupable items on apartment table: Frame of Reference and Portal Set
+    let itemFrame = null, itemPortal = null;
+    let hasFrame = false, hasPortal = false;
+    function createItems(){
+      const frameGeo = new THREE.BoxGeometry(0.8, 0.05, 0.5);
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0x9fc7ff, metalness: 0.2, roughness: 0.5 });
+      itemFrame = new THREE.Mesh(frameGeo, frameMat); itemFrame.position.set(tableTop.position.x - 0.6, tableTop.position.y + 0.1, tableTop.position.z - 0.2); room.add(itemFrame);
+      itemFrame.userData.pickup = 'frame';
+      const portalGeo = new THREE.ConeGeometry(0.15, 0.3, 16);
+      const portalMat = new THREE.MeshStandardMaterial({ color: 0xffa3b3, metalness: 0.2, roughness: 0.5 });
+      itemPortal = new THREE.Mesh(portalGeo, portalMat); itemPortal.position.set(tableTop.position.x + 0.6, tableTop.position.y + 0.15, tableTop.position.z - 0.2); itemPortal.rotation.x = Math.PI; room.add(itemPortal);
+      itemPortal.userData.pickup = 'portal';
+    }
+
+    // Movement state
+    const keys = new Set();
+    let speedBoostToggle = false;
+    let baseSpeedScalar = 3.0; // faster default; controlled by visible slider (unbounded)
+    let controlTarget = 'player'; // 'player' or 'mouse'
+    let vel = new THREE.Vector3();      // player velocity (XZ)
+    let mouseVel = new THREE.Vector3(); // mouse avatar velocity (XZ)
+    let prevPlayerPos = new THREE.Vector3();
+    let onGround = false;
+    let jumpCooldown = 0;
+    let prevMousePos = new THREE.Vector3();
+    let isStuckToSlab = false;
+    let mouseIsStuckToSlab = false;
+
+    // Control: camera mode (fps/third) and control target
+    let cameraMode = 'fps';
+    const fpsYaw = new THREE.Object3D();
+    const fpsPitch = new THREE.Object3D();
+    fpsYaw.add(fpsPitch);
+    scene.add(fpsYaw);
+    fpsPitch.add(camera); // default mount camera to FPS rig
+    let pointerLocked = false;
+    let renormCooldown = 0; // seconds to pause world scaling adjustments (avoid spawn jitters)
+    let autoWorldScaleEnabled = false; // TEMP: disable auto world scaling to stop jumps
+
+    // Size/scale state
+    const DEFAULT_PLAYER_SCALE = CONFIG.PLAYER_DEFAULT_SCALE;
+    const MIN_PLAYER_SCALE = 0.1; // never allow negative or zero scale
+    let playerScale = DEFAULT_PLAYER_SCALE;
+    let mouseScale = 1.0;
+    let worldScale = 1.0; // worldRoot scale
+    // Remove hard clamps; use dynamic renormalization via worldRoot scaling
+    const minScale = -Infinity;
+    const maxScale = Infinity;
+    const shrinkRate = CONFIG.SHRINK_RATE;  // faster shrink for visual feedback
+    const growRate = CONFIG.GROW_RATE;
+
+    function resetPlayer() {
+      player.position.copy(START_POS);
+      // Do not alter player scale; preserve current perceived size
+      mouseScale = 1.0;
+      player.scale.setScalar(playerScale);
+      mouseAvatar.scale.setScalar(mouseScale);
+      // Reset world transform cleanly without compounding
+      worldScale = 1.0; worldRoot.scale.set(1,1,1); worldRoot.position.set(0,0,0);
+      vel.set(0,0,0);
+      onGround = true; // prevent initial gravity drop launching on spawn
+      renormCooldown = 0.8; // pause renormalization briefly after reset/spawn
+      // Create items if not present
+      if (!itemFrame || !itemPortal) createItems();
+    }
+    resetPlayer();
+
+    // Input
+    window.addEventListener('keydown', (e) => {
+      if (['KeyW','KeyA','KeyS','KeyD','KeyQ','KeyR','KeyM','KeyP','KeyV','KeyT','KeyC','ShiftLeft','ShiftRight','Space'].includes(e.code)) e.preventDefault();
+      keys.add(e.code);
+      if (e.code === 'KeyR') resetPlayer();
+      if (e.code === 'KeyM') controlTarget = (controlTarget === 'player') ? 'mouse' : 'player';
+      if (e.code === 'KeyC') toggleCameraMode();
+      if (e.code === 'KeyP') {
+        if (!hasPortal){ showPopup('Pick up the Portal Set on the table (press F).'); }
+        else {
+          if (portals.length === 0) { addPortalPair(); positionPortalsBesideSlab(); }
+          portalsEnabled = !portalsEnabled;
+          portals.forEach(p => { p.a.visible = portalsEnabled; p.b.visible = portalsEnabled; });
+        }
+      }
+      if (e.code === 'KeyV') toggleViewportFrame();
+      if (e.code === 'KeyT') speedBoostToggle = !speedBoostToggle;
+      if (e.code === 'Space') {
+        if (onGround && jumpCooldown <= 0){ vel.y = 6.5; onGround = false; jumpCooldown = 0.2; }
+      }
+      // Pickup key
+      if (e.code === 'KeyF') { if (!tryPickup()) trySquish(); }
+    }, true);
+    window.addEventListener('keyup', (e) => keys.delete(e.code), true);
+    // Prevent context menu so RMB spawns portals cleanly
+    window.addEventListener('contextmenu', (e) => { e.preventDefault(); });
+
+    // Pointer lock for FPS (safe wrappers to avoid SecurityError)
+    let plInFlight = false;
+    let blockPointerLock = false; // prevent auto-lock while in pluck cursor mode
+    function safeRequestPointerLock(){
+      if (plInFlight || pointerLocked) return;
+      plInFlight = true;
+      try { renderer.domElement.requestPointerLock?.(); } catch {}
+    }
+    function safeExitPointerLock(){
+      if (!pointerLocked) return;
+      try { document.exitPointerLock?.(); } catch {}
+    }
+    function deferPointerLock(ms=0){
+      setTimeout(()=>{ if (cameraMode === 'fps' && !pointerLocked && !blockPointerLock) safeRequestPointerLock(); }, ms);
+    }
+    renderer.domElement.addEventListener('click', () => {
+      if (cameraMode === 'fps' && !pointerLocked && !blockPointerLock && !pluckMode) { safeRequestPointerLock(); }
+    });
+    document.addEventListener('pointerlockchange', () => {
+      pointerLocked = (document.pointerLockElement === renderer.domElement);
+      plInFlight = false;
+      // no parenting changes here; we manage camera parent via cameraMode
+    });
+    document.addEventListener('pointerlockerror', () => { plInFlight = false; });
+    window.addEventListener('mousemove', (e) => {
+      if (cameraMode !== 'fps') return;
+      if (!pointerLocked) return;
+      const sens = 0.0028;
+      fpsYaw.rotation.y -= e.movementX * sens;
+      fpsPitch.rotation.x = THREE.MathUtils.clamp(fpsPitch.rotation.x - e.movementY * sens, -Math.PI/2+0.01, Math.PI/2-0.01);
+      if (viewportEquipped && pluckMode){ updatePluckCandidates(); }
+    });
+
+    // Helpers
+    const slabInverse = new THREE.Matrix4();
+    function toSlabLocal(worldVec3){ slab.updateMatrixWorld(); slabInverse.copy(slab.matrixWorld).invert(); return worldVec3.clone().applyMatrix4(slabInverse); }
+    function isInFrontOfSlab(localP){ return localP.z > SLAB_DEPTH/2 - 0.01 && localP.z < SLAB_DEPTH/2 + 1.0; }
+    function isTouchingEdge(localP){ const hx=SLAB_WIDTH/2, hy=SLAB_HEIGHT/2; const x=localP.x, y=localP.y; const nearLR=(Math.abs(Math.abs(x)-hx) <= EDGE_BAND) && (Math.abs(y) <= hy); const nearTB=(Math.abs(Math.abs(y)-hy) <= EDGE_BAND) && (Math.abs(x) <= hx); return nearLR || nearTB; }
+    function getCamWorldQuat(){ return camera.getWorldQuaternion(new THREE.Quaternion()); }
+    function getCamBasis(){
+      const quat = getCamWorldQuat();
+      const forward = new THREE.Vector3(0,0,-1).applyQuaternion(quat).normalize();
+      const right = new THREE.Vector3(1,0,0).applyQuaternion(quat).normalize();
+      const up = new THREE.Vector3(0,1,0).applyQuaternion(quat).normalize();
+      return { forward, right, up, quat };
+    }
+    function getApproxBoundingRadius(obj){
+      const box = new THREE.Box3().setFromObject(obj);
+      const size = new THREE.Vector3(); box.getSize(size);
+      return 0.5 * Math.max(size.x, size.y, size.z);
+    }
+    function isFigureObject(obj){
+      return !!(obj && (obj.__isFigure || (obj.userData && (obj.userData.figRef || obj.userData.__isFigure))));
+    }
+    function collideWithTower(obj){
+      if (!tower) return;
+      const rObj = getApproxBoundingRadius(obj);
+      const cx = tower.position.x, cz = tower.position.z, cy = tower.position.y;
+      const dx = obj.position.x - cx, dz = obj.position.z - cz;
+      const rXZ = Math.sqrt(dx*dx + dz*dz) || 1e-6;
+      // Height along tower in local units
+      const localY = (obj.position.y - cy) / Math.max(1e-6, towerScale);
+      const tY = THREE.MathUtils.clamp(localY / TOWER_H, 0, 1);
+      const radiusLocal = THREE.MathUtils.lerp(2.5, 3.2, tY);
+      const radiusWorld = radiusLocal * towerScale;
+      const topYWorld = cy + TOWER_H * towerScale;
+      // Side collision if center within tower height
+      if (localY >= 0 && localY <= TOWER_H){
+        const minR = radiusWorld + rObj;
+        if (rXZ < minR){
+          const push = minR - rXZ;
+          obj.position.x -= (dx / rXZ) * push;
+          obj.position.z -= (dz / rXZ) * push;
+          const v = obj.userData.vel; if (v){
+            // Apply friction tangent to the cylinder surface
+            const n = new THREE.Vector3(dx / rXZ, 0, dz / rXZ);
+            const vnMag = v.dot(n);
+            const vt = v.clone().sub(n.clone().multiplyScalar(vnMag));
+            const friction = 0.6; // higher = more stick
+            v.copy(n.multiplyScalar(vnMag)).add(vt.multiplyScalar(1 - friction * 0.5));
+          }
+        }
+      }
+      // Top cap collision using bounding box bottom for accuracy
+      if (rXZ <= radiusWorld + rObj){
+        const bb = new THREE.Box3().setFromObject(obj);
+        const bottom = bb.min.y;
+        const EPS_Y = 0.01;
+        if (bottom < topYWorld + EPS_Y){
+          const pushUp = (topYWorld + EPS_Y) - bottom;
+          obj.position.y += pushUp;
+          const v = obj.userData.vel; if (v && v.y < 0){ v.y = 0; }
+        }
+      }
+    }
+    function collideWithFramePlane(obj, frameGroup){
+      // figures are controlled by their own animation; skip frame-plane physics
+      if (isFigureObject(obj)) return;
+      if (!frameGroup) return;
+      const planeW = frameGroup.userData?.width ?? 0; const planeH = frameGroup.userData?.height ?? 0;
+      if (planeW <= 0 || planeH <= 0) return;
+      const inv = new THREE.Matrix4().copy(frameGroup.matrixWorld).invert();
+      const posL = obj.position.clone().applyMatrix4(inv);
+      const r = getApproxBoundingRadius(obj);
+      const halfW = planeW/2, halfH = planeH/2;
+      // within pane bounds (no radius padding to avoid far-away grabs)
+      if (posL.x < -halfW || posL.x > halfW || posL.y < -halfH || posL.y > halfH) return;
+      // Only collide when close to the plane (within one radius behind), to avoid pulling distant items
+      if (posL.z < 0 && posL.z > -r){
+        const penetration = r - posL.z;
+        const nWorld = new THREE.Vector3(0,0,1).applyQuaternion(frameGroup.quaternion); // plane normal in world
+        obj.position.addScaledVector(nWorld, penetration);
+        const vel = obj.userData.vel; if (vel){
+          const vnMag = vel.dot(nWorld);
+          const vn = nWorld.clone().multiplyScalar(vnMag);
+          const vt = vel.clone().sub(vn);
+          // reflect normal, damp tangent
+          vel.copy(vt.multiplyScalar(0.85)).add(vn.multiplyScalar(-0.3));
+        }
+      }
+    }
+
+    // Keep original blockCollision behavior (clamp unless near edge)
+    function blockCollision(nextPos){
+      const pLocal = toSlabLocal(nextPos);
+      const halfZ = SLAB_DEPTH/2; const hx=SLAB_WIDTH/2, hy=SLAB_HEIGHT/2;
+      const withinRect = Math.abs(pLocal.x) <= hx && Math.abs(pLocal.y) <= hy;
+      const wantsCross = pLocal.z < halfZ + COLLISION_EPS;
+      const nearEdge = isTouchingEdge(pLocal);
+      if (withinRect && wantsCross && !nearEdge){
+        pLocal.z = halfZ + COLLISION_EPS;
+        isStuckToSlab = true; // ensure stick on direct face contact
+        return pLocal.applyMatrix4(slab.matrixWorld);
+      }
+      return nextPos;
+    }
+
+    // Decide if running into the front this frame should shrink the cube
+    function shouldShrinkOnApproach(prevWorld, nextWorld){
+      const prevL = toSlabLocal(prevWorld), nextL = toSlabLocal(nextWorld);
+      const halfZ = SLAB_DEPTH/2, hx=SLAB_WIDTH/2, hy=SLAB_HEIGHT/2;
+      const movingTowardFront = nextL.z < prevL.z; // towards slab (more negative local z)
+      const crossingOrTouching = nextL.z <= halfZ + COLLISION_EPS;
+      const withinRect = Math.abs(nextL.x) <= hx && Math.abs(nextL.y) <= hy;
+      return movingTowardFront && withinRect && crossingOrTouching;
+    }
+
+    // HUD
+    const hud = document.getElementById('hud');
+    const controlsContent = document.getElementById('controlsContent');
+    function setControls(){
+      const lines = [];
+      lines.push(`<div><kbd>W A S D</kbd> move · <kbd>R</kbd> reset · <kbd>Q</kbd> grow · <kbd>Shift</kbd> sprint</div>`);
+      lines.push(`<div><kbd>M</kbd> toggle Control Target (Player ↔ Mouse Cube)</div>`);
+      lines.push(`<div><kbd>C</kbd> toggle Camera (First/Third‑Person)</div>`);
+      lines.push(`<div><kbd>T</kbd> toggle Speed (normal/boost)</div>`);
+      lines.push(`<div><kbd>F</kbd> pick up item on table</div>`);
+      if (hasFrame){
+        lines.push(`<div><kbd>V</kbd> equip Frame of Reference · <kbd>Mouse 3</kbd> toggle cursor pluck</div>`);
+        lines.push(`<div>In FoR: <kbd>Mouse 1</kbd> lock objects · <kbd>Wheel</kbd> dolly</div>`);
+      } else {
+        lines.push(`<div>Frame of Reference: pick up on table to unlock</div>`);
+      }
+      if (hasPortal){
+        lines.push(`<div>Portals: <kbd>Mouse 1</kbd> small · <kbd>Mouse 2</kbd> large · <kbd>Mouse 3</kbd> cycle ratio · <kbd>P</kbd> toggle</div>`);
+      } else {
+        lines.push(`<div>Portal Set: pick up on table to unlock</div>`);
+      }
+      if (controlsContent) controlsContent.innerHTML = lines.join('');
+    }
+    function updateHUD(info){ hud.innerHTML = `Scale: ${playerScale.toFixed(2)} (world ${worldScale.toFixed(2)})<br>` + `Collected: ${collectedCount}<br>` + `In Front: ${info.front ? 'yes' : 'no'}<br>` + `Shrink (this frame): ${info.shrink ? 'yes' : 'no'}`; setControls(); }
+    // Popup helper
+    const popup = document.getElementById('popup');
+    function showPopup(text, ms=3500){ if (!popup) return; popup.textContent = text; popup.style.display = 'block'; clearTimeout(popup._t); popup._t = setTimeout(()=>{ popup.style.display = 'none'; }, ms); }
+    const tooltipEl = document.getElementById('tooltip');
+    function showTooltip(x, y, text){ if (!tooltipEl) return; tooltipEl.textContent = text; tooltipEl.style.left = x + 'px'; tooltipEl.style.top = y + 'px'; tooltipEl.style.display = 'block'; }
+    function hideTooltip(){ if (!tooltipEl) return; tooltipEl.style.display = 'none'; }
+    
+    // Teleport buttons
+    document.getElementById('btnSpawn')?.addEventListener('click', () => {
+      player.position.copy(START_POS);
+      vel.set(0,0,0);
+    });
+    document.getElementById('btnTower')?.addEventListener('click', () => {
+      const p = getTowerTopSpawnWorld();
+      player.position.copy(p);
+      vel.set(0,0,0);
+      onGround = false;
+    });
+    // Initialize controls view on load
+    setControls();
+    // Slider factory for logarithmic sliders
+    function createLogSlider(rootId, opts){
+      const root = document.getElementById(rootId); if (!root) return;
+      const thumb = root.querySelector('.thumb');
+      const center = opts.center ?? 110; const sens = opts.sensitivity ?? 40;
+      const clamp = (v) => Math.max(opts.min ?? 0.01, Math.min(opts.max ?? 10, v));
+      const applyThumb = (value) => { const x = center + Math.log10(clamp(value)) * sens; thumb.style.left = `${x}px`; };
+      let dragging = false;
+      const updateFromClientX = (clientX) => {
+        const r = root.getBoundingClientRect();
+        const rel = (clientX - r.left - center) / sens;
+        const v = clamp(Math.pow(10, rel));
+        opts.onChange?.(v);
+        applyThumb(v);
+      };
+      root.addEventListener('mousedown', (e)=>{ dragging=true; updateFromClientX(e.clientX); });
+      window.addEventListener('mousemove', (e)=>{ if (dragging) updateFromClientX(e.clientX); });
+      window.addEventListener('mouseup', ()=>{ dragging=false; });
+      applyThumb(opts.initialValue ?? 1);
+    }
+    // Apply to Tower scale and Speed
+    createLogSlider('towerSlider', { initialValue: 1.0, min: 0.2, max: 5.0, center: 110, sensitivity: 40, onChange: (v)=>{ towerScale = v; tower.scale.set(v, v, v); } });
+
+    // === Camera lens controls ===
+    const focalSlider = document.getElementById('focalSlider');
+    const gaugeSlider = document.getElementById('gaugeSlider');
+    const fishSlider = document.getElementById('fishSlider');
+    const focalVal = document.getElementById('focalVal');
+    const gaugeVal = document.getElementById('gaugeVal');
+    const fishVal = document.getElementById('fishVal');
+    let fishStrength = 0.0;
+    let baseFocalMM = 45; // higher default
+    function currentDynamicFocalMM(){
+      const r = playerScale / Math.max(1e-6, worldScale);
+      // Wider as smaller; floor at 10mm, cap at base
+      return Math.max(10, Math.min(baseFocalMM, baseFocalMM * r));
+    }
+    function focalToFovDeg(focalMM, gaugeMM){
+      return THREE.MathUtils.clamp(2 * THREE.MathUtils.radToDeg(Math.atan((gaugeMM/2) / Math.max(0.001, focalMM))), 10, 150);
+    }
+    function applyLens(){
+      baseFocalMM = Math.max(24, parseFloat(focalSlider?.value || '45')); // min 24mm
+      const gauge = Math.max(24, parseFloat(gaugeSlider?.value || '35')); // min 24mm film gauge
+      fishStrength = parseFloat(fishSlider?.value || '0');
+      if (focalVal) focalVal.textContent = String(baseFocalMM|0);
+      if (gaugeVal) gaugeVal.textContent = String(gauge|0);
+      if (fishVal) fishVal.textContent = fishStrength.toFixed(2);
+      const fov = focalToFovDeg(currentDynamicFocalMM(), gauge);
+      camera.fov = fov; camera.updateProjectionMatrix();
+    }
+    focalSlider?.addEventListener('input', applyLens);
+    gaugeSlider?.addEventListener('input', applyLens);
+    fishSlider?.addEventListener('input', applyLens);
+    applyLens();
+    // Speed slider (uses factory)
+    createLogSlider('speedSlider', { initialValue: baseSpeedScalar, min: 0.05, max: 10, center: 110, sensitivity: 40, onChange: (v)=>{ baseSpeedScalar = v; } });
+
+    // === Portals (4:1 inverse-scale) ===
+    const portals = [];
+    let portalPairCounter = 0;
+    let portalsEnabled = true;
+    const portalRTT = new THREE.WebGLRenderTarget(512, 1024, { depthBuffer: true });
+    const portalRTT2 = new THREE.WebGLRenderTarget(512, 1024, { depthBuffer: true });
+    portalRTT.texture.minFilter = THREE.LinearFilter; portalRTT.texture.magFilter = THREE.LinearFilter;
+    portalRTT2.texture.minFilter = THREE.LinearFilter; portalRTT2.texture.magFilter = THREE.LinearFilter;
+    const portalCam = new THREE.PerspectiveCamera(55, 1, 0.05, 500);
+    function makePortal(width, height, color=0x90c8ff){
+      const g = new THREE.Group();
+      const frameGeo = new THREE.PlaneGeometry(width+0.2, height+0.2);
+      const frame = new THREE.Mesh(frameGeo, new THREE.MeshBasicMaterial({ color: 0xbcd9ff, transparent: true, opacity: 0.2 }));
+      const hole = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ color, toneMapped: false }));
+      hole.position.z = 0.01;
+      frame.position.z = -0.005;
+      g.add(frame); g.add(hole);
+      g.userData = { width, height, frame, hole };
+      g.castShadow = false; g.receiveShadow = false;
+      return g;
+    }
+    function setPortalPairRatio(pair, ratio){
+      pair.userData = pair.userData || {};
+      pair.userData.ratio = ratio;
+      pair.a.scale.set(1, 1, 1);
+      pair.b.scale.set(ratio, ratio, 1);
+    }
+    // Portal spawn handling (like Portal game)
+    let portalType = 'same'; // 'same' | '1to4' | '4to1'
+    function cyclePortalType(){
+      portalType = portalType === 'same' ? '1to4' : (portalType === '1to4' ? '4to1' : 'same');
+      const el = document.getElementById('portalModeIndicator'); if (el) el.textContent = portalType;
+      if (portals.length){
+        const pair = portals[0];
+        const ratio = portalType === '1to4' ? 4.0 : (portalType === '4to1' ? 0.25 : 1.0);
+        setPortalPairRatio(pair, ratio);
+      }
+    }
+    function getPortalDims(which){ return [2.0, 4.0]; }
+    function spawnPortal(which){
+      if (!hasPortal){ showPopup('You need the Portal Set. Pick it up on the table (press F).'); return; }
+      if (portals.length === 0) addPortalPair();
+      const pair = portals[0];
+      // compute spawn ray from camera center
+      const { forward } = getCamBasis();
+      const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+      let hit = groundIntersectRay(camPos, forward);
+      if (!hit){ const d = 6.0; hit = new THREE.Vector3(camPos.x + forward.x*d, 0, camPos.z + forward.z*d); }
+      const target = (which === 'small') ? pair.a : pair.b;
+      // position at ground hit and orient portal plane so its +Z faces toward camera-forward projection on ground
+      const baseH = target.userData.height || 4.0;
+      const effH = baseH * getWorldScale(target).y;
+      target.position.set(hit.x, effH/2, hit.z);
+      // build a quaternion that aligns +Z of the portal to face TOWARD the player (opposite camera forward on ground)
+      const fXZ = new THREE.Vector3(forward.x, 0, forward.z);
+      if (fXZ.lengthSq() < 1e-6) fXZ.set(0,0,1); else fXZ.normalize();
+      const portalForward = fXZ.clone().negate();
+      const up = new THREE.Vector3(0,1,0);
+      const rightAxis = new THREE.Vector3().crossVectors(up, portalForward).normalize();
+      const trueUp = new THREE.Vector3().crossVectors(portalForward, rightAxis).normalize();
+      const basis = new THREE.Matrix4().makeBasis(rightAxis, trueUp, portalForward);
+      target.setRotationFromMatrix(basis);
+      target.visible = true;
+    }
+    function addPortalPair(){
+      const small = makePortal(2.0, 4.0, 0x7fe2b8);
+      const big   = makePortal(2.0, 4.0, 0xff9fb0);
+      worldRoot.add(small); worldRoot.add(big);
+      const id = `pair-${++portalPairCounter}`;
+      small.userData.id = `${id}:A`; big.userData.id = `${id}:B`;
+      const pair = { a: small, b: big, id };
+      setPortalPairRatio(pair, 1.0);
+      portals.push(pair);
+    }
+    function positionPortalsBesideSlab(){
+      if (portals.length === 0) return;
+      const pair = portals[0];
+      const gap = 2.5 + SLAB_WIDTH/2;
+      const leftX = slab.position.x - gap;
+      const rightX = slab.position.x + gap;
+      const z = slab.position.z + SLAB_DEPTH*0.5 + 0.02;
+      const aH = (pair.a.userData.height || 4.0) * getWorldScale(pair.a).y;
+      const bH = (pair.b.userData.height || 4.0) * getWorldScale(pair.b).y;
+      pair.a.position.set(leftX, aH*0.5, z);
+      pair.b.position.set(rightX, bH*0.5, z);
+      pair.a.rotation.y = -Math.PI/2; // face +X
+      pair.b.rotation.y =  Math.PI/2; // face -X
+      // assign render textures cross-wise
+      pair.a.userData.hole.material.map = portalRTT2.texture; pair.a.userData.hole.material.needsUpdate = true;
+      pair.b.userData.hole.material.map = portalRTT.texture;  pair.b.userData.hole.material.needsUpdate = true;
+    }
+    // mouse tracking for placement (kept for future, but portals now live by slab)
+    let lastMouse = { x: window.innerWidth/2, y: window.innerHeight/2 };
+    window.addEventListener('mousemove', (e) => { if (!pointerLocked) { lastMouse.x = e.clientX; lastMouse.y = e.clientY; } });
+    function rayFromMouse(clientX, clientY){
+      const ndc = new THREE.Vector3(
+        (clientX / window.innerWidth) * 2 - 1,
+        - (clientY / window.innerHeight) * 2 + 1,
+        0.5
+      );
+      const world = ndc.clone().unproject(camera);
+      const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+      const dir = world.sub(camPos).normalize();
+      return { camPos, dir };
+    }
+    function groundIntersectRay(camPos, dir){
+      const eps = 1e-5;
+      if (Math.abs(dir.y) < eps) return null;
+      const t = -camPos.y / dir.y;
+      if (t < 0) return null;
+      return camPos.clone().addScaledVector(dir, t);
+    }
+    function repositionPortalsNearPointer(){ /* deprecated by positionPortalsBesideSlab */ }
+    const tmpMatInv = new THREE.Matrix4();
+    function worldToLocal(obj, v){ tmpMatInv.copy(obj.matrixWorld).invert(); return v.clone().applyMatrix4(tmpMatInv); }
+    function localToWorld(obj, v){ return v.clone().applyMatrix4(obj.matrixWorld); }
+    function computePortalMatrix(src, dst){
+      const invSrc = new THREE.Matrix4().copy(src.matrixWorld).invert();
+      const flip = new THREE.Matrix4().makeRotationY(Math.PI); // mirror through portal plane
+      const dstW = new THREE.Matrix4().copy(dst.matrixWorld);
+      return new THREE.Matrix4().multiplyMatrices(dstW, new THREE.Matrix4().multiplyMatrices(flip, invSrc));
+    }
+    function getWorldScaleX(obj){
+      obj.updateMatrixWorld();
+      const s = new THREE.Vector3();
+      const q = new THREE.Quaternion();
+      const p = new THREE.Vector3();
+      obj.matrixWorld.decompose(p, q, s);
+      return s.x;
+    }
+    function getWorldScale(obj){
+      obj.updateMatrixWorld();
+      const s = new THREE.Vector3();
+      const q = new THREE.Quaternion();
+      const p = new THREE.Vector3();
+      obj.matrixWorld.decompose(p, q, s);
+      return s;
+    }
+    function scaleWorldAboutPoint(pivot, factor){
+      // Robust: compute local pivot, scale, then translate so pivot stays fixed in world space
+      const pWorld = new THREE.Vector3(pivot.x, pivot.y, pivot.z);
+      const pLocal = worldRoot.worldToLocal(pWorld.clone());
+      const f = THREE.MathUtils.clamp(factor, 0.5, 2.0);
+      worldRoot.scale.multiplyScalar(f);
+      // New world position of the same local pivot after scaling
+      const pWorldAfter = worldRoot.localToWorld(pLocal.clone());
+      const offset = pWorld.clone().sub(pWorldAfter);
+      worldRoot.position.add(offset);
+      worldScale *= f;
+      worldScale = THREE.MathUtils.clamp(worldScale, 0.02, 50.0);
+    }
+    function getEffectivePortalWidth(obj){
+      // effective width in world space = base width * world scale x
+      return (obj.userData.width || 2.0) * getWorldScaleX(obj);
+    }
+    let lastPortalExitTime = 0;
+    let lastPortalNormal = new THREE.Vector3();
+    function tryPortalTeleport(prevPos, curPos, affectPlayer=true){
+      if (!portalsEnabled) return curPos;
+      for (const pair of portals){
+        const check = (src, dst) => {
+          const prevL = worldToLocal(src, prevPos);
+          const curL = worldToLocal(src, curPos);
+          const w = src.userData.width/2, h = src.userData.height/2;
+          // crossing plane from +z to -z in portal local space
+          if (prevL.z > 0 && curL.z < 0 && Math.abs(curL.x) <= w && Math.abs(curL.y) <= h){
+            // debounce immediate re-entry
+            const now = performance.now();
+            if (now - lastPortalExitTime < 120) return null;
+            // Ensure player rectangle fits fully in portal frame before allowing entry
+            const rectHalfW = (avatarSize*0.6 * playerScale) * 0.5;
+            const rectHalfH = (avatarSize*1.0 * playerScale) * 0.5;
+            if (rectHalfW > w || rectHalfH > h) return null;
+            const u = THREE.MathUtils.clamp(curL.x / w, -1, 1);
+            const v = THREE.MathUtils.clamp(curL.y / h, -1, 1);
+            const dw = dst.userData.width/2, dh = dst.userData.height/2;
+            const exitLocal = new THREE.Vector3(u*dw, v*dh, 0.15); // slightly in front of exit
+            const exitWorld = localToWorld(dst, exitLocal);
+            // align player's facing to portal's facing (dst normal)
+            const srcToDst = computePortalMatrix(src, dst);
+            const yawWorldQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, fpsYaw.rotation.y, 0));
+            const newYawQ = yawWorldQ.clone().premultiply(new THREE.Quaternion().setFromRotationMatrix(srcToDst));
+            const newYaw = new THREE.Euler().setFromQuaternion(newYawQ, 'YXZ');
+            fpsYaw.rotation.y = newYaw.y;
+            if (affectPlayer){
+              // inverse-scale mapping based on world-scaled portal sizes
+              const effSrcW = getEffectivePortalWidth(src);
+              const effDstW = getEffectivePortalWidth(dst);
+              const scaleMul = (effDstW / effSrcW);
+              playerScale = playerScale * scaleMul;
+              player.scale.setScalar(playerScale);
+              // scaled camera eye height updated
+              const eyeHeight = 1.6 * playerScale;
+              fpsYaw.position.set(player.position.x, player.position.y + eyeHeight, player.position.z);
+              // zero stick when portaled
+              isStuckToSlab = false;
+              // Rotate and scale velocity to conserve momentum through the portal
+              const rotOnly = new THREE.Matrix4().extractRotation(srcToDst);
+              vel.applyMatrix4(rotOnly);
+              vel.multiplyScalar(scaleMul);
+            }
+            // set cooldown
+            lastPortalExitTime = now;
+            return exitWorld;
+          }
+          return null;
+        };
+        let res = check(pair.a, pair.b); if (res) return res;
+        res = check(pair.b, pair.a); if (res) return res;
+      }
+      return curPos;
+    }
+
+    // === Viewport Frame tool ===
+    const viewportDiv = document.getElementById('viewportFrame');
+    let viewportEquipped = false;
+    // 3D held viewport frame (visible when equipped)
+    let heldViewport = null; // Group (frame + plane)
+    let heldViewportData = null; // { dist0, scale0, normal }
+    let heldViewportDist = 0.9; // meters in front of camera
+    function ensureHeldViewport(){
+      if (heldViewport) return;
+      const grp = new THREE.Group();
+      const planeGeo = new THREE.PlaneGeometry(0.8, 0.45);
+      const planeMat = new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0.15, transparent: true });
+      const plane = new THREE.Mesh(planeGeo, planeMat);
+      grp.add(plane);
+      const t = 0.025; const w = 0.8; const h = 0.45; const zOff = 0.0;
+      const barMat = new THREE.MeshStandardMaterial({ color: 0xbcd9ff, metalness: 0.1, roughness: 0.6 });
+      const topBar = new THREE.Mesh(new THREE.BoxGeometry(w, t, t), barMat); topBar.position.set(0, h/2 + t/2, zOff);
+      const botBar = new THREE.Mesh(new THREE.BoxGeometry(w, t, t), barMat); botBar.position.set(0, -h/2 - t/2, zOff);
+      const leftBar = new THREE.Mesh(new THREE.BoxGeometry(t, h + 2*t, t), barMat); leftBar.position.set(-w/2 - t/2, 0, zOff);
+      const rightBar = new THREE.Mesh(new THREE.BoxGeometry(t, h + 2*t, t), barMat); rightBar.position.set(w/2 + t/2, 0, zOff);
+      [topBar, botBar, leftBar, rightBar].forEach(b => { b.castShadow = false; b.receiveShadow = false; grp.add(b); });
+      grp.userData.plane = plane;
+      grp.visible = false;
+      heldViewport = grp;
+      scene.add(heldViewport);
+    }
+    let viewportActive = false; // held Mouse 1 while equipped
+    const viewportLocked = new Set();
+    function toggleViewportFrame(){
+      if (!hasFrame){ showPopup('You need the Frame of Reference. Pick it up on the table (press F).'); return; }
+      viewportEquipped = !viewportEquipped;
+      viewportDiv.classList.toggle('active', viewportEquipped);
+      ensureHeldViewport();
+      if (heldViewport) {
+        heldViewport.visible = viewportEquipped;
+        if (viewportEquipped){
+          // establish baseline for held frame scaling
+          const n = new THREE.Vector3(0,0,1).applyQuaternion(heldViewport.quaternion);
+          const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+          const dist0 = Math.abs(n.dot(camPos.clone().sub(heldViewport.position)));
+          heldViewportData = { dist0, scale0: playerScale, normal: n.clone() };
+          heldViewportDist = 0.9;
+        } else {
+          heldViewportData = null;
+          // leaving viewport mode should restore FPS lock
+          blockPointerLock = false; deferPointerLock(0);
+        }
+      }
+    }
+
+    // Scroll wheel adjusts held viewport distance
+    window.addEventListener('wheel', (e) => {
+      if (!viewportEquipped) return;
+      e.preventDefault();
+      const factor = Math.exp(e.deltaY * 0.0015);
+      // If holding an object/person in pluck mode, dolly the held item instead of the frame
+      if (pluckMode && (draggingFigure || draggingObject)){
+        if (draggingFigure){
+          dragDepth = THREE.MathUtils.clamp(dragDepth * factor, 0.2, 12.0);
+          // update anchor immediately using current cursor
+          const rect = renderer.domElement.getBoundingClientRect();
+          const cx = e.clientX ?? (rect.left + rect.width/2);
+          const cy = e.clientY ?? (rect.top + rect.height/2);
+          ndc.x = ((cx - rect.left) / rect.width) * 2 - 1; ndc.y = -(((cy - rect.top) / rect.height) * 2 - 1);
+          raycaster.setFromCamera(ndc, camera);
+          const hitPoint = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(dragDepth));
+          if (draggingFigure.setDragTarget) draggingFigure.setDragTarget(hitPoint);
+        } else if (draggingObject && draggingFrame){
+          // adjust the offset along frame normal for object drag
+          draggingObject.offset = Math.min(2.0, Math.max(0.02, (draggingObject.offset || 0.08) * factor));
+          const local = clientToFrameLocal(draggingFrame, e.clientX, e.clientY);
+          if (local){
+            const worldOnPlane = local.clone().applyMatrix4(draggingFrame.matrixWorld);
+            const n = new THREE.Vector3(0,0,1).applyQuaternion(draggingFrame.quaternion);
+            const pos = worldOnPlane.clone().addScaledVector(n, draggingObject.offset);
+            const obj = draggingObject.obj;
+            if (obj.parent){ obj.position.copy(obj.parent.worldToLocal(pos.clone())); } else { obj.position.copy(pos); }
+          }
+        }
+        return;
+      }
+      // Otherwise adjust frame distance as before
+      if (heldViewport && heldViewport.visible){
+        heldViewportDist = Math.min(5.0, Math.max(0.2, heldViewportDist * factor));
+      }
+    }, { passive: false });
+    function worldToScreen(vec3){
+      const v = vec3.clone(); v.project(camera);
+      const x = (v.x * 0.5 + 0.5) * window.innerWidth;
+      const y = (-v.y * 0.5 + 0.5) * window.innerHeight;
+      return new THREE.Vector2(x,y);
+    }
+    // Dropped viewport state
+    let droppedViewport = null; // Group (frame + plane)
+    let droppedViewportRT = null; // RenderTarget
+    let droppedViewportCam = null; // Capture camera
+    let droppedViewportData = null; // { dist0, scale0, normal: Vector3 }
+    let collectedCount = 0;
+    // HUD-bound mini viewport
+    const hudMini = document.createElement('div');
+    hudMini.style.position = 'fixed'; hudMini.style.right = '12px'; hudMini.style.top = '12px'; hudMini.style.width = '240px'; hudMini.style.height = '135px'; hudMini.style.border = '1px solid rgba(255,255,255,.25)'; hudMini.style.borderRadius = '6px'; hudMini.style.overflow = 'hidden'; hudMini.style.background = '#0003'; hudMini.style.backdropFilter = 'blur(4px)';
+    const hudMiniCanvas = document.createElement('canvas'); hudMiniCanvas.width = 480; hudMiniCanvas.height = 270; hudMiniCanvas.style.width = '100%'; hudMiniCanvas.style.height = '100%';
+    hudMini.appendChild(hudMiniCanvas);
+    document.body.appendChild(hudMini);
+
+    // Pluck mode (middle click in viewport mode)
+    let pluckMode = false;
+    let pluckCandidates = new Set();
+    let hoveredPluck = null;
+    function isFullyInViewportFrame(obj){
+      const rect = viewportDiv.getBoundingClientRect();
+      const box = new THREE.Box3().setFromObject(obj);
+      const corners = [
+        new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+        new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+        new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.max.z)
+      ];
+      for (const c of corners){
+        const s = worldToScreen(c);
+        if (s.x < rect.left || s.x > rect.right || s.y < rect.top || s.y > rect.bottom) return false;
+      }
+      return true;
+    }
+    function highlight(obj, on){
+      const m = obj.material; if (!m) return;
+      if (on){ if (!obj.userData._oldColor && m.color){ obj.userData._oldColor = m.color.clone(); m.color.setHex(0xffe086); } }
+      else { if (obj.userData._oldColor && m.color){ m.color.copy(obj.userData._oldColor); delete obj.userData._oldColor; } }
+    }
+    function updatePluckCandidates(){
+      // clear old
+      pluckCandidates.forEach(o => highlight(o, false));
+      pluckCandidates.clear();
+      if (!viewportEquipped || !pluckMode) return;
+      const candidates = [...worldObjects.children];
+      candidates.forEach(obj => { if (isFullyInViewportFrame(obj)) { pluckCandidates.add(obj); highlight(obj, true); } });
+    }
+    function selectPluckAt(clientX, clientY){
+      if (pluckCandidates.size === 0) return null;
+      // Raycast through pluckCandidates: choose the nearest visible object under cursor in camera space
+      const rect = renderer.domElement.getBoundingClientRect();
+      ndc.x = ((clientX - rect.left) / rect.width) * 2 - 1; ndc.y = -(((clientY - rect.top) / rect.height) * 2 - 1);
+      raycaster.setFromCamera(ndc, camera);
+      // Intersect all meshes of candidates; gather with distance
+      const candidateMeshes = [];
+      pluckCandidates.forEach(obj => { obj.traverse(n => { if (n.isMesh) candidateMeshes.push(n); }); });
+      const hits = raycaster.intersectObjects(candidateMeshes, true);
+      let best = null;
+      if (hits && hits.length){
+        // Find first hit whose root candidate is the same
+        for (const h of hits){
+          const root = [...pluckCandidates].find(o => (h.object === o) || o.children.includes(h.object) || o === h.object.parent || o === h.object.parent?.parent);
+          if (root){ best = root; break; }
+        }
+      }
+      // Fallback: pick nearest by camera-space depth in the frame center if no mesh hit
+      if (!best){
+        const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+        let bestD = Infinity;
+        pluckCandidates.forEach(obj => {
+          const p = new THREE.Vector3(); obj.getWorldPosition(p);
+          const to = p.clone().sub(camPos);
+          const depth = to.dot(new THREE.Vector3().copy(to).normalize());
+          if (depth < bestD){ bestD = depth; best = obj; }
+        });
+      }
+      if (!best) return null;
+      // place just in front of the held viewport if equipped, else dropped viewport, else camera; preserve apparent size
+      const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+      const { forward } = getCamBasis();
+      const activeFrame = heldViewport && heldViewport.visible ? heldViewport : (droppedViewport || null);
+      const planePos = activeFrame ? activeFrame.position.clone() : camPos.clone().addScaledVector(forward, 1.0);
+      const planeForward = activeFrame ? new THREE.Vector3(0,0,1).applyQuaternion(activeFrame.quaternion) : forward.clone();
+      // Determine the world point on the frame plane at cursor (or in front of camera if no frame)
+      let worldOnPlane;
+      if (activeFrame){
+        const local = clientToFrameLocal(activeFrame, clientX, clientY) || new THREE.Vector3(0,0,0);
+        worldOnPlane = local.clone().applyMatrix4(activeFrame.matrixWorld);
+      } else {
+        worldOnPlane = planePos.clone();
+      }
+      // scale for equal perceived size: first estimate using plane distance, then refine using final offset
+      const pOld = new THREE.Vector3(); best.getWorldPosition(pOld);
+      const distOld = Math.max(0.001, forward.dot(pOld.clone().sub(camPos)));
+      const distAtPlane = Math.max(0.001, forward.dot(worldOnPlane.clone().sub(camPos)));
+      const k0 = distAtPlane / distOld;
+      const rOld = getApproxBoundingRadius(best);
+      const baseMargin = 0.02; // small gap from the frame
+      let outOffset = Math.max(0.08, rOld * k0 + baseMargin);
+      let posNew = worldOnPlane.clone().addScaledVector(planeForward, outOffset);
+      const distNew = Math.max(0.001, forward.dot(posNew.clone().sub(camPos)));
+      const k = distNew / distOld;
+      const newScale = best.scale.clone().multiplyScalar(k);
+      // write world transform respecting parent
+      if (best.parent){ best.position.copy(best.parent.worldToLocal(posNew)); }
+      else { best.position.copy(posNew); }
+      best.scale.copy(newScale);
+      // enable physics for non-figure objects now that it's placed (falls/settles on table)
+      if (!isFigureObject(best)) best.userData.vel = new THREE.Vector3(0,0,0);
+      // mark drag context to allow continuous dragging in front of frame
+      draggingObject = { obj: best, frame: activeFrame };
+      draggingFrame = activeFrame;
+      // exit pluck highlight for this object
+      highlight(best, false);
+      pluckCandidates.delete(best);
+      return best;
+    }
+
+    function dropViewportSnapshot(){
+      // Create/replace plane with snapshot texture in front of camera
+      const rtW = 512, rtH = 288;
+      if (!droppedViewportRT) droppedViewportRT = new THREE.WebGLRenderTarget(rtW, rtH, { depthBuffer: true });
+      if (!droppedViewportCam) droppedViewportCam = new THREE.PerspectiveCamera(55, rtW/rtH, 0.05, 500);
+      // Initialize capture camera to current player eye pose
+      droppedViewportCam.position.copy(fpsYaw.position);
+      droppedViewportCam.quaternion.copy(camera.quaternion);
+      // Build frame group if needed (plane + border frame)
+      if (!droppedViewport){
+        const grp = new THREE.Group();
+        // plane
+        const planeMat = new THREE.MeshBasicMaterial({ map: droppedViewportRT.texture, toneMapped: false });
+        const planeGeo = new THREE.PlaneGeometry(1.2, 0.68);
+        const plane = new THREE.Mesh(planeGeo, planeMat);
+        grp.add(plane);
+        // border frame (simple thin boxes)
+        const t = 0.03; const w = 1.2; const h = 0.68; const zOff = 0.0;
+        const barMat = new THREE.MeshStandardMaterial({ color: 0xbcd9ff, metalness: 0.1, roughness: 0.6 });
+        const topBar = new THREE.Mesh(new THREE.BoxGeometry(w, t, t), barMat); topBar.position.set(0, h/2 + t/2, zOff);
+        const botBar = new THREE.Mesh(new THREE.BoxGeometry(w, t, t), barMat); botBar.position.set(0, -h/2 - t/2, zOff);
+        const leftBar = new THREE.Mesh(new THREE.BoxGeometry(t, h + 2*t, t), barMat); leftBar.position.set(-w/2 - t/2, 0, zOff);
+        const rightBar = new THREE.Mesh(new THREE.BoxGeometry(t, h + 2*t, t), barMat); rightBar.position.set(w/2 + t/2, 0, zOff);
+        [topBar, botBar, leftBar, rightBar].forEach(b => { b.castShadow = false; b.receiveShadow = false; grp.add(b); });
+        grp.userData.plane = plane;
+        droppedViewport = grp;
+        worldRoot.add(droppedViewport);
+      } else {
+        // update plane texture
+        const plane = droppedViewport.userData.plane;
+        if (plane){ plane.material.map = droppedViewportRT.texture; plane.material.needsUpdate = true; }
+      }
+      // Position a short distance ahead and face exact camera orientation
+      const { forward: camForward, quat: camQuat } = getCamBasis();
+      const ahead = camForward.clone().multiplyScalar(2.0);
+      const eyeHeight = 1.6 * playerScale;
+      droppedViewport.position.set(player.position.x, player.position.y + eyeHeight, player.position.z);
+      droppedViewport.position.add(ahead);
+      // match camera orientation exactly
+      droppedViewport.quaternion.copy(camQuat);
+      // Record baseline distance and scale relative to plane
+      const planeNormal = new THREE.Vector3(0,0,1).applyQuaternion(droppedViewport.quaternion); // plane faces +Z local
+      const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+      const dist0 = Math.abs(planeNormal.dot(camPos.clone().sub(droppedViewport.position)));
+      droppedViewportData = { dist0, scale0: playerScale, normal: planeNormal.clone() };
+    }
+    function retractViewportSnapshot(){
+      if (!droppedViewport) return;
+      worldRoot.remove(droppedViewport);
+      droppedViewport = null;
+      droppedViewportData = null;
+      // clear HUD mini
+      const ctx2d = hudMiniCanvas.getContext('2d');
+      ctx2d.clearRect(0,0,hudMiniCanvas.width,hudMiniCanvas.height);
+    }
+
+    function isViewerInDroppedViewport(){
+      if (!droppedViewport) return false;
+      // Ray from camera to plane; check if intersection lies within the viewport plane rectangle
+      const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+      const forward = new THREE.Vector3(); camera.getWorldDirection(forward);
+      // plane: n·(x - p0) = 0
+      const n = new THREE.Vector3(0,0,1).applyQuaternion(droppedViewport.quaternion);
+      const denom = n.dot(forward);
+      if (Math.abs(denom) < 1e-5) return false;
+      const t = n.dot(droppedViewport.position.clone().sub(camPos)) / denom;
+      if (t <= 0) return false;
+      const hit = camPos.clone().addScaledVector(forward, t);
+      // Transform hit to droppedViewport local space
+      const inv = new THREE.Matrix4().copy(droppedViewport.matrixWorld).invert();
+      const local = hit.clone().applyMatrix4(inv);
+      const halfW = 1.2/2, halfH = 0.68/2; // plane geo size
+      return Math.abs(local.x) <= halfW && Math.abs(local.y) <= halfH;
+    }
+
+    window.addEventListener('mousedown', (e) => {
+      // Portal spawning when not using viewport tool
+      if (!viewportEquipped){
+        // People dragging begins if figure under cursor
+        const rect = renderer.domElement.getBoundingClientRect();
+        const cx = e.clientX, cy = e.clientY;
+        ndc.x = ((cx - rect.left) / rect.width) * 2 - 1; ndc.y = -(((cy - rect.top) / rect.height) * 2 - 1);
+        raycaster.setFromCamera(ndc, camera);
+        const interF = raycaster.intersectObjects(figureHits, true)[0];
+        if (interF){
+          const f = figures.find(F=>F.hit===interF.object);
+          if (f){
+            draggingFigure = f;
+            f.setPicked(true);
+            f.setDragging(true);
+            // While dragging, suppress gravity and ensure pivot has vel to resume later
+            if (f.pivot && !f.pivot.userData.vel){ f.pivot.userData.vel = new THREE.Vector3(0,0,0); }
+            suppressedGravity.add(f.pivot);
+            dragDepth = interF.distance;
+            return;
+          }
+        }
+        if (e.button === 0) { spawnPortal('small'); return; }
+        if (e.button === 2) { spawnPortal('large'); return; }
+        if (e.button === 1) { cyclePortalType(); return; }
+      }
+      // In viewport mode: RMB toggles placed snapshot viewport
+      if (viewportEquipped && e.button === 2){
+        if (droppedViewport) retractViewportSnapshot(); else dropViewportSnapshot();
+        updatePluckCandidates();
+        return;
+      }
+      // Middle click toggles pluck mode and locks cursor (enables UI cursor-like behavior)
+      if (e.button === 1){
+        if (!viewportEquipped){ toggleViewportFrame(); }
+        pluckMode = !pluckMode;
+        updatePluckCandidates();
+        if (pluckMode){
+          // exit pointer lock so OS cursor is visible for hover/selection; prevent auto re-lock
+          blockPointerLock = true;
+          safeExitPointerLock();
+        } else {
+          blockPointerLock = false;
+          if (cameraMode === 'fps' && !pointerLocked) safeRequestPointerLock();
+        }
+        return;
+      }
+      // Left click selects nearest candidate under cursor in pluck mode (stay in pluck mode)
+      if (viewportEquipped && e.button === 0 && pluckMode){
+        const selected = selectPluckAt(e.clientX, e.clientY);
+        // If a figure was selected, start dragging immediately with cursor hold
+        if (selected && (selected.__isFigure || selected.userData?.figRef)){
+          const fig = selected.userData?.figRef || selected;
+          draggingFigure = fig;
+          fig.setPicked(true);
+          fig.setDragging(true);
+          // set drag depth by ray distance to hit or to figure
+          const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+          dragDepth = camPos.distanceTo(fig.pivot.position);
+          suppressedGravity.add(fig.pivot);
+        }
+        // Start dragging generic objects in front of frame if selected
+        if (draggingObject && draggingObject.obj === selected){ draggingFrame = draggingObject.frame; suppressedGravity.add(selected); }
+        // Also start dragging newly plucked non-figure directly
+        if (!selected?.__isFigure && draggingObject && draggingObject.obj){
+          suppressedGravity.add(draggingObject.obj);
+        }
+        updatePluckCandidates();
+        return;
+      }
+      if (e.button !== 0 || !viewportEquipped) return;
+      viewportActive = true;
+      viewportLocked.clear();
+      const rect = viewportDiv.getBoundingClientRect();
+      const within = (p) => (p.x >= rect.left && p.x <= rect.right && p.y >= rect.top && p.y <= rect.bottom);
+      const candidates = [...worldObjects.children, ...portals.flatMap(p => [p.a, p.b]), mouseAvatar, ...figures.map(f=>f.pivot)];
+      const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+      candidates.forEach(obj => {
+        if (isFigureObject(obj)){
+          // For figures: lock position only along view ray; keep scale/orientation unchanged
+          const p = new THREE.Vector3(); obj.getWorldPosition(p);
+          const s = worldToScreen(p);
+          const within = (pt)=>{ const r = viewportDiv.getBoundingClientRect(); return (pt.x >= r.left && pt.x <= r.right && pt.y >= r.top && pt.y <= r.bottom); };
+          if (within(s)){
+            const ndcV = p.clone().project(camera);
+            obj.userData.viewportLock = { dist0: camPos.distanceTo(p), scale0: obj.scale.clone(), ndc: new THREE.Vector2(ndcV.x, ndcV.y), quat0: obj.quaternion.clone(), camQuat0: camera.quaternion.clone(), _figure:true, rel0: (obj.userData?.relScale || 1.0) };
+            viewportLocked.add(obj);
+          }
+          return;
+        }
+        const p = new THREE.Vector3(); obj.getWorldPosition(p);
+        const s = worldToScreen(p);
+        if (within(s)){
+          const dist0 = camPos.distanceTo(p);
+          const ndcV = p.clone().project(camera);
+          viewportLocked.add(obj);
+          // lock rotation relative to camera as well (store object and camera quats)
+          obj.userData.viewportLock = { dist0, scale0: obj.scale.clone(), ndc: new THREE.Vector2(ndcV.x, ndcV.y), quat0: obj.quaternion.clone(), camQuat0: camera.quaternion.clone() };
+        }
+      });
+    });
+    function endHold(){
+      viewportActive = false;
+      if (draggingFigure){
+        // Enable physics on release so the figure resumes with gravity
+        if (draggingFigure.pivot && !draggingFigure.pivot.userData.vel){ draggingFigure.pivot.userData.vel = new THREE.Vector3(0,0,0); }
+        draggingFigure.setDragging(false);
+        suppressedGravity.delete(draggingFigure.pivot);
+        // Collect if released into the dropped viewport frame area
+        if (droppedViewport){
+          const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+          const forward = new THREE.Vector3(); camera.getWorldDirection(forward);
+          // Reuse isViewerInDroppedViewport ray to check if viewer is aligned; then also check the figure's screen pos inside frame
+          const inv = new THREE.Matrix4().copy(droppedViewport.matrixWorld).invert();
+          const worldPos = draggingFigure.pivot.position.clone();
+          const local = worldPos.applyMatrix4(inv);
+          const halfW = 1.2/2, halfH = 0.68/2;
+          if (Math.abs(local.x) <= halfW && Math.abs(local.y) <= halfH && Math.abs(local.z) <= 0.2){
+            // Count as collected and remove from world
+            collectedCount += 1;
+            worldObjects.remove(draggingFigure.pivot);
+          }
+        }
+        draggingFigure = null;
+      }
+      if (draggingObject){ suppressedGravity.delete(draggingObject.obj); draggingObject = null; draggingFrame = null; }
+      viewportLocked.forEach(obj => { delete obj.userData.viewportLock; });
+      viewportLocked.clear();
+      // restore FPS pointer lock when leaving pluck interaction (but not if pluck cursor mode is still active)
+      if (cameraMode === 'fps' && !pluckMode){ blockPointerLock = false; deferPointerLock(0); }
+    }
+    window.addEventListener('mouseup', () => { endHold(); });
+    window.addEventListener('pointerup', () => { endHold(); });
+    window.addEventListener('pointercancel', () => { endHold(); });
+    window.addEventListener('mouseleave', () => { endHold(); });
+    window.addEventListener('mousemove', (e) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      const cx = e.clientX, cy = e.clientY; ndc.x = ((cx - rect.left) / rect.width) * 2 - 1; ndc.y = -(((cy - rect.top) / rect.height) * 2 - 1);
+      raycaster.setFromCamera(ndc, camera);
+      if (draggingFigure){
+        // Move figure anchor along ray at dragDepth (fast response)
+        const hitPoint = raycaster.ray.origin.clone().add(raycaster.ray.direction.clone().multiplyScalar(dragDepth));
+        if (draggingFigure.setDragTarget){ draggingFigure.setDragTarget(hitPoint); }
+      } else if (draggingObject && draggingFrame){
+        // Map mouse to frame local and keep obj just in front of frame at that local
+        const local = clientToFrameLocal(draggingFrame, e.clientX, e.clientY);
+        if (local){
+          const worldOnPlane = local.clone().applyMatrix4(draggingFrame.matrixWorld);
+          const n = new THREE.Vector3(0,0,1).applyQuaternion(draggingFrame.quaternion);
+          const pos = worldOnPlane.clone().addScaledVector(n, 0.08);
+          const obj = draggingObject.obj;
+          if (obj.parent){ obj.position.lerp(obj.parent.worldToLocal(pos.clone()), 0.85); } else { obj.position.lerp(pos, 0.85); }
+        }
+      }
+    });
+    renderer.domElement.addEventListener('mousemove', (e)=>{ updateFigureHover(e.clientX, e.clientY); });
+
+    function getCenteredFigureUnderReticle(){
+      const rect = renderer.domElement.getBoundingClientRect();
+      const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+      ndc.x = ((cx - rect.left) / rect.width) * 2 - 1; ndc.y = -(((cy - rect.top) / rect.height) * 2 - 1);
+      raycaster.setFromCamera(ndc, camera);
+      const hit = raycaster.intersectObjects(figureHits, true)[0];
+      if (hit){ return figures.find(F=>F.hit===hit.object) || null; }
+      // Fallback: choose nearest figure by screen distance within a tolerance that grows as figures get tiny
+      const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+      const camFwd = new THREE.Vector3(); camera.getWorldDirection(camFwd);
+      let best = null; let bestD2 = Infinity;
+      const center = new THREE.Vector2(cx, cy);
+      for (const f of figures){
+        if (!f || !f.pivot) continue;
+        const world = new THREE.Vector3(); f.pivot.getWorldPosition(world);
+        // Ensure in front of camera
+        const to = world.clone().sub(camPos);
+        if (to.dot(camFwd) <= 0) continue;
+        const screen = worldToScreen(world);
+        const d2 = (screen.x - center.x) * (screen.x - center.x) + (screen.y - center.y) * (screen.y - center.y);
+        const rel = Math.max(0.15, Math.min(1.0, f.pivot.userData?.relScale || 1.0));
+        const tol = 36 + (1.0 - rel) * 140; // smaller figures -> larger tolerance
+        if (d2 <= tol*tol && d2 < bestD2){ bestD2 = d2; best = f; }
+      }
+      return best;
+    }
+
+    function projectSplatAt(worldPos, forFigure=null){
+      // Raycast downward to find the surface acting as the floor under the figure
+      const rc = new THREE.Raycaster();
+      const origin = worldPos.clone().add(new THREE.Vector3(0, 2.0, 0));
+      rc.set(origin, new THREE.Vector3(0,-1,0));
+      const colliders = [];
+      if (typeof ground !== 'undefined') colliders.push(ground);
+      if (typeof towerBase !== 'undefined') colliders.push(towerBase);
+      if (typeof tableTop !== 'undefined') colliders.push(tableTop);
+      if (typeof floor !== 'undefined') colliders.push(floor);
+      if (typeof balcony !== 'undefined') colliders.push(balcony);
+      // include buildings and other static world meshes
+      worldObjects.children.forEach(o => { if (o.isMesh) colliders.push(o); });
+      const hits = rc.intersectObjects(colliders, true);
+      let hit = null;
+      const up = new THREE.Vector3(0,1,0);
+      for (const h of hits){
+        const n = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld).normalize() : up.clone();
+        // favor surfaces that face upward (ground-like)
+        if (n.dot(up) > 0.4){ hit = { point: h.point, normal: n, object: h.object }; break; }
+      }
+      const place = hit ? hit.point.clone().add(hit.normal.clone().multiplyScalar(0.002)) : worldPos.clone().setY(0.002);
+      const normal = hit ? hit.normal.clone() : up.clone();
+      const sizeRel = forFigure && forFigure.pivot ? Math.max(0.2, Math.min(1.2, getWorldScale(forFigure.pivot).y)) : 1.0;
+      const radius = 0.35 * sizeRel;
+      const splatGeo = new THREE.CircleGeometry(radius, 24);
+      const splatMat = new THREE.MeshBasicMaterial({ color: 0x3aa8ff, transparent: true, opacity: 0.85, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
+      const splat = new THREE.Mesh(splatGeo, splatMat);
+      // Orient to surface normal and place slightly above to avoid z-fighting
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1), normal);
+      splat.quaternion.copy(q);
+      splat.position.copy(place);
+      splat.renderOrder = 999;
+      worldRoot.add(splat);
+      // Keep it — no fade (baked mark). If desired later, we can add a very slow fade.
+    }
+
+    function trySquish(){
+      const fig = getCenteredFigureUnderReticle(); if (!fig) return false;
+      // Determine figure relative scale; squish if tiny compared to default
+      const rel = (()=>{
+        // Prefer world scale of the pivot; fallback to stored relScale
+        try { return getWorldScale(fig.pivot).y; } catch { return fig.pivot.userData.relScale || 1.0; }
+      })();
+      if (rel > 0.8) { showTooltip(window.innerWidth/2, window.innerHeight/2 - 20, 'Too large to squish'); setTimeout(hideTooltip, 1200); return false; }
+      // Project a blue splat where the figure stands (use pivot position)
+      const p = new THREE.Vector3(); fig.pivot.getWorldPosition(p);
+      projectSplatAt(p, fig);
+      worldObjects.remove(fig.pivot);
+      const idx = figures.indexOf(fig); if (idx>=0) figures.splice(idx,1);
+      hideTooltip();
+      return true;
+    }
+
+    function tryPickup(){
+      // Ray from camera to items on table
+      const rect = renderer.domElement.getBoundingClientRect();
+      const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+      ndc.x = ((cx - rect.left) / rect.width) * 2 - 1; ndc.y = -(((cy - rect.top) / rect.height) * 2 - 1);
+      raycaster.setFromCamera(ndc, camera);
+      const candidates = [];
+      if (itemFrame && !hasFrame) candidates.push(itemFrame);
+      if (itemPortal && !hasPortal) candidates.push(itemPortal);
+      if (!candidates.length) return false;
+      const hits = raycaster.intersectObjects(candidates, true);
+      const hit = hits && hits[0] ? hits[0].object : null;
+      if (!hit) return false;
+      const kind = hit.userData.pickup;
+      if (kind === 'frame'){ hasFrame = true; room.remove(itemFrame); itemFrame = null; viewportEquipped = true; ensureHeldViewport(); heldViewport.visible = true; showPopup('Frame of Reference: Middle-click to pluck. Left-click to select. V toggles equip.'); viewportDiv.classList.add('active'); }
+      if (kind === 'portal'){ hasPortal = true; room.remove(itemPortal); itemPortal = null; if (portals.length === 0) { addPortalPair(); positionPortalsBesideSlab(); } showPopup('Portal Set: Mouse1 small, Mouse2 large, Mouse3 cycle ratio.'); }
+      return true;
+    }
+
+    function applyViewportLocks(){
+      if (!viewportActive || viewportLocked.size === 0) return;
+      const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+      viewportLocked.forEach(obj => {
+        const worldPos = new THREE.Vector3(); obj.getWorldPosition(worldPos);
+        const lock = obj.userData.viewportLock; if (!lock) return;
+        const d = camPos.distanceTo(worldPos);
+        // Move along original screen ray to keep relative screen layout
+        const ndc = lock.ndc;
+        const targetWorld = new THREE.Vector3(ndc.x, ndc.y, 0.5).unproject(camera);
+        const dir = targetWorld.sub(camPos).normalize();
+        const newWorldPos = camPos.clone().addScaledVector(dir, d);
+        if (obj.parent){
+          const local = obj.parent.worldToLocal(newWorldPos.clone());
+          obj.position.copy(local);
+        } else {
+          obj.position.copy(newWorldPos);
+        }
+        // Maintain perceived size for ALL locked objects (figures included)
+        const k = d / Math.max(0.0001, lock.dist0);
+        const s = lock.scale0.clone().multiplyScalar(k);
+        obj.scale.copy(s);
+        // Track relative scale so mechanics like squish use physical size, not distance
+        try { obj.userData.relScale = getWorldScale(obj).y; } catch {}
+        // For non-figures, also keep camera-relative orientation
+        if (!lock._figure && lock.quat0 && lock.camQuat0){
+          const camDelta = lock.camQuat0.clone().invert().multiply(camera.quaternion.clone());
+          const rel = camDelta.invert();
+          obj.quaternion.copy(lock.camQuat0.clone().multiply(rel).multiply(lock.quat0));
+        }
+      });
+    }
+
+    function toggleControlMode(){
+      // Toggle control target
+      controlTarget = (controlTarget === 'player') ? 'mouse' : 'player';
+    }
+    function toggleCameraMode(){
+      cameraMode = (cameraMode === 'fps') ? 'third' : 'fps';
+      if (cameraMode === 'fps'){
+        if (camera.parent !== fpsPitch) fpsPitch.add(camera);
+        // re-center FPS rig and request pointer lock for immediate control
+        fpsYaw.position.copy(player.position);
+        safeRequestPointerLock();
+      } else {
+        if (camera.parent === fpsPitch) { scene.add(camera); }
+      }
+    }
+
+    // Animation loop
+    let prev = performance.now();
+    function loop(now){
+      const dt = Math.min(0.05, (now - prev)/1000); prev = now;
+
+      // Update figures (wander/dangle)
+      if (typeof figures !== 'undefined' && figures.length){ for (const f of figures) f.update(dt); }
+
+      // Input vector (applied to control target only)
+      let input = new THREE.Vector3();
+      if (keys.has('KeyW')) input.z += 1; // forward
+      if (keys.has('KeyS')) input.z -= 1; // backward
+      if (keys.has('KeyA')) input.x -= 1;
+      if (keys.has('KeyD')) input.x += 1;
+      if (input.lengthSq() > 0) input.normalize();
+
+      const baseSpeed = 7.5 * baseSpeedScalar; // user-scaled base speed
+      const sprintMul = (keys.has('ShiftLeft') || keys.has('ShiftRight')) ? 2.0 : 1.0;
+      const toggleMul = speedBoostToggle ? 1.8 : 1.0;
+      const moveSpeedPlayer = baseSpeed * sprintMul * toggleMul * playerScale;
+      const moveSpeedMouse  = baseSpeed * sprintMul * toggleMul; // mouse avatar not scaled by player
+
+      // Movement relative to horizontal camera projection to avoid twisted controls
+      const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir).normalize();
+      const dir = new THREE.Vector3(camDir.x, 0, camDir.z).normalize();
+      const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0,1,0)).normalize();
+      if (controlTarget === 'player'){
+        const targetVel = new THREE.Vector3();
+        targetVel.addScaledVector(dir, input.z * moveSpeedPlayer).addScaledVector(right, input.x * moveSpeedPlayer);
+        vel.x = THREE.MathUtils.damp(vel.x, targetVel.x, 8, dt);
+        vel.z = THREE.MathUtils.damp(vel.z, targetVel.z, 8, dt);
+        // Animate player figure legs by current horizontal speed
+        const leg = playerFigure?.userData?.legs;
+        if (leg){
+          const speed = Math.hypot(vel.x, vel.z);
+          const rate = 6 + speed * 0.6; playerFigure.userData._gait = (playerFigure.userData._gait || 0) + rate * dt;
+          const a = Math.sin(playerFigure.userData._gait) * Math.min(0.6, 0.1 + speed * 0.1);
+          leg.L.th.rotation.x = a; leg.R.th.rotation.x = -a;
+          leg.L.sh.rotation.x = Math.max(0, -a) * 0.5; leg.R.sh.rotation.x = Math.max(0, a) * 0.5;
+        }
+      } else {
+        const targetVelMouse = new THREE.Vector3();
+        targetVelMouse.addScaledVector(dir, input.z * moveSpeedMouse).addScaledVector(right, input.x * moveSpeedMouse);
+        mouseVel.x = THREE.MathUtils.damp(mouseVel.x, targetVelMouse.x, 8, dt);
+        mouseVel.z = THREE.MathUtils.damp(mouseVel.z, targetVelMouse.z, 8, dt);
+      }
+
+      prevPlayerPos.copy(player.position);
+      prevMousePos.copy(mouseAvatar.position);
+      // Apply gravity to player and integrate full 3D
+      jumpCooldown = Math.max(0, jumpCooldown - dt);
+      vel.y += -9.81 * dt;
+      const next = player.position.clone().addScaledVector(vel, dt);
+      const nextMouse = mouseAvatar.position.clone().addScaledVector(mouseVel, dt);
+
+      // Shrink check BEFORE collision resolution (so touching counts)
+      const approaching = shouldShrinkOnApproach(player.position, next);
+      if (approaching) isStuckToSlab = true; // set stick only on real approach/contact
+      const shrinkNow = approaching || isStuckToSlab;
+      // Mouse avatar shrink
+      const approachingMouse = shouldShrinkOnApproach(mouseAvatar.position, nextMouse);
+      if (approachingMouse) mouseIsStuckToSlab = true;
+      if (shrinkNow){
+        playerScale = Math.max(MIN_PLAYER_SCALE, playerScale - shrinkRate * dt);
+        interior.material.emissiveIntensity = THREE.MathUtils.lerp(0.3, 0.8, (maxScale - playerScale) / (maxScale - minScale));
+      } else {
+        if (keys.has('KeyQ')) playerScale = Math.max(MIN_PLAYER_SCALE, playerScale + growRate * dt);
+        if (keys.has('KeyE')) playerScale = Math.max(MIN_PLAYER_SCALE, playerScale - growRate * dt);
+        interior.material.emissiveIntensity = THREE.MathUtils.lerp(interior.material.emissiveIntensity, 0.3, 0.08);
+      }
+      player.scale.setScalar(playerScale);
+      // Mouse avatar dynamic shrink/grow like player
+      if (approachingMouse || mouseIsStuckToSlab){ mouseScale = Math.max(0.01, mouseAvatar.scale.x - shrinkRate * dt); }
+      else {
+        if (keys.has('KeyQ') && controlTarget === 'mouse') mouseScale = mouseScale + growRate * dt;
+        if (keys.has('KeyE') && controlTarget === 'mouse') mouseScale = Math.max(0.01, mouseScale - growRate * dt);
+      }
+      mouseAvatar.scale.setScalar(mouseScale);
+
+      // Floor collision (y=0)
+      if (next.y < 0){ next.y = 0; if (vel.y < 0) vel.y = 0; onGround = true; }
+
+      // Collide player with procedural buildings (AABB resolution)
+      (function collidePlayerWithBuildings(){
+        const playerRad = 0.4 * playerScale;
+        const playerBox = new THREE.Box3(
+          new THREE.Vector3(next.x - playerRad, next.y - playerRad, next.z - playerRad),
+          new THREE.Vector3(next.x + playerRad, next.y + 1.8*playerScale, next.z + playerRad)
+        );
+        for (const obj of worldObjects.children){
+          if (!obj.userData?.isBuilding) continue;
+          const bb = new THREE.Box3().setFromObject(obj);
+          if (!playerBox.intersectsBox(bb)) continue;
+          const ox = Math.min(playerBox.max.x, bb.max.x) - Math.max(playerBox.min.x, bb.min.x);
+          const oz = Math.min(playerBox.max.z, bb.max.z) - Math.max(playerBox.min.z, bb.min.z);
+          if (ox < oz){
+            const push = (next.x > (bb.min.x+bb.max.x)/2) ? ox : -ox;
+            next.x += push; vel.x = 0;
+          } else {
+            const push = (next.z > (bb.min.z+bb.max.z)/2) ? oz : -oz;
+            next.z += push; vel.z = 0;
+          }
+        }
+      })();
+
+      // Tower collision (upright cylinder: side + top in world space)
+      if (tower){
+        const cx = tower.position.x, cz = tower.position.z, cy = tower.position.y;
+        const topYWorld = cy + TOWER_H * towerScale;
+        // Horizontal distance to axis
+        const dx = next.x - cx, dz = next.z - cz;
+        const rXZ = Math.sqrt(dx*dx + dz*dz) || 1e-6;
+        // Local Y along cylinder (0..TOWER_H)
+        const localY = (next.y - cy) / Math.max(1e-6, towerScale);
+        const tY = THREE.MathUtils.clamp(localY / TOWER_H, 0, 1);
+        const radiusLocal = THREE.MathUtils.lerp(2.5, 3.2, tY);
+        const radiusWorld = radiusLocal * towerScale;
+        const playerRad = 0.4 * playerScale;
+        // Side collision within cylinder height
+        if (localY >= 0 && localY <= TOWER_H){
+          const minR = radiusWorld + playerRad;
+          if (rXZ < minR){
+            const push = minR - rXZ;
+            next.x -= (dx / rXZ) * push;
+            next.z -= (dz / rXZ) * push;
+            // damp lateral velocity on impact
+            vel.x *= 0.7; vel.z *= 0.7;
+          }
+        }
+        // Top cap collision
+        if (next.y - playerRad < topYWorld && rXZ <= radiusWorld + playerRad && vel.y <= 0){
+          next.y = topYWorld + playerRad;
+          vel.y = 0; onGround = true;
+        }
+      }
+
+      // Apartment supports (room floor and balcony) - simple AABB top support
+      function collidePlayerWithRectSupport(centerX, centerZ, halfW, halfD, topY){
+        const playerRad = 0.4 * playerScale;
+        const minX = centerX - halfW - playerRad;
+        const maxX = centerX + halfW + playerRad;
+        const minZ = centerZ - halfD - playerRad;
+        const maxZ = centerZ + halfD + playerRad;
+        if (next.x >= minX && next.x <= maxX && next.z >= minZ && next.z <= maxZ && (next.y - playerRad) < topY){
+          next.y = topY + playerRad;
+          if (vel.y < 0) vel.y = 0;
+          onGround = true;
+        }
+      }
+      // Room floor (12x10 at y=APT_TOWER_H+0.2)
+      collidePlayerWithRectSupport(APT_X, APT_Z, 6.0, 5.0, APT_TOWER_H + 0.2);
+      // Balcony (4x1.5 at y=APT_TOWER_H+0.975) centered at z offset +5.8
+      collidePlayerWithRectSupport(APT_X, APT_Z + 5.8, 2.0, 0.75, APT_TOWER_H + 0.975);
+
+      // Collision against slab (disallow passing through center; edges remain passable per original PoC)
+      slab.updateMatrixWorld();
+      const blocked = blockCollision(next);
+      const blockedMouse = blockCollision(nextMouse);
+      // When stuck to slab center, stop lateral sliding unless moving away in slab local +Z
+      if (isStuckToSlab){
+        const curLocal = toSlabLocal(player.position);
+        const attemptLocal = toSlabLocal(player.position.clone().addScaledVector(vel, dt));
+        const movingAway = (attemptLocal.z - curLocal.z) > 0.001;
+        if (movingAway) {
+          isStuckToSlab = false;
+        } else {
+          vel.set(0,0,0);
+      player.position.copy(blocked);
+        }
+      }
+      if (mouseIsStuckToSlab){
+        const curLocal = toSlabLocal(mouseAvatar.position);
+        const attemptLocal = toSlabLocal(mouseAvatar.position.clone().addScaledVector(mouseVel, dt));
+        const movingAway = (attemptLocal.z - curLocal.z) > 0.001;
+        if (movingAway) {
+          mouseIsStuckToSlab = false;
+        } else {
+          mouseVel.set(0,0,0);
+          mouseAvatar.position.copy(blockedMouse);
+        }
+      }
+
+      // Portal crossing
+      const afterPortal = tryPortalTeleport(prevPlayerPos, blocked, true);
+      const afterPortalMouse = tryPortalTeleport(prevMousePos, blockedMouse, false);
+      player.position.copy(blocked);
+      if (afterPortal !== blocked) player.position.copy(afterPortal);
+      mouseAvatar.position.copy(blockedMouse);
+      if (afterPortalMouse !== blockedMouse) mouseAvatar.position.copy(afterPortalMouse);
+
+      // Interior subtle wobble to sell the illusion
+      const t = now * 0.001;
+      const rForGlow = playerScale / Math.max(1e-6, worldScale);
+      const glowT = THREE.MathUtils.clamp((0.4 - rForGlow) / 0.4, 0, 1);
+      interior.material.emissiveIntensity = THREE.MathUtils.lerp(0.3, 0.8, glowT);
+      interior.position.x = Math.sin(t * 0.7) * 0.035 * (1 - rForGlow);
+      interior.position.y = Math.cos(t * 0.9) * 0.035 * (1 - rForGlow);
+
+      // Camera update
+      const eyeHeight = 1.6 * playerScale; // scaled eye height
+      if (cameraMode === 'fps'){
+        fpsYaw.position.set(player.position.x, player.position.y + eyeHeight, player.position.z);
+      } else {
+        // third person: offset camera back and up, look at player
+        const camOffset = new THREE.Vector3(0, eyeHeight*0.6 + 0.6, 3.5 + playerScale*1.8).applyEuler(new THREE.Euler(0, fpsYaw.rotation.y, 0));
+        camera.position.copy(player.position.clone().add(camOffset));
+        camera.lookAt(player.position.x, player.position.y + eyeHeight*0.5, player.position.z);
+      }
+      // Held viewport follows camera (as if held in front of player)
+      ensureHeldViewport();
+      if (heldViewport && heldViewport.visible){
+        const { forward, quat } = getCamBasis();
+        const offset = forward.clone().multiplyScalar(heldViewportDist * 1.25); // farther from player
+        heldViewport.position.copy(fpsYaw.position).add(offset);
+        heldViewport.quaternion.copy(quat);
+        // slightly larger frame
+        if (!heldViewport.userData._resized){
+          const s = 1.2; heldViewport.scale.set(s, s, s); heldViewport.userData._resized = true;
+        }
+      }
+      // Position the player rectangle at eye height in front of camera
+      const rectOffset = new THREE.Vector3(0, 0, -0.6).applyEuler(new THREE.Euler(0, fpsYaw.rotation.y, 0));
+      playerRect.position.set(player.position.x, player.position.y + eyeHeight, player.position.z);
+      playerRect.quaternion.copy(camera.quaternion);
+
+      // Apply viewport locks scaling
+      applyViewportLocks();
+
+      // Renormalize world to keep perceived player scale near default
+      function renormalizeWorld(dt){
+        if (renormCooldown > 0) return;
+        const target = DEFAULT_PLAYER_SCALE;
+        const current = player.scale.x;
+        if (Math.abs(current - target) < 0.01) return;
+        const newScale = THREE.MathUtils.damp(current, target, 4, dt);
+        const factor = newScale / Math.max(1e-6, current);
+        scaleWorldAboutPoint(player.position, 1 / factor);
+        playerScale = newScale; player.scale.setScalar(playerScale);
+      }
+      if (renormCooldown > 0) renormCooldown -= dt; else renormalizeWorld(dt);
+
+      // Update dynamic focal length in render loop for immediate response to r changes
+      const gauge = parseFloat(gaugeSlider?.value || '35');
+      camera.fov = focalToFovDeg(currentDynamicFocalMM(), gauge);
+      camera.updateProjectionMatrix();
+
+      // Simple physics for world objects (gravity and collisions with ground/table)
+      const g = CONFIG.GRAVITY; // m/s^2
+      const damping = 0.98;
+      const restitution = 0.25;
+      // Include figures' pivots in physics set only when they are physics-enabled (vel exists)
+      // Also include object-object stacking collisions between world objects
+      const physicsSet = [...worldObjects.children];
+      for (const f of figures){ if (f && f.pivot && f.pivot.userData && f.pivot.userData.vel){ physicsSet.push(f.pivot); } }
+
+      // Stable support solver: for each object, find the highest support directly beneath and snap onto it
+      function resolveSupport(obj){
+        if (!obj || !obj.userData || !obj.userData.vel) return;
+        if (suppressedGravity.has(obj)) return;
+        const bbObj = new THREE.Box3().setFromObject(obj);
+        const sizeObj = new THREE.Vector3(); bbObj.getSize(sizeObj);
+        // Gather potential supports (world objects except self) with horizontal overlap
+        let bestTop = -Infinity;
+        let best = null;
+        for (const other of worldObjects.children){
+          if (other === obj) continue;
+          if (isFigureObject(other)) continue;
+          const bb = new THREE.Box3().setFromObject(other);
+          // Check horizontal overlap with a small padding
+          const pad = 0.02;
+          const overlapX = Math.min(bbObj.max.x, bb.max.x + pad) - Math.max(bbObj.min.x, bb.min.x - pad);
+          const overlapZ = Math.min(bbObj.max.z, bb.max.z + pad) - Math.max(bbObj.min.z, bb.min.z - pad);
+          if (overlapX <= 0 || overlapZ <= 0) continue;
+          // Only consider supports below obj
+          if (bb.max.y <= bbObj.min.y + 0.05){
+            if (bb.max.y > bestTop){ bestTop = bb.max.y; best = other; }
+          }
+        }
+        if (best){
+          const EPS_Y = 0.008;
+          const bbBest = new THREE.Box3().setFromObject(best);
+          const bbNow = new THREE.Box3().setFromObject(obj);
+          const pushUp = (bbBest.max.y + EPS_Y) - bbNow.min.y;
+          if (pushUp > 0){
+            obj.position.y += pushUp;
+            const v = obj.userData.vel; if (v && v.y < 0) v.y = 0;
+          }
+        }
+      }
+      physicsSet.forEach(obj => {
+        const vel = obj.userData.vel; if (!vel) return;
+        if (suppressedGravity.has(obj)){
+          // While dragging/held: freeze gravity, critically damp velocity to avoid snapping
+          vel.multiplyScalar(0.2);
+        } else {
+          // integrate
+          vel.y += g * dt;
+        }
+        obj.position.addScaledVector(vel, dt);
+        // ground collision (skip while suppressed)
+        const bbox = new THREE.Box3().setFromObject(obj);
+        const bottom = bbox.min.y;
+        if (!suppressedGravity.has(obj) && bottom < 0){
+          const EPS_Y = 0.008;
+          obj.position.y += -bottom + EPS_Y; // lift slightly above ground
+          vel.y = -vel.y * restitution;
+          vel.x *= damping; vel.z *= damping;
+          if (Math.abs(vel.y) < 0.05) vel.y = 0;
+        }
+        // collide with held and dropped viewport planes (catch items on the pane)
+        if (heldViewport && heldViewport.visible && !suppressedGravity.has(obj)){ heldViewport.userData.width = 0.8; heldViewport.userData.height = 0.45; collideWithFramePlane(obj, heldViewport); }
+        if (droppedViewport && !suppressedGravity.has(obj)){ droppedViewport.userData.width = 1.2; droppedViewport.userData.height = 0.68; collideWithFramePlane(obj, droppedViewport); }
+
+        // tower collision for objects (skip while suppressed to avoid tug-of-war)
+        if (!suppressedGravity.has(obj)) collideWithTower(obj);
+
+        // table collision (if present)
+        if (tableTop){
+          const topY = tableTop.position.y + tableTop.geometry.parameters.height/2;
+          const bb2 = new THREE.Box3().setFromObject(obj);
+          const objBottom = bb2.min.y;
+          const withinX = obj.position.x > tableMin.x && obj.position.x < tableMax.x;
+          const withinZ = obj.position.z > tableMin.z && obj.position.z < tableMax.z;
+          if (!suppressedGravity.has(obj) && withinX && withinZ && objBottom < topY){
+            const EPS_Y2 = 0.008;
+            const push = (topY + EPS_Y2) - objBottom;
+            obj.position.y += push;
+            vel.y = -vel.y * restitution;
+            vel.x *= damping; vel.z *= damping;
+          }
+        }
+        // Apartment room floor collision
+        if (typeof floor !== 'undefined'){
+          const bbSurf = new THREE.Box3().setFromObject(floor);
+          const surfTop = bbSurf.max.y;
+          const bbObj2 = new THREE.Box3().setFromObject(obj);
+          const objBottom2 = bbObj2.min.y;
+          const withinX2 = obj.position.x > bbSurf.min.x && obj.position.x < bbSurf.max.x;
+          const withinZ2 = obj.position.z > bbSurf.min.z && obj.position.z < bbSurf.max.z;
+          if (!suppressedGravity.has(obj) && withinX2 && withinZ2 && objBottom2 < surfTop){
+            const EPS = 0.008;
+            const push = (surfTop + EPS) - objBottom2;
+            obj.position.y += push;
+            vel.y = -vel.y * restitution;
+            vel.x *= damping; vel.z *= damping;
+          }
+        }
+        // Balcony collision
+        if (typeof balcony !== 'undefined'){
+          const bbSurf = new THREE.Box3().setFromObject(balcony);
+          const surfTop = bbSurf.max.y;
+          const bbObj2 = new THREE.Box3().setFromObject(obj);
+          const objBottom2 = bbObj2.min.y;
+          const withinX2 = obj.position.x > bbSurf.min.x && obj.position.x < bbSurf.max.x;
+          const withinZ2 = obj.position.z > bbSurf.min.z && obj.position.z < bbSurf.max.z;
+          if (!suppressedGravity.has(obj) && withinX2 && withinZ2 && objBottom2 < surfTop){
+            const EPS = 0.008;
+            const push = (surfTop + EPS) - objBottom2;
+            obj.position.y += push;
+            vel.y = -vel.y * restitution;
+            vel.x *= damping; vel.z *= damping;
+          }
+        }
+      });
+      // Stable support resolution
+      for (const obj of worldObjects.children){ resolveSupport(obj); }
+      // If a dropped viewport exists, continuously render its capture camera to RT and copy to HUD mini canvas
+      if (droppedViewport && droppedViewportRT && droppedViewportCam){
+        // Keep capture camera just behind the dropped frame orientation: look forward of the dropped frame
+        const n = new THREE.Vector3(0,0,-1).applyQuaternion(droppedViewport.quaternion);
+        droppedViewportCam.position.copy(droppedViewport.position).addScaledVector(n, 0.05);
+        droppedViewportCam.quaternion.copy(droppedViewport.quaternion);
+        droppedViewportCam.updateProjectionMatrix();
+        renderer.setRenderTarget(droppedViewportRT);
+        renderer.render(scene, droppedViewportCam);
+        renderer.setRenderTarget(null);
+        // Blit to HUD canvas
+        const gl = renderer.getContext();
+        const ctx2d = hudMiniCanvas.getContext('2d');
+        const pixels = new Uint8Array(droppedViewportRT.width * droppedViewportRT.height * 4);
+        renderer.readRenderTargetPixels(droppedViewportRT, 0, 0, droppedViewportRT.width, droppedViewportRT.height, pixels);
+        const imageData = new ImageData(new Uint8ClampedArray(pixels), droppedViewportRT.width, droppedViewportRT.height);
+        // draw flipped vertically to match canvas
+        const tmpCanvas = document.createElement('canvas'); tmpCanvas.width = droppedViewportRT.width; tmpCanvas.height = droppedViewportRT.height;
+        const tctx = tmpCanvas.getContext('2d'); tctx.putImageData(imageData, 0, 0);
+        ctx2d.save();
+        ctx2d.scale(1, -1);
+        ctx2d.drawImage(tmpCanvas, 0, -hudMiniCanvas.height, hudMiniCanvas.width, hudMiniCanvas.height);
+        ctx2d.restore();
+      }
+
+      // Apply dropped viewport constraints and scale effect: if aiming through it, stick to it and only allow move along its normal (resizing)
+      if (droppedViewport && droppedViewportData){
+        const inView = isViewerInDroppedViewport();
+        if (inView){
+          // Project player velocity onto plane normal; cancel lateral movement
+          const n = droppedViewportData.normal.clone().normalize();
+          const v = new THREE.Vector3(vel.x, 0, vel.z);
+          const vAlong = n.clone().multiplyScalar(v.dot(n));
+          vel.x = vAlong.x; vel.z = vAlong.z;
+        }
+        const planeNormal = droppedViewportData.normal;
+        const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+        const dist = Math.abs(planeNormal.dot(camPos.clone().sub(droppedViewport.position)));
+        const k = dist / Math.max(0.0001, droppedViewportData.dist0);
+        const targetScale = THREE.MathUtils.clamp(droppedViewportData.scale0 * k, minScale, maxScale);
+        if (Math.abs(playerScale - targetScale) > 1e-4){
+          playerScale = targetScale;
+          player.scale.setScalar(playerScale);
+        }
+      }
+
+      // Render portal views: render scene from the other portal's perspective into each hole
+      if (portalsEnabled && portals.length > 0){
+        const pair = portals[0];
+        const updatePortalCam = (src, dst, rtt) => {
+          // Transform viewer pose across portals using the same matrix as teleport
+          const srcToDst = computePortalMatrix(src, dst);
+          const viewerPos = new THREE.Vector3(); camera.getWorldPosition(viewerPos);
+          const viewMat = new THREE.Matrix4().compose(viewerPos, camera.quaternion, new THREE.Vector3(1,1,1));
+          const transformed = viewMat.clone().premultiply(srcToDst);
+          const pos = new THREE.Vector3(); const quat = new THREE.Quaternion(); const scl = new THREE.Vector3();
+          transformed.decompose(pos, quat, scl);
+          portalCam.position.copy(pos);
+          portalCam.quaternion.copy(quat);
+          portalCam.aspect = (dst.userData.width)/(dst.userData.height);
+          portalCam.updateProjectionMatrix();
+          // Frustum-safety: don’t render if camera is pointing back into its own source portal to avoid recursion
+          const dstForward = new THREE.Vector3(0,0,1).applyQuaternion(dst.quaternion);
+          const camF = new THREE.Vector3(); portalCam.getWorldDirection(camF);
+          if (dstForward.dot(camF) > -0.1) return; // looking away; skip
+          renderer.setRenderTarget(rtt);
+          renderer.clear(true, true, true);
+          renderer.render(scene, portalCam);
+          renderer.setRenderTarget(null);
+        };
+        updatePortalCam(pair.a, pair.b, portalRTT);
+        updatePortalCam(pair.b, pair.a, portalRTT2);
+      }
+
+      const front = isInFrontOfSlab(toSlabLocal(player.position));
+      updateHUD({ front, shrink: shrinkNow });
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+    // Ensure a portal pair exists and is placed by the slab; hide based on portalsEnabled
+    if (portals.length === 0) { addPortalPair(); positionPortalsBesideSlab(); }
+    portals.forEach(p => { p.a.visible = portalsEnabled; p.b.visible = portalsEnabled; });
+
+    // Resize
+    window.addEventListener('resize', ()=>{ camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+
+    // === TESTS ===
+    const testsEl = document.getElementById('tests');
+    function logTest(name, pass, msg=''){
+      const line = document.createElement('div');
+      line.textContent = `${pass ? '✓' : '✗'} ${name}${msg? ' — ' + msg : ''}`;
+      line.style.color = pass ? '#a6f3c1' : '#ffb4b4';
+      testsEl.appendChild(line);
+      console[(pass?'log':'error')](name, pass ? 'PASS' : 'FAIL', msg);
+    }
+    function almost(a,b,eps=1e-3){ return Math.abs(a-b) <= eps; }
+    function worldFromSlabLocal(x,y,z){ const v = new THREE.Vector3(x,y,z); slab.updateMatrixWorld(); return v.applyMatrix4(slab.matrixWorld); }
+
+    function runTests(){
+      const halfZ = SLAB_DEPTH/2; const hx = SLAB_WIDTH/2, hy = SLAB_HEIGHT/2;
+      // Existing geometry tests preserved
+      logTest('isInFrontOfSlab near front', isInFrontOfSlab(new THREE.Vector3(0,0,halfZ+0.5)) === true);
+      logTest('isInFrontOfSlab far (false)', isInFrontOfSlab(new THREE.Vector3(0,0,halfZ+2.0)) === false);
+      const nearLeft = new THREE.Vector3(hx - (EDGE_BAND*0.5), 0, halfZ+0.1);
+      logTest('isTouchingEdge near LR', isTouchingEdge(nearLeft) === true);
+      const center = new THREE.Vector3(0,0,halfZ+0.1);
+      logTest('isTouchingEdge center (false)', isTouchingEdge(center) === false);
+      const worldInside = worldFromSlabLocal(0,0,halfZ-0.05);
+      const clamped = blockCollision(worldInside.clone());
+      const clampedLocal = toSlabLocal(clamped);
+      logTest('blockCollision clamps z to face+eps', almost(clampedLocal.z, halfZ + COLLISION_EPS, 1e-2));
+      const nearEdgeLocal = new THREE.Vector3(hx - EDGE_BAND*0.2, 0, halfZ - 0.05);
+      const nearEdgeWorld = worldFromSlabLocal(nearEdgeLocal.x, nearEdgeLocal.y, nearEdgeLocal.z);
+      const out = blockCollision(nearEdgeWorld.clone());
+      const outLocal = toSlabLocal(out);
+      logTest('blockCollision allows crossing near edge', almost(outLocal.z, nearEdgeLocal.z, 1e-2));
+
+      // New behavior tests
+      const prev = worldFromSlabLocal(0, 0, halfZ + 0.3); // in front, centered
+      const nextToward = worldFromSlabLocal(0, 0, halfZ - 0.01); // would touch/cross this frame
+      logTest('shouldShrinkOnApproach (center hit)', shouldShrinkOnApproach(prev, nextToward) === true);
+
+      const nextParallel = worldFromSlabLocal(0.5, 0, halfZ + 0.29); // sliding parallel, not crossing
+      logTest('shouldShrinkOnApproach (parallel slide false)', shouldShrinkOnApproach(prev, nextParallel) === false);
+
+      const prevFar = worldFromSlabLocal(hx + 0.5, 0, halfZ + 0.3); // outside width
+      const nextTowardOutside = worldFromSlabLocal(hx + 0.5, 0, halfZ - 0.01);
+      logTest('shouldShrinkOnApproach (outside rect false)', shouldShrinkOnApproach(prevFar, nextTowardOutside) === false);
+    }
+    runTests();
+  </script>
+</body>
+</html>
+
+
+
+

@@ -279,12 +279,22 @@ function playCrawlAudio(){
  if(!crawlAudioInstance){
   crawlAudioInstance = new Audio('postcredits.mp3');
   crawlAudioInstance.preload = 'auto';
+  // Add event listener for when audio finishes
+  crawlAudioInstance.addEventListener('ended', ()=>{
+    if(window.__crawlTextFinished){
+      // Text finished before audio, so collapse now
+      const parts = ensureCrawlTemplate();
+      collapseCrawlToCloseFrame(false, parts);
+    }
+    window.__crawlAudioFinished = true;
+  });
  }
  try{
   crawlAudioInstance.currentTime = 0;
  }catch(err){
   console.warn('Unable to reset crawl audio time', err);
  }
+ window.__crawlAudioFinished = false;
  const playPromise = crawlAudioInstance.play();
  if(playPromise && typeof playPromise.catch === 'function'){
   playPromise.catch(err=>console.warn('Unable to play crawl audio', err));
@@ -3100,6 +3110,9 @@ function startTextCrawl(forceFinal=false){
   ];
   let i=0;
   let current=crawl.textContent||'';
+  // Initialize flags for audio/text sync
+  window.__crawlTextFinished = false;
+  window.__crawlAudioFinished = false;
   if(!forceFinal){
     playCrawlAudio();
   }
@@ -3123,8 +3136,13 @@ function startTextCrawl(forceFinal=false){
 
   function endAsPresent(){
     crawlActive=false;
-    stopCrawlAudio();
-    collapseCrawlToCloseFrame(false, parts);
+    window.__crawlTextFinished = true;
+    // Only collapse if audio has finished, otherwise wait for audio to end
+    if(window.__crawlAudioFinished || !crawlAudioInstance){
+      stopCrawlAudio();
+      collapseCrawlToCloseFrame(false, parts);
+    }
+    // If audio still playing, don't stop it - let it finish naturally
   }
 
   const triBuffer=[]; let triCycleStarted=false;

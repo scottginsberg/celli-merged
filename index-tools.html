@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pockit Tools Hub</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .container {
+      max-width: 1200px;
+      width: 100%;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    
+    header h1 {
+      font-size: 3.5em;
+      color: white;
+      margin-bottom: 15px;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      animation: fadeInDown 0.8s ease;
+    }
+    
+    header p {
+      font-size: 1.3em;
+      color: rgba(255,255,255,0.9);
+      animation: fadeInDown 0.8s ease 0.2s both;
+    }
+    
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 30px;
+      animation: fadeInUp 0.8s ease 0.4s both;
+    }
+    
+    .tool-card {
+      background: white;
+      border-radius: 16px;
+      padding: 35px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    
+    .tool-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+    }
+    
+    .tool-icon {
+      font-size: 3.5em;
+      margin-bottom: 20px;
+      display: block;
+    }
+    
+    .tool-card h2 {
+      font-size: 1.8em;
+      margin-bottom: 12px;
+      color: #333;
+    }
+    
+    .tool-card p {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      font-size: 1.05em;
+    }
+    
+    .tool-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 20px;
+      font-size: 0.85em;
+      font-weight: 600;
+      margin-right: 8px;
+      margin-top: 8px;
+    }
+    
+    .tool-badge.new {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+    }
+    
+    .tool-badge.beta {
+      background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
+    }
+    
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 50px;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.95em;
+      animation: fadeInUp 0.8s ease 0.6s both;
+    }
+    
+    .footer a {
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      border-bottom: 2px solid rgba(255,255,255,0.5);
+      transition: border-color 0.3s ease;
+    }
+    
+    .footer a:hover {
+      border-bottom-color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🚀 Pockit Tools Hub</h1>
+      <p>Comprehensive development and testing environment</p>
+    </header>
+    
+    <div class="tools-grid">
+      <!-- Scale Ultra -->
+      <a href="scale-ultra.html" class="tool-card">
+        <span class="tool-icon">🌍</span>
+        <h2>Scale Ultra</h2>
+        <p>Complete scale sandbox with pluck mode, jar system, and procedural generation. The main Pockit experience with full physics and world manipulation.</p>
+        <span class="tool-badge">Core</span>
+        <span class="tool-badge">Production</span>
+      </a>
+      
+      <!-- Asset Evaluator -->
+      <a href="asset-evaluator.html" class="tool-card">
+        <span class="tool-icon">🎨</span>
+        <h2>Asset Evaluator</h2>
+        <p>AI-powered geometry analyzer with rapid review mode. Evaluate 3D assets for realism, capture multi-angle screenshots, and batch review quality.</p>
+        <span class="tool-badge new">New</span>
+        <span class="tool-badge">Q/E Navigation</span>
+      </a>
+      
+      <!-- Room Builder -->
+      <a href="interiors.html" class="tool-card">
+        <span class="tool-icon">🏠</span>
+        <h2>Room Builder</h2>
+        <p>Interactive interior design system. Build and furnish apartments from studios to multi-bedroom layouts with walls, doors, windows, and furniture.</p>
+        <span class="tool-badge">Builder</span>
+        <span class="tool-badge">Interactive</span>
+      </a>
+      
+      <!-- Narrative Builder -->
+      <a href="narrative-demo.html" class="tool-card">
+        <span class="tool-icon">📖</span>
+        <h2>Narrative Builder</h2>
+        <p>Procedural conspiracy mystery system. Generate dynamic NPCs, locations, and interconnected storylines with temporal progression.</p>
+        <span class="tool-badge">Procedural</span>
+        <span class="tool-badge beta">Beta</span>
+      </a>
+      
+      <!-- Sequence Builder -->
+      <a href="sequence-builder.html" class="tool-card">
+        <span class="tool-icon">🎬</span>
+        <h2>Sequence Builder</h2>
+        <p>Cinematic sequence composer. Create and preview animated sequences, camera movements, and scene transitions for cutscenes.</p>
+        <span class="tool-badge">Animation</span>
+      </a>
+      
+      <!-- Standalone Builder -->
+      <a href="builder.html" class="tool-card">
+        <span class="tool-icon">🔨</span>
+        <h2>Standalone Builder</h2>
+        <p>Bundle your project into a single standalone HTML file. Removes ES6 imports, orders dependencies, and creates self-contained builds.</p>
+        <span class="tool-badge">Build Tool</span>
+      </a>
+    </div>
+    
+    <div class="footer">
+      <p>Server running on <strong>localhost:3000</strong> | Press <kbd style="background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px;">Ctrl+C</kbd> to stop</p>
+    </div>
+  </div>
+</body>
+</html>
+

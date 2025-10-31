@@ -1,0 +1,270 @@
+===========================================
+QUICK START - PASTE THIS INTO SCALE-ULTRA.HTML
+===========================================
+
+1. ADD THIS AFTER LINE 1004 (after RAPIER import):
+---------------------------------------------------
+
+<script type="module">
+// Import optimization module
+import {
+  SpatialGrid,
+  AssetDisposalTracker,
+  ObjectPool,
+  StaggeredUpdateManager,
+  PriorityUpdateSystem,
+  CombinedPostFXShader,
+  PerformanceMonitor,
+  CollisionGroups,
+  CollisionMasks,
+  createCollisionGroups
+} from './optimizations.js';
+
+// Make available globally
+window.optimizations = {
+  SpatialGrid,
+  AssetDisposalTracker,
+  ObjectPool,
+  StaggeredUpdateManager,
+  PriorityUpdateSystem,
+  CombinedPostFXShader,
+  PerformanceMonitor,
+  CollisionGroups,
+  CollisionMasks,
+  createCollisionGroups
+};
+</script>
+
+
+2. ADD THIS AFTER LINE 1220 (in global state section):
+--------------------------------------------------------
+
+// ==================== OPTIMIZATION SYSTEMS ====================
+const spatialGrid = new window.optimizations.SpatialGrid(50);
+const disposalTracker = new window.optimizations.AssetDisposalTracker();
+const perfMonitor = new window.optimizations.PerformanceMonitor();
+
+
+3. ADD THIS TO YOUR animate() FUNCTION (around line 25819):
+------------------------------------------------------------
+
+// At the start of animate function, add:
+perfMonitor.update();
+
+// Before rendering, add:
+const stats = perfMonitor.getStats();
+console.log(`FPS: ${stats.fps}, Frame: ${stats.avgFrameTime}ms`);
+
+
+4. FIX RANDOMIZE BUTTON - REPLACE randomizeCity() FUNCTION:
+------------------------------------------------------------
+
+function randomizeCity() {
+  console.log('🔄 Randomizing city with proper cleanup...');
+  
+  // Clear spatial grid
+  if (window.spatialGrid) {
+    spatialGrid.clear();
+  }
+  
+  // Dispose all building assets
+  buildings.forEach(building => {
+    if (building.mesh) {
+      building.mesh.traverse(child => {
+        if (child.isMesh && window.disposalTracker) {
+          disposalTracker.dispose(child);
+        }
+      });
+      if (building.mesh.parent) {
+        building.mesh.parent.remove(building.mesh);
+      }
+    }
+    
+    // Dispose physics body if exists
+    if (building.body) {
+      world.removeRigidBody(building.body);
+    }
+  });
+  
+  // Clear arrays
+  buildings = [];
+  
+  // Clear chunks
+  activeChunks.forEach(chunkKey => {
+    const chunkRoot = chunkRoots.get(chunkKey);
+    if (chunkRoot) {
+      chunkRoot.traverse(child => {
+        if (child.isMesh && window.disposalTracker) {
+          disposalTracker.dispose(child);
+        }
+      });
+      worldRoot.remove(chunkRoot);
+    }
+  });
+  
+  chunkRoots.clear();
+  activeChunks.clear();
+  cityChunks.clear();
+  
+  // Clear world objects
+  worldObjects.forEach(wo => {
+    if (wo.mesh && wo.mesh.parent) {
+      wo.mesh.parent.remove(wo.mesh);
+    }
+    if (wo.body) {
+      world.removeRigidBody(wo.body);
+    }
+  });
+  worldObjects = [];
+  
+  // Reset next building ID
+  nextBuildingId = 1;
+  
+  // Regenerate city
+  console.log('🏗️ Generating new city...');
+  generateCityChunked();
+  
+  console.log('✅ City randomized successfully!');
+}
+
+
+5. OPTIONAL - ADD PERFORMANCE UI (paste before </body> tag):
+-------------------------------------------------------------
+
+<!-- Performance Monitor Panel -->
+<div id="perf-panel" class="ui-panel" style="top: 20px; right: 300px; max-width: 220px;">
+  <div class="panel-title">⚡ Performance</div>
+  
+  <div class="control-row">
+    <span class="control-label">FPS</span>
+    <span class="control-value" id="perf-fps" style="color: #4ade80;">60</span>
+  </div>
+  
+  <div class="control-row">
+    <span class="control-label">Frame Time</span>
+    <span class="control-value" id="perf-frametime">16.67ms</span>
+  </div>
+  
+  <div class="control-row">
+    <span class="control-label">Performance</span>
+    <span class="control-value" id="perf-status">Good</span>
+  </div>
+  
+  <div style="margin-top: 10px; font-size: 10px; color: #8ab4ff; line-height: 1.4;">
+    🟢 >45fps Good | 🟡 30-45fps OK | 🔴 <30fps Poor
+  </div>
+</div>
+
+<script>
+// Update performance UI in animate loop
+function updatePerfUI() {
+  if (!window.perfMonitor) return;
+  
+  const stats = perfMonitor.getStats();
+  
+  const fpsEl = document.getElementById('perf-fps');
+  if (fpsEl) {
+    fpsEl.textContent = stats.fps;
+    fpsEl.style.color = stats.performance === 'good' ? '#4ade80' : 
+                        stats.performance === 'medium' ? '#fbbf24' : '#ef4444';
+  }
+  
+  const frameTimeEl = document.getElementById('perf-frametime');
+  if (frameTimeEl) {
+    frameTimeEl.textContent = stats.avgFrameTime + 'ms';
+  }
+  
+  const statusEl = document.getElementById('perf-status');
+  if (statusEl) {
+    statusEl.textContent = stats.performance === 'good' ? 'Good' :
+                           stats.performance === 'medium' ? 'OK' : 'Poor';
+    statusEl.style.color = stats.performance === 'good' ? '#4ade80' : 
+                           stats.performance === 'medium' ? '#fbbf24' : '#ef4444';
+  }
+}
+
+// Call this in your animate loop after perfMonitor.update()
+</script>
+
+
+6. UPDATE YOUR ANIMATE LOOP TO INCLUDE:
+----------------------------------------
+
+function animate(time) {
+  requestAnimationFrame(animate);
+  
+  const deltaTime = Math.min((time - lastTime) / 1000, 0.05);
+  lastTime = time;
+  
+  if (deltaTime === 0) return;
+  
+  // ⚡ OPTIMIZATION: Update performance monitor
+  if (window.perfMonitor) {
+    perfMonitor.update();
+    if (typeof updatePerfUI === 'function') {
+      updatePerfUI();
+    }
+  }
+  
+  // ... rest of animate function ...
+  
+  // At the end, before render:
+  if (postFXEnabled) {
+    composer.render();
+  } else {
+    renderer.render(scene, camera);
+  }
+}
+
+
+===========================================
+MINIMAL INTEGRATION CHECKLIST:
+===========================================
+
+□ Step 1: Add optimization module import
+□ Step 2: Initialize global systems
+□ Step 3: Add perfMonitor.update() to animate
+□ Step 4: Fix randomizeCity function
+□ Step 5: (Optional) Add performance UI
+□ Step 6: Update animate loop
+
+===========================================
+TEST YOUR INTEGRATION:
+===========================================
+
+1. Open browser console
+2. Type: perfMonitor.getStats()
+3. Should see: {fps: 60, avgFrameTime: "16.67", ...}
+4. Click Randomize button - should work without errors
+5. Check FPS in performance panel
+
+===========================================
+TROUBLESHOOTING:
+===========================================
+
+ERROR: "optimizations is not defined"
+FIX: Make sure optimizations.js is in the same folder
+     and the script import is correct
+
+ERROR: "spatialGrid is not defined"
+FIX: Make sure step 2 initialization is added
+
+ERROR: Randomize still broken
+FIX: Make sure the full randomizeCity function
+     replacement includes all disposal code
+
+===========================================
+EXPECTED RESULTS:
+===========================================
+
+✅ FPS should increase 15-25 fps
+✅ Randomize button works without memory leaks
+✅ Frame time should decrease 5-10ms
+✅ No more "already been declared" errors
+✅ Performance monitor shows real-time stats
+
+===========================================
+
+
+
+

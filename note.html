@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scrunchable Note — three.js cloth + burn particles</title>
+  <style>
+    :root{
+      --paper-w: 680px;
+      --line-gap: 54px;
+      --line-color: #e6f1ff;
+      --bg: #0f172a; /* darker to showcase fire */
+      --ink: #0a0a0a;
+      --scrunch: 0; /* 0..1 */
+      --ball-diam: 120px; /* single source of truth for ball size */
+    }
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: radial-gradient(1200px 600px at 50% 110%, #0b1220, #0f172a 50%, #0a0f1e 100%);
+      color:#e5e7eb; display:grid; place-items:center; overflow:hidden;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+    .hud{position:fixed; inset:16px auto auto 16px; background:rgba(17,24,39,.6); border:1px solid rgba(148,163,184,.25); border-radius:14px; padding:10px 14px; box-shadow:0 10px 30px rgba(0,0,0,.35); backdrop-filter:blur(8px); z-index:5}
+    .hud h1{font-size:16px; margin:0 0 6px}
+    .hud p{font-size:12px; opacity:.85; margin:0}
+
+    .controls{position:fixed; top:16px; right:16px; display:flex; gap:8px; flex-wrap:wrap; z-index:6}
+    .btn{border:1px solid rgba(148,163,184,.35); border-radius:12px; background:rgba(30,41,59,.7); color:#e5e7eb; padding:8px 12px; box-shadow:0 6px 20px rgba(0,0,0,.25); cursor:pointer; font-weight:600; transition:transform .06s ease, background .15s ease}
+    .btn:active{transform:scale(.98)}
+    .btn.primary{background:#22c55e; color:#062e0f; border-color:#16a34a}
+    .btn.warn{background:#ef4444; color:#fff; border-color:#b91c1c}
+
+    .lightFab{position:fixed; top:10px; left:50%; transform:translateX(-50%); width:48px; height:48px; border-radius:999px; z-index:10; display:grid; place-items:center; font-size:22px; background:#fff; color:#111; border:1px solid #e5e7eb; box-shadow:0 10px 30px rgba(0,0,0,.35); cursor:pointer; transition:transform .08s ease, background .15s ease}
+    .lightFab:active{transform:translateX(-50%) scale(.96)}
+    .lightFab.armed{background:#ffe8d6; border-color:#fdba74; box-shadow:0 0 0 6px rgba(253,186,116,.25)}
+
+    .stage{position:relative; width:100vw; height:100vh}
+
+    /* PAPER DOM shell (for editing + clip-mask). 3D cloth renders behind it. */
+    .paper{
+      position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+      width:min(var(--paper-w), 92vw); min-height:60vh; border-radius:8px; overflow:hidden; z-index:3;
+      border:1px solid rgba(148,163,184,.35); box-shadow:0 30px 80px rgba(0,0,0,.4);
+      /* texture */
+      background:
+        repeating-linear-gradient(var(--line-color) 0 2px, transparent 2px calc(var(--line-gap) + 2px)),
+        linear-gradient(white, white);
+      background-size: 100% calc(var(--line-gap) + 2px), cover;
+      background-position: 0 42px, 0 0;
+      color:#0a0a0a;
+      transition: clip-path .08s ease;
+    }
+    .header{padding:18px 20px 6px; background:linear-gradient(#fff, rgba(255,255,255,.7) 60%, rgba(255,255,255,0))}
+    .title{width:100%; border:none; outline:none; background:transparent; font-size:24px; font-weight:700}
+    .editor-wrap{padding:0 28px 28px}
+    .editor{min-height:48vh; outline:none; line-height:var(--line-gap); font-size:18px; white-space:pre-wrap; caret-color:#111}
+
+    .hidden{display:none !important}
+
+    /* THREE.JS CANVAS */
+    canvas.webgl{position:absolute; inset:0; width:100%; height:100%; z-index:2;}
+
+    /* Ball proxy (CSS) only used for size constant; we render 3D ball instead */
+    .ball{position:fixed; width:var(--ball-diam); height:var(--ball-diam); border-radius:999px; left:50%; top:50%; transform:translate(-50%,-50%); opacity:0; pointer-events:none}
+
+    /* Burn overlay canvas + particles */
+    #burnCanvas{position:absolute; inset:0; pointer-events:none; mix-blend-mode:multiply; opacity:0; transition:opacity .2s ease; z-index:4}
+    .particle{position:fixed; width:4px; height:4px; border-radius:999px; background:#fbbf24; box-shadow:0 0 10px 2px rgba(251,191,36,.6); pointer-events:none; z-index:11}
+
+    /* Test panel */
+    .tests{position:fixed; right:16px; bottom:16px; z-index:20; background:rgba(17,24,39,.7); border:1px solid rgba(148,163,184,.35); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.35); padding:10px 12px; max-width:min(440px,80vw); font-size:12px}
+    .tests h2{margin:0 0 6px; font-size:12px}
+    .tests code{background:#0b1220; padding:1px 4px; border-radius:6px}
+    .tests .pass{color:#22c55e; font-weight:700}
+    .tests .fail{color:#ef4444; font-weight:700}
+
+    @media (prefers-reduced-motion: reduce){ .paper{transition:none} }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <h1>Scrunchable Note — cloth scrunch + burn particles</h1>
+    <p>Type, then <strong>Scrunch it</strong>: a cloth-like paper collapses into a sphere that matches the ball size exactly. Tap <strong>🔥</strong>, then tap the page: the hole <em>trails</em> the flame front and the page crumbles into glowing particles.</p>
+  </div>
+
+  <div class="controls" role="toolbar" aria-label="Controls">
+    <button class="btn" id="resetBtn">Reset</button>
+    <button class="btn" id="saveBtn">Save .txt</button>
+    <button class="btn primary" id="scrunchBtn">Scrunch it</button>
+  </div>
+
+  <button class="lightFab" id="lightFab" title="Light (tap, then tap paper)">🔥</button>
+
+  <div class="stage" id="stage">
+    <!-- three.js canvas -->
+    <canvas class="webgl" id="gl"></canvas>
+
+    <!-- Paper DOM (for editing + burn masking) -->
+    <section id="paper" class="paper" aria-label="Note paper">
+      <canvas id="burnCanvas"></canvas>
+      <div class="header"><input id="title" class="title" placeholder="Title…" aria-label="Title" /></div>
+      <div class="editor-wrap">
+        <div id="editor" class="editor" contenteditable="true" spellcheck="true" aria-multiline="true" role="textbox">Type your thoughts. Scrunch to vent; light a spot to burn. The hole lags behind the fire front while ash particles crumble away.</div>
+      </div>
+    </section>
+
+    <!-- CSS ball proxy for size reference -->
+    <div id="ball" class="ball" aria-hidden="true"></div>
+  </div>
+
+  <!-- Tests -->
+  <div class="tests" id="tests"><h2>Tests</h2><div id="testResults">(running…)</div><button class="btn" id="runTestsBtn" style="margin-top:6px;">Run Tests</button></div>
+
+  <script type="module">
+    // --- Imports ---
+    import * as THREE from 'https://unpkg.com/three@0.161.0/build/three.module.js';
+
+    // --- DOM refs ---
+    const stage = document.getElementById('stage');
+    const glCanvas = document.getElementById('gl');
+    const paper = document.getElementById('paper');
+    const ballProxy = document.getElementById('ball');
+    const title = document.getElementById('title');
+    const editor = document.getElementById('editor');
+    const scrunchBtn = document.getElementById('scrunchBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const lightFab = document.getElementById('lightFab');
+    const burnCanvas = document.getElementById('burnCanvas');
+    const bctx = burnCanvas.getContext('2d');
+
+    const testsBox = document.getElementById('tests');
+    const testResults = document.getElementById('testResults');
+    const runTestsBtn = document.getElementById('runTestsBtn');
+
+    // --- Constants ---
+    const BALL_DIAM = parseFloat(getComputedStyle(ballProxy).width); // px
+    const BALL_R = BALL_DIAM/2; // px
+    let UNIFORM_TARGET_SCALE = 1; // computed from paper size so final fits sphere exactly
+
+    // --- Utils ---
+    const normalizeNewlines = (s)=> (s||'').replace(/\r\n/g,'\n').replace(/\n{3,}/g,'\n');
+    const toTxt = ()=>{
+      const t = (title.value||'').trim();
+      const body = normalizeNewlines(editor.innerText||'');
+      return (t? t+"\n\n":"") + body + "\n";
+    }
+    const saveTxt = ()=>{
+      const blob = new Blob([toTxt()],{type:'text/plain;charset=utf-8'});
+      const url = URL.createObjectURL(blob); const a = document.createElement('a');
+      a.href=url; a.download=(title.value||'note')+'.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+
+    // --- three.js scene ---
+    const renderer = new THREE.WebGLRenderer({canvas: glCanvas, antialias: true, alpha: true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(35, innerWidth/innerHeight, 0.1, 2000);
+    camera.position.set(0, 0, 800);
+    scene.add(camera);
+
+    // Lighting
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x1e293b, .9); scene.add(hemi);
+    const dir = new THREE.DirectionalLight(0xffffff, .7); dir.position.set(200, 300, 500); scene.add(dir);
+
+    function resize(){
+      renderer.setSize(innerWidth, innerHeight);
+      camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+      // update paper rect & target scale & retarget cloth
+      const r = getPaperRect();
+      PAPER_W = r.w; PAPER_H = r.h; computeUniformTargetScale();
+      // rebuild geometry to match DOM paper each resize
+      const old = clothGeo; scene.remove(cloth); old.dispose?.();
+      clothGeo = new THREE.PlaneGeometry(PAPER_W, PAPER_H, segX, segY);
+      cloth.geometry = clothGeo; scene.add(cloth);
+      // rebuild jitter and targets
+      for(let i=0;i<clothGeo.attributes.position.count;i++) jitter[i%jitter.length] = jitter[i%jitter.length] || (Math.random()-0.5);
+      computeTargets();
+    }
+    addEventListener('resize', resize); resize();
+
+    // Paper cloth (plane) + material that uses the same lined texture as the DOM paper
+    // Create a CanvasTexture for lined paper
+    function makePaperTexture(w=1024,h=1024){
+      const c = document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,w,h);
+      // blue lines
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--line-color') || '#e6f1ff';
+      ctx.lineWidth = 2;
+      const gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--line-gap'))||54;
+      for(let y=42; y<h; y+=gap){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+      // margin line
+      ctx.strokeStyle = '#fecaca'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(128,0); ctx.lineTo(128,h); ctx.stroke();
+      const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(1,1);
+      return tex;
+    }
+
+    const paperTex = makePaperTexture();
+
+    // Geometry sized to DOM paper
+    function getPaperRect(){
+      const r = paper.getBoundingClientRect();
+      return { w: r.width, h: r.height };
+    }
+    let {w: PAPER_W, h: PAPER_H} = getPaperRect();
+    // Uniform scale so the larger dimension maps exactly to ball diameter
+    function computeUniformTargetScale(){
+      const maxDim = Math.max(PAPER_W, PAPER_H);
+      UNIFORM_TARGET_SCALE = BALL_DIAM / maxDim;
+    }
+    computeUniformTargetScale();
+
+    const segX = 40, segY = 60; // reasonably dense for scrunch
+    let clothGeo = new THREE.PlaneGeometry(PAPER_W, PAPER_H, segX, segY);
+    const clothMat = new THREE.MeshStandardMaterial({ map: paperTex, side: THREE.DoubleSide, roughness:.85, metalness:0 });
+    const cloth = new THREE.Mesh(clothGeo, clothMat);
+    cloth.position.set(0,0,0);
+    scene.add(cloth);
+
+    // Precompute per-vertex jitter to feel organic
+    const jitter = new Float32Array(clothGeo.attributes.position.count);
+    for(let i=0;i<jitter.length;i++) jitter[i] = (Math.random()-0.5);
+
+    // Target sphere (ball) — radius matches CSS var exactly
+    const ballMat = new THREE.MeshStandardMaterial({ map: paperTex, roughness:.9, metalness:0 });
+    const ballGeo = new THREE.SphereGeometry(BALL_R, 48, 32);
+    const ballMesh = new THREE.Mesh(ballGeo, ballMat);
+    ballMesh.visible = false; // revealed at end
+    scene.add(ballMesh);
+
+    // Store original vertex positions for morph
+    const startPos = clothGeo.attributes.position.array.slice();
+
+    // Compute target sphere positions for each vertex (exact sphere mapping in final space)
+    const targetPos = new Float32Array(clothGeo.attributes.position.count*3);
+    function computeTargets(){
+      const pos = clothGeo.attributes.position;
+      for(let i=0;i<pos.count;i++){
+        const x0 = pos.getX(i), y0 = pos.getY(i);
+        // map plane to final space using UNIFORM_TARGET_SCALE so max dimension equals BALL_DIAM
+        const x = x0 * UNIFORM_TARGET_SCALE;
+        const y = y0 * UNIFORM_TARGET_SCALE;
+        const r2 = x*x + y*y; const R = BALL_R; const maxR2 = R*R;
+        const r = Math.min(R, Math.sqrt(r2));
+        const nx = (r2>0? x * (r/Math.sqrt(r2)) : 0);
+        const ny = (r2>0? y * (r/Math.sqrt(r2)) : 0);
+        const z = Math.sqrt(Math.max(0, maxR2 - (nx*nx + ny*ny)));
+        targetPos[i*3+0] = nx;
+        targetPos[i*3+1] = ny;
+        targetPos[i*3+2] = z * (0.98 + 0.04*jitter[i]);
+      }
+    }
+    computeTargets();
+
+    // Scrunch animation: plane uniformly scales toward ball diameter while vertices ease toward target sphere
+    let scrunchT = 0, scrunching = false;
+    // fold lines (generated on scrunch)
+    let folds = [];
+    function makeFolds(){
+      folds = [];
+      const count = 6;
+      for(let i=0;i<count;i++){
+        // random line across plane defined by angle & offset
+        const ang = Math.random()*Math.PI;
+        const n = new THREE.Vector2(Math.cos(ang), Math.sin(ang)); // normal
+        const d = (Math.random()*0.6 - 0.3) * Math.max(PAPER_W, PAPER_H) * 0.5; // offset from center
+        const width = 30 + Math.random()*60; // influence width
+        const depth = 8 + Math.random()*18;  // z displacement at peak
+        folds.push({n, d, width, depth});
+      }
+    }
+
+    function scrunch(){
+      if(scrunching) return; scrunching = true; scrunchT = 0; makeFolds();
+      paper.classList.add('hidden'); // 3D cloth takes over
+      ballMesh.visible = false;
+    }
+
+    // Fire / burn state
+    let burnArmed=false, burnActive=false; let burnR=0, burnOrigin=null;
+    function armLight(){ burnArmed=true; lightFab.classList.add('armed'); }
+    function disarmLight(){ burnArmed=false; lightFab.classList.remove('armed'); }
+
+    // Particles along burn edge
+    function spawnParticlesEdge(cx, cy, r, count=26){
+      for(let i=0;i<count;i++){
+        const a = (i/count)*Math.PI*2 + (Math.random()-.5)*0.2;
+        const px = cx + Math.cos(a)*r + (Math.random()-.5)*8;
+        const py = cy + Math.sin(a)*r + (Math.random()-.5)*8;
+        const el = document.createElement('div'); el.className='particle';
+        el.style.left = (px) + 'px'; el.style.top = (py) + 'px';
+        document.body.appendChild(el);
+        const vx = (Math.random()-.5)*40, vy = (Math.random()*-60 - 20), life = 700 + Math.random()*600;
+        const start = performance.now();
+        function pf(ts){
+          const t = ts-start; const k = t/life; if(k>=1){ el.remove(); return; }
+          const x = px + vx*k* (1.0);
+          const y = py + vy*k + 300*(k*k); // gravity
+          el.style.transform = `translate(${x-px}px, ${y-py}px) scale(${1-(k*0.8)})`;
+          el.style.opacity = String(1-k);
+          requestAnimationFrame(pf);
+        }
+        requestAnimationFrame(pf);
+      }
+    }
+
+    function startBurnAt(clientX, clientY){
+      const r = paper.getBoundingClientRect();
+      const x = clientX - r.left; const y = clientY - r.top;
+      burnCanvas.width = Math.floor(r.width); burnCanvas.height = Math.floor(r.height);
+      burnCanvas.style.opacity = 1; burnActive = true; burnOrigin = {x,y}; burnR = 6;
+      spawnParticlesEdge(r.left + x, r.top + y, 6, 20);
+    }
+
+    function applyBurnMask(){
+      if(!burnActive) return;
+      const r = paper.getBoundingClientRect();
+      bctx.clearRect(0,0,burnCanvas.width,burnCanvas.height);
+      // flame ring (leading)
+      const ringThick = 26; const x = burnOrigin.x, y = burnOrigin.y;
+      const g = bctx.createRadialGradient(x,y,Math.max(1,burnR-ringThick), x,y, burnR);
+      g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(.6,'rgba(140,60,0,.5)'); g.addColorStop(.9,'rgba(30,15,0,.9)');
+      bctx.fillStyle=g; bctx.beginPath();
+      // jittered ring
+      const steps = 70; bctx.moveTo(x+burnR, y);
+      for(let i=0;i<=steps;i++){
+        const a = (i/steps)*Math.PI*2; const jit = (Math.random()-.5)*Math.min(18, burnR*.09);
+        const rr = Math.max(0, burnR + jit); bctx.lineTo(x+Math.cos(a)*rr, y+Math.sin(a)*rr);
+      }
+      bctx.closePath(); bctx.fill();
+
+      // trailing hole (slightly smaller than ring)
+      const holeR = Math.max(0, burnR - ringThick*0.35);
+      const path = new Path2D();
+      path.rect(0,0,burnCanvas.width,burnCanvas.height);
+      path.moveTo(x+holeR, y); // start inner path
+      for(let i=0;i<=steps;i++){
+        const a=(i/steps)*Math.PI*2; const jit=(Math.random()-.5)*Math.min(14, holeR*.08);
+        const rr=Math.max(0, holeR + jit); path.lineTo(x+Math.cos(a)*rr, y+Math.sin(a)*rr);
+      }
+      bctx.save(); bctx.globalCompositeOperation='destination-out'; bctx.fill(path, 'evenodd'); bctx.restore();
+
+      // crumble particles from trailing edge occasionally
+      if(Math.random()<0.6){ spawnParticlesEdge(r.left + x, r.top + y, holeR, 10); }
+
+      // grow
+      burnR += 1.1 + burnR*0.015;
+      if(burnR > Math.hypot(burnCanvas.width, burnCanvas.height)+40){ burnActive=false; burnCanvas.style.opacity=0; paper.classList.add('hidden'); }
+    }
+
+    // --- Interaction wiring ---
+    scrunchBtn.addEventListener('click', scrunch);
+    resetBtn.addEventListener('click', ()=>{
+      location.reload(); // simplest full reset for demo consistency
+    });
+    saveBtn.addEventListener('click', saveTxt);
+
+    lightFab.addEventListener('click', ()=>{ burnArmed? disarmLight() : armLight(); if(navigator.vibrate) navigator.vibrate(6); });
+    stage.addEventListener('pointerdown', e=>{
+      if(!burnArmed) return; const r = paper.getBoundingClientRect();
+      if(e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom){
+        disarmLight(); startBurnAt(e.clientX, e.clientY);
+      }
+    });
+
+    // --- Render loop ---
+    function easeOutExpo(t){ return t>=1 ? 1 : 1 - Math.pow(2, -10*t); }
+
+    function tick(ts){
+      // SCRUNCH
+      if(scrunching){
+        scrunchT = Math.min(1, scrunchT + 0.016);
+        const e = easeOutExpo(scrunchT);
+        // Uniformly scale geometry so larger dimension maps exactly to BALL_DIAM
+        const s = THREE.MathUtils.lerp(1, UNIFORM_TARGET_SCALE, e);
+        cloth.scale.set(s, s, 1);
+        // Vertex interpolation + folding & rounding
+        const pos = clothGeo.attributes.position;
+        for(let i=0;i<pos.count;i++){
+          const ox = pos.getX(i), oy = pos.getY(i), oz = pos.getZ(i);
+          // original at t=0 is geometry points at current scale step, we simulate fold on the fly
+          let x = ox, y = oy, z = oz;
+          // apply procedural folds based on distance to each fold line
+          for(const f of folds){
+            const dist = x*f.n.x + y*f.n.y - f.d; // signed distance
+            const k = Math.exp(- (dist*dist) / (f.width*f.width));
+            const intensity = k * (0.3 + 0.7*e); // grows over time
+            z -= f.depth * intensity;           // push into page
+            x -= f.n.x * 0.5 * intensity;      // slight gather towards line
+            y -= f.n.y * 0.5 * intensity;
+          }
+          // random crumple noise that ramps in early
+          const nJ = jitter[i%jitter.length];
+          z += (1.0 - Math.cos(Math.PI*e))*0.5 * 12 * nJ; // up to ~6px
+
+          // target sphere position for this vertex
+          const tx = targetPos[i*3+0], ty = targetPos[i*3+1], tz = targetPos[i*3+2];
+
+          // blend current (with folds) to sphere target
+          const nx = THREE.MathUtils.lerp(x, tx, e);
+          const ny = THREE.MathUtils.lerp(y, ty, e);
+          const nz = THREE.MathUtils.lerp(z, tz, e);
+          pos.setXYZ(i, nx, ny, nz);
+        }
+        pos.needsUpdate = true;
+        if(scrunchT===1){
+          scrunching=false; ballMesh.visible=true; cloth.visible=false;
+          // snap ball to texture orientation center
+          ballMesh.position.copy(cloth.position);
+        }
+      }
+
+      // BURN
+      applyBurnMask();
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    // --- Tests ---
+    function log(html){ testResults.insertAdjacentHTML('beforeend', `<div>${html}</div>`); }
+    function clearLog(){ testResults.innerHTML=''; }
+    function assert(cond, msg){ if(!cond) throw new Error(msg); }
+    function runTests(){
+      clearLog();
+      // 1) Ball dimension consistency
+      const cssBall = BALL_DIAM; assert(Math.round(cssBall)===120, 'BALL_DIAM should be 120px by default');
+      log('✅ <span class="pass">PASS</span> — Ball size constant matches CSS proxy');
+      // 2) three.js sphere radius computed from constant
+      assert(Math.abs(ballMesh.geometry.parameters.radius - BALL_R) < 1e-6, 'Sphere radius should equal BALL_R');
+      log('✅ <span class="pass">PASS</span> — 3D ball radius equals BALL_R');
+      // 3) Paper starts visible
+      assert(!paper.classList.contains('hidden'), 'Paper should start visible');
+      log('✅ <span class="pass">PASS</span> — Paper starts visible');
+      // 4) toTxt formatting
+      const tPrev = title.value, ePrev = editor.innerText; title.value='T'; editor.innerText='x
+
+
+
+y';
+      const out = toTxt(); assert(out==='T
+
+x
+y
+', 'toTxt normalizes newlines and formats output'); title.value=tPrev; editor.innerText=ePrev;
+      log('✅ <span class="pass">PASS</span> — toTxt formats with newline normalization');
+      // 5) Uniform target scale uses max dimension
+      const maxDim = Math.max(PAPER_W, PAPER_H); assert(Math.abs(UNIFORM_TARGET_SCALE - (BALL_DIAM/maxDim))<1e-6, 'Uniform target scale should be BALL_DIAM / max(PAPER_W,PAPER_H)');
+      log('✅ <span class="pass">PASS</span> — Uniform scaling computed from larger dimension');
+      // 6) Burn ignition grows radius
+      const r0 = burnR; startBurnAt(paper.getBoundingClientRect().left+40, paper.getBoundingClientRect().top+40);
+      const r1 = burnR; assert(r1>r0, 'Burn radius should increase after ignition start');
+      log('✅ <span class="pass">PASS</span> — Burn ignition advances radius');
+    }
+    runTestsBtn.addEventListener('click', runTests);
+    runTests();
+  </script>
+</body>
+</html>

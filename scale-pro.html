@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pockit Pro — Advanced Scale Sandbox</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; background: #0a0d12; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    
+    /* UI Panels */
+    .ui-panel {
+      position: fixed;
+      background: rgba(15,20,28,.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(74,124,255,.25);
+      border-radius: 12px;
+      padding: 16px;
+      color: #e8edf7;
+      font-size: 13px;
+      line-height: 1.5;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      z-index: 100;
+    }
+    
+    #controls-panel { bottom: 20px; left: 20px; max-width: 360px; }
+    #stats-panel { top: 20px; right: 20px; min-width: 240px; }
+    #visual-panel { top: 20px; left: 20px; max-width: 280px; }
+    
+    .panel-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #4a7cff;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 10px 0;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+    }
+    
+    .control-row:last-child { border-bottom: none; }
+    
+    .control-label {
+      flex: 1;
+      color: #b8c5d9;
+    }
+    
+    .control-value {
+      color: #4a7cff;
+      font-weight: 600;
+      min-width: 60px;
+      text-align: right;
+    }
+    
+    kbd {
+      background: #1a2130;
+      border: 1px solid rgba(74,124,255,.3);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #6a9cff;
+      box-shadow: 0 2px 4px rgba(0,0,0,.2);
+    }
+    
+    /* Sliders */
+    input[type="range"] {
+      width: 180px;
+      height: 4px;
+      background: rgba(74,124,255,.2);
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4a7cff;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(74,124,255,.5);
+    }
+    
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4a7cff;
+      cursor: pointer;
+      border: none;
+    }
+    
+    /* Buttons */
+    button {
+      background: linear-gradient(135deg, #4a7cff, #6a9cff);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 6px;
+      padding: 8px 16px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      font-size: 12px;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(74,124,255,.4);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    /* Checkbox Toggle */
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 22px;
+      background: rgba(255,255,255,.1);
+      border-radius: 11px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    
+    .toggle-switch.active {
+      background: #4a7cff;
+    }
+    
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      transition: left .2s;
+    }
+    
+    .toggle-switch.active::after {
+      left: 24px;
+    }
+    
+    /* Viewport Frame */
+    #viewport-frame {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 50vw;
+      height: 50vh;
+      border: 2px dashed rgba(74,124,255,0.8);
+      border-radius: 8px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    
+    #viewport-frame.active { opacity: 1; }
+    
+    /* Reticle */
+    #reticle {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: 20px;
+      height: 20px;
+      margin: -10px 0 0 -10px;
+      pointer-events: none;
+    }
+    
+    #reticle::before, #reticle::after {
+      content: '';
+      position: absolute;
+      background: rgba(74,124,255,0.8);
+    }
+    
+    #reticle::before {
+      left: 9px;
+      top: 0;
+      width: 2px;
+      height: 20px;
+    }
+    
+    #reticle::after {
+      top: 9px;
+      left: 0;
+      width: 20px;
+      height: 2px;
+    }
+    
+    /* Tooltip */
+    #tooltip {
+      position: fixed;
+      background: rgba(15,20,28,.95);
+      color: #e8edf7;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 200;
+      display: none;
+      transform: translate(-50%, -120%);
+      border: 1px solid rgba(74,124,255,.3);
+    }
+    
+    /* Loading */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: #0a0d12;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 1000;
+      transition: opacity .5s;
+    }
+    
+    #loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(74,124,255,.2);
+      border-top-color: #4a7cff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      color: #b8c5d9;
+      font-size: 14px;
+    }
+    
+    /* Hide panels toggle */
+    .minimized {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading Pockit Pro...</div>
+  </div>
+  
+  <div id="visual-panel" class="ui-panel">
+    <div class="panel-title">Visual Settings</div>
+    <div class="control-row">
+      <span class="control-label">Shadows</span>
+      <div class="toggle-switch active" id="toggle-shadows"></div>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Fog</span>
+      <div class="toggle-switch active" id="toggle-fog"></div>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Post-Processing</span>
+      <div class="toggle-switch" id="toggle-postfx"></div>
+    </div>
+    <div class="control-row">
+      <span class="control-label">FOV</span>
+      <span class="control-value" id="fov-value">75</span>
+    </div>
+    <input type="range" id="fov-slider" min="45" max="120" value="75" style="width: 100%;">
+    <div class="control-row">
+      <span class="control-label">Render Scale</span>
+      <span class="control-value" id="render-scale-value">1.0x</span>
+    </div>
+    <input type="range" id="render-scale-slider" min="50" max="200" value="100" style="width: 100%;">
+  </div>
+  
+  <div id="controls-panel" class="ui-panel">
+    <div class="panel-title">Controls</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+      <div><kbd>W A S D</kbd> Move</div>
+      <div><kbd>Space</kbd> Jump</div>
+      <div><kbd>Shift</kbd> Sprint</div>
+      <div><kbd>Q</kbd> Grow</div>
+      <div><kbd>E</kbd> Shrink</div>
+      <div><kbd>R</kbd> Reset</div>
+      <div><kbd>V</kbd> Viewport</div>
+      <div><kbd>P</kbd> Portals</div>
+      <div><kbd>F</kbd> Interact</div>
+      <div><kbd>C</kbd> Camera</div>
+      <div><kbd>H</kbd> Hide UI</div>
+      <div><kbd>M</kbd> Map</div>
+    </div>
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.05);">
+      <button id="spawn-city" style="width: 100%;">Generate New City</button>
+    </div>
+  </div>
+  
+  <div id="stats-panel" class="ui-panel">
+    <div class="panel-title">Status</div>
+    <div class="control-row">
+      <span class="control-label">Scale</span>
+      <span class="control-value" id="stat-scale">1.00x</span>
+    </div>
+    <div class="control-row">
+      <span class="control-label">World Scale</span>
+      <span class="control-value" id="stat-world-scale">1.00x</span>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Position</span>
+      <span class="control-value" id="stat-position">0, 0, 0</span>
+    </div>
+    <div class="control-row">
+      <span class="control-label">FPS</span>
+      <span class="control-value" id="stat-fps">60</span>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Objects</span>
+      <span class="control-value" id="stat-objects">0</span>
+    </div>
+  </div>
+  
+  <div id="viewport-frame"></div>
+  <div id="reticle"></div>
+  <div id="tooltip"></div>
+  
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  
+  <script type="module">
+    import * as THREE from 'three';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+    import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier3d-compat@0.11.2';
+    
+    // ==================== CONFIGURATION ====================
+    const CONFIG = {
+      PLAYER_HEIGHT: 1.7,
+      PLAYER_RADIUS: 0.3,
+      PLAYER_DEFAULT_SCALE: 1.0,
+      GRAVITY: -9.81,
+      MOVE_SPEED: 5.0,
+      SPRINT_MULTIPLIER: 2.0,
+      JUMP_FORCE: 6.0,
+      SHRINK_RATE: 0.8,
+      GROW_RATE: 0.8,
+      CITY_SIZE: 50,
+      CITY_DENSITY: 0.4,
+      MAX_BUILDINGS: 200,
+    };
+    
+    // ==================== INITIALIZATION ====================
+    let physics, world, scene, camera, renderer, composer;
+    let player, playerBody, playerScale = CONFIG.PLAYER_DEFAULT_SCALE;
+    let worldRoot, worldScale = 1.0;
+    let keys = new Set();
+    let velocity = new THREE.Vector3();
+    let pointerLocked = false;
+    let yaw = 0, pitch = 0;
+    
+    // City & World
+    let buildings = [];
+    let portals = [];
+    let viewportEquipped = false;
+    let postFXEnabled = false;
+    
+    // Stats
+    let frameCount = 0;
+    let lastFPSUpdate = 0;
+    
+    async function init() {
+      // Initialize Rapier Physics
+      await RAPIER.init();
+      physics = RAPIER;
+      world = new RAPIER.World({ x: 0, y: CONFIG.GRAVITY, z: 0 });
+      
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x87CEEB);
+      scene.fog = new THREE.FogExp2(0xBBD5EA, 0.008);
+      
+      // Camera
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000);
+      camera.position.set(0, CONFIG.PLAYER_HEIGHT, 10);
+      
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.0;
+      document.body.appendChild(renderer.domElement);
+      
+      // Post-processing
+      composer = new EffectComposer(renderer);
+      composer.addPass(new RenderPass(scene, camera));
+      const bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        0.4, 0.8, 0.2
+      );
+      composer.addPass(bloomPass);
+      composer.addPass(new SMAAPass(window.innerWidth, window.innerHeight));
+      
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+      scene.add(ambientLight);
+      
+      const sun = new THREE.DirectionalLight(0xfff5e6, 1.2);
+      sun.position.set(50, 100, 30);
+      sun.castShadow = true;
+      sun.shadow.mapSize.width = 2048;
+      sun.shadow.mapSize.height = 2048;
+      sun.shadow.camera.left = -100;
+      sun.shadow.camera.right = 100;
+      sun.shadow.camera.top = 100;
+      sun.shadow.camera.bottom = -100;
+      sun.shadow.camera.far = 200;
+      scene.add(sun);
+      
+      const hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x8B7355, 0.6);
+      scene.add(hemiLight);
+      
+      // World root for scaling
+      worldRoot = new THREE.Group();
+      scene.add(worldRoot);
+      
+      // Ground
+      createGround();
+      
+      // Initial city
+      generateCity();
+      
+      // Player physics body
+      createPlayer();
+      
+      // Portals
+      createPortalPair();
+      
+      // Setup controls
+      setupControls();
+      setupUI();
+      
+      // Hide loading
+      document.getElementById('loading').classList.add('hidden');
+      
+      // Start loop
+      requestAnimationFrame(animate);
+    }
+    
+    // ==================== GROUND ====================
+    function createGround() {
+      const groundSize = 200;
+      const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize, 50, 50);
+      const groundMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x6B8E23,
+        roughness: 0.8,
+        metalness: 0.1
+      });
+      
+      // Add some noise to ground vertices
+      const positions = groundGeometry.attributes.position;
+      for (let i = 0; i < positions.count; i++) {
+        const x = positions.getX(i);
+        const z = positions.getZ(i);
+        const noise = Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.5;
+        positions.setZ(i, noise);
+      }
+      groundGeometry.computeVertexNormals();
+      
+      const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+      ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
+      worldRoot.add(ground);
+      
+      // Physics ground
+      const groundBodyDesc = physics.RigidBodyDesc.fixed();
+      const groundBody = world.createRigidBody(groundBodyDesc);
+      const groundColliderDesc = physics.ColliderDesc.cuboid(groundSize / 2, 0.1, groundSize / 2);
+      world.createCollider(groundColliderDesc, groundBody);
+      
+      // Grid
+      const gridHelper = new THREE.GridHelper(groundSize, 50, 0x444444, 0x666666);
+      gridHelper.material.opacity = 0.2;
+      gridHelper.material.transparent = true;
+      worldRoot.add(gridHelper);
+    }
+    
+    // ==================== CITY GENERATION ====================
+    function generateCity() {
+      // Clear existing buildings
+      buildings.forEach(b => {
+        worldRoot.remove(b.mesh);
+        if (b.body) world.removeRigidBody(b.body);
+      });
+      buildings = [];
+      
+      const buildingCount = Math.floor(Math.random() * 50) + CONFIG.MAX_BUILDINGS;
+      const cityRadius = CONFIG.CITY_SIZE;
+      
+      for (let i = 0; i < buildingCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * cityRadius;
+        const x = Math.cos(angle) * distance;
+        const z = Math.sin(angle) * distance;
+        
+        // Skip if too close to center (player spawn)
+        if (Math.hypot(x, z) < 15) continue;
+        
+        // Random building dimensions
+        const width = 2 + Math.random() * 8;
+        const height = 3 + Math.random() * 40;
+        const depth = 2 + Math.random() * 8;
+        
+        // Building type
+        const type = Math.random();
+        let geometry;
+        
+        if (type < 0.3) {
+          // Simple box
+          geometry = new THREE.BoxGeometry(width, height, depth);
+        } else if (type < 0.6) {
+          // Cylinder
+          geometry = new THREE.CylinderGeometry(width / 2, width / 1.5, height, 8);
+        } else {
+          // Stacked boxes (modern)
+          const group = new THREE.Group();
+          const segments = 2 + Math.floor(Math.random() * 3);
+          let currentHeight = 0;
+          
+          for (let s = 0; s < segments; s++) {
+            const segHeight = height / segments;
+            const segWidth = width * (1 - s * 0.15);
+            const segDepth = depth * (1 - s * 0.15);
+            const segGeo = new THREE.BoxGeometry(segWidth, segHeight, segDepth);
+            const segMesh = new THREE.Mesh(segGeo);
+            segMesh.position.y = currentHeight + segHeight / 2;
+            group.add(segMesh);
+            currentHeight += segHeight;
+          }
+          
+          geometry = new THREE.BufferGeometry().copy(new THREE.BoxGeometry(width, height, depth));
+        }
+        
+        // Material with random color
+        const hue = Math.random();
+        const saturation = 0.2 + Math.random() * 0.3;
+        const lightness = 0.4 + Math.random() * 0.3;
+        const color = new THREE.Color().setHSL(hue, saturation, lightness);
+        
+        const material = new THREE.MeshStandardMaterial({ 
+          color,
+          roughness: 0.7,
+          metalness: 0.2
+        });
+        
+        const building = new THREE.Mesh(geometry, material);
+        building.position.set(x, height / 2, z);
+        building.castShadow = true;
+        building.receiveShadow = true;
+        
+        // Add windows
+        addWindows(building, width, height, depth);
+        
+        worldRoot.add(building);
+        
+        // Physics body (static)
+        const bodyDesc = physics.RigidBodyDesc.fixed();
+        const body = world.createRigidBody(bodyDesc);
+        body.setTranslation({ x, y: height / 2, z });
+        const colliderDesc = physics.ColliderDesc.cuboid(width / 2, height / 2, depth / 2);
+        world.createCollider(colliderDesc, body);
+        
+        buildings.push({ mesh: building, body, width, height, depth });
+      }
+    }
+    
+    function addWindows(building, width, height, depth) {
+      const windowMat = new THREE.MeshBasicMaterial({ 
+        color: 0xffeb3b,
+        emissive: 0xffeb3b,
+        emissiveIntensity: 0.5
+      });
+      
+      const windowsPerFloor = 3;
+      const floors = Math.floor(height / 3);
+      const windowSize = 0.3;
+      
+      for (let floor = 1; floor < floors; floor++) {
+        for (let w = 0; w < windowsPerFloor; w++) {
+          if (Math.random() > 0.7) continue; // Random windows lit
+          
+          const windowGeo = new THREE.PlaneGeometry(windowSize, windowSize);
+          const window1 = new THREE.Mesh(windowGeo, windowMat);
+          window1.position.set(
+            -width / 2 + width / windowsPerFloor * w + windowSize,
+            -height / 2 + floor * 3,
+            depth / 2 + 0.01
+          );
+          building.add(window1);
+        }
+      }
+    }
+    
+    // ==================== PLAYER ====================
+    function createPlayer() {
+      // Physics capsule for player
+      const bodyDesc = physics.RigidBodyDesc.dynamic()
+        .setTranslation(0, 5, 10)
+        .setLinearDamping(2.0)
+        .setAngularDamping(10.0)
+        .lockRotations();
+      
+      playerBody = world.createRigidBody(bodyDesc);
+      
+      const colliderDesc = physics.ColliderDesc.capsule(CONFIG.PLAYER_HEIGHT / 2, CONFIG.PLAYER_RADIUS);
+      world.createCollider(colliderDesc, playerBody);
+      
+      // Visual representation (simple capsule)
+      const playerGeometry = new THREE.CapsuleGeometry(CONFIG.PLAYER_RADIUS, CONFIG.PLAYER_HEIGHT, 4, 8);
+      const playerMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x4a7cff,
+        roughness: 0.5,
+        metalness: 0.3
+      });
+      player = new THREE.Mesh(playerGeometry, playerMaterial);
+      player.castShadow = true;
+      scene.add(player);
+    }
+    
+    // ==================== PORTALS ====================
+    function createPortalPair() {
+      const portalGeometry = new THREE.RingGeometry(1.5, 2, 32);
+      const portal1Mat = new THREE.MeshBasicMaterial({ 
+        color: 0x00ffff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.7
+      });
+      const portal2Mat = new THREE.MeshBasicMaterial({ 
+        color: 0xff00ff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.7
+      });
+      
+      const portal1 = new THREE.Mesh(portalGeometry, portal1Mat);
+      portal1.position.set(-20, 2, 0);
+      portal1.rotation.y = Math.PI / 2;
+      worldRoot.add(portal1);
+      
+      const portal2 = new THREE.Mesh(portalGeometry, portal2Mat);
+      portal2.position.set(20, 2, 0);
+      portal2.rotation.y = -Math.PI / 2;
+      worldRoot.add(portal2);
+      
+      portals.push({ a: portal1, b: portal2, scale: 1.0 });
+    }
+    
+    // ==================== CONTROLS ====================
+    function setupControls() {
+      // Keyboard
+      window.addEventListener('keydown', (e) => {
+        keys.add(e.code);
+        
+        if (e.code === 'KeyR') resetPlayer();
+        if (e.code === 'KeyV') toggleViewport();
+        if (e.code === 'KeyH') toggleUI();
+        if (e.code === 'KeyP') togglePortals();
+      });
+      
+      window.addEventListener('keyup', (e) => {
+        keys.delete(e.code);
+      });
+      
+      // Pointer lock
+      renderer.domElement.addEventListener('click', () => {
+        renderer.domElement.requestPointerLock();
+      });
+      
+      document.addEventListener('pointerlockchange', () => {
+        pointerLocked = document.pointerLockElement === renderer.domElement;
+      });
+      
+      document.addEventListener('mousemove', (e) => {
+        if (!pointerLocked) return;
+        
+        const sensitivity = 0.002;
+        yaw -= e.movementX * sensitivity;
+        pitch -= e.movementY * sensitivity;
+        pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+      });
+      
+      // Window resize
+      window.addEventListener('resize', onWindowResize);
+    }
+    
+    function setupUI() {
+      // Toggle switches
+      document.getElementById('toggle-shadows').addEventListener('click', (e) => {
+        const enabled = e.target.classList.toggle('active');
+        renderer.shadowMap.enabled = enabled;
+      });
+      
+      document.getElementById('toggle-fog').addEventListener('click', (e) => {
+        const enabled = e.target.classList.toggle('active');
+        scene.fog = enabled ? new THREE.FogExp2(0xBBD5EA, 0.008) : null;
+      });
+      
+      document.getElementById('toggle-postfx').addEventListener('click', (e) => {
+        postFXEnabled = e.target.classList.toggle('active');
+      });
+      
+      // FOV slider
+      document.getElementById('fov-slider').addEventListener('input', (e) => {
+        camera.fov = parseInt(e.target.value);
+        camera.updateProjectionMatrix();
+        document.getElementById('fov-value').textContent = camera.fov;
+      });
+      
+      // Render scale
+      document.getElementById('render-scale-slider').addEventListener('input', (e) => {
+        const scale = parseInt(e.target.value) / 100;
+        renderer.setPixelRatio(window.devicePixelRatio * scale);
+        composer.setPixelRatio(window.devicePixelRatio * scale);
+        document.getElementById('render-scale-value').textContent = scale.toFixed(1) + 'x';
+      });
+      
+      // Spawn city button
+      document.getElementById('spawn-city').addEventListener('click', generateCity);
+    }
+    
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+    }
+    
+    // ==================== UTILITIES ====================
+    function resetPlayer() {
+      playerBody.setTranslation({ x: 0, y: 5, z: 10 });
+      playerBody.setLinvel({ x: 0, y: 0, z: 0 });
+      playerScale = CONFIG.PLAYER_DEFAULT_SCALE;
+      yaw = 0;
+      pitch = 0;
+    }
+    
+    function toggleViewport() {
+      viewportEquipped = !viewportEquipped;
+      document.getElementById('viewport-frame').classList.toggle('active', viewportEquipped);
+    }
+    
+    function toggleUI() {
+      document.querySelectorAll('.ui-panel').forEach(panel => {
+        panel.classList.toggle('minimized');
+      });
+    }
+    
+    function togglePortals() {
+      portals.forEach(p => {
+        p.a.visible = !p.a.visible;
+        p.b.visible = !p.b.visible;
+      });
+    }
+    
+    function updateStats() {
+      const pos = playerBody.translation();
+      document.getElementById('stat-scale').textContent = playerScale.toFixed(2) + 'x';
+      document.getElementById('stat-world-scale').textContent = worldScale.toFixed(2) + 'x';
+      document.getElementById('stat-position').textContent = 
+        `${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`;
+      document.getElementById('stat-objects').textContent = buildings.length;
+      
+      // FPS counter
+      frameCount++;
+      const now = performance.now();
+      if (now - lastFPSUpdate > 1000) {
+        document.getElementById('stat-fps').textContent = frameCount;
+        frameCount = 0;
+        lastFPSUpdate = now;
+      }
+    }
+    
+    // ==================== ANIMATION LOOP ====================
+    let lastTime = 0;
+    
+    function animate(time) {
+      requestAnimationFrame(animate);
+      
+      const deltaTime = Math.min((time - lastTime) / 1000, 0.1);
+      lastTime = time;
+      
+      // Update physics
+      world.step();
+      
+      // Player movement
+      if (playerBody) {
+        const pos = playerBody.translation();
+        const vel = playerBody.linvel();
+        
+        // Camera rotation
+        const quat = new THREE.Quaternion();
+        quat.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+        
+        // Movement input
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(quat);
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(quat);
+        forward.y = 0;
+        right.y = 0;
+        forward.normalize();
+        right.normalize();
+        
+        const inputVec = new THREE.Vector3();
+        if (keys.has('KeyW')) inputVec.add(forward);
+        if (keys.has('KeyS')) inputVec.sub(forward);
+        if (keys.has('KeyD')) inputVec.add(right);
+        if (keys.has('KeyA')) inputVec.sub(right);
+        
+        if (inputVec.length() > 0) {
+          inputVec.normalize();
+          const speed = CONFIG.MOVE_SPEED * (keys.has('ShiftLeft') ? CONFIG.SPRINT_MULTIPLIER : 1) * playerScale;
+          inputVec.multiplyScalar(speed);
+          playerBody.setLinvel({ x: inputVec.x, y: vel.y, z: inputVec.z });
+        }
+        
+        // Jump
+        if (keys.has('Space') && Math.abs(vel.y) < 0.1) {
+          playerBody.applyImpulse({ x: 0, y: CONFIG.JUMP_FORCE * playerScale, z: 0 }, true);
+          keys.delete('Space'); // Prevent multi-jump
+        }
+        
+        // Scale adjustment
+        if (keys.has('KeyQ')) {
+          playerScale = Math.min(10, playerScale + CONFIG.GROW_RATE * deltaTime);
+        }
+        if (keys.has('KeyE')) {
+          playerScale = Math.max(0.01, playerScale - CONFIG.SHRINK_RATE * deltaTime);
+        }
+        
+        // Update camera
+        camera.position.set(pos.x, pos.y + CONFIG.PLAYER_HEIGHT / 2 * playerScale, pos.z);
+        camera.quaternion.copy(quat);
+        
+        // Update player visual
+        player.position.set(pos.x, pos.y, pos.z);
+        player.scale.setScalar(playerScale);
+      }
+      
+      // Portal teleportation check
+      checkPortalTeleport();
+      
+      // Update stats
+      updateStats();
+      
+      // Render
+      if (postFXEnabled) {
+        composer.render();
+      } else {
+        renderer.render(scene, camera);
+      }
+    }
+    
+    function checkPortalTeleport() {
+      if (!playerBody || portals.length === 0) return;
+      
+      const pos = playerBody.translation();
+      const playerPos = new THREE.Vector3(pos.x, pos.y, pos.z);
+      
+      portals.forEach(portalPair => {
+        const distA = playerPos.distanceTo(portalPair.a.position);
+        const distB = playerPos.distanceTo(portalPair.b.position);
+        
+        if (distA < 2) {
+          // Teleport to B
+          const offset = new THREE.Vector3().subVectors(playerPos, portalPair.a.position);
+          const newPos = new THREE.Vector3().addVectors(portalPair.b.position, offset);
+          playerBody.setTranslation(newPos);
+          
+          // Scale change through portal
+          playerScale *= portalPair.scale;
+        } else if (distB < 2) {
+          // Teleport to A
+          const offset = new THREE.Vector3().subVectors(playerPos, portalPair.b.position);
+          const newPos = new THREE.Vector3().addVectors(portalPair.a.position, offset);
+          playerBody.setTranslation(newPos);
+          
+          // Scale change through portal
+          playerScale /= portalPair.scale;
+        }
+      });
+    }
+    
+    // ==================== START ====================
+    init();
+  </script>
+</body>
+</html>
+
+
+
+

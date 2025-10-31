@@ -49,6 +49,65 @@
     text-shadow: 0 0 10px rgba(0,102,255,.8); letter-spacing:2px;
   }
 
+  /* Credits Overlay */
+  #creditsOverlay {
+    position: fixed;
+    inset: 0;
+    background: 
+      repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.5) 0px,
+        rgba(0, 0, 0, 0.55) 1px,
+        rgba(0, 0, 0, 0.5) 2px,
+        rgba(0, 0, 0, 0.55) 3px
+      ),
+      rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1s ease;
+  }
+
+  #creditsOverlay.visible {
+    opacity: 1;
+    pointer-events: none;  /* Don't block buttons underneath */
+  }
+  
+  #creditsOverlay .credit-card {
+    pointer-events: auto;  /* Only the credit card itself captures clicks */
+  }
+
+  .credit-card {
+    text-align: center;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 1.5s ease, transform 1.5s ease;
+  }
+
+  .credit-card.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .credit-text {
+    color: #ffffff;
+    font-family: 'Helvetica Neue', 'Arial', sans-serif;
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    line-height: 1.8;
+    margin: 0;
+    padding: 8px 30px;
+    white-space: pre-line;
+  }
+
+  .credit-text strong {
+    font-weight: 400;
+  }
+
   #lookInside {
     position:absolute;
     top:35%;
@@ -83,27 +142,31 @@
   }
 
   #lookInside .look-heading-text {
-    display:flex;
-    align-items:center;
-    gap:clamp(4px,1.2vw,10px);
+    display:inline;
     position:relative;
+    white-space:nowrap;
+  }
+  
+  #lookInside .look-heading-text > span {
+    display:inline;
+    vertical-align:baseline;
+    line-height:1;
   }
 
   #portalO {
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    width:clamp(48px,12vw,78px);
-    height:clamp(48px,12vw,78px);
+    display:inline-block;
+    width:clamp(50px,12.5vw,80px);
+    height:clamp(50px,12.5vw,80px);
     border-radius:50%;
     background:black;
     cursor:pointer;
     pointer-events:auto;
     opacity:0;
     transition:opacity 0.5s;
-    margin:0 clamp(-6px,-1.5vw,-8px);
+    margin:0 clamp(-6px,-1.5vw,-10px);
+    vertical-align:baseline;
     position:relative;
-    flex-shrink:0;
+    top:clamp(-4px,-1vw,-6px);
   }
 
   #lookInside .look-sub-1 {
@@ -138,6 +201,15 @@
     letter-spacing:clamp(1px,1.1vw,6px);
     line-height:1.4;
     margin-top:clamp(18px,4vw,30px);
+  }
+  
+  #lookInside .look-note-2 {
+    font-size:clamp(12px,4vw,16px);
+    padding-left:clamp(20px,10vw,120px);
+    font-weight:400;
+    letter-spacing:clamp(1px,1.1vw,6px);
+    line-height:1.4;
+    margin-top:clamp(6px,1.5vw,10px);
   }
 
   @media (max-width: 600px) {
@@ -242,6 +314,157 @@
     pointer-events: auto; z-index: 1000;
   }
   #debugToggle:hover { background: rgba(0, 102, 255, 0.5); }
+
+  /* Beta Form Section */
+  #betaFormSection {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,10,30,0.98) 100%);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    pointer-events: auto;
+  }
+  
+  #betaFormSection.visible {
+    display: flex;
+  }
+  
+  .beta-content {
+    max-width: 900px;
+    width: 90%;
+    padding: 60px 20px;
+    text-align: center;
+    transition: all 0.6s ease;
+  }
+  
+  .beta-header {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(32px, 8vw, 72px);
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #0066ff;
+    text-shadow: 0 0 20px rgba(0,102,255,0.8), 0 0 40px rgba(0,102,255,0.4);
+    margin-bottom: 40px;
+    line-height: 1.2;
+    transition: all 0.6s ease;
+  }
+  
+  .beta-list-container {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  #betaFormSection.unfurled .beta-list-container {
+    max-height: 2000px;
+    opacity: 1;
+  }
+  
+  #betaFormSection.unfurled .beta-header {
+    font-size: clamp(24px, 5vw, 42px);
+    margin-bottom: 30px;
+  }
+  
+  .beta-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .beta-list-item {
+    background: linear-gradient(135deg, rgba(0,102,255,0.1), rgba(0,102,255,0.05));
+    border: 2px solid rgba(0,102,255,0.4);
+    border-radius: 12px;
+    padding: 20px 30px;
+    margin: 15px 0;
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(14px, 3vw, 20px);
+    color: #00ffff;
+    text-shadow: 0 0 10px rgba(0,255,255,0.6);
+    letter-spacing: 1px;
+    transform: translateY(20px);
+    opacity: 0;
+    animation: slideIn 0.6s ease forwards;
+    box-shadow: 0 4px 20px rgba(0,102,255,0.2);
+    transition: all 0.3s ease;
+  }
+  
+  .beta-list-item:hover {
+    background: linear-gradient(135deg, rgba(0,102,255,0.2), rgba(0,102,255,0.1));
+    border-color: rgba(0,255,255,0.6);
+    transform: translateY(0px) scale(1.02);
+    box-shadow: 0 6px 30px rgba(0,102,255,0.4);
+  }
+  
+  .beta-list-item:nth-child(1) { animation-delay: 0.1s; }
+  .beta-list-item:nth-child(2) { animation-delay: 0.2s; }
+  .beta-list-item:nth-child(3) { animation-delay: 0.3s; }
+  .beta-list-item:nth-child(4) { animation-delay: 0.4s; }
+  .beta-list-item:nth-child(5) { animation-delay: 0.5s; }
+  .beta-list-item:nth-child(6) { animation-delay: 0.6s; }
+  .beta-list-item:nth-child(7) { animation-delay: 0.7s; }
+  .beta-list-item:nth-child(8) { animation-delay: 0.8s; }
+  
+  @keyframes slideIn {
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  .beta-scroll-hint {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #ffff00;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(255,255,0,0.8);
+    animation: bounce 2s ease-in-out infinite;
+    opacity: 1;
+    transition: opacity 0.4s;
+  }
+  
+  #betaFormSection.unfurled .beta-scroll-hint {
+    opacity: 0;
+    pointer-events: none;
+  }
+  
+  @keyframes bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-10px); }
+  }
+  
+  .beta-close-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255,0,0,0.3);
+    border: 2px solid #ff0000;
+    color: #ff0000;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-size: 14px;
+    transition: all 0.3s;
+    z-index: 10000;
+  }
+  
+  .beta-close-btn:hover {
+    background: rgba(255,0,0,0.5);
+    transform: scale(1.05);
+  }
 </style>
 </head>
 <body>
@@ -255,7 +478,14 @@
   </div>
 </div>
 
-<button id="escapeBtn" style="position: fixed; top: 18px; left: 18px; padding: 12px 20px; background: rgba(255, 0, 0, 0.3); border: 2px solid #ff0000; color: #ff0000; border-radius: 8px; cursor: pointer; font-family: 'Orbitron', sans-serif; font-weight: 700; letter-spacing: 1px; font-size: 14px; display: none; pointer-events: auto; transition: all 0.3s;">GET ME OUT OF HERE</button>
+<button id="escapeBtn" style="position: fixed; top: 18px; left: 18px; padding: 12px 20px; background: rgba(255, 0, 0, 0.3); border: 2px solid #ff0000; color: #ff0000; border-radius: 8px; cursor: pointer; font-family: 'Orbitron', sans-serif; font-weight: 700; letter-spacing: 1px; font-size: 14px; display: none; pointer-events: auto; transition: all 0.3s; z-index: 10002;">GET ME OUT OF HERE</button>
+
+<!-- Credits Overlay -->
+<div id="creditsOverlay">
+  <div class="credit-card">
+    <p class="credit-text" id="creditText"></p>
+  </div>
+</div>
 
 <!-- Yellow Timeline between stars and escape button -->
 <div id="timeline" style="position: fixed; top: 25px; left: 50%; transform: translateX(-50%); width: 40%; max-width: 500px;">
@@ -305,13 +535,36 @@
     <div class="look-line look-sub-3" style="--delay:0.9s;">YOU TOO,</div>
     <div class="look-line look-sub-4" style="--delay:1.2s;">ARE MADE</div>
     <div class="look-line look-sub-5" style="--delay:1.5s;">OF GLASS.</div>
-    <div class="look-line look-note" style="--delay:1.8s;">No being forced to pick between pills.<br>This isn't Hollywood.</div>
+    <div class="look-line look-note" style="--delay:1.8s;">No being forced to pick between pills.</div>
+    <div class="look-line look-note-2" style="--delay:2.0s;">This isn't Hollywood.</div>
   </div>
 </div>
 
 <div class="camera-mode-overlay" id="cameraModeOverlay">ORBIT CAMERA ACTIVE - Drag to Rotate</div>
 
 <button id="debugToggle">DEBUG</button>
+
+<!-- Beta Form Section -->
+<div id="betaFormSection">
+  <button class="beta-close-btn" onclick="document.getElementById('betaFormSection').classList.remove('visible')">CLOSE</button>
+  <div class="beta-content">
+    <h1 class="beta-header">CELLI'S ALWAYS LOOKING TO THE FUTURE</h1>
+    <div class="beta-list-container">
+      <ul class="beta-list">
+        <li class="beta-list-item">🚀 Real-time collaboration features</li>
+        <li class="beta-list-item">🎨 Advanced visual effects engine</li>
+        <li class="beta-list-item">🎮 Interactive 3D environments</li>
+        <li class="beta-list-item">🎵 Adaptive audio synthesis</li>
+        <li class="beta-list-item">🌐 Cross-platform support</li>
+        <li class="beta-list-item">🔮 AI-powered content generation</li>
+        <li class="beta-list-item">⚡ Performance optimizations</li>
+        <li class="beta-list-item">🎯 User experience enhancements</li>
+      </ul>
+    </div>
+  </div>
+  <div class="beta-scroll-hint">⬇ SCROLL TO EXPLORE ⬇</div>
+</div>
+
 <div id="debugPanel">
   <h3>⚙️ Visual Settings</h3>
   
@@ -865,6 +1118,78 @@ if (portalO) {
       overlay.style.cssText = `position: fixed; left: ${centerX}px; top: ${centerY}px; transform: translate(-50%, -50%); width: 78px; height: 78px; border-radius: 50%; background: black; z-index: 10001; pointer-events: none;`;
       document.body.appendChild(overlay);
       
+      // Function to suck in text from any container
+      const suckInText = (container) => {
+        if (!container) return;
+        
+        const allTextNodes = [];
+        const walker = document.createTreeWalker(
+          container,
+          NodeFilter.SHOW_TEXT,
+          null,
+          false
+        );
+        
+        let node;
+        while (node = walker.nextNode()) {
+          if (node.textContent.trim()) {
+            allTextNodes.push(node);
+          }
+        }
+        
+        // Replace each text node with individually animated spans
+        allTextNodes.forEach(textNode => {
+          const text = textNode.textContent;
+          const parent = textNode.parentNode;
+          const fragment = document.createDocumentFragment();
+          
+          for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const span = document.createElement('span');
+            span.textContent = char;
+            span.style.display = 'inline-block';
+            span.style.position = 'relative';
+            span.style.transition = `all ${0.8 + Math.random() * 0.4}s cubic-bezier(0.6, 0, 0.8, 1)`;
+            span.style.transitionDelay = `${Math.random() * 0.3}s`;
+            
+            // Calculate direction to portal center from character
+            setTimeout(() => {
+              const charRect = span.getBoundingClientRect();
+              const charCenterX = charRect.left + charRect.width / 2;
+              const charCenterY = charRect.top + charRect.height / 2;
+              const deltaX = centerX - charCenterX;
+              const deltaY = centerY - charCenterY;
+              
+              span.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0)`;
+              span.style.opacity = '0';
+            }, 100);
+            
+            fragment.appendChild(span);
+          }
+          
+          parent.replaceChild(fragment, textNode);
+        });
+      };
+      
+      // Suck in all text from lookInside container
+      suckInText(document.getElementById('lookInside'));
+      
+      // Also suck in text from other visible elements (timeline, HUD, etc.)
+      // But NOT the escape button
+      const otherTextContainers = [
+        document.getElementById('timeline'),
+        document.getElementById('nowPlaying'),
+        document.querySelector('.hud'),
+        document.getElementById('debugToggle'),
+        document.getElementById('betaFormSection')
+      ];
+      
+      otherTextContainers.forEach(container => {
+        if (container && container.offsetParent !== null) {  // Only if visible
+          suckInText(container);
+        }
+      });
+      
       // Expand to cover screen
       setTimeout(() => {
         const maxDim = Math.max(window.innerWidth, window.innerHeight) * 3;
@@ -884,6 +1209,7 @@ if (portalO) {
         // Set flags for index.html
         sessionStorage.setItem('celli:autoClickPlay', 'true');
         sessionStorage.setItem('celli:blackOverlay', 'true');
+        sessionStorage.setItem('celli:betaRedirectStatus', 'true');  // Kill referrer overlay
         
         // Navigate immediately
         window.location.href = 'index.html';
@@ -920,6 +1246,7 @@ if (q1Marker) {
   q1Marker.addEventListener('click', () => {
     gameTime = 5;
     if (currentTrack) currentTrack.currentTime = 5;
+    terminateCredits();
     console.log('⏩ Jumped to Q1 (5s)');
   });
 }
@@ -928,6 +1255,7 @@ if (q2Marker) {
   q2Marker.addEventListener('click', () => {
     gameTime = 35;
     if (currentTrack) currentTrack.currentTime = 35;
+    terminateCredits();
     console.log('⏩ Jumped to Q2 (35s) - Inversion section');
   });
 }
@@ -936,6 +1264,7 @@ if (q3Marker) {
   q3Marker.addEventListener('click', () => {
     gameTime = 65;
     if (currentTrack) currentTrack.currentTime = 65;
+    terminateCredits();
     console.log('⏩ Jumped to Q3 (65s) - Finale begins');
   });
 }
@@ -944,6 +1273,7 @@ if (q4Marker) {
   q4Marker.addEventListener('click', () => {
     gameTime = 95;
     if (currentTrack) currentTrack.currentTime = 95;
+    terminateCredits();
     console.log('⏩ Jumped to Q4 (95s) - Final crescendo');
   });
 }
@@ -1204,7 +1534,172 @@ const submitSprite = new THREE.Sprite(new THREE.SpriteMaterial({
 }));
 submitSprite.scale.set(6, 1.5, 1);
 submitSprite.position.set(0, 2.5, 0);
+submitSprite.userData = { active: true, twirlProgress: 0 };
 bike.add(submitSprite);
+
+// Create 2D sprite versions of shapes (initial state)
+const shape2DGroup = new THREE.Group();
+shape2DGroup.position.set(0, 3.6, 0);  // Above the board
+bike.add(shape2DGroup);
+
+// Draw blue cube as 2D sprite
+const cubeCanvas = document.createElement('canvas');
+cubeCanvas.width = 128;
+cubeCanvas.height = 128;
+const cubeCtx = cubeCanvas.getContext('2d');
+cubeCtx.clearRect(0, 0, 128, 128);  // Ensure transparent background
+cubeCtx.fillStyle = '#0066ff';
+cubeCtx.fillRect(20, 20, 88, 88);
+cubeCtx.strokeStyle = '#004499';
+cubeCtx.lineWidth = 3;
+cubeCtx.strokeRect(20, 20, 88, 88);
+const cubeTexture = new THREE.CanvasTexture(cubeCanvas);
+const cubeSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: cubeTexture, transparent: true }));
+cubeSprite.scale.set(0.8, 0.8, 1);
+cubeSprite.position.set(-2, 0, 0);
+shape2DGroup.add(cubeSprite);
+
+// Draw yellow pyramid as 2D sprite
+const pyramidCanvas = document.createElement('canvas');
+pyramidCanvas.width = 128;
+pyramidCanvas.height = 128;
+const pyramidCtx = pyramidCanvas.getContext('2d');
+pyramidCtx.clearRect(0, 0, 128, 128);  // Ensure transparent background
+pyramidCtx.fillStyle = '#ffff00';
+pyramidCtx.beginPath();
+pyramidCtx.moveTo(64, 20);
+pyramidCtx.lineTo(100, 100);
+pyramidCtx.lineTo(28, 100);
+pyramidCtx.closePath();
+pyramidCtx.fill();
+pyramidCtx.strokeStyle = '#cccc00';
+pyramidCtx.lineWidth = 3;
+pyramidCtx.stroke();
+const pyramidTexture = new THREE.CanvasTexture(pyramidCanvas);
+const pyramidSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: pyramidTexture, transparent: true }));
+pyramidSprite.scale.set(0.8, 0.8, 1);
+pyramidSprite.position.set(0, 0, 0);
+shape2DGroup.add(pyramidSprite);
+
+// Draw red sphere as 2D sprite
+const sphereCanvas = document.createElement('canvas');
+sphereCanvas.width = 128;
+sphereCanvas.height = 128;
+const sphereCtx = sphereCanvas.getContext('2d');
+sphereCtx.clearRect(0, 0, 128, 128);  // Ensure transparent background
+const gradient = sphereCtx.createRadialGradient(50, 50, 10, 64, 64, 40);
+gradient.addColorStop(0, '#ff6699');
+gradient.addColorStop(1, '#ff0066');
+sphereCtx.fillStyle = gradient;
+sphereCtx.beginPath();
+sphereCtx.arc(64, 64, 40, 0, Math.PI * 2);
+sphereCtx.fill();
+sphereCtx.strokeStyle = '#cc0044';
+sphereCtx.lineWidth = 2;
+sphereCtx.stroke();
+const sphereTexture = new THREE.CanvasTexture(sphereCanvas);
+const sphereSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: sphereTexture, transparent: true }));
+sphereSprite.scale.set(0.8, 0.8, 1);
+sphereSprite.position.set(2, 0, 0);
+shape2DGroup.add(sphereSprite);
+
+// Create 3D shapes (hidden initially, will appear after animation)
+const shape3DGroup = new THREE.Group();
+shape3DGroup.position.set(0, 3.6, 0);  // Above the board
+shape3DGroup.visible = false;  // Start hidden
+bike.add(shape3DGroup);
+
+// Rounded blue cube (3D)
+const cubeGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6, 4, 4, 4);
+const cubePositions = cubeGeo.attributes.position;
+const cubeVertex = new THREE.Vector3();
+const cubeSize = 0.6;
+const roundAmount = 0.12;  // How much to round (relative to cube size)
+// Round the cube by lerping corners toward sphere
+for (let i = 0; i < cubePositions.count; i++) {
+  cubeVertex.fromBufferAttribute(cubePositions, i);
+  const spherePos = cubeVertex.clone().normalize().multiplyScalar(cubeSize * 0.5);
+  // Blend cube position with sphere position based on distance from center
+  const distFromCenter = cubeVertex.length();
+  const maxDist = Math.sqrt(3) * (cubeSize * 0.5);  // Max corner distance
+  const t = (distFromCenter / maxDist) * roundAmount;  // Only round corners
+  cubeVertex.lerp(spherePos, t);
+  cubePositions.setXYZ(i, cubeVertex.x, cubeVertex.y, cubeVertex.z);
+}
+cubeGeo.computeVertexNormals();
+const roundedCube = new THREE.Mesh(
+  cubeGeo,
+  new THREE.MeshStandardMaterial({
+    color: 0x0066ff,
+    metalness: 0.6,
+    roughness: 0.2,
+    emissive: 0x0066ff,
+    emissiveIntensity: 0.5
+  })
+);
+roundedCube.position.set(-2, 0, 0);
+roundedCube.userData = { spinSpeed: 1.5 };
+shape3DGroup.add(roundedCube);
+
+// 3-faced yellow pyramid (3D)
+const pyramidGeo = new THREE.ConeGeometry(0.4, 0.7, 3);
+const pyramid = new THREE.Mesh(
+  pyramidGeo,
+  new THREE.MeshStandardMaterial({
+    color: 0xffff00,
+    metalness: 0.6,
+    roughness: 0.2,
+    emissive: 0xffff00,
+    emissiveIntensity: 0.5
+  })
+);
+pyramid.position.set(0, 0, 0);
+pyramid.rotation.y = Math.PI / 6;  // Rotate for better view
+pyramid.userData = { spinSpeed: 2.0 };
+shape3DGroup.add(pyramid);
+
+// Red sphere (3D)
+const sphere = new THREE.Mesh(
+  new THREE.SphereGeometry(0.35, 16, 16),
+  new THREE.MeshStandardMaterial({
+    color: 0xff0066,
+    metalness: 0.6,
+    roughness: 0.2,
+    emissive: 0xff0066,
+    emissiveIntensity: 0.5
+  })
+);
+sphere.position.set(2, 0, 0);
+sphere.userData = { spinSpeed: 1.8 };
+shape3DGroup.add(sphere);
+
+// Store references for animation
+submitSprite.userData.shape2DGroup = shape2DGroup;
+submitSprite.userData.shape3DGroup = shape3DGroup;
+
+// Create face-mapped SUBMIT texture for bike body (bright for emissive)
+const submitFaceCanvas = document.createElement('canvas');
+submitFaceCanvas.width = 256;
+submitFaceCanvas.height = 128;
+const submitFaceCtx = submitFaceCanvas.getContext('2d');
+
+// Start with bright blue background
+submitFaceCtx.fillStyle = '#0066ff';
+submitFaceCtx.fillRect(0, 0, 256, 128);
+
+// Draw SUBMIT text with black outline for visibility
+submitFaceCtx.strokeStyle = '#000';
+submitFaceCtx.lineWidth = 4;
+submitFaceCtx.font = 'bold 48px "Orbitron", sans-serif';
+submitFaceCtx.textAlign = 'center';
+submitFaceCtx.textBaseline = 'middle';
+submitFaceCtx.strokeText('SUBMIT', 128, 64);
+
+submitFaceCtx.fillStyle = '#fff';
+submitFaceCtx.fillText('SUBMIT', 128, 64);
+
+const submitFaceTexture = new THREE.CanvasTexture(submitFaceCanvas);
+submitFaceTexture.needsUpdate = true;
 
 // SkiFree Yeti/Monster chaser sprite - EXACT pixel art from image
 const yetiCanvas = document.createElement('canvas');
@@ -1416,6 +1911,231 @@ const floatingCubeMat = new THREE.MeshStandardMaterial({
 const floatingArrays = [];
 const skiObstacles = [];  // Trees and gates spawned during ski section
 const cubesPerArray = 6 * 6 * 6;  // 216 cubes per array
+
+// Falling game pieces system (cards, dice, pawns)
+const fallingGamePieces = [];
+const maxFallingPieces = 40;
+
+function createCard() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 384;
+  const ctx = canvas.getContext('2d');
+  
+  // Card background (white with border)
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, 256, 384);
+  ctx.strokeStyle = '#333333';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(0, 0, 256, 384);
+  
+  // Random card suit and number
+  const suits = ['♠', '♥', '♦', '♣'];
+  const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  const suit = suits[Math.floor(Math.random() * suits.length)];
+  const value = values[Math.floor(Math.random() * values.length)];
+  
+  const isRed = suit === '♥' || suit === '♦';
+  ctx.fillStyle = isRed ? '#ff0000' : '#000000';
+  
+  // Top left corner
+  ctx.font = 'bold 48px Arial';
+  ctx.fillText(value, 20, 60);
+  ctx.font = '64px Arial';
+  ctx.fillText(suit, 20, 130);
+  
+  // Center suit (large)
+  ctx.font = '128px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(suit, 128, 240);
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  const geometry = new THREE.PlaneGeometry(5, 7.5);
+  const material = new THREE.MeshStandardMaterial({
+    map: texture,
+    side: THREE.DoubleSide,
+    metalness: 0.3,
+    roughness: 0.7
+  });
+  
+  return new THREE.Mesh(geometry, material);
+}
+
+function createDice() {
+  const size = 4;
+  const geometry = new THREE.BoxGeometry(size, size, size);
+  
+  // Create dice with dots
+  const materials = [];
+  const dotCounts = [1, 2, 3, 4, 5, 6];
+  
+  for (let i = 0; i < 6; i++) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    
+    // White face
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 128, 128);
+    
+    // Black dots
+    ctx.fillStyle = '#000000';
+    const dotPositions = {
+      1: [[64, 64]],
+      2: [[32, 32], [96, 96]],
+      3: [[32, 32], [64, 64], [96, 96]],
+      4: [[32, 32], [96, 32], [32, 96], [96, 96]],
+      5: [[32, 32], [96, 32], [64, 64], [32, 96], [96, 96]],
+      6: [[32, 32], [96, 32], [32, 64], [96, 64], [32, 96], [96, 96]]
+    };
+    
+    const dots = dotPositions[dotCounts[i]];
+    dots.forEach(([x, y]) => {
+      ctx.beginPath();
+      ctx.arc(x, y, 12, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    materials.push(new THREE.MeshStandardMaterial({ 
+      map: texture,
+      metalness: 0.4,
+      roughness: 0.6
+    }));
+  }
+  
+  return new THREE.Mesh(geometry, materials);
+}
+
+function createPawn() {
+  const group = new THREE.Group();
+  
+  // Random pawn color
+  const colors = [0x0066ff, 0xffff00, 0xff0066, 0x00ff00];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  
+  // Base (cylinder)
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.5, 2, 1, 16),
+    new THREE.MeshStandardMaterial({ 
+      color: color,
+      metalness: 0.7,
+      roughness: 0.3,
+      emissive: color,
+      emissiveIntensity: 0.4
+    })
+  );
+  base.position.y = 0.5;
+  group.add(base);
+  
+  // Body (cylinder)
+  const body = new THREE.Mesh(
+    new THREE.CylinderGeometry(1, 1, 4, 16),
+    new THREE.MeshStandardMaterial({ 
+      color: color,
+      metalness: 0.7,
+      roughness: 0.3,
+      emissive: color,
+      emissiveIntensity: 0.4
+    })
+  );
+  body.position.y = 3;
+  group.add(body);
+  
+  // Head (sphere)
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(1.2, 16, 16),
+    new THREE.MeshStandardMaterial({ 
+      color: color,
+      metalness: 0.7,
+      roughness: 0.3,
+      emissive: color,
+      emissiveIntensity: 0.4
+    })
+  );
+  head.position.y = 5.5;
+  group.add(head);
+  
+  return group;
+}
+
+function spawnFallingGamePiece(playerWorldPos) {
+  if (fallingGamePieces.length >= maxFallingPieces) return;
+  
+  const types = ['card', 'dice', 'pawn'];
+  const type = types[Math.floor(Math.random() * types.length)];
+  
+  let piece;
+  switch(type) {
+    case 'card':
+      piece = createCard();
+      break;
+    case 'dice':
+      piece = createDice();
+      break;
+    case 'pawn':
+      piece = createPawn();
+      break;
+  }
+  
+  // Position relative to player so they follow along the track
+  const spawnX = playerWorldPos.x + (Math.random() - 0.5) * 80;  // Wide spread around player
+  const spawnY = playerWorldPos.y + 40 + Math.random() * 20;     // Above player
+  const spawnZ = playerWorldPos.z - 30 - Math.random() * 70;     // Extended range ahead of player
+  
+  piece.position.set(spawnX, spawnY, spawnZ);
+  
+  // Random initial rotation
+  piece.rotation.set(
+    Math.random() * Math.PI * 2,
+    Math.random() * Math.PI * 2,
+    Math.random() * Math.PI * 2
+  );
+  
+  piece.userData = {
+    type: type,
+    fallSpeed: 15 + Math.random() * 10,
+    rotSpeed: new THREE.Vector3(
+      (Math.random() - 0.5) * 4,
+      (Math.random() - 0.5) * 4,
+      (Math.random() - 0.5) * 4
+    ),
+    driftX: (Math.random() - 0.5) * 3,
+    active: true,
+    spawnWorldPos: playerWorldPos.clone()  // Track where it spawned relative to player
+  };
+  
+  scene.add(piece);
+  fallingGamePieces.push(piece);
+}
+
+function updateFallingGamePieces(dt, playerWorldPos) {
+  for (let i = fallingGamePieces.length - 1; i >= 0; i--) {
+    const piece = fallingGamePieces[i];
+    
+    // Fall down
+    piece.position.y -= piece.userData.fallSpeed * dt;
+    
+    // Drift sideways
+    piece.position.x += piece.userData.driftX * dt;
+    
+    // Rotate
+    piece.rotation.x += piece.userData.rotSpeed.x * dt;
+    piece.rotation.y += piece.userData.rotSpeed.y * dt;
+    piece.rotation.z += piece.userData.rotSpeed.z * dt;
+    
+    // Economical despawn: Remove if fallen far below terrain or passed far behind player
+    const distanceBehind = piece.position.z - playerWorldPos.z;
+    const isFarBelowTerrain = piece.position.y < playerWorldPos.y - 30;
+    const isFarBehind = distanceBehind > 50;
+    
+    if (isFarBelowTerrain || isFarBehind) {
+      scene.remove(piece);
+      fallingGamePieces.splice(i, 1);
+    }
+  }
+}
 
 // Voxel explosion system
 const voxelExplosions = [];
@@ -1692,12 +2412,7 @@ function updateAssignaEyes() {
   const eyeRadius = 30;
   const triangleHeight = 80;
   
-  // Clear eye area
-  assignaCtx.clearRect(centerX - 200, centerY - 100, 400, 200);
-  
-  // Redraw background in that area
-  assignaCtx.fillStyle = '#1a1a1a';
-  assignaCtx.fillRect(centerX - 200, centerY - 100, 400, 200);
+  // Don't clear/redraw background - just redraw eyes directly over existing content
   
   const pulse = Math.sin(eyePulsePhase) * 0.2 + 0.8;  // 0.6 to 1.0
   const glowIntensity = Math.sin(eyePulsePhase) * 0.4 + 0.6;  // 0.2 to 1.0
@@ -1746,12 +2461,12 @@ const assignaSprite = new THREE.Sprite(new THREE.SpriteMaterial({
   map: assignaTexture,
   transparent: true,
   depthTest: true,
-  fog: false  // Eyes glow through fog
+  fog: true  // Affected by fog
 }));
 assignaSprite.scale.set(40, 30, 1);  // Large billboard
 assignaSprite.position.set(0, 25, -80);  // Distant, higher up
 assignaSprite.rotation.x = -0.3;  // Tilt forward
-assignaSprite.visible = true;
+assignaSprite.visible = false;  // Start hidden during countdown
 assignaSprite.renderOrder = 999;  // Render on top
 scene.add(assignaSprite);
 
@@ -2684,6 +3399,7 @@ function tick(now){
       titleBanner.visible = false;
       countdownSprint.visible = false;
       bike.position.y = -0.8;  // Ensure final position
+      assignaSprite.visible = true;  // Show Assigna after countdown
     }
     
     if (useComposer) {
@@ -2779,6 +3495,18 @@ function tick(now){
   camRig.localToWorld(bikeRearWorld);
   
   updateSpeedLines(dt, bikeRearWorld);
+  
+  // Get player world position for game piece spawning
+  const playerWorldPos = new THREE.Vector3();
+  camRig.getWorldPosition(playerWorldPos);
+  
+  // Spawn falling game pieces during Phase 4 (when motion blur is active)
+  const phase4Duration = gameTime - 60;
+  if (visualProgression.phase >= 4 && phase4Duration > 40 && Math.random() < 0.15) {
+    spawnFallingGamePiece(playerWorldPos);
+  }
+  
+  updateFallingGamePieces(dt, playerWorldPos);
 
   // Update road lines - follow the curves
   const lineSpacing = 22;
@@ -3255,6 +3983,13 @@ function tick(now){
       cameraShake = 1.5;  // Landing impact
       console.log('📍 Landed');
       
+      // Trigger SUBMIT sprite twirl/shrink animation
+      if (submitSprite.userData.active) {
+        submitSprite.userData.active = false;
+        submitSprite.userData.twirlProgress = 0;
+        console.log('🌀 SUBMIT sprite twirling and shrinking...');
+      }
+      
       // Landing particle burst
       const bikePos = new THREE.Vector3();
       bike.getWorldPosition(bikePos);
@@ -3292,6 +4027,94 @@ function tick(now){
   bikeBody.rotation.z = rollSm * 1.2 + Math.sin(gameTime * 6) * 0.05;
   bikeBody.rotation.x = pitchSm * 0.5 + wheeliePitch * 0.8;
   bikeBody.rotation.y = steer * 0.1;
+  
+  // SUBMIT sprite twirl/shrink animation on landing
+  if (!submitSprite.userData.active && submitSprite.userData.twirlProgress < 1) {
+    submitSprite.userData.twirlProgress = Math.min(1, submitSprite.userData.twirlProgress + dt * 2);
+    const progress = submitSprite.userData.twirlProgress;
+    
+    // Twirl (rotate rapidly)
+    submitSprite.material.rotation = progress * Math.PI * 4;  // 2 full rotations
+    
+    // Shrink (scale down to zero)
+    const scale = 1 - progress;
+    submitSprite.scale.set(6 * scale, 1.5 * scale, 1);
+    
+    // Fade out
+    submitSprite.material.opacity = 1 - progress;
+    
+    // Shrink and spin the 2D shapes with the sprite
+    if (submitSprite.userData.shape2DGroup) {
+      submitSprite.userData.shape2DGroup.scale.setScalar(scale);
+      submitSprite.userData.shape2DGroup.children.forEach((sprite, idx) => {
+        // Spin 2D sprites faster as they shrink
+        sprite.material.rotation = progress * Math.PI * (3 + idx);
+      });
+    }
+    
+    // When fully shrunk, transform 2D sprites into 3D shapes
+    if (progress >= 1 && !bikeBody.material.emissiveMap) {
+      submitSprite.visible = false;
+      
+      // Hide 2D sprites
+      if (submitSprite.userData.shape2DGroup) {
+        submitSprite.userData.shape2DGroup.visible = false;
+      }
+      
+      // Show 3D shapes with pop-in animation
+      if (submitSprite.userData.shape3DGroup) {
+        submitSprite.userData.shape3DGroup.visible = true;
+        submitSprite.userData.shape3DGroup.scale.setScalar(0.1);  // Start tiny
+        submitSprite.userData.shape3DTransforming = true;
+        submitSprite.userData.shape3DProgress = 0;
+        console.log('🎲 2D sprites transforming to 3D shapes!');
+      }
+      
+      // Apply SUBMIT texture to bike body
+      bikeBody.material.emissiveMap = submitFaceTexture;
+      bikeBody.material.emissiveIntensity = 2.0;  // Bright so it shows through bloom
+      bikeBody.material.needsUpdate = true;
+      console.log('✅ SUBMIT texture mapped to bike body as emissive');
+    }
+  } else if (submitSprite.userData.active && submitSprite.userData.shape2DGroup) {
+    // Idle animation for 2D shapes before landing
+    submitSprite.userData.shape2DGroup.children.forEach((sprite, idx) => {
+      // Gentle rotation
+      sprite.material.rotation = Math.sin(gameTime * 1.5 + idx * 2) * 0.3;
+      // Gentle bobbing motion
+      const originalY = [0, 0, 0][idx];
+      sprite.position.y = originalY + Math.sin(gameTime * 2 + idx * 2) * 0.1;
+    });
+  }
+  
+  // 3D shape pop-in and animation after transformation
+  if (submitSprite.userData.shape3DTransforming && submitSprite.userData.shape3DProgress < 1) {
+    submitSprite.userData.shape3DProgress = Math.min(1, submitSprite.userData.shape3DProgress + dt * 3);
+    const popProgress = submitSprite.userData.shape3DProgress;
+    
+    // Elastic pop-in effect
+    const elasticScale = popProgress < 0.5 
+      ? Math.pow(popProgress * 2, 2) * 1.2  // Fast expand past target
+      : 1.2 - (popProgress - 0.5) * 2 * 0.2;  // Settle back to 1.0
+    
+    if (submitSprite.userData.shape3DGroup) {
+      submitSprite.userData.shape3DGroup.scale.setScalar(elasticScale);
+    }
+    
+    if (popProgress >= 1) {
+      submitSprite.userData.shape3DTransforming = false;
+      console.log('✨ 3D shapes fully materialized!');
+    }
+  } else if (submitSprite.userData.shape3DGroup && submitSprite.userData.shape3DGroup.visible) {
+    // Continuous 3D animation after transformation complete
+    submitSprite.userData.shape3DGroup.children.forEach(shape => {
+      shape.rotation.y += dt * shape.userData.spinSpeed;
+      shape.rotation.x += dt * shape.userData.spinSpeed * 0.5;
+      // Gentle floating motion
+      const originalY = shape.position.x === -2 ? 0 : (shape.position.x === 0 ? 0 : 0);
+      shape.position.y = originalY + Math.sin(gameTime * 2 + shape.position.x) * 0.15;
+    });
+  }
   
   // Jump ready visual cue
   if (wheelieHoldTime > 0.5 && !isJumping) {
@@ -3612,6 +4435,32 @@ function tick(now){
   bikeBody.material.color.setHex(tricolorCycle[colorIndex]);
   bikeBody.material.emissive.setHex(tricolorCycle[colorIndex]);
   
+  // Update SUBMIT texture canvas to match current bike color (re-render with color)
+  if (bikeBody.material.emissiveMap === submitFaceTexture) {
+    const currentColor = new THREE.Color(tricolorCycle[colorIndex]);
+    const colorStr = `rgb(${Math.floor(currentColor.r * 255)}, ${Math.floor(currentColor.g * 255)}, ${Math.floor(currentColor.b * 255)})`;
+    
+    // Clear canvas
+    submitFaceCtx.clearRect(0, 0, 256, 128);
+    
+    // Draw colored background (bright for emissive)
+    submitFaceCtx.fillStyle = colorStr;
+    submitFaceCtx.fillRect(0, 0, 256, 128);
+    
+    // Draw bright SUBMIT text with black outline for visibility
+    submitFaceCtx.strokeStyle = '#000';
+    submitFaceCtx.lineWidth = 4;
+    submitFaceCtx.font = 'bold 48px "Orbitron", sans-serif';
+    submitFaceCtx.textAlign = 'center';
+    submitFaceCtx.textBaseline = 'middle';
+    submitFaceCtx.strokeText('SUBMIT', 128, 64);
+    
+    submitFaceCtx.fillStyle = '#fff';
+    submitFaceCtx.fillText('SUBMIT', 128, 64);
+    
+    submitFaceTexture.needsUpdate = true;
+  }
+  
   // Progressive material enhancement
   let targetMetalness = 0.1, targetRoughness = 0.9, targetEmissive = 0;
   
@@ -3634,7 +4483,14 @@ function tick(now){
   const matLerpSpeed = visualProgression.phase >= 4 ? 0.08 : 0.02;
   bikeBody.material.metalness = THREE.MathUtils.lerp(bikeBody.material.metalness, targetMetalness, matLerpSpeed);
   bikeBody.material.roughness = THREE.MathUtils.lerp(bikeBody.material.roughness, targetRoughness, matLerpSpeed);
-  bikeBody.material.emissiveIntensity = THREE.MathUtils.lerp(bikeBody.material.emissiveIntensity, targetEmissive, matLerpSpeed);
+  
+  // Only update emissive intensity if SUBMIT texture is not active
+  if (!bikeBody.material.emissiveMap) {
+    bikeBody.material.emissiveIntensity = THREE.MathUtils.lerp(bikeBody.material.emissiveIntensity, targetEmissive, matLerpSpeed);
+  } else {
+    // Keep SUBMIT texture bright and visible through bloom
+    bikeBody.material.emissiveIntensity = Math.max(bikeBody.material.emissiveIntensity, 2.5);
+  }
   
   frontBar.material.color.setHex(tricolorCycle[(colorIndex + 1) % tricolorCycle.length]);
 
@@ -3827,6 +4683,537 @@ document.getElementById('composerEnabled').addEventListener('change', (e) => {
 });
 
 console.log('🎨 Debug panel initialized');
+
+// ===== CREDITS SEQUENCE =====
+const creditsSequence = [
+  { text: "Written by The Original Author", duration: 3000, style: 'default' },
+  { text: "Designed by The Original Author", duration: 3000, style: 'default' },
+  { text: "Lyrics by The Original Author", duration: 3000, style: 'default' },
+  { text: "Directed by The Original Author", duration: 3000, style: 'default' },
+  { text: "Produced by The Original Author", duration: 3000, style: 'dollar' },
+  { text: "Executive Produced by The Original Author", duration: 3000, style: 'gold' },
+  { text: "Consumed by The Original Author", duration: 3000, style: 'teeth' },
+  { text: "Executive Consumed by The Original Author", duration: 3000, style: 'goldGrills' },
+  { text: "Story by The Original Author", duration: 3000, style: 'default' },
+  { text: "Based on characters by The Original Author", duration: 3000, style: 'default' },
+  { text: "THIS IS A TRUE STORY.", duration: 3500, style: 'fargo' },
+  { text: "At the request of the survivors,\nthe usernames have been changed.", duration: 3500, append: true, smallText: true },
+  { text: "Out of respect for the dead,\nthe rest has been told exactly\nas it felt.", duration: 3500, append: true, smallText: true },
+  { text: "Well... It was <em>inspired</em> by a true story.", duration: 2500, append: true, smallText: true },
+  { text: "Okay. Fine. Inspired by true events", duration: 2000, append: true, smallText: true },
+  { text: "... by The Original Author.", duration: 3000, append: true, smallText: true },
+  { text: "Playtested by The Original Author", duration: 3000, style: 'default' },
+  { text: "And of course, brought to you by....", duration: 4000, style: 'default' },
+  { text: "", duration: 2500, append: true, isImage: true, imageSrc: './static/images/carl.png' },
+  { text: "Everything else by Celli", duration: 4000, append: true }
+];
+
+// Function to generate styled credit HTML
+function getStyledCreditHTML(text, style) {
+  let styledHTML = '';
+  
+  switch(style) {
+    case 'dollar':
+      // Dollar bill style
+      styledHTML = `
+        <div style="
+          background: linear-gradient(135deg, #85bb65 0%, #c9e4c5 50%, #85bb65 100%);
+          border: 3px solid #2d5016;
+          padding: 20px 60px;
+          border-radius: 8px;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 0 40px rgba(255,255,255,0.2);
+          position: relative;
+          min-height: 80px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <div style="
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 40px;
+            color: #2d5016;
+            font-weight: bold;
+            opacity: 0.3;
+          ">$</div>
+          <div style="
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 40px;
+            color: #2d5016;
+            font-weight: bold;
+            opacity: 0.3;
+          ">$</div>
+          <p style="
+            color: #2d5016;
+            font-size: 28px;
+            font-weight: 300;
+            margin: 0;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+            letter-spacing: 2px;
+            line-height: 1.8;
+          ">${text}</p>
+        </div>
+      `;
+      break;
+      
+    case 'gold':
+      // Shiny gold style
+      styledHTML = `
+        <div style="
+          background: linear-gradient(135deg, #ffd700 0%, #ffed4e 25%, #ffd700 50%, #b8860b 75%, #ffd700 100%);
+          border: 4px solid #b8860b;
+          padding: 20px 60px;
+          border-radius: 8px;
+          box-shadow: 0 10px 40px rgba(255,215,0,0.6), inset 0 0 60px rgba(255,255,255,0.4);
+          animation: goldShine 3s ease-in-out infinite;
+          min-height: 80px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <p style="
+            color: #8b6914;
+            font-size: 28px;
+            font-weight: 300;
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 0 20px rgba(255,255,255,0.6);
+            letter-spacing: 2px;
+            line-height: 1.8;
+          ">${text}</p>
+        </div>
+        <style>
+          @keyframes goldShine {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+          }
+        </style>
+      `;
+      break;
+      
+    case 'teeth':
+      // Teeth style with top and bottom teeth - GNAWING ANIMATION
+      styledHTML = `
+        <div style="
+          background: radial-gradient(ellipse at center, rgba(30, 20, 40, 0.4) 0%, rgba(10, 10, 20, 0.5) 100%);
+          backdrop-filter: blur(20px);
+          padding: 50px 60px;
+          border-radius: 8px;
+          position: relative;
+          min-height: 80px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        ">
+          <!-- Top teeth -->
+          <div class="teeth-top" style="
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+            animation: gnawTop 0.6s ease-in-out infinite;
+          ">
+            ${Array(8).fill(0).map((_, i) => `
+              <div style="
+                width: 18px;
+                height: 26px;
+                background: linear-gradient(180deg, #ffffff 0%, #f5f5f5 70%, #e0e0e0 100%);
+                border-radius: 0 0 5px 5px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3), inset 0 -2px 4px rgba(0,0,0,0.1);
+              "></div>
+            `).join('')}
+          </div>
+          <!-- Bottom teeth -->
+          <div class="teeth-bottom" style="
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+            animation: gnawBottom 0.6s ease-in-out infinite;
+          ">
+            ${Array(8).fill(0).map((_, i) => `
+              <div style="
+                width: 18px;
+                height: 26px;
+                background: linear-gradient(0deg, #ffffff 0%, #f5f5f5 70%, #e0e0e0 100%);
+                border-radius: 5px 5px 0 0;
+                box-shadow: 0 -2px 4px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.1);
+              "></div>
+            `).join('')}
+          </div>
+          <p style="
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 300;
+            margin: 0;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+            letter-spacing: 2px;
+            line-height: 1.8;
+          ">${text}</p>
+        </div>
+        <style>
+          @keyframes gnawTop {
+            0%, 100% { 
+              transform: translateX(-50%) translateY(0px);
+            }
+            50% { 
+              transform: translateX(-50%) translateY(8px);
+            }
+          }
+          @keyframes gnawBottom {
+            0%, 100% { 
+              transform: translateX(-50%) translateY(0px);
+            }
+            50% { 
+              transform: translateX(-50%) translateY(-8px);
+            }
+          }
+        </style>
+      `;
+      break;
+      
+    case 'goldGrills':
+      // Gold grills style with sparkles - GNAWING ANIMATION
+      styledHTML = `
+        <div style="
+          background: radial-gradient(ellipse at center, rgba(30, 20, 40, 0.4) 0%, rgba(10, 10, 20, 0.5) 100%);
+          backdrop-filter: blur(20px);
+          padding: 50px 60px;
+          border-radius: 8px;
+          position: relative;
+          min-height: 80px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+          overflow: hidden;
+        ">
+          <!-- Top gold grills -->
+          <div class="grills-top" style="
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+            animation: gnawTop 0.6s ease-in-out infinite;
+          ">
+            ${Array(8).fill(0).map((_, i) => `
+              <div style="
+                width: 18px;
+                height: 26px;
+                background: linear-gradient(180deg, #ffd700 0%, #ffed4e 30%, #ffd700 60%, #b8860b 100%);
+                border-radius: 0 0 5px 5px;
+                box-shadow: 0 2px 6px rgba(255,215,0,0.6), inset 0 0 8px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.2);
+                animation: grillShine 2s ease-in-out infinite;
+                animation-delay: ${i * 0.1}s;
+                position: relative;
+              ">
+                <!-- Star sparkle on tooth -->
+                <div style="
+                  position: absolute;
+                  top: ${6 + (i % 3) * 6}px;
+                  left: ${5 + (i % 2) * 4}px;
+                  color: white;
+                  font-size: 10px;
+                  text-shadow: 0 0 6px rgba(255,255,255,1), 0 0 12px rgba(255,255,255,0.8);
+                  animation: sparkle 1.5s ease-in-out infinite;
+                  animation-delay: ${i * 0.15}s;
+                  z-index: 10;
+                ">✦</div>
+              </div>
+            `).join('')}
+          </div>
+          <!-- Bottom gold grills -->
+          <div class="grills-bottom" style="
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 4px;
+            animation: gnawBottom 0.6s ease-in-out infinite;
+          ">
+            ${Array(8).fill(0).map((_, i) => `
+              <div style="
+                width: 18px;
+                height: 26px;
+                background: linear-gradient(0deg, #ffd700 0%, #ffed4e 30%, #ffd700 60%, #b8860b 100%);
+                border-radius: 5px 5px 0 0;
+                box-shadow: 0 -2px 6px rgba(255,215,0,0.6), inset 0 0 8px rgba(255,255,255,0.4), inset 0 2px 4px rgba(0,0,0,0.2);
+                animation: grillShine 2s ease-in-out infinite;
+                animation-delay: ${i * 0.1 + 0.5}s;
+                position: relative;
+              ">
+                <!-- Star sparkle on tooth -->
+                <div style="
+                  position: absolute;
+                  bottom: ${6 + (i % 3) * 6}px;
+                  left: ${5 + (i % 2) * 4}px;
+                  color: white;
+                  font-size: 10px;
+                  text-shadow: 0 0 6px rgba(255,255,255,1), 0 0 12px rgba(255,255,255,0.8);
+                  animation: sparkle 1.5s ease-in-out infinite;
+                  animation-delay: ${i * 0.15 + 0.75}s;
+                  z-index: 10;
+                ">✦</div>
+              </div>
+            `).join('')}
+          </div>
+          <p style="
+            color: #ffd700;
+            font-size: 28px;
+            font-weight: 300;
+            margin: 0;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8), 0 0 20px rgba(255,215,0,0.4);
+            letter-spacing: 2px;
+            line-height: 1.8;
+          ">${text}</p>
+        </div>
+        <style>
+          @keyframes gnawTop {
+            0%, 100% { 
+              transform: translateX(-50%) translateY(0px);
+            }
+            50% { 
+              transform: translateX(-50%) translateY(8px);
+            }
+          }
+          @keyframes gnawBottom {
+            0%, 100% { 
+              transform: translateX(-50%) translateY(0px);
+            }
+            50% { 
+              transform: translateX(-50%) translateY(-8px);
+            }
+          }
+          @keyframes grillShine {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.4); }
+          }
+          @keyframes sparkle {
+            0%, 100% { 
+              opacity: 0.4;
+              transform: scale(0.6) rotate(0deg);
+            }
+            50% { 
+              opacity: 1;
+              transform: scale(1.3) rotate(45deg);
+            }
+          }
+        </style>
+      `;
+      break;
+      
+    case 'fargo':
+      // Fargo-style true story disclaimer
+      styledHTML = `
+        <div style="
+          background: #000000;
+          padding: 30px 100px 80px 100px;
+          border-radius: 0;
+          box-shadow: none;
+          min-height: 300px;
+          display: flex;
+          align-items: flex-start;
+          justify-content: flex-start;
+          width: 100%;
+          max-width: 900px;
+          margin: 0 auto;
+        ">
+          <p style="
+            color: #ffffff;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 36px;
+            font-weight: 400;
+            margin: 0;
+            text-align: left;
+            line-height: 1.6;
+            letter-spacing: 0.5px;
+          ">${text}</p>
+        </div>
+      `;
+      break;
+      
+    default:
+      // Default minimalist style with backing card
+      styledHTML = `
+        <div style="
+          background: radial-gradient(ellipse at center, rgba(20, 20, 30, 0.4) 0%, rgba(10, 10, 20, 0.5) 50%, rgba(5, 5, 15, 0.6) 100%);
+          padding: 40px 60px;
+          border-radius: 8px;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+          backdrop-filter: blur(20px) saturate(120%) brightness(90%);
+          -webkit-backdrop-filter: blur(20px) saturate(120%) brightness(90%);
+        ">
+          <p style="
+            color: #ffffff;
+            font-family: 'Helvetica Neue', 'Arial', sans-serif;
+            font-size: 28px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            line-height: 1.8;
+            margin: 0;
+          ">${text}</p>
+        </div>
+      `;
+  }
+  
+  return styledHTML;
+}
+
+let creditsIndex = 0;
+let creditsTimeout = null;
+
+function terminateCredits() {
+  const overlay = document.getElementById('creditsOverlay');
+  if (overlay && overlay.classList.contains('visible')) {
+    clearTimeout(creditsTimeout);
+    overlay.classList.remove('visible');
+    const card = overlay.querySelector('.credit-card');
+    if (card) card.classList.remove('show');
+    const textEl = document.getElementById('creditText');
+    if (textEl) textEl.innerHTML = '';
+    creditsIndex = 0;
+    console.log('🛑 Credits terminated');
+  }
+}
+
+function showCredits() {
+  const overlay = document.getElementById('creditsOverlay');
+  const card = overlay.querySelector('.credit-card');
+  const textEl = document.getElementById('creditText');
+  
+  overlay.classList.add('visible');
+  
+  function showNextCredit() {
+    if (creditsIndex >= creditsSequence.length) {
+      // Credits done, fade out
+      setTimeout(() => {
+        overlay.classList.remove('visible');
+        card.classList.remove('show');
+        textEl.innerHTML = '';
+        creditsIndex = 0;
+      }, 3000);
+      return;
+    }
+    
+    const credit = creditsSequence[creditsIndex];
+    
+    // If appending, just add text to same card (no fade)
+    if (credit.append) {
+      setTimeout(() => {
+        // Append as plain text or image within the same styled card
+        const currentContent = textEl.querySelector('p') || textEl.querySelector('div > p');
+        if (currentContent) {
+          // Minimal spacing for very tight layout
+          const spacing = '';
+          
+          // Handle image or text
+          let contentToAdd;
+          if (credit.isImage && credit.imageSrc) {
+            contentToAdd = `<div style="text-align: center; margin: 8px 0 0 0;"><img src="${credit.imageSrc}" style="max-width: 300px; height: auto; display: inline-block; padding: 20px 30px; background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,215,0,0.8) 50%, rgba(255,255,255,0.9) 100%); border-radius: 12px; box-shadow: 0 0 30px rgba(255,215,0,0.6), 0 0 60px rgba(255,255,255,0.4), inset 0 0 20px rgba(255,255,255,0.3);" alt="Carl's Jr."></div>`;
+          } else {
+            const textToAdd = credit.text.replace(/\n/g, '<br>');
+            contentToAdd = credit.smallText 
+              ? `<span style="font-size: 18px; line-height: 1.2; display: block; margin-top: 6px;">${textToAdd}</span>`
+              : `<span style="display: block; margin-top: 6px;">${textToAdd}</span>`;
+          }
+          
+          currentContent.innerHTML += spacing + contentToAdd;
+        }
+      }, 500);
+      creditsIndex++;
+      creditsTimeout = setTimeout(showNextCredit, credit.duration);
+      return;
+    }
+    
+    // Fade out previous if not noClear
+    if (!credit.noClear && creditsIndex > 0) {
+      card.classList.remove('show');
+    }
+    
+    // Wait for fade out, then show new credit
+    setTimeout(() => {
+      const styledHTML = getStyledCreditHTML(credit.text, credit.style || 'default');
+      textEl.innerHTML = styledHTML;
+      
+      // Fade in
+      setTimeout(() => {
+        card.classList.add('show');
+      }, 50);
+      
+      creditsIndex++;
+      creditsTimeout = setTimeout(showNextCredit, credit.duration);
+    }, credit.noClear || creditsIndex === 0 ? 0 : 1500);
+  }
+  
+  showNextCredit();
+}
+
+// Trigger credits after 15 seconds of gameplay
+setTimeout(() => {
+  showCredits();
+}, 15000);
+
+// Allow skipping credits with 'C' key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'c' || e.key === 'C') {
+    const overlay = document.getElementById('creditsOverlay');
+    if (overlay.classList.contains('visible')) {
+      clearTimeout(creditsTimeout);
+      overlay.classList.remove('visible');
+      const card = overlay.querySelector('.credit-card');
+      card.classList.remove('show');
+      document.getElementById('creditText').innerHTML = '';
+      creditsIndex = 0;
+    }
+  }
+});
+
+console.log('🎬 Credits system initialized');
+
+// ===== BETA FORM SCROLL UNFURL =====
+const betaFormSection = document.getElementById('betaFormSection');
+let betaScrollThreshold = 50; // pixels to scroll before unfurling
+
+// Show beta form with 'B' key for testing
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'b' || e.key === 'B') {
+    if (!betaFormSection.classList.contains('visible')) {
+      betaFormSection.classList.add('visible');
+      betaFormSection.scrollTop = 0; // Reset scroll position
+    } else {
+      betaFormSection.classList.remove('visible');
+      betaFormSection.classList.remove('unfurled');
+    }
+  }
+});
+
+// Handle scroll to unfurl the list
+betaFormSection.addEventListener('scroll', () => {
+  if (betaFormSection.scrollTop > betaScrollThreshold) {
+    betaFormSection.classList.add('unfurled');
+  } else {
+    betaFormSection.classList.remove('unfurled');
+  }
+});
+
+// Also unfurl on wheel event for better responsiveness
+betaFormSection.addEventListener('wheel', (e) => {
+  if (e.deltaY > 0 && !betaFormSection.classList.contains('unfurled')) {
+    betaFormSection.classList.add('unfurled');
+  }
+}, { passive: true });
+
+console.log('📋 Beta form system initialized (Press B to toggle)');
 </script>
 </body>
 </html>
