@@ -3459,6 +3459,166 @@ export class VisiCellScene {
     }
   }
 
+  _fadeOutAndRemoveElement(element, remove = true, duration = 400) {
+    if (!element || typeof element.style === 'undefined') {
+      return;
+    }
+
+    const transitionParts = element.style.transition
+      ? element.style.transition.split(',').map(part => part.trim()).filter(Boolean)
+      : [];
+
+    const opacityTransition = `opacity ${duration}ms ease`;
+    if (!transitionParts.some(part => part.startsWith('opacity'))) {
+      transitionParts.push(opacityTransition);
+    }
+
+    element.style.transition = transitionParts.join(', ');
+    element.style.opacity = '0';
+    element.style.pointerEvents = 'none';
+
+    const finalize = () => {
+      if (!element) {
+        return;
+      }
+
+      if (remove) {
+        if (element.parentNode) {
+          element.parentNode.removeChild(element);
+        }
+      } else {
+        element.style.display = 'none';
+      }
+    };
+
+    const timeoutFn = (typeof window !== 'undefined' && window.setTimeout)
+      ? window.setTimeout.bind(window)
+      : setTimeout;
+
+    timeoutFn(finalize, duration + 50);
+  }
+
+  _handleHellInfectionBridgeAnimation(cellState) {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const container = this.state.container;
+    if (!container) {
+      return;
+    }
+
+    const gridTable = document.getElementById('visicalc-grid-table-container');
+    if (gridTable) {
+      gridTable.style.display = 'flex';
+      gridTable.style.visibility = 'visible';
+      gridTable.style.opacity = '1';
+
+      const transitionParts = gridTable.style.transition
+        ? gridTable.style.transition.split(',').map(part => part.trim()).filter(Boolean)
+        : [];
+
+      if (!transitionParts.some(part => part.startsWith('opacity'))) {
+        transitionParts.push('opacity 0.5s ease');
+        gridTable.style.transition = transitionParts.join(', ');
+      }
+    }
+
+    const overlaySelectors = [
+      '[data-hell-overlay]',
+      '.hell-transition-overlay',
+      '.hell-transition-dot-overlay',
+      '.hell-transition-pixel-overlay',
+      '.hell-pixel-overlay',
+      '.hell-dot-overlay',
+      '.hell-infection-pixel-overlay',
+      '.hell-infection-dot-overlay',
+      '#hell-transition-overlay',
+      '#hellTransitionOverlay',
+      '#hellTransitionDots',
+      '#hellTransitionPixels'
+    ];
+
+    const overlays = new Set();
+    overlaySelectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach(el => overlays.add(el));
+    });
+
+    document
+      .querySelectorAll('[class*="hell" i][class*="pixel" i], [class*="hell" i][class*="dot" i]')
+      .forEach(el => overlays.add(el));
+
+    const promptContainer = document.querySelector('.prompt-container');
+    if (promptContainer) {
+      overlays.add(promptContainer);
+    }
+
+    const doorway = document.getElementById('doorway');
+    if (doorway) {
+      overlays.add(doorway);
+    }
+
+    overlays.forEach(el => {
+      const shouldRemove = el !== doorway;
+      this._fadeOutAndRemoveElement(el, shouldRemove, 450);
+    });
+
+    const cellNodes = container.querySelectorAll('.visicalc-cell');
+    if (cellNodes.length > 0) {
+      const raf = (typeof window !== 'undefined' && window.requestAnimationFrame)
+        ? window.requestAnimationFrame.bind(window)
+        : (fn) => setTimeout(fn, 16);
+      const timeoutFn = (typeof window !== 'undefined' && window.setTimeout)
+        ? window.setTimeout.bind(window)
+        : setTimeout;
+
+      cellNodes.forEach((cell, index) => {
+        if (cell.dataset.hellBridgeAnimated === 'true') {
+          return;
+        }
+
+        const cellTransitionParts = cell.style.transition
+          ? cell.style.transition.split(',').map(part => part.trim()).filter(Boolean)
+          : [];
+
+        if (!cellTransitionParts.some(part => part.startsWith('opacity'))) {
+          cellTransitionParts.push('opacity 0.45s ease');
+        }
+        if (!cellTransitionParts.some(part => part.startsWith('transform'))) {
+          cellTransitionParts.push('transform 0.45s ease');
+        }
+
+        cell.style.transition = cellTransitionParts.join(', ');
+        cell.style.opacity = '0';
+        cell.style.transform = 'scale(0.94)';
+        cell.dataset.hellBridgeAnimated = 'pending';
+
+        const delay = Math.min(index * 12, 420);
+
+        raf(() => {
+          cell.style.transitionDelay = `${delay}ms`;
+          cell.style.opacity = '1';
+          cell.style.transform = 'scale(1)';
+        });
+
+        timeoutFn(() => {
+          cell.style.transitionDelay = '';
+          cell.style.transform = '';
+          cell.dataset.hellBridgeAnimated = 'true';
+        }, delay + 600);
+      });
+    }
+
+    if (cellState && typeof cellState === 'object') {
+      container.dataset.hellBridgeSource = JSON.stringify({
+        left: cellState.left,
+        top: cellState.top,
+        width: cellState.width,
+        height: cellState.height
+      });
+    }
+  }
+
   /**
    * Start scene
    */
@@ -3583,14 +3743,18 @@ export class VisiCellScene {
     
     console.log('🎨 Rendering cells to DOM');
     this._render();
-    
+
     console.log('🎯 Initializing clue trail');
     this._initializeClueTrail();
-    
+
     // Final render to ensure everything is visible
     console.log('🎨 Final render');
     this._render();
-    
+
+    if (entry === 'hell-infection' && continueAnimation) {
+      this._handleHellInfectionBridgeAnimation(cellState);
+    }
+
     console.log('✅ VisiCell initialization complete - checking cell contents');
     // Verify ENTE cell is populated
     const clue = this.state.clueTrail;
