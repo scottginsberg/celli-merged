@@ -4439,6 +4439,44 @@
   const passcodeSubmit = document.getElementById('passcodeSubmit');
   const passcodeCancel = document.getElementById('passcodeCancel');
 
+  const REFERRER_UNLOCK_SESSION_KEYS = [
+    'celli:debugMenuUnlocked',
+    'celli:referrerControlsUnlocked',
+  ];
+  const REFERRER_UNLOCK_DATASET_FLAGS = ['referrerControlsUnlocked', 'debugMenuUnlocked'];
+
+  function isReferrerControlsUnlocked() {
+    const sessionUnlocked = REFERRER_UNLOCK_SESSION_KEYS.some(
+      (key) => sessionStorage.getItem(key) === 'true'
+    );
+    const datasetUnlocked =
+      !!document.body &&
+      REFERRER_UNLOCK_DATASET_FLAGS.some(
+        (flag) => document.body.dataset && document.body.dataset[flag] === 'true'
+      );
+    return sessionUnlocked || datasetUnlocked;
+  }
+
+  function showReferrerControls() {
+    if (!referrerControlsMenu) {
+      return;
+    }
+    referrerControlsMenu.style.setProperty('display', 'block', 'important');
+    referrerControlsMenu.style.setProperty('opacity', '1', 'important');
+    referrerControlsMenu.style.setProperty('visibility', 'visible', 'important');
+    referrerControlsMenu.style.setProperty('pointer-events', 'auto', 'important');
+  }
+
+  function hideReferrerControls() {
+    if (!referrerControlsMenu) {
+      return;
+    }
+    referrerControlsMenu.style.setProperty('display', 'none', 'important');
+    referrerControlsMenu.style.setProperty('opacity', '0', 'important');
+    referrerControlsMenu.style.setProperty('visibility', 'hidden', 'important');
+    referrerControlsMenu.style.setProperty('pointer-events', 'none', 'important');
+  }
+
   // Detect referrer and auto-trigger appropriate overlay
   function detectAndTriggerReferrer() {
     try {
@@ -4570,19 +4608,18 @@
     if (enteredCode === CORRECT_PASSCODE) {
       console.log('✅ Passcode correct - showing debug menu');
       hidePasscodePrompt();
-      if (referrerControlsMenu) {
-        referrerControlsMenu.style.setProperty('display', 'block', 'important');
-        referrerControlsMenu.style.setProperty('opacity', '1', 'important');
-        referrerControlsMenu.style.setProperty('visibility', 'visible', 'important');
-        referrerControlsMenu.style.setProperty('pointer-events', 'auto', 'important');
-      }
+      showReferrerControls();
       // Store in session so menu stays visible
       sessionStorage.setItem('celli:debugMenuUnlocked', 'true');
+      detectAndTriggerReferrer();
     } else {
       console.log('❌ Incorrect passcode');
       if (passcodeError) {
         passcodeError.textContent = 'Incorrect passcode';
         passcodeError.style.opacity = '1';
+      }
+      if (!isReferrerControlsUnlocked()) {
+        hideReferrerControls();
       }
       if (passcodeInput) {
         passcodeInput.style.borderColor = 'rgba(255, 107, 107, 0.6)';
@@ -4627,16 +4664,14 @@
   // Wait for DOM to be fully ready before auto-triggering
   function initializeReferrerSystem() {
     // Check if debug menu was already unlocked in this session
-    if (sessionStorage.getItem('celli:debugMenuUnlocked') === 'true') {
-      if (referrerControlsMenu) {
-        referrerControlsMenu.style.setProperty('display', 'block', 'important');
-        referrerControlsMenu.style.setProperty('opacity', '1', 'important');
-        referrerControlsMenu.style.setProperty('visibility', 'visible', 'important');
-        referrerControlsMenu.style.setProperty('pointer-events', 'auto', 'important');
-      }
-    } else {
-      // Auto-detect and trigger referrer overlay on page load
+    const unlocked = isReferrerControlsUnlocked();
+
+    if (unlocked) {
+      showReferrerControls();
       detectAndTriggerReferrer();
+    } else {
+      hideReferrerControls();
+      console.log('🔒 Referrer controls locked - waiting for passcode');
     }
   }
 
@@ -6636,13 +6671,8 @@
     delete document.body.dataset.betaRedirectComplete;
     
     // Always hide the debug controls menu (unless unlocked)
-    const referrerControlsMenu = document.getElementById('referrerControlsMenu');
-    const isUnlocked = sessionStorage.getItem('celli:debugMenuUnlocked') === 'true';
-    if (referrerControlsMenu && !isUnlocked) {
-      referrerControlsMenu.style.setProperty('display', 'none', 'important');
-      referrerControlsMenu.style.setProperty('opacity', '0', 'important');
-      referrerControlsMenu.style.setProperty('visibility', 'hidden', 'important');
-      referrerControlsMenu.style.setProperty('pointer-events', 'none', 'important');
+    if (!isReferrerControlsUnlocked()) {
+      hideReferrerControls();
     }
   }
   
