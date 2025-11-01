@@ -3139,12 +3139,123 @@
 
         return candidates;
       }
-      
+
+      const warmedVideoTasks = new Map();
+
+      function warmVideoCandidateSource(src) {
+        return new Promise((resolve, reject) => {
+          const warmVideo = document.createElement('video');
+          warmVideo.preload = 'auto';
+          warmVideo.crossOrigin = 'anonymous';
+          warmVideo.playsInline = true;
+          warmVideo.setAttribute('playsinline', '');
+          warmVideo.muted = true;
+
+          const cleanup = () => {
+            warmVideo.removeEventListener('loadeddata', onLoaded);
+            warmVideo.removeEventListener('error', onError);
+            try { warmVideo.pause(); } catch (_) {}
+            warmVideo.removeAttribute('src');
+            try { warmVideo.load(); } catch (_) {}
+          };
+
+          const onLoaded = () => {
+            cleanup();
+            resolve();
+          };
+
+          const onError = (event) => {
+            cleanup();
+            const error = event && event.error ? event.error : new Error(`Unable to warm ${src}`);
+            reject(error);
+          };
+
+          try {
+            warmVideo.addEventListener('loadeddata', onLoaded, { once: true });
+            warmVideo.addEventListener('error', onError, { once: true });
+            warmVideo.src = src;
+            warmVideo.load();
+          } catch (error) {
+            cleanup();
+            reject(error);
+          }
+        });
+      }
+
+      function ensureWarmVideoAsset(fileName) {
+        const key = (fileName || '').toLowerCase();
+        if (!key) {
+          return Promise.resolve(null);
+        }
+
+        if (warmedVideoTasks.has(key)) {
+          return warmedVideoTasks.get(key);
+        }
+
+        const task = (async () => {
+          const candidates = buildTrackCandidates(fileName);
+          for (const candidate of candidates) {
+            try {
+              await warmVideoCandidateSource(candidate);
+              console.log(`♨️ Warmed ${fileName} via ${candidate}`);
+              return candidate;
+            } catch (error) {
+              console.warn(`⚠️ Failed to warm ${fileName} from ${candidate}:`, error);
+            }
+          }
+          throw new Error(`Unable to warm ${fileName}`);
+        })();
+
+        warmedVideoTasks.set(key, task);
+        task.catch(() => {
+          warmedVideoTasks.delete(key);
+        });
+        return task;
+      }
+
+      function scheduleVideoWarmup(sequence, startIndex) {
+        if (!Array.isArray(sequence)) {
+          return;
+        }
+
+        const filesToWarm = new Set();
+        for (let index = startIndex; index < sequence.length; index += 1) {
+          const entry = sequence[index];
+          if (entry && entry.file) {
+            filesToWarm.add(entry.file);
+          }
+        }
+
+        filesToWarm.add('key2.mp4');
+
+        if (filesToWarm.size === 0) {
+          return;
+        }
+
+        const warmupRunner = () => {
+          let delay = 0;
+          filesToWarm.forEach((file) => {
+            setTimeout(() => {
+              ensureWarmVideoAsset(file).catch((error) => {
+                console.warn(`⚠️ Unable to warm ${file}:`, error);
+              });
+            }, delay);
+            delay += 350;
+          });
+        };
+
+        if (typeof window.requestIdleCallback === 'function') {
+          window.requestIdleCallback(warmupRunner, { timeout: 2000 });
+        } else {
+          setTimeout(warmupRunner, 300);
+        }
+      }
+
       // Now that buildTrackCandidates is defined, properly initialize strumPreviewTrack
       {
         const strumCandidates = buildTrackCandidates('EA.mp3');
         let candidateIndex = 0;
-        
+
         const tryNextStrumSource = () => {
           if (candidateIndex >= strumCandidates.length) {
             console.warn(`Unable to resolve strum preview audio source. Tried:`, strumCandidates);
@@ -3775,7 +3886,10 @@
         }
 
         try {
-          for (const { file, label } of sequence) {
+          let videoWarmupScheduled = false;
+
+          for (let sequenceIndex = 0; sequenceIndex < sequence.length; sequenceIndex += 1) {
+            const { file } = sequence[sequenceIndex];
             const candidates = buildTrackCandidates(file);
             const resolved = await resolveVideoSource(video, candidates, file);
             if (!resolved) {
@@ -3790,6 +3904,11 @@
             }
 
             await playVideoElement(video, overlay, message);
+            if (!videoWarmupScheduled) {
+              videoWarmupScheduled = true;
+              console.log('♨️ Scheduling warmup for remaining pre-form videos…');
+              scheduleVideoWarmup(sequence, sequenceIndex + 1);
+            }
             // Hide message and show skip hint instead (don't duplicate text)
             message.style.display = 'none';
             if (skipHint) {
@@ -3801,14 +3920,14 @@
             if (skipHint) {
               skipHint.hidden = true;
             }
-            
+
             // Capture freeze frame before moving to next
             try {
               captureGlitchedFreezeFrame();
             } catch (error) {
               console.warn('⚠️ Failed to capture freeze frame:', error);
             }
-            
+
             video.pause();
             message.style.display = ''; // Show message again
             message.textContent = 'Preparing form sequence…';
