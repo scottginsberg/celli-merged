@@ -89,6 +89,10 @@
       --tone-magenta-fg: #fff3f8;
       --tone-magenta-border: #ff7aa5;
       --tone-magenta-shadow: 0 0 0 1px rgba(255, 122, 165, 0.65), 0 12px 28px rgba(255, 24, 95, 0.32);
+      --trifold-blue: #5e7bff;
+      --trifold-gold: #ffd86b;
+      --trifold-magenta: #ff5fa8;
+      --trifold-highlight-shadow: 0 24px 48px rgba(22, 18, 52, 0.55);
     }
 
     body.inverted {
@@ -174,6 +178,10 @@
       --tone-magenta-fg: #280028;
       --tone-magenta-border: #ff8cff;
       --tone-magenta-shadow: 0 0 0 1px rgba(255, 140, 255, 0.65), 0 12px 28px rgba(255, 57, 255, 0.35);
+      --trifold-blue: #1e62ff;
+      --trifold-gold: #f7b72d;
+      --trifold-magenta: #ff3791;
+      --trifold-highlight-shadow: 0 24px 48px rgba(14, 11, 28, 0.55);
     }
 
     * {
@@ -195,6 +203,12 @@
       overflow-y: auto;
     }
 
+    body.pre-form-scroll-lock {
+      overflow: hidden;
+      overscroll-behavior: contain;
+      touch-action: none;
+    }
+
     .pre-form-video-overlay--skippable {
       cursor: pointer;
     }
@@ -214,9 +228,9 @@
     }
 
     .pre-form-trifold-button {
-      position: absolute;
-      top: 1.25rem;
-      right: 1.25rem;
+      position: fixed;
+      top: clamp(1rem, 3vw, 1.75rem);
+      right: clamp(1rem, 3vw, 1.75rem);
       width: 64px;
       height: 64px;
       border: none;
@@ -226,21 +240,38 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 10002;
     }
 
     .pre-form-trifold-button::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: #fff;
+      background: linear-gradient(145deg,
+          rgba(94, 123, 255, 0.25) 0%,
+          rgba(255, 216, 107, 0.22) 52%,
+          rgba(255, 95, 168, 0.25) 100%);
       border-radius: 12px;
-      border: 2px solid #000;
-      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.35);
-      transition: transform 360ms cubic-bezier(.2,.8,.2,1);
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 18px 34px rgba(0, 0, 0, 0.35);
+      transition: transform 360ms cubic-bezier(.2,.8,.2,1),
+                  box-shadow 360ms cubic-bezier(.2,.8,.2,1),
+                  border-color 360ms cubic-bezier(.2,.8,.2,1),
+                  background 360ms cubic-bezier(.2,.8,.2,1);
     }
 
-    .pre-form-trifold-button:hover::before {
+    .pre-form-trifold-button:hover::before,
+    .pre-form-trifold-button.near::before,
+    .pre-form-trifold-button:focus-visible::before {
       transform: scale(1.1);
+      border-color: rgba(255, 255, 255, 0.8);
+      background: linear-gradient(135deg,
+          var(--trifold-blue) 0%,
+          var(--trifold-gold) 50%,
+          var(--trifold-magenta) 100%);
+      box-shadow: var(--trifold-highlight-shadow),
+                  0 0 32px rgba(94, 123, 255, 0.45),
+                  0 0 42px rgba(255, 95, 168, 0.35);
     }
 
     .pre-form-trifold-button:focus-visible {
@@ -313,17 +344,17 @@
     /* Hover/near: color changes */
     .pre-form-trifold-button:hover .pre-form-trifold-button__square,
     .pre-form-trifold-button.near .pre-form-trifold-button__square {
-      background: #2846ff;
+      background: var(--trifold-blue);
     }
 
     .pre-form-trifold-button:hover .pre-form-trifold-button__triangle,
     .pre-form-trifold-button.near .pre-form-trifold-button__triangle {
-      border-top-color: #ff9d1c;
+      border-top-color: var(--trifold-gold);
     }
 
     .pre-form-trifold-button:hover .pre-form-trifold-button__circle,
     .pre-form-trifold-button.near .pre-form-trifold-button__circle {
-      background: #ff185f;
+      background: var(--trifold-magenta);
     }
 
     /* Hover/near: collapse all squares to top-center position and scale up */
@@ -354,9 +385,9 @@
     }
 
     .pre-form-trifold-panel {
-      position: absolute;
+      position: fixed;
       top: 50%;
-      right: min(8vw, 120px);
+      right: clamp(1.5rem, 6vw, 4rem);
       transform: translateY(-50%) scale(0.9);
       transform-origin: center right;
       background: transparent;
@@ -367,6 +398,7 @@
       min-width: min(90vw, 420px);
       max-width: min(95vw, 460px);
       pointer-events: auto;
+      z-index: 10001;
     }
 
     .pre-form-trifold-panel.is-open {
@@ -485,6 +517,8 @@
       .pre-form-trifold-button {
         width: 54px;
         height: 54px;
+        top: clamp(0.75rem, 5vw, 1.25rem);
+        right: clamp(0.75rem, 5vw, 1.25rem);
       }
 
       .pre-form-trifold-button::before {
@@ -2470,10 +2504,21 @@
         panel.setAttribute('aria-hidden', 'true');
       }
 
+      const { body: documentBody } = document;
+      let scrollLockApplied = false;
+      if (documentBody && !documentBody.classList.contains('pre-form-scroll-lock')) {
+        documentBody.classList.add('pre-form-scroll-lock');
+        scrollLockApplied = true;
+      }
+
       try {
         await playPreFormVideos();
       } catch (error) {
         console.warn('⚠️ Pre-form video sequence failed:', error);
+      } finally {
+        if (scrollLockApplied && document.body) {
+          document.body.classList.remove('pre-form-scroll-lock');
+        }
       }
 
       if (panel) {
@@ -3342,6 +3387,15 @@
         // Cycle glitch effects every 10 seconds
         const glitchInterval = setInterval(cycleGlitchEffect, 10000);
 
+        const existingTrifoldButton = document.querySelector('.pre-form-trifold-button');
+        const existingTrifoldPanel = document.querySelector('.pre-form-trifold-panel');
+        if (existingTrifoldButton && existingTrifoldButton.parentNode) {
+          existingTrifoldButton.parentNode.removeChild(existingTrifoldButton);
+        }
+        if (existingTrifoldPanel && existingTrifoldPanel.parentNode) {
+          existingTrifoldPanel.parentNode.removeChild(existingTrifoldPanel);
+        }
+
         const trifoldAudio = new Audio();
         trifoldAudio.preload = 'none';
         trifoldAudio.crossOrigin = 'anonymous';
@@ -3415,6 +3469,11 @@
         trifoldPanel.setAttribute('aria-hidden', 'true');
         trifoldPanel.tabIndex = -1;
 
+        if (document.body) {
+          document.body.appendChild(trifoldButton);
+          document.body.appendChild(trifoldPanel);
+        }
+
         const trifoldContent = document.createElement('div');
         trifoldContent.className = 'pre-form-trifold-panel__content';
 
@@ -3422,9 +3481,10 @@
           {
             className: 'pre-form-trifold-panel__fold pre-form-trifold-panel__fold--left',
             heading: 'The Platform Formerly Known as Twitter',
-            linkLabel: 'The Platform Formerly Known as Twitter',
+            linkLabel: 'Follow for updates @celli_dev',
             placeholder: 'https://twitter.com',
-            note: 'Default destination placeholder'
+            href: 'https://x.com/celli_dev',
+            note: 'Opens x.com/celli_dev'
           },
           {
             className: 'pre-form-trifold-panel__fold pre-form-trifold-panel__fold--center',
@@ -3461,10 +3521,16 @@
 
             const linkEl = document.createElement('a');
             linkEl.className = 'pre-form-trifold-panel__link';
-            linkEl.href = '#';
             linkEl.setAttribute('data-default-href', fold.placeholder);
-            linkEl.setAttribute('role', 'button');
-            linkEl.setAttribute('aria-disabled', 'true');
+            if (fold.href) {
+              linkEl.href = fold.href;
+              linkEl.setAttribute('target', '_blank');
+              linkEl.setAttribute('rel', 'noopener noreferrer');
+            } else {
+              linkEl.href = '#';
+              linkEl.setAttribute('role', 'button');
+              linkEl.setAttribute('aria-disabled', 'true');
+            }
 
             const labelEl = document.createElement('span');
             labelEl.className = 'pre-form-trifold-panel__link-label';
@@ -3693,7 +3759,7 @@
           }
         });
 
-        overlay.append(freezeFrameGrid, trifoldButton, trifoldPanel, videoGlitchWrapper, message, skipHint);
+        overlay.append(freezeFrameGrid, videoGlitchWrapper, message, skipHint);
         document.body.appendChild(overlay);
 
         function createSkipController() {
