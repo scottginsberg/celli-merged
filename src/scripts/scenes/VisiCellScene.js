@@ -1549,7 +1549,8 @@ export class VisiCellScene {
       onionRiddleScheduled: false,
       clockAcknowledged: false,
       madnessTriggered: false,
-      glitchActive: false
+      glitchActive: false,
+      layer0Spawned: false
     };
 
     this.state.clueTrail = clue;
@@ -2700,56 +2701,66 @@ export class VisiCellScene {
 
     if (normalized === 'LEAVE') {
       console.log('LEAVE command - stage:', clue.stage, 'riddleStage:', clue.riddleStage, 'lastTriggered:', clue.lastTriggeredValue);
-      
-      // Allow LEAVE in initial states OR if coming back to it after close
-      // Also allow if in early puzzle stages (await-leave or await-search) to allow restart
-      if (clue.riddleStage === 'await-leave' || 
-          clue.stage === 'await-command' ||
-          (clue.riddleStage === 'await-search' && clue.lastTriggeredValue !== 'SEARCH')) {
-        
+
+      const canTriggerLeave = clue.riddleStage === 'await-leave' || clue.stage === 'await-command';
+
+      if (canTriggerLeave) {
         // Cancel any inactivity timeout and R sequence
         this._cancelInactivityTimeout();
         this._cancelRSequence();
 
-        console.log('LEAVE: Triggering clue trail sequence');
         clue.currentInput = normalized;
         clue.lastTriggeredValue = 'LEAVE';
-        clue.active = false; // Deactivate input during sequence
-        
-        // Ensure overlay is visible and on top
-        if (clue.overlayEl) {
-          clue.overlayEl.style.display = 'flex';
-          clue.overlayEl.style.zIndex = '999';
+
+        if (!clue.layer0Spawned) {
+          console.log('LEAVE: Triggering clue trail sequence');
+          clue.active = false; // Deactivate input during sequence
+          clue.layer0Spawned = true;
+
+          // Ensure overlay is visible and on top
+          if (clue.overlayEl) {
+            clue.overlayEl.style.display = 'flex';
+            clue.overlayEl.style.zIndex = '999';
+          }
+
+          this._updatePromptCell('REQUEST ACKNOWLEDGED. HOLD FAST.');
+          this._showClueInstruction('CLUE TRAIL INITIATED. WATCH THE GRID.');
+          clue.riddleStage = 'await-search';
+
+          // Spawn Layer 0 immediately when LEAVE is entered
+          const entryCell = clue.entryCell || this.state.initialEntryCell || 'D5';
+          this._spawnTrailLayer({
+            title: 'VisiCell Array // Entrypoint',
+            hint: `Anchor cell ${entryCell}. Remember ENTER.`,
+            entries: [
+              { addr: 'A1', text: 'ENTER', highlight: true },
+              { addr: 'B1', text: entryCell, highlight: true },
+              { addr: 'B2', text: 'EAST' },
+              { addr: 'C2', text: 'STEP' }
+            ],
+            reference: `Route responses through ${entryCell}. Type SEARCH when ready.`
+          }, 0);
+
+          this._startClueTrailSequence('leave');
+        } else {
+          console.log('LEAVE: Layer 0 already spawned, skipping sequence restart');
+          this._showClueInstruction('DESCENT ALREADY INITIATED. SEARCH THE CACHE.');
         }
-        
-        this._updatePromptCell('REQUEST ACKNOWLEDGED. HOLD FAST.');
-        this._showClueInstruction('CLUE TRAIL INITIATED. WATCH THE GRID.');
-        clue.riddleStage = 'await-search';
-        
-        // Spawn Layer 0 immediately when LEAVE is entered
-        const entryCell = clue.entryCell || this.state.initialEntryCell || 'D5';
-        this._spawnTrailLayer({
-          title: 'VisiCell Array // Entrypoint',
-          hint: `Anchor cell ${entryCell}. Remember ENTER.`,
-          entries: [
-            { addr: 'A1', text: 'ENTER', highlight: true },
-            { addr: 'B1', text: entryCell, highlight: true },
-            { addr: 'B2', text: 'EAST' },
-            { addr: 'C2', text: 'STEP' }
-          ],
-          reference: `Route responses through ${entryCell}. Type SEARCH when ready.`
-        }, 0);
-        
-        this._startClueTrailSequence('leave');
+
         return true;
       }
-      
+
+      if (clue.riddleStage === 'await-search') {
+        this._showClueInstruction('DESCENT ALREADY INITIATED. SEARCH THE CACHE.');
+        return true;
+      }
+
       // If in midst of puzzle and already progressed past SEARCH
-      if (clue.riddleStage !== 'await-leave' && clue.riddleStage !== 'await-search') {
+      if (clue.riddleStage !== 'await-leave') {
         this._showClueInstruction('ALREADY IN PROGRESS. CONTINUE WITH THE PUZZLE.');
         return true;
       }
-      
+
       // Otherwise, invalid at this stage
       console.log('LEAVE: Cannot leave at this stage');
       this._showClueInstruction('CANNOT LEAVE AT THIS STAGE.');
