@@ -9066,6 +9066,10 @@
       cells: [],
       tabCount: 0,
       editingCell: null,
+      pausedMediaElements: [],
+      suspendedAudioContexts: [],
+      ambientAudioPaused: false,
+      nextLayerZIndex: 250,
     },
     
     init() {
@@ -9553,12 +9557,19 @@
       this.state.degradingLayerCount++;
       
       // Create degrading VisiCell window
+      if (typeof this.state.nextLayerZIndex !== 'number') {
+        this.state.nextLayerZIndex = 250;
+      }
+
+      const baseOffset = 20 + this.state.degradingLayerCount * 15;
+      const layerZIndex = ++this.state.nextLayerZIndex;
+
       const layer = document.createElement('div');
       layer.className = 'visicell-degrading-layer';
       layer.style.cssText = `
         position: fixed;
-        left: ${20 + this.state.degradingLayerCount * 15}px;
-        top: ${20 + this.state.degradingLayerCount * 15}px;
+        left: ${baseOffset}px;
+        top: ${baseOffset}px;
         width: 380px;
         height: 280px;
         background: rgba(0, 20, 0, 0.95);
@@ -9568,14 +9579,15 @@
         font-size: 11px;
         color: #0f0;
         padding: 12px;
-        z-index: ${150 + this.state.degradingLayerCount};
+        z-index: ${layerZIndex};
         overflow: hidden;
         opacity: 0;
         transform: scale(0.8) translateY(-20px);
         transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         pointer-events: auto;
       `;
-      
+      layer.dataset.visicellZIndex = String(layerZIndex);
+
       const titleBar = document.createElement('div');
       titleBar.style.cssText = `
         border-bottom: 1px solid rgba(0, 255, 0, 0.4);
@@ -9586,6 +9598,9 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        cursor: move;
+        user-select: none;
+        touch-action: none;
       `;
       titleBar.innerHTML = `<span>VISICELL [LAYER ${this.state.degradingLayerCount}] - CLUE: ${clueName}</span><span style="cursor: pointer; opacity: 0.7;" class="layer-close">✖</span>`;
       
@@ -9620,6 +9635,98 @@
       layer.appendChild(titleBar);
       layer.appendChild(content);
       document.body.appendChild(layer);
+
+      let isDragging = false;
+      let dragPointerId = null;
+      let dragOffsetX = 0;
+      let dragOffsetY = 0;
+
+      const onDrag = (event) => {
+        if (!isDragging) return;
+        if (dragPointerId !== null && event.pointerId !== dragPointerId) return;
+
+        const newLeft = Math.min(
+          Math.max(event.clientX - dragOffsetX, 0),
+          Math.max(0, window.innerWidth - layer.offsetWidth)
+        );
+        const newTop = Math.min(
+          Math.max(event.clientY - dragOffsetY, 0),
+          Math.max(0, window.innerHeight - layer.offsetHeight)
+        );
+
+        layer.style.left = `${newLeft}px`;
+        layer.style.top = `${newTop}px`;
+      };
+
+      const endDrag = (event) => {
+        if (!isDragging) return;
+        const pointerId = typeof event?.pointerId === 'number' ? event.pointerId : dragPointerId;
+        if (dragPointerId !== null && pointerId !== dragPointerId) return;
+
+        isDragging = false;
+        dragPointerId = null;
+
+        document.removeEventListener('pointermove', onDrag);
+        document.removeEventListener('pointerup', endDrag);
+        document.removeEventListener('pointercancel', endDrag);
+
+        if (pointerId != null && typeof layer.releasePointerCapture === 'function') {
+          try {
+            layer.releasePointerCapture(pointerId);
+          } catch (error) {
+            console.warn('Unable to release pointer capture for Visicell layer', error);
+          }
+        }
+
+        const originalTransition = layer.dataset.originalTransition;
+        if (typeof originalTransition === 'string' && originalTransition.length > 0) {
+          layer.style.transition = originalTransition;
+        } else {
+          layer.style.transition = 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        }
+        delete layer.dataset.originalTransition;
+      };
+
+      const startDrag = (event) => {
+        if ((typeof event.button === 'number' && event.button !== 0) || event.target?.closest('.layer-close')) {
+          return;
+        }
+
+        isDragging = true;
+        dragPointerId = event.pointerId ?? null;
+
+        const rect = layer.getBoundingClientRect();
+        dragOffsetX = event.clientX - rect.left;
+        dragOffsetY = event.clientY - rect.top;
+
+        if (!layer.dataset.originalTransition) {
+          layer.dataset.originalTransition = layer.style.transition || '';
+        }
+        layer.style.transition = 'none';
+
+        if (typeof this.state.nextLayerZIndex === 'number') {
+          this.state.nextLayerZIndex += 1;
+          layer.style.zIndex = this.state.nextLayerZIndex;
+        }
+
+        document.addEventListener('pointermove', onDrag);
+        document.addEventListener('pointerup', endDrag);
+        document.addEventListener('pointercancel', endDrag);
+
+        if (dragPointerId != null && typeof layer.setPointerCapture === 'function') {
+          try {
+            layer.setPointerCapture(dragPointerId);
+          } catch (error) {
+            console.warn('Unable to capture pointer for Visicell layer', error);
+          }
+        }
+
+        if (event.cancelable) {
+          event.preventDefault();
+        }
+      };
+
+      titleBar.addEventListener('pointerdown', startDrag);
       
       // Animate in
       setTimeout(() => {
@@ -9631,6 +9738,9 @@
       const closeBtn = titleBar.querySelector('.layer-close');
       if (closeBtn) {
         closeBtn.addEventListener('click', () => {
+          if (isDragging) {
+            endDrag();
+          }
           layer.style.opacity = '0';
           layer.style.transform = 'scale(0.8) translateY(-20px)';
           setTimeout(() => layer.remove(), 400);
@@ -9642,27 +9752,192 @@
         content.style.filter = `blur(${(this.state.degradingLayerCount + 2) * 0.5}px) brightness(${0.5 - (this.state.degradingLayerCount * 0.1)}) saturate(${0.7 - (this.state.degradingLayerCount * 0.1)})`;
       }, 3000 + (this.state.degradingLayerCount * 1000));
     },
-    
+
+    pauseAmbientAudio() {
+      if (!Array.isArray(this.state.pausedMediaElements)) {
+        this.state.pausedMediaElements = [];
+      }
+      if (!Array.isArray(this.state.suspendedAudioContexts)) {
+        this.state.suspendedAudioContexts = [];
+      }
+
+      this.state.pausedMediaElements.length = 0;
+      this.state.suspendedAudioContexts.length = 0;
+
+      const seen = new Set();
+      const videoEl = document.getElementById('visicellVideo');
+      let didPause = false;
+
+      const captureAudio = (audio) => {
+        if (!(audio instanceof HTMLAudioElement)) return;
+        if (audio === videoEl) return;
+        if (seen.has(audio)) return;
+        seen.add(audio);
+
+        try {
+          if (!audio.paused && !audio.ended) {
+            audio.pause();
+            this.state.pausedMediaElements.push(audio);
+            didPause = true;
+          }
+        } catch (error) {
+          console.warn('Unable to pause audio element for VisiCell video playback', error);
+        }
+      };
+
+      try {
+        document.querySelectorAll('audio').forEach(captureAudio);
+      } catch (error) {
+        console.warn('Unable to inspect audio elements for VisiCell video playback', error);
+      }
+
+      if (typeof chantAudio !== 'undefined') captureAudio(chantAudio);
+      if (typeof badBooleanTrack !== 'undefined') captureAudio(badBooleanTrack);
+
+      if (typeof window !== 'undefined') {
+        try {
+          Object.getOwnPropertyNames(window).forEach((key) => {
+            const value = window[key];
+            if (value instanceof HTMLAudioElement) {
+              captureAudio(value);
+            }
+          });
+        } catch (error) {
+          console.warn('Unable to scan global audio handles for VisiCell video playback', error);
+        }
+      }
+
+      const suspendContext = (ctx) => {
+        if (!ctx || typeof ctx.state !== 'string') return;
+        if (typeof ctx.suspend !== 'function' || typeof ctx.resume !== 'function') return;
+        if (ctx.state !== 'running') return;
+
+        try {
+          const result = ctx.suspend();
+          this.state.suspendedAudioContexts.push(ctx);
+          didPause = true;
+          if (result && typeof result.catch === 'function') {
+            result.catch((error) => {
+              console.warn('Unable to suspend audio context for VisiCell video playback', error);
+            });
+          }
+        } catch (error) {
+          console.warn('Unable to suspend audio context for VisiCell video playback', error);
+        }
+      };
+
+      if (typeof window !== 'undefined' && window.audioSystem?.audioCtx) {
+        suspendContext(window.audioSystem.audioCtx);
+      }
+      if (typeof scratchContext !== 'undefined' && scratchContext) suspendContext(scratchContext);
+      if (typeof badBooleanContext !== 'undefined' && badBooleanContext) suspendContext(badBooleanContext);
+      if (typeof chantAudioContext !== 'undefined' && chantAudioContext) suspendContext(chantAudioContext);
+      if (typeof holdWhirContext !== 'undefined' && holdWhirContext) suspendContext(holdWhirContext);
+      if (typeof gunSoundContext !== 'undefined' && gunSoundContext) suspendContext(gunSoundContext);
+
+      this.state.ambientAudioPaused = didPause;
+    },
+
+    resumeAmbientAudio() {
+      if (!this.state.ambientAudioPaused) {
+        this.state.pausedMediaElements = [];
+        this.state.suspendedAudioContexts = [];
+        return;
+      }
+
+      const pausedMedia = Array.isArray(this.state.pausedMediaElements) ? [...this.state.pausedMediaElements] : [];
+      const suspendedContexts = Array.isArray(this.state.suspendedAudioContexts) ? [...this.state.suspendedAudioContexts] : [];
+
+      this.state.pausedMediaElements.length = 0;
+      this.state.suspendedAudioContexts.length = 0;
+
+      pausedMedia.forEach((audio) => {
+        if (!(audio instanceof HTMLAudioElement)) return;
+        try {
+          if (audio.paused) {
+            const playback = audio.play();
+            if (playback && typeof playback.catch === 'function') {
+              playback.catch((error) => {
+                console.warn('Unable to resume audio element after VisiCell video playback', error);
+              });
+            }
+          }
+        } catch (error) {
+          console.warn('Unable to resume audio element after VisiCell video playback', error);
+        }
+      });
+
+      suspendedContexts.forEach((ctx) => {
+        if (!ctx || typeof ctx.resume !== 'function') return;
+        if (ctx.state !== 'suspended') return;
+
+        try {
+          const resumeResult = ctx.resume();
+          if (resumeResult && typeof resumeResult.catch === 'function') {
+            resumeResult.catch((error) => {
+              console.warn('Unable to resume audio context after VisiCell video playback', error);
+            });
+          }
+        } catch (error) {
+          console.warn('Unable to resume audio context after VisiCell video playback', error);
+        }
+      });
+
+      this.state.ambientAudioPaused = false;
+    },
+
     playVideo(filename) {
       const video = document.getElementById('visicellVideo');
+      if (!video) {
+        console.warn('VisiCell video element not found');
+        return;
+      }
+
+      // Ensure any previously paused audio is restored before managing new playback
+      this.resumeAmbientAudio();
+
+      const normalizedFilename = String(filename || '').toLowerCase();
+      let shouldResumeAudio = false;
+
+      if (normalizedFilename.endsWith('key.mp4')) {
+        this.pauseAmbientAudio();
+        shouldResumeAudio = this.state.ambientAudioPaused;
+      }
+
       video.src = filename;
       video.load();
-      
+
       this.videoPopup.style.display = 'flex';
-      
-      video.addEventListener('ended', () => {
-        setTimeout(() => {
-          this.videoPopup.style.opacity = '0';
+
+      let handled = false;
+      const finalizePlayback = (shouldAnimate = true) => {
+        if (handled) return;
+        handled = true;
+
+        if (shouldResumeAudio) {
+          this.resumeAmbientAudio();
+        }
+
+        if (shouldAnimate) {
           setTimeout(() => {
-            this.videoPopup.style.display = 'none';
-            this.videoPopup.style.opacity = '1';
-          }, 3000);
-        }, 100);
+            this.videoPopup.style.opacity = '0';
+            setTimeout(() => {
+              this.videoPopup.style.display = 'none';
+              this.videoPopup.style.opacity = '1';
+            }, 3000);
+          }, 100);
+        }
+      };
+
+      video.addEventListener('ended', () => {
+        finalizePlayback(true);
       }, { once: true });
-      
+
       video.addEventListener('error', () => {
         console.warn('Video not found:', filename);
+        finalizePlayback(false);
         this.videoPopup.style.display = 'none';
+        this.videoPopup.style.opacity = '1';
         this.printLine('[VIDEO FILE NOT FOUND]');
       }, { once: true });
     },
