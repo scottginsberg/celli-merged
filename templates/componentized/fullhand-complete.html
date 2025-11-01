@@ -14608,48 +14608,48 @@ tri.mesh.material.emissiveIntensity = 0.5;
 return;
 }
 
-// Determine which direction the triangle's FLAT EDGE should face (opposite circle)
-// The flat edge should be on the SAME SIDE as the circle
-// Which means the VERTEX should point AWAY from the circle (180° opposite)
+// Determine which direction the triangle's VERTEX should face (toward the circle)
 const normalizedRot = ((tri.rotation % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
 const rotationAngle = normalizedRot;
 
-let requiredFlatEdgeDirection = -1; // Direction of flat edge (where circle should be)
+let requiredVertexDirection = null; // Direction the triangle's point must face (toward circle)
 let spawnDirection = null; // Direction to spawn new square (opposite of circle)
 
-// Circle is above triangle (dy = -1) -> flat edge should be UP -> vertex should point DOWN
+// Circle is above triangle (dy = -1) -> vertex should point UP (toward circle)
 if (dx === 0 && dy === -1) {
-requiredFlatEdgeDirection = 0; // Flat edge UP (vertex points DOWN at 180°)
-spawnDirection = { x: 0, y: 1 }; // Spawn below
-} 
-// Circle is to the right (dx = 1) -> flat edge should be RIGHT -> vertex should point LEFT
+  requiredVertexDirection = 0;
+  spawnDirection = { x: 0, y: 1 }; // Spawn below (open side)
+}
+// Circle is to the right (dx = 1) -> vertex should point RIGHT (toward circle)
 else if (dx === 1 && dy === 0) {
-requiredFlatEdgeDirection = Math.PI / 2; // Flat edge RIGHT (vertex points LEFT at 270°)
-spawnDirection = { x: -1, y: 0 }; // Spawn left
-} 
-// Circle is below (dy = 1) -> flat edge should be DOWN -> vertex should point UP
+  requiredVertexDirection = Math.PI / 2;
+  spawnDirection = { x: -1, y: 0 }; // Spawn left (open side)
+}
+// Circle is below (dy = 1) -> vertex should point DOWN (toward circle)
 else if (dx === 0 && dy === 1) {
-requiredFlatEdgeDirection = Math.PI; // Flat edge DOWN (vertex points UP at 0°)
-spawnDirection = { x: 0, y: -1 }; // Spawn above
-} 
-// Circle is to the left (dx = -1) -> flat edge should be LEFT -> vertex should point RIGHT
+  requiredVertexDirection = Math.PI;
+  spawnDirection = { x: 0, y: -1 }; // Spawn above (open side)
+}
+// Circle is to the left (dx = -1) -> vertex should point LEFT (toward circle)
 else if (dx === -1 && dy === 0) {
-requiredFlatEdgeDirection = Math.PI * 1.5; // Flat edge LEFT (vertex points RIGHT at 90°)
-spawnDirection = { x: 1, y: 0 }; // Spawn right
+  requiredVertexDirection = Math.PI * 1.5;
+  spawnDirection = { x: 1, y: 0 }; // Spawn right (open side)
 }
 
-// The vertex should point OPPOSITE the flat edge, so add 180° (π)
-const requiredVertexDirection = (requiredFlatEdgeDirection + Math.PI) % (Math.PI * 2);
+if (requiredVertexDirection === null) {
+  console.warn(`[ShapePuzzle] Unable to determine required vertex direction for dx=${dx}, dy=${dy}`);
+  return;
+}
 
-// Check if flat edge is opposite circle (vertex points away from circle)
-console.log(`[ShapePuzzle] Direction check: flat edge should face circle at ${(requiredFlatEdgeDirection * 180 / Math.PI).toFixed(0)}°, vertex should point at ${(requiredVertexDirection * 180 / Math.PI).toFixed(0)}°, actual vertex=${(rotationAngle * 180 / Math.PI).toFixed(0)}°`);
+// Check if triangle's vertex is aimed at the circle
+console.log(`[ShapePuzzle] Direction check: vertex should point toward circle at ${(requiredVertexDirection * 180 / Math.PI).toFixed(0)}°, actual vertex=${(rotationAngle * 180 / Math.PI).toFixed(0)}°`);
 
 // Check if rotation is close to required direction (within ~5.7°)
 let angleDiff = Math.abs(rotationAngle - requiredVertexDirection);
 if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff; // Handle wrap-around
 
-if (requiredFlatEdgeDirection >= 0 && angleDiff < 0.1) {
-console.log('[ShapePuzzle] ✓ Triangle flat edge is opposite circle! Connection made!');
+if (requiredVertexDirection !== null && angleDiff < 0.1) {
+console.log('[ShapePuzzle] ✓ Triangle vertex points toward circle! Connection made!');
 // Change colors: circle to orange, triangle to white
 circ.mesh.material.color.set(0xff8800); // Orange
 circ.mesh.material.emissive = new THREE.Color(0xff8800);
