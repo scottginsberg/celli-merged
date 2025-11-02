@@ -1788,7 +1788,7 @@
        inputmode="text" enterkeyhint="done" />
  
  <!-- Play Overlay -->
- <div id="play" class="play">
+ <div id="play" class="play hidden" aria-hidden="true">
   <button id="playBtn">Play</button>
   <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; justify-content:center; max-width:550px;">
    <button id="sceneSelectBtn" style="font-size:12px; padding:10px 20px; opacity:0.7;">Scene Select</button>
@@ -1838,24 +1838,35 @@
     </a>
    </div>
   </div>
- </div>
+</div>
 
- <!-- Passcode Prompt Overlay -->
- <div id="passcodeOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:2147483647; backdrop-filter:blur(8px); align-items:center; justify-content:center;">
-  <div style="background:linear-gradient(145deg, rgba(25, 32, 58, 0.95), rgba(18, 26, 48, 0.9)); padding:32px 40px; border-radius:16px; border:1px solid rgba(102,126,234,0.4); box-shadow:0 20px 60px rgba(0,0,0,0.6); max-width:420px; width:90%;">
+<!-- Passcode Prompt Overlay -->
+<div id="passcodeOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:2147483647; backdrop-filter:blur(8px); align-items:center; justify-content:center;">
+ <div style="background:linear-gradient(145deg, rgba(25, 32, 58, 0.95), rgba(18, 26, 48, 0.9)); padding:32px 40px; border-radius:16px; border:1px solid rgba(102,126,234,0.4); box-shadow:0 20px 60px rgba(0,0,0,0.6); max-width:420px; width:90%;">
    <div style="color:#667eea; font-size:14px; font-weight:700; text-align:center; margin-bottom:8px; letter-spacing:0.1em;">🔐 ACCESS CONTROL</div>
    <div style="color:#a0a8c0; font-size:12px; text-align:center; margin-bottom:24px; line-height:1.5;">Enter passcode to access debug menu</div>
    <input id="passcodeInput" type="password" placeholder="Enter passcode" style="width:100%; padding:14px 18px; background:#191a23; border:2px solid rgba(102,126,234,0.3); border-radius:10px; color:#e8e8ee; font-size:16px; text-align:center; letter-spacing:0.3em; font-weight:600; outline:none; transition:border-color 0.2s;" />
    <div id="passcodeError" style="color:#ff6b6b; font-size:11px; text-align:center; margin-top:12px; min-height:16px; opacity:0; transition:opacity 0.2s;"></div>
-   <div style="display:flex; gap:12px; margin-top:20px;">
-    <button id="passcodeCancel" style="flex:1; padding:12px; background:#2a2a2f; border:1px solid #444; color:#ddd; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;">Cancel</button>
-    <button id="passcodeSubmit" style="flex:1; padding:12px; background:#667eea; border:0; color:#fff; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;">Submit</button>
-   </div>
+  <div style="display:flex; gap:12px; margin-top:20px;">
+   <button id="passcodeCancel" style="flex:1; padding:12px; background:#2a2a2f; border:1px solid #444; color:#ddd; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;">Cancel</button>
+   <button id="passcodeSubmit" style="flex:1; padding:12px; background:#667eea; border:0; color:#fff; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600;">Submit</button>
   </div>
  </div>
- 
- <!-- Scene Select Menu -->
- <div id="sceneSelect">
+</div>
+
+<div id="introResetOverlay" role="dialog" aria-modal="true" aria-labelledby="introResetTitle" aria-describedby="introResetDescription" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:2147483647; backdrop-filter:blur(8px); align-items:center; justify-content:center;">
+ <div style="background:#11131c; padding:34px 36px; border-radius:18px; box-shadow:0 18px 60px rgba(0,0,0,0.65); width:90%; max-width:440px; color:#e8eaed; border:1px solid rgba(107,140,255,0.35); text-align:center;">
+  <h2 id="introResetTitle" style="margin:0 0 14px; font-size:22px; letter-spacing:0.1em; text-transform:uppercase; color:#9bb4ff;">Reset Experience?</h2>
+  <p id="introResetDescription" style="margin:0 0 22px; font-size:15px; line-height:1.7; color:#cdd7ff;">Resetting will replay the referrer sequence from the beginning the next time Celli launches.</p>
+  <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+   <button id="introResetConfirm" style="padding:12px 30px; border-radius:999px; border:none; background:#6b8cff; color:#0a0c14; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; box-shadow:0 12px 30px rgba(107,140,255,0.4);">Reset</button>
+   <button id="introResetCancel" style="padding:12px 30px; border-radius:999px; border:1px solid rgba(155,180,255,0.45); background:transparent; color:#e8eaed; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer;">Cancel</button>
+  </div>
+ </div>
+</div>
+
+<!-- Scene Select Menu -->
+<div id="sceneSelect">
   <div class="scene-menu">
    <h2>Scene Select</h2>
    <p>Jump to previously experienced sequences</p>
@@ -2377,6 +2388,7 @@
   const FULL_SEQUENCE_REFERRER_STAGE = 'referrer';
   const FULL_SEQUENCE_REFERRER_ACTIVE_KEY = 'celli:fullSequenceReferrerActive';
   const FULL_SEQUENCE_BETA_STAGE = 'beta';
+  const INTRO_AUTO_LAUNCH_KEY = 'celli:introAutoLaunch';
   let betaFormRedirectTimeoutId = null;
   let betaFallbackCheckTimeoutId = null;
   let betaVideoSequenceStarted = false;
@@ -4438,12 +4450,43 @@
   const passcodeError = document.getElementById('passcodeError');
   const passcodeSubmit = document.getElementById('passcodeSubmit');
   const passcodeCancel = document.getElementById('passcodeCancel');
+  const introResetOverlay = document.getElementById('introResetOverlay');
+  const introResetConfirm = document.getElementById('introResetConfirm');
+  const introResetCancel = document.getElementById('introResetCancel');
+  let lastFocusedBeforeReset = null;
 
   const REFERRER_UNLOCK_SESSION_KEYS = [
     'celli:debugMenuUnlocked',
     'celli:referrerControlsUnlocked',
   ];
   const REFERRER_UNLOCK_DATASET_FLAGS = ['referrerControlsUnlocked', 'debugMenuUnlocked'];
+
+  function showPlayOverlay() {
+    const playOverlay = document.getElementById('play');
+    if (!playOverlay) {
+      return;
+    }
+
+    playOverlay.classList.remove('hidden');
+    playOverlay.removeAttribute('aria-hidden');
+
+    if (playOverlay.style.display === 'none') {
+      playOverlay.style.display = 'flex';
+    } else if (!playOverlay.style.display) {
+      playOverlay.style.display = 'flex';
+    }
+  }
+
+  function hidePlayOverlay() {
+    const playOverlay = document.getElementById('play');
+    if (!playOverlay) {
+      return;
+    }
+
+    playOverlay.classList.add('hidden');
+    playOverlay.setAttribute('aria-hidden', 'true');
+    playOverlay.style.display = 'none';
+  }
 
   function isReferrerControlsUnlocked() {
     const sessionUnlocked = REFERRER_UNLOCK_SESSION_KEYS.some(
@@ -4465,6 +4508,7 @@
     referrerControlsMenu.style.setProperty('opacity', '1', 'important');
     referrerControlsMenu.style.setProperty('visibility', 'visible', 'important');
     referrerControlsMenu.style.setProperty('pointer-events', 'auto', 'important');
+    showPlayOverlay();
   }
 
   function hideReferrerControls() {
@@ -4475,6 +4519,7 @@
     referrerControlsMenu.style.setProperty('opacity', '0', 'important');
     referrerControlsMenu.style.setProperty('visibility', 'hidden', 'important');
     referrerControlsMenu.style.setProperty('pointer-events', 'none', 'important');
+    hidePlayOverlay();
   }
 
   // Detect referrer and auto-trigger appropriate overlay
@@ -4483,9 +4528,15 @@
       // Check if we're coming back from a redirect (beta form, speed.html, etc.)
       const betaRedirectStatus = document.body.dataset.betaRedirectComplete;
       const fullSequenceStage = sessionStorage.getItem(FULL_SEQUENCE_STAGE_KEY);
-      
+      let introAutoLaunchEnabled = false;
+      try {
+        introAutoLaunchEnabled = window.localStorage?.getItem(INTRO_AUTO_LAUNCH_KEY) === 'true';
+      } catch (storageError) {
+        console.warn('⚠️ Unable to read intro auto-launch state for detection:', storageError);
+      }
+
       console.log('🔍 Checking redirect status:', { betaRedirectStatus, fullSequenceStage });
-      
+
       // Skip auto-trigger if:
       // 1. Coming back from beta redirect
       // 2. Already in beta stage
@@ -4493,6 +4544,12 @@
       if (betaRedirectStatus === 'true' || fullSequenceStage === FULL_SEQUENCE_BETA_STAGE) {
         console.log('⏭️ Skipping referrer auto-trigger - already in sequence or redirected from beta');
         killReferrerOverlay(); // Ensure it stays hidden
+        return;
+      }
+
+      if (introAutoLaunchEnabled) {
+        console.log('⏭️ Intro auto-launch enabled - skipping referrer auto-trigger.');
+        hidePlayOverlay();
         return;
       }
 
@@ -4601,6 +4658,72 @@
     }
   }
 
+  function showIntroResetPrompt() {
+    if (!introResetOverlay) {
+      return;
+    }
+
+    if (document.activeElement && document.activeElement !== document.body) {
+      lastFocusedBeforeReset = document.activeElement;
+    } else {
+      lastFocusedBeforeReset = null;
+    }
+
+    introResetOverlay.style.display = 'flex';
+
+    if (introResetConfirm && typeof introResetConfirm.focus === 'function') {
+      try {
+        introResetConfirm.focus();
+      } catch (focusError) {
+        console.warn('⚠️ Unable to focus reset confirm button:', focusError);
+      }
+    }
+  }
+
+  function hideIntroResetPrompt() {
+    if (!introResetOverlay) {
+      return;
+    }
+
+    introResetOverlay.style.display = 'none';
+
+    if (lastFocusedBeforeReset && typeof lastFocusedBeforeReset.focus === 'function') {
+      try {
+        lastFocusedBeforeReset.focus();
+      } catch (focusError) {
+        console.warn('⚠️ Unable to restore focus after reset prompt:', focusError);
+      }
+    }
+
+    lastFocusedBeforeReset = null;
+  }
+
+  function clearIntroAutoLaunchState() {
+    try {
+      window.localStorage?.removeItem(INTRO_AUTO_LAUNCH_KEY);
+    } catch (error) {
+      console.warn('⚠️ Unable to clear intro auto-launch preference:', error);
+    }
+
+    try {
+      window.sessionStorage?.removeItem(FULL_SEQUENCE_FLAG_KEY);
+      window.sessionStorage?.removeItem(FULL_SEQUENCE_STAGE_KEY);
+      window.sessionStorage?.removeItem(FULL_SEQUENCE_REFERRER_ACTIVE_KEY);
+    } catch (error) {
+      console.warn('⚠️ Unable to clear Full Sequence session state during reset:', error);
+    }
+  }
+
+  function performIntroReset() {
+    console.log('🔁 Intro experience reset confirmed.');
+    clearIntroAutoLaunchState();
+    hideIntroResetPrompt();
+
+    window.setTimeout(() => {
+      window.location.reload();
+    }, 150);
+  }
+
   // Verify passcode
   function verifyPasscode() {
     const enteredCode = passcodeInput ? passcodeInput.value.trim() : '';
@@ -4652,12 +4775,52 @@
     });
   }
 
+  if (introResetConfirm) {
+    introResetConfirm.addEventListener('click', () => {
+      performIntroReset();
+    });
+  }
+
+  if (introResetCancel) {
+    introResetCancel.addEventListener('click', () => {
+      hideIntroResetPrompt();
+    });
+  }
+
+  if (introResetOverlay) {
+    introResetOverlay.addEventListener('click', (event) => {
+      if (event.target === introResetOverlay) {
+        hideIntroResetPrompt();
+      }
+    });
+  }
+
   // Tilde and slash key listener
   document.addEventListener('keydown', (e) => {
     if (e.key === '~' || e.key === '`' || e.key === '/') {
       e.preventDefault();
       console.log('🔑 Passcode key pressed - showing passcode prompt');
       showPasscodePrompt();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '.') {
+      const activeElement = document.activeElement;
+      const isTypingTarget = activeElement &&
+        (activeElement.tagName === 'INPUT' ||
+         activeElement.tagName === 'TEXTAREA' ||
+         activeElement.isContentEditable);
+
+      if (isTypingTarget) {
+        return;
+      }
+
+      e.preventDefault();
+      console.log('🔁 Period key pressed - opening intro reset prompt');
+      showIntroResetPrompt();
+    } else if (e.key === 'Escape' && introResetOverlay && introResetOverlay.style.display === 'flex') {
+      hideIntroResetPrompt();
     }
   });
 
@@ -4668,11 +4831,12 @@
 
     if (unlocked) {
       showReferrerControls();
-      detectAndTriggerReferrer();
     } else {
       hideReferrerControls();
       console.log('🔒 Referrer controls locked - waiting for passcode');
     }
+
+    detectAndTriggerReferrer();
   }
 
   // Initialize after DOM is fully loaded to prevent menu flash
