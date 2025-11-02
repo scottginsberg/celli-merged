@@ -39,6 +39,7 @@ const FULL_SEQUENCE_INTRO_STAGE = 'intro';
 const FULL_SEQUENCE_INTRO_RUNNING_STAGE = 'intro-running';
 const FULL_SEQUENCE_INTRO_ACTIVE_STAGE = 'intro-active';
 const FULL_SEQUENCE_VOXEL_STAGE = 'voxel';
+const INTRO_AUTO_LAUNCH_KEY = 'celli:introAutoLaunch';
 const EXECUTION_ENV_MODE_STORAGE_KEY = 'fullhand_mode';
 const EXECUTION_ENV_DEFAULT_MODE = 'sequence';
 
@@ -310,6 +311,27 @@ function showToast(message, duration = 3000) {
   toastTimeoutId = window.setTimeout(() => {
     toastEl.style.display = 'none';
   }, duration);
+}
+
+function isIntroAutoLaunchEnabled() {
+  try {
+    return window.localStorage?.getItem(INTRO_AUTO_LAUNCH_KEY) === 'true';
+  } catch (error) {
+    console.warn('⚠️ Unable to read intro auto-launch flag:', error);
+    return false;
+  }
+}
+
+function setIntroAutoLaunchEnabled(enabled) {
+  try {
+    if (enabled) {
+      window.localStorage?.setItem(INTRO_AUTO_LAUNCH_KEY, 'true');
+    } else {
+      window.localStorage?.removeItem(INTRO_AUTO_LAUNCH_KEY);
+    }
+  } catch (error) {
+    console.warn('⚠️ Unable to update intro auto-launch flag:', error);
+  }
 }
 
 function isFullSequenceActive() {
@@ -822,6 +844,18 @@ async function startExperience(options = {}) {
     return;
   }
 
+  const playOverlay = document.getElementById('play');
+  if (playOverlay) {
+    playOverlay.classList.add('hidden');
+    playOverlay.style.display = 'none';
+    playOverlay.setAttribute('aria-hidden', 'true');
+  }
+
+  const playBtn = document.getElementById('playBtn');
+  if (playBtn) {
+    playBtn.disabled = true;
+  }
+
   experienceStarting = true;
   console.group('🎬 Starting Celli experience');
   console.log('🔁 Start reason:', reason);
@@ -1074,7 +1108,7 @@ function setupButtons() {
 
       try {
         if (typeof window.triggerOverlay === 'function') {
-          window.triggerOverlay('linkedin');
+          window.triggerOverlay('zeed');
         } else {
           console.warn('⚠️ Full Sequence overlay trigger unavailable.');
           showToast('Unable to start Full Sequence — overlay unavailable');
@@ -1311,6 +1345,12 @@ function openSequenceComposer() {
 }
 
 function emphasizePlayButton(reason) {
+  const playOverlay = document.getElementById('play');
+  if (playOverlay && (playOverlay.classList.contains('hidden') || playOverlay.style.display === 'none')) {
+    console.log(`⏸️ Skipping play button emphasis (${reason}) because play overlay is hidden.`);
+    return;
+  }
+
   const playBtn = document.getElementById('playBtn');
   if (!playBtn) {
     console.warn('⚠️ Unable to emphasise play button - element not found.');
@@ -1365,6 +1405,43 @@ async function handleAutoStart() {
     return;
   }
 
+  const introAutoLaunchEnabled = isIntroAutoLaunchEnabled();
+
+  if (introAutoLaunchEnabled) {
+    console.log('⚡ Intro auto-launch flag detected - starting experience automatically.');
+    setFullSequenceActive(false);
+    const playOverlay = document.getElementById('play');
+    const playBtn = document.getElementById('playBtn');
+
+    if (playOverlay) {
+      playOverlay.classList.add('hidden');
+      playOverlay.style.display = 'none';
+      playOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    if (playBtn) {
+      playBtn.disabled = true;
+    }
+
+    try {
+      await startExperience({ reason: 'intro-auto-launch' });
+    } catch (error) {
+      console.error('❌ Failed to auto-launch intro sequence:', error);
+      if (playBtn) {
+        playBtn.disabled = false;
+      }
+      if (playOverlay) {
+        playOverlay.classList.remove('hidden');
+        if (playOverlay.style.display === 'none') {
+          playOverlay.style.display = '';
+        }
+        playOverlay.removeAttribute('aria-hidden');
+      }
+    }
+
+    return;
+  }
+
   if (!shouldAutostart) {
     console.log('⏸️ Autostart disabled or not requested. Waiting for user interaction.');
     if (autostartParam !== null) {
@@ -1396,6 +1473,11 @@ async function handleAutoStart() {
     }
   }
 }
+
+window.addEventListener('celli:construction-complete', () => {
+  console.log('🏁 Intro construction complete — enabling intro auto-launch.');
+  setIntroAutoLaunchEnabled(true);
+});
 
 window.addEventListener('celli:launchVoxelWorld', async (event) => {
   if (isFullSequenceActive()) {
