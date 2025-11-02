@@ -267,11 +267,92 @@
       font-size: 3rem;
       transition: all 2.5s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 0 200px rgba(102, 126, 234, 1), 0 0 400px rgba(118, 75, 162, 1), inset 0 0 100px rgba(255, 255, 255, 0.4);
+      background: radial-gradient(circle at center, #ffffff 0%, #f3f5ff 45%, #d6dcff 100%);
     }
 
     #segwayBall.blackout {
       color: #000;
       transition: color 1.5s ease;
+    }
+
+    #whiteoutOverlay {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(255, 255, 255, 0.95) 0%, rgba(240, 244, 255, 0.92) 35%, rgba(224, 232, 255, 0.85) 100%);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 2500;
+      transition: opacity 2.5s ease;
+    }
+
+    #whiteoutOverlay.active {
+      opacity: 1;
+    }
+
+    #loomChat {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: min(320px, 80vw);
+      background: rgba(12, 16, 32, 0.92);
+      color: #f5f6ff;
+      border-radius: 16px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      z-index: 3200;
+      overflow: hidden;
+      pointer-events: none;
+      display: none;
+    }
+
+    #loomChat.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .loom-chat-header {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 0.75rem 1rem;
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .loom-chat-body {
+      padding: 0.75rem 1rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .loom-chat-message {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 0.65rem 0.75rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .loom-chat-message.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .loom-chat-sender {
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.6;
+      margin-bottom: 0.25rem;
     }
 
     #segwayCard {
@@ -1004,6 +1085,11 @@
       <br><br>
       <em>A "segue" (pronounced the same way) is a smooth transition from one thing to another.</em>
     </div>
+  </div>
+  <div id="whiteoutOverlay"></div>
+  <div id="loomChat">
+    <div class="loom-chat-header">Loom Chat</div>
+    <div class="loom-chat-body" id="loomChatBody"></div>
   </div>
 
   <!-- Debug: Jump to final descent before compartmentalizer -->
@@ -5025,6 +5111,47 @@
           const bonusButton = document.getElementById('bonusButton');
           const countdown = document.getElementById('bonusCountdown');
           const segwayButton = document.getElementById('segwayButton');
+          const whiteoutOverlay = document.getElementById('whiteoutOverlay');
+          const loomChat = document.getElementById('loomChat');
+          const loomChatBody = document.getElementById('loomChatBody');
+          const loomChatQueue = [
+            { sender: 'DEV_989', text: 'can u make the font bigger' },
+            { sender: 'DEV_989', text: 'missed the first 5m can i get a recap' },
+            { sender: 'HR_327', text: 'happy monday' },
+            { sender: 'HR_327', text: 'jeanette is no longer with us. new snacks in break room <3' }
+          ];
+          let loomChatShown = false;
+
+          function showLoomChat() {
+            if (!loomChat || !loomChatBody || loomChatShown) return;
+            loomChatShown = true;
+
+            loomChat.style.display = 'block';
+            requestAnimationFrame(() => {
+              loomChat.classList.add('visible');
+            });
+
+            loomChatQueue.forEach((msg, idx) => {
+              const messageEl = document.createElement('div');
+              messageEl.className = 'loom-chat-message';
+
+              const senderEl = document.createElement('span');
+              senderEl.className = 'loom-chat-sender';
+              senderEl.textContent = msg.sender;
+
+              const textEl = document.createElement('span');
+              textEl.textContent = msg.text;
+
+              messageEl.appendChild(senderEl);
+              messageEl.appendChild(textEl);
+              loomChatBody.appendChild(messageEl);
+
+              setTimeout(() => {
+                messageEl.classList.add('visible');
+              }, 450 * idx + 250);
+            });
+          }
+
           bonusButton.classList.add('visible');
           segwayButton.classList.add('visible');
           console.log('🎁 Bonus button ready!');
@@ -5099,12 +5226,16 @@
                 let currentLine = 0;
                 let currentChar = 0;
                 let displayText = '';
-                let expansionStarted = false;
-                
+
                 // Start expansion immediately as typing begins
                 setTimeout(() => {
                   ball.classList.add('expanding');
-                  
+                  if (whiteoutOverlay) {
+                    whiteoutOverlay.classList.add('active');
+                  }
+
+                  setTimeout(showLoomChat, 1200);
+
                   // Shift text to black as expansion continues
                   setTimeout(() => {
                     ball.classList.add('blackout');
@@ -5117,15 +5248,17 @@
                       displayText += lines[currentLine][currentChar];
                       ball.innerHTML = displayText.replace(/\n/g, '<br>');
                       currentChar++;
-                      
-                      setTimeout(typeNextChar, 50);
+
+                      const typingDelay = lines[currentLine] === 'THE SEGUE' ? 140 : 50;
+                      setTimeout(typeNextChar, typingDelay);
                     } else {
                       // Move to next line
                       displayText += '\n\n';
                       currentLine++;
                       currentChar = 0;
                       if (currentLine < lines.length) {
-                        setTimeout(typeNextChar, 400);
+                        const nextDelay = lines[currentLine] === 'THE SEGUE' ? 700 : 400;
+                        setTimeout(typeNextChar, nextDelay);
                       } else {
                         // Typing complete, show card (will be covered by expanding circle)
                         setTimeout(() => {
