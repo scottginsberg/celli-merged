@@ -69,7 +69,7 @@
       height: 5000px;
       transform-origin: 0 0;
       perspective: 1000px; /* Enable 3D perspective for flip animation */
-      z-index: 90; /* Above fx/grain overlays (80, 85) so particles remain visible */
+      z-index: 90; /* Base scene – fixed overlays use higher z-index so FX stay visible */
     }
     
     canvas {
@@ -89,7 +89,7 @@
       left: 0;
       width: 5000px;
       height: 5000px;
-      z-index: 100; /* Above track, below fixed overlays - transforms with scene */
+      z-index: 120; /* Above track, still below fixed overlay FX - transforms with scene */
       pointer-events: none;
     }
 
@@ -100,17 +100,17 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      z-index: 80; /* Below particles */
+      z-index: 320; /* Fixed FX (fire/snow/sandfall) drawn above scene + cards */
       pointer-events: none;
     }
-    /* Film grain overlay slightly above fx overlay, still under particles */
+    /* Film grain overlay slightly below fx overlay but still above scene */
     #grainOverlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      z-index: 85; /* Below particles */
+      z-index: 310; /* Keeps grain under FX glow but above board */
       pointer-events: none;
       mix-blend-mode: overlay;
       opacity: 0.25;
@@ -2426,7 +2426,7 @@
       tile.style.animation = 'none';
       tile.style.width = '160px';
       tile.style.height = '120px';
-      tile.style.zIndex = '150'; // Above FX overlays (fire/snow at 80, grain at 85) but below particles (300)
+      tile.style.zIndex = '150'; // Above particle canvas (120) but still below fixed FX overlays (grain 310 / fire 320)
       
       // Store data
       tile.dataset.featureName = featureName;
@@ -4320,11 +4320,11 @@
       waveCanvas.height = vh;
       waveCanvas.style.position = 'fixed';
       waveCanvas.style.inset = '0';
-      waveCanvas.style.zIndex = '75'; // BELOW fxOverlay (80) and particleCanvas (90) so fire/snow show on top
+      waveCanvas.style.zIndex = '75'; // BELOW particle canvas (120) and fxOverlay (320) so fire/snow stay visible
       waveCanvas.style.pointerEvents = 'none';
       viewport.appendChild(waveCanvas);
       const ctx = waveCanvas.getContext('2d', { alpha: true });
-      console.log('🎨 Created wave canvas at z-index 75 (below fire/snow at 80/90)');
+      console.log('🎨 Created wave canvas at z-index 75 (below particle canvas 120 + fire/snow FX 320)');
       
       // NUCLEAR FIX: Start FRESH - don't keep old hourglass particles
       const MAX_WAVE_PARTICLES = 1200;  // Enough particles to form train
