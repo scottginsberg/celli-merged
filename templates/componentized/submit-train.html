@@ -5118,7 +5118,9 @@
             { sender: 'DEV_989', text: 'can u make the font bigger' },
             { sender: 'DEV_989', text: 'missed the first 5m can i get a recap' },
             { sender: 'HR_327', text: 'happy monday' },
-            { sender: 'HR_327', text: 'jeanette is no longer with us. new snacks in break room <3' }
+            { sender: 'HR_327', text: 'jeanette is no longer with us. new snacks in break room <3' },
+            { sender: 'OPS_616', text: 'wait like fired or ded lol' },
+            { sender: 'HR_327', text: 'yes! <3' }
           ];
           let loomChatShown = false;
 
@@ -5131,24 +5133,29 @@
               loomChat.classList.add('visible');
             });
 
+            const messageInitialDelay = 300;
+            const messageInterval = 600;
+
             loomChatQueue.forEach((msg, idx) => {
-              const messageEl = document.createElement('div');
-              messageEl.className = 'loom-chat-message';
-
-              const senderEl = document.createElement('span');
-              senderEl.className = 'loom-chat-sender';
-              senderEl.textContent = msg.sender;
-
-              const textEl = document.createElement('span');
-              textEl.textContent = msg.text;
-
-              messageEl.appendChild(senderEl);
-              messageEl.appendChild(textEl);
-              loomChatBody.appendChild(messageEl);
-
               setTimeout(() => {
-                messageEl.classList.add('visible');
-              }, 450 * idx + 250);
+                const messageEl = document.createElement('div');
+                messageEl.className = 'loom-chat-message';
+
+                const senderEl = document.createElement('span');
+                senderEl.className = 'loom-chat-sender';
+                senderEl.textContent = msg.sender;
+
+                const textEl = document.createElement('span');
+                textEl.textContent = msg.text;
+
+                messageEl.appendChild(senderEl);
+                messageEl.appendChild(textEl);
+                loomChatBody.appendChild(messageEl);
+
+                requestAnimationFrame(() => {
+                  messageEl.classList.add('visible');
+                });
+              }, messageInitialDelay + idx * messageInterval);
             });
           }
 
