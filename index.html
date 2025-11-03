@@ -2113,6 +2113,11 @@
    </div>
   </div>
 
+ <div id="refLoomChat" class="ref-loom-chat" aria-live="polite" aria-hidden="true">
+  <div id="refLoomChatHeader" class="loom-chat-header">MKTG_620</div>
+  <div class="loom-chat-body" id="refLoomChatBody"></div>
+ </div>
+
  </div>
 
  <!-- Tooltip -->
@@ -2247,6 +2252,156 @@
   const refFeedbackLink = document.getElementById('refFeedbackLink');
   const directFormLink = document.getElementById('directFormLink');
   const LOOM_AUDIO_STATUS_TEXT = 'Streaming CallYouByMyName.mp3';
+  const refLoomChat = document.getElementById('refLoomChat');
+  const refLoomChatBody = document.getElementById('refLoomChatBody');
+  const REF_LOOM_CHAT_SENDER = 'MKTG_620';
+  const REF_LOOM_CHAT_MESSAGES = [
+    'We made first contact but connection still needs to be established.',
+    'Try shooting us a link.',
+    'Like by clicking a post.',
+    'user, pls'
+  ];
+  const REF_LOOM_CHAT_INITIAL_DELAY = 3000;
+  const REF_LOOM_CHAT_INTERVAL = 3000;
+
+  let refLoomChatInactivityTimeout = null;
+  let refLoomChatMessageTimeout = null;
+  let refLoomChatHideTimeout = null;
+  let refLoomChatMessageIndex = 0;
+  let refLoomChatVisible = false;
+
+  function isReferrerOverlayVisible() {
+    return !!(overlay && overlay.getAttribute('aria-hidden') !== 'true' && !window.__referrerOverlayKilled);
+  }
+
+  function hideRefLoomChat() {
+    if (refLoomChatMessageTimeout) {
+      clearTimeout(refLoomChatMessageTimeout);
+      refLoomChatMessageTimeout = null;
+    }
+
+    refLoomChatMessageIndex = 0;
+
+    if (refLoomChatBody) {
+      refLoomChatBody.innerHTML = '';
+    }
+
+    if (refLoomChat) {
+      refLoomChat.classList.remove('visible');
+      refLoomChat.setAttribute('aria-hidden', 'true');
+
+      if (refLoomChatHideTimeout) {
+        clearTimeout(refLoomChatHideTimeout);
+        refLoomChatHideTimeout = null;
+      }
+
+      if (refLoomChatVisible) {
+        refLoomChatHideTimeout = setTimeout(() => {
+          if (refLoomChat) {
+            refLoomChat.style.display = 'none';
+          }
+          refLoomChatHideTimeout = null;
+        }, 420);
+      } else {
+        refLoomChat.style.display = 'none';
+      }
+    }
+
+    refLoomChatVisible = false;
+  }
+
+  function cancelRefLoomChat() {
+    if (refLoomChatInactivityTimeout) {
+      clearTimeout(refLoomChatInactivityTimeout);
+      refLoomChatInactivityTimeout = null;
+    }
+
+    hideRefLoomChat();
+  }
+
+  function appendRefLoomChatMessage() {
+    if (!refLoomChatBody || refLoomChatMessageIndex >= REF_LOOM_CHAT_MESSAGES.length) {
+      refLoomChatMessageTimeout = null;
+      return;
+    }
+
+    const messageText = REF_LOOM_CHAT_MESSAGES[refLoomChatMessageIndex];
+    const messageEl = document.createElement('div');
+    messageEl.className = 'loom-chat-message';
+
+    const senderEl = document.createElement('span');
+    senderEl.className = 'loom-chat-sender';
+    senderEl.textContent = REF_LOOM_CHAT_SENDER;
+
+    const textEl = document.createElement('span');
+    textEl.textContent = messageText;
+
+    messageEl.appendChild(senderEl);
+    messageEl.appendChild(textEl);
+    refLoomChatBody.appendChild(messageEl);
+
+    requestAnimationFrame(() => {
+      messageEl.classList.add('visible');
+    });
+
+    refLoomChatMessageIndex += 1;
+
+    if (refLoomChatMessageIndex < REF_LOOM_CHAT_MESSAGES.length) {
+      refLoomChatMessageTimeout = setTimeout(appendRefLoomChatMessage, REF_LOOM_CHAT_INTERVAL);
+    } else {
+      refLoomChatMessageTimeout = null;
+    }
+  }
+
+  function startRefLoomChatSequence() {
+    if (!isReferrerOverlayVisible() || !refLoomChat || !refLoomChatBody) {
+      return;
+    }
+
+    if (refLoomChatHideTimeout) {
+      clearTimeout(refLoomChatHideTimeout);
+      refLoomChatHideTimeout = null;
+    }
+
+    if (refLoomChatMessageTimeout) {
+      clearTimeout(refLoomChatMessageTimeout);
+      refLoomChatMessageTimeout = null;
+    }
+
+    refLoomChatMessageIndex = 0;
+    refLoomChatBody.innerHTML = '';
+    refLoomChat.style.display = 'block';
+    refLoomChat.setAttribute('aria-hidden', 'false');
+
+    requestAnimationFrame(() => {
+      if (refLoomChat) {
+        refLoomChat.classList.add('visible');
+      }
+    });
+
+    refLoomChatVisible = true;
+    refLoomChatInactivityTimeout = null;
+    appendRefLoomChatMessage();
+  }
+
+  function resetRefLoomChatInactivity() {
+    if (refLoomChatInactivityTimeout) {
+      clearTimeout(refLoomChatInactivityTimeout);
+      refLoomChatInactivityTimeout = null;
+    }
+
+    hideRefLoomChat();
+
+    if (isReferrerOverlayVisible()) {
+      refLoomChatInactivityTimeout = setTimeout(() => {
+        startRefLoomChatSequence();
+      }, REF_LOOM_CHAT_INITIAL_DELAY);
+    }
+  }
+
+  function registerRefPostInteraction() {
+    resetRefLoomChatInactivity();
+  }
 
   function computeAppBaseUrl() {
     const href = window.location && typeof window.location.href === 'string'
@@ -2303,10 +2458,12 @@
   function killReferrerOverlay(){
     try{
       console.log('🔪 Killing referrer overlay - hiding completely');
-      
+
       // Set global flag to prevent any future overlay opens
       window.__referrerOverlayKilled = true;
-      
+
+      cancelRefLoomChat();
+
       // Hide referrer stage root completely
       const refStageRoot = document.getElementById('referrerStageRoot');
       if(refStageRoot){
@@ -6824,11 +6981,12 @@
     if (bodyEl) {
       bodyEl.style.overflow = '';
     }
-    
+
     deactivateReferrerStageRoot();
     setReferrerOverlayActiveState(false);
     hideSidebar();
     hideTooltip();
+    cancelRefLoomChat();
     resetImpacts();
     resetLightBeamFocus();
     clearBetaFallbackTimeout();
@@ -8324,6 +8482,7 @@
       launchTooltip();
       runGlitchOnce();
       jitterList(400);
+      registerRefPostInteraction();
       setTimeout(() => {
         if (impactCount > 0 && impactCount <= 3) {
           showSidebar(activeUrl, true);
@@ -8811,7 +8970,9 @@
     
     console.log(`📝 ═══ renderItems COMPLETE ═══`);
     console.log(`  currentView=${currentView}, hnItems=${hnItems.length}, redditItems=${redditItems.length}, twitterItems=${twitterItems.length}, facebookItems=${facebookItems.length}, linkedinItems=${linkedinItems.length}\n`);
-    
+
+    resetRefLoomChatInactivity();
+
     } catch (error) {
       console.error(`❌❌❌ ERROR in renderItems:`, error);
       console.error(`Stack:`, error.stack);
