@@ -212,6 +212,13 @@ const MASK_PATTERNS = {
   ]
 };
 
+// Map each clickable "I" index in "III" to its corresponding mask type
+const I_INDEX_MASK_MAP = {
+  0: 'SAD',
+  1: 'HAPPY',
+  2: 'TROLL'
+};
+
 const COLOR_THEMES = {
   white: {
     base: new THREE.Color(0x2f3547),
@@ -2496,9 +2503,12 @@ export class IntroSceneComplete {
             this.state.clickedMasks[iIndex] = true;
             
             // Spawn appropriate mask
-            const maskTypes = ['HAPPY', 'SAD', 'TROLL'];
-            const maskType = maskTypes[iIndex];
-            this._spawnMaskVoxels(this.state.scene, this.state.voxelGeo, this.state.edgesGeo, maskType, iIndex);
+            const maskType = I_INDEX_MASK_MAP[iIndex];
+            if (maskType) {
+              this._spawnMaskVoxels(this.state.scene, this.state.voxelGeo, this.state.edgesGeo, maskType, iIndex);
+            } else {
+              console.warn(`⚠️ No mask mapping defined for I index ${iIndex}`);
+            }
           }
           return; // Don't create text particles if clicking on I
         }
