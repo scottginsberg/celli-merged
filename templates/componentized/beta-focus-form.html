@@ -89,17 +89,17 @@
       --tone-magenta-fg: #fff3f8;
       --tone-magenta-border: #ff7aa5;
       --tone-magenta-shadow: 0 0 0 1px rgba(255, 122, 165, 0.65), 0 12px 28px rgba(255, 24, 95, 0.32);
-      --trifold-blue: #33b8ff;
-      --trifold-gold: #f7b948;
-      --trifold-magenta: #ff4d91;
-      --trifold-highlight-shadow: 0 26px 56px rgba(10, 14, 40, 0.55);
-      --trifold-blue-rgb: 51, 184, 255;
-      --trifold-blue-deep-rgb: 11, 90, 190;
-      --trifold-gold-rgb: 247, 185, 72;
-      --trifold-gold-deep-rgb: 199, 128, 32;
-      --trifold-magenta-rgb: 255, 77, 145;
-      --trifold-magenta-deep-rgb: 201, 36, 96;
-      --trifold-fold-highlight: rgba(255, 255, 255, 0.3);
+      --trifold-blue: #4b6cff;
+      --trifold-gold: #ffcc5c;
+      --trifold-magenta: #ff6ca8;
+      --trifold-highlight-shadow: 0 26px 56px rgba(16, 14, 40, 0.58);
+      --trifold-blue-rgb: 75, 108, 255;
+      --trifold-blue-deep-rgb: 39, 64, 214;
+      --trifold-gold-rgb: 255, 204, 92;
+      --trifold-gold-deep-rgb: 208, 134, 40;
+      --trifold-magenta-rgb: 255, 108, 168;
+      --trifold-magenta-deep-rgb: 205, 46, 112;
+      --trifold-fold-highlight: rgba(255, 255, 255, 0.32);
       --chat-button-offset: clamp(1rem, 3vw, 1.75rem);
     }
 
@@ -186,17 +186,17 @@
       --tone-magenta-fg: #280028;
       --tone-magenta-border: #ff8cff;
       --tone-magenta-shadow: 0 0 0 1px rgba(255, 140, 255, 0.65), 0 12px 28px rgba(255, 57, 255, 0.35);
-      --trifold-blue: #148edb;
-      --trifold-gold: #f4a83a;
-      --trifold-magenta: #ff3e85;
+      --trifold-blue: #3f8bff;
+      --trifold-gold: #ffba4d;
+      --trifold-magenta: #ff5fa8;
       --trifold-highlight-shadow: 0 26px 56px rgba(12, 10, 24, 0.5);
-      --trifold-blue-rgb: 20, 142, 219;
-      --trifold-blue-deep-rgb: 8, 70, 158;
-      --trifold-gold-rgb: 244, 168, 58;
-      --trifold-gold-deep-rgb: 184, 114, 24;
-      --trifold-magenta-rgb: 255, 62, 133;
-      --trifold-magenta-deep-rgb: 191, 28, 79;
-      --trifold-fold-highlight: rgba(255, 255, 255, 0.42);
+      --trifold-blue-rgb: 63, 139, 255;
+      --trifold-blue-deep-rgb: 28, 82, 195;
+      --trifold-gold-rgb: 255, 186, 77;
+      --trifold-gold-deep-rgb: 201, 126, 36;
+      --trifold-magenta-rgb: 255, 95, 168;
+      --trifold-magenta-deep-rgb: 193, 36, 102;
+      --trifold-fold-highlight: rgba(255, 255, 255, 0.36);
       --chat-button-offset: clamp(1rem, 5vw, 1.5rem);
     }
 
@@ -247,123 +247,243 @@
       position: fixed;
       top: clamp(1rem, 3vw, 1.75rem);
       right: clamp(1rem, 3vw, 1.75rem);
+      width: 64px;
+      height: 64px;
+      border: none;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       z-index: 10002;
+    }
+
+    .pre-form-trifold-button::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(145deg,
+          rgba(94, 123, 255, 0.25) 0%,
+          rgba(255, 216, 107, 0.22) 52%,
+          rgba(255, 95, 168, 0.25) 100%);
+      border-radius: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 18px 34px rgba(0, 0, 0, 0.35);
+      transition: transform 360ms cubic-bezier(.2,.8,.2,1),
+                  box-shadow 360ms cubic-bezier(.2,.8,.2,1),
+                  border-color 360ms cubic-bezier(.2,.8,.2,1),
+                  background 360ms cubic-bezier(.2,.8,.2,1);
+    }
+
+    .pre-form-trifold-button:hover::before,
+    .pre-form-trifold-button.near::before,
+    .pre-form-trifold-button:focus-visible::before {
+      transform: scale(1.1);
+      border-color: rgba(255, 255, 255, 0.8);
+      background: linear-gradient(135deg,
+          var(--trifold-blue) 0%,
+          var(--trifold-gold) 50%,
+          var(--trifold-magenta) 100%);
+      box-shadow: var(--trifold-highlight-shadow),
+                  0 0 32px rgba(94, 123, 255, 0.45),
+                  0 0 42px rgba(255, 95, 168, 0.35);
+    }
+
+    .pre-form-trifold-button:focus-visible {
+      outline: 3px solid #000;
+      outline-offset: 4px;
+      border-radius: 14px;
+    }
+
+    .pre-form-trifold-button__square {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: #111;
+      border-radius: 1px;
+      transition: background 360ms cubic-bezier(.2,.8,.2,1), 
+                  transform 360ms cubic-bezier(.2,.8,.2,1),
+                  left 360ms cubic-bezier(.2,.8,.2,1),
+                  top 360ms cubic-bezier(.2,.8,.2,1);
+    }
+
+    .pre-form-trifold-button__triangle {
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-left: 3px solid transparent;
+      border-right: 3px solid transparent;
+      border-top: 6px solid #111;
+      transition: border-color 360ms cubic-bezier(.2,.8,.2,1),
+                  border-width 360ms cubic-bezier(.2,.8,.2,1),
+                  transform 360ms cubic-bezier(.2,.8,.2,1),
+                  top 360ms cubic-bezier(.2,.8,.2,1),
+                  left 360ms cubic-bezier(.2,.8,.2,1);
+    }
+
+    .pre-form-trifold-button__circle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #111;
+      box-shadow: none;
+      transition: background 360ms cubic-bezier(.2,.8,.2,1),
+                  transform 360ms cubic-bezier(.2,.8,.2,1),
+                  bottom 360ms cubic-bezier(.2,.8,.2,1),
+                  left 360ms cubic-bezier(.2,.8,.2,1);
+    }
+
+    /* Row 0: three squares (middle) */
+    .pre-form-trifold-button__square:nth-of-type(1) { top: 10px; left: 22px; }
+    .pre-form-trifold-button__square:nth-of-type(2) { top: 10px; left: 29px; }
+    .pre-form-trifold-button__square:nth-of-type(3) { top: 10px; left: 36px; }
+    
+    /* Row 1: two squares (sides) */
+    .pre-form-trifold-button__square:nth-of-type(4) { top: 17px; left: 15px; }
+    .pre-form-trifold-button__square:nth-of-type(5) { top: 17px; left: 43px; }
+    
+    /* Row 2: two squares (middle-right) */
+    .pre-form-trifold-button__square:nth-of-type(6) { top: 24px; left: 29px; }
+    .pre-form-trifold-button__square:nth-of-type(7) { top: 24px; left: 36px; }
+    
+    /* Row 3: one square (middle) */
+    .pre-form-trifold-button__square:nth-of-type(8) { top: 31px; left: 29px; }
+    
+    /* Row 4: triangle (middle) */
+    .pre-form-trifold-button__triangle { top: 38px; left: 29px; }
+    
+    /* Row 5: circle (middle) */
+    .pre-form-trifold-button__circle { bottom: 10px; left: 29px; }
+
+    /* Hover/near: color changes */
+    .pre-form-trifold-button:hover .pre-form-trifold-button__square,
+    .pre-form-trifold-button.near .pre-form-trifold-button__square {
+      background: var(--trifold-blue);
+    }
+
+    .pre-form-trifold-button:hover .pre-form-trifold-button__triangle,
+    .pre-form-trifold-button.near .pre-form-trifold-button__triangle {
+      border-top-color: var(--trifold-gold);
+    }
+
+    .pre-form-trifold-button:hover .pre-form-trifold-button__circle,
+    .pre-form-trifold-button.near .pre-form-trifold-button__circle {
+      background: var(--trifold-magenta);
+    }
+
+    /* Hover/near: collapse all squares to top-center position and scale up */
+    .pre-form-trifold-button:hover .pre-form-trifold-button__square,
+    .pre-form-trifold-button.near .pre-form-trifold-button__square {
+      left: 29px !important;
+      top: 10px !important;
+      transform: scale(1.6);
+    }
+
+    /* Hover/near: reposition, rotate 180deg, and scale up triangle to middle */
+    .pre-form-trifold-button:hover .pre-form-trifold-button__triangle,
+    .pre-form-trifold-button.near .pre-form-trifold-button__triangle {
+      border-left-width: 5px;
+      border-right-width: 5px;
+      border-top-width: 10px;
+      top: 28px !important;
+      left: 29px !important;
+      transform: scale(1.4) rotate(180deg);
+    }
+
+    /* Hover/near: reposition and scale up circle to bottom */
+    .pre-form-trifold-button:hover .pre-form-trifold-button__circle,
+    .pre-form-trifold-button.near .pre-form-trifold-button__circle {
+      bottom: 10px !important;
+      left: 29px !important;
+      transform: scale(1.6);
     }
 
     .pre-form-chat-button {
       position: fixed;
       bottom: var(--chat-button-offset);
       left: var(--chat-button-offset);
-      z-index: 10002;
-    }
-
-    .pre-form-trifold-button,
-    .pre-form-chat-button {
       width: 64px;
       height: 64px;
       border: none;
-      padding: 0;
-      border-radius: 20px;
-      display: inline-flex;
+      background: transparent;
+      padding: 6px;
+      cursor: pointer;
+      display: flex;
       align-items: center;
       justify-content: center;
-      color: rgba(255, 255, 255, 0.92);
-      background: linear-gradient(145deg,
-          rgba(var(--trifold-blue-rgb), 0.45) 0%,
-          rgba(var(--trifold-gold-rgb), 0.42) 48%,
-          rgba(var(--trifold-magenta-rgb), 0.5) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      box-shadow: 0 22px 44px rgba(10, 14, 32, 0.5);
-      backdrop-filter: blur(18px) saturate(150%);
-      -webkit-backdrop-filter: blur(18px) saturate(150%);
-      cursor: pointer;
-      transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
-      position: fixed;
+      z-index: 10002;
+      color: inherit;
+      overflow: visible;
     }
 
-    .pre-form-chat-button {
-      background: linear-gradient(150deg,
-          rgba(var(--trifold-blue-rgb), 0.42) 0%,
-          rgba(20, 210, 255, 0.32) 52%,
-          rgba(var(--trifold-magenta-rgb), 0.5) 100%);
-    }
-
-    .pre-form-trifold-button::after,
-    .pre-form-chat-button::after {
+    .pre-form-chat-button::before {
       content: '';
       position: absolute;
-      inset: 4px;
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      background: linear-gradient(180deg,
-          rgba(255, 255, 255, 0.32) 0%,
-          rgba(255, 255, 255, 0.06) 100%);
-      opacity: 0.6;
-      pointer-events: none;
-      transition: opacity 220ms ease;
-    }
-
-    .pre-form-trifold-button:hover,
-    .pre-form-trifold-button:focus-visible,
-    .pre-form-trifold-button.near,
-    .pre-form-chat-button:hover,
-    .pre-form-chat-button:focus-visible,
-    .pre-form-chat-button.near {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 28px 56px rgba(10, 14, 38, 0.6);
-      border-color: rgba(255, 255, 255, 0.35);
-    }
-
-    .pre-form-trifold-button:hover::after,
-    .pre-form-trifold-button:focus-visible::after,
-    .pre-form-trifold-button.near::after,
-    .pre-form-chat-button:hover::after,
-    .pre-form-chat-button:focus-visible::after,
-    .pre-form-chat-button.near::after {
-      opacity: 0.9;
-    }
-
-    .pre-form-trifold-button:focus-visible,
-    .pre-form-chat-button:focus-visible {
-      outline: 3px solid rgba(255, 255, 255, 0.75);
-      outline-offset: 4px;
-    }
-
-    body.inverted .pre-form-trifold-button,
-    body.inverted .pre-form-chat-button {
-      color: rgba(12, 22, 45, 0.9);
-      border-color: rgba(0, 0, 0, 0.18);
-      box-shadow: 0 22px 44px rgba(0, 0, 0, 0.25);
+      inset: 0;
+      border-radius: 12px;
       background: linear-gradient(145deg,
-          rgba(var(--trifold-blue-rgb), 0.26) 0%,
-          rgba(var(--trifold-gold-rgb), 0.24) 48%,
-          rgba(var(--trifold-magenta-rgb), 0.3) 100%);
+          rgba(17, 238, 255, 0.25) 0%,
+          rgba(255, 255, 255, 0.16) 48%,
+          rgba(255, 24, 95, 0.32) 100%);
+      box-shadow: 0 18px 34px rgba(0, 0, 0, 0.35),
+                  0 0 0 1px rgba(17, 238, 255, 0.35) inset;
+      transition: transform 360ms cubic-bezier(.2,.8,.2,1),
+                  box-shadow 360ms cubic-bezier(.2,.8,.2,1),
+                  background 360ms cubic-bezier(.2,.8,.2,1);
     }
 
-    body.inverted .pre-form-chat-button {
-      background: linear-gradient(150deg,
-          rgba(var(--trifold-blue-rgb), 0.32) 0%,
-          rgba(0, 168, 224, 0.28) 52%,
-          rgba(var(--trifold-magenta-rgb), 0.32) 100%);
+    .pre-form-chat-button:hover::before,
+    .pre-form-chat-button:focus-visible::before,
+    .pre-form-chat-button.near::before {
+      transform: scale(1.1);
+      background: linear-gradient(135deg,
+          rgba(17, 238, 255, 0.68) 0%,
+          rgba(94, 123, 255, 0.82) 45%,
+          rgba(255, 95, 168, 0.85) 100%);
+      box-shadow: var(--trifold-highlight-shadow),
+                  0 0 32px rgba(17, 238, 255, 0.45),
+                  0 0 42px rgba(255, 95, 168, 0.45);
     }
 
-    body.inverted .pre-form-trifold-button::after,
-    body.inverted .pre-form-chat-button::after {
-      border: 1px solid rgba(0, 0, 0, 0.12);
+    .pre-form-chat-button:focus-visible {
+      outline: 3px solid #000;
+      outline-offset: 4px;
+      border-radius: 14px;
     }
 
-    .pre-form-trifold-button__icon,
-    .pre-form-chat-button__icon {
+    .pre-form-chat-button__bubble {
       position: relative;
+      width: 36px;
+      height: 28px;
+      border-radius: 14px;
+      background: radial-gradient(circle at top,
+          rgba(255, 255, 255, 0.94) 0%,
+          rgba(255, 255, 255, 0.72) 70%,
+          rgba(240, 240, 240, 0.62) 100%);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pre-form-chat-button__icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -52%);
+      width: 18px;
+      height: 18px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
+      color: rgba(12, 22, 45, 0.9);
+      pointer-events: none;
+      transition: color 220ms ease;
       z-index: 1;
     }
 
-    .pre-form-trifold-button__icon svg,
     .pre-form-chat-button__icon svg {
       width: 100%;
       height: 100%;
@@ -374,33 +494,104 @@
       stroke-linejoin: round;
     }
 
-    .pre-form-trifold-button__icon svg circle,
     .pre-form-chat-button__icon svg circle {
       fill: currentColor;
       stroke: none;
+    }
+
+    .pre-form-chat-button__bubble::before {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      right: 6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
+      transform: rotate(45deg);
+      background: radial-gradient(circle at 30% 30%,
+          rgba(255, 255, 255, 0.92) 0%,
+          rgba(245, 245, 245, 0.7) 100%);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
+    }
+
+    .pre-form-chat-button__signal {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #000;
+      letter-spacing: 0.12em;
+      z-index: 2;
+    }
+
+    .pre-form-chat-button__ping {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 40%, #111 0%, #333 100%);
+      animation: chat-ping 1.6s cubic-bezier(.2,.8,.2,1) infinite;
+    }
+
+    .pre-form-chat-button:hover .pre-form-chat-button__bubble,
+    .pre-form-chat-button:focus-visible .pre-form-chat-button__bubble,
+    .pre-form-chat-button.near .pre-form-chat-button__bubble {
+      background: radial-gradient(circle at 50% 0%,
+          rgba(17, 238, 255, 0.9) 0%,
+          rgba(94, 123, 255, 0.86) 55%,
+          rgba(0, 0, 0, 0.9) 100%);
+      box-shadow: 0 14px 26px rgba(17, 238, 255, 0.35);
+    }
+
+    .pre-form-chat-button:hover .pre-form-chat-button__bubble::before,
+    .pre-form-chat-button:focus-visible .pre-form-chat-button__bubble::before,
+    .pre-form-chat-button.near .pre-form-chat-button__bubble::before {
+      background: radial-gradient(circle at 40% 40%,
+          rgba(94, 123, 255, 0.9) 0%,
+          rgba(0, 0, 0, 0.85) 100%);
+      box-shadow: 0 8px 18px rgba(17, 238, 255, 0.38);
+    }
+
+    .pre-form-chat-button:hover .pre-form-chat-button__signal,
+    .pre-form-chat-button:focus-visible .pre-form-chat-button__signal,
+    .pre-form-chat-button.near .pre-form-chat-button__signal {
+      color: #fff;
+    }
+
+    .pre-form-chat-button:hover .pre-form-chat-button__icon,
+    .pre-form-chat-button:focus-visible .pre-form-chat-button__icon,
+    .pre-form-chat-button.near .pre-form-chat-button__icon {
+      color: #fff;
+    }
+
+    body.inverted .pre-form-chat-button__icon {
+      color: rgba(0, 0, 0, 0.82);
+    }
+
+    body.inverted .pre-form-chat-button:hover .pre-form-chat-button__icon,
+    body.inverted .pre-form-chat-button:focus-visible .pre-form-chat-button__icon,
+    body.inverted .pre-form-chat-button.near .pre-form-chat-button__icon {
+      color: #000;
     }
 
     .pre-form-trifold-panel {
       position: fixed;
       top: 50%;
       right: clamp(1.5rem, 6vw, 4rem);
-      transform: translateY(-50%) scale(0.94);
+      transform: translateY(-50%) scale(0.9);
       transform-origin: center right;
+      background: transparent;
       display: none;
+      border-radius: 0;
+      box-shadow: 0 40px 120px rgba(0, 0, 0, 0.65);
+      overflow: hidden;
       min-width: min(90vw, 420px);
       max-width: min(95vw, 460px);
-      padding: 0.85rem;
-      border-radius: 26px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background: linear-gradient(160deg,
-          rgba(12, 16, 34, 0.78) 0%,
-          rgba(12, 16, 34, 0.55) 70%);
-      box-shadow: 0 40px 120px rgba(5, 8, 18, 0.62);
-      overflow: hidden;
       pointer-events: auto;
       z-index: 10001;
-      backdrop-filter: blur(26px) saturate(140%);
-      -webkit-backdrop-filter: blur(26px) saturate(140%);
     }
 
     .pre-form-trifold-panel.is-open {
@@ -411,7 +602,7 @@
     @keyframes trifold-open {
       0% {
         opacity: 0;
-        transform: translateY(-50%) scale(0.78) rotateY(-14deg);
+        transform: translateY(-50%) scale(0.7) rotateY(-18deg);
       }
 
       100% {
@@ -423,38 +614,33 @@
     .pre-form-trifold-panel__content {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.85rem;
       position: relative;
       isolation: isolate;
-      padding: 0.75rem;
     }
 
     .pre-form-trifold-panel__fold {
-      padding: 1.25rem 1.15rem;
+      padding: 1.5rem 1.25rem;
       display: flex;
       flex-direction: column;
-      gap: 0.8rem;
-      font-size: 0.82rem;
-      letter-spacing: 0.08em;
-      text-transform: none;
+      gap: 0.85rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #002b38;
       position: relative;
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 18px 32px rgba(4, 6, 16, 0.45);
-      color: rgba(247, 249, 255, 0.94);
-      backdrop-filter: blur(18px) saturate(140%);
-      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      z-index: 0;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.12);
     }
 
     .pre-form-trifold-panel__fold::before {
       content: '';
       position: absolute;
       inset: 0;
-      border-radius: inherit;
-      background: radial-gradient(135% 115% at 18% 18%, var(--trifold-fold-highlight), transparent 60%);
+      background: radial-gradient(140% 120% at 14% 12%, var(--trifold-fold-highlight), transparent 58%);
       mix-blend-mode: screen;
-      opacity: 0.85;
+      opacity: 0.9;
       pointer-events: none;
+      z-index: 0;
     }
 
     .pre-form-trifold-panel__fold > * {
@@ -462,51 +648,37 @@
       z-index: 1;
     }
 
-    .pre-form-trifold-panel__fold p {
-      margin: 0;
-      line-height: 1.55;
-      letter-spacing: 0.06em;
-    }
-
     .pre-form-trifold-panel__fold--left {
-      background: linear-gradient(155deg,
-          rgba(var(--trifold-blue-rgb), 0.62) 0%,
-          rgba(var(--trifold-blue-deep-rgb), 0.78) 100%);
+      background:
+        linear-gradient(180deg,
+          rgba(var(--trifold-blue-rgb), 0.98) 0%,
+          rgba(var(--trifold-blue-deep-rgb), 0.94) 100%);
+      color: rgba(243, 248, 255, 0.98);
+      box-shadow: inset 0 0 0 1px rgba(var(--trifold-blue-rgb), 0.28);
     }
 
     .pre-form-trifold-panel__fold--center {
-      background: linear-gradient(160deg,
-          rgba(var(--trifold-gold-rgb), 0.68) 0%,
-          rgba(var(--trifold-gold-deep-rgb), 0.52) 100%);
-      color: rgba(36, 22, 0, 0.92);
+      background:
+        linear-gradient(180deg,
+          rgba(var(--trifold-gold-rgb), 0.98) 0%,
+          rgba(var(--trifold-gold-deep-rgb), 0.94) 100%);
+      color: #2b2600;
+      box-shadow: inset 0 0 0 1px rgba(var(--trifold-gold-rgb), 0.3);
     }
 
     .pre-form-trifold-panel__fold--right {
-      background: linear-gradient(160deg,
-          rgba(var(--trifold-magenta-rgb), 0.7) 0%,
-          rgba(var(--trifold-magenta-deep-rgb), 0.58) 100%);
+      background:
+        linear-gradient(180deg,
+          rgba(var(--trifold-magenta-rgb), 0.98) 0%,
+          rgba(var(--trifold-magenta-deep-rgb), 0.94) 100%);
+      color: rgba(255, 238, 245, 0.98);
+      box-shadow: inset 0 0 0 1px rgba(var(--trifold-magenta-rgb), 0.28);
     }
 
     .pre-form-trifold-panel__heading {
-      margin: 0;
-      font-size: 0.72rem;
-      letter-spacing: 0.24em;
-      text-transform: uppercase;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.35rem 0.75rem;
-      border-radius: 999px;
-      background: rgba(8, 12, 26, 0.72);
-      color: rgba(255, 255, 255, 0.92);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-      font-weight: 700;
-    }
-
-    .pre-form-trifold-panel__fold--center .pre-form-trifold-panel__heading {
-      background: rgba(255, 255, 255, 0.85);
-      color: rgba(32, 18, 0, 0.9);
-      box-shadow: inset 0 0 0 1px rgba(36, 22, 0, 0.16);
+      font-size: 0.68rem;
+      letter-spacing: 0.28em;
+      opacity: 0.8;
     }
 
     .pre-form-trifold-panel__links {
@@ -517,118 +689,127 @@
 
     .pre-form-trifold-panel__link {
       display: inline-flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.2rem;
+      align-items: center;
+      gap: 0.45rem;
       text-decoration: none;
       font-weight: 600;
       font-size: 0.75rem;
-      padding: 0.55rem 0.85rem;
+      padding: 0.5rem 0.75rem;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.24);
       border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.18);
       color: inherit;
-      letter-spacing: 0.1em;
+      text-transform: none;
+      letter-spacing: 0.08em;
+      cursor: default;
+    }
+
+    .pre-form-trifold-panel__link .pre-form-trifold-panel__link-label {
       text-transform: uppercase;
-      transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
-      text-align: left;
-    }
-
-    .pre-form-trifold-panel__link-label {
-      font-size: 0.72rem;
       letter-spacing: 0.22em;
-    }
-
-    .pre-form-trifold-panel__link:hover,
-    .pre-form-trifold-panel__link:focus-visible {
-      background: rgba(255, 255, 255, 0.35);
-      border-color: rgba(255, 255, 255, 0.5);
+      font-size: 0.68rem;
     }
 
     .pre-form-trifold-panel__link-note {
-      font-size: 0.58rem;
-      letter-spacing: 0.16em;
-      opacity: 0.85;
-      text-transform: none;
-      display: block;
-    }
-
-    .pre-form-trifold-panel__highlight {
-      margin: 0;
-      font-size: 0.74rem;
-      letter-spacing: 0.08em;
-      text-transform: none;
-      padding: 0.55rem 0.75rem;
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.22);
-      color: inherit;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-    }
-
-    .pre-form-trifold-panel__fold--center .pre-form-trifold-panel__highlight {
-      background: rgba(255, 255, 255, 0.78);
-      color: rgba(32, 18, 0, 0.88);
-      box-shadow: inset 0 0 0 1px rgba(36, 22, 0, 0.12);
+      font-size: 0.55rem;
+      letter-spacing: 0.18em;
+      opacity: 0.75;
     }
 
     .pre-form-trifold-panel__close {
       position: absolute;
-      top: 0.85rem;
-      right: 0.85rem;
-      width: 38px;
-      height: 38px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.28);
-      background: rgba(8, 10, 24, 0.65);
-      color: rgba(255, 255, 255, 0.92);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.1rem;
+      top: 0.75rem;
+      right: 0.75rem;
+      background: rgba(0, 0, 0, 0.38);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      border-radius: 0;
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
       cursor: pointer;
-      transition: background 200ms ease, color 200ms ease, border-color 200ms ease;
-    }
-
-    .pre-form-trifold-panel__close:hover,
-    .pre-form-trifold-panel__close:focus-visible {
-      background: rgba(255, 255, 255, 0.85);
-      color: #0b0f1e;
-      border-color: rgba(255, 255, 255, 0.6);
-      outline: none;
+      font-size: 1rem;
     }
 
     .pre-form-trifold-panel__close:focus-visible {
-      outline: 2px solid rgba(12, 22, 45, 0.75);
+      outline: 2px solid #fff;
       outline-offset: 2px;
     }
 
     @media (max-width: 620px) {
       .pre-form-trifold-button {
+        width: 54px;
+        height: 54px;
         top: clamp(0.75rem, 5vw, 1.25rem);
         right: clamp(0.75rem, 5vw, 1.25rem);
       }
 
       .pre-form-chat-button {
+        width: 54px;
+        height: 54px;
         bottom: clamp(0.75rem, 5vw, 1.25rem);
         left: clamp(0.75rem, 5vw, 1.25rem);
       }
 
-      .pre-form-trifold-button,
-      .pre-form-chat-button {
-        width: 54px;
-        height: 54px;
-        border-radius: 18px;
+      .pre-form-trifold-button::before {
+        border-radius: 10px;
       }
 
-      .pre-form-trifold-button::after,
-      .pre-form-chat-button::after {
-        border-radius: 14px;
+      .pre-form-trifold-button__square {
+        width: 5px;
+        height: 5px;
       }
 
-      .pre-form-trifold-button__icon,
-      .pre-form-chat-button__icon {
-        width: 28px;
-        height: 28px;
+      .pre-form-trifold-button__square:nth-of-type(1) { top: 9px; left: 19px; }
+      .pre-form-trifold-button__square:nth-of-type(2) { top: 9px; left: 25px; }
+      .pre-form-trifold-button__square:nth-of-type(3) { top: 9px; left: 31px; }
+      .pre-form-trifold-button__square:nth-of-type(4) { top: 15px; left: 13px; }
+      .pre-form-trifold-button__square:nth-of-type(5) { top: 15px; left: 37px; }
+      .pre-form-trifold-button__square:nth-of-type(6) { top: 21px; left: 25px; }
+      .pre-form-trifold-button__square:nth-of-type(7) { top: 21px; left: 31px; }
+      .pre-form-trifold-button__square:nth-of-type(8) { top: 27px; left: 25px; }
+
+      .pre-form-trifold-button__triangle {
+        border-left-width: 2.5px;
+        border-right-width: 2.5px;
+        border-top-width: 5px;
+        top: 33px;
+        left: 25px;
+      }
+
+      .pre-form-trifold-button__circle {
+        width: 5px;
+        height: 5px;
+        bottom: 9px;
+        left: 25px;
+      }
+
+      /* Mobile: collapse squares to center */
+      .pre-form-trifold-button:hover .pre-form-trifold-button__square,
+      .pre-form-trifold-button.near .pre-form-trifold-button__square {
+        left: 25px !important;
+        top: 9px !important;
+        transform: scale(1.5);
+      }
+
+      /* Mobile: adjust triangle position, size, and rotate on hover */
+      .pre-form-trifold-button:hover .pre-form-trifold-button__triangle,
+      .pre-form-trifold-button.near .pre-form-trifold-button__triangle {
+        border-left-width: 4.5px;
+        border-right-width: 4.5px;
+        border-top-width: 9px;
+        top: 24px !important;
+        left: 25px !important;
+        transform: scale(1.35) rotate(180deg);
+      }
+
+      /* Mobile: adjust circle position and size on hover */
+      .pre-form-trifold-button:hover .pre-form-trifold-button__circle,
+      .pre-form-trifold-button.near .pre-form-trifold-button__circle {
+        bottom: 9px !important;
+        left: 25px !important;
+        transform: scale(1.5);
       }
 
       .pre-form-trifold-panel {
@@ -643,7 +824,7 @@
       @keyframes trifold-open {
         0% {
           opacity: 0;
-          transform: translate(50%, -50%) scale(0.78) rotateY(-14deg);
+          transform: translate(50%, -50%) scale(0.72) rotateY(-18deg);
         }
 
         100% {
@@ -882,6 +1063,12 @@
       filter: blur(18px);
     }
 
+    @keyframes chat-ping {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      40% { transform: scale(1.6); opacity: 0.2; }
+      60% { transform: scale(0.9); opacity: 0.5; }
+    }
+
     @keyframes live-strike {
       0% {
         right: 110%;
@@ -982,7 +1169,7 @@
 
     @media (prefers-reduced-motion: reduce) {
       .pre-form-chat-button,
-      .pre-form-chat-button::after,
+      .pre-form-chat-button::before,
       .pre-form-chat-window,
       .pre-form-chat-window__close {
         transition: none;
@@ -2762,8 +2949,12 @@
         chatButton.setAttribute('aria-expanded', 'false');
         chatButton.setAttribute('title', 'Open live chat');
 
+        const bubble = document.createElement('span');
+        bubble.className = 'pre-form-chat-button__bubble';
+
         const chatIcon = document.createElement('span');
         chatIcon.className = 'pre-form-chat-button__icon';
+        chatIcon.setAttribute('aria-hidden', 'true');
         chatIcon.innerHTML = `
           <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
             <rect x="5.5" y="5.5" width="21" height="13" rx="6"></rect>
@@ -2771,7 +2962,16 @@
             <line x1="11" y1="11.75" x2="21" y2="11.75" />
             <line x1="11" y1="14.5" x2="18.75" y2="14.5" />
           </svg>`;
-        chatButton.appendChild(chatIcon);
+
+        const signal = document.createElement('span');
+        signal.className = 'pre-form-chat-button__signal';
+        const ping = document.createElement('span');
+        ping.className = 'pre-form-chat-button__ping';
+        const signalText = document.createElement('span');
+        signalText.textContent = 'CHAT';
+        signal.append(ping, signalText);
+        bubble.append(chatIcon, signal);
+        chatButton.appendChild(bubble);
 
         const chatWindow = document.createElement('section');
         chatWindow.className = 'pre-form-chat-window';
@@ -4205,17 +4405,22 @@
         trifoldButton.setAttribute('aria-expanded', 'false');
         trifoldButton.setAttribute('title', 'Community connections');
 
-        const trifoldIcon = document.createElement('span');
-        trifoldIcon.className = 'pre-form-trifold-button__icon';
-        trifoldIcon.innerHTML = `
-          <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-            <rect x="5.75" y="5.75" width="20.5" height="13" rx="6"></rect>
-            <path d="M12 18.75v6.5L17.4 18.75" />
-            <circle cx="11.4" cy="12.75" r="1.15"></circle>
-            <circle cx="16" cy="12.75" r="1.15"></circle>
-            <circle cx="20.6" cy="12.75" r="1.15"></circle>
-          </svg>`;
-        trifoldButton.appendChild(trifoldIcon);
+        // Create 8 squares for question mark pattern
+        for (let i = 0; i < 8; i++) {
+          const square = document.createElement('span');
+          square.className = 'pre-form-trifold-button__square';
+          trifoldButton.appendChild(square);
+        }
+        
+        // Create triangle
+        const trifoldTriangle = document.createElement('span');
+        trifoldTriangle.className = 'pre-form-trifold-button__triangle';
+        trifoldButton.appendChild(trifoldTriangle);
+        
+        // Create circle
+        const trifoldCircle = document.createElement('span');
+        trifoldCircle.className = 'pre-form-trifold-button__circle';
+        trifoldButton.appendChild(trifoldCircle);
 
         const trifoldPanel = document.createElement('div');
         trifoldPanel.className = 'pre-form-trifold-panel';
@@ -4237,23 +4442,23 @@
         const folds = [
           {
             className: 'pre-form-trifold-panel__fold pre-form-trifold-panel__fold--left',
-            heading: 'Community Updates',
-            description: 'Follow quick dev notes, teaser drops, and milestone announcements the moment they go live.',
-            linkLabel: 'Follow @celli_dev',
+            heading: 'The Platform Formerly Known as Twitter',
+            linkLabel: 'Follow for updates @celli_dev',
+            placeholder: 'https://twitter.com',
             href: 'https://x.com/celli_dev',
-            note: 'Opens x.com/celli_dev in a new tab'
+            note: 'Opens x.com/celli_dev'
           },
           {
             className: 'pre-form-trifold-panel__fold pre-form-trifold-panel__fold--center',
-            heading: 'Broadcast',
-            description: 'A curated digest of story reveals and technical write-ups arrives with each major beta wave.',
-            highlight: 'Newsletter signup is launching soon — keep an eye on the feed.'
+            heading: 'Stay Tuned',
+            description: 'IT\'S JUST THE BEGINNING OF THE END OF THE WORLD AS WE KNOW IT!'
           },
           {
             className: 'pre-form-trifold-panel__fold pre-form-trifold-panel__fold--right',
-            heading: 'Community Spaces',
-            description: 'Discord and Reddit hubs are rolling out so explorers can coordinate strategies and share discoveries.',
-            highlight: 'Community invite links drop with the next beta milestone.'
+            heading: 'Reddit',
+            linkLabel: 'Reddit',
+            placeholder: 'https://www.reddit.com',
+            note: 'Default destination placeholder'
           }
         ];
 
@@ -4272,38 +4477,34 @@
             foldEl.appendChild(descriptionEl);
           }
 
-          if (fold.linkLabel && fold.href) {
+          if (fold.linkLabel) {
             const linksEl = document.createElement('div');
             linksEl.className = 'pre-form-trifold-panel__links';
 
             const linkEl = document.createElement('a');
             linkEl.className = 'pre-form-trifold-panel__link';
-            linkEl.href = fold.href;
-            linkEl.setAttribute('target', '_blank');
-            linkEl.setAttribute('rel', 'noopener noreferrer');
+            linkEl.setAttribute('data-default-href', fold.placeholder);
+            if (fold.href) {
+              linkEl.href = fold.href;
+              linkEl.setAttribute('target', '_blank');
+              linkEl.setAttribute('rel', 'noopener noreferrer');
+            } else {
+              linkEl.href = '#';
+              linkEl.setAttribute('role', 'button');
+              linkEl.setAttribute('aria-disabled', 'true');
+            }
 
             const labelEl = document.createElement('span');
             labelEl.className = 'pre-form-trifold-panel__link-label';
             labelEl.textContent = fold.linkLabel;
 
-            if (fold.note) {
-              const noteEl = document.createElement('span');
-              noteEl.className = 'pre-form-trifold-panel__link-note';
-              noteEl.textContent = fold.note;
-              linkEl.append(labelEl, noteEl);
-            } else {
-              linkEl.appendChild(labelEl);
-            }
+            const noteEl = document.createElement('span');
+            noteEl.className = 'pre-form-trifold-panel__link-note';
+            noteEl.textContent = fold.note || 'Placeholder link';
 
+            linkEl.append(labelEl, noteEl);
             linksEl.appendChild(linkEl);
             foldEl.appendChild(linksEl);
-          }
-
-          if (fold.highlight) {
-            const highlightEl = document.createElement('p');
-            highlightEl.className = 'pre-form-trifold-panel__highlight';
-            highlightEl.textContent = fold.highlight;
-            foldEl.appendChild(highlightEl);
           }
 
           trifoldContent.appendChild(foldEl);
@@ -4313,7 +4514,7 @@
         closePanelButton.type = 'button';
         closePanelButton.className = 'pre-form-trifold-panel__close';
         closePanelButton.setAttribute('aria-label', 'Close community connections panel');
-        closePanelButton.textContent = '×';
+        closePanelButton.innerHTML = '&times;';
 
         trifoldPanel.append(trifoldContent, closePanelButton);
 
