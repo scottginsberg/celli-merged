@@ -2114,7 +2114,7 @@
   </div>
 
  <div id="refLoomChat" class="ref-loom-chat" aria-live="polite" aria-hidden="true">
-  <div id="refLoomChatHeader" class="loom-chat-header">MKTG_620</div>
+  <div id="refLoomChatHeader" class="loom-chat-header">LOOM CHAT</div>
   <div class="loom-chat-body" id="refLoomChatBody"></div>
  </div>
 
@@ -2269,6 +2269,7 @@
   let refLoomChatHideTimeout = null;
   let refLoomChatMessageIndex = 0;
   let refLoomChatVisible = false;
+  let refLoomChatPermanentlyDisabled = false;
 
   function isReferrerOverlayVisible() {
     return !!(overlay && overlay.getAttribute('aria-hidden') !== 'true' && !window.__referrerOverlayKilled);
@@ -2319,6 +2320,15 @@
     hideRefLoomChat();
   }
 
+  function permanentlyDisableRefLoomChat() {
+    if (refLoomChatPermanentlyDisabled) {
+      return;
+    }
+
+    refLoomChatPermanentlyDisabled = true;
+    cancelRefLoomChat();
+  }
+
   function appendRefLoomChatMessage() {
     if (!refLoomChatBody || refLoomChatMessageIndex >= REF_LOOM_CHAT_MESSAGES.length) {
       refLoomChatMessageTimeout = null;
@@ -2354,7 +2364,7 @@
   }
 
   function startRefLoomChatSequence() {
-    if (!isReferrerOverlayVisible() || !refLoomChat || !refLoomChatBody) {
+    if (refLoomChatPermanentlyDisabled || !isReferrerOverlayVisible() || !refLoomChat || !refLoomChatBody) {
       return;
     }
 
@@ -2385,6 +2395,11 @@
   }
 
   function resetRefLoomChatInactivity() {
+    if (refLoomChatPermanentlyDisabled) {
+      hideRefLoomChat();
+      return;
+    }
+
     if (refLoomChatInactivityTimeout) {
       clearTimeout(refLoomChatInactivityTimeout);
       refLoomChatInactivityTimeout = null;
@@ -5376,6 +5391,7 @@
       return;
     }
     if (isActive) {
+      permanentlyDisableRefLoomChat();
       refSidebarAck.classList.add('loom-invite-active');
     } else {
       refSidebarAck.classList.remove('loom-invite-active');
