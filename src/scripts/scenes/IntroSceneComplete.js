@@ -178,31 +178,37 @@ const COMPACT_LETTER_PATTERNS = {
 // Mask patterns for clickable I's
 const MASK_PATTERNS = {
   HAPPY: [ // Happy theater mask
-    [0, 1, 1, 1, 1, 1, 1, 0],
-    [1, 1, 0, 1, 1, 0, 1, 1],
-    [1, 0, 0, 1, 1, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 0, 0, 0, 0, 1, 1],
-    [1, 0, 1, 1, 1, 1, 0, 1],
-    [0, 1, 1, 1, 1, 1, 1, 0]
+    [0, 0, 1, 1, 0, 0, 1, 1, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 0, 1, 1, 1, 1, 0, 1, 1],
+    [1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
+    [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0]
   ],
   SAD: [ // Sad theater mask
-    [0, 1, 1, 1, 1, 1, 1, 0],
-    [1, 1, 0, 1, 1, 0, 1, 1],
-    [1, 0, 0, 1, 1, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 1, 1, 1, 1, 0, 1],
-    [1, 1, 0, 0, 0, 0, 1, 1],
-    [0, 1, 1, 1, 1, 1, 1, 0]
+    [0, 0, 1, 1, 0, 0, 1, 1, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 0, 1, 1, 1, 1, 0, 1, 1],
+    [1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
+    [1, 0, 1, 0, 1, 1, 0, 1, 0, 1],
+    [0, 1, 1, 1, 0, 0, 1, 1, 1, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0]
   ],
   TROLL: [ // Troll face
-    [0, 0, 1, 1, 1, 1, 0, 0],
-    [0, 1, 1, 1, 1, 1, 1, 0],
-    [1, 0, 0, 1, 1, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 1, 1, 1, 1, 0, 1],
-    [1, 0, 0, 1, 1, 0, 0, 1],
-    [0, 1, 1, 0, 0, 1, 1, 0]
+    [0, 0, 1, 1, 0, 0, 1, 1, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 0, 1, 1, 1, 1, 0, 1, 1],
+    [1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 1, 0, 1, 1, 0, 1, 0, 1],
+    [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+    [0, 1, 1, 0, 0, 0, 0, 1, 1, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0]
   ]
 };
 
@@ -289,6 +295,7 @@ export class IntroSceneComplete {
       mouseTrail: [], // Trail of mouse positions for liquid effect
       maskVoxels: [], // Spawned mask voxels
       iVoxels: [[], [], []], // Arrays of voxels for each of the three I's in III+
+      iCenters: [0, 0, 0], // Horizontal centers for each clickable I
       clickedMasks: { 0: false, 1: false, 2: false }, // Track which I's have been clicked
       filmPass: null,
       triMesh: null, // Color triangle between spheres
@@ -1458,6 +1465,9 @@ export class IntroSceneComplete {
   _createSubtitleVoxels(scene, voxelGeo, edgesGeo) {
     const subtitle = "A DIVINE COMEDY IN III+ ACTS";
     const subtitleVoxels = [];
+    this.state.iVoxels = [[], [], []];
+    this.state.iCenters = [null, null, null];
+    this.state.clickedMasks = { 0: false, 1: false, 2: false };
     const compactVoxelSize = this.voxelSize * 0.32; // Even smaller voxels for subtitle
     const compactScale = 0.32;
     const letterSpacing = compactVoxelSize * 5.5; // Spacing between letters (one block apart)
@@ -1622,6 +1632,23 @@ export class IntroSceneComplete {
       
       // Increment iiiCounter after processing each I in "III+"
       if (isIInIII) {
+        const voxelsForI = this.state.iVoxels[iiiCounter];
+        if (voxelsForI && voxelsForI.length) {
+          const sumX = voxelsForI.reduce((acc, voxel) => {
+            const targetX = voxel?.userData?.targetX;
+            const positionX = voxel?.position?.x;
+            if (typeof targetX === 'number' && !Number.isNaN(targetX)) {
+              return acc + targetX;
+            }
+            if (typeof positionX === 'number' && !Number.isNaN(positionX)) {
+              return acc + positionX;
+            }
+            return acc;
+          }, 0);
+          this.state.iCenters[iiiCounter] = sumX / voxelsForI.length;
+        } else {
+          this.state.iCenters[iiiCounter] = currentX;
+        }
         console.log(`🔤 Processed I #${iiiCounter} with ${this.state.iVoxels[iiiCounter].length} voxels`);
         iiiCounter++;
       }
@@ -1648,7 +1675,20 @@ export class IntroSceneComplete {
     
     // Position between CELLI (y ~0.35) and subtitle (y ~-0.20)
     const maskY = 0.05;
-    const maskX = 0; // Center horizontally
+    let maskX = 0; // Default center
+    if (typeof iIndex === 'number' && iIndex >= 0) {
+      const centers = this.state.iCenters || [];
+      const center = centers[iIndex];
+      if (typeof center === 'number' && !Number.isNaN(center)) {
+        maskX = center;
+      }
+
+      // Slightly offset each mask horizontally so they align with their I
+      const maskOffsets = [-compactVoxelSize * pattern[0].length * 0.25, 0, compactVoxelSize * pattern[0].length * 0.25];
+      if (iIndex < maskOffsets.length) {
+        maskX += maskOffsets[iIndex];
+      }
+    }
     
     pattern.forEach((row, rowIdx) => {
       row.forEach((cell, colIdx) => {
