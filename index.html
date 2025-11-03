@@ -5386,12 +5386,15 @@
     triggerBurstLight(timeoutId => noteStageTimeouts.push(timeoutId));
   }
 
-  function markInviteActive(isActive) {
+  function markInviteActive(isActive, options = {}) {
     if (!refSidebarAck) {
       return;
     }
+    const { suppressChatKill = false } = options;
     if (isActive) {
-      permanentlyDisableRefLoomChat();
+      if (!suppressChatKill) {
+        permanentlyDisableRefLoomChat();
+      }
       refSidebarAck.classList.add('loom-invite-active');
     } else {
       refSidebarAck.classList.remove('loom-invite-active');
@@ -5409,7 +5412,7 @@
     refSidebarAck.innerHTML = BASE_INVITE_TEMPLATE;
     refSidebarAck.removeAttribute('style');
     refSidebarAck.setAttribute('aria-label', 'Open Loomworks invitation');
-    markInviteActive(true);
+    markInviteActive(true, { suppressChatKill: true });
     updateLightBeamFocus(refSidebarAck.querySelector('.loom-invite-card'));
     teardownBadBooleanAmbient();
   }
@@ -6985,10 +6988,12 @@
       refStageRoot.style.zIndex = '';
       refStageRoot.style.pointerEvents = '';
     }
-    
+
     activateReferrerStageRoot();
     updateLightBeamFocus();
-    
+
+    resetRefLoomChatInactivity();
+
     console.log('✅ Overlay opened successfully');
   }
 
@@ -8483,6 +8488,7 @@
     const linkElement = e.currentTarget || e.target;
     const activeUrl = getCurrentLink(linkElement, url);
     const platform = detectPlatformFromElement(linkElement);
+    registerRefPostInteraction();
     const sidebarRevealDelay = TOOLTIP_ANIMATION_DURATION + TOOLTIP_CHARGE_DURATION + 200;
 
     const launchTooltip = () => {
@@ -8498,7 +8504,6 @@
       launchTooltip();
       runGlitchOnce();
       jitterList(400);
-      registerRefPostInteraction();
       setTimeout(() => {
         if (impactCount > 0 && impactCount <= 3) {
           showSidebar(activeUrl, true);
