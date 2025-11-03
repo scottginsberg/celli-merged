@@ -9,6 +9,9 @@ export class LoomworksSystem extends GUIComponent {
   constructor(containerId = 'loomworks', options = {}) {
     super(containerId, options);
     this.typingTimeout = null;
+    this.eraseDelayTimeout = null;
+    this.eraseStepTimeout = null;
+    this.postEraseResetTimeout = null;
     this.revealed = false;
   }
 
@@ -101,6 +104,7 @@ export class LoomworksSystem extends GUIComponent {
     if (index >= text.length) {
       this.typingTimeout = null;
       this.emit('typeComplete');
+      this._scheduleErase();
       return;
     }
 
@@ -122,6 +126,55 @@ export class LoomworksSystem extends GUIComponent {
   }
 
   /**
+   * Schedule erasing of the typed tail after a short delay
+   */
+  _scheduleErase(delay = 2000) {
+    if (this.eraseDelayTimeout) {
+      clearTimeout(this.eraseDelayTimeout);
+    }
+
+    this.eraseDelayTimeout = setTimeout(() => {
+      this.eraseDelayTimeout = null;
+      this._eraseTail();
+    }, delay);
+  }
+
+  /**
+   * Begin removing the typed characters with selection highlight
+   */
+  _eraseTail(index = null) {
+    if (!this.tailElement) return;
+
+    const children = this.tailElement.children;
+    const targetIndex = index === null ? children.length - 1 : index;
+
+    if (targetIndex < 0) {
+      this.eraseStepTimeout = null;
+      this.emit('eraseComplete');
+
+      // Allow the erase animation to finish before resetting
+      this.postEraseResetTimeout = setTimeout(() => {
+        this.postEraseResetTimeout = null;
+        this.reset();
+      }, 240);
+      return;
+    }
+
+    const span = children[targetIndex];
+    if (!span) {
+      this._eraseTail(targetIndex - 1);
+      return;
+    }
+
+    span.classList.add('selected');
+
+    this.eraseStepTimeout = setTimeout(() => {
+      span.remove();
+      this._eraseTail(targetIndex - 1);
+    }, 110);
+  }
+
+  /**
    * Set custom text with typing effect
    */
   typeText(text) {
@@ -135,6 +188,21 @@ export class LoomworksSystem extends GUIComponent {
     if (this.typingTimeout) {
       clearTimeout(this.typingTimeout);
       this.typingTimeout = null;
+    }
+
+    if (this.eraseDelayTimeout) {
+      clearTimeout(this.eraseDelayTimeout);
+      this.eraseDelayTimeout = null;
+    }
+
+    if (this.eraseStepTimeout) {
+      clearTimeout(this.eraseStepTimeout);
+      this.eraseStepTimeout = null;
+    }
+
+    if (this.postEraseResetTimeout) {
+      clearTimeout(this.postEraseResetTimeout);
+      this.postEraseResetTimeout = null;
     }
 
     this.revealed = false;
@@ -153,6 +221,18 @@ export class LoomworksSystem extends GUIComponent {
   onDestroy() {
     if (this.typingTimeout) {
       clearTimeout(this.typingTimeout);
+    }
+
+    if (this.eraseDelayTimeout) {
+      clearTimeout(this.eraseDelayTimeout);
+    }
+
+    if (this.eraseStepTimeout) {
+      clearTimeout(this.eraseStepTimeout);
+    }
+
+    if (this.postEraseResetTimeout) {
+      clearTimeout(this.postEraseResetTimeout);
     }
   }
 }

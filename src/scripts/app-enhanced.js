@@ -539,6 +539,24 @@ export async function startApp() {
 
   let loomworksHandled = false;
   let loomworksFallbackTimer = null;
+  let quoteShown = false;
+  let quoteFallbackTimer = null;
+
+  const showQuoteSystem = () => {
+    if (quoteShown) {
+      return;
+    }
+
+    quoteShown = true;
+
+    if (quoteFallbackTimer) {
+      clearTimeout(quoteFallbackTimer);
+      quoteFallbackTimer = null;
+    }
+
+    console.log('🗨️ Showing quote system');
+    quoteSystem.show(true);
+  };
 
   const handleLoomworksReveal = () => {
     if (loomworksHandled) {
@@ -556,6 +574,14 @@ export async function startApp() {
     loomworksSystem.show(true);
     loomworksSystem.startReveal();
   };
+
+  const handleLoomworksEraseComplete = () => {
+    console.log('🧵 Loomworks erase complete, resuming quote system');
+    showQuoteSystem();
+    loomworksSystem.off('eraseComplete', handleLoomworksEraseComplete);
+  };
+
+  loomworksSystem.on('eraseComplete', handleLoomworksEraseComplete);
 
   try {
     // Hide play overlay immediately to avoid duplicate UIs
@@ -619,13 +645,21 @@ export async function startApp() {
     window.celliApp.initialized = true;
 
     // Show GUI elements (with config timings)
-    const quoteDelay = configSystem.get('scene.introQuoteDelay') || 0;
+    const quoteDelay = configSystem.get('scene.introQuoteDelay');
     const loomworksFallbackDelay = configSystem.get('scene.introLoomworksDelay') || 12000;
 
-    setTimeout(() => {
-      console.log('🗨️ Showing quote system');
-      quoteSystem.show(true);
-    }, quoteDelay);
+    const quoteFallbackDelay = (typeof quoteDelay === 'number' && quoteDelay > 0)
+      ? quoteDelay
+      : 20000;
+
+    if (quoteFallbackDelay > 0) {
+      quoteFallbackTimer = setTimeout(() => {
+        if (!quoteShown) {
+          console.warn('⚠️ Quote system fallback trigger.');
+          showQuoteSystem();
+        }
+      }, quoteFallbackDelay);
+    }
 
     window.addEventListener('celli:loomworks-ready', handleLoomworksReveal);
 
@@ -641,9 +675,14 @@ export async function startApp() {
   } catch (error) {
     window.celliApp.initialized = false;
     window.removeEventListener('celli:loomworks-ready', handleLoomworksReveal);
+    loomworksSystem.off('eraseComplete', handleLoomworksEraseComplete);
     if (loomworksFallbackTimer) {
       clearTimeout(loomworksFallbackTimer);
       loomworksFallbackTimer = null;
+    }
+    if (quoteFallbackTimer) {
+      clearTimeout(quoteFallbackTimer);
+      quoteFallbackTimer = null;
     }
     console.error('❌ Failed to start app:', error);
     alert(`Failed to start Celli: ${error.message}`);
