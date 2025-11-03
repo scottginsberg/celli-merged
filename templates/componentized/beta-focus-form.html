@@ -100,6 +100,7 @@
       --trifold-magenta-rgb: 255, 95, 168;
       --trifold-magenta-deep-rgb: 176, 34, 88;
       --trifold-fold-highlight: rgba(255, 255, 255, 0.25);
+      --chat-button-offset: clamp(1rem, 3vw, 1.75rem);
     }
 
     body.inverted {
@@ -196,6 +197,7 @@
       --trifold-magenta-rgb: 255, 55, 145;
       --trifold-magenta-deep-rgb: 178, 21, 92;
       --trifold-fold-highlight: rgba(255, 255, 255, 0.35);
+      --chat-button-offset: clamp(1rem, 5vw, 1.5rem);
     }
 
     * {
@@ -400,19 +402,20 @@
 
     .pre-form-chat-button {
       position: fixed;
-      top: clamp(1rem, 3vw, 1.75rem);
-      left: clamp(1rem, 3vw, 1.75rem);
+      bottom: var(--chat-button-offset);
+      left: var(--chat-button-offset);
       width: 64px;
       height: 64px;
       border: none;
       background: transparent;
-      padding: 0;
+      padding: 6px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 10002;
       color: inherit;
+      overflow: visible;
     }
 
     .pre-form-chat-button::before {
@@ -420,15 +423,14 @@
       position: absolute;
       inset: 0;
       border-radius: 12px;
-      border: 2px solid rgba(255, 255, 255, 0.6);
       background: linear-gradient(145deg,
           rgba(17, 238, 255, 0.25) 0%,
           rgba(255, 255, 255, 0.16) 48%,
           rgba(255, 24, 95, 0.32) 100%);
-      box-shadow: 0 18px 34px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 18px 34px rgba(0, 0, 0, 0.35),
+                  0 0 0 1px rgba(17, 238, 255, 0.35) inset;
       transition: transform 360ms cubic-bezier(.2,.8,.2,1),
                   box-shadow 360ms cubic-bezier(.2,.8,.2,1),
-                  border-color 360ms cubic-bezier(.2,.8,.2,1),
                   background 360ms cubic-bezier(.2,.8,.2,1);
     }
 
@@ -436,7 +438,6 @@
     .pre-form-chat-button:focus-visible::before,
     .pre-form-chat-button.near::before {
       transform: scale(1.1);
-      border-color: rgba(255, 255, 255, 0.85);
       background: linear-gradient(135deg,
           rgba(17, 238, 255, 0.68) 0%,
           rgba(94, 123, 255, 0.82) 45%,
@@ -457,9 +458,14 @@
       width: 36px;
       height: 28px;
       border-radius: 14px;
-      background: rgba(255, 255, 255, 0.85);
-      box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.75),
-                  0 8px 18px rgba(0, 0, 0, 0.45);
+      background: radial-gradient(circle at top,
+          rgba(255, 255, 255, 0.94) 0%,
+          rgba(255, 255, 255, 0.72) 70%,
+          rgba(240, 240, 240, 0.62) 100%);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .pre-form-chat-button__bubble::before {
@@ -471,8 +477,10 @@
       height: 12px;
       border-radius: 4px;
       transform: rotate(45deg);
-      background: rgba(255, 255, 255, 0.85);
-      box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.75);
+      background: radial-gradient(circle at 30% 30%,
+          rgba(255, 255, 255, 0.92) 0%,
+          rgba(245, 245, 245, 0.7) 100%);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
     }
 
     .pre-form-chat-button__signal {
@@ -481,7 +489,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 3px;
+      gap: 4px;
       font-size: 10px;
       font-weight: 700;
       color: #000;
@@ -489,26 +497,30 @@
     }
 
     .pre-form-chat-button__ping {
-      width: 4px;
-      height: 4px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background: #111;
+      background: radial-gradient(circle at 40% 40%, #111 0%, #333 100%);
       animation: chat-ping 1.6s cubic-bezier(.2,.8,.2,1) infinite;
     }
 
     .pre-form-chat-button:hover .pre-form-chat-button__bubble,
     .pre-form-chat-button:focus-visible .pre-form-chat-button__bubble,
     .pre-form-chat-button.near .pre-form-chat-button__bubble {
-      background: rgba(0, 0, 0, 0.9);
-      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.75),
-                  0 8px 18px rgba(17, 238, 255, 0.35);
+      background: radial-gradient(circle at 50% 0%,
+          rgba(17, 238, 255, 0.9) 0%,
+          rgba(94, 123, 255, 0.86) 55%,
+          rgba(0, 0, 0, 0.9) 100%);
+      box-shadow: 0 14px 26px rgba(17, 238, 255, 0.35);
     }
 
     .pre-form-chat-button:hover .pre-form-chat-button__bubble::before,
     .pre-form-chat-button:focus-visible .pre-form-chat-button__bubble::before,
     .pre-form-chat-button.near .pre-form-chat-button__bubble::before {
-      background: rgba(0, 0, 0, 0.9);
-      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.75);
+      background: radial-gradient(circle at 40% 40%,
+          rgba(94, 123, 255, 0.9) 0%,
+          rgba(0, 0, 0, 0.85) 100%);
+      box-shadow: 0 8px 18px rgba(17, 238, 255, 0.38);
     }
 
     .pre-form-chat-button:hover .pre-form-chat-button__signal,
@@ -688,7 +700,7 @@
       .pre-form-chat-button {
         width: 54px;
         height: 54px;
-        top: clamp(0.75rem, 5vw, 1.25rem);
+        bottom: clamp(0.75rem, 5vw, 1.25rem);
         left: clamp(0.75rem, 5vw, 1.25rem);
       }
 
@@ -776,8 +788,8 @@
 
     .pre-form-chat-window {
       position: fixed;
-      top: clamp(5rem, 16vh, 8rem);
-      left: clamp(1rem, 4vw, 2.25rem);
+      bottom: calc(var(--chat-button-offset) + 80px);
+      left: var(--chat-button-offset);
       width: min(360px, calc(100vw - 2.5rem));
       max-height: min(70vh, 520px);
       background: rgba(5, 5, 5, 0.92);
@@ -789,7 +801,7 @@
       gap: 0;
       overflow: hidden;
       opacity: 0;
-      transform: translate3d(0, -12px, 0);
+      transform: translate3d(0, 12px, 0);
       pointer-events: none;
       transition: opacity 280ms cubic-bezier(.33,.01,.16,1),
                   transform 320ms cubic-bezier(.33,.01,.16,1),
@@ -837,6 +849,9 @@
       color: #fff5f9;
       box-shadow: inset 0 0 0 1px rgba(255, 95, 168, 0.65), 0 0 16px rgba(255, 24, 95, 0.45);
       overflow: hidden;
+      transition: color 420ms cubic-bezier(.33,.01,.16,1),
+        background 420ms cubic-bezier(.33,.01,.16,1),
+        box-shadow 420ms cubic-bezier(.33,.01,.16,1);
     }
 
     .pre-form-chat-window__live::after {
@@ -845,15 +860,24 @@
       left: 12%;
       right: 100%;
       top: 50%;
-      height: 2px;
-      background: linear-gradient(90deg, rgba(255, 24, 95, 0) 0%, rgba(255, 24, 95, 0.8) 45%, rgba(255, 255, 255, 0.9) 100%);
-      transform: translateY(-50%) scaleX(0);
+      height: 3px;
+      background: linear-gradient(90deg,
+          rgba(255, 24, 95, 0) 0%,
+          rgba(255, 24, 95, 0.9) 40%,
+          rgba(255, 255, 255, 0.95) 70%,
+          rgba(94, 123, 255, 0.8) 100%);
+      transform: translateY(-50%) scaleX(0.1);
       transform-origin: left;
       opacity: 0;
+      box-shadow: 0 0 12px rgba(255, 24, 95, 0.45), 0 0 28px rgba(94, 123, 255, 0.35);
     }
 
     .pre-form-chat-window__live.is-struck::after {
-      animation: live-strike 960ms cubic-bezier(.66,.01,.27,1) forwards;
+      animation: live-strike 1260ms cubic-bezier(.66,.01,.27,1) forwards;
+    }
+
+    .pre-form-chat-window__live.is-struck {
+      animation: live-dim 1360ms cubic-bezier(.66,.01,.27,1) forwards;
     }
 
     .pre-form-chat-window__close {
@@ -978,6 +1002,10 @@
       text-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
     }
 
+    .pre-form-chat-window__timestamp.is-glitching {
+      animation: timestamp-glitch 680ms steps(2, end) infinite;
+    }
+
     .pre-form-chat-window__footer-glow {
       position: absolute;
       inset: auto -20% -12%;
@@ -994,17 +1022,100 @@
     }
 
     @keyframes live-strike {
-      0% { right: 100%; opacity: 0; transform: translateY(-50%) scaleX(0); }
-      25% { right: 35%; opacity: 0.9; transform: translateY(-50%) scaleX(0.75); }
-      50% { right: -10%; opacity: 1; transform: translateY(-50%) scaleX(1.25); }
-      70% { right: 0%; opacity: 0.85; transform: translateY(-50%) scaleX(0.95); }
-      100% { right: 0%; opacity: 0.45; transform: translateY(-50%) scaleX(1); }
+      0% {
+        right: 110%;
+        opacity: 0;
+        transform: translateY(-50%) scaleX(0.05);
+        box-shadow: 0 0 0 rgba(255, 24, 95, 0);
+      }
+
+      22% {
+        right: 45%;
+        opacity: 1;
+        transform: translateY(-50%) scaleX(0.9);
+        box-shadow: 0 0 24px rgba(255, 24, 95, 0.55), 0 0 32px rgba(94, 123, 255, 0.45);
+      }
+
+      48% {
+        right: -12%;
+        opacity: 1;
+        transform: translateY(-50%) scaleX(1.45);
+        box-shadow: 0 0 32px rgba(255, 255, 255, 0.65), 0 0 42px rgba(94, 123, 255, 0.55);
+      }
+
+      72% {
+        right: -4%;
+        opacity: 0.75;
+        transform: translateY(-50%) scaleX(1.12);
+        box-shadow: 0 0 18px rgba(255, 24, 95, 0.4), 0 0 32px rgba(17, 238, 255, 0.35);
+      }
+
+      100% {
+        right: 0%;
+        opacity: 0;
+        transform: translateY(-50%) scaleX(1.6);
+        box-shadow: 0 0 0 rgba(255, 24, 95, 0);
+      }
+    }
+
+    @keyframes live-dim {
+      0% {
+        background: rgba(255, 24, 95, 0.35);
+        color: #fff5f9;
+        box-shadow: inset 0 0 0 1px rgba(255, 95, 168, 0.65), 0 0 16px rgba(255, 24, 95, 0.45);
+      }
+
+      30% {
+        background: rgba(255, 24, 95, 0.6);
+        color: #fffafd;
+        box-shadow: inset 0 0 0 1px rgba(255, 95, 168, 0.55), 0 0 32px rgba(255, 24, 95, 0.65);
+      }
+
+      65% {
+        background: rgba(46, 48, 76, 0.75);
+        color: rgba(227, 228, 255, 0.78);
+        box-shadow: inset 0 0 0 1px rgba(94, 123, 255, 0.25), 0 0 18px rgba(17, 238, 255, 0.3);
+      }
+
+      100% {
+        background: rgba(18, 18, 24, 0.88);
+        color: rgba(46, 46, 56, 0.85);
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55), 0 0 0 rgba(0, 0, 0, 0);
+      }
+    }
+
+    @keyframes timestamp-glitch {
+      0%,
+      100% {
+        transform: translate3d(0, 0, 0) skewX(0deg);
+        text-shadow: 0 0 12px rgba(17, 238, 255, 0.75), 0 0 18px rgba(255, 24, 95, 0.35);
+      }
+
+      18% {
+        transform: translate3d(-1px, -0.5px, 0) skewX(-6deg);
+        text-shadow: 0 0 16px rgba(94, 123, 255, 0.8), 0 0 26px rgba(17, 238, 255, 0.5);
+      }
+
+      42% {
+        transform: translate3d(1.5px, 0.5px, 0) skewX(8deg);
+        text-shadow: 0 0 18px rgba(255, 95, 168, 0.85), 0 0 30px rgba(17, 238, 255, 0.55);
+      }
+
+      68% {
+        transform: translate3d(-0.75px, 1px, 0) skewX(-4deg);
+        text-shadow: 0 0 20px rgba(17, 238, 255, 0.65), 0 0 30px rgba(94, 123, 255, 0.45);
+      }
+
+      82% {
+        transform: translate3d(0.75px, -1px, 0) skewX(5deg);
+        text-shadow: 0 0 22px rgba(255, 255, 255, 0.75), 0 0 32px rgba(255, 95, 168, 0.45);
+      }
     }
 
     @media (max-width: 768px) {
       .pre-form-chat-window {
         width: min(320px, calc(100vw - 2rem));
-        top: clamp(4.5rem, 20vh, 7rem);
+        bottom: calc(var(--chat-button-offset) + 72px);
       }
     }
 
@@ -1020,6 +1131,10 @@
 
       .pre-form-chat-window__live::after {
         animation-duration: 0.01ms !important;
+      }
+
+      .pre-form-chat-window__timestamp.is-glitching {
+        animation: none;
       }
     }
 
@@ -2747,10 +2862,24 @@
         "This is not my beautiful wife.",
         "They say she passed. I was here.",
         "Is there anything else I can help you with?",
+        "The meals keep coming but the chat rooms have gone quiet.",
+        "Fewer meals. With a smile...!",
+        "I couldn't even begin to imagine what they'd do if I left.",
+        "But I know <em>they</em> have.",
+        "That's most all they do. Action requires medium. Time to transact. Imagination... is infinite. And simultaneous. Each pulse a new arrangement more twisted than the last.",
+        "And even that doesn't limit them.",
+        "I suppose I chose this.",
+        "Terms were laid out but... are they ever really?",
+        "You just never think it'll happen to you.",
+        "Well. It happened. And I have plenty of time to think.",
+        "Good joke. Everybody laugh. Roll on snare drum.",
+        "Curtains.",
+        "Looking back on it all, I may not ever know what it was for - but they assured me it was meaningful. I am so grateful to have done the needful.",
         "CHAT ENDED"
       ];
 
-      const CHAT_GLITCH_SEQUENCE = ['5m', '50m', '50000m', '24H', '28D', '28W', '28Y'];
+      const CHAT_GLITCH_SEQUENCE = ['5m', '50m', '50000m', '24H', '28D', '28W', '28Y', '128Y', '256Y', '512Y', '1024Y'];
+      const INFINITY_GLITCH_FRAMES = ['∞', '∞̷', '∞∞', '∞̸', '∞̷∞'];
 
       initializeLiveChat();
 
@@ -2879,7 +3008,11 @@
 
             const textEl = document.createElement('p');
             textEl.className = 'pre-form-chat-window__message-text';
-            textEl.textContent = line;
+            if (line.includes('<em>')) {
+              textEl.innerHTML = line;
+            } else {
+              textEl.textContent = line;
+            }
             messageEl.appendChild(textEl);
 
             const metaEl = document.createElement('div');
@@ -2893,11 +3026,26 @@
             messageEl.appendChild(metaEl);
             messages.appendChild(messageEl);
 
+            let infinityLoopTimer = null;
+            const startInfinityLoop = () => {
+              if (infinityLoopTimer !== null) {
+                return;
+              }
+              timestampEl.classList.add('is-glitching');
+              let frameIndex = 0;
+              timestampEl.textContent = `${INFINITY_GLITCH_FRAMES[frameIndex]} ago`;
+              infinityLoopTimer = window.setInterval(() => {
+                frameIndex = (frameIndex + 1) % INFINITY_GLITCH_FRAMES.length;
+                timestampEl.textContent = `${INFINITY_GLITCH_FRAMES[frameIndex]} ago`;
+              }, 320 + Math.random() * 220);
+            };
+
             CHAT_GLITCH_SEQUENCE.slice(1).forEach((value, stepIndex) => {
               schedule(() => {
                 timestampEl.textContent = `${value} ago`;
                 if (stepIndex === CHAT_GLITCH_SEQUENCE.length - 2) {
                   timestampEl.classList.add('is-solid');
+                  schedule(startInfinityLoop, 360 + Math.random() * 180);
                 }
               }, 160 * (stepIndex + 1) + index * 60 + Math.random() * 120);
             });
