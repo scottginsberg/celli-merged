@@ -23148,22 +23148,25 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
   const termIcon = document.getElementById('terminal-icon');
   const padIcon = document.getElementById('notepad-icon');
   const mediaIcon = document.getElementById('media-icon');
-  const sheet = document.getElementById('sheet');
-  
+
   // Show icons
   if(termIcon){ termIcon.style.display = 'flex'; }
   if(padIcon){ padIcon.style.display = 'flex'; }
   if(mediaIcon){ mediaIcon.style.display = 'flex'; positionMediaIcon(); }
-  
+
   // Update debug button title
   dbg.setAttribute('title','Return to 3D');
-  
-  // Optionally fade in/transition effect
+
+  // Restore the full OS presentation (gradient, sheet layout, etc.)
+  try{ restoreCelliOsIntroState(); }
+  catch(err){ console.warn('returnToOS: failed to restore intro state', err); }
+
+  // Ensure overlay matches desktop palette even if helper was skipped
   const overlay = document.getElementById('introOverlay');
   if(overlay){
    overlay.style.background = 'linear-gradient(180deg, rgba(240,245,255,0.95) 0%, rgba(255,251,240,0.92) 100%)';
-   overlay.style.pointerEvents = 'none';
    overlay.style.opacity = '1';
+   overlay.classList.remove('hidden');
    overlay.style.transition = 'opacity 0.5s ease';
   }
  };
@@ -23188,7 +23191,19 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  dbg.setAttribute('role','button');
  dbg.tabIndex = 0;
  dbg.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); safeToggle(); }});
+
+ if(!window.__celliDebugEscHandler){
+  window.__celliDebugEscHandler = true;
+  window.addEventListener('keydown', (e)=>{
+   if(e.key !== 'Escape') return;
+   const activeTag = (document.activeElement?.tagName||'').toUpperCase();
+   if(activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+   if(!dbg) return;
+   e.preventDefault();
+   safeToggle();
+  });
  }
+}
  setTimeout(wireNarrative,0);
  setTimeout(wireNarrative,500);
 
