@@ -691,6 +691,9 @@
   <button id="btn-monster-arraya-alt" style="display: block; width: 100%; padding: 10px 16px; background: linear-gradient(135deg, #00ff88 0%, #00cc44 100%); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; transition: all 0.2s;">
     👹 Monster Arraya
   </button>
+  <button id="btn-elements-sequence" style="display: block; width: 100%; padding: 10px 16px; margin-top: 12px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; transition: all 0.2s;">
+    🧪 Elements Puzzle
+  </button>
 </div>
 
  <div id="debug-menu">
@@ -7160,6 +7163,11 @@ document.getElementById('btn-voxelizer-sequence')?.addEventListener('click', () 
 console.log('[Voxelizer] Starting webcam voxelizer (from sequence panel)');
 startWebcamVoxelizer();
 showDialogue('📹 Webcam Voxelizer loading...', 2000);
+});
+
+document.getElementById('btn-elements-sequence')?.addEventListener('click', () => {
+console.log('[ElementsSequence] Jumping directly to elements puzzle (from sequence panel)');
+startElementsSequence();
 });
 
 // run.exe button
@@ -14256,7 +14264,7 @@ function showElementCodeEntry() {
 
 function proceedToShapePuzzle() {
   console.log('[PrePuzzle] Element code verified - proceeding to shape puzzle');
-  
+
   // Remove event listener
   if (window.puzzleClickHandler) {
     renderer.domElement.removeEventListener('click', window.puzzleClickHandler);
@@ -14293,6 +14301,68 @@ c.userData.selectionFrame = null;
 showShapePuzzle();
 }
 
+function startElementsSequence() {
+  console.log('[ElementsSequence] Starting elements puzzle directly');
+
+  const overlay = document.getElementById('element-code-overlay');
+  if (overlay && overlay.parentElement) {
+    overlay.parentElement.removeChild(overlay);
+  }
+
+  if (window.puzzleClickHandler) {
+    renderer.domElement.removeEventListener('click', window.puzzleClickHandler);
+    window.puzzleClickHandler = null;
+  }
+
+  const disposeObject = (obj) => {
+    if (!obj) return;
+    if (obj.geometry) {
+      obj.geometry.dispose();
+    }
+    if (obj.material) {
+      if (Array.isArray(obj.material)) {
+        obj.material.forEach(mat => mat?.dispose?.());
+      } else if (obj.material.dispose) {
+        obj.material.dispose();
+      }
+    }
+  };
+
+  if (window.subscriptionPuzzleGroup) {
+    asciiScreenGroup.remove(window.subscriptionPuzzleGroup);
+    window.subscriptionPuzzleGroup.traverse(disposeObject);
+    window.subscriptionPuzzleGroup = null;
+  }
+
+  if (window.activeShapePuzzleGroup) {
+    asciiScreenGroup.remove(window.activeShapePuzzleGroup);
+    window.activeShapePuzzleGroup.traverse(disposeObject);
+    window.activeShapePuzzleGroup = null;
+  }
+
+  if (typeof checkTriangleCircleAlignment === 'function') {
+    if (checkTriangleCircleAlignment._timeout) {
+      clearTimeout(checkTriangleCircleAlignment._timeout);
+      checkTriangleCircleAlignment._timeout = null;
+    }
+    checkTriangleCircleAlignment._checking = false;
+  }
+
+  window.puzzleShapesArray = null;
+  window._puzzleSquareSpawned = false;
+  window._puzzleSquareSpawning = false;
+
+  if (typeof elementGrid !== 'undefined' && elementGrid) {
+    asciiScreenGroup.remove(elementGrid);
+    elementGrid.traverse(disposeObject);
+    elementGrid = null;
+  }
+
+  createElementGrid();
+  showLeavesHouse();
+  startCelliNarrative();
+}
+
 // ===== Shape Micro Puzzle =====
 // Global controller queue - cycles through directions
 let puzzleControllerQueue = 0; // 0=up, 1=right, 2=down, 3=left
@@ -14301,6 +14371,7 @@ function showShapePuzzle() {
 console.log('[ShapePuzzle] Showing 4x4 shape puzzle with global controller queue');
 
 const puzzleGroup = new THREE.Group();
+window.activeShapePuzzleGroup = puzzleGroup;
 const gridSize = 4; // 4x4 grid for new puzzle layout
 const cellSize = 0.5;
 const spacing = 0.08;
@@ -14657,7 +14728,12 @@ circ.mesh.material.emissiveIntensity = 0.6;
 tri.mesh.material.color.set(0xffffff); // White
 tri.mesh.material.emissive = new THREE.Color(0xffffff);
 tri.mesh.material.emissiveIntensity = 0.3;
+
+if (spawnDirection) {
+createBeam(shapes, puzzleGroup, spawnDirection);
+} else {
 beamActive = true;
+}
 
 // Spawn new square on opposite side of triangle from circle
 // Use global flag to ABSOLUTELY prevent duplicate spawns
@@ -14666,29 +14742,45 @@ const newSquareX = tri.gridPos.x + spawnDirection.x;
 const newSquareY = tri.gridPos.y + spawnDirection.y;
 const gridSize = 4;
 if (newSquareX >= 0 && newSquareX < gridSize && newSquareY >= 0 && newSquareY < gridSize) {
-  console.log(`[ShapePuzzle] ⚠️ SPAWNING NEW SQUARE at (${newSquareX}, ${newSquareY}) - SETTING FLAGS`);
-  
-  // Set ALL flags IMMEDIATELY to prevent duplicate spawning AND re-entry
-  window._puzzleSquareSpawned = true;
-  window._puzzleSquareSpawning = true; // NEW: Prevent alignment checks during spawn
-  tri.userData.hasSpawnedSquare = true;
-  tri.mesh.userData.hasSpawnedSquare = true;
-  
-  // Spawn with a slight delay to prevent freeze
-  setTimeout(() => {
-    try {
-      spawnNewSquare(shapes, puzzleGroup, newSquareX, newSquareY);
-      console.log('[ShapePuzzle] ✅ New square spawn complete');
-      // Clear spawning flag after spawn completes
-      setTimeout(() => {
-        window._puzzleSquareSpawning = false;
-        console.log('[ShapePuzzle] Spawning flag cleared - alignment checks can resume');
-      }, 100);
-    } catch (e) {
-      console.error('[ShapePuzzle] ❌ Error spawning square:', e);
-      window._puzzleSquareSpawning = false; // Clear flag on error
+  const shapesArray = (window.puzzleShapesArray || [shapes.squareBlue.mesh, shapes.triangle.mesh, shapes.circle.mesh]).filter(Boolean);
+  const blockingShape = shapesArray.find(obj => {
+    const data = obj.userData?.shapeData;
+    return data && data.gridPos.x === newSquareX && data.gridPos.y === newSquareY;
+  });
+
+  if (blockingShape) {
+    console.warn(`[ShapePuzzle] Spawn blocked - ${blockingShape.userData.shapeData.type} already occupies (${newSquareX}, ${newSquareY}).`);
+    if (typeof showDialogue === 'function') {
+      showDialogue('⬜ Move the blue square out of the way to make room!', 2500);
     }
-  }, 50);
+  } else {
+    console.log(`[ShapePuzzle] ⚠️ SPAWNING NEW SQUARE at (${newSquareX}, ${newSquareY}) - SETTING FLAGS`);
+
+    // Set ALL flags IMMEDIATELY to prevent duplicate spawning AND re-entry
+    window._puzzleSquareSpawned = true;
+    window._puzzleSquareSpawning = true; // NEW: Prevent alignment checks during spawn
+    tri.userData.hasSpawnedSquare = true;
+    tri.mesh.userData.hasSpawnedSquare = true;
+
+    // Spawn with a slight delay to prevent freeze
+    setTimeout(() => {
+      try {
+        spawnNewSquare(shapes, puzzleGroup, newSquareX, newSquareY);
+        console.log('[ShapePuzzle] ✅ New square spawn complete');
+        // Clear spawning flag after spawn completes
+        setTimeout(() => {
+          window._puzzleSquareSpawning = false;
+          console.log('[ShapePuzzle] Spawning flag cleared - alignment checks can resume');
+        }, 100);
+      } catch (e) {
+        console.error('[ShapePuzzle] ❌ Error spawning square:', e);
+        window._puzzleSquareSpawning = false; // Clear flag on error
+        window._puzzleSquareSpawned = false;
+        tri.userData.hasSpawnedSquare = false;
+        tri.mesh.userData.hasSpawnedSquare = false;
+      }
+    }, 50);
+  }
 }
 }
 } else {
@@ -14981,6 +15073,11 @@ puzzleGroup.traverse(obj => {
 if (obj.geometry) obj.geometry.dispose();
 if (obj.material) obj.material.dispose();
 });
+
+window.activeShapePuzzleGroup = null;
+window.puzzleShapesArray = null;
+window._puzzleSquareSpawned = false;
+window._puzzleSquareSpawning = false;
 
 // Transition to element grid with slight delay
 setTimeout(() => {
