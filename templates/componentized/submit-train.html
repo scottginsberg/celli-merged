@@ -5146,7 +5146,25 @@
                 senderEl.textContent = msg.sender;
 
                 const textEl = document.createElement('span');
-                textEl.textContent = msg.text;
+                const isFinalMessage = idx === loomChatQueue.length - 1;
+
+                if (isFinalMessage) {
+                  const typingStates = ['.', '..', '...'];
+                  let typingIndex = 0;
+                  textEl.textContent = typingStates[typingIndex];
+
+                  const typingInterval = setInterval(() => {
+                    typingIndex = (typingIndex + 1) % typingStates.length;
+                    textEl.textContent = typingStates[typingIndex];
+                  }, 500);
+
+                  setTimeout(() => {
+                    clearInterval(typingInterval);
+                    textEl.textContent = msg.text;
+                  }, 3000);
+                } else {
+                  textEl.textContent = msg.text;
+                }
 
                 messageEl.appendChild(senderEl);
                 messageEl.appendChild(textEl);
