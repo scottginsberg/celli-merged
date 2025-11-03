@@ -177,38 +177,38 @@ const COMPACT_LETTER_PATTERNS = {
 
 // Mask patterns for clickable I's
 const MASK_PATTERNS = {
-  HAPPY: [ // Happy theater mask
-    [0, 0, 1, 1, 0, 0, 1, 1, 0, 0],
-    [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [1, 1, 0, 1, 1, 1, 1, 0, 1, 1],
-    [1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
-    [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
-    [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0]
+  HAPPY: [ // Happy theater mask (7×9, symmetrical)
+    [0, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 0, 1, 0, 1, 1],
+    [1, 0, 0, 1, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 1, 1, 1, 0, 1],
+    [0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 1, 0, 0, 0]
   ],
-  SAD: [ // Sad theater mask (left-leaning, no nose holes, continuous frown)
-    [0, 0, 1, 1, 0, 1, 1, 0, 0, 0],
-    [0, 1, 1, 1, 1, 1, 1, 0, 0, 0],
-    [1, 1, 0, 1, 1, 1, 1, 0, 0, 0],
-    [1, 0, 1, 1, 1, 1, 1, 0, 0, 0],
-    [1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
-    [1, 0, 1, 1, 1, 1, 1, 1, 0, 0],
-    [1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
-    [0, 1, 1, 1, 1, 1, 1, 0, 0, 0],
-    [0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
+  SAD: [ // Sad theater mask (7×9, symmetrical)
+    [0, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 0, 1, 0, 1, 1],
+    [1, 0, 0, 1, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 0, 1, 1, 1],
+    [0, 1, 1, 0, 1, 1, 0],
+    [0, 1, 0, 1, 0, 1, 0],
+    [0, 0, 0, 1, 0, 0, 0]
   ],
-  TROLL: [ // Troll face
-    [0, 0, 1, 1, 0, 0, 1, 1, 0, 0],
-    [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [1, 1, 0, 1, 1, 1, 1, 0, 1, 1],
-    [1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 1, 0, 1, 1, 0, 1, 0, 1],
-    [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
-    [0, 1, 1, 0, 0, 0, 0, 1, 1, 0],
-    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0]
+  TROLL: [ // Troll face (7×9, symmetrical)
+    [0, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 0, 1, 1, 1],
+    [1, 0, 1, 1, 1, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 1, 1, 1, 0, 1],
+    [1, 1, 1, 0, 1, 1, 1],
+    [0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 1, 0, 0, 0]
   ]
 };
 
@@ -1772,10 +1772,12 @@ export class IntroSceneComplete {
       }
 
       // Slightly offset each mask horizontally so they align with their I
+      const baseSpacing = compactVoxelSize * activeWidth;
+      const spacingFactor = 1.35;
       const maskOffsets = [
-        -compactVoxelSize * activeWidth * 0.55,
+        -baseSpacing * spacingFactor,
         0,
-        compactVoxelSize * activeWidth * 0.45
+        baseSpacing * spacingFactor
       ];
       if (iIndex < maskOffsets.length) {
         maskX += maskOffsets[iIndex];
