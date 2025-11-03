@@ -188,16 +188,16 @@ const MASK_PATTERNS = {
     [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
     [0, 0, 1, 1, 1, 1, 1, 1, 0, 0]
   ],
-  SAD: [ // Sad theater mask
-    [0, 0, 1, 1, 0, 0, 1, 1, 0, 0],
-    [0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [1, 1, 0, 1, 1, 1, 1, 0, 1, 1],
-    [1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
-    [1, 0, 1, 0, 1, 1, 0, 1, 0, 1],
-    [0, 1, 1, 1, 0, 0, 1, 1, 1, 0],
-    [0, 0, 1, 1, 1, 1, 1, 1, 0, 0]
+  SAD: [ // Sad theater mask (left-leaning, no nose holes, continuous frown)
+    [0, 0, 1, 1, 0, 1, 1, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+    [1, 1, 0, 1, 1, 1, 1, 0, 0, 0],
+    [1, 0, 1, 1, 1, 1, 1, 0, 0, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+    [1, 0, 1, 1, 1, 1, 1, 1, 0, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
   ],
   TROLL: [ // Troll face
     [0, 0, 1, 1, 0, 0, 1, 1, 0, 0],
@@ -301,6 +301,7 @@ export class IntroSceneComplete {
       liquidShaderMaterial: null, // Liquid shader for red square
       mouseTrail: [], // Trail of mouse positions for liquid effect
       maskVoxels: [], // Spawned mask voxels
+      iClickTargets: [null, null, null], // Larger invisible hit areas for each I
       iVoxels: [[], [], []], // Arrays of voxels for each of the three I's in III+
       iCenters: [0, 0, 0], // Horizontal centers for each clickable I
       clickedMasks: { 0: false, 1: false, 2: false }, // Track which I's have been clicked
@@ -1475,6 +1476,17 @@ export class IntroSceneComplete {
     this.state.iVoxels = [[], [], []];
     this.state.iCenters = [null, null, null];
     this.state.clickedMasks = { 0: false, 1: false, 2: false };
+    if (Array.isArray(this.state.iClickTargets)) {
+      this.state.iClickTargets.forEach(target => {
+        if (!target) return;
+        if (target.parent) {
+          target.parent.remove(target);
+        }
+        if (target.geometry) target.geometry.dispose();
+        if (target.material) target.material.dispose();
+      });
+    }
+    this.state.iClickTargets = [null, null, null];
     const compactVoxelSize = this.voxelSize * 0.32; // Even smaller voxels for subtitle
     const compactScale = 0.32;
     const letterSpacing = compactVoxelSize * 5.5; // Spacing between letters (one block apart)
@@ -1653,8 +1665,46 @@ export class IntroSceneComplete {
             return acc;
           }, 0);
           this.state.iCenters[iiiCounter] = sumX / voxelsForI.length;
+
+          const bounds = new THREE.Box3();
+          const scratch = new THREE.Vector3();
+          voxelsForI.forEach(voxel => {
+            const vData = voxel?.userData || {};
+            const vx = typeof vData.targetX === 'number' ? vData.targetX : voxel.position.x;
+            const vy = typeof vData.targetY === 'number' ? vData.targetY : voxel.position.y;
+            bounds.expandByPoint(scratch.set(vx, vy, 0));
+          });
+
+          const width = Math.max(bounds.max.x - bounds.min.x, compactVoxelSize * 1.8) + compactVoxelSize * 1.2;
+          const height = Math.max(bounds.max.y - bounds.min.y, compactVoxelSize * 4.2) + compactVoxelSize * 1.2;
+          const centerX = (bounds.max.x + bounds.min.x) / 2;
+          const centerY = (bounds.max.y + bounds.min.y) / 2;
+
+          const clickGeo = new THREE.PlaneGeometry(width, height);
+          const clickMat = new THREE.MeshBasicMaterial({
+            color: COLOR_THEMES.white.base.clone(),
+            transparent: true,
+            opacity: 0,
+            depthWrite: false
+          });
+          clickMat.depthTest = false;
+          clickMat.colorWrite = false;
+
+          const clickTarget = new THREE.Mesh(clickGeo, clickMat);
+          clickTarget.position.set(centerX, centerY, 0.05);
+          clickTarget.visible = true;
+          clickTarget.userData = {
+            iIndex: iiiCounter,
+            isClickableI: true,
+            isIClickTarget: true
+          };
+          clickTarget.renderOrder = -10;
+
+          scene.add(clickTarget);
+          this.state.iClickTargets[iiiCounter] = clickTarget;
         } else {
           this.state.iCenters[iiiCounter] = currentX;
+          this.state.iClickTargets[iiiCounter] = null;
         }
         console.log(`🔤 Processed I #${iiiCounter} with ${this.state.iVoxels[iiiCounter].length} voxels`);
         iiiCounter++;
@@ -1675,11 +1725,42 @@ export class IntroSceneComplete {
   _spawnMaskVoxels(scene, voxelGeo, edgesGeo, maskType, iIndex) {
     const pattern = MASK_PATTERNS[maskType];
     if (!pattern) return;
-    
+
     const maskVoxels = [];
     const compactVoxelSize = this.voxelSize * 0.32;
     const compactScale = 0.32;
-    
+    const patternWidth = pattern[0]?.length || 0;
+    const patternHeight = pattern.length;
+
+    let minActiveCol = patternWidth;
+    let maxActiveCol = -1;
+    let minActiveRow = patternHeight;
+    let maxActiveRow = -1;
+    pattern.forEach((row, rowIdx) => {
+      row.forEach((cell, colIdx) => {
+        if (cell === 1) {
+          if (colIdx < minActiveCol) minActiveCol = colIdx;
+          if (colIdx > maxActiveCol) maxActiveCol = colIdx;
+          if (rowIdx < minActiveRow) minActiveRow = rowIdx;
+          if (rowIdx > maxActiveRow) maxActiveRow = rowIdx;
+        }
+      });
+    });
+
+    if (maxActiveCol < minActiveCol) {
+      minActiveCol = 0;
+      maxActiveCol = Math.max(patternWidth - 1, 0);
+    }
+    if (maxActiveRow < minActiveRow) {
+      minActiveRow = 0;
+      maxActiveRow = Math.max(patternHeight - 1, 0);
+    }
+
+    const activeWidth = maxActiveCol - minActiveCol + 1;
+    const activeHeight = maxActiveRow - minActiveRow + 1;
+    const activeCenterX = minActiveCol + (activeWidth - 1) / 2;
+    const activeCenterY = minActiveRow + (activeHeight - 1) / 2;
+
     // Position between CELLI (y ~0.35) and subtitle (y ~-0.20)
     const maskY = 0.05;
     let maskX = 0; // Default center
@@ -1691,18 +1772,22 @@ export class IntroSceneComplete {
       }
 
       // Slightly offset each mask horizontally so they align with their I
-      const maskOffsets = [-compactVoxelSize * pattern[0].length * 0.25, 0, compactVoxelSize * pattern[0].length * 0.25];
+      const maskOffsets = [
+        -compactVoxelSize * activeWidth * 0.55,
+        0,
+        compactVoxelSize * activeWidth * 0.45
+      ];
       if (iIndex < maskOffsets.length) {
         maskX += maskOffsets[iIndex];
       }
     }
-    
+
     pattern.forEach((row, rowIdx) => {
       row.forEach((cell, colIdx) => {
         if (cell === 1) {
           const baseColor = COLOR_THEMES.white.base.clone();
           const edgeBaseColor = COLOR_THEMES.white.edgeBase.clone();
-          
+
           const mat = new THREE.MeshBasicMaterial({
             color: baseColor,
             transparent: true,
@@ -1720,16 +1805,14 @@ export class IntroSceneComplete {
           const voxel = new THREE.Mesh(voxelGeo.clone(), mat);
           const edges = new THREE.LineSegments(edgesGeo.clone(), edgeMat);
           voxel.add(edges);
-          
+
           // Center the pattern
-          const patternWidth = pattern[0].length;
-          const patternHeight = pattern.length;
-          const centerOffsetX = (patternWidth - 1) / 2;
-          const centerOffsetY = (patternHeight - 1) / 2;
-          
+          const centerOffsetX = activeCenterX;
+          const centerOffsetY = activeCenterY;
+
           const x = maskX + (colIdx - centerOffsetX) * compactVoxelSize * 1.3;
           const y = maskY + (centerOffsetY - rowIdx) * compactVoxelSize * 1.3;
-          
+
           const glowColor = COLOR_THEMES.white.glow.clone();
           const edgesGlowColor = COLOR_THEMES.white.edgeGlow.clone();
           
@@ -2466,42 +2549,73 @@ export class IntroSceneComplete {
       const y = -(e.clientY / window.innerHeight) * 2 + 1;
       
       // Check if clicking on an I voxel (flatten all I voxel arrays)
-      const allIVoxels = this.state.iVoxels.flat().filter(v => v && v.visible);
-      console.log(`🖱️ Click detected - ${allIVoxels.length} clickable I voxels available`);
-      
-      if (this.state.raycaster && allIVoxels.length > 0) {
+      const rawIVoxels = Array.isArray(this.state.iVoxels) ? this.state.iVoxels.flat() : [];
+      const allIVoxels = rawIVoxels.filter(v => v && v.visible);
+      const clickTargets = Array.isArray(this.state.iClickTargets)
+        ? this.state.iClickTargets.filter(target => target && target.visible !== false && !target.userData?.disabled)
+        : [];
+      const clickableObjects = [...allIVoxels, ...clickTargets];
+      const iClickDebug = [
+        `🖱️ Click detected - ${allIVoxels.length} clickable I voxels available`,
+        `${clickTargets.length} extended targets`
+      ].join(', ');
+      console.log(iClickDebug);
+
+      if (this.state.raycaster && clickableObjects.length > 0) {
         this.state.mouse.set(x, y);
         this.state.raycaster.setFromCamera(this.state.mouse, this.state.camera);
-        
+
         // Try raycasting with recursive search for child meshes
-        const intersects = this.state.raycaster.intersectObjects(allIVoxels, true);
+        const intersects = this.state.raycaster.intersectObjects(clickableObjects, true);
         console.log(`  → ${intersects.length} intersections found`);
-        
-        if (intersects.length > 0) {
-          // Find the first intersected object that has iIndex, checking parent chain
-          let clickedVoxel = intersects[0].object;
-          let iIndex = clickedVoxel.userData?.iIndex;
-          
-          // If the clicked object doesn't have iIndex, traverse up to find parent with iIndex
-          if (iIndex === undefined) {
-            let current = clickedVoxel.parent;
-            while (current && iIndex === undefined) {
-              iIndex = current.userData?.iIndex;
-              if (iIndex !== undefined) {
-                clickedVoxel = current;
-                break;
-              }
+        let clickedVoxel = null;
+        let iIndex = undefined;
+
+        for (const intersect of intersects) {
+          let current = intersect.object;
+          while (current) {
+            const data = current.userData || {};
+            if (data.disabled) {
               current = current.parent;
+              continue;
             }
+            if (typeof data.iIndex === 'number' && data.iIndex >= 0) {
+              clickedVoxel = current;
+              iIndex = data.iIndex;
+              break;
+            }
+            if (typeof data.maskIIndex === 'number' && data.maskIIndex >= 0) {
+              clickedVoxel = current;
+              iIndex = data.maskIIndex;
+              break;
+            }
+            current = current.parent;
           }
-          
-          console.log(`  → Clicked object: ${clickedVoxel.name || 'unnamed'}`);
+          if (typeof iIndex === 'number') {
+            break;
+          }
+        }
+
+        if (typeof iIndex === 'number') {
+          console.log(`  → Clicked object: ${clickedVoxel?.name || 'unnamed'}`);
           console.log(`  → Found iIndex: ${iIndex}, already clicked: ${this.state.clickedMasks[iIndex]}`);
-          
+
           if (iIndex >= 0 && iIndex <= 2 && !this.state.clickedMasks[iIndex]) {
             console.log(`🎭 Clicked I #${iIndex} - spawning mask!`);
             this.state.clickedMasks[iIndex] = true;
-            
+
+            const target = this.state.iClickTargets?.[iIndex];
+            if (target) {
+              target.userData.disabled = true;
+              target.visible = false;
+              if (target.parent) {
+                target.parent.remove(target);
+              }
+              if (target.geometry) target.geometry.dispose();
+              if (target.material) target.material.dispose();
+              this.state.iClickTargets[iIndex] = null;
+            }
+
             // Spawn appropriate mask
             const maskType = I_INDEX_MASK_MAP[iIndex];
             if (maskType) {
@@ -2513,7 +2627,7 @@ export class IntroSceneComplete {
           return; // Don't create text particles if clicking on I
         }
       }
-      
+
       // Create text particles at click position
       this._createTextParticlesAtPosition(x, y);
     };
