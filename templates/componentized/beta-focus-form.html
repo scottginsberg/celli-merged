@@ -3050,9 +3050,7 @@
         signal.className = 'pre-form-chat-button__signal';
         const ping = document.createElement('span');
         ping.className = 'pre-form-chat-button__ping';
-        const signalText = document.createElement('span');
-        signalText.textContent = 'CHAT';
-        signal.append(ping, signalText);
+        signal.append(ping);
         bubble.append(chatIcon, signal);
         chatButton.appendChild(bubble);
 
