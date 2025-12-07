@@ -189,6 +189,212 @@
             opacity: 0.4;
         }
 
+        /* Ambient Interactions */
+        .legal-copy {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border: 1px dashed rgba(0,0,0,0.35);
+            border-radius: 8px;
+            --x: 50%;
+            --y: 50%;
+            transition: border-color 0.2s ease, color 0.2s ease;
+        }
+        .legal-copy::after {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            background: radial-gradient(circle at var(--x) var(--y), rgba(205,43,43,0.18), rgba(205,43,43,0));
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            pointer-events: none;
+            filter: blur(6px);
+        }
+        .legal-copy:hover { border-color: #CD2B2B; color: #8c1e1e; }
+        .legal-copy:hover::after { opacity: 1; }
+
+        .ambient-tooltip {
+            position: fixed;
+            pointer-events: none;
+            z-index: 70;
+            background: #0f0f0f;
+            color: #f6f2ea;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.96);
+            animation: tooltipFade 2.2s ease forwards;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.16);
+            mix-blend-mode: difference;
+        }
+
+        #ambient-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 60;
+        }
+
+        @keyframes tooltipFade {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.06); }
+        }
+
+        .micro-glitch { animation: microGlitch 0.6s steps(2, end); }
+        @keyframes microGlitch {
+            0% { transform: translate(0,0); text-shadow: 1px 0 rgba(205,43,43,0.4); }
+            30% { transform: translate(1px, -1px); text-shadow: -1px 0 rgba(205,43,43,0.5); }
+            60% { transform: translate(-1px, 1px); text-shadow: 1px 0 rgba(0,0,0,0.25); }
+            100% { transform: translate(0,0); text-shadow: none; }
+        }
+
+        .blueprint-lines {
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+        }
+        .blueprint-lines::before,
+        .blueprint-lines::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.6s ease, transform 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .blueprint-lines::before {
+            background: repeating-linear-gradient(90deg, rgba(0,0,0,0.12) 0, rgba(0,0,0,0.12) 1px, transparent 1px, transparent 16px);
+            transform: translateY(12px);
+        }
+        .blueprint-lines::after {
+            background: repeating-linear-gradient(0deg, rgba(205,43,43,0.1) 0, rgba(205,43,43,0.1) 1px, transparent 1px, transparent 18px);
+            transform: translateX(-12px);
+        }
+        .blueprint-lines.active::before,
+        .blueprint-lines.active::after {
+            opacity: 1;
+            transform: translate(0,0);
+        }
+
+        .scanline-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background-image: linear-gradient(rgba(0,0,0,0.08) 1px, transparent 2px);
+            background-size: 100% 10px;
+            mix-blend-mode: soft-light;
+            animation: scanMove 14s linear infinite;
+            opacity: 0.32;
+        }
+        @keyframes scanMove {
+            from { background-position-y: 0; }
+            to { background-position-y: 100%; }
+        }
+
+        .dp-logomark {
+            position: relative;
+            width: 52px;
+            height: 52px;
+            border: 2px solid #111;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            background: #fff;
+            box-shadow: 6px 6px 0 rgba(0,0,0,0.12);
+            cursor: help;
+            overflow: hidden;
+        }
+        .dp-logomark::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(205,43,43,0.16), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .dp-logomark:hover::before { opacity: 1; }
+        .dp-logomark span { font-size: 12px; letter-spacing: 0.2em; font-weight: 700; }
+        .dp-logomark .asset-reveal {
+            position: absolute;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            color: #CD2B2B;
+        }
+        .dp-logomark:hover .asset-reveal { opacity: 1; }
+
+        .invoice-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255,252,247,0.95);
+            z-index: 80;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            font-family: 'Space Mono', monospace;
+        }
+        .invoice-overlay.active { display: flex; }
+        .invoice-sheet {
+            width: min(720px, 100%);
+            background: #fff;
+            border: 2px solid #111;
+            box-shadow: 12px 12px 0 rgba(205,43,43,0.12);
+            padding: 28px;
+        }
+        .invoice-sheet h3 { letter-spacing: 0.2em; font-size: 12px; }
+
+        .glitch-banner {
+            position: fixed;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%) translateY(120%);
+            background: #111;
+            color: #f8f1ea;
+            padding: 10px 18px;
+            border: 2px solid #CD2B2B;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+            z-index: 70;
+            overflow: hidden;
+            min-width: 260px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+            transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .glitch-banner.active { transform: translateX(-50%) translateY(0); }
+        .glitch-banner::before,
+        .glitch-banner::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            mix-blend-mode: screen;
+            opacity: 0;
+            background: linear-gradient(90deg, rgba(205,43,43,0.24), rgba(255,244,235,0.12));
+            animation: bannerGlitch 2.2s steps(2, end) infinite;
+        }
+        .glitch-banner::after { background: linear-gradient(90deg, rgba(255,244,235,0.14), rgba(205,43,43,0.28)); }
+        @keyframes bannerGlitch {
+            0% { opacity: 0; transform: translate(0,0); }
+            20% { opacity: 0.3; transform: translate(-2px, 1px); }
+            40% { opacity: 0.12; transform: translate(2px, -1px); }
+            70% { opacity: 0.24; transform: translate(-1px, 1px); }
+            100% { opacity: 0; transform: translate(0,0); }
+        }
+
         /* Grift Rendering Modes */
         .style-abstracted { background: radial-gradient(circle at 20% 20%, rgba(205,43,43,0.12), transparent 40%), radial-gradient(circle at 80% 60%, rgba(17,17,17,0.14), transparent 35%), #fff; border: 2px solid #111; box-shadow: 8px 8px 0 #111; }
         .style-grid { background-image: linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px); background-size: 14px 14px; border: 1px solid #222; }
@@ -227,6 +433,8 @@
             <span id="loader-text"></span><span class="cursor-blink">_</span>
         </div>
     </div>
+
+    <div id="ambient-layer" aria-hidden="true"></div>
 
     <!-- MOBILE MENU -->
     <div id="mobile-menu" class="fixed inset-0 bg-[#FDFBF7] z-[60] transform translate-x-full transition-transform duration-300 flex flex-col pt-20 px-6 overflow-y-auto">
@@ -277,9 +485,17 @@
 
     <!-- VIEW: LANDING -->
     <section id="view-landing" class="view-section active relative">
-        <div class="px-4 md:px-8 py-20 md:py-32 max-w-7xl mx-auto">
+        <div class="scanline-layer hidden md:block" aria-hidden="true"></div>
+        <div class="px-4 md:px-8 py-20 md:py-32 max-w-7xl mx-auto blueprint-lines">
             <div class="mb-6 inline-block border border-black px-2 py-1 text-[10px] font-mono tracking-widest uppercase bg-white">Field Materials Case Study #902</div>
-            <h1 class="text-6xl md:text-9xl font-bold tracking-tighter mb-8 glitch-text" data-text="DOMESTIC PRODUCT">DOMESTIC PRODUCT</h1>
+            <div class="flex items-center gap-4 mb-4">
+                <div class="dp-logomark" title="Loomworks Domestic Product">
+                    <span>DP</span>
+                    <div class="asset-reveal">YOU ARE A VERIFIED ASSET.</div>
+                </div>
+                <div class="text-[10px] uppercase font-mono tracking-[0.3em] text-gray-600">Surveillance-Aware Exhibition Shell</div>
+            </div>
+            <h1 id="dp-title" class="text-6xl md:text-9xl font-bold tracking-tighter mb-8 glitch-text" data-text="DOMESTIC PRODUCT">DOMESTIC PRODUCT</h1>
             <p class="max-w-2xl text-lg md:text-2xl font-mono leading-relaxed text-gray-700 mb-12">
                 A forensic study in how we manufacture magic, desire, and icons.
                 <span class="text-xs md:text-sm mt-4 block text-gray-500 uppercase tracking-widest border-l-2 border-red-600 pl-4">New York City • Limited Engagement</span>
@@ -289,7 +505,7 @@
                 <button onclick="app.navigate('pitch')" class="ui-click border border-black bg-white px-8 py-4 font-mono text-xs hover:bg-black hover:text-white transition-colors uppercase tracking-widest">View Project Plan</button>
                 <a href="oldindex.html" class="ui-click border border-black bg-white px-8 py-4 font-mono text-xs hover:bg-black hover:text-white transition-colors uppercase tracking-widest">Launch Referrer Sequence</a>
             </div>
-            <div class="mt-10 pt-6 border-t border-gray-200">
+            <div class="mt-10 pt-6 border-t border-gray-200 space-y-4">
                 <div class="font-mono text-[10px] uppercase tracking-[0.25em] text-gray-500">Follow the flow</div>
                 <div class="flex flex-wrap gap-2 mt-3">
                     <button onclick="app.navigate('profiler')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Identity</button>
@@ -299,6 +515,10 @@
                     <button onclick="app.navigate('barter')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Barter Post</button>
                     <button onclick="app.navigate('archive')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Archive Index</button>
                     <a href="oldindex.html" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Referrer Launch</a>
+                </div>
+                <div class="flex flex-wrap gap-2 text-[11px] text-gray-700 font-mono">
+                    <div class="legal-copy ui-click">Monitoring Notice <span class="text-[9px] uppercase tracking-[0.2em]">All interactions recorded as art</span></div>
+                    <div class="legal-copy ui-click">Consent Receipt <span class="text-[9px] uppercase tracking-[0.2em]">You choose your own complicity</span></div>
                 </div>
             </div>
 
@@ -378,6 +598,58 @@
                     </div>
                     <p class="text-sm text-gray-800 leading-relaxed">This universe—worldbuilding, design systems, software, music, archive curation, spatial logic—was built by a single human. Not to brag, shock, or mystify, but to show that the tools finally let you bring your full imagination without waiting for a grant, a team, or a patron.</p>
                     <p class="text-sm text-gray-800 leading-relaxed font-semibold">Welcome to the edge where personal creation becomes industrial myth. The art is the question; everything else is the invitation.</p>
+                </div>
+
+                <div class="bg-white border border-black rounded-2xl p-8 shadow-2xl space-y-10 blueprint-lines">
+                    <div class="space-y-4">
+                        <div class="text-[10px] font-mono uppercase tracking-[0.3em] text-red-700">The Ethics of Held Wonder</div>
+                        <p class="text-lg font-bold leading-tight">Every system you encounter here — the Barter Post, the Grift Shop, the Identity Quiz, the Archive Capsule, the Lantern Protocol — is designed around a single principle:</p>
+                        <p class="text-2xl font-bold">Wonder is priceless.<br>Access is not.</p>
+                        <p class="text-sm text-gray-800 leading-relaxed">Loomworks never sells magic.<br>It sells paths into it.</p>
+                        <p class="text-sm text-gray-800 leading-relaxed">This is commerce you are invited to participate in, not tricked into.<br>You don’t buy to belong — you buy because you already do.</p>
+                        <p class="text-sm text-gray-800 leading-relaxed">By stepping into Domestic Product, you knowingly engage in a marketplace that openly questions itself:</p>
+                        <div class="bg-[#FDFBF7] border border-black/10 rounded-lg p-4 text-sm text-gray-900 leading-relaxed space-y-2">
+                            <p>How much does a memory cost?</p>
+                            <p>What is the fair price of a feeling?</p>
+                            <p>Is value something we discover, or something we manufacture?</p>
+                            <p>If we understand the system, does it still control us?</p>
+                        </div>
+                        <p class="text-sm text-gray-800 leading-relaxed">Here, your purchases are not transactions.<br>They are votes for the kind of world you want to build.</p>
+                        <p class="text-sm text-gray-800 leading-relaxed">We call this ethical capitalization:<br>a creative economy where delight funds more delight, where curiosity sustains culture, and where the system shows you the gears turning.</p>
+                        <p class="text-sm text-gray-800 leading-relaxed font-semibold">You are complicit.<br>You are aware.<br>And you are welcome.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="text-[10px] font-mono uppercase tracking-[0.3em] text-red-700">What Loomworks Builds (And Why)</div>
+                        <p class="text-lg font-bold leading-tight">Loomworks exists to prove something simple:</p>
+                        <p class="text-xl font-bold italic">Creation is not linear.<br>Creation is dimensional.</p>
+                        <p class="text-sm text-gray-800 leading-relaxed">Each subsystem demonstrates a different model of making:</p>
+                        <div class="grid md:grid-cols-2 gap-4 text-sm text-gray-900">
+                            <div class="space-y-3">
+                                <p><span class="font-bold">Domestic Product</span> — a corporatized museum; the front door into myth</p>
+                                <p><span class="font-bold">Celli.OS</span> — a musical spreadsheet; a narrative engine disguised as a tool</p>
+                                <p><span class="font-bold">The Archive Capsule</span> — a century of manufactured icons, curated with intent</p>
+                                <p><span class="font-bold">The Grift Shop</span> — a transparent satire of value creation and speculation</p>
+                            </div>
+                            <div class="space-y-3">
+                                <p><span class="font-bold">The Lanterns</span> — the human interface to an inhuman system</p>
+                                <p><span class="font-bold">The Sculpture Generator (coming soon)</span> — viral, personal, generative identity artifacts</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-800 leading-relaxed">Together they form a living world built from:</p>
+                        <div class="flex flex-wrap gap-2 text-[11px] font-mono uppercase tracking-[0.2em]">
+                            <span class="px-2 py-1 border border-gray-300 rounded-full">code</span>
+                            <span class="px-2 py-1 border border-gray-300 rounded-full">curation</span>
+                            <span class="px-2 py-1 border border-gray-300 rounded-full">commerce</span>
+                            <span class="px-2 py-1 border border-gray-300 rounded-full">nostalgia</span>
+                            <span class="px-2 py-1 border border-gray-300 rounded-full">satire</span>
+                            <span class="px-2 py-1 border border-gray-300 rounded-full">sincerity</span>
+                            <span class="px-2 py-1 border border-gray-300 rounded-full">absurdity</span>
+                            <span class="px-2 py-1 border border-gray-300 rounded-full">emotion</span>
+                        </div>
+                        <p class="text-sm text-gray-800 leading-relaxed">This is more than an art show.<br>It is a demonstration of what a single creator with modern tools can build.</p>
+                        <p class="text-sm text-gray-900 leading-relaxed font-semibold">You are witnessing the future of small, strange, ambitious worlds.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1037,6 +1309,42 @@
         </div>
     </footer>
 
+    <div id="invoice-overlay" class="invoice-overlay" aria-hidden="true">
+        <div class="invoice-sheet space-y-4">
+            <div class="flex items-center justify-between border-b border-black pb-2">
+                <h3 class="uppercase">Domestic Product // Invoice Mode</h3>
+                <div class="text-[10px] tracking-[0.3em] uppercase">Press I N V to Exit</div>
+            </div>
+            <div class="flex justify-between text-sm">
+                <div class="space-y-1">
+                    <div class="font-bold">Loomworks</div>
+                    <div>Corporate Myth Unit</div>
+                </div>
+                <div class="text-right space-y-1 text-xs uppercase tracking-[0.2em]">
+                    <div>Invoice #: LW-WONDER</div>
+                    <div>Issued: Now</div>
+                </div>
+            </div>
+            <div class="border border-black">
+                <div class="grid grid-cols-4 bg-black text-white text-xs uppercase tracking-[0.2em]">
+                    <div class="px-3 py-2 border-r border-white/30">Item</div>
+                    <div class="px-3 py-2 border-r border-white/30">Description</div>
+                    <div class="px-3 py-2 border-r border-white/30">Quantity</div>
+                    <div class="px-3 py-2">Value</div>
+                </div>
+                <div class="grid grid-cols-4 text-sm">
+                    <div class="px-3 py-3 border-r border-black/10">WONDER</div>
+                    <div class="px-3 py-3 border-r border-black/10">Held, distributed, never sold.</div>
+                    <div class="px-3 py-3 border-r border-black/10">1 UNIT</div>
+                    <div class="px-3 py-3 font-bold">UNQUANTIFIABLE.</div>
+                </div>
+            </div>
+            <div class="text-xs uppercase tracking-[0.2em] text-gray-700">Thank you for funding the experiment. Your awareness is the receipt.</div>
+        </div>
+    </div>
+
+    <div id="glitch-banner" class="glitch-banner" aria-live="polite">HOW MUCH DO YOU COST?</div>
+
     <!-- JAVASCRIPT LOGIC -->
     <script type="module">
         import * as THREE from 'three';
@@ -1212,6 +1520,108 @@
             audioInitialized: false,
             synth: null,
             sessionNonce: Math.random().toString(36).slice(2, 7)
+        };
+
+        // --- AMBIENT SYSTEMS ---
+        const ambient = {
+            tooltipTimer: null,
+            prompts: [
+                'DO YOU FEEL SEEN?',
+                'THIS IS AN INTERACTION.',
+                'ARTIFACT VERIFIED.',
+                'A MEMORY IS BEING PROCESSED…'
+            ],
+            startTooltips() {
+                if (ambient.tooltipTimer) return;
+                ambient.scheduleTooltip();
+            },
+            scheduleTooltip() {
+                ambient.tooltipTimer = setTimeout(() => {
+                    if (state.view === 'landing') ambient.spawnTooltip();
+                    ambient.tooltipTimer = null;
+                    ambient.scheduleTooltip();
+                }, 6000 + Math.random() * 7000);
+            },
+            spawnTooltip() {
+                const layer = document.getElementById('ambient-layer');
+                if (!layer) return;
+                const tip = document.createElement('div');
+                tip.className = 'ambient-tooltip';
+                tip.textContent = ambient.prompts[Math.floor(Math.random() * ambient.prompts.length)];
+                tip.style.left = `${20 + Math.random() * 60}%`;
+                tip.style.top = `${20 + Math.random() * 60}%`;
+                layer.appendChild(tip);
+                setTimeout(() => tip.remove(), 2200);
+            },
+            stopTooltips() {
+                if (ambient.tooltipTimer) { clearTimeout(ambient.tooltipTimer); ambient.tooltipTimer = null; }
+            }
+        };
+
+        const registerHeatmap = () => {
+            document.querySelectorAll('.legal-copy').forEach(el => {
+                el.addEventListener('mousemove', (e) => {
+                    const rect = el.getBoundingClientRect();
+                    el.style.setProperty('--x', `${e.clientX - rect.left}px`);
+                    el.style.setProperty('--y', `${e.clientY - rect.top}px`);
+                });
+            });
+        };
+
+        const observeBlueprints = () => {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
+            }, { threshold: 0.15 });
+            document.querySelectorAll('.blueprint-lines').forEach(el => observer.observe(el));
+        };
+
+        const initScanlineParallax = () => {
+            const layer = document.querySelector('#view-landing .scanline-layer');
+            if (!layer) return;
+            const move = () => {
+                const offset = window.scrollY * 0.04;
+                layer.style.transform = `translateY(${offset}px)`;
+            };
+            window.addEventListener('scroll', move);
+        };
+
+        const startIdleGlitch = () => {
+            setInterval(() => {
+                if (state.view !== 'landing') return;
+                const title = document.getElementById('dp-title');
+                if (!title) return;
+                title.classList.add('micro-glitch');
+                setTimeout(() => title.classList.remove('micro-glitch'), 800);
+            }, 60000);
+        };
+
+        const initInvoiceMode = () => {
+            const overlay = document.getElementById('invoice-overlay');
+            if (!overlay) return;
+            let buffer = '';
+            const toggle = (force = null) => {
+                const shouldShow = force !== null ? force : !overlay.classList.contains('active');
+                overlay.classList.toggle('active', shouldShow);
+                overlay.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+                document.body.classList.toggle('modal-open', shouldShow);
+            };
+            document.addEventListener('keydown', (e) => {
+                if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+                buffer = (buffer + e.key.toLowerCase()).slice(-3);
+                if (buffer === 'inv') toggle();
+                if (e.key === 'Escape') toggle(false);
+            });
+        };
+
+        const startGlitchBannerCycle = () => {
+            const banner = document.getElementById('glitch-banner');
+            if (!banner) return;
+            const trigger = () => {
+                banner.classList.add('active');
+                setTimeout(() => banner.classList.remove('active'), 3600);
+                setTimeout(trigger, 9000 + Math.random() * 9000);
+            };
+            setTimeout(trigger, 5200);
         };
 
         // --- AUDIO ENGINE ---
@@ -2462,6 +2872,9 @@
                     profiler.init();
                 }
 
+                if (target === 'landing') ambient.startTooltips();
+                else ambient.stopTooltips();
+
                 state.view = target;
                 window.scrollTo(0,0);
             },
@@ -2473,7 +2886,7 @@
 
         // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
-            const text = "INITIALIZING LOOMWORKS...";
+            const text = "LOADING LOOMWORKS MANUFACTURE PROCESS...";
             const el = document.getElementById('loader-text');
             let i = 0;
             const type = () => {
@@ -2484,6 +2897,14 @@
                 }
             };
             type();
+
+            registerHeatmap();
+            observeBlueprints();
+            initScanlineParallax();
+            ambient.startTooltips();
+            startIdleGlitch();
+            initInvoiceMode();
+            startGlitchBannerCycle();
 
             document.addEventListener('click', (e) => {
                 if (e.target.closest('.ui-click') || e.target.tagName === 'BUTTON') audio.click();
