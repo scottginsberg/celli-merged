@@ -233,6 +233,177 @@
             mix-blend-mode: difference;
         }
 
+        /* GRE / GREG ghost comments */
+        .gre-comments {
+            position: relative;
+            background: linear-gradient(0deg, rgba(0,0,0,0.02) 1px, transparent 1px), #fff;
+            background-size: 18px 18px;
+            border: 1px solid #111;
+            box-shadow: 8px 8px 0 rgba(0,0,0,0.12);
+            padding: 18px;
+            border-radius: 12px;
+        }
+        .gre-comments.dark {
+            background: linear-gradient(0deg, rgba(255,255,255,0.06) 1px, transparent 1px), #0f0f0f;
+            color: #f5f1e8;
+            border-color: #f5f1e8;
+        }
+        .gre-comments .gre-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+        .gre-comments .gre-sub {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        .gre-comments.dark .gre-sub { color: #d1d5db; }
+        .gre-comments .gre-list {
+            margin-top: 14px;
+            display: grid;
+            gap: 12px;
+        }
+        .gre-comments .gre-item {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            align-items: start;
+            background: rgba(255,255,255,0.6);
+            border: 1px dashed rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .gre-comments.dark .gre-item {
+            background: rgba(15,15,15,0.6);
+            border-color: rgba(255,255,255,0.22);
+        }
+        .gre-comments .gre-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid currentColor;
+            display: grid;
+            place-items: center;
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+        }
+        .gre-comments.dark .gre-avatar { background: rgba(255,255,255,0.06); }
+        .gre-comments .gre-meta {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .gre-comments .gre-text {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #1f2937;
+        }
+        .gre-comments.dark .gre-text { color: #e5e7eb; }
+        .gre-comments .gre-disabled {
+            margin-top: 14px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .gre-comments .gre-input,
+        .gre-comments .gre-button {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            letter-spacing: 0.12em;
+        }
+        .gre-comments .gre-input {
+            flex: 1;
+            background: #f3f4f6;
+            border: 1px dashed rgba(0,0,0,0.25);
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: #6b7280;
+        }
+        .gre-comments.dark .gre-input {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.2);
+            color: #e5e7eb;
+        }
+        .gre-comments .gre-button {
+            padding: 10px 12px;
+            border: 1px solid currentColor;
+            text-transform: uppercase;
+            border-radius: 8px;
+            background: #e5e7eb;
+            color: #6b7280;
+            cursor: not-allowed;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.8);
+        }
+        .gre-comments.dark .gre-button { background: rgba(255,255,255,0.08); color: #d1d5db; }
+        .gre-comments .gre-tooltip-anchor { position: relative; }
+        .gre-comments .gre-tooltip-anchor[data-tooltip]:hover::after,
+        .gre-comments .gre-tooltip-anchor[data-tooltip]:focus-visible::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 0;
+            bottom: 100%;
+            transform: translateY(-6px);
+            background: #0f0f0f;
+            color: #f9f5ec;
+            padding: 6px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            letter-spacing: 0.14em;
+            white-space: nowrap;
+            z-index: 10;
+        }
+        .gre-comments.dark .gre-tooltip-anchor[data-tooltip]:hover::after,
+        .gre-comments.dark .gre-tooltip-anchor[data-tooltip]:focus-visible::after {
+            background: #f5f1e8;
+            color: #0f0f0f;
+        }
+        .gre-comments .gre-sigil {
+            position: relative;
+            display: inline-block;
+            max-width: 3ch;
+            white-space: nowrap;
+            overflow: hidden;
+            vertical-align: bottom;
+            cursor: text;
+        }
+        .gre-comments .gre-sigil::after {
+            content: attr(data-full);
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            mix-blend-mode: multiply;
+            color: transparent;
+        }
+        .gre-comments .gre-highlight-note {
+            position: absolute;
+            padding: 8px 10px;
+            background: #111;
+            color: #fefefe;
+            border-radius: 10px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            pointer-events: none;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.12);
+            z-index: 40;
+            animation: tooltipFade 2.2s ease forwards;
+        }
+        .gre-comments.dark .gre-highlight-note {
+            background: #f5f1e8;
+            color: #0f0f0f;
+        }
+
         #ambient-layer {
             position: fixed;
             inset: 0;
@@ -530,6 +701,8 @@
                 </div>
             </div>
 
+            <div class="mt-12 gre-comments-mount" data-context-label="THRESHOLD / WELCOME" data-variant="light" data-page-id="landing"></div>
+
         </div>
     </section>
 
@@ -749,6 +922,8 @@
                     </div>
                 </div>
             </div>
+
+            <div class="gre-comments-mount" data-context-label="DOMESTIC PRODUCT CASE STUDY #902" data-variant="light" data-page-id="ambition"></div>
         </div>
     </section>
 
@@ -1019,6 +1194,8 @@
                     <button onclick="app.navigate('barter')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Barter Post</button>
                 </div>
             </div>
+
+            <div class="mt-10 gre-comments-mount" data-context-label="PROJECT BRIEF // DOMESTIC PRODUCT" data-variant="light" data-page-id="pitch"></div>
         </div>
     </section>
 
@@ -1356,6 +1533,8 @@
                     <p class="text-sm text-gray-200">Lanterns are ritual actors, not characters. They lend the installation humanness and uncanny gravity simultaneously.</p>
                 </div>
             </div>
+
+            <div class="mt-10 gre-comments-mount" data-context-label="LANTERN PROTOCOL // CASTING" data-variant="light" data-page-id="protocol"></div>
         </div>
     </section>
 
@@ -1474,6 +1653,8 @@
                     <div id="archive-groups" class="space-y-6"></div>
                 </div>
             </div>
+
+            <div class="mt-12 gre-comments-mount" data-context-label="ARCHIVE INDEX" data-variant="light" data-page-id="archive"></div>
         </div>
     </section>
 
@@ -1518,6 +1699,8 @@
                 <button onclick="app.navigate('barter')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Barter</button>
                 <button onclick="app.navigate('pitch')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Project Brief</button>
             </div>
+
+            <div class="mt-6 gre-comments-mount" data-context-label="CELLI // 3D SPREADSHEET" data-variant="dark" data-page-id="gallery"></div>
         </div>
     </section>
 
@@ -1747,6 +1930,138 @@
             }
         };
         window.archive = archive;
+
+        // --- GRE / GREG COMMENT LAYER ---
+        const greAnalytics = {
+            events: [],
+            track: (type, detail = {}) => {
+                greAnalytics.events.push({ type, detail, at: Date.now() });
+            }
+        };
+
+        const GRE_STRINGS = ['GREETING PROTOCOL', 'GREETING PRO', 'GREE', 'GREETING PROTO GREG'];
+        const greComments = {
+            buildCopy: (contextLabel = '') => {
+                const contextAware = contextLabel
+                    ? `Context noted: ${contextLabel}. Indexing complete; guest curiosity exceeding forecast.`
+                    : 'No context provided. Running default hospitality script.';
+
+                return [
+                    {
+                        name: 'GRE',
+                        text: 'Logging guest reactions instead. Please do not attempt to respond.',
+                        timestamp: '1970-01-01 00:00:01 UTC',
+                        tooltip: 'System log. Not a real comment.'
+                    },
+                    {
+                        name: 'GRE',
+                        text: `${contextAware} <span class="gre-sigil" data-full="GREETING PROTO GREG">GRE</span>ETING PROTO GREG keeps humming in the margin.`,
+                        timestamp: 'Pending…',
+                        tooltip: 'Process: GREETING PROTOCOL (unstable).',
+                        contextAware: true
+                    },
+                    {
+                        name: 'GREG',
+                        text: 'Sorry, I am not supposed to be here.',
+                        timestamp: 'Buffered 00:00:07',
+                        tooltip: 'String overflow: GREETING PROTOCOL → GREG.',
+                        glitch: true
+                    }
+                ];
+            },
+            renderMount: (mount, index = 0) => {
+                const variant = (mount.dataset.variant || 'light').toLowerCase();
+                const contextLabel = mount.dataset.contextLabel || '';
+                const pageId = mount.dataset.pageId || `page-${index}`;
+                const copy = greComments.buildCopy(contextLabel);
+
+                const container = document.createElement('div');
+                container.className = `gre-comments ${variant === 'dark' ? 'dark' : ''}`;
+                container.setAttribute('data-page-id', pageId);
+                container.innerHTML = `
+                    <div class="gre-header gre-tooltip-anchor" data-tooltip="This space is reserved for opinions that never shipped.">
+                        <span>COMMENT CHANNEL: OFFLINE</span>
+                        <span class="text-[10px] font-mono">${contextLabel || 'NO CONTEXT REGISTERED'}</span>
+                    </div>
+                    <div class="gre-sub">System Note: Comments were never enabled here.</div>
+                    <p class="sr-only">System: Comments are disabled on this site.</p>
+                    <div class="gre-list" aria-hidden="true">
+                        ${copy.map(line => `
+                            <div class="gre-item gre-tooltip-anchor" data-tooltip="${line.tooltip}">
+                                <div class="gre-avatar">${line.name === 'GREG' ? '?' : '::'}</div>
+                                <div>
+                                    <div class="gre-meta">
+                                        <span class="gre-tooltip-anchor ${line.glitch ? 'text-red-600' : ''}" data-tooltip="${line.tooltip}">${line.name === 'GRE' ? `<span class=\"gre-sigil\" data-full=\"GREETING PROTOCOL\">${line.name}</span>` : line.name}</span>
+                                        <span class="text-[10px] text-gray-500">${line.timestamp}</span>
+                                    </div>
+                                    <p class="gre-text">${line.text}</p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="gre-disabled">
+                        <input class="gre-input gre-tooltip-anchor" type="text" placeholder="Comments are disabled in this environment." disabled aria-disabled="true" data-tooltip="How is he commenting? Comment did NOT approve this.">
+                        <button class="gre-button gre-tooltip-anchor" type="button" disabled aria-disabled="true" data-tooltip="How is he commenting? Comment did NOT approve this.">Submit</button>
+                    </div>
+                `;
+
+                greComments.attachSelection(container, pageId);
+                greComments.attachEvents(container, pageId);
+                mount.replaceWith(container);
+            },
+            attachEvents: (container, pageId) => {
+                container.querySelectorAll('.gre-tooltip-anchor').forEach(el => {
+                    el.addEventListener('mouseenter', () => greAnalytics.track('hover', { pageId, text: el.innerText.trim() }));
+                });
+
+                const input = container.querySelector('.gre-input');
+                if (input) {
+                    ['focus', 'mouseenter'].forEach(evt => {
+                        input.addEventListener(evt, () => greAnalytics.track('input-hover', { pageId }));
+                    });
+                }
+            },
+            attachSelection: (container, pageId) => {
+                const reveal = () => {
+                    const selection = window.getSelection();
+                    if (!selection || selection.isCollapsed) return greComments.clearHighlights(container);
+                    if (selection.rangeCount === 0) return greComments.clearHighlights(container);
+                    const range = selection.getRangeAt(0);
+                    if (!container.contains(range.commonAncestorContainer)) return greComments.clearHighlights(container);
+
+                    const rect = range.getBoundingClientRect();
+                    if (!rect || (rect.width === 0 && rect.height === 0)) return greComments.clearHighlights(container);
+
+                    const message = GRE_STRINGS[Math.floor(Math.random() * GRE_STRINGS.length)];
+                    greComments.clearHighlights(container);
+                    const note = document.createElement('div');
+                    note.className = 'gre-highlight-note';
+                    note.textContent = `Full process name: ${message}`;
+
+                    const bounds = container.getBoundingClientRect();
+                    const left = rect.left - bounds.left + rect.width / 2;
+                    const top = rect.top - bounds.top - 10;
+                    note.style.left = `${left}px`;
+                    note.style.top = `${top}px`;
+                    container.appendChild(note);
+
+                    greAnalytics.track('selection', { pageId, message });
+                    setTimeout(() => note.remove(), 1800);
+                };
+
+                container.addEventListener('mouseup', reveal);
+                container.addEventListener('keyup', reveal);
+            },
+            clearHighlights: (container) => {
+                container.querySelectorAll('.gre-highlight-note').forEach(node => node.remove());
+            },
+            mountAll: () => {
+                document.querySelectorAll('.gre-comments-mount').forEach((mount, idx) => greComments.renderMount(mount, idx));
+            }
+        };
+
+        window.greComments = greComments;
+        window.greAnalytics = greAnalytics;
 
         // --- GLOBAL APP STATE ---
         const state = {
@@ -3143,6 +3458,7 @@
             startIdleGlitch();
             initInvoiceMode();
             startGlitchBannerCycle();
+            greComments.mountAll();
 
             document.addEventListener('click', (e) => {
                 if (e.target.closest('.ui-click') || e.target.tagName === 'BUTTON') audio.click();
