@@ -804,43 +804,45 @@
     <!-- VIEW: BARTER (MERCH SHOP) -->
     <section id="view-barter" class="view-section bg-grid min-h-screen">
         <div class="max-w-6xl mx-auto px-6 py-12 pb-32">
-            <div class="flex justify-between items-end border-b-2 border-black pb-4 mb-12">
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 border-b-2 border-black pb-6 mb-12">
                 <div>
                     <h1 class="text-4xl md:text-5xl font-bold uppercase tracking-tighter">The Barter Post</h1>
-                    <div class="font-mono text-xs text-gray-500 mt-2 uppercase tracking-widest">Inventory Status: Active // Credit Accepted</div>
+                    <div class="font-mono text-xs text-gray-500 mt-2 uppercase tracking-widest">Dual-mode: webshop + investor catalog // Economic transparency baked in</div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button id="barter-shop-btn" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Shopfront Mode</button>
+                    <button id="barter-transparency-btn" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Transparency Mode</button>
+                    <button onclick="ticketing.open()" class="ui-click bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">3-Tier Tickets</button>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Item 1 -->
-                <div class="border border-gray-300 bg-white p-4 hover:shadow-xl transition-shadow group">
-                    <div class="h-64 bg-gray-100 mb-4 flex items-center justify-center font-mono text-xs text-gray-400">[IMG: BARBIE_PATENT_SCAN]</div>
-                    <div class="flex justify-between items-start mb-2">
-                        <h4 class="font-bold text-sm uppercase">Patent Print: Doll Construction</h4>
-                        <span class="font-mono text-sm">$45.00</span>
-                    </div>
-                    <p class="text-xs font-mono text-gray-500 mb-4">High-fidelity reproduction of the 1961 J.W. Ryan filing.</p>
-                    <button class="w-full bg-black text-white text-xs uppercase py-2 hover:bg-red-600 transition-colors">Acquire</button>
+
+            <div class="mb-8">
+                <div class="inline-flex items-center gap-2 bg-white border border-gray-300 px-4 py-2 rounded-full shadow-sm font-mono text-[10px] uppercase tracking-widest">Barter grid auto-builds from JSON // Stream + inventory aware</div>
+                <p class="text-sm text-gray-700 mt-3">Toggle between the public-facing shop and investor-facing transparency view. Costs, projected margins, and inventory bands render instantly from the dataset.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="barter-grid">
+                <!-- JS injects the SKU grid here -->
+            </div>
+
+            <div class="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-6" id="barter-stream-grid">
+                <!-- Revenue stream cards injected here -->
+            </div>
+
+            <div class="mt-12 border-t border-gray-200 pt-10">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold uppercase tracking-tight">Bundles &amp; Kits</h3>
+                    <span class="font-mono text-[10px] uppercase tracking-[0.25em] text-gray-500">Attach-rate multipliers // curated stacks</span>
                 </div>
-                <!-- Item 2 -->
-                <div class="border border-gray-300 bg-white p-4 hover:shadow-xl transition-shadow group">
-                    <div class="h-64 bg-gray-100 mb-4 flex items-center justify-center font-mono text-xs text-gray-400">[IMG: MENKO_SHEET_01]</div>
-                    <div class="flex justify-between items-start mb-2">
-                        <h4 class="font-bold text-sm uppercase">Reproduction Menko Set</h4>
-                        <span class="font-mono text-sm">$25.00</span>
-                    </div>
-                    <p class="text-xs font-mono text-gray-500 mb-4">Pack of 5. Featuring "The Mouse" and "The Bomb."</p>
-                    <button class="w-full bg-black text-white text-xs uppercase py-2 hover:bg-red-600 transition-colors">Acquire</button>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="barter-bundle-grid"></div>
+            </div>
+
+            <div class="mt-12 border-t border-gray-200 pt-10">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold uppercase tracking-tight">Activity Map</h3>
+                    <span class="font-mono text-[10px] uppercase tracking-[0.25em] text-gray-500">Includes Pachinko Machine • Take 1 / Leave 2 Station • IRL Grift Shop</span>
                 </div>
-                <!-- Item 3 -->
-                <div class="border border-gray-300 bg-white p-4 hover:shadow-xl transition-shadow group">
-                    <div class="h-64 bg-gray-100 mb-4 flex items-center justify-center font-mono text-xs text-gray-400">[IMG: POSTER_IDLING]</div>
-                    <div class="flex justify-between items-start mb-2">
-                        <h4 class="font-bold text-sm uppercase">Loomworks Poster: Idling</h4>
-                        <span class="font-mono text-sm">$30.00</span>
-                    </div>
-                    <p class="text-xs font-mono text-gray-500 mb-4">Instructional graphic for Lanterns.</p>
-                    <button class="w-full bg-black text-white text-xs uppercase py-2 hover:bg-red-600 transition-colors">Acquire</button>
-                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="barter-activity-grid"></div>
             </div>
 
             <div class="mt-12 pt-6 border-t border-gray-200">
@@ -854,6 +856,23 @@
             </div>
         </div>
     </section>
+
+    <!-- Ticketing Modal (3 Price Tiers) -->
+    <div id="ticketing-modal" class="modal-layer">
+        <div class="bg-white border border-black rounded-2xl shadow-2xl w-full max-w-4xl relative overflow-hidden">
+            <div class="absolute top-3 right-3">
+                <button onclick="ticketing.close()" class="ui-click text-[10px] font-mono uppercase tracking-widest border border-black px-2 py-1 bg-white hover:bg-black hover:text-white">Close</button>
+            </div>
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div class="font-bold uppercase tracking-widest">Ticketing — Three Tier Pop-Up</div>
+                <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-500">Signal • Lantern • Investor</div>
+            </div>
+            <div class="p-6 space-y-6">
+                <p class="text-sm text-gray-700">Choose your entry path. Every tier includes access to the Pachinko Machine and the Take 1 / Leave 2 station; higher tiers unlock transparency overlays and investor catalog tools.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="ticketing-tiers"></div>
+            </div>
+        </div>
+    </div>
 
     <!-- VIEW: ARCHIVE INDEX -->
     <section id="view-archive" class="view-section bg-[#FDFBF7] min-h-screen">
@@ -1490,6 +1509,207 @@
         };
         window.grift = grift;
 
+        // --- BARTER SHOP + TRANSPARENCY VIEW ---
+        const barter = {
+            mode: 'shop',
+            data: null,
+            bound: false,
+            async init() {
+                if (!barter.data) {
+                    try {
+                        const res = await fetch('static/data/barter-catalog.json');
+                        barter.data = await res.json();
+                    } catch (err) {
+                        console.error('Failed to load barter catalog', err);
+                        return;
+                    }
+                }
+
+                if (!barter.bound) barter.bindControls();
+                barter.render();
+                ticketing.setTiers(barter.data.ticketingTiers || []);
+            },
+            bindControls() {
+                const shopBtn = document.getElementById('barter-shop-btn');
+                const transBtn = document.getElementById('barter-transparency-btn');
+                if (shopBtn) shopBtn.onclick = () => barter.setMode('shop');
+                if (transBtn) transBtn.onclick = () => barter.setMode('transparency');
+                barter.bound = true;
+                barter.updateModeButtons();
+            },
+            setMode(mode) {
+                barter.mode = mode;
+                barter.updateModeButtons();
+                barter.render();
+            },
+            updateModeButtons() {
+                const shopBtn = document.getElementById('barter-shop-btn');
+                const transBtn = document.getElementById('barter-transparency-btn');
+                const activeClasses = ['bg-black', 'text-white'];
+                const inactiveClasses = ['bg-white', 'text-black'];
+                if (shopBtn) {
+                    shopBtn.classList.remove(...activeClasses, ...inactiveClasses);
+                    shopBtn.classList.add('border', 'border-black', 'ui-click', 'px-3', 'py-2', 'text-[10px]', 'font-mono', 'uppercase', 'tracking-widest', 'hover:bg-black', 'hover:text-white', 'transition-colors');
+                    shopBtn.classList.add(...(barter.mode === 'shop' ? activeClasses : inactiveClasses));
+                }
+                if (transBtn) {
+                    transBtn.classList.remove(...activeClasses, ...inactiveClasses);
+                    transBtn.classList.add('border', 'border-black', 'ui-click', 'px-3', 'py-2', 'text-[10px]', 'font-mono', 'uppercase', 'tracking-widest', 'hover:bg-black', 'hover:text-white', 'transition-colors');
+                    transBtn.classList.add(...(barter.mode === 'transparency' ? activeClasses : inactiveClasses));
+                }
+            },
+            render() {
+                if (!barter.data) return;
+                barter.renderItems();
+                barter.renderStreams();
+                barter.renderBundles();
+                barter.renderActivities();
+            },
+            renderItems() {
+                const grid = document.getElementById('barter-grid');
+                if (!grid) return;
+                grid.innerHTML = '';
+
+                barter.data.items.forEach((item) => {
+                    const margin = barter.margin(item);
+                    const inventory = barter.formatInventory(item.inventory);
+                    const card = document.createElement('div');
+                    card.className = 'border border-gray-300 bg-white p-4 hover:shadow-xl transition-shadow';
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-1">
+                            <div class="font-mono text-[10px] uppercase tracking-widest text-gray-500">${barter.streamLabel(item.stream)} • ${item.category}</div>
+                            <span class="font-mono text-[10px] text-gray-500">${item.sku}</span>
+                        </div>
+                        <h4 class="font-bold text-lg uppercase leading-tight">${item.name}</h4>
+                        <p class="text-xs font-mono text-gray-600 mb-3">${item.tagline || ''}</p>
+                        ${barter.mode === 'shop'
+                            ? `<div class="flex justify-between items-center mb-3"><span class="font-bold text-xl">$${item.price.toFixed(2)}</span><span class="text-[10px] uppercase font-mono text-gray-500">${inventory}</span></div>`
+                            : `<div class="space-y-1 mb-3 text-sm"><div class="font-mono text-[11px] uppercase tracking-widest text-gray-700">Cost: $${item.unitCost.toFixed(2)} • Margin: ${margin !== null ? margin + '%' : '—'}</div><div class="text-xs text-gray-600">Inventory bands: ${inventory}</div></div>`
+                        }
+                        <button class="w-full bg-black text-white text-xs uppercase py-2 hover:bg-red-600 transition-colors">${barter.mode === 'shop' ? 'Add to Pull Sheet' : 'View Unit Economics'}</button>
+                    `;
+                    grid.appendChild(card);
+                });
+            },
+            renderStreams() {
+                const grid = document.getElementById('barter-stream-grid');
+                if (!grid) return;
+                grid.innerHTML = '';
+
+                barter.data.revenueStreams.forEach((stream) => {
+                    const count = barter.data.items.filter((item) => item.stream === stream.id).length;
+                    const card = document.createElement('div');
+                    card.className = 'bg-white border border-gray-200 p-4 shadow-sm';
+                    card.innerHTML = `
+                        <div class="font-mono text-[10px] uppercase tracking-widest text-gray-500 mb-2">${stream.label}</div>
+                        <p class="text-sm text-gray-700 mb-3">${stream.description}</p>
+                        <div class="flex items-center justify-between text-xs font-mono uppercase tracking-widest text-gray-600">
+                            <span>${count} SKUs</span>
+                            <span>${stream.formats.join(' • ')}</span>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            },
+            renderBundles() {
+                const grid = document.getElementById('barter-bundle-grid');
+                if (!grid) return;
+                grid.innerHTML = '';
+
+                barter.data.bundles.forEach((bundle) => {
+                    const margin = barter.margin(bundle);
+                    const card = document.createElement('div');
+                    card.className = 'border border-gray-300 bg-white p-4 shadow-sm hover:shadow-lg transition-shadow';
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-1">
+                            <div class="font-mono text-[10px] uppercase tracking-widest text-gray-500">${barter.streamLabel(bundle.stream)}</div>
+                            <span class="font-mono text-[10px] text-gray-500">${bundle.sku}</span>
+                        </div>
+                        <h4 class="font-bold text-lg uppercase leading-tight">${bundle.name}</h4>
+                        <p class="text-xs text-gray-600 font-mono mb-3">${bundle.tagline}</p>
+                        <ul class="text-xs text-gray-700 mb-3 list-disc list-inside space-y-1">${(bundle.contents || []).map((c) => `<li>${c}</li>`).join('')}</ul>
+                        ${barter.mode === 'shop'
+                            ? `<div class="font-bold text-xl mb-3">$${bundle.price.toFixed(2)}</div>`
+                            : `<div class="font-mono text-[11px] uppercase tracking-widest text-gray-700 mb-3">Cost: $${bundle.unitCost.toFixed(2)} • Margin: ${margin !== null ? margin + '%' : '—'}</div>`
+                        }
+                        <button class="w-full bg-black text-white text-xs uppercase py-2 hover:bg-red-600 transition-colors">${barter.mode === 'shop' ? 'Secure Bundle' : 'Inspect Economics'}</button>
+                    `;
+                    grid.appendChild(card);
+                });
+            },
+            renderActivities() {
+                const grid = document.getElementById('barter-activity-grid');
+                if (!grid) return;
+                grid.innerHTML = '';
+
+                barter.data.activities.forEach((activity) => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white border border-gray-200 p-4 shadow-sm hover:shadow-lg transition-shadow';
+                    card.innerHTML = `
+                        <div class="font-mono text-[10px] uppercase tracking-widest text-gray-500 mb-1">${activity.location}</div>
+                        <h4 class="font-bold text-lg uppercase leading-tight">${activity.name}</h4>
+                        <p class="text-sm text-gray-700 mb-2">${activity.notes}</p>
+                        <div class="flex items-center justify-between text-xs font-mono uppercase tracking-widest text-gray-600">
+                            <span>Status: ${activity.status}</span>
+                            <span>${barter.mode === 'transparency' ? 'Revenue map node' : 'On-floor anchor'}</span>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            },
+            margin(entry) {
+                if (!entry || typeof entry.price !== 'number' || typeof entry.unitCost !== 'number') return null;
+                return Math.round(((entry.price - entry.unitCost) / entry.price) * 100);
+            },
+            formatInventory(inv = {}) {
+                if (!inv.min && !inv.opt && !inv.max) return 'Inventory: adaptive';
+                return `Min ${inv.min || '—'} / Opt ${inv.opt || '—'} / Max ${inv.max || '—'}`;
+            },
+            streamLabel(id) {
+                const found = barter.data.revenueStreams.find((s) => s.id === id);
+                return found ? found.label : 'Stream';
+            }
+        };
+        window.barter = barter;
+
+        const ticketing = {
+            tiers: [],
+            setTiers(tiers) {
+                ticketing.tiers = tiers;
+                ticketing.render();
+            },
+            open() {
+                const modal = document.getElementById('ticketing-modal');
+                if (modal) modal.classList.add('active');
+                document.body.classList.add('modal-open');
+            },
+            close() {
+                const modal = document.getElementById('ticketing-modal');
+                if (modal) modal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            },
+            render() {
+                const container = document.getElementById('ticketing-tiers');
+                if (!container) return;
+                container.innerHTML = '';
+                ticketing.tiers.forEach((tier) => {
+                    const card = document.createElement('div');
+                    card.className = 'border border-gray-300 bg-white p-4 rounded-xl shadow-sm hover:shadow-lg transition-shadow';
+                    card.innerHTML = `
+                        <div class="font-mono text-[10px] uppercase tracking-widest text-gray-500">${tier.tier}</div>
+                        <div class="text-2xl font-bold">$${tier.price.toFixed(2)}</div>
+                        <ul class="text-sm text-gray-700 mt-3 space-y-1 list-disc list-inside">
+                            ${(tier.perks || []).map((p) => `<li>${p}</li>`).join('')}
+                        </ul>
+                        <div class="mt-3 text-[11px] font-mono uppercase tracking-widest text-gray-500">${tier.idealFor || ''}</div>
+                        <button class="ui-click mt-4 w-full bg-black text-white text-xs uppercase py-2 hover:bg-red-600 transition-colors">Claim ${tier.tier}</button>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+        };
+        window.ticketing = ticketing;
+
         // --- 3D GALLERY ENGINE ---
         const gallery = {
             scene: null, camera: null, renderer: null, controls: null, active: false,
@@ -1751,6 +1971,10 @@
                     if(grift.isSimulating) grift.loop();
                 }
 
+                if (target === 'barter') {
+                    barter.init();
+                }
+
                 if (target === 'profiler' && profiler.initialChoice === null) {
                     profiler.init();
                 }
@@ -1786,6 +2010,7 @@
         window.addEventListener('load', () => {
             gallery.init();
             archive.init();
+            barter.init();
         });
     </script>
 </body>
