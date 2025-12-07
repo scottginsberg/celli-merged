@@ -13,6 +13,10 @@
  */
 
 import * as THREE from 'three';
+import { audioSystem } from '../../systems/AudioSystem.js';
+
+const DEFAULT_POST_RETURN_KEYS = ['K', 'E', 'Y'];
+const DEFAULT_POST_RETURN_SPAM_INTERVAL = 160;
 
 export class ExecutionEnvironment {
   constructor(scene, camera) {
@@ -50,8 +54,38 @@ export class ExecutionEnvironment {
 
       // Mode
       mode: 'sequence',
-      debugMode: false
+      debugMode: false,
+
+      // Post-return phase tracking
+      postReturn: {
+        active: false,
+        completed: false,
+        startedAt: null,
+        completedAt: null,
+        requiredKeys: [...DEFAULT_POST_RETURN_KEYS],
+        requiredKeySet: new Set(DEFAULT_POST_RETURN_KEYS),
+        tappedKeys: new Set(),
+        tapLog: [],
+        spamIntervalId: null,
+        listenerAttached: false,
+        audio: {
+          key: {
+            url: './key.mp3',
+            bufferKey: 'execenv:post-return-key',
+            loadingPromise: null,
+            volume: 0.82
+          },
+          telos: {
+            url: './telos.mp3',
+            bufferKey: 'execenv:post-return-telos',
+            loadingPromise: null,
+            volume: 0.9
+          }
+        }
+      }
     };
+
+    this._onPostReturnKeydown = this._handlePostReturnKeydown.bind(this);
   }
 
   /**
@@ -513,7 +547,7 @@ export class ExecutionEnvironment {
   pressKey(keyLabel) {
     const key = this.state.keyMap.get(keyLabel);
     if (!key) return;
-    
+
     // Animate key press
     key.userData.pressed = true;
     key.userData.velY = -0.02; // Move down
@@ -527,6 +561,300 @@ export class ExecutionEnvironment {
     
     // Create dust burst from key
     this._createDustBurst(key.position);
+  }
+
+  /**
+   * Begin post-return phase tracking
+   */
+  startPostReturnPhase(options = {}) {
+    const { requiredKeys, spamInterval = DEFAULT_POST_RETURN_SPAM_INTERVAL } = options || {};
+    const normalizedKeys = this._normalizeRequiredKeys(requiredKeys);
+    const postReturn = this.state.postReturn;
+
+    this._teardownPostReturnPhase({ resetTracked: false });
+
+    postReturn.requiredKeys = normalizedKeys;
+    postReturn.requiredKeySet = new Set(normalizedKeys);
+    postReturn.tappedKeys = new Set();
+    postReturn.tapLog = [];
+    postReturn.active = true;
+    postReturn.completed = false;
+    postReturn.startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    postReturn.completedAt = null;
+
+    this._registerPostReturnKeyListener();
+    this._startPostReturnSpamLoop(spamInterval);
+
+    void this._ensurePostReturnBuffer(postReturn.audio.key);
+    void this._ensurePostReturnBuffer(postReturn.audio.telos);
+
+    return { requiredKeys: normalizedKeys };
+  }
+
+  /**
+   * End post-return phase tracking
+   */
+  endPostReturnPhase(options = {}) {
+    const { resetAnimations = true, resetTracked = true } = options || {};
+
+    this._teardownPostReturnPhase({ resetTracked });
+
+    if (resetAnimations) {
+      this._resetKeyboardAnimations();
+    }
+  }
+
+  _registerPostReturnKeyListener() {
+    const postReturn = this.state.postReturn;
+    if (typeof window === 'undefined' || postReturn.listenerAttached) {
+      return;
+    }
+
+    window.addEventListener('keydown', this._onPostReturnKeydown);
+    postReturn.listenerAttached = true;
+  }
+
+  _teardownPostReturnKeyListener() {
+    const postReturn = this.state.postReturn;
+    if (typeof window === 'undefined' || !postReturn.listenerAttached) {
+      return;
+    }
+
+    window.removeEventListener('keydown', this._onPostReturnKeydown);
+    postReturn.listenerAttached = false;
+  }
+
+  _startPostReturnSpamLoop(interval = DEFAULT_POST_RETURN_SPAM_INTERVAL) {
+    const postReturn = this.state.postReturn;
+    this._stopPostReturnSpamLoop();
+
+    if (!postReturn.active || !postReturn.requiredKeys?.length) {
+      return;
+    }
+
+    const keys = [...postReturn.requiredKeys];
+    let index = 0;
+    const clampedInterval = Math.max(60, Number(interval) || DEFAULT_POST_RETURN_SPAM_INTERVAL);
+
+    postReturn.spamIntervalId = setInterval(() => {
+      if (!postReturn.active) {
+        this._stopPostReturnSpamLoop();
+        return;
+      }
+
+      const keyLabel = keys[index % keys.length];
+      index = (index + 1) % keys.length;
+      this.pressKey(keyLabel);
+    }, clampedInterval);
+  }
+
+  _stopPostReturnSpamLoop() {
+    const postReturn = this.state.postReturn;
+    if (postReturn.spamIntervalId) {
+      clearInterval(postReturn.spamIntervalId);
+      postReturn.spamIntervalId = null;
+    }
+  }
+
+  _teardownPostReturnPhase({ resetTracked = false } = {}) {
+    const postReturn = this.state.postReturn;
+    this._stopPostReturnSpamLoop();
+    this._teardownPostReturnKeyListener();
+    postReturn.active = false;
+
+    if (resetTracked) {
+      this._resetPostReturnState({ resetRequiredKeys: false });
+    }
+  }
+
+  _handlePostReturnKeydown(event) {
+    const postReturn = this.state.postReturn;
+    if (!postReturn.active || !postReturn.requiredKeySet?.size) {
+      return;
+    }
+
+    if (event?.repeat) {
+      return;
+    }
+
+    const normalizedKey = this._normalizeKeyLabel(event?.key ?? event?.code);
+    if (!normalizedKey || !postReturn.requiredKeySet.has(normalizedKey)) {
+      return;
+    }
+
+    const timestamp = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    postReturn.tapLog.push({ key: normalizedKey, time: timestamp });
+    postReturn.tappedKeys.add(normalizedKey);
+
+    void this._playPostReturnKeySound();
+
+    if (!postReturn.completed && postReturn.tappedKeys.size === postReturn.requiredKeySet.size) {
+      this._handlePostReturnCompletion();
+    }
+  }
+
+  _handlePostReturnCompletion() {
+    const postReturn = this.state.postReturn;
+    if (postReturn.completed) {
+      return;
+    }
+
+    postReturn.completed = true;
+    postReturn.completedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    postReturn.active = false;
+
+    this._stopPostReturnSpamLoop();
+    this._teardownPostReturnKeyListener();
+    this._resetKeyboardAnimations();
+
+    void this._playPostReturnCompletionSound();
+  }
+
+  _resetPostReturnState({ resetRequiredKeys = false } = {}) {
+    const postReturn = this.state.postReturn;
+    postReturn.tappedKeys = new Set();
+    postReturn.tapLog = [];
+    postReturn.completed = false;
+    postReturn.startedAt = null;
+    postReturn.completedAt = null;
+
+    if (resetRequiredKeys) {
+      postReturn.requiredKeys = [...DEFAULT_POST_RETURN_KEYS];
+    }
+
+    postReturn.requiredKeySet = new Set(postReturn.requiredKeys);
+  }
+
+  _resetKeyboardAnimations() {
+    this.state.keys.forEach(key => {
+      key.userData.pressed = false;
+      key.userData.velY = 0;
+      key.position.y = key.userData.baseY ?? 0;
+      if (key.material && 'emissiveIntensity' in key.material) {
+        key.material.emissiveIntensity = 0.1;
+      }
+    });
+  }
+
+  _normalizeRequiredKeys(keys) {
+    const source = Array.isArray(keys) && keys.length
+      ? keys
+      : (this.state.postReturn?.requiredKeys?.length
+        ? this.state.postReturn.requiredKeys
+        : DEFAULT_POST_RETURN_KEYS);
+
+    const normalized = [];
+    source.forEach(key => {
+      const normalizedKey = this._normalizeKeyLabel(key);
+      if (normalizedKey && !normalized.includes(normalizedKey)) {
+        normalized.push(normalizedKey);
+      }
+    });
+
+    return normalized.length ? normalized : [...DEFAULT_POST_RETURN_KEYS];
+  }
+
+  _normalizeKeyLabel(label) {
+    if (!label) return null;
+
+    const raw = String(label).trim();
+    if (!raw) return null;
+
+    if (raw.length === 1) {
+      if (raw === ' ') return 'Space';
+      return raw.toUpperCase();
+    }
+
+    const lower = raw.toLowerCase();
+
+    const aliasMap = {
+      return: 'Enter',
+      enter: 'Enter',
+      escape: 'Esc',
+      esc: 'Esc',
+      tab: 'Tab',
+      backspace: 'Bksp',
+      delete: 'Bksp',
+      capslock: 'Caps',
+      shift: 'Shift',
+      control: 'Ctrl',
+      ctrl: 'Ctrl',
+      alternate: 'Alt',
+      option: 'Alt',
+      alt: 'Alt',
+      spacebar: 'Space',
+      space: 'Space'
+    };
+
+    if (aliasMap[lower]) {
+      return aliasMap[lower];
+    }
+
+    if (lower.startsWith('arrow')) {
+      return raw;
+    }
+
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  }
+
+  async _playPostReturnKeySound() {
+    const buffer = await this._ensurePostReturnBuffer(this.state.postReturn.audio.key);
+    if (!buffer) {
+      return;
+    }
+
+    try {
+      audioSystem.playBuffer(buffer, {
+        volume: this.state.postReturn.audio.key.volume
+      });
+    } catch (error) {
+      console.warn('[ExecutionEnvironment] Unable to play post-return key audio:', error);
+    }
+  }
+
+  async _playPostReturnCompletionSound() {
+    const buffer = await this._ensurePostReturnBuffer(this.state.postReturn.audio.telos);
+    if (!buffer) {
+      return;
+    }
+
+    try {
+      audioSystem.playBuffer(buffer, {
+        volume: this.state.postReturn.audio.telos.volume
+      });
+    } catch (error) {
+      console.warn('[ExecutionEnvironment] Unable to play telos audio:', error);
+    }
+  }
+
+  async _ensurePostReturnBuffer(audioConfig) {
+    if (!audioConfig || !audioConfig.url || !audioConfig.bufferKey) {
+      return null;
+    }
+
+    if (audioConfig.loadingPromise) {
+      try {
+        return await audioConfig.loadingPromise;
+      } catch (error) {
+        console.warn('[ExecutionEnvironment] Post-return audio failed to load:', error);
+        return null;
+      }
+    }
+
+    audioConfig.loadingPromise = (async () => {
+      try {
+        return await audioSystem.loadAudioBuffer(audioConfig.url, audioConfig.bufferKey);
+      } finally {
+        audioConfig.loadingPromise = null;
+      }
+    })();
+
+    try {
+      return await audioConfig.loadingPromise;
+    } catch (error) {
+      console.warn('[ExecutionEnvironment] Post-return audio load error:', error);
+      return null;
+    }
   }
 
   /**
@@ -696,7 +1024,9 @@ export class ExecutionEnvironment {
    */
   destroy() {
     console.log('[ExecutionEnvironment] Destroying...');
-    
+
+    this.endPostReturnPhase({ resetAnimations: false, resetTracked: true });
+
     // Remove and dispose all components
     [this.state.bust, this.state.bossHead, this.state.fingerTube, this.state.keyboard].forEach(obj => {
       if (obj) {
