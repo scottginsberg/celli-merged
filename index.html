@@ -60,6 +60,54 @@
         .view-section { display: none; min-height: 100vh; padding-top: 60px; }
         .view-section.active { display: block; }
 
+        /* Atmospheric Overlays */
+        .film-grain {
+            pointer-events: none;
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E");
+            mix-blend-mode: soft-light;
+            animation: grainShift 1.6s steps(2) infinite;
+        }
+
+        @keyframes grainShift {
+            0% { transform: translate3d(0,0,0); }
+            25% { transform: translate3d(-10px, 8px, 0); }
+            50% { transform: translate3d(6px, -12px, 0); }
+            75% { transform: translate3d(12px, 4px, 0); }
+            100% { transform: translate3d(0,0,0); }
+        }
+
+        /* Pixel crowd */
+        .attendee {
+            position: absolute;
+            width: 14px; height: 22px;
+            background: #0f0f0f;
+            border: 2px solid #222;
+            border-radius: 3px 3px 2px 2px;
+            animation: idleBob 2.2s ease-in-out infinite;
+        }
+        .attendee::after {
+            content: '';
+            position: absolute;
+            width: 10px; height: 10px;
+            background: #fefefe;
+            border-radius: 2px;
+            top: -8px; left: 1px;
+        }
+        .attendee.observe {
+            animation: observe 3.4s ease-in-out infinite;
+        }
+        @keyframes idleBob {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+        @keyframes observe {
+            0%,100% { transform: translateY(0) scale(1); }
+            40% { transform: translateY(-2px) scale(1.05); }
+            70% { transform: translateY(1px) scale(0.98); }
+        }
+
         /* Profiler Cards */
         .role-card { transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
         .role-card:hover { transform: translateY(-4px); border-color: #000; box-shadow: 4px 4px 0px #000; }
@@ -243,7 +291,7 @@
             <!-- Stage 3: The Quiz -->
             <div id="prof-stage-quiz" class="hidden max-w-2xl mx-auto w-full">
                 <div class="mb-8 border-b border-gray-200 pb-4 flex justify-between">
-                    <span class="font-mono text-xs uppercase tracking-widest">Question <span id="quiz-num">1</span>/3</span>
+                    <span class="font-mono text-xs uppercase tracking-widest">Question <span id="quiz-num">1</span>/<span id="quiz-total">5</span></span>
                     <span class="font-mono text-xs text-red-600 uppercase tracking-widest">Deconstructing...</span>
                 </div>
                 
@@ -393,6 +441,7 @@
                 <div id="gallery-sim" class="hidden h-full flex-col relative">
                     <div class="flex-1 bg-[#FDFBF7] border border-black p-4 relative overflow-hidden" id="wall-display">
                         <div id="hanging-art" class="w-32 h-32 border-4 border-black bg-white shadow-xl mx-auto mt-8 transform transition-transform duration-1000"></div>
+                        <div id="attendee-row" class="absolute bottom-2 left-0 right-0 flex justify-center gap-6 pointer-events-none"></div>
                         <div class="absolute bottom-0 w-full flex justify-center gap-4 items-end">
                             <div class="w-8 h-16 bg-black opacity-80"></div>
                             <div class="w-8 h-14 bg-black opacity-80"></div>
@@ -414,6 +463,10 @@
                 <div class="bg-white p-4 border border-black shadow-md">
                     <h3 class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Artist Royalty (0.1%)</h3>
                     <div class="text-xl font-mono font-bold text-gray-800" id="user-val">$0.00</div>
+                </div>
+                <div class="bg-white p-4 border border-black shadow-md">
+                    <h3 class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Economic Horror Logic</h3>
+                    <p class="text-xs font-mono text-gray-600 leading-relaxed">Lifetime Value accelerates; your royalty is frozen at 0.1%. Compare the delta as the wall fills.</p>
                 </div>
                 <button id="accel-btn" onclick="grift.accelerate()" class="bg-red-600 text-white py-4 font-bold uppercase tracking-widest shadow-lg hover:bg-red-700 active:scale-95 transition-all opacity-50 cursor-not-allowed" disabled>Accelerate Market</button>
             </div>
@@ -444,26 +497,35 @@
             <div class="grid grid-cols-1 md:grid-cols-12 gap-12">
                 <div class="md:col-span-8 space-y-8">
                     <p class="font-serif text-lg leading-relaxed">
-                        Lanterns are the human interfaces of Loomworks. They are not security guards, and they are not museum docents. They are witnesses. They stand between longing and duty.
+                        Lanterns are the human interfaces of Loomworks. They are not security guards, and they are not museum docents. They are witnesses. They stand between longing and duty. They are, very literally, the light behind glass and steel.
                     </p>
+
+                    <div class="bg-white border border-gray-200 p-8 shadow-md relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-mono px-2 py-1">DOCUMENT NO. HR-902</div>
+                        <h3 class="font-bold font-mono text-sm uppercase mb-6 text-gray-400">Lantern Protocol & Casting Sheet</h3>
+                        <div class="font-serif text-base md:text-lg leading-relaxed space-y-4">
+                            <p class="italic">"You're embodying a hundred years of women that were constrained and contorted into compliance by systems they had no say in while being told you had to be stronger than their bars. You're their pressure cracking at the seams, making a bid while fearing getting 'caught' by your own construct."</p>
+                            <p>"You are power in restraint, you are the voice through silence and sadness, and you are ambassadors in understanding that none of us asked for any of this. You're every woman who was asked to smile more and unfairly felt they had to. You're exhausted yet hopeful. You're not desperate - but are vying for connection in a window of disorientation you know is bound to close. A light behind glass and steel. And you are a Lantern."</p>
+                        </div>
+                    </div>
 
                     <div class="bg-white border border-gray-200 p-8 shadow-md relative overflow-hidden">
                         <div class="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-mono px-2 py-1">SCRIPTED INTERACTION 01</div>
                         <h3 class="font-bold font-mono text-sm uppercase mb-6 text-gray-400">Context: Guest Interaction</h3>
                         <div class="font-serif text-xl leading-relaxed space-y-4">
-                            <p>If they ask: <span class="italic text-gray-500">"Are you okay?"</span></p>
-                            <p>Respond: <span class="font-bold text-red-600">"Just super!"</span></p>
-                            <p class="text-sm font-mono text-gray-400 pt-2">(Smile with teeth. Do not blink. Maintain posture.)</p>
+                            <p>Trigger: guest asks <span class="italic text-gray-500">"Are you okay?"</span></p>
+                            <p>Response: <span class="font-bold text-red-600">"Just super!"</span></p>
+                            <p class="text-sm font-mono text-gray-400 pt-2">(Bright, slightly too loud. Smile with teeth. Do not blink.)</p>
                         </div>
                     </div>
-                    
+
                     <div class="bg-white border border-gray-200 p-8 shadow-md relative overflow-hidden">
                         <div class="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-mono px-2 py-1">SCRIPTED INTERACTION 02</div>
-                        <h3 class="font-bold font-mono text-sm uppercase mb-6 text-gray-400">Context: The Barter Post</h3>
+                        <h3 class="font-bold font-mono text-sm uppercase mb-6 text-gray-400">Context: Specimen Care</h3>
                         <div class="font-serif text-xl leading-relaxed space-y-4">
-                            <p>If they offer: <span class="italic text-gray-500">Something of immense personal value.</span></p>
-                            <p>Respond: <span class="font-bold text-red-600">"We cannot accept sentiment. Only yield."</span></p>
-                            <p class="text-sm font-mono text-gray-400 pt-2">(Reject the object twice before accepting it on the third attempt.)</p>
+                            <p>Trigger: guest touches artwork.</p>
+                            <p>Response: <span class="font-bold text-red-600">"We prefer to let the specimens breathe on their own."</span></p>
+                            <p class="text-sm font-mono text-gray-400 pt-2">(Extend palm; guide gaze away from the piece.)</p>
                         </div>
                     </div>
 
@@ -475,14 +537,23 @@
                         </button>
                     </div>
                 </div>
-                
+
                 <div class="md:col-span-4 border-l border-gray-200 pl-8">
-                    <h4 class="font-bold text-xs uppercase tracking-widest mb-4">Uniform Standards</h4>
+                    <h4 class="font-bold text-xs uppercase tracking-widest mb-4">Uniform Specs</h4>
                     <ul class="font-mono text-xs space-y-4 text-gray-600">
-                        <li>• Black turtleneck (provided)</li>
-                        <li>• ID Badge (Loomworks issued)</li>
-                        <li>• Neutral footwear</li>
-                        <li>• No digital devices visible</li>
+                        <li>• Beige/Cream Boiler Suit (Tailored)</li>
+                        <li>• Black Skirt layered under utilitarian top</li>
+                        <li>• Black flats (silent tread)</li>
+                        <li>• "Loomworks" Patch/Pin on left breast</li>
+                        <li>• Red accessory anchored near heartline</li>
+                    </ul>
+
+                    <h4 class="font-bold text-xs uppercase tracking-widest mt-8 mb-4">Idling Behaviors</h4>
+                    <ul class="font-mono text-xs space-y-3 text-gray-600">
+                        <li>• Adjusting cuffs unnecessarily.</li>
+                        <li>• Staring 15 degrees above the horizon.</li>
+                        <li>• Checking watch, then shaking wrist.</li>
+                        <li>• Humming "A Dream Is A Wish Your Heart Makes" (off-key).</li>
                     </ul>
                 </div>
             </div>
@@ -602,9 +673,38 @@
     <!-- VIEW: GALLERY (3D) -->
     <section id="view-gallery" class="view-section relative h-screen w-full overflow-hidden p-0 !pt-0">
         <div id="canvas-container"></div>
-        <div id="ui-view" class="absolute bottom-8 left-8 bg-white/90 p-6 border border-black max-w-xs backdrop-blur-sm shadow-xl z-10">
+        <div id="lantern-grain" class="film-grain hidden"></div>
+        <div id="ui-view" class="absolute bottom-8 left-8 bg-white/90 p-6 border border-black max-w-md backdrop-blur-sm shadow-xl z-10 space-y-4">
             <h3 class="font-mono font-bold uppercase text-sm mb-2 tracking-wider">Gallery Control</h3>
-            <p class="font-mono text-xs text-gray-600 leading-relaxed mb-4">Drag to orbit. Scroll to zoom.<br>Click artifacts for data.</p>
+            <p class="font-mono text-xs text-gray-600 leading-relaxed">Drag to orbit. Scroll to zoom.<br>Click artifacts for data.</p>
+
+            <div class="space-y-2 font-mono text-[10px] uppercase tracking-widest">
+                <div class="flex items-center gap-2">
+                    <input id="gallery-edit-password" type="password" class="border border-gray-300 px-2 py-1 text-[10px] w-28" placeholder="Password" aria-label="Edit password">
+                    <button id="gallery-edit-btn" class="ui-click border border-black px-2 py-1 bg-white hover:bg-black hover:text-white transition-colors">Unlock Edit</button>
+                    <span id="gallery-edit-status" class="text-gray-500">View Only</span>
+                </div>
+                <div id="gallery-editor-panel" class="hidden border border-dashed border-gray-300 bg-white/70 p-3 space-y-3">
+                    <div class="grid grid-cols-2 gap-2 text-[10px]">
+                        <label class="flex flex-col gap-1">Frame W<input id="frame-width" type="number" step="0.1" class="border border-gray-300 px-2 py-1" value="4"></label>
+                        <label class="flex flex-col gap-1">Frame H<input id="frame-height" type="number" step="0.1" class="border border-gray-300 px-2 py-1" value="5"></label>
+                        <label class="flex flex-col gap-1">Pos X<input id="frame-x" type="number" step="0.5" class="border border-gray-300 px-2 py-1" value="0"></label>
+                        <label class="flex flex-col gap-1">Pos Y<input id="frame-y" type="number" step="0.5" class="border border-gray-300 px-2 py-1" value="5"></label>
+                        <label class="flex flex-col gap-1">Pos Z<input id="frame-z" type="number" step="0.5" class="border border-gray-300 px-2 py-1" value="-5"></label>
+                        <label class="flex flex-col gap-1">Label<input id="frame-label" type="text" class="border border-gray-300 px-2 py-1" value="New Work"></label>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="gallery-add-btn" class="ui-click bg-black text-white px-3 py-2">Add/Update Frame</button>
+                        <button id="gallery-reset-btn" class="ui-click border border-black px-3 py-2 bg-white hover:bg-red-600 hover:text-white">Reset Layout</button>
+                    </div>
+                    <div>
+                        <div class="text-gray-500 mb-1">Layout (local only)</div>
+                        <div id="gallery-frame-list" class="max-h-32 overflow-y-auto space-y-1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-2 text-[10px] font-mono uppercase tracking-widest text-gray-500">Trigger: <button class="underline text-red-600" onclick="gallery.launchLanternOverlay('And you are a Lantern')">"And you are a Lantern"</button></div>
             <a href="oldindex.html" class="ui-click text-xs font-mono underline uppercase tracking-widest">Launch Full Referrer Sequence</a>
             <div class="mt-4 flex flex-wrap gap-2">
                 <button onclick="app.navigate('grift')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Grift Shop</button>
@@ -671,6 +771,26 @@
                     { txt: "Re-write it to be better.", type: "dreamer", score: 3 },
                     { txt: "Guard it with my life.", type: "lantern", score: 3 },
                     { txt: "I don't remember anything.", type: "passerby", score: 3 }
+                ]
+            },
+            {
+                q: "A guest insists the archive is fake. You...",
+                opts: [
+                    { txt: "Walk away; disbelief is a choice.", type: "passerby", score: 3 },
+                    { txt: "Hand them the provenance binder.", type: "scholar", score: 3 },
+                    { txt: "Ask what they'd pay if it weren't.", type: "investor", score: 3 },
+                    { txt: "Tell them the ghost stories instead.", type: "dreamer", score: 3 },
+                    { txt: "Hold their gaze until they soften.", type: "lantern", score: 3 }
+                ]
+            },
+            {
+                q: "The lights flicker during the show. What do you protect first?",
+                opts: [
+                    { txt: "The visitors' pathfinding.", type: "lantern", score: 3 },
+                    { txt: "The rarest object on the wall.", type: "scholar", score: 3 },
+                    { txt: "The credit stream.", type: "investor", score: 3 },
+                    { txt: "The story. Darkness is part of it.", type: "dreamer", score: 3 },
+                    { txt: "Myself. I shouldn't be here.", type: "passerby", score: 3 }
                 ]
             }
         ];
@@ -794,6 +914,10 @@
 
         // --- AUDIO ENGINE ---
         const audio = {
+            drone: null,
+            chimes: null,
+            chimeLoop: null,
+            transportStarted: false,
             init: async () => {
                 if (state.audioInitialized) return;
                 await Tone.start();
@@ -808,6 +932,37 @@
                     audio.init().then(() => { if(state.synth) state.synth.triggerAttackRelease("16n", Tone.now()); });
                 } else {
                     state.synth.triggerAttackRelease("16n", Tone.now());
+                }
+            },
+            startLantern: async () => {
+                await audio.init();
+                if (!audio.transportStarted) {
+                    Tone.Transport.start();
+                    audio.transportStarted = true;
+                }
+                if (!audio.drone) {
+                    audio.drone = new Tone.Oscillator('C2', 'sawtooth').connect(new Tone.Filter(400, 'lowpass')).toDestination();
+                    audio.drone.volume.value = -16;
+                    audio.drone.start();
+                }
+                if (!audio.chimes) {
+                    audio.chimes = new Tone.MetalSynth({ resonance: 300, harmonicity: 8, modulationIndex: 15 }).toDestination();
+                }
+                if (!audio.chimeLoop) {
+                    const notes = ['C4', 'G4', 'D5', 'A4'];
+                    audio.chimeLoop = new Tone.Loop((time) => {
+                        const note = notes[Math.floor(Math.random() * notes.length)];
+                        audio.chimes.triggerAttackRelease(note, '16n', time);
+                    }, '3n').start();
+                }
+            },
+            stopLantern: () => {
+                if (audio.drone) { audio.drone.stop(); audio.drone.dispose(); audio.drone = null; }
+                if (audio.chimeLoop) { audio.chimeLoop.stop(); audio.chimeLoop.dispose(); audio.chimeLoop = null; }
+                if (audio.chimes) { audio.chimes.dispose(); audio.chimes = null; }
+                if (audio.transportStarted) {
+                    Tone.Transport.stop();
+                    audio.transportStarted = false;
                 }
             }
         };
@@ -824,6 +979,8 @@
                 document.getElementById('prof-stage-quiz').classList.add('hidden');
                 document.getElementById('prof-stage-process').classList.add('hidden');
                 document.getElementById('prof-banner').classList.add('hidden');
+                const totalEl = document.getElementById('quiz-total');
+                if (totalEl) totalEl.innerText = QUIZ.length;
                 profiler.scores = { dreamer: 0, scholar: 0, investor: 0, passerby: 0, lantern: 0 };
                 profiler.currentQ = 0;
                 profiler.initialChoice = null;
@@ -933,11 +1090,15 @@
 
             showResult: (title, winnerKey) => {
                 document.getElementById('prof-stage-process').classList.add('hidden');
-                
-                // Updated to include ID and transitions for collapsing
+
                 const contentArea = document.getElementById('prof-content-area');
-                contentArea.innerHTML = `<div id="completion-msg" class="text-center py-20 font-mono text-gray-500 transition-all duration-1000 ease-in-out overflow-hidden">Identity processed. See header.</div>`;
-                
+                contentArea.innerHTML = `<div id="completion-msg" class="max-w-xl mx-auto text-center bg-white border border-black p-6 rounded shadow-sm font-mono text-sm text-gray-700 transition-all duration-700 ease-in-out overflow-hidden">
+                    <div class="text-[10px] uppercase tracking-widest text-red-600 mb-2">Assessment Complete</div>
+                    <div class="font-bold text-lg mb-1">${title}</div>
+                    <div class="text-gray-500 mb-3">${ROLES[winnerKey].motto}</div>
+                    <p class="text-xs text-gray-500">Banner pinned above. Proceed to Gallery or continue browsing.</p>
+                </div>`;
+
                 const banner = document.getElementById('prof-banner');
                 banner.classList.remove('hidden');
                 document.getElementById('banner-title').innerText = title;
@@ -993,6 +1154,7 @@
                 const gridHtml = document.getElementById('pixel-grid').cloneNode(true);
                 gridHtml.style.border = 'none';
                 document.getElementById('hanging-art').appendChild(gridHtml);
+                grift.spawnAttendees();
                 grift.isSimulating = true;
                 grift.loop();
             },
@@ -1002,6 +1164,20 @@
                 const btn = document.getElementById('accel-btn');
                 btn.innerText = "ACCELERATING...";
                 setTimeout(() => btn.innerText = "ACCELERATE MARKET", 200);
+                const log = document.getElementById('event-log');
+                if (log) log.innerHTML = `> Market velocity spiked. <br>` + log.innerHTML;
+            },
+            spawnAttendees: () => {
+                const row = document.getElementById('attendee-row');
+                if (!row) return;
+                row.innerHTML = '';
+                const count = 4;
+                for (let i = 0; i < count; i++) {
+                    const person = document.createElement('div');
+                    person.className = `attendee ${i % 2 === 0 ? 'observe' : ''}`;
+                    person.style.animationDelay = `${Math.random()}s`;
+                    row.appendChild(person);
+                }
             },
             loop: () => {
                 if (!grift.isSimulating || state.view !== 'grift') return;
@@ -1023,38 +1199,147 @@
         // --- 3D GALLERY ENGINE ---
         const gallery = {
             scene: null, camera: null, renderer: null, controls: null, active: false,
+            frames: [],
+            editMode: false,
+            selectedFrame: null,
+            lanternGroup: null,
+            lanternLight: null,
+            lanternTimer: null,
             init: () => {
                 const container = document.getElementById('canvas-container');
                 gallery.scene = new THREE.Scene();
-                gallery.scene.background = new THREE.Color('#111111');
-                gallery.scene.fog = new THREE.Fog('#111111', 10, 40);
+                gallery.scene.background = new THREE.Color('#0f0f0f');
+                gallery.scene.fog = new THREE.Fog('#0f0f0f', 10, 50);
                 gallery.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-                gallery.camera.position.set(0, 6, 20);
+                gallery.camera.position.set(0, 6, 22);
                 gallery.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
                 gallery.renderer.setSize(window.innerWidth, window.innerHeight);
                 container.appendChild(gallery.renderer.domElement);
                 gallery.controls = new OrbitControls(gallery.camera, gallery.renderer.domElement);
                 gallery.controls.enableDamping = true;
-                
-                const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+
+                const ambient = new THREE.AmbientLight(0xffffff, 0.45);
                 gallery.scene.add(ambient);
-                const spot = new THREE.SpotLight(0xffffff, 1);
-                spot.position.set(10, 20, 10);
+                const spot = new THREE.SpotLight(0xffffff, 1.2, 80, Math.PI / 4, 0.3);
+                spot.position.set(12, 18, 12);
                 gallery.scene.add(spot);
-                
-                const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: '#EAE7DC', roughness: 0.8 }));
+
+                // Room shell
+                const room = new THREE.Mesh(new THREE.BoxGeometry(40, 18, 40), new THREE.MeshStandardMaterial({ color: '#e1ddd1', side: THREE.BackSide, roughness: 0.8 }));
+                room.position.y = 9;
+                gallery.scene.add(room);
+                const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: '#eae7dc', roughness: 0.9 }));
                 floor.rotation.x = -Math.PI / 2;
                 gallery.scene.add(floor);
 
-                // Default Art
-                const artGeo = new THREE.BoxGeometry(4, 5, 0.2);
-                const artMat = new THREE.MeshStandardMaterial({ color: '#333' });
+                gallery.bindUI();
+                gallery.loadFrames();
+                gallery.animate();
+            },
+            bindUI: () => {
+                const unlockBtn = document.getElementById('gallery-edit-btn');
+                const addBtn = document.getElementById('gallery-add-btn');
+                const resetBtn = document.getElementById('gallery-reset-btn');
+                const panel = document.getElementById('gallery-editor-panel');
+                const status = document.getElementById('gallery-edit-status');
+
+                if (unlockBtn) {
+                    unlockBtn.onclick = () => {
+                        const pwd = document.getElementById('gallery-edit-password').value.trim();
+                        if (pwd.toLowerCase() === 'loomworks') {
+                            gallery.editMode = true;
+                            panel.classList.remove('hidden');
+                            status.innerText = 'Edit Mode';
+                            status.classList.remove('text-gray-500');
+                            status.classList.add('text-red-600');
+                        } else {
+                            status.innerText = 'Denied';
+                            status.classList.add('text-red-600');
+                        }
+                    };
+                }
+
+                if (addBtn) addBtn.onclick = gallery.addOrUpdateFrame;
+                if (resetBtn) resetBtn.onclick = gallery.resetLayout;
+            },
+            loadFrames: () => {
+                const saved = localStorage.getItem('loomworks-gallery');
+                const defaults = [
+                    { id: 'a', w: 4, h: 5, x: -6, y: 5, z: -5, label: 'Archive Print' },
+                    { id: 'b', w: 3, h: 3, x: 0, y: 4, z: -6, label: 'Lantern Study' },
+                    { id: 'c', w: 5, h: 4, x: 6, y: 5, z: -5, label: 'Disney Provenance' }
+                ];
+                gallery.frames = saved ? JSON.parse(saved) : defaults;
+                gallery.frames.forEach(gallery.addFrameMesh);
+                gallery.refreshList();
+            },
+            saveFrames: () => {
+                localStorage.setItem('loomworks-gallery', JSON.stringify(gallery.frames));
+                gallery.refreshList();
+            },
+            refreshList: () => {
+                const list = document.getElementById('gallery-frame-list');
+                if (!list) return;
+                list.innerHTML = '';
+                gallery.frames.forEach((frame) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'w-full text-left border border-gray-200 px-2 py-1 bg-white hover:bg-black hover:text-white transition-colors text-[10px] font-mono';
+                    btn.innerText = `${frame.label || 'Work'} (${frame.w}×${frame.h})`;
+                    btn.onclick = () => gallery.populateForm(frame);
+                    list.appendChild(btn);
+                });
+            },
+            populateForm: (frame) => {
+                gallery.selectedFrame = frame.id;
+                document.getElementById('frame-width').value = frame.w;
+                document.getElementById('frame-height').value = frame.h;
+                document.getElementById('frame-x').value = frame.x;
+                document.getElementById('frame-y').value = frame.y;
+                document.getElementById('frame-z').value = frame.z;
+                document.getElementById('frame-label').value = frame.label || '';
+            },
+            removeFrameMeshes: (id) => {
+                const obj = gallery.scene.getObjectByName(`frame-${id}`);
+                const glass = gallery.scene.getObjectByName(`frame-glass-${id}`);
+                if (obj) gallery.scene.remove(obj);
+                if (glass) gallery.scene.remove(glass);
+            },
+            addFrameMesh: (frame) => {
+                const artGeo = new THREE.BoxGeometry(frame.w, frame.h, 0.2);
+                const artMat = new THREE.MeshStandardMaterial({ color: '#1f1f1f', metalness: 0.6, roughness: 0.4 });
                 const art = new THREE.Mesh(artGeo, artMat);
-                art.position.set(0, 5, -5);
-                art.name = "defaultArt";
+                art.position.set(frame.x, frame.y, frame.z);
+                art.name = `frame-${frame.id}`;
                 gallery.scene.add(art);
 
-                gallery.animate();
+                const glass = new THREE.Mesh(new THREE.PlaneGeometry(frame.w * 0.95, frame.h * 0.95), new THREE.MeshStandardMaterial({ color: '#a5b7ff', transparent: true, opacity: 0.15, metalness: 0.5, roughness: 0.05 }));
+                glass.position.set(frame.x, frame.y, frame.z + 0.12);
+                glass.name = `frame-glass-${frame.id}`;
+                gallery.scene.add(glass);
+            },
+            addOrUpdateFrame: () => {
+                if (!gallery.editMode) return;
+                const w = parseFloat(document.getElementById('frame-width').value) || 3;
+                const h = parseFloat(document.getElementById('frame-height').value) || 3;
+                const x = parseFloat(document.getElementById('frame-x').value) || 0;
+                const y = parseFloat(document.getElementById('frame-y').value) || 4;
+                const z = parseFloat(document.getElementById('frame-z').value) || -5;
+                const label = document.getElementById('frame-label').value || 'Work';
+                const id = gallery.selectedFrame || Math.random().toString(36).slice(2, 7);
+
+                gallery.frames = gallery.frames.filter(f => f.id !== id);
+                const frame = { id, w, h, x, y, z, label };
+                gallery.removeFrameMeshes(id);
+                gallery.frames.push(frame);
+                gallery.addFrameMesh(frame);
+                gallery.saveFrames();
+                gallery.selectedFrame = null;
+            },
+            resetLayout: () => {
+                gallery.frames.forEach(f => gallery.removeFrameMeshes(f.id));
+                localStorage.removeItem('loomworks-gallery');
+                gallery.frames = [];
+                gallery.loadFrames();
             },
             resize: () => {
                 if(!gallery.camera) return;
@@ -1066,35 +1351,65 @@
                 requestAnimationFrame(gallery.animate);
                 if (gallery.active && gallery.controls) {
                     gallery.controls.update();
+                    if (gallery.lanternGroup) gallery.lanternGroup.rotation.y += 0.004;
                     gallery.renderer.render(gallery.scene, gallery.camera);
                 }
             },
-            launchLanternOverlay: () => {
+            stopLanternEffects: () => {
+                const grain = document.getElementById('lantern-grain');
+                if (grain) grain.classList.add('hidden');
+                if (gallery.lanternTimer) { clearInterval(gallery.lanternTimer); gallery.lanternTimer = null; }
+                if (gallery.lanternGroup) { gallery.scene.remove(gallery.lanternGroup); gallery.lanternGroup = null; }
+                if (gallery.lanternLight) { gallery.scene.remove(gallery.lanternLight); gallery.lanternLight = null; }
+                audio.stopLantern();
+            },
+            launchLanternOverlay: (trigger = '') => {
                 app.navigate('gallery');
-                // Remove default art
-                const old = gallery.scene.getObjectByName("defaultArt");
-                if(old) gallery.scene.remove(old);
-                
-                // Add Lantern
-                const geo = new THREE.IcosahedronGeometry(2, 1);
-                const mat = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
-                const lantern = new THREE.Mesh(geo, mat);
-                lantern.position.set(0, 5, 0);
-                
-                const light = new THREE.PointLight(0xff0000, 2, 20);
-                light.position.set(0, 5, 0);
-                
-                gallery.scene.add(lantern);
+                gallery.stopLanternEffects();
+                const grain = document.getElementById('lantern-grain');
+                if (grain) grain.classList.remove('hidden');
+                audio.startLantern();
+
+                const group = new THREE.Group();
+                const ironCage = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 3.4, 12, 1, true), new THREE.MeshStandardMaterial({ color: '#2b2b2b', metalness: 0.8, roughness: 0.25 }));
+                ironCage.position.set(0, 5, 0);
+                group.add(ironCage);
+
+                const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 3.2, 16, 1, true), new THREE.MeshStandardMaterial({ color: '#b1c7ff', transparent: true, opacity: 0.25, metalness: 0.6, roughness: 0.05 }));
+                glass.position.set(0, 5, 0);
+                group.add(glass);
+
+                const base = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.3, 2.2), new THREE.MeshStandardMaterial({ color: '#1a1a1a', metalness: 0.7, roughness: 0.35 }));
+                base.position.set(0, 3.4, 0);
+                group.add(base);
+
+                const crown = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.08, 12, 36), new THREE.MeshStandardMaterial({ color: '#e0e0e0', metalness: 0.9, roughness: 0.2 }));
+                crown.position.set(0, 6.7, 0);
+                crown.rotation.x = Math.PI / 2;
+                group.add(crown);
+
+                const wick = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.5, 8), new THREE.MeshStandardMaterial({ color: '#ffb347', emissive: '#ffb347', emissiveIntensity: 1 }));
+                wick.position.set(0, 5.8, 0);
+                group.add(wick);
+
+                group.name = 'lantern-group';
+                gallery.scene.add(group);
+                gallery.lanternGroup = group;
+
+                const light = new THREE.PointLight(0xffb347, 2, 18);
+                light.position.set(0, 5.5, 0);
                 gallery.scene.add(light);
-                
-                // Animate Lantern
-                const animateLantern = () => {
-                    if(!gallery.active) return;
-                    lantern.rotation.y += 0.01;
-                    lantern.rotation.x += 0.005;
-                    requestAnimationFrame(animateLantern);
-                };
-                animateLantern();
+                gallery.lanternLight = light;
+
+                gallery.lanternTimer = setInterval(() => {
+                    if (!gallery.lanternLight) return;
+                    gallery.lanternLight.intensity = 1.5 + Math.random() * 0.9;
+                }, 140);
+
+                if (trigger) {
+                    const log = document.getElementById('event-log');
+                    if (log) log.innerHTML = `> ${trigger}<br>` + log.innerHTML;
+                }
             }
         };
         window.gallery = gallery;
@@ -1115,6 +1430,7 @@
                     gallery.resize(); gallery.active = true;
                 } else {
                     gallery.active = false;
+                    gallery.stopLanternEffects();
                 }
 
                 if (target === 'archive') {
@@ -1140,12 +1456,8 @@
         };
 
         // --- INIT ---
-        window.addEventListener('load', () => {
-            gallery.init();
-            archive.init();
-
-            // Typewriter Loader
-            const text = "INITIALIZING LOOMWORKS MANUFACTURE PROTOCOL...";
+        document.addEventListener('DOMContentLoaded', () => {
+            const text = "INITIALIZING LOOMWORKS...";
             const el = document.getElementById('loader-text');
             let i = 0;
             const type = () => {
@@ -1156,10 +1468,15 @@
                 }
             };
             type();
-            
+
             document.addEventListener('click', (e) => {
                 if (e.target.closest('.ui-click') || e.target.tagName === 'BUTTON') audio.click();
             });
+        });
+
+        window.addEventListener('load', () => {
+            gallery.init();
+            archive.init();
         });
     </script>
 </body>
