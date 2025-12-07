@@ -237,6 +237,13 @@
   ],
   "activities": [
     {
+      "id": "identity-console",
+      "name": "Identity Access Console",
+      "location": "Threshold",
+      "status": "Live classification",
+      "notes": "Signals assigned (Here, Now, Responder, Observer, Lantern) set tone for the run."
+    },
+    {
       "id": "pachinko",
       "name": "Pachinko Machine",
       "location": "Activity Pit",
@@ -244,11 +251,18 @@
       "notes": "Token-fed reveal of rarity odds; can trigger barter-only pulls."
     },
     {
-      "id": "take-leave",
-      "name": "Take 1 / Leave 2 — Unwanted & Unbothered Station",
+      "id": "lantern-barter",
+      "name": "Barter Post — Take 1 / Leave 2",
       "location": "Barter Floor",
       "status": "Swap-ready",
-      "notes": "Guests deposit two curios to pull one; pairs with transparency view."
+      "notes": "Lantern-guided exchanges of pogs, menko, and micro-objects; receipts become lore."
+    },
+    {
+      "id": "sculpture-generator",
+      "name": "Sculpture Generator",
+      "location": "Celli Station",
+      "status": "On-request",
+      "notes": "Personality quiz yields a unique 3D form + badge; pieces can be sold into the Grift Shop churn."
     },
     {
       "id": "grift-shop",
@@ -261,21 +275,33 @@
   "ticketingTiers": [
     {
       "tier": "Signal Entry",
-      "price": 18,
-      "perks": ["Timed admission window", "Access to Pachinko Machine", "1 Imperial Sun postcard"],
-      "idealFor": "Solo guests and first touch."
+      "price": 22,
+      "perks": [
+        "Timed admission during the four-day run",
+        "Identity Access Console classification + Pachinko pull",
+        "Access to archive floor and Lantern wayfinding"
+      ],
+      "idealFor": "First-contact guests and solo explorers."
     },
     {
-      "tier": "Lantern Access",
-      "price": 45,
-      "perks": ["All Signal perks", "Mystery Protocol Folder", "Activity map print + pin"],
-      "idealFor": "Collectors and role-players."
+      "tier": "Lantern Escort",
+      "price": 55,
+      "perks": [
+        "All Signal perks",
+        "Lantern-led Barter Post ritual + Barter credit",
+        "Sculpture Generator badge + Grift Shop proof"
+      ],
+      "idealFor": "Collectors, role-players, and lore-seekers."
     },
     {
       "tier": "Investor Transparency",
-      "price": 95,
-      "perks": ["All Lantern perks", "Backstage economic transparency overlay", "Priority barter lane"],
-      "idealFor": "Patrons, investors, and press."
+      "price": 110,
+      "perks": [
+        "All Lantern Escort perks",
+        "Backstage transparency overlay + provenance tracker",
+        "Press kit handoff and priority barter lane"
+      ],
+      "idealFor": "Patrons, investors, and press teams."
     }
   ]
 }
