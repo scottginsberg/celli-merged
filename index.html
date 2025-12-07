@@ -1490,6 +1490,9 @@
                     <h1 class="text-4xl md:text-5xl font-bold uppercase tracking-tighter">Lantern Protocol</h1>
                     <div class="font-mono text-xs text-red-600 mt-2 uppercase tracking-widest">Document No. HR-902 // CASTING & PERFORMANCE</div>
                 </div>
+                <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
+                    <button onclick="const el=document.getElementById('toki-dictionary'); if(el) el.scrollIntoView({behavior:'smooth'});" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Open Toki Pona Dictionary</button>
+                </div>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-12 gap-12">
@@ -1557,6 +1560,25 @@
                                     <li>Guests should feel archived, welcomed, and subtly tasked with protecting what they were just given.</li>
                                 </ul>
                             </div>
+                        </div>
+                    </div>
+
+                    <div id="toki-dictionary" class="bg-white border border-gray-200 p-8 shadow-md rounded-xl">
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <div>
+                                <p class="font-mono text-xs uppercase tracking-[0.25em] text-gray-500">Language Companion</p>
+                                <h3 class="text-2xl font-bold uppercase tracking-tight">Full Toki Pona Dictionary</h3>
+                                <p class="text-sm text-gray-700 mt-2 max-w-2xl">Canonical lexicon from <em>pu</em> (2014), <em>kulupu</em> (2021), and community-backed extensions. Use it as the sanctioned word-bank when delivering the Polaroid &amp; Toki Pona protocol.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-2" aria-label="Dictionary sort modes">
+                                <button data-toki-sort="alphabetical" class="toki-sort-btn ui-click border border-black bg-black text-white px-3 py-2 text-[11px] font-mono uppercase tracking-widest rounded">Alphabetical</button>
+                                <button data-toki-sort="part" class="toki-sort-btn ui-click border border-black bg-white text-black px-3 py-2 text-[11px] font-mono uppercase tracking-widest rounded hover:bg-black hover:text-white transition-colors">By Part of Speech</button>
+                                <button data-toki-sort="origin" class="toki-sort-btn ui-click border border-black bg-white text-black px-3 py-2 text-[11px] font-mono uppercase tracking-widest rounded hover:bg-black hover:text-white transition-colors">By Source</button>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 space-y-4" id="toki-dictionary-groups">
+                            <!-- JS renders grouped dictionary entries here -->
                         </div>
                     </div>
 
@@ -2059,6 +2081,210 @@
             investor: { adj: "SPECULATIVE", motto: "What is magic worth?" },
             passerby: { adj: "WANDERING", motto: "No one is 'just looking'." },
             lantern: { adj: "ILLUMINATED", motto: "Keep the light." }
+        };
+
+        // --- TOKI PONA DICTIONARY ---
+        const TOKI_PONA_LEXICON = [
+            { term: 'a / kin', base: 'a', tags: ['interjection'], origin: 'pu', definition: 'ah, well, okay, so; emphasis marker for agreement or warmth.', gloss: 'emphasis / affirmation' },
+            { term: 'akesi', base: 'akesi', tags: ['noun'], origin: 'pu', definition: 'non-cute animal; reptile, amphibian, or other “lizardy” creature.', gloss: 'non-cute animal' },
+            { term: 'ala', base: 'ala', tags: ['noun', 'modifier', 'interjection', 'number'], origin: 'pu', definition: 'nothing; negation or refusal; expresses zero.', gloss: 'no / none / zero' },
+            { term: 'alasa', base: 'alasa', tags: ['verb'], origin: 'pu', definition: 'to hunt, gather, or forage with intent.', gloss: 'hunt / forage' },
+            { term: 'ale / ali', base: 'ale', tags: ['noun', 'modifier', 'number'], origin: 'pu', definition: 'everything, life, the universe; all, every; expresses “100” or boundless quantity.', gloss: 'all / everything' },
+            { term: 'anpa', base: 'anpa', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'bottom, beneath, floor; low or downward; to bow or defeat.', gloss: 'low / beneath' },
+            { term: 'ante', base: 'ante', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'difference or change; different or altered; to modify or change.', gloss: 'different / alter' },
+            { term: 'anu', base: 'anu', tags: ['conjunction'], origin: 'pu', definition: 'or; offers a choice between options.', gloss: 'or' },
+            { term: 'awen', base: 'awen', tags: ['verb', 'modifier'], origin: 'pu', definition: 'to stay, continue, or keep; enduring or remaining.', gloss: 'continue / stay' },
+            { term: 'e', base: 'e', tags: ['particle'], origin: 'pu', definition: 'direct object marker that links a verb to its object.', gloss: 'object marker' },
+            { term: 'ijo', base: 'ijo', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'thing, object, or entity; physical or material; to materialize.', gloss: 'thing / entity' },
+            { term: 'ike', base: 'ike', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'badness or negativity; bad, unpleasant; to worsen.', gloss: 'bad / negative' },
+            { term: 'ilo', base: 'ilo', tags: ['noun'], origin: 'pu', definition: 'tool, device, or machine.', gloss: 'tool / device' },
+            { term: 'insa', base: 'insa', tags: ['noun', 'modifier'], origin: 'pu', definition: 'inside or center; inner or internal space.', gloss: 'inside' },
+            { term: 'jaki', base: 'jaki', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'filth, garbage; dirty or gross; to dirty something.', gloss: 'dirty / garbage' },
+            { term: 'jan', base: 'jan', tags: ['noun', 'modifier'], origin: 'pu', definition: 'person or somebody; human or personal.', gloss: 'person / human' },
+            { term: 'jelo', base: 'jelo', tags: ['modifier'], origin: 'pu', definition: 'yellow.', gloss: 'yellow' },
+            { term: 'jo', base: 'jo', tags: ['verb', 'noun'], origin: 'pu', definition: 'to have or possess; a possession or holding.', gloss: 'have / possession' },
+            { term: 'kala', base: 'kala', tags: ['noun'], origin: 'pu', definition: 'fish or sea creature.', gloss: 'fish' },
+            { term: 'kalama', base: 'kalama', tags: ['noun', 'verb', 'modifier'], origin: 'pu', definition: 'sound or noise; to make sound; sonic.', gloss: 'sound / noise' },
+            { term: 'kama', base: 'kama', tags: ['verb', 'modifier'], origin: 'pu', definition: 'to come, become, or arrive; becoming or future oriented.', gloss: 'come / become' },
+            { term: 'kasi', base: 'kasi', tags: ['noun'], origin: 'pu', definition: 'plant or vegetation.', gloss: 'plant' },
+            { term: 'ken', base: 'ken', tags: ['verb', 'noun', 'modifier'], origin: 'pu', definition: 'can or to be able; permission or ability; possible.', gloss: 'can / possible' },
+            { term: 'kepeken', base: 'kepeken', tags: ['preposition', 'verb'], origin: 'pu', definition: 'using or with; to use.', gloss: 'use / with' },
+            { term: 'kili', base: 'kili', tags: ['noun'], origin: 'pu', definition: 'fruit or vegetable.', gloss: 'fruit / vegetable' },
+            { term: 'kin', base: 'kin', tags: ['interjection'], origin: 'pu', definition: 'emphasis marker identical to “a”.', gloss: 'also / indeed' },
+            { term: 'kipisi', base: 'kipisi', tags: ['verb', 'noun'], origin: 'kulupu', definition: 'to cut or divide; a slice.', gloss: 'cut / slice' },
+            { term: 'kiwen', base: 'kiwen', tags: ['noun'], origin: 'pu', definition: 'stone, metal, or other solid matter.', gloss: 'solid / stone' },
+            { term: 'ko', base: 'ko', tags: ['noun'], origin: 'pu', definition: 'paste, powder, goo, or semi-solid matter.', gloss: 'paste / powder' },
+            { term: 'kon', base: 'kon', tags: ['noun', 'modifier'], origin: 'pu', definition: 'air, essence, spirit, or breath; airy or ethereal.', gloss: 'air / spirit' },
+            { term: 'ku', base: 'ku', tags: ['noun'], origin: 'ku', definition: 'reference to the Toki Pona Dictionary (2021).', gloss: 'book reference' },
+            { term: 'kule', base: 'kule', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'color; colorful; to paint or color.', gloss: 'color' },
+            { term: 'kulupu', base: 'kulupu', tags: ['noun', 'modifier'], origin: 'pu', definition: 'group, community, or society; communal or collective.', gloss: 'group / community' },
+            { term: 'kute', base: 'kute', tags: ['verb', 'noun'], origin: 'pu', definition: 'to listen or hear; ear or hearing.', gloss: 'listen / ear' },
+            { term: 'la', base: 'la', tags: ['particle'], origin: 'pu', definition: 'context marker placing one phrase before another.', gloss: 'context marker' },
+            { term: 'lanpan', base: 'lanpan', tags: ['verb', 'noun'], origin: 'kulupu', definition: 'to take or seize; an acquisition.', gloss: 'take / seize' },
+            { term: 'lape', base: 'lape', tags: ['verb', 'modifier'], origin: 'pu', definition: 'to sleep; sleeping or restful.', gloss: 'sleep / rest' },
+            { term: 'laso', base: 'laso', tags: ['modifier', 'noun'], origin: 'pu', definition: 'blue or green coloration.', gloss: 'blue-green' },
+            { term: 'lawa', base: 'lawa', tags: ['noun', 'verb', 'modifier'], origin: 'pu', definition: 'head or mind; to lead or control; main or chief.', gloss: 'lead / head' },
+            { term: 'len', base: 'len', tags: ['noun', 'verb'], origin: 'pu', definition: 'cloth or clothing; to wear.', gloss: 'cloth / clothing' },
+            { term: 'lete', base: 'lete', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'cold; cold or uncooked; to cool.', gloss: 'cold' },
+            { term: 'li', base: 'li', tags: ['particle'], origin: 'pu', definition: 'separates subject and verb (except with mi/sina).', gloss: 'verb separator' },
+            { term: 'lili', base: 'lili', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'smallness or fewness; small, young, or few; to reduce.', gloss: 'small / few' },
+            { term: 'linja', base: 'linja', tags: ['noun', 'modifier'], origin: 'pu', definition: 'line, thread, rope, hair, or cord; long and flexible.', gloss: 'line / rope' },
+            { term: 'lipu', base: 'lipu', tags: ['noun'], origin: 'pu', definition: 'sheet, document, page, or book.', gloss: 'sheet / document' },
+            { term: 'loje', base: 'loje', tags: ['modifier'], origin: 'pu', definition: 'red.', gloss: 'red' },
+            { term: 'lon', base: 'lon', tags: ['preposition', 'modifier', 'verb'], origin: 'pu', definition: 'in, at, on; real or true; to be present.', gloss: 'at / present' },
+            { term: 'luka', base: 'luka', tags: ['noun', 'number'], origin: 'pu', definition: 'hand or arm; the number five.', gloss: 'hand / five' },
+            { term: 'lukin / oko', base: 'lukin', tags: ['verb', 'noun', 'modifier'], origin: 'pu', definition: 'to see, look, or watch; sight or vision; visual.', gloss: 'see / look' },
+            { term: 'lupa', base: 'lupa', tags: ['noun', 'verb'], origin: 'pu', definition: 'hole, door, portal, or opening; to open.', gloss: 'opening / door' },
+            { term: 'ma', base: 'ma', tags: ['noun'], origin: 'pu', definition: 'land, country, or the outdoors.', gloss: 'land / place' },
+            { term: 'majuna', base: 'majuna', tags: ['modifier'], origin: 'kulupu', definition: 'old or aged.', gloss: 'old' },
+            { term: 'mama', base: 'mama', tags: ['noun'], origin: 'pu', definition: 'parent, creator, or origin.', gloss: 'parent / creator' },
+            { term: 'mani', base: 'mani', tags: ['noun'], origin: 'pu', definition: 'money, wealth, or livestock.', gloss: 'money / wealth' },
+            { term: 'meli', base: 'meli', tags: ['noun', 'modifier'], origin: 'pu', definition: 'woman or feminine person; female.', gloss: 'woman / female' },
+            { term: 'mi', base: 'mi', tags: ['pronoun'], origin: 'pu', definition: 'I or we.', gloss: 'I / we' },
+            { term: 'mije', base: 'mije', tags: ['noun', 'modifier'], origin: 'pu', definition: 'man or masculine person; male.', gloss: 'man / male' },
+            { term: 'moku', base: 'moku', tags: ['noun', 'verb'], origin: 'pu', definition: 'food; to eat, drink, or consume.', gloss: 'eat / food' },
+            { term: 'moli', base: 'moli', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'death; dead; to kill or die.', gloss: 'death / kill' },
+            { term: 'monsi', base: 'monsi', tags: ['noun'], origin: 'pu', definition: 'back or behind.', gloss: 'back / behind' },
+            { term: 'mun', base: 'mun', tags: ['noun'], origin: 'pu', definition: 'moon or other celestial light.', gloss: 'moon' },
+            { term: 'musi', base: 'musi', tags: ['noun', 'verb', 'modifier'], origin: 'pu', definition: 'fun, art, or play; to entertain; artistic or playful.', gloss: 'fun / play' },
+            { term: 'mute', base: 'mute', tags: ['modifier', 'verb', 'noun', 'number'], origin: 'pu', definition: 'many or much; to multiply; quantity; the number twenty.', gloss: 'many / 20' },
+            { term: 'nanpa', base: 'nanpa', tags: ['noun', 'modifier', 'particle'], origin: 'pu', definition: 'number; numeric; ordinal marker.', gloss: 'number / ordinal' },
+            { term: 'nasa', base: 'nasa', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'weirdness; strange, drunk, or foolish; to distort.', gloss: 'strange / silly' },
+            { term: 'nasin', base: 'nasin', tags: ['noun', 'verb'], origin: 'pu', definition: 'way, doctrine, method, or road; to guide.', gloss: 'way / method' },
+            { term: 'nena', base: 'nena', tags: ['noun'], origin: 'pu', definition: 'bump, nose, hill, or button.', gloss: 'bump / nose' },
+            { term: 'ni', base: 'ni', tags: ['modifier', 'noun'], origin: 'pu', definition: 'this or that; this/that thing.', gloss: 'this / that' },
+            { term: 'nimi', base: 'nimi', tags: ['noun'], origin: 'pu', definition: 'word or name.', gloss: 'name / word' },
+            { term: 'noka', base: 'noka', tags: ['noun', 'modifier'], origin: 'pu', definition: 'foot, leg, or base; bottom or lower.', gloss: 'foot / leg' },
+            { term: 'o', base: 'o', tags: ['particle'], origin: 'pu', definition: 'imperative or vocative particle (“hey X, do Y”).', gloss: 'imperative' },
+            { term: 'pakala', base: 'pakala', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'mistake or damage; broken or messed up; to break or screw up.', gloss: 'damage / break' },
+            { term: 'pali', base: 'pali', tags: ['noun', 'verb'], origin: 'pu', definition: 'work, function, or action; to work, build, or create.', gloss: 'work / build' },
+            { term: 'palisa', base: 'palisa', tags: ['noun'], origin: 'pu', definition: 'stick, rod, or branch.', gloss: 'stick / rod' },
+            { term: 'pan', base: 'pan', tags: ['noun'], origin: 'pu', definition: 'grain, bread, or food staple.', gloss: 'bread / grain' },
+            { term: 'pana', base: 'pana', tags: ['verb', 'noun'], origin: 'pu', definition: 'to give, send, put, or emit; a gift or transmission.', gloss: 'give / send' },
+            { term: 'pi', base: 'pi', tags: ['particle'], origin: 'pu', definition: 'groups modifiers; clusters adjectives into one phrase.', gloss: 'of / grouping' },
+            { term: 'pilin', base: 'pilin', tags: ['noun', 'verb'], origin: 'pu', definition: 'feeling or emotion; to feel or think emotionally.', gloss: 'feel / emotion' },
+            { term: 'pimeja', base: 'pimeja', tags: ['noun', 'modifier'], origin: 'pu', definition: 'darkness; black or unlit.', gloss: 'black / dark' },
+            { term: 'pini', base: 'pini', tags: ['noun', 'verb'], origin: 'pu', definition: 'end or completion; to finish or stop.', gloss: 'end / finish' },
+            { term: 'pipi', base: 'pipi', tags: ['noun'], origin: 'pu', definition: 'bug or insect.', gloss: 'bug / insect' },
+            { term: 'poka', base: 'poka', tags: ['noun', 'preposition', 'modifier'], origin: 'pu', definition: 'side; next to or with; beside.', gloss: 'beside / with' },
+            { term: 'poki', base: 'poki', tags: ['noun'], origin: 'pu', definition: 'container, box, or cup.', gloss: 'container' },
+            { term: 'pona', base: 'pona', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'goodness; good, simple, or positive; to improve or fix.', gloss: 'good / simple' },
+            { term: 'pu', base: 'pu', tags: ['noun'], origin: 'pu', definition: 'interacting with the official book “Toki Pona: The Language of Good”.', gloss: 'with the book' },
+            { term: 'sama', base: 'sama', tags: ['noun', 'preposition', 'modifier'], origin: 'pu', definition: 'equality; like or similar to; same or equal.', gloss: 'same / like' },
+            { term: 'seli', base: 'seli', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'heat or fire; warm; to heat.', gloss: 'heat / warm' },
+            { term: 'selo', base: 'selo', tags: ['noun'], origin: 'pu', definition: 'outer layer, skin, shell, or boundary.', gloss: 'outer layer' },
+            { term: 'seme', base: 'seme', tags: ['particle'], origin: 'pu', definition: 'what? which? used for questions.', gloss: 'what / which' },
+            { term: 'sewi', base: 'sewi', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'height or holiness; elevated or sacred; to raise.', gloss: 'high / sacred' },
+            { term: 'sijelo', base: 'sijelo', tags: ['noun'], origin: 'pu', definition: 'body or physical form.', gloss: 'body' },
+            { term: 'sike', base: 'sike', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'circle, ball, or sphere; round; to turn or rotate.', gloss: 'circle / rotate' },
+            { term: 'sin / sina', base: 'sin', tags: ['modifier', 'pronoun'], origin: 'pu', definition: 'sin: new or fresh. sina: you (singular or plural).', gloss: 'new / you' },
+            { term: 'sinpin', base: 'sinpin', tags: ['noun'], origin: 'pu', definition: 'front, face, or wall.', gloss: 'front / face' },
+            { term: 'sitelen', base: 'sitelen', tags: ['noun', 'verb'], origin: 'pu', definition: 'image or writing; to draw or write.', gloss: 'write / image' },
+            { term: 'soko', base: 'soko', tags: ['noun'], origin: 'kulupu', definition: 'mushroom or fungus.', gloss: 'mushroom' },
+            { term: 'sona', base: 'sona', tags: ['noun', 'verb', 'modifier'], origin: 'pu', definition: 'knowledge; to know, understand, or learn; wise.', gloss: 'know / knowledge' },
+            { term: 'soweli', base: 'soweli', tags: ['noun'], origin: 'pu', definition: 'animal, typically mammal-like.', gloss: 'animal' },
+            { term: 'suli', base: 'suli', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'size or importance; big, long, or important; to enlarge.', gloss: 'big / important' },
+            { term: 'suno', base: 'suno', tags: ['noun'], origin: 'pu', definition: 'sun, light, or glow.', gloss: 'sun / light' },
+            { term: 'supa', base: 'supa', tags: ['noun'], origin: 'pu', definition: 'surface, table, or platform.', gloss: 'surface / table' },
+            { term: 'suwi', base: 'suwi', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'sweetness; sweet or cute; to sweeten.', gloss: 'sweet / cute' },
+            { term: 'tan', base: 'tan', tags: ['preposition'], origin: 'pu', definition: 'from or because of.', gloss: 'from / because' },
+            { term: 'taso', base: 'taso', tags: ['conjunction', 'modifier'], origin: 'pu', definition: 'but; only or merely.', gloss: 'but / only' },
+            { term: 'tawa', base: 'tawa', tags: ['verb', 'preposition', 'modifier'], origin: 'pu', definition: 'to move or go; to, toward, or for; moving.', gloss: 'to / go' },
+            { term: 'telo', base: 'telo', tags: ['noun', 'verb'], origin: 'pu', definition: 'water or fluid; to wash or wet.', gloss: 'water / wash' },
+            { term: 'tenpo', base: 'tenpo', tags: ['noun'], origin: 'pu', definition: 'time, moment, or period.', gloss: 'time' },
+            { term: 'toki', base: 'toki', tags: ['noun', 'verb'], origin: 'pu', definition: 'speech or language; to talk or communicate.', gloss: 'talk / language' },
+            { term: 'tomo', base: 'tomo', tags: ['noun', 'modifier'], origin: 'pu', definition: 'room, building, or household; domestic.', gloss: 'building / room' },
+            { term: 'tu', base: 'tu', tags: ['number', 'verb'], origin: 'pu', definition: 'two; to divide into two.', gloss: 'two / split' },
+            { term: 'unpa', base: 'unpa', tags: ['verb', 'noun', 'modifier'], origin: 'pu', definition: 'to have sex; sexuality; sexual.', gloss: 'sexual / intimacy' },
+            { term: 'uta', base: 'uta', tags: ['noun', 'verb'], origin: 'pu', definition: 'mouth; to kiss or taste.', gloss: 'mouth / kiss' },
+            { term: 'utala', base: 'utala', tags: ['verb', 'noun'], origin: 'pu', definition: 'fight or struggle; conflict.', gloss: 'fight / conflict' },
+            { term: 'walo', base: 'walo', tags: ['noun', 'modifier'], origin: 'pu', definition: 'whiteness; white or pale.', gloss: 'white' },
+            { term: 'wan', base: 'wan', tags: ['number', 'modifier'], origin: 'pu', definition: 'one; united or singular.', gloss: 'one / united' },
+            { term: 'waso', base: 'waso', tags: ['noun'], origin: 'pu', definition: 'bird.', gloss: 'bird' },
+            { term: 'wawa', base: 'wawa', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'strength or energy; strong or intense; to energize.', gloss: 'power / energy' },
+            { term: 'weka', base: 'weka', tags: ['noun', 'modifier', 'verb'], origin: 'pu', definition: 'absence; away or missing; to remove or send away.', gloss: 'away / remove' },
+            { term: 'wile', base: 'wile', tags: ['verb', 'noun', 'modifier'], origin: 'pu', definition: 'to want, need, or must; desire; necessary.', gloss: 'want / need' }
+        ];
+
+        const tokiDictionary = {
+            sortMode: 'alphabetical',
+            groupers: {
+                alphabetical: (entry) => entry.base.charAt(0).toUpperCase(),
+                part: (entry) => (entry.tags[0] || 'general').replace(/^./, c => c.toUpperCase()),
+                origin: (entry) => tokiDictionary.originLabels[entry.origin] || 'Community Extension'
+            },
+            originOrder: ['pu (2014)', 'kulupu (2021)', 'ku (Dictionary 2021)', 'Community Extension'],
+            originLabels: {
+                pu: 'pu (2014)',
+                kulupu: 'kulupu (2021)',
+                ku: 'ku (Dictionary 2021)',
+                community: 'Community Extension'
+            },
+            setMode(mode) {
+                if (!tokiDictionary.groupers[mode]) return;
+                tokiDictionary.sortMode = mode;
+                document.querySelectorAll('.toki-sort-btn').forEach(btn => {
+                    if (btn.dataset.tokiSort === mode) {
+                        btn.classList.add('bg-black', 'text-white');
+                        btn.classList.remove('bg-white', 'text-black');
+                    } else {
+                        btn.classList.remove('bg-black', 'text-white');
+                        btn.classList.add('bg-white', 'text-black');
+                    }
+                });
+                tokiDictionary.render();
+            },
+            render() {
+                const container = document.getElementById('toki-dictionary-groups');
+                if (!container) return;
+                const grouper = tokiDictionary.groupers[tokiDictionary.sortMode];
+                const groups = {};
+
+                TOKI_PONA_LEXICON.forEach(entry => {
+                    const key = grouper(entry);
+                    if (!groups[key]) groups[key] = [];
+                    groups[key].push(entry);
+                });
+
+                let keys = Object.keys(groups);
+                if (tokiDictionary.sortMode === 'origin') {
+                    keys.sort((a, b) => tokiDictionary.originOrder.indexOf(a) - tokiDictionary.originOrder.indexOf(b));
+                } else {
+                    keys.sort();
+                }
+
+                const createEntry = (entry) => `
+                    <div class="border border-gray-200 rounded-lg p-3 bg-[#FDFBF7] h-full flex flex-col gap-2">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="font-bold uppercase tracking-tight">${entry.term}</div>
+                            <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500 text-right">${entry.tags.join(' • ')}</div>
+                        </div>
+                        <p class="text-sm text-gray-800 leading-relaxed">${entry.definition}</p>
+                        <p class="text-[11px] text-gray-600 font-mono">Gloss: ${entry.gloss}</p>
+                    </div>
+                `;
+
+                container.innerHTML = keys.map(key => {
+                    const items = groups[key].sort((a, b) => a.base.localeCompare(b.base));
+                    return `
+                        <div class="border border-gray-200 rounded-xl overflow-hidden">
+                            <div class="bg-black text-white px-4 py-2 flex items-center justify-between text-xs font-mono uppercase tracking-widest">
+                                <span>${key}</span>
+                                <span class="text-gray-200">${items.length} entr${items.length === 1 ? 'y' : 'ies'}</span>
+                            </div>
+                            <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                ${items.map(createEntry).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+            init() {
+                document.querySelectorAll('.toki-sort-btn').forEach(btn => {
+                    btn.addEventListener('click', () => tokiDictionary.setMode(btn.dataset.tokiSort));
+                });
+                tokiDictionary.render();
+            }
         };
 
         // --- ARCHIVE INDEX ---
@@ -3705,6 +3931,7 @@
             };
             type();
 
+            tokiDictionary.init();
             registerHeatmap();
             observeBlueprints();
             initScanlineParallax();
