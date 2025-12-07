@@ -140,10 +140,29 @@
 
         /* Sculpture Generator */
         .sculpture-preview {
-            min-height: 160px;
+            min-height: 200px;
             border: 1px dashed #111;
             background: linear-gradient(120deg, rgba(205,43,43,0.08), rgba(17,17,17,0.06));
             box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+        }
+
+        .sculpture-canvas-shell {
+            background: #fdfbf7;
+            border: 1px solid #111;
+            box-shadow: 6px 6px 0 #00000014;
+            min-height: 220px;
+        }
+
+        .sculpture-canvas-shell canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .sculpture-readout {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
         }
 
         /* Grift Rendering Modes */
@@ -483,7 +502,15 @@
                     <button onclick="profiler.generateSculpture()" class="ui-click bg-black text-white px-4 py-3 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600">Generate Blueprint</button>
                 </div>
                 <div class="sculpture-preview rounded-lg p-4" id="sculpture-preview">
-                    <div class="font-mono text-[10px] uppercase tracking-widest text-gray-600">Awaiting prompt...</div>
+                    <div class="grid md:grid-cols-2 gap-4 items-center">
+                        <div class="sculpture-canvas-shell rounded-lg overflow-hidden" id="sculpture-canvas-shell">
+                            <canvas id="sculpture-canvas" width="420" height="260" aria-label="Sculpture preview"></canvas>
+                        </div>
+                        <div class="sculpture-readout rounded-lg p-4 font-mono text-xs space-y-2" id="sculpture-readout">
+                            <div class="text-[10px] uppercase tracking-widest text-gray-500">Awaiting prompt...</div>
+                            <p class="text-sm text-gray-700">Run the quiz and generate a specimen to see the deterministic voxel sketch and dossier.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -542,6 +569,7 @@
                     <p class="font-mono text-xs text-gray-500">RESTRICTED DISTRIBUTION // PARTNER BRIEFING</p>
                 </div>
                 <div class="flex items-center gap-3">
+                    <button onclick="ticketing.open()" class="ui-click bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">3-Tier Tickets</button>
                     <button onclick="window.print()" class="hidden md:block ui-click text-xs font-mono underline hover:text-red-600">PRINT SPEC SHEET</button>
                     <a href="oldindex.html" class="ui-click text-xs font-mono underline hover:text-red-600">Launch Applets</a>
                 </div>
@@ -692,12 +720,12 @@
                     <div class="text-3xl font-mono font-bold text-green-600" id="total-val">$0.00</div>
                 </div>
                 <div class="bg-white p-4 border border-black shadow-md">
-                    <h3 class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Artist Royalty (0.1%)</h3>
+                    <h3 class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Artist Royalty (0.006%)</h3>
                     <div class="text-xl font-mono font-bold text-gray-800" id="user-val">$0.00</div>
                 </div>
                 <div class="bg-white p-4 border border-black shadow-md">
                     <h3 class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Economic Horror Logic</h3>
-                    <p class="text-xs font-mono text-gray-600 leading-relaxed">Lifetime Value accelerates; your royalty is frozen at 0.1%. Compare the delta as the wall fills.</p>
+                    <p class="text-xs font-mono text-gray-600 leading-relaxed">Lifetime Value accelerates; your royalty is frozen at 0.006%. Compare the delta as the wall fills.</p>
                 </div>
                 <button id="accel-btn" onclick="grift.accelerate()" class="bg-red-600 text-white py-4 font-bold uppercase tracking-widest shadow-lg hover:bg-red-700 active:scale-95 transition-all opacity-50 cursor-not-allowed" disabled>Accelerate Market</button>
             </div>
@@ -812,7 +840,6 @@
                 <div class="flex flex-wrap gap-2">
                     <button id="barter-shop-btn" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Shopfront Mode</button>
                     <button id="barter-transparency-btn" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Transparency Mode</button>
-                    <button onclick="ticketing.open()" class="ui-click bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">3-Tier Tickets</button>
                 </div>
             </div>
 
@@ -1159,7 +1186,8 @@
         const state = {
             view: 'landing',
             audioInitialized: false,
-            synth: null
+            synth: null,
+            sessionNonce: Math.random().toString(36).slice(2, 7)
         };
 
         // --- AUDIO ENGINE ---
@@ -1242,6 +1270,10 @@
                 profiler.initialChoice = null;
                 profiler.lastWinner = null;
                 profiler.lastTitle = '';
+                const readout = document.getElementById('sculpture-readout');
+                if (readout) {
+                    readout.innerHTML = `<div class="text-[10px] uppercase tracking-widest text-gray-500">Awaiting prompt...</div><p class="text-sm text-gray-700">Run the quiz and generate a specimen to see the deterministic voxel sketch and dossier.</p>`;
+                }
             },
 
             select: (role, el) => {
@@ -1379,16 +1411,16 @@
                 document.body.classList.remove('modal-open');
             },
 
-            generateSculpture: () => {
+            buildProfile: () => {
                 const mat = document.getElementById('sculpture-material').value;
                 const fmt = document.getElementById('sculpture-format').value;
                 const role = profiler.lastWinner || 'dreamer';
                 const palettes = {
-                    dreamer: ['ultramarine haze', 'silver static', 'paper lantern glow'],
-                    scholar: ['oxidized brass', 'archival cream', 'graphite'],
-                    investor: ['chrome edges', 'LED ticker green', 'black glass'],
-                    passerby: ['rain puddle blue', 'sidewalk gray', 'fluorescent halo'],
-                    lantern: ['ember orange', 'obsidian ribs', 'frosted glass']
+                    dreamer: ['#1f2a7e', '#d6d5cc', '#f5d9c3'],
+                    scholar: ['#7d6338', '#f6f0e6', '#0f172a'],
+                    investor: ['#c0c6cc', '#1b1b1b', '#1db954'],
+                    passerby: ['#7fb3ff', '#9ca3af', '#f4f4f5'],
+                    lantern: ['#d13f23', '#111111', '#f7c99a']
                 };
                 const gestures = {
                     dreamer: 'spiraling helix with soft gaps',
@@ -1397,17 +1429,207 @@
                     passerby: 'offset slabs that almost slip',
                     lantern: 'caged beam held by vertical struts'
                 };
-                const preview = document.getElementById('sculpture-preview');
-                const palette = palettes[role] || palettes.dreamer;
-                const gesture = gestures[role] || gestures.dreamer;
-                preview.innerHTML = `
-                    <div class="font-mono text-[10px] uppercase tracking-widest text-red-600 mb-2">${profiler.lastTitle || 'Signal Artifact'}</div>
-                    <div class="text-lg font-bold mb-1">${fmt} • ${mat}</div>
-                    <p class="text-sm text-gray-700">${gesture} rendered with ${palette[0]}, accented by ${palette[1]}, sealed in ${palette[2]}. Export ready for fabrication or AI diffusion.</p>
+
+                const totalScore = Object.values(profiler.scores).reduce((a, b) => a + b, 0) || 1;
+                const alignment = Math.min(99, Math.round((profiler.scores[role] / totalScore) * 42) + 55);
+                const seedText = `${state.sessionNonce}-${role}-${fmt}-${mat}-${profiler.lastTitle || 'specimen'}`;
+                const hash = sculptureEngine.hash(seedText).toString(36).slice(0, 5).toUpperCase();
+
+                return {
+                    role,
+                    material: mat,
+                    format: fmt,
+                    palette: palettes[role] || palettes.dreamer,
+                    gesture: gestures[role] || gestures.dreamer,
+                    alignment,
+                    seedText,
+                    hash,
+                    specimenId: `Specimen-${role.slice(0, 3).toUpperCase()}-${hash}`,
+                    anomalies: [
+                        `Role deviation: ${Math.max(2, 100 - alignment)}% mismatch from cohort`,
+                        `Pulse ingress: ${Math.round(alignment * 0.23)}bps`,
+                        `Void pockets: ${(7 + (alignment % 5)).toFixed(1)}cm`
+                    ]
+                };
+            },
+
+            renderSculptureReadout: (profile) => {
+                const readout = document.getElementById('sculpture-readout');
+                if (!readout) return;
+                readout.innerHTML = `
+                    <div class="text-[10px] uppercase tracking-widest text-red-600 mb-2">${profile.specimenId}</div>
+                    <div class="space-y-1 text-gray-800">
+                        <div class="font-bold text-sm">${profiler.lastTitle || 'Signal Artifact'}</div>
+                        <div class="text-[11px] uppercase tracking-[0.25em] text-gray-500">${profile.format} • ${profile.material}</div>
+                        <div class="text-sm">${profile.gesture} with creme/black/red controls.</div>
+                    </div>
+                    <div class="mt-3 space-y-1 text-[11px] uppercase tracking-widest text-gray-600">
+                        <div>Alignment: ${profile.alignment}%</div>
+                        <div>Seed: ${profile.hash}</div>
+                        <div>Palette: ${profile.palette.join(' / ')}</div>
+                    </div>
+                    <div class="mt-3 text-[11px] text-gray-600 space-y-1">
+                        ${profile.anomalies.map(a => `<div class="flex items-start gap-2"><span class="text-red-600">●</span><span>${a}</span></div>`).join('')}
+                    </div>
                 `;
+            },
+
+            generateSculpture: () => {
+                const profile = profiler.buildProfile();
+                sculptureEngine.render(profile);
+                profiler.renderSculptureReadout(profile);
             }
         };
         window.profiler = profiler;
+
+        const sculptureEngine = {
+            renderer: null,
+            scene: null,
+            camera: null,
+            container: null,
+            rand: null,
+
+            hash(text) {
+                let h = 0;
+                for (let i = 0; i < text.length; i++) {
+                    h = Math.imul(31, h) + text.charCodeAt(i) | 0;
+                }
+                return Math.abs(h);
+            },
+
+            setSeed(seedText) {
+                let seed = sculptureEngine.hash(seedText) || 1;
+                sculptureEngine.rand = () => {
+                    seed += 1;
+                    const x = Math.sin(seed) * 10000;
+                    return x - Math.floor(x);
+                };
+            },
+
+            init() {
+                sculptureEngine.container = document.getElementById('sculpture-canvas');
+                if (!sculptureEngine.container) return;
+                if (!sculptureEngine.renderer) {
+                    sculptureEngine.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, canvas: sculptureEngine.container });
+                }
+                const bounds = sculptureEngine.container.getBoundingClientRect();
+                sculptureEngine.renderer.setSize(bounds.width || 420, bounds.height || 260);
+
+                sculptureEngine.camera = new THREE.PerspectiveCamera(40, (bounds.width || 420) / (bounds.height || 260), 0.1, 50);
+                sculptureEngine.camera.position.set(3.2, 2.6, 4.8);
+                sculptureEngine.camera.lookAt(0, 1, 0);
+
+                sculptureEngine.scene = new THREE.Scene();
+                sculptureEngine.scene.background = new THREE.Color('#f6f0e6');
+            },
+
+            resetScene() {
+                if (!sculptureEngine.scene) return;
+                while (sculptureEngine.scene.children.length) {
+                    sculptureEngine.scene.remove(sculptureEngine.scene.children[0]);
+                }
+
+                sculptureEngine.scene.add(new THREE.AmbientLight('#f6f0e6', 0.55));
+                const key = new THREE.DirectionalLight('#ffffff', 0.9);
+                key.position.set(3, 6, 5);
+                sculptureEngine.scene.add(key);
+                const rim = new THREE.DirectionalLight('#d7342a', 0.35);
+                rim.position.set(-4, 3, -2);
+                sculptureEngine.scene.add(rim);
+
+                const floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), new THREE.MeshStandardMaterial({ color: '#ede7dc', metalness: 0.1, roughness: 0.8 }));
+                floor.rotation.x = -Math.PI / 2;
+                floor.position.y = -0.5;
+                sculptureEngine.scene.add(floor);
+            },
+
+            randRange(min, max) {
+                if (!sculptureEngine.rand) return min;
+                return min + (max - min) * sculptureEngine.rand();
+            },
+
+            buildPrimitives(profile) {
+                const group = new THREE.Group();
+
+                const voxelCount = 10 + Math.floor(sculptureEngine.randRange(0, 8));
+                for (let i = 0; i < voxelCount; i++) {
+                    const size = sculptureEngine.randRange(0.4, 1.2);
+                    const cube = new THREE.Mesh(
+                        new THREE.BoxGeometry(size, sculptureEngine.randRange(0.5, 1.6), size),
+                        new THREE.MeshStandardMaterial({
+                            color: profile.palette[i % profile.palette.length],
+                            metalness: 0.35,
+                            roughness: 0.4
+                        })
+                    );
+                    cube.position.set(
+                        sculptureEngine.randRange(-1.4, 1.4),
+                        sculptureEngine.randRange(0.2, 2.2),
+                        sculptureEngine.randRange(-1.4, 1.4)
+                    );
+                    cube.rotation.y = sculptureEngine.randRange(0, Math.PI * 2);
+                    group.add(cube);
+
+                    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(cube.geometry), new THREE.LineBasicMaterial({ color: '#0f0f0f', linewidth: 1 }));
+                    edges.position.copy(cube.position);
+                    edges.rotation.copy(cube.rotation);
+                    group.add(edges);
+                }
+
+                for (let i = 0; i < 4; i++) {
+                    const rod = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.05, 0.05, sculptureEngine.randRange(1.2, 2.8), 8),
+                        new THREE.MeshStandardMaterial({ color: '#111111', metalness: 0.6, roughness: 0.25 })
+                    );
+                    rod.position.set(sculptureEngine.randRange(-1.6, 1.6), sculptureEngine.randRange(0.4, 2.4), sculptureEngine.randRange(-1.6, 1.6));
+                    rod.rotation.z = sculptureEngine.randRange(-0.6, 0.6);
+                    rod.rotation.x = sculptureEngine.randRange(-0.2, 0.2);
+                    group.add(rod);
+                }
+
+                for (let i = 0; i < 3; i++) {
+                    const voidBox = new THREE.Mesh(
+                        new THREE.BoxGeometry(sculptureEngine.randRange(0.6, 1.3), sculptureEngine.randRange(0.4, 0.9), sculptureEngine.randRange(0.6, 1.3)),
+                        new THREE.MeshStandardMaterial({ color: '#ffffff', transparent: true, opacity: 0.28, metalness: 0, roughness: 1 })
+                    );
+                    voidBox.position.set(sculptureEngine.randRange(-1.2, 1.2), sculptureEngine.randRange(0.6, 1.8), sculptureEngine.randRange(-1.2, 1.2));
+                    group.add(voidBox);
+                }
+
+                const plate = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.1, 3.8), new THREE.MeshStandardMaterial({ color: '#0f0f0f', metalness: 0.7, roughness: 0.35 }));
+                plate.position.y = 0;
+                group.add(plate);
+
+                const accent = new THREE.Mesh(
+                    new THREE.PlaneGeometry(3.8, 0.2),
+                    new THREE.MeshBasicMaterial({ color: '#d7342a' })
+                );
+                accent.rotation.x = -Math.PI / 2;
+                accent.position.set(0, 0.06, -1.3);
+                group.add(accent);
+
+                sculptureEngine.scene.add(group);
+            },
+
+            render(profile) {
+                sculptureEngine.init();
+                if (!sculptureEngine.renderer) return;
+                sculptureEngine.setSeed(profile.seedText);
+                sculptureEngine.resetScene();
+                sculptureEngine.buildPrimitives(profile);
+                sculptureEngine.renderer.render(sculptureEngine.scene, sculptureEngine.camera);
+            },
+
+            resize() {
+                if (!sculptureEngine.renderer || !sculptureEngine.camera || !sculptureEngine.container) return;
+                const bounds = sculptureEngine.container.getBoundingClientRect();
+                sculptureEngine.camera.aspect = (bounds.width || 420) / (bounds.height || 260);
+                sculptureEngine.camera.updateProjectionMatrix();
+                sculptureEngine.renderer.setSize(bounds.width || 420, bounds.height || 260);
+                sculptureEngine.renderer.render(sculptureEngine.scene, sculptureEngine.camera);
+            }
+        };
+        window.sculptureEngine = sculptureEngine;
 
         // --- GRIFT SHOP LOGIC ---
         const grift = {
@@ -1418,8 +1640,9 @@
             simSpeed: 1000,
             timer: null,
             selectedStyle: 'abstracted',
+            lastGrid: null,
             styleNotes: {
-                abstracted: 'Abstracts clusters with organic blur + noise.',
+                abstracted: 'Abstracts clusters with soft bloom + signal noise.',
                 grid: 'Preserves the pixel lattice with a crisp frame.',
                 flat: 'Fuses pixels into one plate; no grid lines.'
             },
@@ -1440,6 +1663,7 @@
                     grid.appendChild(cell);
                 }
                 grift.setStyle('abstracted');
+                grift.lastGrid = null;
             },
             setColor: (c) => { grift.currentColor = c; audio.click(); },
             setStyle: (style) => {
@@ -1462,13 +1686,14 @@
                 hanging.innerHTML = '';
                 hanging.classList.remove('style-abstracted', 'style-grid', 'style-flat');
                 hanging.classList.add(`style-${grift.selectedStyle}`);
-                const gridHtml = document.getElementById('pixel-grid').cloneNode(true);
-                gridHtml.style.border = 'none';
-                hanging.appendChild(gridHtml);
+                const gridData = grift.captureGrid();
+                const artwork = grift.renderArtwork(grift.selectedStyle, gridData);
+                if (artwork) hanging.appendChild(artwork);
+                grift.lastGrid = gridData;
                 grift.spawnAttendees();
                 grift.isSimulating = true;
                 const log = document.getElementById('event-log');
-                if (log) log.innerHTML = `> Style locked: ${grift.selectedStyle}.<br>` + log.innerHTML;
+                if (log) log.innerHTML = `> Style locked: ${grift.selectedStyle}. Palette ${grift.describePalette(gridData)}.<br>` + log.innerHTML;
                 grift.loop();
             },
             accelerate: () => {
@@ -1492,13 +1717,112 @@
                     row.appendChild(person);
                 }
             },
+            captureGrid: () => {
+                const cells = Array.from(document.querySelectorAll('#pixel-grid .pixel-cell'));
+                const colors = cells.map((cell) => cell.style.backgroundColor || '#ffffff');
+                return { size: 16, colors };
+            },
+            describePalette: (gridData) => {
+                if (!gridData) return 'EMPTY';
+                const counts = {};
+                const normalize = (c) => {
+                    if (!c) return '#ffffff';
+                    if (c.startsWith('#')) return c.toLowerCase();
+                    const parts = c.match(/(\d+)/g) || [];
+                    if (parts.length >= 3) {
+                        return '#' + parts.slice(0, 3).map((p) => Number(p).toString(16).padStart(2, '0')).join('');
+                    }
+                    return '#ffffff';
+                };
+                gridData.colors.forEach((c) => {
+                    const hex = normalize(c);
+                    counts[hex] = (counts[hex] || 0) + 1;
+                });
+                const sorted = Object.entries(counts)
+                    .filter(([hex]) => hex !== '#ffffff')
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(([hex]) => hex.toUpperCase());
+                return sorted.length ? sorted.join(' • ') : 'MONOCHROME';
+            },
+            renderArtwork: (style, data) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 320;
+                canvas.height = 320;
+                canvas.className = 'w-full h-full object-contain';
+                const ctx = canvas.getContext('2d');
+                if (!ctx || !data) return canvas;
+
+                ctx.fillStyle = '#f6f0e6';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                if (style === 'abstracted') grift.renderAbstracted(ctx, data);
+                else if (style === 'flat') grift.renderFlat(ctx, data);
+                else grift.renderGridStyle(ctx, data);
+
+                ctx.strokeStyle = '#0f0f0f';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(6, 6, canvas.width - 12, canvas.height - 12);
+                return canvas;
+            },
+            renderGridStyle: (ctx, data) => {
+                const cellSize = 18;
+                const offset = 30;
+                data.colors.forEach((color, idx) => {
+                    const x = idx % data.size;
+                    const y = Math.floor(idx / data.size);
+                    ctx.fillStyle = color || '#ffffff';
+                    ctx.fillRect(offset + x * cellSize, offset + y * cellSize, cellSize - 1, cellSize - 1);
+                });
+            },
+            renderFlat: (ctx, data) => {
+                const palette = grift.describePalette(data).split(' • ');
+                const swatches = palette.filter((p) => p.startsWith('#'));
+                const fill = swatches.length ? swatches : ['#d7342a', '#0f0f0f', '#f6f0e6'];
+                const grad = ctx.createLinearGradient(0, 0, ctx.canvas.width, ctx.canvas.height);
+                grad.addColorStop(0, fill[0] || '#d7342a');
+                grad.addColorStop(0.5, fill[1] || '#0f0f0f');
+                grad.addColorStop(1, fill[2] || '#f6f0e6');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.globalCompositeOperation = 'multiply';
+                grift.renderGridStyle(ctx, data);
+                ctx.globalCompositeOperation = 'source-over';
+            },
+            renderAbstracted: (ctx, data) => {
+                const size = data.size;
+                const cellSize = 18;
+                const offset = 30;
+                ctx.save();
+                ctx.filter = 'blur(4px)';
+                data.colors.forEach((color, idx) => {
+                    if (!color || color === '#ffffff') return;
+                    const x = idx % size;
+                    const y = Math.floor(idx / size);
+                    const cx = offset + x * cellSize + cellSize / 2;
+                    const cy = offset + y * cellSize + cellSize / 2;
+                    const radius = 10 + (Math.random() * 8);
+                    const gradient = ctx.createRadialGradient(cx, cy, 2, cx, cy, radius);
+                    gradient.addColorStop(0, color);
+                    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.restore();
+                ctx.globalCompositeOperation = 'screen';
+                ctx.fillStyle = 'rgba(215,52,42,0.1)';
+                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.globalCompositeOperation = 'source-over';
+            },
             loop: () => {
                 if (!grift.isSimulating || state.view !== 'grift') return;
                 const addedValue = Math.floor(Math.random() * 5000) + 100;
                 grift.totalValue += addedValue;
-                grift.userRoyalty += addedValue * 0.001;
+                grift.userRoyalty += addedValue * 0.00006;
                 document.getElementById('total-val').innerText = `$${grift.totalValue.toLocaleString()}`;
-                document.getElementById('user-val').innerText = `$${grift.userRoyalty.toFixed(2)}`;
+                document.getElementById('user-val').innerText = `$${grift.userRoyalty.toFixed(4)}`;
                 if (Math.random() > 0.6) {
                     const event = grift.events[Math.floor(Math.random() * grift.events.length)];
                     const log = document.getElementById('event-log');
@@ -2006,6 +2330,8 @@
                 if (e.target.closest('.ui-click') || e.target.tagName === 'BUTTON') audio.click();
             });
         });
+
+        window.addEventListener('resize', () => sculptureEngine.resize());
 
         window.addEventListener('load', () => {
             gallery.init();
