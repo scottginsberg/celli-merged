@@ -157,9 +157,18 @@
                 <button onclick="app.navigate('pitch')" class="ui-click border border-black bg-white px-8 py-4 font-mono text-xs hover:bg-black hover:text-white transition-colors uppercase tracking-widest">View Project Plan</button>
                 <a href="oldindex.html" class="ui-click border border-black bg-white px-8 py-4 font-mono text-xs hover:bg-black hover:text-white transition-colors uppercase tracking-widest">Launch Referrer Sequence</a>
             </div>
-            <div class="mt-10 font-mono text-xs uppercase text-gray-600 tracking-widest">
-                Recommended path: Identity → Pitch → Gallery → Grift/Barter → Referrer Launch.
+            <div class="mt-10 pt-6 border-t border-gray-200">
+                <div class="font-mono text-[10px] uppercase tracking-[0.25em] text-gray-500">Follow the flow</div>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button onclick="app.navigate('profiler')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Identity</button>
+                    <button onclick="app.navigate('pitch')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Pitch</button>
+                    <button onclick="app.navigate('gallery')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Gallery</button>
+                    <button onclick="app.navigate('grift')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Grift Shop</button>
+                    <button onclick="app.navigate('barter')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Barter Post</button>
+                    <a href="oldindex.html" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Referrer Launch</a>
+                </div>
             </div>
+
         </div>
     </section>
 
@@ -178,6 +187,7 @@
                     <button onclick="app.navigate('gallery')" class="bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600">Enter Gallery</button>
                 </div>
             </div>
+
         </div>
 
         <div class="max-w-5xl mx-auto px-6 py-12 w-full flex-grow flex flex-col justify-center" id="prof-content-area">
@@ -245,6 +255,19 @@
             <div id="prof-stage-process" class="hidden text-center max-w-xl mx-auto">
                 <div class="font-mono text-sm uppercase tracking-widest space-y-4" id="decon-lines">
                     <!-- JS injects lines here -->
+                </div>
+            </div>
+
+        </div>
+
+        <div class="max-w-5xl mx-auto px-6 pb-12 w-full">
+            <div class="pt-8 mt-4 border-t border-gray-200">
+                <div class="font-mono text-[10px] uppercase tracking-[0.25em] text-gray-500">Continue the experience</div>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button onclick="app.navigate('pitch')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Project Brief</button>
+                    <button onclick="app.navigate('gallery')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Gallery</button>
+                    <button onclick="app.navigate('grift')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Grift Shop</button>
+                    <button onclick="app.navigate('barter')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Barter Post</button>
                 </div>
             </div>
 
@@ -329,6 +352,16 @@
                     </div>
                 </div>
             </div>
+
+            <div class="mt-12 pt-6 border-t border-gray-200">
+                <div class="font-mono text-[10px] uppercase tracking-[0.25em] text-gray-500">Flow from here</div>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button onclick="app.navigate('gallery')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Gallery</button>
+                    <button onclick="app.navigate('protocol')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Lantern Protocol</button>
+                    <button onclick="app.navigate('grift')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Grift Shop</button>
+                    <button onclick="app.navigate('barter')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Barter Post</button>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -380,6 +413,17 @@
                     <div class="text-xl font-mono font-bold text-gray-800" id="user-val">$0.00</div>
                 </div>
                 <button id="accel-btn" onclick="grift.accelerate()" class="bg-red-600 text-white py-4 font-bold uppercase tracking-widest shadow-lg hover:bg-red-700 active:scale-95 transition-all opacity-50 cursor-not-allowed" disabled>Accelerate Market</button>
+            </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto px-4 pb-12">
+            <div class="pt-6 mt-6 border-t border-gray-300">
+                <div class="font-mono text-[10px] uppercase tracking-[0.25em] text-gray-500">Branch out</div>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button onclick="app.navigate('barter')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Barter Post</button>
+                    <button onclick="app.navigate('gallery')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Gallery</button>
+                    <button onclick="app.navigate('pitch')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Project Brief</button>
+                </div>
             </div>
         </div>
     </section>
@@ -439,6 +483,16 @@
                     </ul>
                 </div>
             </div>
+
+            <div class="mt-12 pt-6 border-t border-gray-200">
+                <div class="font-mono text-[10px] uppercase tracking-[0.25em] text-gray-500">Move through the system</div>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button onclick="app.navigate('gallery')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Gallery</button>
+                    <button onclick="app.navigate('barter')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Barter Post</button>
+                    <button onclick="app.navigate('pitch')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Project Brief</button>
+                    <button onclick="app.navigate('profiler')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Identity</button>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -483,6 +537,16 @@
                     <button class="w-full bg-black text-white text-xs uppercase py-2 hover:bg-red-600 transition-colors">Acquire</button>
                 </div>
             </div>
+
+            <div class="mt-12 pt-6 border-t border-gray-200">
+                <div class="font-mono text-[10px] uppercase tracking-[0.25em] text-gray-500">Keep moving</div>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button onclick="app.navigate('gallery')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Gallery</button>
+                    <button onclick="app.navigate('grift')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Grift Shop</button>
+                    <button onclick="app.navigate('protocol')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Lantern Protocol</button>
+                    <a href="oldindex.html" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Referrer Launch</a>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -493,6 +557,11 @@
             <h3 class="font-mono font-bold uppercase text-sm mb-2 tracking-wider">Gallery Control</h3>
             <p class="font-mono text-xs text-gray-600 leading-relaxed mb-4">Drag to orbit. Scroll to zoom.<br>Click artifacts for data.</p>
             <a href="oldindex.html" class="ui-click text-xs font-mono underline uppercase tracking-widest">Launch Full Referrer Sequence</a>
+            <div class="mt-4 flex flex-wrap gap-2">
+                <button onclick="app.navigate('grift')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Grift Shop</button>
+                <button onclick="app.navigate('barter')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Barter</button>
+                <button onclick="app.navigate('pitch')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Project Brief</button>
+            </div>
         </div>
     </section>
 
