@@ -673,79 +673,56 @@
             </div>
         </div>
 
-        <div class="max-w-6xl mx-auto px-6 pb-16 w-full flex flex-col gap-10">
-            <div class="grid md:grid-cols-2 gap-8 items-start">
-                <div class="space-y-6">
-                    <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Identity Clearance // Domestic Product</div>
-                    <div class="space-y-3">
-                        <h2 class="text-4xl md:text-5xl font-bold uppercase tracking-tight leading-tight">Identity Access Console</h2>
-                        <p class="font-mono text-sm text-gray-700 leading-relaxed">Choose how you'll move through the exhibition. Select the signal that matches your intent; we'll confirm it with a sealed quiz window so the rest of the console stays clean.</p>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="bg-white border border-gray-200 p-4 shadow-sm">
-                            <div class="font-mono text-[10px] uppercase tracking-widest text-gray-500">Status</div>
-                            <div class="font-bold text-lg">Channel Ready</div>
-                            <p class="text-xs text-gray-500">Signal tuned to the Domestic Product palette.</p>
-                        </div>
-                        <div class="bg-white border border-gray-200 p-4 shadow-sm">
-                            <div class="font-mono text-[10px] uppercase tracking-widest text-gray-500">Security</div>
-                            <div class="font-bold text-lg">Intake Sealed</div>
-                            <p class="text-xs text-gray-500">Quiz runs in its own modal; your badge is issued after alignment.</p>
-                        </div>
-                    </div>
-                </div>
+        <div class="max-w-5xl mx-auto px-6 pb-16 w-full flex flex-col gap-10">
+            <div class="text-center space-y-4">
+                <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Identity Quiz</div>
+                <h2 class="text-4xl md:text-5xl font-bold uppercase tracking-tight leading-tight">Choose your signal</h2>
+                <p class="font-mono text-sm text-gray-700 leading-relaxed max-w-3xl mx-auto">Pick your lane and we'll open a sealed quiz overlay to confirm it—no permanent console pinned to the top of the page.</p>
+            </div>
 
-                <div class="bg-white border border-black rounded-xl shadow-xl overflow-hidden" id="prof-shell">
-                    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-                        <div>
-                            <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Classification Gate</div>
-                            <div class="font-bold text-lg">Confirm your signal</div>
+            <div class="bg-white border border-black rounded-xl shadow-xl overflow-hidden" id="prof-shell">
+                <div class="p-6 space-y-6" id="prof-content-area">
+                    <!-- Stage 1: Intro/Selection -->
+                    <div id="prof-stage-select" class="fade-in space-y-5">
+                        <p class="font-mono text-xs text-gray-600 text-center uppercase tracking-widest">Pick your lane. A focused quiz will open in a separate overlay to confirm your classification.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                            <button onclick="profiler.select('dreamer', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
+                                <div class="text-lg font-bold uppercase mb-1">Dreamer</div>
+                                <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Hunts for resonance and lyrical angles.</div>
+                            </button>
+                            <button onclick="profiler.select('scholar', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
+                                <div class="text-lg font-bold uppercase mb-1">Scholar</div>
+                                <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Documents provenance and keeps the receipts.</div>
+                            </button>
+                            <button onclick="profiler.select('investor', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
+                                <div class="text-lg font-bold uppercase mb-1">Investor</div>
+                                <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Measures upside; tracks viable returns.</div>
+                            </button>
+                            <button onclick="profiler.select('passerby', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
+                                <div class="text-lg font-bold uppercase mb-1">Passerby</div>
+                                <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Arrives without baggage; reads the room plainly.</div>
+                            </button>
+                            <button onclick="profiler.select('lantern', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
+                                <div class="text-lg font-bold uppercase mb-1">Lantern</div>
+                                <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Carries the story; keeps guests oriented.</div>
+                            </button>
                         </div>
-                        <div class="text-[10px] font-mono uppercase tracking-[0.25em] bg-black text-white px-2 py-1">Live</div>
                     </div>
 
-                    <div class="p-6 space-y-6" id="prof-content-area">
-                        <!-- Stage 1: Intro/Selection -->
-                        <div id="prof-stage-select" class="fade-in space-y-5">
-                            <p class="font-mono text-xs text-gray-600 text-center uppercase tracking-widest">Pick your lane. A focused quiz will open in a separate overlay to confirm your classification.</p>
-                            <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-                                <button onclick="profiler.select('dreamer', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
-                                    <div class="text-lg font-bold uppercase mb-1">Dreamer</div>
-                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Hunts for resonance and lyrical angles.</div>
-                                </button>
-                                <button onclick="profiler.select('scholar', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
-                                    <div class="text-lg font-bold uppercase mb-1">Scholar</div>
-                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Documents provenance and keeps the receipts.</div>
-                                </button>
-                                <button onclick="profiler.select('investor', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
-                                    <div class="text-lg font-bold uppercase mb-1">Investor</div>
-                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Measures upside; tracks viable returns.</div>
-                                </button>
-                                <button onclick="profiler.select('passerby', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
-                                    <div class="text-lg font-bold uppercase mb-1">Passerby</div>
-                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Arrives without baggage; reads the room plainly.</div>
-                                </button>
-                                <button onclick="profiler.select('lantern', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
-                                    <div class="text-lg font-bold uppercase mb-1">Lantern</div>
-                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Carries the story; keeps guests oriented.</div>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Stage 2: Doubt -->
-                        <div id="prof-stage-doubt" class="hidden text-center border border-black p-8 bg-[#FDFBF7] shadow-[6px_6px_0px_0px_rgba(205,43,43,1)] rounded-lg">
-                            <h3 class="text-3xl font-bold uppercase mb-3 text-red-600">Are you sure?</h3>
-                            <p class="font-mono text-xs mb-6 leading-relaxed text-gray-700">
-                                Your self-classification clashes with most visitor patterns. We'll open a focused pop-up quiz to test it without pinning anything to the top of the page.
-                            </p>
-                            <div class="flex gap-4 justify-center flex-wrap">
-                                <button onclick="profiler.reset()" class="ui-click border-b-2 border-gray-300 hover:border-black text-xs font-mono uppercase pb-1">Reconsider</button>
-                                <button onclick="profiler.startQuiz()" class="ui-click bg-black text-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Launch Verification Pop-up</button>
-                            </div>
+                    <!-- Stage 2: Doubt -->
+                    <div id="prof-stage-doubt" class="hidden text-center border border-black p-8 bg-[#FDFBF7] shadow-[6px_6px_0px_0px_rgba(205,43,43,1)] rounded-lg">
+                        <h3 class="text-3xl font-bold uppercase mb-3 text-red-600">Are you sure?</h3>
+                        <p class="font-mono text-xs mb-6 leading-relaxed text-gray-700">
+                            Your self-classification clashes with most visitor patterns. We'll open a focused pop-up quiz to test it without pinning anything to the top of the page.
+                        </p>
+                        <div class="flex gap-4 justify-center flex-wrap">
+                            <button onclick="profiler.reset()" class="ui-click border-b-2 border-gray-300 hover:border-black text-xs font-mono uppercase pb-1">Reconsider</button>
+                            <button onclick="profiler.startQuiz()" class="ui-click bg-black text-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Launch Verification Pop-up</button>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
             <div id="prof-result-card" class="hidden grid md:grid-cols-3 gap-4 items-start">
                 <div class="md:col-span-2 bg-white border border-black rounded-xl p-6 shadow-lg">
