@@ -32,13 +32,11 @@
         }
 
         .blueprint {
-            background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08), transparent 35%),
-                        radial-gradient(circle at 80% 40%, rgba(255,255,255,0.08), transparent 30%),
-                        linear-gradient(0deg, rgba(17,17,17,0.06) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(17,17,17,0.06) 1px, transparent 1px),
-                        #0B132B;
-            background-size: 240px 240px, 260px 260px, 28px 28px, 28px 28px, auto;
-            color: #E5ECF4;
+            background: linear-gradient(0deg, rgba(205,43,43,0.08) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(205,43,43,0.08) 1px, transparent 1px),
+                        #FDFBF7;
+            background-size: 26px 26px, 26px 26px, auto;
+            color: #161616;
         }
 
         .modal-layer {
@@ -54,6 +52,8 @@
         }
 
         .modal-layer.active { display: flex; }
+
+        body.modal-open { overflow: hidden; }
 
         .font-mono { font-family: 'Space Mono', monospace; }
         .bg-grid { background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px); background-size: 20px 20px; }
@@ -263,49 +263,49 @@
     </section>
 
     <!-- VIEW: AMBITION (CONNECTED WORLD) -->
-    <section id="view-ambition" class="view-section blueprint py-16 min-h-screen">
+    <section id="view-ambition" class="view-section blueprint py-16 min-h-screen text-gray-900">
         <div class="max-w-6xl mx-auto px-6 space-y-10">
             <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
                 <div class="space-y-3">
-                    <div class="inline-flex items-center gap-2 border border-white/40 px-3 py-1 text-[10px] font-mono uppercase tracking-widest">Ambition // Connected Blueprint</div>
+                    <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Domestic Product // Systems Map</div>
                     <h1 class="text-4xl md:text-5xl font-bold uppercase tracking-tight">Loomworks, Domestic Product, Celli</h1>
-                    <p class="font-mono text-sm text-blue-100 max-w-2xl">A single lattice: the referrer sequences, the domestic show, and the broader Loomworks civic fiction. Everything mapped as a living, graphic systems blueprint.</p>
+                    <p class="font-mono text-sm text-gray-700 max-w-2xl">One diagram tying the referrer tunnels, the floor show, and the Celli experiments into a single domestic-industrial circuit.</p>
                 </div>
-                <div class="bg-white/10 border border-white/20 px-4 py-3 shadow-lg backdrop-blur">
-                    <div class="text-[10px] font-mono uppercase tracking-[0.3em] text-blue-100">Roadmap Mode</div>
-                    <div class="text-2xl font-bold">Active Build</div>
+                <div class="bg-white border border-black/20 px-4 py-3 shadow-lg">
+                    <div class="text-[10px] font-mono uppercase tracking-[0.3em] text-red-700">Status</div>
+                    <div class="text-2xl font-bold">Live Build</div>
                 </div>
             </div>
 
             <div class="grid lg:grid-cols-3 gap-6">
-                <div class="bg-white/10 border border-white/15 rounded-xl p-6 shadow-lg space-y-2">
-                    <div class="text-[10px] font-mono uppercase tracking-widest text-blue-100">Loomworks Spine</div>
+                <div class="bg-white border border-black/10 rounded-xl p-6 shadow-lg space-y-2">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-red-700">Loomworks Spine</div>
                     <h3 class="text-2xl font-bold">World Backbone</h3>
-                    <p class="text-blue-100 text-sm">Signal relays, referrer tunnels, lantern doctrine. This is the civic infrastructure that keeps every other module coherent.</p>
-                    <div class="text-[10px] font-mono uppercase tracking-widest text-blue-100">Milestones</div>
-                    <ul class="list-disc list-inside text-sm text-blue-50 space-y-1">
+                    <p class="text-sm text-gray-700">Signal relays, referrer tunnels, lantern doctrine. The civic infrastructure that keeps every other module coherent.</p>
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-red-700">Milestones</div>
+                    <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
                         <li>Referrer overlay stabilization</li>
                         <li>Lantern canon + casting</li>
                         <li>Archive metadata exposures</li>
                     </ul>
                 </div>
-                <div class="bg-white/10 border border-white/15 rounded-xl p-6 shadow-lg space-y-2">
-                    <div class="text-[10px] font-mono uppercase tracking-widest text-blue-100">Domestic Product</div>
+                <div class="bg-white border border-black/10 rounded-xl p-6 shadow-lg space-y-2">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-red-700">Domestic Product</div>
                     <h3 class="text-2xl font-bold">The Exhibition Engine</h3>
-                    <p class="text-blue-100 text-sm">Physical staging, barter floor, grift kiosk, and gallery tooling. Where the fiction touches guests.</p>
-                    <div class="text-[10px] font-mono uppercase tracking-widest text-blue-100">Milestones</div>
-                    <ul class="list-disc list-inside text-sm text-blue-50 space-y-1">
+                    <p class="text-sm text-gray-700">Physical staging, barter floor, grift kiosk, and gallery tooling. Where the fiction touches guests.</p>
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-red-700">Milestones</div>
+                    <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
                         <li>Identity console + sculpture generator</li>
                         <li>Pixel economy with alternate finishes</li>
                         <li>Protocol choreography refresh</li>
                     </ul>
                 </div>
-                <div class="bg-white/10 border border-white/15 rounded-xl p-6 shadow-lg space-y-2">
-                    <div class="text-[10px] font-mono uppercase tracking-widest text-blue-100">Celli</div>
+                <div class="bg-black text-white border border-black rounded-xl p-6 shadow-xl space-y-2">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-red-200">Celli</div>
                     <h3 class="text-2xl font-bold">Signal Playground</h3>
-                    <p class="text-blue-100 text-sm">Signal totems, audio stems, micro-city growth. Every experiment that feeds back into Loomworks lore.</p>
-                    <div class="text-[10px] font-mono uppercase tracking-widest text-blue-100">Milestones</div>
-                    <ul class="list-disc list-inside text-sm text-blue-50 space-y-1">
+                    <p class="text-sm text-gray-100">Signal totems, audio stems, micro-city growth. Experiments that feed back into Loomworks lore.</p>
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-red-200">Milestones</div>
+                    <ul class="list-disc list-inside text-sm text-gray-100 space-y-1">
                         <li>Hybrid gallery overlays</li>
                         <li>Story explorer tie-ins</li>
                         <li>AI sculpture exports</li>
@@ -313,38 +313,38 @@
                 </div>
             </div>
 
-            <div class="bg-white/10 border border-white/15 rounded-2xl p-6 shadow-2xl space-y-6">
-                <div class="flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-widest text-blue-100">
-                    <span class="px-2 py-1 border border-white/30 rounded-full">Blueprint Map</span>
-                    <span class="px-2 py-1 border border-white/30 rounded-full">Signal Hand-offs</span>
-                    <span class="px-2 py-1 border border-white/30 rounded-full">Audience Journey</span>
-                    <span class="px-2 py-1 border border-white/30 rounded-full">Production Tempo</span>
+            <div class="bg-white border border-black rounded-2xl p-6 shadow-2xl space-y-6">
+                <div class="flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-widest text-gray-600">
+                    <span class="px-2 py-1 border border-gray-300 rounded-full">Systems Map</span>
+                    <span class="px-2 py-1 border border-gray-300 rounded-full">Signal Hand-offs</span>
+                    <span class="px-2 py-1 border border-gray-300 rounded-full">Audience Journey</span>
+                    <span class="px-2 py-1 border border-gray-300 rounded-full">Production Tempo</span>
                 </div>
                 <div class="grid md:grid-cols-3 gap-4">
-                    <div class="bg-black/40 border border-white/20 rounded-lg p-4">
-                        <div class="text-blue-100 text-[11px] font-mono uppercase tracking-widest mb-1">01 / Approach</div>
+                    <div class="bg-white border border-black/10 rounded-lg p-4 shadow-sm">
+                        <div class="text-red-700 text-[11px] font-mono uppercase tracking-widest mb-1">01 / Approach</div>
                         <div class="font-bold text-xl mb-2">Referrer → Domestic</div>
-                        <p class="text-sm text-blue-50">Social relays trigger the landing, identity console captures intent, barter primes visitors.</p>
+                        <p class="text-sm text-gray-700">Social relays trigger the landing; the intake console captures intent; barter primes visitors.</p>
                     </div>
-                    <div class="bg-black/40 border border-white/20 rounded-lg p-4">
-                        <div class="text-blue-100 text-[11px] font-mono uppercase tracking-widest mb-1">02 / Immerse</div>
+                    <div class="bg-white border border-black/10 rounded-lg p-4 shadow-sm">
+                        <div class="text-red-700 text-[11px] font-mono uppercase tracking-widest mb-1">02 / Immerse</div>
                         <div class="font-bold text-xl mb-2">Domestic ↔ Gallery</div>
-                        <p class="text-sm text-blue-50">3D gallery, lantern overlays, sculpture generator, and grift finishes feed assets back to archive.</p>
+                        <p class="text-sm text-gray-700">3D gallery, lantern overlays, sculpture generator, and grift finishes feed assets back to archive.</p>
                     </div>
-                    <div class="bg-black/40 border border-white/20 rounded-lg p-4">
-                        <div class="text-blue-100 text-[11px] font-mono uppercase tracking-widest mb-1">03 / Echo</div>
+                    <div class="bg-white border border-black/10 rounded-lg p-4 shadow-sm">
+                        <div class="text-red-700 text-[11px] font-mono uppercase tracking-widest mb-1">03 / Echo</div>
                         <div class="font-bold text-xl mb-2">Archive → Loomworks</div>
-                        <p class="text-sm text-blue-50">Metadata, field recordings, and merchant proofs loop into Celli experiments and future shows.</p>
+                        <p class="text-sm text-gray-700">Metadata, field recordings, and merchant proofs loop into Celli experiments and future shows.</p>
                     </div>
                 </div>
                 <div class="flex flex-col md:flex-row gap-4">
-                    <div class="flex-1 bg-black/50 border border-white/25 rounded-lg p-4">
-                        <div class="text-[10px] font-mono uppercase tracking-widest text-blue-100 mb-1">Visual Blueprint</div>
-                        <p class="text-sm text-blue-50">Grid overlays, anchor points, and lantern glyphs align across every surface. This is the graphic standard for the connected world.</p>
+                    <div class="flex-1 bg-[#FDFBF7] border border-black/10 rounded-lg p-4">
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-red-700 mb-1">Visual Blueprint</div>
+                        <p class="text-sm text-gray-700">Grid overlays, anchor points, and lantern glyphs align across every surface. The graphic standard for Domestic Product.</p>
                     </div>
-                    <div class="flex-1 bg-black/50 border border-white/25 rounded-lg p-4">
-                        <div class="text-[10px] font-mono uppercase tracking-widest text-blue-100 mb-1">Roadmap Cadence</div>
-                        <p class="text-sm text-blue-50">Monthly artifact drops, quarterly lore patches, bi-weekly gallery re-hangs, and daily signal logging.</p>
+                    <div class="flex-1 bg-[#FDFBF7] border border-black/10 rounded-lg p-4">
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-red-700 mb-1">Roadmap Cadence</div>
+                        <p class="text-sm text-gray-700">Monthly artifact drops, quarterly lore patches, bi-weekly gallery re-hangs, and daily signal logging.</p>
                     </div>
                 </div>
             </div>
@@ -372,21 +372,21 @@
         <div class="max-w-6xl mx-auto px-6 pb-16 w-full flex flex-col gap-10">
             <div class="grid md:grid-cols-2 gap-8 items-start">
                 <div class="space-y-6">
-                    <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Identity Clearance // Private Intake</div>
+                    <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Identity Clearance // Domestic Product</div>
                     <div class="space-y-3">
                         <h2 class="text-4xl md:text-5xl font-bold uppercase tracking-tight leading-tight">Identity Access Console</h2>
-                        <p class="font-mono text-sm text-gray-700 leading-relaxed">A compact, secure shell for the classification ritual. No more scrolling vacuum—your role, your proof, and your access all live inside this single viewport.</p>
+                        <p class="font-mono text-sm text-gray-700 leading-relaxed">Choose how you'll move through the exhibition. Select the signal that matches your intent; we'll confirm it with a sealed quiz window so the rest of the console stays clean.</p>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="bg-white border border-gray-200 p-4 shadow-sm">
                             <div class="font-mono text-[10px] uppercase tracking-widest text-gray-500">Status</div>
-                            <div class="font-bold text-lg">Channel Quiet</div>
-                            <p class="text-xs text-gray-500">Noise filtered, attention narrowed.</p>
+                            <div class="font-bold text-lg">Channel Ready</div>
+                            <p class="text-xs text-gray-500">Signal tuned to the Domestic Product palette.</p>
                         </div>
                         <div class="bg-white border border-gray-200 p-4 shadow-sm">
                             <div class="font-mono text-[10px] uppercase tracking-widest text-gray-500">Security</div>
-                            <div class="font-bold text-lg">Identity Secured</div>
-                            <p class="text-xs text-gray-500">Header copy tightened. Everything stays aligned.</p>
+                            <div class="font-bold text-lg">Intake Sealed</div>
+                            <p class="text-xs text-gray-500">Quiz runs in its own modal; your badge is issued after alignment.</p>
                         </div>
                     </div>
                 </div>
@@ -403,40 +403,40 @@
                     <div class="p-6 space-y-6" id="prof-content-area">
                         <!-- Stage 1: Intro/Selection -->
                         <div id="prof-stage-select" class="fade-in space-y-5">
-                            <p class="font-mono text-xs text-gray-600 text-center uppercase tracking-widest">Select the signal you believe fits. The quiz pops as a contained overlay—no scroll abyss.</p>
+                            <p class="font-mono text-xs text-gray-600 text-center uppercase tracking-widest">Pick your lane. A focused quiz will open in a separate overlay to confirm your classification.</p>
                             <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
                                 <button onclick="profiler.select('dreamer', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
                                     <div class="text-lg font-bold uppercase mb-1">Dreamer</div>
-                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Pattern-sighters.</div>
+                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Hunts for resonance and lyrical angles.</div>
                                 </button>
                                 <button onclick="profiler.select('scholar', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
                                     <div class="text-lg font-bold uppercase mb-1">Scholar</div>
-                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Archivists + explainers.</div>
+                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Documents provenance and keeps the receipts.</div>
                                 </button>
                                 <button onclick="profiler.select('investor', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
                                     <div class="text-lg font-bold uppercase mb-1">Investor</div>
-                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Value interrogators.</div>
+                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Measures upside; tracks viable returns.</div>
                                 </button>
                                 <button onclick="profiler.select('passerby', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
                                     <div class="text-lg font-bold uppercase mb-1">Passerby</div>
-                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Drifters, honest.</div>
+                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Arrives without baggage; reads the room plainly.</div>
                                 </button>
                                 <button onclick="profiler.select('lantern', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
                                     <div class="text-lg font-bold uppercase mb-1">Lantern</div>
-                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Between longing + duty.</div>
+                                    <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Carries the story; keeps guests oriented.</div>
                                 </button>
                             </div>
                         </div>
 
                         <!-- Stage 2: Doubt -->
                         <div id="prof-stage-doubt" class="hidden text-center border border-black p-8 bg-[#FDFBF7] shadow-[6px_6px_0px_0px_rgba(205,43,43,1)] rounded-lg">
-                            <h3 class="text-3xl font-bold uppercase mb-3 text-red-600">Confirm?</h3>
+                            <h3 class="text-3xl font-bold uppercase mb-3 text-red-600">Are you sure?</h3>
                             <p class="font-mono text-xs mb-6 leading-relaxed text-gray-700">
-                                You selected a rare path. The verification quiz will open as a floating panel so the rest of the console stays pristine.
+                                Your self-classification clashes with most visitor patterns. We'll open a focused pop-up quiz to test it without pinning anything to the top of the page.
                             </p>
                             <div class="flex gap-4 justify-center flex-wrap">
                                 <button onclick="profiler.reset()" class="ui-click border-b-2 border-gray-300 hover:border-black text-xs font-mono uppercase pb-1">Reconsider</button>
-                                <button onclick="profiler.startQuiz()" class="ui-click bg-black text-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Open Assessment Popup</button>
+                                <button onclick="profiler.startQuiz()" class="ui-click bg-black text-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Launch Verification Pop-up</button>
                             </div>
                         </div>
                     </div>
@@ -1213,6 +1213,7 @@
                 document.getElementById('prof-stage-process').classList.add('hidden');
                 document.getElementById('prof-banner').classList.add('hidden');
                 document.getElementById('quiz-modal').classList.remove('active');
+                document.body.classList.remove('modal-open');
                 document.getElementById('prof-result-card').classList.add('hidden');
                 document.getElementById('sculpture-generator').classList.add('hidden');
                 const totalEl = document.getElementById('quiz-total');
@@ -1247,6 +1248,7 @@
                 document.getElementById('prof-stage-quiz').classList.remove('hidden');
                 document.getElementById('prof-stage-process').classList.add('hidden');
                 document.getElementById('quiz-modal').classList.add('active');
+                document.body.classList.add('modal-open');
                 profiler.renderQuestion();
             },
 
@@ -1355,6 +1357,7 @@
             closeModal: () => {
                 const modal = document.getElementById('quiz-modal');
                 modal.classList.remove('active');
+                document.body.classList.remove('modal-open');
             },
 
             generateSculpture: () => {
