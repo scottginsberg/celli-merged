@@ -94,6 +94,37 @@
             animation: glitch-blink 1.4s infinite;
         }
 
+        /* Dime Backlog 2.0 */
+        .dime-log-grid { grid-template-columns: 320px 1fr; }
+        .dime-log-card { transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease; }
+        .dime-log-card.active { transform: translateX(6px); box-shadow: 0 18px 40px rgba(0,0,0,0.18); background: #fff; }
+        .dime-log-card:hover { box-shadow: 0 12px 28px rgba(0,0,0,0.12); }
+        .dime-boot { font-family: 'Space Mono', monospace; background: #0b0b0b; color: #c0ffef; padding: 18px; border-radius: 12px; }
+        .dime-detail-pane { position: relative; overflow: hidden; }
+        .dime-detail-pane::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.7) 100%); pointer-events: none; opacity: 0.4; }
+        .redact { position: relative; display: inline-block; cursor: help; }
+        .redact .bar { display: inline-block; background: #0b0b0b; color: #0b0b0b; padding: 2px 6px; border-radius: 4px; transition: opacity 0.14s ease, transform 0.14s ease; }
+        .redact .floaty { position: absolute; left: 0; top: -14px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; color: #e45f19; opacity: 0; transform: translateY(6px); transition: opacity 0.18s ease, transform 0.18s ease; }
+        .redact.revealed .bar { opacity: 0; transform: translateY(-6px); }
+        .redact.revealed .floaty { opacity: 1; transform: translateY(-4px); }
+        .glitch-frame { position: absolute; inset: -12px; pointer-events: none; mix-blend-mode: screen; background: repeating-linear-gradient(90deg, rgba(255,90,90,0.18) 0, rgba(255,90,90,0.18) 6px, transparent 6px, transparent 12px); opacity: 0; }
+        .glitch-frame.glitching { animation: glitch-blip 140ms ease-out; }
+
+        /* Value Gate */
+        .value-tile { border: 1px solid #111; background: #fdfbf7; transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+        .value-tile:hover { transform: translateY(-4px); box-shadow: 0 16px 32px rgba(0,0,0,0.12); border-color: #cd2b2b; }
+        .raffle-box { background: linear-gradient(135deg, #f2ede2, #ffffff); border: 1.5px dashed #111; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05); }
+        .raffle-prize { font-family: 'Space Mono', monospace; letter-spacing: 0.12em; }
+        .disabled-btn { position: relative; }
+        .disabled-btn .tooltip { display: none; position: absolute; bottom: 100%; left: 0; background: #111; color: #fff; padding: 6px 10px; font-size: 11px; border-radius: 6px; white-space: nowrap; transform: translateY(-6px); }
+        .disabled-btn:hover .tooltip { display: block; }
+
+        /* Grift Puzzler */
+        .grift-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+        .grift-card { background: #ffffff; border: 1px solid #111; padding: 16px; border-radius: 14px; box-shadow: 0 14px 34px rgba(0,0,0,0.08); transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
+        .grift-card:hover { transform: translateY(-4px); box-shadow: 0 18px 38px rgba(0,0,0,0.12); border-color: #cd2b2b; }
+        .value-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid #111; background: #fef3e6; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+
         @keyframes glitch-blink {
             0%, 92% { opacity: 0; transform: translate3d(0,0,0); }
             93% { opacity: 0.5; transform: translate3d(-1px, 0, 0); }
@@ -110,6 +141,13 @@
             0% { transform: translateY(4px); opacity: 0.6; }
             50% { transform: translateY(-4px); opacity: 1; }
             100% { transform: translateY(4px); opacity: 0.6; }
+        }
+
+        @keyframes glitch-blip {
+            0%   { opacity: 0; transform: translateX(0); filter: hue-rotate(0deg); }
+            40%  { opacity: 0.45; transform: translateX(-3px); }
+            70%  { opacity: 0.25; transform: translateX(3px); }
+            100% { opacity: 0; transform: translateX(0); }
         }
 
         body.modal-open { overflow: hidden; }
@@ -678,6 +716,7 @@
             <button onclick="app.navigate('profiler'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200 text-red-600">Identify</button>
             <button onclick="app.navigate('pitch'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Project Plan</button>
             <button onclick="app.navigate('press'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Press Kit</button>
+            <button onclick="app.navigate('tickets'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Tickets</button>
             <button onclick="app.navigate('grift'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Grift Shop</button>
             <button onclick="app.navigate('barter'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Barter Post</button>
             <button onclick="app.navigate('ambition'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Ambition</button>
@@ -702,6 +741,7 @@
             <button onclick="app.navigate('profiler')" class="nav-btn hover:text-red-600 transition-colors ui-click font-bold text-red-600" data-target="profiler">Identify</button>
             <button onclick="app.navigate('pitch')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="pitch">Pitch</button>
             <button onclick="app.navigate('press')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="press">Press Kit</button>
+            <button onclick="app.navigate('tickets')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="tickets">Tickets</button>
             <button onclick="app.navigate('grift')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="grift">Grift Shop</button>
             <button onclick="app.navigate('barter')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="barter">Barter</button>
             <button onclick="app.navigate('ambition')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="ambition">Ambition</button>
@@ -742,7 +782,7 @@
             <div class="flex flex-wrap gap-4">
                 <button onclick="app.navigate('profiler')" class="ui-click bg-black text-white px-8 py-4 font-mono text-xs hover:bg-red-600 transition-colors uppercase tracking-widest shadow-lg">Begin Identity Assessment</button>
                 <button onclick="app.navigate('pitch')" class="ui-click border border-black bg-white px-8 py-4 font-mono text-xs hover:bg-black hover:text-white transition-colors uppercase tracking-widest">View Project Plan</button>
-                <button onclick="ticketing.open()" class="ui-click border border-black bg-white px-8 py-4 font-mono text-xs hover:bg-black hover:text-white transition-colors uppercase tracking-widest">3-Tier Tickets</button>
+                <button onclick="app.navigate('tickets')" class="ui-click border border-black bg-white px-8 py-4 font-mono text-xs hover:bg-black hover:text-white transition-colors uppercase tracking-widest">Value Gate</button>
                 <a href="oldindex.html" class="ui-click border border-black bg-white px-8 py-4 font-mono text-xs hover:bg-black hover:text-white transition-colors uppercase tracking-widest">Launch Referrer Sequence</a>
             </div>
             <div class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -785,6 +825,98 @@
 
             <div class="mt-12 gre-comments-mount" data-context-label="THRESHOLD / WELCOME" data-variant="light" data-page-id="landing"></div>
 
+        </div>
+    </section>
+
+
+    <!-- VIEW: TICKETS / VALUE GATE -->
+    <section id="view-tickets" class="view-section bg-[#FDFBF7] min-h-screen">
+        <div class="max-w-6xl mx-auto px-6 py-16 space-y-12">
+            <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 border-b-2 border-black pb-6">
+                <div class="space-y-4 max-w-3xl">
+                    <div class="inline-flex items-center gap-2 bg-white border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest">Value Gate // Ticketing Hold</div>
+                    <h1 class="text-4xl md:text-5xl font-bold uppercase tracking-tight leading-tight">DOMESTIC PRODUCT: EARLY ACCESS HOLD</h1>
+                    <p class="text-lg font-serif text-gray-800 leading-relaxed">"your" money is no good here. try to create value here. with us.</p>
+                    <p class="text-sm font-mono uppercase tracking-[0.22em] text-gray-600">tickets will not accept your currency yet. we’re measuring something else first. (it might be you.)</p>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="document.getElementById('value-gate').scrollIntoView({behavior:'smooth'});" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Open Value Gate</button>
+                        <button onclick="app.navigate('grift')" class="ui-click border border-black bg-black text-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Visit Grift Shop</button>
+                    </div>
+                </div>
+                <div class="bg-white border border-black px-4 py-3 shadow-md space-y-2 w-full max-w-sm">
+                    <div class="font-mono text-[10px] uppercase tracking-[0.3em] text-gray-600">Ticket Access</div>
+                    <div id="ticket-status-pill" class="value-pill justify-between">
+                        <span>Status: measuring</span>
+                        <span id="ticket-status-tokens" class="font-bold">0 tokens</span>
+                    </div>
+                    <p class="text-xs text-gray-700">Earn Value Tokens in the Grift Shop to trigger provisional access.</p>
+                </div>
+            </div>
+
+            <div id="value-gate" class="grid lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="value-tile p-6 rounded-2xl shadow-lg">
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-600 mb-2">Gate Options</div>
+                        <div class="grid sm:grid-cols-2 gap-3">
+                            <div class="disabled-btn">
+                                <button class="w-full border border-black bg-gray-200 text-gray-500 px-4 py-3 uppercase text-xs tracking-widest cursor-not-allowed">Try to buy ticket</button>
+                                <div class="tooltip text-[10px] font-mono uppercase">Denied: insufficient value artifacts.</div>
+                            </div>
+                            <button onclick="app.navigate('grift')" class="w-full border border-black bg-black text-white px-4 py-3 uppercase text-xs tracking-widest hover:bg-red-700 transition-colors">Create value instead</button>
+                        </div>
+                        <p class="text-sm text-gray-700 mt-3">No checkout. No cart. The only valid tender is your suspicion and play. Scroll to the Grift Shop to generate enough narrative value to unlock the RSVP stub.</p>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="value-tile p-5 rounded-2xl shadow-lg space-y-3">
+                            <div class="font-mono text-[10px] uppercase tracking-widest text-gray-500">Email Capture (Stub)</div>
+                            <p class="text-sm text-gray-800">Leave a way for us to find you when the curtain goes up.</p>
+                            <form id="email-stub-form" class="space-y-3">
+                                <input required type="email" placeholder="you@somewhere" class="border border-black px-3 py-2 w-full focus:ring-2 focus:ring-orange-300" />
+                                <button class="border border-black px-3 py-2 uppercase text-xs tracking-widest bg-white hover:bg-black hover:text-white transition-colors">Submit non-binding interest</button>
+                                <p id="email-stub-status" class="text-xs text-gray-600"></p>
+                            </form>
+                        </div>
+                        <div class="raffle-box p-5 rounded-2xl space-y-3">
+                            <div class="font-mono text-[10px] uppercase tracking-widest text-gray-600">Fake raffle // carnival legalese</div>
+                            <div class="text-lg font-bold">WIN: ABSOLUTELY NOTHING</div>
+                            <p class="text-sm text-gray-700">Microcopy: "Gain: perspective." Tap the tumbler to see what you never wanted.</p>
+                            <div class="border border-black bg-white rounded-xl p-4 flex items-center justify-between gap-3 cursor-pointer" id="raffle-box">
+                                <div>
+                                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Prize</div>
+                                    <div id="raffle-prize" class="raffle-prize text-lg">one (1) insight</div>
+                                </div>
+                                <div class="w-14 h-14 rounded-full border-2 border-black bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center font-mono text-xs">spin</div>
+                            </div>
+                            <p class="text-[11px] text-gray-600">Occasional glitches reveal the .hero silhouette before snapping back.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="value-tile p-5 rounded-2xl shadow-lg space-y-2">
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-600">Ticket Module</div>
+                        <div id="ticket-status" class="text-sm text-gray-800 leading-relaxed">tickets unavailable. value under construction. visit the grift shop to… extract.</div>
+                        <div id="ticket-unlock" class="hidden space-y-2">
+                            <p class="text-sm text-gray-800">tickets still unavailable, but you’ve been provisionally woven in.</p>
+                            <button class="border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">RSVP as future Lantern</button>
+                        </div>
+                    </div>
+                    <div class="value-tile p-5 rounded-2xl shadow-lg space-y-2">
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-600">Dime Note</div>
+                        <p class="text-sm text-gray-800">"we're measuring something else. i think it's our ability to enjoy being lightly bamboozled."</p>
+                        <button onclick="dimeBacklog.open();" class="ui-click inline-flex items-center gap-2 border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+                            <span>Access Dime Backlog</span>
+                            <span class="text-[9px] text-red-600">lntrn00.10</span>
+                        </button>
+                    </div>
+                    <div class="value-tile p-5 rounded-2xl shadow-lg space-y-2">
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-600">Raffle Footnote</div>
+                        <p class="text-xs text-gray-600 leading-relaxed">*not legally binding. nothing here is.</p>
+                        <p class="text-xs text-gray-600">Loomworks frames this like an investment meeting and carnival simultaneously.</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -1196,7 +1328,7 @@
                     <p class="font-mono text-xs text-gray-500">RESTRICTED DISTRIBUTION // PARTNER BRIEFING</p>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button onclick="ticketing.open()" class="ui-click bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">3-Tier Tickets</button>
+                    <button onclick="app.navigate('tickets')" class="ui-click bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Value Gate</button>
                     <button onclick="window.print()" class="hidden md:block ui-click text-xs font-mono underline hover:text-red-600">PRINT SPEC SHEET</button>
                     <a href="oldindex.html" class="ui-click text-xs font-mono underline hover:text-red-600">Launch Applets</a>
                 </div>
@@ -1312,7 +1444,7 @@
                     <p class="font-mono text-xs uppercase tracking-[0.25em] text-gray-500">Professional, mythic, ready to paste into decks</p>
                 </div>
                 <div class="flex gap-3">
-                    <button onclick="ticketing.open()" class="ui-click bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Ticketing</button>
+                    <button onclick="app.navigate('tickets')" class="ui-click bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Ticketing</button>
                     <button onclick="app.navigate('pitch')" class="ui-click border border-black px-4 py-2 text-[10px] font-mono uppercase tracking-widest bg-white hover:bg-black hover:text-white transition-colors">Project Brief</button>
                 </div>
             </div>
@@ -1439,99 +1571,90 @@
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <button onclick="app.navigate('ambition')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Why This Exists</button>
-                    <button onclick="ticketing.open()" class="ui-click bg-black text-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Claim Tickets</button>
+                    <button onclick="app.navigate('tickets')" class="ui-click bg-black text-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Claim Tickets</button>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- VIEW: GRIFT SHOP (Mini Game) -->
+    <!-- VIEW: GRIFT SHOP (Value Puzzler) -->
     <section id="view-grift" class="view-section bg-gray-100 min-h-screen">
-        <div class="max-w-6xl mx-auto px-4 py-8 h-full flex flex-col md:flex-row gap-8">
-            <!-- Left: Editor -->
-            <div class="flex-1 bg-white p-6 border border-black shadow-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="font-bold uppercase tracking-widest text-lg">The Grift Shop</h2>
-                    <div class="text-xs font-mono text-gray-500">Produce. Submit. Comply.</div>
+        <div class="max-w-6xl mx-auto px-6 py-12 space-y-10">
+            <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 border-b-2 border-black pb-6">
+                <div class="space-y-2">
+                    <div class="inline-flex items-center gap-2 bg-white border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest">Welcome to the Grift Shop</div>
+                    <h2 class="text-4xl font-bold uppercase tracking-tight">Extract Value</h2>
+                    <p class="text-sm text-gray-700 max-w-2xl">We don’t take your money. We help you notice where it’s been taken before. Solve the micro-grifts, collect Value Tokens, and watch the ticketing module change its mind.</p>
+                    <div class="text-xs font-mono uppercase tracking-[0.25em] text-gray-500">State: <span id="grift-state">griftIdle</span></div>
                 </div>
-                
-                <div id="editor-ui">
-                    <div class="pixel-grid mb-6" id="pixel-grid"></div>
-                    <div class="flex gap-2 mb-6">
-                        <div class="w-8 h-8 bg-black cursor-pointer border border-gray-300" onclick="grift.setColor('#000000')"></div>
-                        <div class="w-8 h-8 bg-red-600 cursor-pointer border border-gray-300" onclick="grift.setColor('#CD2B2B')"></div>
-                        <div class="w-8 h-8 bg-gray-400 cursor-pointer border border-gray-300" onclick="grift.setColor('#9CA3AF')"></div>
-                        <div class="w-8 h-8 bg-white cursor-pointer border border-gray-300" onclick="grift.setColor('#FFFFFF')"></div>
-                        <div class="w-8 h-8 bg-yellow-400 cursor-pointer border border-gray-300" onclick="grift.setColor('#FACC15')"></div>
-                    </div>
-                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-                        <div class="flex items-start justify-between gap-3 mb-3">
-                            <div>
-                                <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Processing Style</div>
-                                <p class="text-xs text-gray-600">Decide how the submission is minted and displayed.</p>
-                            </div>
-                            <div class="text-[10px] font-mono text-gray-500" id="style-note">Abstracts clusters with organic blur + noise.</div>
-                        </div>
-                        <div class="grid sm:grid-cols-3 gap-3 text-[12px] font-mono">
-                            <label class="flex items-start gap-2 bg-white border border-gray-200 p-3 cursor-pointer hover:border-black">
-                                <input type="radio" name="grift-style" value="abstracted" class="mt-1" checked onchange="grift.setStyle('abstracted')">
-                                <span><span class="font-bold uppercase">Abstracted</span><br>Pixel clusters become organic glyphs.</span>
-                            </label>
-                            <label class="flex items-start gap-2 bg-white border border-gray-200 p-3 cursor-pointer hover:border-black">
-                                <input type="radio" name="grift-style" value="grid" class="mt-1" onchange="grift.setStyle('grid')">
-                                <span><span class="font-bold uppercase">Pixel Grid</span><br>Sold framed with visible grid + line weight.</span>
-                            </label>
-                            <label class="flex items-start gap-2 bg-white border border-gray-200 p-3 cursor-pointer hover:border-black">
-                                <input type="radio" name="grift-style" value="flat" class="mt-1" onchange="grift.setStyle('flat')">
-                                <span><span class="font-bold uppercase">Flat Merge</span><br>Pixels fused into a single plate print.</span>
-                            </label>
-                        </div>
-                    </div>
-                    <button onclick="grift.submit()" class="w-full bg-black text-white py-3 font-mono text-sm uppercase hover:bg-red-600 transition-colors">Submit Work to Gallery</button>
-                </div>
-
-                <div id="gallery-sim" class="hidden h-full flex-col relative">
-                    <div class="flex-1 bg-[#FDFBF7] border border-black p-4 relative overflow-hidden" id="wall-display">
-                        <div id="hanging-art" class="w-32 h-32 border-4 border-black bg-white shadow-xl mx-auto mt-8 transform transition-transform duration-1000"></div>
-                        <div id="attendee-row" class="absolute bottom-2 left-0 right-0 flex justify-center gap-6 pointer-events-none"></div>
-                        <div class="absolute bottom-0 w-full flex justify-center gap-4 items-end">
-                            <div class="w-8 h-16 bg-black opacity-80"></div>
-                            <div class="w-8 h-14 bg-black opacity-80"></div>
-                            <div class="w-8 h-18 bg-black opacity-80"></div>
-                        </div>
-                    </div>
-                    <div class="mt-4 p-4 bg-black text-green-500 font-mono text-xs h-32 overflow-y-auto" id="event-log">
-                        > UPLOADING TO LOOMWORKS DATABASE...<br>> VERIFYING ASSET...<br>
-                    </div>
+                <div class="flex flex-wrap gap-3">
+                    <div class="value-pill"><span>Tokens</span><span id="token-count" class="font-bold">0</span></div>
+                    <button onclick="app.navigate('tickets')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">View Ticket Gate</button>
+                    <button onclick="dimeBacklog.open();" class="ui-click border border-black bg-[#FDFBF7] px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Peek Dime Backlog</button>
                 </div>
             </div>
 
-            <!-- Right: Dashboard -->
-            <div class="w-full md:w-80 flex flex-col gap-4">
-                <div class="bg-white p-4 border border-black shadow-md">
-                    <h3 class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Loomworks Lifetime Value</h3>
-                    <div class="text-3xl font-mono font-bold text-green-600" id="total-val">$0.00</div>
+            <div class="bg-white border border-black rounded-2xl p-6 shadow-lg space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div class="space-y-1">
+                        <div class="font-mono text-[10px] uppercase tracking-widest text-gray-600">Grift Loop</div>
+                        <p class="text-sm text-gray-800">Grift modules unlock in any order. Hover, drag, click, and uncheck your way to 3 tokens.</p>
+                    </div>
+                    <div id="grift-overlay" class="hidden bg-black text-white px-3 py-2 rounded-lg font-mono text-xs uppercase tracking-[0.2em]">VALUE INDEX REACHED</div>
                 </div>
-                <div class="bg-white p-4 border border-black shadow-md">
-                    <h3 class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Artist Royalty (0.006%)</h3>
-                    <div class="text-xl font-mono font-bold text-gray-800" id="user-val">$0.00</div>
-                </div>
-                <div class="bg-white p-4 border border-black shadow-md">
-                    <h3 class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Economic Horror Logic</h3>
-                    <p class="text-xs font-mono text-gray-600 leading-relaxed">Lifetime Value accelerates; your royalty is frozen at 0.006%. Compare the delta as the wall fills.</p>
-                </div>
-                <button id="accel-btn" onclick="grift.accelerate()" class="bg-red-600 text-white py-4 font-bold uppercase tracking-widest shadow-lg hover:bg-red-700 active:scale-95 transition-all opacity-50 cursor-not-allowed" disabled>Accelerate Market</button>
-            </div>
-        </div>
+                <div class="grift-grid">
+                    <div class="grift-card" id="card-coin">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold uppercase tracking-tight">Influencer Coin</h3>
+                            <span class="value-pill" id="coin-yield">Yield: ?</span>
+                        </div>
+                        <p class="text-sm text-gray-700">BUY HIGH / SELL STORY. Drag the slider toward craft to short pure hype.</p>
+                        <div class="mt-4">
+                            <label class="text-xs font-mono uppercase tracking-widest text-gray-500">Clout ← → Craft</label>
+                            <input id="coin-slider" type="range" min="0" max="100" value="55" class="w-full accent-orange-500">
+                        </div>
+                        <p id="coin-lore" class="text-xs text-gray-600 mt-2">drag toward craft. see what happens.</p>
+                    </div>
 
-        <div class="max-w-6xl mx-auto px-4 pb-12">
-            <div class="pt-6 mt-6 border-t border-gray-300">
-                <div class="font-mono text-[10px] uppercase tracking-[0.25em] text-gray-500">Branch out</div>
-                <div class="flex flex-wrap gap-2 mt-3">
-                    <button onclick="app.navigate('barter')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Barter Post</button>
-                    <button onclick="app.navigate('gallery')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Gallery</button>
-                    <button onclick="app.navigate('pitch')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Project Brief</button>
+                    <div class="grift-card" id="card-box">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold uppercase tracking-tight">Unopened Merch Box</h3>
+                            <span class="value-pill" id="box-yield">Yield: ?</span>
+                        </div>
+                        <p class="text-sm text-gray-700">Tape reads “DO NOT OPEN UNTIL VIRAL.” Keep tapping anyway.</p>
+                        <div class="mt-4 space-y-2">
+                            <button id="box-tape" class="ui-click border border-black bg-white px-3 py-2 text-xs font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Peel tape</button>
+                            <div id="box-progress" class="text-xs font-mono uppercase tracking-[0.2em] text-gray-500">Waiting…</div>
+                            <div id="box-note" class="text-sm text-gray-800 hidden">value appears when somebody actually uses the thing.</div>
+                        </div>
+                    </div>
+
+                    <div class="grift-card" id="card-timeshare">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold uppercase tracking-tight">Timeshare of the Soul</h3>
+                            <span class="value-pill" id="time-yield">Yield: ?</span>
+                        </div>
+                        <p class="text-sm text-gray-700">Fake contract offering slices of your schedule. Keep your hours intact to unlock value.</p>
+                        <div class="mt-3 space-y-2 text-sm text-gray-800">
+                            <label class="flex items-center gap-2"><input type="checkbox" class="timeshare-box" checked value="weekends">weekends</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" class="timeshare-box" checked value="evenings">evenings</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" class="timeshare-box" checked value="dreams">dreams</label>
+                            <button id="timeshare-submit" class="ui-click border border-black bg-gray-200 text-gray-500 px-3 py-2 text-[10px] font-mono uppercase tracking-widest cursor-not-allowed">Submit</button>
+                            <div id="timeshare-note" class="text-xs text-gray-600">Uncheck all boxes to keep yourself intact.</div>
+                        </div>
+                    </div>
                 </div>
+                <div class="pt-4 flex flex-wrap gap-3 text-xs font-mono uppercase tracking-[0.25em] text-gray-600">
+                    <span>this is not financial advice. this is narrative advice.</span>
+                    <span id="grift-hint" class="text-red-600"></span>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-gray-300 flex flex-wrap gap-3 items-center">
+                <div class="value-pill bg-white">Loomworks Note: <span id="grift-note">griftIdle</span></div>
+                <button onclick="app.navigate('tickets')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Check Ticket Status</button>
+                <button onclick="app.navigate('barter')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Barter Post</button>
+                <button onclick="app.navigate('gallery')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Gallery</button>
             </div>
         </div>
     </section>
@@ -1688,7 +1811,7 @@
                 </div>
                 <div class="flex flex-wrap gap-3">
                     <button onclick="app.navigate('protocol')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Protocol / Casting Page</button>
-                    <button onclick="ticketing.open()" class="ui-click bg-black text-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">3-Tier Tickets</button>
+                <button onclick="app.navigate('tickets')" class="ui-click bg-black text-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Value Gate</button>
                 </div>
             </div>
 
@@ -1907,132 +2030,21 @@
             <div class="p-6 sm:p-8 space-y-6">
                 <div class="dime-backlog-banner border border-black/60 text-[10px] font-mono uppercase tracking-[0.28em] text-gray-800 py-3 px-4">Loomworks Internal Use Only • Specimen: LNTRN00.10 • DIME BACKLOG PROTOCOL • Access level: Low</div>
 
-                <div class="grid sm:grid-cols-2 gap-4 text-[11px] font-mono uppercase tracking-widest text-gray-700">
-                    <div>Render mode: <span class="font-bold text-red-700">Flat archival</span><br>Transition: fade_through_beige<br>Glitch frequency: 0.07</div>
-                    <div>Caption behavior: diegetic_overlay<br>Status: continuous input<br>Timecode: [UNRESOLVED]</div>
-                </div>
+                <div id="dime-boot" class="dime-boot text-sm" aria-live="polite">LOOMWORKS // APPLICANT LOGGING SUBSYSTEM…</div>
 
-                <div class="border border-black/30 bg-white/70 p-4 shadow-inner space-y-3">
-                    <div class="font-bold text-xs uppercase tracking-widest text-gray-800">Section 0.0 — System Handshake</div>
-                    <div class="grid sm:grid-cols-5 gap-3 text-sm text-gray-800">
-                        <div class="sm:col-span-2 bg-[#f4e9da] p-3 border border-black/10">INTAKE_NODE_3: handshake=verified<br><span class="text-gray-500">INTERN_DIME: "hiiii omg thank uuu !! ☺️✨ ready 4 orientation!!!!"</span><br>INTAKE_NODE_3: "Snacks detected."</div>
-                        <div class="sm:col-span-3 bg-[#f9f4ea] p-3 border border-black/10">INTERN_DIME: "omg sorry lol I’ll put them away"<br>INTAKE_NODE_3: "Snacks purged."<br><span class="glitch-span" data-glitch="crumbs linger">glitch("crumbs_linger", opacity:0.12)</span></div>
+                <div id="dime-log-container" class="hidden space-y-3">
+                    <div class="flex flex-wrap gap-2 font-mono text-[10px] uppercase tracking-widest text-gray-600">
+                        <span>Render mode: archival paper</span>
+                        <span>Palette: off-white / graphite / muted orange</span>
+                        <span>Redaction hover: scrub + float</span>
                     </div>
-                </div>
-
-                <div class="border border-black/30 bg-white/90 p-4 shadow-inner space-y-4">
-                    <div class="font-bold text-xs uppercase tracking-widest text-red-700">Section 1.0 — Purpose Alignment Quiz</div>
-                    <div class="text-xs font-mono uppercase tracking-[0.24em] text-gray-500">Pacing: 2.4s per prompt • Cursor blink: irregular • Color shader: corporate gray</div>
-                    <div class="space-y-2 text-sm text-gray-800">
-                        <div class="flex items-start gap-3">
-                            <span class="font-mono text-[10px] text-gray-500">Prompt 1</span>
-                            <div>
-                                "State motivation for applying to Loomworks."<br>
-                                <span class="text-gray-600">INTERN_DIME:</span> "I like diagrams?? and uniforms??"<br>
-                                <span class="text-gray-500">Prompt_1_ACK:</span> "Adequate."
-                            </div>
-                        </div>
-                        <div class="flex items-start gap-3">
-                            <span class="font-mono text-[10px] text-gray-500">Prompt 2</span>
-                            <div>
-                                "Rate your confidence using one (1) emoji."<br>
-                                INTERN_DIME: "omg just ONE?? okay umm… <span class="glitch-span" data-glitch="🤩">🤩</span>"<br>
-                                INTAKE_NODE_3: "Logged." — "wait can I change it??" — "No."
-                            </div>
-                        </div>
-                        <div class="text-center text-gray-400 text-xs">[REDACTED_LINE_BREAK_01]</div>
-                        <div class="text-center text-[32px] leading-none">🤩<span class="text-[10px] text-gray-500 align-top">(glitch_overlay)</span></div>
-                    </div>
-                </div>
-
-                <div class="border border-black/30 bg-[#fdfbf7] p-4 shadow-inner space-y-3">
-                    <div class="font-bold text-xs uppercase tracking-widest text-gray-800">Section 2.0 — Team Integration Protocol</div>
-                    <div class="grid sm:grid-cols-2 gap-4 text-sm text-gray-800">
-                        <div class="space-y-1">
-                            INTAKE_NODE_3: "Submit childhood artifact for cognitive baseline."<br>
-                            INTERN_DIME: "uhhhhh that’s kinda personal??"<br>
-                            INTAKE_NODE_3: "Submission required."<br>
-                            INTERN_DIME: "fineeee 🙄 it was…"
-                            <div class="redaction-block" aria-label="redacted"></div>
-                            <div class="text-[12px] text-gray-500">fade_out("thank you for your contribution", delay:240ms)</div>
-                        </div>
-                        <div class="space-y-1">
-                            INTAKE_NODE_3: "Height?"<br>
-                            INTERN_DIME: "????? taller than the pantry I guess?? lol"<br>
-                            <div class="text-[11px] font-mono uppercase text-gray-600">artifact_status: accepted • signal_strength: moderate_high • silhouette_gen: enabled</div>
+                    <div class="grid dime-log-grid gap-4">
+                        <div class="bg-white/90 border border-black rounded-2xl shadow-inner p-3 space-y-2 max-h-[70vh] overflow-y-auto" id="dime-log-list" aria-label="Dime log entries"></div>
+                        <div class="dime-detail-pane bg-white/95 border border-black rounded-2xl shadow-xl p-4 sm:p-6 relative min-h-[320px]" id="dime-detail">
+                            <div id="dime-glitch" class="glitch-frame"></div>
+                            <div id="dime-log-detail" class="space-y-4"></div>
                         </div>
                     </div>
-                </div>
-
-                <div class="border border-black/30 bg-white p-4 shadow-inner space-y-3">
-                    <div class="font-bold text-xs uppercase tracking-widest text-red-700">Section 3.0 — Artifact Synthesis Engine</div>
-                    <div class="text-xs font-mono uppercase tracking-[0.25em] text-gray-500">Render: schematic_on_parchment • Glitch: line_skips intensity 0.15 • Audio: low hum, almost breathing</div>
-                    <div class="bg-[#0f1628] text-white p-3 rounded-lg font-mono text-xs space-y-1">
-                        <div>{</div>
-                        <div class="pl-4">class: ".hero",</div>
-                        <div class="pl-4">state: "initializing",</div>
-                        <div class="pl-4">height: "pantry+",</div>
-                        <div class="pl-4">personality_seed: "imaginary_friend_construct",</div>
-                        <div class="pl-4">stability: 0.41,</div>
-                        <div class="pl-4">waiting_for_directive: true</div>
-                        <div>}</div>
-                    </div>
-                    <div class="font-mono text-[11px] uppercase tracking-[0.2em] text-gray-700">caption_overlay("ASSET CLASS: HERO.PROVISIONAL")</div>
-                    <div class="floating-text text-red-600 font-semibold">FREE!</div>
-                </div>
-
-                <div class="border border-black/30 bg-[#fdf8ee] p-4 shadow-inner space-y-3">
-                    <div class="font-bold text-xs uppercase tracking-widest text-gray-800">Section 4.0 — Intern Self-Report</div>
-                    <p class="text-sm text-gray-800">"omg why did they MAKE me talk about her lol??<br>lights flickered twice?? probably normal haha lol??"</p>
-                    <div class="text-[11px] text-gray-500">text_glitch("lol??", dilation:+7%)</div>
-                </div>
-
-                <div class="border border-black/30 bg-white p-4 shadow-inner space-y-3">
-                    <div class="font-bold text-xs uppercase tracking-widest text-red-700">Section 5.0 — System Reflection (Auto-Generated)</div>
-                    <div class="text-sm text-gray-800">OBSERVATION: offered artifact displays structural coherency.<br>OBSERVATION: intern imagination substrate exceeds projection.<br>ACTION: elevate <span class="redaction-block inline-block align-middle w-1/3"></span> to HERO.PROVISIONAL.<br>ACTION: map childhood construct to operational silhouette.<br>ACTION: suppress intern awareness of manifestation event.</div>
-                    <div class="text-center text-gray-600 text-xs">fade_out_block("ACCESS SHIELDED")</div>
-                    <div class="floating-text text-gray-500">FREE!</div>
-                </div>
-
-                <div class="border border-black/30 bg-[#eef2f7] p-4 shadow-inner space-y-3">
-                    <div class="font-bold text-xs uppercase tracking-widest text-gray-800">Section 6.0 — Backlog Drift Event</div>
-                    <p class="text-sm text-gray-800">Trigger: intern_anomaly • Effect: ambient_color_shift (warm→cool) • Caption: "unauthorized reflection"</p>
-                    <div class="text-sm text-gray-700 leading-relaxed">INTERN_DIME:<br>"okay soooo weird question but…<br>did anyone else see a girl-shaped shadow near their locker??<br>or was that just me lol<br>haha<br><span class="glitch-span" data-glitch="lol">lol</span>"</div>
-                </div>
-
-                <div class="border border-black/30 bg-white p-4 shadow-inner space-y-3">
-                    <div class="font-bold text-xs uppercase tracking-widest text-red-700">Section 7.0 — Code Snippets (Generated)</div>
-                    <pre class="bg-black text-green-200 font-mono text-xs p-4 rounded-lg overflow-x-auto"><code>function fabricateImaginaryFriend(seed){
-  let trace = imprint(seed)
-  let height = "pantryPlus"
-  return silhouette(trace, height)
-}
-
-hero = fabricateImaginaryFriend("[REDACTED]")
-
-if (hero.status == "dormant"){
-  await directiveAssignment()
-}
-
-redact("seed")
-floating_text("thank you")</code></pre>
-                </div>
-
-                <div class="border border-black/30 bg-[#fdfbf7] p-4 shadow-inner space-y-3">
-                    <div class="font-bold text-xs uppercase tracking-widest text-gray-800">Section 8.0 — Pacing + Transition Specs</div>
-                    <div class="text-sm text-gray-800">pacing_curve: "anticipatory → uneasy → tender"</div>
-                    <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
-                        <li>cut_points: overshare → artifact acceptance → silhouette render → realization of company</li>
-                        <li>glitch_events: pantry_height misalignment, emoji drift, breathing hum beneath silence, redaction stutter</li>
-                        <li>transitions: paper_scorch, beige_to_void, soft_blur, hard_flicker</li>
-                    </ul>
-                </div>
-
-                <div class="border border-black/30 bg-white p-4 shadow-inner space-y-2">
-                    <div class="font-bold text-xs uppercase tracking-widest text-red-700">Section 9.0 — Closing State</div>
-                    <p class="text-sm text-gray-800">end_frame: "hero silhouette faint behind Dime's final line"<br>overlay_text: "awaiting further submission"<br>opacity: 0.34</p>
-                    <div class="text-center text-gray-600 text-xs">[REDACTED_EXIT_LINE]</div>
-                    <div class="text-right floating-text text-red-600">FREE! →</div>
                 </div>
             </div>
         </div>
@@ -3405,204 +3417,141 @@ floating_text("thank you")</code></pre>
         };
         window.sculptureEngine = sculptureEngine;
 
+        // --- SHARED VALUE STATE ---
+        const valueState = {
+            tokens: 0,
+            solved: new Set(),
+            listeners: [],
+            addToken(id) {
+                if (valueState.solved.has(id)) return;
+                valueState.solved.add(id);
+                valueState.tokens += 1;
+                valueState.emit();
+            },
+            emit() {
+                valueState.listeners.forEach((fn) => fn(valueState));
+            },
+            subscribe(fn) {
+                valueState.listeners.push(fn);
+                fn(valueState);
+            }
+        };
+        window.valueState = valueState;
+
         // --- GRIFT SHOP LOGIC ---
         const grift = {
-            currentColor: '#000000',
-            isSimulating: false,
-            totalValue: 0,
-            userRoyalty: 0,
-            simSpeed: 1000,
-            timer: null,
-            selectedStyle: 'abstracted',
-            lastGrid: null,
-            styleNotes: {
-                abstracted: 'Abstracts clusters with soft bloom + signal noise.',
-                grid: 'Preserves the pixel lattice with a crisp frame.',
-                flat: 'Fuses pixels into one plate; no grid lines.'
-            },
-            events: [
-                "Piece spotted in background of viral TikTok.", "Loomworks acquires global IP rights.",
-                "Unauthorized merch on AliExpress.", "Sotheby's Auction: Lot 404 - SOLD.",
-                "Piece used in AI training dataset.", "Influencer holding piece upside down.",
-                "Minted as NFT on dead chain.", "Bootleg plushie released in Japan."
-            ],
-            
-            init: () => {
-                const grid = document.getElementById('pixel-grid');
-                grid.innerHTML = '';
-                for (let i = 0; i < 256; i++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'pixel-cell';
-                    cell.onclick = () => { cell.style.backgroundColor = grift.currentColor; audio.click(); };
-                    grid.appendChild(cell);
+            state: 'griftIdle',
+            bound: false,
+            boxClicks: 0,
+            init() {
+                if (grift.bound) {
+                    grift.updateFromValueState(valueState);
+                    return;
                 }
-                grift.setStyle('abstracted');
-                grift.lastGrid = null;
+                grift.bound = true;
+                const slider = document.getElementById('coin-slider');
+                if (slider) slider.addEventListener('input', grift.handleCoin);
+                const tape = document.getElementById('box-tape');
+                if (tape) tape.addEventListener('click', grift.handleBox);
+                document.querySelectorAll('.timeshare-box').forEach((box) => box.addEventListener('change', grift.handleTimeshare));
+                const submit = document.getElementById('timeshare-submit');
+                if (submit) submit.addEventListener('click', (e) => { e.preventDefault(); grift.submitTimeshare(); });
+                valueState.subscribe(grift.updateFromValueState);
+                grift.handleTimeshare();
+                grift.updateState('griftIdle');
             },
-            setColor: (c) => { grift.currentColor = c; audio.click(); },
-            setStyle: (style) => {
-                grift.selectedStyle = style;
-                const note = document.getElementById('style-note');
-                if (note) note.innerText = grift.styleNotes[style] || '';
-                const hanging = document.getElementById('hanging-art');
-                if (hanging) {
-                    hanging.classList.remove('style-abstracted', 'style-grid', 'style-flat');
-                    hanging.classList.add(`style-${style}`);
-                }
-            },
-            submit: () => {
-                document.getElementById('editor-ui').classList.add('hidden');
-                const sim = document.getElementById('gallery-sim');
-                sim.classList.remove('hidden'); sim.classList.add('flex');
-                document.getElementById('accel-btn').disabled = false;
-                document.getElementById('accel-btn').classList.remove('opacity-50', 'cursor-not-allowed');
-                const hanging = document.getElementById('hanging-art');
-                hanging.innerHTML = '';
-                hanging.classList.remove('style-abstracted', 'style-grid', 'style-flat');
-                hanging.classList.add(`style-${grift.selectedStyle}`);
-                const gridData = grift.captureGrid();
-                const artwork = grift.renderArtwork(grift.selectedStyle, gridData);
-                if (artwork) hanging.appendChild(artwork);
-                grift.lastGrid = gridData;
-                grift.spawnAttendees();
-                grift.isSimulating = true;
-                const log = document.getElementById('event-log');
-                if (log) log.innerHTML = `> Style locked: ${grift.selectedStyle}. Palette ${grift.describePalette(gridData)}.<br>` + log.innerHTML;
-                grift.loop();
-            },
-            accelerate: () => {
-                audio.click();
-                grift.simSpeed = Math.max(50, grift.simSpeed * 0.7);
-                const btn = document.getElementById('accel-btn');
-                btn.innerText = "ACCELERATING...";
-                setTimeout(() => btn.innerText = "ACCELERATE MARKET", 200);
-                const log = document.getElementById('event-log');
-                if (log) log.innerHTML = `> Market velocity spiked. <br>` + log.innerHTML;
-            },
-            spawnAttendees: () => {
-                const row = document.getElementById('attendee-row');
-                if (!row) return;
-                row.innerHTML = '';
-                const count = 4;
-                for (let i = 0; i < count; i++) {
-                    const person = document.createElement('div');
-                    person.className = `attendee ${i % 2 === 0 ? 'observe' : ''}`;
-                    person.style.animationDelay = `${Math.random()}s`;
-                    row.appendChild(person);
-                }
-            },
-            captureGrid: () => {
-                const cells = Array.from(document.querySelectorAll('#pixel-grid .pixel-cell'));
-                const colors = cells.map((cell) => cell.style.backgroundColor || '#ffffff');
-                return { size: 16, colors };
-            },
-            describePalette: (gridData) => {
-                if (!gridData) return 'EMPTY';
-                const counts = {};
-                const normalize = (c) => {
-                    if (!c) return '#ffffff';
-                    if (c.startsWith('#')) return c.toLowerCase();
-                    const parts = c.match(/(\d+)/g) || [];
-                    if (parts.length >= 3) {
-                        return '#' + parts.slice(0, 3).map((p) => Number(p).toString(16).padStart(2, '0')).join('');
-                    }
-                    return '#ffffff';
-                };
-                gridData.colors.forEach((c) => {
-                    const hex = normalize(c);
-                    counts[hex] = (counts[hex] || 0) + 1;
-                });
-                const sorted = Object.entries(counts)
-                    .filter(([hex]) => hex !== '#ffffff')
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 3)
-                    .map(([hex]) => hex.toUpperCase());
-                return sorted.length ? sorted.join(' • ') : 'MONOCHROME';
-            },
-            renderArtwork: (style, data) => {
-                const canvas = document.createElement('canvas');
-                canvas.width = 320;
-                canvas.height = 320;
-                canvas.className = 'w-full h-full object-contain';
-                const ctx = canvas.getContext('2d');
-                if (!ctx || !data) return canvas;
+            updateFromValueState({ tokens, solved }) {
+                const tokenLabels = [document.getElementById('token-count'), document.getElementById('ticket-status-tokens')];
+                tokenLabels.forEach((el) => { if (el) el.innerText = `${tokens} token${tokens === 1 ? '' : 's'}`; });
 
-                ctx.fillStyle = '#f6f0e6';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                let stateLabel = 'griftIdle';
+                if (tokens >= 3) stateLabel = 'griftThresholdMet';
+                else if (tokens >= 2) stateLabel = 'griftInOnJoke';
+                else if (tokens >= 1) stateLabel = 'griftExploring';
+                grift.updateState(stateLabel);
 
-                if (style === 'abstracted') grift.renderAbstracted(ctx, data);
-                else if (style === 'flat') grift.renderFlat(ctx, data);
-                else grift.renderGridStyle(ctx, data);
+                const overlay = document.getElementById('grift-overlay');
+                if (overlay) overlay.classList.toggle('hidden', tokens < 3);
 
-                ctx.strokeStyle = '#0f0f0f';
-                ctx.lineWidth = 4;
-                ctx.strokeRect(6, 6, canvas.width - 12, canvas.height - 12);
-                return canvas;
-            },
-            renderGridStyle: (ctx, data) => {
-                const cellSize = 18;
-                const offset = 30;
-                data.colors.forEach((color, idx) => {
-                    const x = idx % data.size;
-                    const y = Math.floor(idx / data.size);
-                    ctx.fillStyle = color || '#ffffff';
-                    ctx.fillRect(offset + x * cellSize, offset + y * cellSize, cellSize - 1, cellSize - 1);
-                });
-            },
-            renderFlat: (ctx, data) => {
-                const palette = grift.describePalette(data).split(' • ');
-                const swatches = palette.filter((p) => p.startsWith('#'));
-                const fill = swatches.length ? swatches : ['#d7342a', '#0f0f0f', '#f6f0e6'];
-                const grad = ctx.createLinearGradient(0, 0, ctx.canvas.width, ctx.canvas.height);
-                grad.addColorStop(0, fill[0] || '#d7342a');
-                grad.addColorStop(0.5, fill[1] || '#0f0f0f');
-                grad.addColorStop(1, fill[2] || '#f6f0e6');
-                ctx.fillStyle = grad;
-                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                ctx.globalCompositeOperation = 'multiply';
-                grift.renderGridStyle(ctx, data);
-                ctx.globalCompositeOperation = 'source-over';
-            },
-            renderAbstracted: (ctx, data) => {
-                const size = data.size;
-                const cellSize = 18;
-                const offset = 30;
-                ctx.save();
-                ctx.filter = 'blur(4px)';
-                data.colors.forEach((color, idx) => {
-                    if (!color || color === '#ffffff') return;
-                    const x = idx % size;
-                    const y = Math.floor(idx / size);
-                    const cx = offset + x * cellSize + cellSize / 2;
-                    const cy = offset + y * cellSize + cellSize / 2;
-                    const radius = 10 + (Math.random() * 8);
-                    const gradient = ctx.createRadialGradient(cx, cy, 2, cx, cy, radius);
-                    gradient.addColorStop(0, color);
-                    gradient.addColorStop(1, 'rgba(0,0,0,0)');
-                    ctx.fillStyle = gradient;
-                    ctx.beginPath();
-                    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-                    ctx.fill();
-                });
-                ctx.restore();
-                ctx.globalCompositeOperation = 'screen';
-                ctx.fillStyle = 'rgba(215,52,42,0.1)';
-                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                ctx.globalCompositeOperation = 'source-over';
-            },
-            loop: () => {
-                if (!grift.isSimulating || state.view !== 'grift') return;
-                const addedValue = Math.floor(Math.random() * 5000) + 100;
-                grift.totalValue += addedValue;
-                grift.userRoyalty += addedValue * 0.00006;
-                document.getElementById('total-val').innerText = `$${grift.totalValue.toLocaleString()}`;
-                document.getElementById('user-val').innerText = `$${grift.userRoyalty.toFixed(4)}`;
-                if (Math.random() > 0.6) {
-                    const event = grift.events[Math.floor(Math.random() * grift.events.length)];
-                    const log = document.getElementById('event-log');
-                    log.innerHTML = `> ${event}<br>` + log.innerHTML;
+                const hint = document.getElementById('grift-hint');
+                if (hint) {
+                    if (stateLabel === 'griftThresholdMet') hint.innerText = 'LOOMWORKS NOTE: applicant displays healthy suspicion. good.';
+                    else if (stateLabel === 'griftInOnJoke') hint.innerText = 'you feel like you’re in on the joke now.';
+                    else if (stateLabel === 'griftExploring') hint.innerText = 'keep poking the boxes. value leaks out.';
+                    else hint.innerText = '';
                 }
-                grift.timer = setTimeout(grift.loop, grift.simSpeed);
+
+                if (solved.has('influencer-coin')) grift.setYield('coin-yield');
+                if (solved.has('merch-box')) grift.setYield('box-yield');
+                if (solved.has('timeshare')) grift.setYield('time-yield');
+            },
+            updateState(label) {
+                grift.state = label;
+                const stateLabel = document.getElementById('grift-state');
+                if (stateLabel) stateLabel.innerText = label;
+                const note = document.getElementById('grift-note');
+                if (note) {
+                    const copy = {
+                        griftIdle: 'waiting for you to notice the seams.',
+                        griftExploring: 'value under construction. keep digging.',
+                        griftInOnJoke: 'copy shifts to conspiratorial whispers.',
+                        griftThresholdMet: 'tickets still unavailable, but you are provisionally woven in.'
+                    };
+                    note.innerText = copy[label] || '';
+                }
+            },
+            setYield(id) {
+                const el = document.getElementById(id);
+                if (el) el.innerText = 'Yield: 1 VALUE TOKEN';
+            },
+            handleCoin(e) {
+                const val = Number(e?.target?.value || document.getElementById('coin-slider')?.value || 50);
+                if (val <= 10 && !valueState.solved.has('influencer-coin')) {
+                    valueState.addToken('influencer-coin');
+                    const lore = document.getElementById('coin-lore');
+                    if (lore) lore.innerText = 'congratulations, you’ve shorted pure hype. loomworks prefers craft.';
+                    grift.setYield('coin-yield');
+                }
+            },
+            handleBox() {
+                grift.boxClicks += 1;
+                const progress = document.getElementById('box-progress');
+                const note = document.getElementById('box-note');
+                const words = ['YOU', 'CAN', 'OPEN'];
+                if (progress) progress.innerText = grift.boxClicks <= words.length ? words[grift.boxClicks - 1] : 'OPEN';
+                if (grift.boxClicks >= 3 && !valueState.solved.has('merch-box')) {
+                    valueState.addToken('merch-box');
+                    if (note) note.classList.remove('hidden');
+                    grift.setYield('box-yield');
+                }
+            },
+            handleTimeshare() {
+                const boxes = Array.from(document.querySelectorAll('.timeshare-box'));
+                const allUnchecked = boxes.every((b) => !b.checked);
+                const submit = document.getElementById('timeshare-submit');
+                if (submit) {
+                    submit.classList.toggle('cursor-not-allowed', !allUnchecked);
+                    submit.classList.toggle('bg-gray-200', !allUnchecked);
+                    submit.classList.toggle('text-gray-500', !allUnchecked);
+                    submit.classList.toggle('bg-white', allUnchecked);
+                    submit.classList.toggle('text-black', allUnchecked);
+                }
+            },
+            submitTimeshare() {
+                const submit = document.getElementById('timeshare-submit');
+                if (submit && submit.classList.contains('cursor-not-allowed')) return;
+                if (!valueState.solved.has('timeshare')) {
+                    valueState.addToken('timeshare');
+                    grift.setYield('time-yield');
+                    const note = document.getElementById('timeshare-note');
+                    if (note) note.innerText = 'you retained your hours. loomworks approves.';
+                }
+                if (submit) {
+                    submit.innerText = 'Logged';
+                    submit.classList.add('cursor-not-allowed');
+                    submit.setAttribute('disabled', 'true');
+                }
+                document.querySelectorAll('.timeshare-box').forEach((box) => box.setAttribute('disabled', 'true'));
             }
         };
         window.grift = grift;
@@ -3830,24 +3779,236 @@ floating_text("thank you")</code></pre>
         };
         window.ticketing = ticketing;
 
+        const valueGate = {
+            bound: false,
+            raffleIndex: 0,
+            prizes: [
+                'one (1) insight',
+                'zero (0) dollars',
+                'a better question',
+                '.hero silhouette'
+            ],
+            init() {
+                if (valueGate.bound) {
+                    valueGate.updateTokens(valueState);
+                    return;
+                }
+                valueGate.bound = true;
+                const form = document.getElementById('email-stub-form');
+                if (form) form.addEventListener('submit', valueGate.submitEmail);
+                const raffle = document.getElementById('raffle-box');
+                if (raffle) raffle.addEventListener('click', valueGate.spinRaffle);
+                valueState.subscribe(valueGate.updateTokens);
+            },
+            submitEmail(e) {
+                e.preventDefault();
+                const input = e.target.querySelector('input[type="email"]');
+                const status = document.getElementById('email-stub-status');
+                const value = input?.value || '';
+                console.log('Stub email capture:', value);
+                if (typeof localStorage !== 'undefined') {
+                    try { localStorage.setItem('loomworks_interest', value); } catch (err) { /* noop */ }
+                }
+                if (status) status.innerHTML = 'APPLICATION RECEIVED*<br><span class="opacity-60">*not legally binding. nothing here is.</span>';
+            },
+            spinRaffle() {
+                const prizeEl = document.getElementById('raffle-prize');
+                if (!prizeEl) return;
+                const glitchChance = Math.random() < 0.18;
+                if (glitchChance) {
+                    prizeEl.innerText = '.hero silhouette';
+                    prizeEl.classList.add('text-red-600');
+                    setTimeout(() => prizeEl.classList.remove('text-red-600'), 500);
+                    return;
+                }
+                valueGate.raffleIndex = (valueGate.raffleIndex + 1) % valueGate.prizes.length;
+                prizeEl.innerText = valueGate.prizes[valueGate.raffleIndex];
+            },
+            updateTokens({ tokens }) {
+                const status = document.getElementById('ticket-status');
+                const unlock = document.getElementById('ticket-unlock');
+                const pill = document.getElementById('ticket-status-pill');
+                const tokenDisplay = document.getElementById('ticket-status-tokens');
+                if (status) {
+                    status.innerText = tokens >= 3
+                        ? 'tickets still unavailable, but you’ve been provisionally woven in.'
+                        : 'tickets unavailable. value under construction. visit the grift shop to… extract.';
+                }
+                if (unlock) unlock.classList.toggle('hidden', tokens < 3);
+                if (tokenDisplay) tokenDisplay.innerText = `${tokens} token${tokens === 1 ? '' : 's'}`;
+                if (pill) {
+                    const label = pill.querySelector('span');
+                    if (label) label.innerText = tokens >= 3 ? 'Status: provisionally woven' : 'Status: measuring';
+                }
+            }
+        };
+
+        const dimeBacklogEntries = [
+            {
+                id: 'DIME-LOG-00A',
+                phase: 'PRE',
+                label: 'FOUND SOMETHING IN THE CLOSET',
+                body: "loomworks wants a 'childhood artifact that still feels real.' i don't have the <span class=\"redact\"><span class=\"bar\">[REDACTED]</span><span class=\"floaty\">FREE!</span></span> anymore, but i remember how she sat on the edge of my bed and asked what i wanted to be when i grew up.\n\n i told her: 'the one holding the clipboard.'",
+                channel: 'journal',
+                visualTag: 'memo',
+                ambiguousTime: 'SHIFT ∅ / 0x.00'
+            },
+            {
+                id: 'DIME-LOG-02C',
+                phase: 'APPLY',
+                label: 'SUBMIT: IMAGINARY FRIEND',
+                body: `Q04: SUBMIT YOUR MOST PERSISTENT COMPANION.\n\n> DIME: she was called <span class="redact"><span class="bar">[REDACTED]</span><span class="floaty">FREE!</span></span>. she knew how to untangle knots in my headphones.\n> SYSTEM: INPUT ACCEPTED. COMPANION CLASSIFIED AS .hero PROTOTYPE.\n> SYSTEM: VALUE POTENTIAL: <span class="redact"><span class="bar">[REDACTED]</span><span class="floaty">THANK YOU</span></span> / 10`,
+                channel: 'chat',
+                visualTag: 'glitch',
+                ambiguousTime: 'SHIFT ? / 0x.1F'
+            },
+            {
+                id: 'DIME-LOG-07X',
+                phase: 'PENDING',
+                label: 'INTAKE ANOMALY',
+                body: 'THREAD FLAGGED APPLICANT MEMORY FOR FURTHER WEAVING.\nNOTE: SUBJECT REPORTS COMPANION WITH PUNCTUATION ANTENNAE.\n\nOUTCOME: .hero ROUTED TO LANTERN WORKS DIVISION FOR STAGECRAFT TRIALS.',
+                channel: 'sys',
+                visualTag: 'flag',
+                ambiguousTime: 'SHIFT [REDACTED]'
+            },
+            {
+                id: 'DIME-LOG-0AF',
+                phase: 'SCREEN',
+                label: 'ECHO CHECK',
+                body: 'INTAKE_NODE_3: please confirm you no longer see her in mirrors.\nINTERN_DIME: haha what?? uhhh. no?? maybe once??\nINTAKE_NODE_3: noted. <span class="redact"><span class="bar">[REDACTED]</span><span class="floaty">FREE!</span></span> silhouette still stabilizing.',
+                channel: 'chat',
+                visualTag: 'glitch',
+                ambiguousTime: 'SHIFT ∆ / 0x.3B'
+            },
+            {
+                id: 'DIME-LOG-11E',
+                phase: '??',
+                label: 'BACKLOG DRIFT',
+                body: 'ambient note: hero ping registered near locker hallway. dim light warped like heat shimmer.\nINTERN_DIME: "okay sooo weird question but…\nwas anyone else humming that song or was that just me lol"\nSYSTEM NOTE: applicant value index: <span class="redact"><span class="bar">[REDACTED]</span><span class="floaty">VALUE</span></span>.',
+                channel: 'note',
+                visualTag: 'free',
+                ambiguousTime: 'SHIFT ? / 0x.AE'
+            }
+        ].sort(() => Math.random() - 0.5);
+
         const dimeBacklog = {
+            entries: dimeBacklogEntries,
+            selectedId: null,
+            freed: 0,
+            booted: false,
             open() {
                 const modal = document.getElementById('dime-backlog-modal');
                 if (modal) modal.classList.add('active');
                 document.body.classList.add('modal-open');
+                dimeBacklog.ensureBoot();
             },
             close() {
                 const modal = document.getElementById('dime-backlog-modal');
                 if (modal) modal.classList.remove('active');
                 document.body.classList.remove('modal-open');
             },
+            ensureBoot() {
+                if (dimeBacklog.booted) return;
+                const boot = document.getElementById('dime-boot');
+                const container = document.getElementById('dime-log-container');
+                setTimeout(() => {
+                    if (boot) boot.classList.add('hidden');
+                    if (container) container.classList.remove('hidden');
+                    dimeBacklog.renderList();
+                    dimeBacklog.select(dimeBacklog.entries[0]?.id);
+                    dimeBacklog.booted = true;
+                }, 500 + Math.random() * 280);
+            },
             bind() {
                 const trigger = document.getElementById('dime-backlog-trigger');
                 const closeBtn = document.getElementById('dime-backlog-close');
                 const modal = document.getElementById('dime-backlog-modal');
+                const list = document.getElementById('dime-log-list');
                 if (trigger) trigger.addEventListener('click', dimeBacklog.open);
                 if (closeBtn) closeBtn.addEventListener('click', dimeBacklog.close);
                 if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) dimeBacklog.close(); });
+                if (list) list.addEventListener('scroll', () => { if (Math.random() < 0.12) dimeBacklog.triggerGlitch(); });
+            },
+            renderList() {
+                const list = document.getElementById('dime-log-list');
+                if (!list) return;
+                list.innerHTML = '';
+                dimeBacklog.entries.forEach((entry) => {
+                    const card = document.createElement('button');
+                    card.className = `w-full text-left border border-black/20 rounded-xl px-3 py-3 bg-white dime-log-card ${dimeBacklog.selectedId === entry.id ? 'active' : ''}`;
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-gray-600">
+                            <span>${entry.phase} • ${entry.channel}</span>
+                            <span>${entry.ambiguousTime}</span>
+                        </div>
+                        <div class="font-bold uppercase leading-tight">${entry.label}</div>
+                        <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-gray-500">${entry.id}</div>
+                    `;
+                    card.onclick = () => {
+                        dimeBacklog.select(entry.id);
+                        if (Math.random() < 0.18) dimeBacklog.triggerGlitch();
+                    };
+                    list.appendChild(card);
+                });
+            },
+            select(id) {
+                if (!id) return;
+                dimeBacklog.selectedId = id;
+                dimeBacklog.renderList();
+                const entry = dimeBacklog.entries.find((e) => e.id === id);
+                dimeBacklog.renderDetail(entry);
+            },
+            renderDetail(entry) {
+                const detail = document.getElementById('dime-log-detail');
+                if (!detail || !entry) return;
+                const bodyHtml = `<p>${entry.body.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>`;
+                detail.innerHTML = `
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <div class="text-[10px] font-mono uppercase tracking-[0.3em] text-gray-500">${entry.phase} • ${entry.channel} • ${entry.ambiguousTime}</div>
+                            <div class="text-2xl font-bold uppercase tracking-tight">${entry.label}</div>
+                            <div class="text-xs font-mono uppercase tracking-[0.2em] text-gray-600">${entry.id}</div>
+                        </div>
+                        ${entry.visualTag ? `<div class="value-pill">${entry.visualTag}</div>` : ''}
+                    </div>
+                    <div class="text-sm text-gray-800 leading-relaxed space-y-2">${bodyHtml}</div>
+                    <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-600 freed-count">Freed redactions: ${dimeBacklog.freed}</div>
+                    <div id="dime-hero-hint" class="text-[10px] font-mono uppercase tracking-[0.25em] text-red-600"></div>
+                `;
+                dimeBacklog.attachRedactions(detail);
+                dimeBacklog.maybeHero();
+            },
+            attachRedactions(container) {
+                container.querySelectorAll('.redact').forEach((node) => {
+                    if (node.dataset.bound) return;
+                    node.dataset.bound = '1';
+                    node.addEventListener('mouseenter', () => {
+                        if (!node.classList.contains('revealed')) {
+                            node.classList.add('revealed');
+                            dimeBacklog.freed += 1;
+                            dimeBacklog.updateFreedLabel();
+                            dimeBacklog.maybeHero();
+                            dimeBacklog.triggerGlitch();
+                        }
+                    });
+                });
+            },
+            triggerGlitch() {
+                const glitch = document.getElementById('dime-glitch');
+                if (!glitch) return;
+                glitch.classList.add('glitching');
+                setTimeout(() => glitch.classList.remove('glitching'), 180);
+            },
+            updateFreedLabel() {
+                const freedLabel = document.querySelector('#dime-log-detail .freed-count');
+                if (freedLabel) freedLabel.innerText = `Freed redactions: ${dimeBacklog.freed}`;
+            },
+            maybeHero() {
+                const hint = document.getElementById('dime-hero-hint');
+                if (!hint) return;
+                if (dimeBacklog.freed >= 3) hint.innerText = 'HERO REVEAL CANDIDATE: silhouette pinged. keep hovering.';
+                else if (dimeBacklog.freed >= 1) hint.innerText = 'redaction scrub registered. buffer wobble detected.';
+                else hint.innerText = 'hover the redactions; system listens.';
             }
         };
         window.dimeBacklog = dimeBacklog;
@@ -4114,7 +4275,10 @@ floating_text("thank you")</code></pre>
 
                 if (target === 'grift') {
                     grift.init();
-                    if(grift.isSimulating) grift.loop();
+                }
+
+                if (target === 'tickets') {
+                    valueGate.init();
                 }
 
                 if (target === 'barter') {
@@ -4160,6 +4324,8 @@ floating_text("thank you")</code></pre>
             initInvoiceMode();
             startGlitchBannerCycle();
             dimeBacklog.bind();
+            grift.init();
+            valueGate.init();
             greComments.mountAll();
 
             document.addEventListener('click', (e) => {
