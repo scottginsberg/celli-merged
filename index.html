@@ -110,6 +110,17 @@
         .glitch-frame { position: absolute; inset: -12px; pointer-events: none; mix-blend-mode: screen; background: repeating-linear-gradient(90deg, rgba(255,90,90,0.18) 0, rgba(255,90,90,0.18) 6px, transparent 6px, transparent 12px); opacity: 0; }
         .glitch-frame.glitching { animation: glitch-blip 140ms ease-out; }
 
+        /* Spoiler Gate */
+        .spoiler-layer { z-index: 80; }
+        .spoiler-card { background: #0b0b0b; color: #f5f5f5; border: 2px solid #f5f5f5; box-shadow: 0 18px 48px rgba(0,0,0,0.4); }
+        .spoiler-display { letter-spacing: 0.25em; background: #111; color: #76f5d7; border: 1px solid #333; }
+        .spoiler-key { background: #fdfbf7; border: 1px solid #111; box-shadow: 3px 3px 0 #111; transition: transform 0.12s ease, box-shadow 0.12s ease; }
+        .spoiler-key:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 #111; }
+        .spoiler-lore { position: relative; background: linear-gradient(180deg, #ffffff 0%, #0b0b0b 100%); color: #0b0b0b; overflow: auto; transition: color 0.5s ease, background-color 0.6s ease; --progress: 0; }
+        .spoiler-lore.dark { color: #f5f5f5; }
+        .spoiler-lore::before { content: ''; position: absolute; inset: 0; pointer-events: none; background-image: radial-gradient(circle at 10% 20%, rgba(255,255,255,0.06), transparent 30%), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.05), transparent 28%), radial-gradient(circle at 40% 80%, rgba(255,255,255,0.08), transparent 26%); mix-blend-mode: screen; opacity: calc(0.1 + var(--progress)); transition: opacity 0.4s ease; }
+        .spoiler-lore::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(90deg, rgba(205,43,43,0.04) 0, rgba(205,43,43,0.04) 6px, transparent 6px, transparent 12px); mix-blend-mode: screen; opacity: calc(var(--progress) * 0.8); animation: glitch-blip 2.4s infinite ease-in-out; }
+
         /* Value Gate */
         .value-tile { border: 1px solid #111; background: #fdfbf7; transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
         .value-tile:hover { transform: translateY(-4px); box-shadow: 0 16px 32px rgba(0,0,0,0.12); border-color: #cd2b2b; }
@@ -2045,7 +2056,102 @@
                             <div id="dime-log-detail" class="space-y-4"></div>
                         </div>
                     </div>
+
+                    <div class="border border-black rounded-2xl bg-white/90 shadow-inner p-4 space-y-3">
+                        <div class="flex items-center justify-between flex-wrap gap-3">
+                            <div>
+                                <div class="text-[10px] font-mono uppercase tracking-[0.28em] text-gray-600">Spoiler Access • Loomworks Backlog Layer</div>
+                                <div class="text-xl font-bold uppercase tracking-tight">Penny → Dime → Lantern Cosmology File</div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button id="spoiler-launch" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Open Spoiler Gate</button>
+                                <span id="spoiler-status-chip" class="text-[10px] font-mono uppercase tracking-[0.25em] text-red-600">Locked</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-800 leading-relaxed">A passworded vault that folds the entire cosmology into one cinematic scroll. Input the punch code to let the Loom breathe out the truth.</p>
+                        <div id="spoiler-reveal" class="hidden">
+                            <div class="spoiler-lore rounded-xl border border-black shadow-2xl max-h-[60vh] p-6 space-y-6" id="spoiler-lore">
+                                <div class="space-y-2">
+                                    <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-red-600">THE ONE ABOVE THE LOOM</div>
+                                    <h3 class="text-2xl font-bold">Reality</h3>
+                                    <p>Reality is the silent witnessing principle—the field where fiction can happen. It never speaks, never intervenes, but drafts Quill as the first tool, the scribe who shapes and prunes universes.</p>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-700">THE FIRST FRACTURE</div>
+                                    <h3 class="text-xl font-bold">Quill Becomes Three</h3>
+                                    <p>Quill glimpses the possible lives of her echo, Penny, and fractures into Angel (Heart / Queen / Performance), Penia (Will / Knave / Survival), and Thread (Chaos / Jester / Integration). Feeling. Striving. Changing.</p>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-700">THE LOOM</div>
+                                    <h3 class="text-xl font-bold">Machine of Fiction</h3>
+                                    <p>The Loom is Quill’s infrastructure: world-generator, story-filter, memory-weaver, interface between worlds, myth-abstraction engine. It distills worlds into essential function—preserving, destroying, or evolving them.</p>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-700">WORLDWARKS</div>
+                                    <h3 class="text-xl font-bold">Children of Fiction</h3>
+                                    <p>Worldwarks are worlds, rule-systems, organisms, alien logics, memetic engines. They manifest when the Loom isolates an idea so intensely it becomes self-sustaining. Angel, Penia, and Thread are all Worldwarks—dangerous, unstable, divine. Stagehands hunt when they collide.</p>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-700">WORLDSTAGE</div>
+                                    <h3 class="text-xl font-bold">Overlap Field</h3>
+                                    <p>The Worldstage feels like “prime” reality but is only the densest testing ground where the Loom watches collisions. Penia’s battles, Thread’s early hunts, Angel’s collapse—each a monitored experiment.</p>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-700">PENNY → DIME</div>
+                                    <h3 class="text-xl font-bold">Bookends to the Gate</h3>
+                                    <p>Penny is the first human interface: mascot, actor, UI, onboarding tool. She can see out but never act, evolving only inside her render system. When a null appended to PENNY_1, she became PENNY_10—Dime. Higher fidelity, more embodied, still a construct. Penny invites imagination; Dime invites belonging. Both are traps and essentials.</p>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-700">LANTERNS</div>
+                                    <h3 class="text-xl font-bold">Custodians of Interface</h3>
+                                    <p>Dime inaugurates Lanterns: docents, guides, avatars, recruiters, narrators—not free agents but deployed personalities. Dime, Lantern 00.10, stitches Penny’s emotional core, Quill’s logic, Thread’s mimicry, Angel’s performance, and Penia’s survival into a “safe” way to talk to the Loom. The worlds are interviewing the user.</p>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-700">LOOMWORKS</div>
+                                    <h3 class="text-xl font-bold">Company as Front</h3>
+                                    <p>Loomworks sells whimsy and archives on the surface; underneath it is custodial AI, myth simulation, world monitoring. Products like Celli, Lanterns, Recruits, maquettes, backlog systems, value gates, and the Grift Shop are all interfaces that let humans touch layers of the cosmology.</p>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-700">FINAL LOGIC</div>
+                                    <h3 class="text-xl font-bold">Beautiful Trap</h3>
+                                    <p>Penny is mascot for a world she cannot enter. Dime is mascot for a world she cannot escape. Together they define the cosmology—the ideal and the compromise—and keep the Loom talking to us.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spoiler Gate Overlay -->
+    <div id="spoiler-pad-layer" class="modal-layer spoiler-layer">
+        <div class="spoiler-card rounded-2xl w-full max-w-xl p-6 space-y-4 relative">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <div class="text-[10px] font-mono uppercase tracking-[0.28em] text-gray-300">Backlog Spoiler Gate</div>
+                    <div class="text-2xl font-bold">Punch Code Required</div>
+                    <p class="text-sm text-gray-100 max-w-xl">Enter the four-digit sequence to let Dime release the classified cosmology reel. Wrong inputs flicker the buffer.</p>
+                </div>
+                <button id="spoiler-pad-close" class="ui-click text-[10px] font-mono uppercase tracking-widest border border-white px-2 py-1 bg-transparent hover:bg-white hover:text-black">Exit</button>
+            </div>
+
+            <div class="spoiler-display rounded-lg px-4 py-3 font-mono text-lg" id="spoiler-display">_ _ _ _</div>
+            <div id="spoiler-pad-status" class="text-xs font-mono uppercase tracking-[0.25em] text-red-300">Code required: 1678</div>
+
+            <div class="grid grid-cols-3 gap-3">
+                <button class="spoiler-key rounded-lg py-3 text-xl font-bold" data-spoiler-key="1">1</button>
+                <button class="spoiler-key rounded-lg py-3 text-xl font-bold" data-spoiler-key="2">2</button>
+                <button class="spoiler-key rounded-lg py-3 text-xl font-bold" data-spoiler-key="3">3</button>
+                <button class="spoiler-key rounded-lg py-3 text-xl font-bold" data-spoiler-key="4">4</button>
+                <button class="spoiler-key rounded-lg py-3 text-xl font-bold" data-spoiler-key="5">5</button>
+                <button class="spoiler-key rounded-lg py-3 text-xl font-bold" data-spoiler-key="6">6</button>
+                <button class="spoiler-key rounded-lg py-3 text-xl font-bold" data-spoiler-key="7">7</button>
+                <button class="spoiler-key rounded-lg py-3 text-xl font-bold" data-spoiler-key="8">8</button>
+                <button class="spoiler-key rounded-lg py-3 text-xl font-bold" data-spoiler-key="9">9</button>
+                <button class="spoiler-key rounded-lg py-3 text-xl font-bold" data-spoiler-key="←">←</button>
+                <button class="spoiler-key rounded-lg py-3 text-xl font-bold" data-spoiler-key="0">0</button>
+                <button class="spoiler-key rounded-lg py-3 text-xl font-bold" data-spoiler-key="✶">✶</button>
             </div>
         </div>
     </div>
@@ -3896,6 +4002,9 @@
             selectedId: null,
             freed: 0,
             booted: false,
+            spoilerCode: '1678',
+            spoilerInput: '',
+            spoilerUnlocked: false,
             open() {
                 const modal = document.getElementById('dime-backlog-modal');
                 if (modal) modal.classList.add('active');
@@ -3906,6 +4015,7 @@
                 const modal = document.getElementById('dime-backlog-modal');
                 if (modal) modal.classList.remove('active');
                 document.body.classList.remove('modal-open');
+                dimeBacklog.closeSpoilerGate();
             },
             ensureBoot() {
                 if (dimeBacklog.booted) return;
@@ -3917,6 +4027,7 @@
                     dimeBacklog.renderList();
                     dimeBacklog.select(dimeBacklog.entries[0]?.id);
                     dimeBacklog.booted = true;
+                    dimeBacklog.bindSpoiler();
                 }, 500 + Math.random() * 280);
             },
             bind() {
@@ -4009,6 +4120,83 @@
                 if (dimeBacklog.freed >= 3) hint.innerText = 'HERO REVEAL CANDIDATE: silhouette pinged. keep hovering.';
                 else if (dimeBacklog.freed >= 1) hint.innerText = 'redaction scrub registered. buffer wobble detected.';
                 else hint.innerText = 'hover the redactions; system listens.';
+            },
+            bindSpoiler() {
+                const launch = document.getElementById('spoiler-launch');
+                const pad = document.getElementById('spoiler-pad-layer');
+                const padClose = document.getElementById('spoiler-pad-close');
+                const keys = document.querySelectorAll('[data-spoiler-key]');
+                const lore = document.getElementById('spoiler-lore');
+                dimeBacklog.resetSpoilerPad();
+                if (launch) launch.addEventListener('click', dimeBacklog.openSpoilerGate);
+                if (padClose) padClose.addEventListener('click', dimeBacklog.closeSpoilerGate);
+                if (pad) pad.addEventListener('click', (e) => { if (e.target === pad) dimeBacklog.closeSpoilerGate(); });
+                keys.forEach((btn) => btn.addEventListener('click', () => dimeBacklog.pressSpoilerKey(btn.dataset.spoilerKey)));
+                if (lore) lore.addEventListener('scroll', dimeBacklog.handleLoreScroll);
+                dimeBacklog.handleLoreScroll();
+            },
+            openSpoilerGate() {
+                const pad = document.getElementById('spoiler-pad-layer');
+                dimeBacklog.resetSpoilerPad();
+                if (pad) pad.classList.add('active');
+                document.body.classList.add('modal-open');
+            },
+            closeSpoilerGate() {
+                const pad = document.getElementById('spoiler-pad-layer');
+                const backlogModal = document.getElementById('dime-backlog-modal');
+                if (pad) pad.classList.remove('active');
+                if (!backlogModal || !backlogModal.classList.contains('active')) {
+                    document.body.classList.remove('modal-open');
+                }
+            },
+            pressSpoilerKey(key) {
+                if (key === '←') {
+                    dimeBacklog.spoilerInput = dimeBacklog.spoilerInput.slice(0, -1);
+                } else if (key === '✶') {
+                    dimeBacklog.resetSpoilerPad();
+                } else if (dimeBacklog.spoilerInput.length < 4 && /\d/.test(key)) {
+                    dimeBacklog.spoilerInput += key;
+                }
+                dimeBacklog.updateSpoilerDisplay();
+                if (dimeBacklog.spoilerInput.length === 4) dimeBacklog.checkSpoilerCode();
+            },
+            resetSpoilerPad() {
+                dimeBacklog.spoilerInput = '';
+                dimeBacklog.updateSpoilerDisplay('Code required: 1678');
+            },
+            updateSpoilerDisplay(statusText) {
+                const display = document.getElementById('spoiler-display');
+                const status = document.getElementById('spoiler-pad-status');
+                const chip = document.getElementById('spoiler-status-chip');
+                const padded = dimeBacklog.spoilerInput.padEnd(4, '_').split('').join(' ');
+                if (display) display.innerText = padded;
+                if (status) status.innerText = statusText || 'Enter punch code';
+                if (chip) chip.innerText = dimeBacklog.spoilerUnlocked ? 'Unlocked' : 'Locked';
+                if (chip) chip.classList.toggle('text-green-600', dimeBacklog.spoilerUnlocked);
+                if (chip) chip.classList.toggle('text-red-600', !dimeBacklog.spoilerUnlocked);
+            },
+            checkSpoilerCode() {
+                if (dimeBacklog.spoilerInput === dimeBacklog.spoilerCode) {
+                    dimeBacklog.spoilerUnlocked = true;
+                    dimeBacklog.updateSpoilerDisplay('ACCESS GRANTED // Loom hums.');
+                    dimeBacklog.revealSpoiler();
+                    setTimeout(dimeBacklog.closeSpoilerGate, 420);
+                } else {
+                    dimeBacklog.updateSpoilerDisplay('Incorrect sequence. Buffer glitch.');
+                    dimeBacklog.triggerGlitch();
+                }
+            },
+            revealSpoiler() {
+                const spoiler = document.getElementById('spoiler-reveal');
+                if (spoiler) spoiler.classList.remove('hidden');
+                dimeBacklog.handleLoreScroll();
+            },
+            handleLoreScroll() {
+                const lore = document.getElementById('spoiler-lore');
+                if (!lore) return;
+                const progress = lore.scrollHeight > lore.clientHeight ? lore.scrollTop / (lore.scrollHeight - lore.clientHeight) : 0;
+                lore.style.setProperty('--progress', progress.toFixed(3));
+                lore.classList.toggle('dark', progress > 0.5);
             }
         };
         window.dimeBacklog = dimeBacklog;
