@@ -58,6 +58,60 @@
             overflow-y: auto;
         }
 
+        .dime-backlog-shell {
+            background: linear-gradient(0deg, rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px), #f9f4ea;
+            background-size: 22px 22px, 22px 22px, auto;
+            color: #161616;
+            box-shadow: 0 14px 40px rgba(0,0,0,0.28);
+            border: 2px solid #1f2937;
+        }
+
+        .dime-backlog-banner {
+            letter-spacing: 0.08em;
+            background: repeating-linear-gradient(90deg, rgba(0,0,0,0.08), rgba(0,0,0,0.08) 24px, transparent 24px, transparent 48px);
+        }
+
+        .redaction-block {
+            background: linear-gradient(90deg, #0b0b0b 0%, #111 18%, #0b0b0b 36%);
+            color: transparent;
+            border-radius: 4px;
+            height: 18px;
+            margin: 4px 0;
+        }
+
+        .glitch-span {
+            position: relative;
+            display: inline-block;
+        }
+
+        .glitch-span::after {
+            content: attr(data-glitch);
+            position: absolute;
+            left: 2px;
+            top: 0;
+            color: #CD2B2B;
+            opacity: 0.7;
+            animation: glitch-blink 1.4s infinite;
+        }
+
+        @keyframes glitch-blink {
+            0%, 92% { opacity: 0; transform: translate3d(0,0,0); }
+            93% { opacity: 0.5; transform: translate3d(-1px, 0, 0); }
+            95% { opacity: 0.2; transform: translate3d(3px, -1px, 0); }
+            100% { opacity: 0; transform: translate3d(0,0,0); }
+        }
+
+        .floating-text {
+            animation: float-up 2.4s ease-in-out infinite;
+            opacity: 0.7;
+        }
+
+        @keyframes float-up {
+            0% { transform: translateY(4px); opacity: 0.6; }
+            50% { transform: translateY(-4px); opacity: 1; }
+            100% { transform: translateY(4px); opacity: 0.6; }
+        }
+
         body.modal-open { overflow: hidden; }
 
         .font-mono { font-family: 'Space Mono', monospace; }
@@ -1731,12 +1785,15 @@
                         <p class="text-sm text-gray-700">Tone: soft bureaucratic warmth. Oversees Barter Post rituals, receives items with care, and speaks in value metaphors.</p>
                         <p class="text-xs text-gray-600">Casting: understated humor and extremely precise hands.</p>
                     </div>
-                    <div class="border border-gray-200 rounded-lg p-4 bg-[#FDFBF7] space-y-2">
-                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-600">🕯️ Dime</div>
+                    <button id="dime-backlog-trigger" class="border border-gray-200 rounded-lg p-4 bg-[#FDFBF7] space-y-2 text-left hover:border-red-400 hover:shadow-md transition-all ui-click">
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-600 flex items-center gap-2">
+                            <span>🕯️ Dime</span>
+                            <span class="text-[9px] text-red-600">access backlog</span>
+                        </div>
                         <div class="font-bold text-lg">Cost Analyst — playful austerity</div>
                         <p class="text-sm text-gray-700">Tone: cheerful but deadpan. Tracks scores, tallies, and cost-of-attention measurements with a small clipboard prop.</p>
-                        <p class="text-xs text-gray-600">Casting: delivers dry lines with charm.</p>
-                    </div>
+                        <p class="text-xs text-gray-600">Casting: delivers dry lines with charm. Tap to open the diegetic DIME BACKLOG.</p>
+                    </button>
                 </div>
             </div>
 
@@ -1839,6 +1896,147 @@
             </div>
         </div>
     </section>
+
+    <!-- Modal: DIME BACKLOG -->
+    <div id="dime-backlog-modal" class="modal-layer">
+        <div class="modal-card w-full max-w-5xl dime-backlog-shell rounded-2xl relative overflow-hidden">
+            <div class="absolute top-3 right-3 flex gap-2">
+                <button id="dime-backlog-close" class="ui-click text-[10px] font-mono uppercase tracking-widest border border-black px-2 py-1 bg-white hover:bg-black hover:text-white">Close</button>
+            </div>
+
+            <div class="p-6 sm:p-8 space-y-6">
+                <div class="dime-backlog-banner border border-black/60 text-[10px] font-mono uppercase tracking-[0.28em] text-gray-800 py-3 px-4">Loomworks Internal Use Only • Specimen: LNTRN00.10 • DIME BACKLOG PROTOCOL • Access level: Low</div>
+
+                <div class="grid sm:grid-cols-2 gap-4 text-[11px] font-mono uppercase tracking-widest text-gray-700">
+                    <div>Render mode: <span class="font-bold text-red-700">Flat archival</span><br>Transition: fade_through_beige<br>Glitch frequency: 0.07</div>
+                    <div>Caption behavior: diegetic_overlay<br>Status: continuous input<br>Timecode: [UNRESOLVED]</div>
+                </div>
+
+                <div class="border border-black/30 bg-white/70 p-4 shadow-inner space-y-3">
+                    <div class="font-bold text-xs uppercase tracking-widest text-gray-800">Section 0.0 — System Handshake</div>
+                    <div class="grid sm:grid-cols-5 gap-3 text-sm text-gray-800">
+                        <div class="sm:col-span-2 bg-[#f4e9da] p-3 border border-black/10">INTAKE_NODE_3: handshake=verified<br><span class="text-gray-500">INTERN_DIME: "hiiii omg thank uuu !! ☺️✨ ready 4 orientation!!!!"</span><br>INTAKE_NODE_3: "Snacks detected."</div>
+                        <div class="sm:col-span-3 bg-[#f9f4ea] p-3 border border-black/10">INTERN_DIME: "omg sorry lol I’ll put them away"<br>INTAKE_NODE_3: "Snacks purged."<br><span class="glitch-span" data-glitch="crumbs linger">glitch("crumbs_linger", opacity:0.12)</span></div>
+                    </div>
+                </div>
+
+                <div class="border border-black/30 bg-white/90 p-4 shadow-inner space-y-4">
+                    <div class="font-bold text-xs uppercase tracking-widest text-red-700">Section 1.0 — Purpose Alignment Quiz</div>
+                    <div class="text-xs font-mono uppercase tracking-[0.24em] text-gray-500">Pacing: 2.4s per prompt • Cursor blink: irregular • Color shader: corporate gray</div>
+                    <div class="space-y-2 text-sm text-gray-800">
+                        <div class="flex items-start gap-3">
+                            <span class="font-mono text-[10px] text-gray-500">Prompt 1</span>
+                            <div>
+                                "State motivation for applying to Loomworks."<br>
+                                <span class="text-gray-600">INTERN_DIME:</span> "I like diagrams?? and uniforms??"<br>
+                                <span class="text-gray-500">Prompt_1_ACK:</span> "Adequate."
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="font-mono text-[10px] text-gray-500">Prompt 2</span>
+                            <div>
+                                "Rate your confidence using one (1) emoji."<br>
+                                INTERN_DIME: "omg just ONE?? okay umm… <span class="glitch-span" data-glitch="🤩">🤩</span>"<br>
+                                INTAKE_NODE_3: "Logged." — "wait can I change it??" — "No."
+                            </div>
+                        </div>
+                        <div class="text-center text-gray-400 text-xs">[REDACTED_LINE_BREAK_01]</div>
+                        <div class="text-center text-[32px] leading-none">🤩<span class="text-[10px] text-gray-500 align-top">(glitch_overlay)</span></div>
+                    </div>
+                </div>
+
+                <div class="border border-black/30 bg-[#fdfbf7] p-4 shadow-inner space-y-3">
+                    <div class="font-bold text-xs uppercase tracking-widest text-gray-800">Section 2.0 — Team Integration Protocol</div>
+                    <div class="grid sm:grid-cols-2 gap-4 text-sm text-gray-800">
+                        <div class="space-y-1">
+                            INTAKE_NODE_3: "Submit childhood artifact for cognitive baseline."<br>
+                            INTERN_DIME: "uhhhhh that’s kinda personal??"<br>
+                            INTAKE_NODE_3: "Submission required."<br>
+                            INTERN_DIME: "fineeee 🙄 it was…"
+                            <div class="redaction-block" aria-label="redacted"></div>
+                            <div class="text-[12px] text-gray-500">fade_out("thank you for your contribution", delay:240ms)</div>
+                        </div>
+                        <div class="space-y-1">
+                            INTAKE_NODE_3: "Height?"<br>
+                            INTERN_DIME: "????? taller than the pantry I guess?? lol"<br>
+                            <div class="text-[11px] font-mono uppercase text-gray-600">artifact_status: accepted • signal_strength: moderate_high • silhouette_gen: enabled</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border border-black/30 bg-white p-4 shadow-inner space-y-3">
+                    <div class="font-bold text-xs uppercase tracking-widest text-red-700">Section 3.0 — Artifact Synthesis Engine</div>
+                    <div class="text-xs font-mono uppercase tracking-[0.25em] text-gray-500">Render: schematic_on_parchment • Glitch: line_skips intensity 0.15 • Audio: low hum, almost breathing</div>
+                    <div class="bg-[#0f1628] text-white p-3 rounded-lg font-mono text-xs space-y-1">
+                        <div>{</div>
+                        <div class="pl-4">class: ".hero",</div>
+                        <div class="pl-4">state: "initializing",</div>
+                        <div class="pl-4">height: "pantry+",</div>
+                        <div class="pl-4">personality_seed: "imaginary_friend_construct",</div>
+                        <div class="pl-4">stability: 0.41,</div>
+                        <div class="pl-4">waiting_for_directive: true</div>
+                        <div>}</div>
+                    </div>
+                    <div class="font-mono text-[11px] uppercase tracking-[0.2em] text-gray-700">caption_overlay("ASSET CLASS: HERO.PROVISIONAL")</div>
+                    <div class="floating-text text-red-600 font-semibold">FREE!</div>
+                </div>
+
+                <div class="border border-black/30 bg-[#fdf8ee] p-4 shadow-inner space-y-3">
+                    <div class="font-bold text-xs uppercase tracking-widest text-gray-800">Section 4.0 — Intern Self-Report</div>
+                    <p class="text-sm text-gray-800">"omg why did they MAKE me talk about her lol??<br>lights flickered twice?? probably normal haha lol??"</p>
+                    <div class="text-[11px] text-gray-500">text_glitch("lol??", dilation:+7%)</div>
+                </div>
+
+                <div class="border border-black/30 bg-white p-4 shadow-inner space-y-3">
+                    <div class="font-bold text-xs uppercase tracking-widest text-red-700">Section 5.0 — System Reflection (Auto-Generated)</div>
+                    <div class="text-sm text-gray-800">OBSERVATION: offered artifact displays structural coherency.<br>OBSERVATION: intern imagination substrate exceeds projection.<br>ACTION: elevate <span class="redaction-block inline-block align-middle w-1/3"></span> to HERO.PROVISIONAL.<br>ACTION: map childhood construct to operational silhouette.<br>ACTION: suppress intern awareness of manifestation event.</div>
+                    <div class="text-center text-gray-600 text-xs">fade_out_block("ACCESS SHIELDED")</div>
+                    <div class="floating-text text-gray-500">FREE!</div>
+                </div>
+
+                <div class="border border-black/30 bg-[#eef2f7] p-4 shadow-inner space-y-3">
+                    <div class="font-bold text-xs uppercase tracking-widest text-gray-800">Section 6.0 — Backlog Drift Event</div>
+                    <p class="text-sm text-gray-800">Trigger: intern_anomaly • Effect: ambient_color_shift (warm→cool) • Caption: "unauthorized reflection"</p>
+                    <div class="text-sm text-gray-700 leading-relaxed">INTERN_DIME:<br>"okay soooo weird question but…<br>did anyone else see a girl-shaped shadow near their locker??<br>or was that just me lol<br>haha<br><span class="glitch-span" data-glitch="lol">lol</span>"</div>
+                </div>
+
+                <div class="border border-black/30 bg-white p-4 shadow-inner space-y-3">
+                    <div class="font-bold text-xs uppercase tracking-widest text-red-700">Section 7.0 — Code Snippets (Generated)</div>
+                    <pre class="bg-black text-green-200 font-mono text-xs p-4 rounded-lg overflow-x-auto"><code>function fabricateImaginaryFriend(seed){
+  let trace = imprint(seed)
+  let height = "pantryPlus"
+  return silhouette(trace, height)
+}
+
+hero = fabricateImaginaryFriend("[REDACTED]")
+
+if (hero.status == "dormant"){
+  await directiveAssignment()
+}
+
+redact("seed")
+floating_text("thank you")</code></pre>
+                </div>
+
+                <div class="border border-black/30 bg-[#fdfbf7] p-4 shadow-inner space-y-3">
+                    <div class="font-bold text-xs uppercase tracking-widest text-gray-800">Section 8.0 — Pacing + Transition Specs</div>
+                    <div class="text-sm text-gray-800">pacing_curve: "anticipatory → uneasy → tender"</div>
+                    <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
+                        <li>cut_points: overshare → artifact acceptance → silhouette render → realization of company</li>
+                        <li>glitch_events: pantry_height misalignment, emoji drift, breathing hum beneath silence, redaction stutter</li>
+                        <li>transitions: paper_scorch, beige_to_void, soft_blur, hard_flicker</li>
+                    </ul>
+                </div>
+
+                <div class="border border-black/30 bg-white p-4 shadow-inner space-y-2">
+                    <div class="font-bold text-xs uppercase tracking-widest text-red-700">Section 9.0 — Closing State</div>
+                    <p class="text-sm text-gray-800">end_frame: "hero silhouette faint behind Dime's final line"<br>overlay_text: "awaiting further submission"<br>opacity: 0.34</p>
+                    <div class="text-center text-gray-600 text-xs">[REDACTED_EXIT_LINE]</div>
+                    <div class="text-right floating-text text-red-600">FREE! →</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Ticketing Modal (3 Price Tiers) -->
     <div id="ticketing-modal" class="modal-layer">
@@ -3632,6 +3830,28 @@
         };
         window.ticketing = ticketing;
 
+        const dimeBacklog = {
+            open() {
+                const modal = document.getElementById('dime-backlog-modal');
+                if (modal) modal.classList.add('active');
+                document.body.classList.add('modal-open');
+            },
+            close() {
+                const modal = document.getElementById('dime-backlog-modal');
+                if (modal) modal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            },
+            bind() {
+                const trigger = document.getElementById('dime-backlog-trigger');
+                const closeBtn = document.getElementById('dime-backlog-close');
+                const modal = document.getElementById('dime-backlog-modal');
+                if (trigger) trigger.addEventListener('click', dimeBacklog.open);
+                if (closeBtn) closeBtn.addEventListener('click', dimeBacklog.close);
+                if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) dimeBacklog.close(); });
+            }
+        };
+        window.dimeBacklog = dimeBacklog;
+
         // --- 3D GALLERY ENGINE ---
         const gallery = {
             scene: null, camera: null, renderer: null, controls: null, active: false,
@@ -3939,6 +4159,7 @@
             startIdleGlitch();
             initInvoiceMode();
             startGlitchBannerCycle();
+            dimeBacklog.bind();
             greComments.mountAll();
 
             document.addEventListener('click', (e) => {
