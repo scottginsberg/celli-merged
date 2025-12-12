@@ -110,6 +110,10 @@
         .glitch-frame { position: absolute; inset: -12px; pointer-events: none; mix-blend-mode: screen; background: repeating-linear-gradient(90deg, rgba(255,90,90,0.18) 0, rgba(255,90,90,0.18) 6px, transparent 6px, transparent 12px); opacity: 0; }
         .glitch-frame.glitching { animation: glitch-blip 140ms ease-out; }
 
+        .geo-quiz-tile { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 16px; border-radius: 12px; transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease; text-align: left; background: #fff; }
+        .geo-quiz-tile:hover { transform: translateY(-2px); box-shadow: 4px 8px 0 rgba(0,0,0,0.18); border-color: #0f0f0f; }
+        .geo-quiz-tile.selected { border-color: #d31313; box-shadow: 0 0 0 2px #d31313, 6px 10px 0 rgba(0,0,0,0.14); }
+
         /* Spoiler Gate */
         .spoiler-layer { z-index: 80; }
         .spoiler-card { background: #0b0b0b; color: #f5f5f5; border: 2px solid #f5f5f5; box-shadow: 0 18px 48px rgba(0,0,0,0.4); }
@@ -2170,6 +2174,25 @@
             </div>
             <div class="p-6 space-y-6">
                 <p class="text-sm text-gray-700">Domestic Product is a four-day flashpoint. Choose how you enter: every tier touches the archive, Lantern protocol, and the station circuit; upper tiers add ritual escorts, Barter credit, and investor transparency tools.</p>
+                <div class="border border-black/10 rounded-xl p-4 bg-white/80 shadow-inner space-y-4">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div class="space-y-1">
+                            <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-red-600">NYC Fit Check</div>
+                            <p class="text-sm text-gray-700 max-w-2xl">We gate the reservation line with a fast, tongue-in-cheek New Yorker emoji quiz. Speak the slang, claim the slot.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="geoQuiz.start()" class="ui-click bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Verify Geospatial Compatibility</button>
+                            <button onclick="geoQuiz.reset()" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Reset Quiz</button>
+                        </div>
+                    </div>
+                    <div id="geo-quiz-stage" class="hidden border border-black bg-white rounded-lg p-4 space-y-3 shadow-sm">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div class="font-mono text-[10px] uppercase tracking-widest text-gray-600">New Yorker Emoji Quiz <span id="geo-quiz-step">0/3</span></div>
+                            <div id="geo-quiz-status" class="font-mono text-[10px] uppercase tracking-[0.25em] text-red-600">Tap verify to begin.</div>
+                        </div>
+                        <div id="geo-quiz-card" class="space-y-3"></div>
+                    </div>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="ticketing-tiers"></div>
                 <div class="bg-[#FDFBF7] border border-black/10 rounded-xl p-4 shadow-inner space-y-3">
                     <div class="flex items-center justify-between">
@@ -3887,6 +3910,129 @@
         };
         window.ticketing = ticketing;
 
+        const geoQuiz = {
+            step: 0,
+            questions: [
+                {
+                    title: '“Brick” hits your ears on Canal Street. What are they warning you about?',
+                    copy: 'New Yorkers weaponize understatement. Decode the emoji, dodge the frostbite.',
+                    options: [
+                        { emoji: '🧊', label: 'Arctic wind slicing between the avenues.', hint: 'Layer up or turn back.', toast: 'Confirmed: you know “brick” is freeze-your-face cold.', correct: true },
+                        { emoji: '🛑', label: 'NYPD sweeping for alternate-side violators.', hint: 'Different kind of ticket.', toast: 'Nice paranoia, but “brick” isn’t a parking scare.' },
+                        { emoji: '💪', label: 'Time to flex at an Equinox stairwell selfie.', hint: 'Respect the hustle.', toast: 'Bold move. Wrong slang axis though.' }
+                    ]
+                },
+                {
+                    title: 'A friend orders a chopped cheese run. Where are you headed?',
+                    copy: 'No couriers; no apps. Just you, a grill, and a hum of fluorescent lights.',
+                    options: [
+                        { emoji: '🧀', label: 'The bodega flat-top under the humming fan.', hint: 'Cash only, wrapped in foil.', toast: 'Correct. You can smell the hero bread already.', correct: true },
+                        { emoji: '💈', label: 'Your barber who swears he “also chefs.”', hint: 'Please don’t.', toast: 'Sharp fade, questionable sandwich.' },
+                        { emoji: '🎲', label: 'An alley dice game off the J train.', hint: 'Different hustle.', toast: 'That’s a different kind of chopped.' }
+                    ]
+                },
+                {
+                    title: 'Someone taps you and says “you’ve got schmutz.” What happens next?',
+                    copy: 'Yiddish lives on the subway. Handle it like you belong.',
+                    options: [
+                        { emoji: '🫟', label: 'Swipe the face, keep moving before the doors close.', hint: 'Efficient correction.', toast: 'True local move: wipe and ride.', correct: true },
+                        { emoji: '♀️', label: 'Strike a Lady Liberty pose and hope for the best.', hint: 'Patriotism is not a napkin.', toast: 'Statuesque, but no.' },
+                        { emoji: '🥴', label: 'Tell them the city’s energy is the real smudge.', hint: 'Meta, but messy.', toast: 'Points for poetry, not for cleanliness.' }
+                    ]
+                }
+            ],
+            init() {
+                geoQuiz.reset();
+            },
+            start() {
+                audio.click();
+                geoQuiz.step = 0;
+                geoQuiz.render();
+            },
+            reset() {
+                const stage = document.getElementById('geo-quiz-stage');
+                const status = document.getElementById('geo-quiz-status');
+                const card = document.getElementById('geo-quiz-card');
+                const step = document.getElementById('geo-quiz-step');
+                if (stage) stage.classList.add('hidden');
+                if (status) status.innerText = 'Tap verify to begin.';
+                if (card) card.innerHTML = '';
+                if (step) step.innerText = `0/${geoQuiz.questions.length}`;
+                geoQuiz.step = 0;
+            },
+            render() {
+                const stage = document.getElementById('geo-quiz-stage');
+                const status = document.getElementById('geo-quiz-status');
+                const card = document.getElementById('geo-quiz-card');
+                const step = document.getElementById('geo-quiz-step');
+                if (!stage || !status || !card || !step) return;
+                stage.classList.remove('hidden');
+                const q = geoQuiz.questions[geoQuiz.step];
+                step.innerText = `${geoQuiz.step + 1}/${geoQuiz.questions.length}`;
+                status.innerText = 'Pick the tile that feels right.';
+                card.innerHTML = `
+                    <div class="bg-[#FDFBF7] border border-black/10 rounded-xl p-4 shadow-sm space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-red-600">Bodega Banter Check</span>
+                            <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-600">No wrong answers, just vibes.</span>
+                        </div>
+                        <h4 class="text-xl font-bold uppercase leading-tight">${q.title}</h4>
+                        <p class="text-sm text-gray-700">${q.copy}</p>
+                        <div class="grid sm:grid-cols-3 gap-3 pt-2" id="geo-quiz-options"></div>
+                    </div>
+                `;
+
+                const optionsWrap = document.getElementById('geo-quiz-options');
+                if (!optionsWrap) return;
+                optionsWrap.innerHTML = '';
+                q.options.forEach((opt) => {
+                    const tile = document.createElement('button');
+                    tile.className = 'geo-quiz-tile ui-click border border-gray-200';
+                    tile.innerHTML = `
+                        <div class="text-3xl">${opt.emoji}</div>
+                        <div class="text-sm font-mono text-gray-800 leading-snug">${opt.label}</div>
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">${opt.hint}</div>
+                    `;
+                    tile.onclick = () => geoQuiz.choose(opt, tile);
+                    optionsWrap.appendChild(tile);
+                });
+            },
+            choose(opt, tile) {
+                audio.click();
+                document.querySelectorAll('.geo-quiz-tile').forEach((btn) => btn.classList.remove('selected'));
+                tile.classList.add('selected');
+                const status = document.getElementById('geo-quiz-status');
+                if (status) status.innerText = opt.toast || 'Noted.';
+                setTimeout(() => {
+                    geoQuiz.step += 1;
+                    if (geoQuiz.step < geoQuiz.questions.length) geoQuiz.render();
+                    else geoQuiz.complete();
+                }, 480);
+            },
+            complete() {
+                const card = document.getElementById('geo-quiz-card');
+                const status = document.getElementById('geo-quiz-status');
+                const step = document.getElementById('geo-quiz-step');
+                if (step) step.innerText = `${geoQuiz.questions.length}/${geoQuiz.questions.length}`;
+                if (status) status.innerText = 'Stamped: ready for the ticket gate.';
+                if (card) {
+                    card.innerHTML = `
+                        <div class="bg-black text-white rounded-xl p-5 border border-red-500 shadow-lg space-y-3">
+                            <div class="font-mono text-[10px] uppercase tracking-widest text-red-200">Validated • New Yorker Enough</div>
+                            <h4 class="text-2xl font-bold uppercase">Geospatial Compatibility Confirmed</h4>
+                            <p class="text-sm text-gray-100 leading-relaxed">You clocked the slang and kept it moving. The ticketing tiers are unlocked without embarrassing anyone’s borough.</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="ticketing.open()" class="ui-click bg-white text-black px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 hover:text-white transition-colors">Return to Ticket Tiers</button>
+                                <button onclick="geoQuiz.reset()" class="ui-click border border-white/40 text-xs font-mono uppercase tracking-widest px-3 py-2 hover:bg-white hover:text-black transition-colors">Re-run Quiz</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                geoQuiz.step = 0;
+            }
+        };
+        window.geoQuiz = geoQuiz;
+
         const valueGate = {
             bound: false,
             raffleIndex: 0,
@@ -4514,6 +4660,7 @@
             initInvoiceMode();
             startGlitchBannerCycle();
             dimeBacklog.bind();
+            geoQuiz.init();
             grift.init();
             valueGate.init();
             greComments.mountAll();
