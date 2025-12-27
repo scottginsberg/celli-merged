@@ -856,6 +856,7 @@
     <div id="mobile-menu" class="fixed inset-0 bg-[#FDFBF7] z-[60] transform translate-x-full transition-transform duration-300 flex flex-col pt-20 px-6 overflow-y-auto">
         <div class="flex flex-col gap-6 text-xl font-bold uppercase tracking-widest font-mono">
             <button onclick="app.navigate('landing'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Exhibition</button>
+            <button onclick="app.navigate('calibration'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Calibration</button>
             <button onclick="app.navigate('profiler'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200 text-red-600">Identify</button>
             <button onclick="app.navigate('pitch'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Project Plan</button>
             <button onclick="app.navigate('press'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Press Kit</button>
@@ -882,6 +883,7 @@
         <!-- Desktop Nav -->
         <div class="hidden lg:flex gap-6 text-xs font-mono tracking-wide uppercase">
             <button onclick="app.navigate('landing')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="landing">Exhibition</button>
+            <button onclick="app.navigate('calibration')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="calibration">Calibration</button>
             <button onclick="app.navigate('profiler')" class="nav-btn hover:text-red-600 transition-colors ui-click font-bold text-red-600" data-target="profiler">Identify</button>
             <button onclick="app.navigate('pitch')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="pitch">Pitch</button>
             <button onclick="app.navigate('press')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="press">Press Kit</button>
@@ -1284,6 +1286,83 @@
 
             <div class="gre-comments-mount" data-context-label="DOMESTIC PRODUCT CASE STUDY #902" data-variant="light" data-page-id="ambition"></div>
         </div>
+
+    <!-- VIEW: CALIBRATION (ELI5) -->
+    <section id="view-calibration" class="view-section bg-[#FDFBF7] py-16">
+        <div class="max-w-5xl mx-auto px-6 space-y-10">
+            <div class="text-center space-y-3">
+                <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Calibration Protocol</div>
+                <h2 class="text-4xl md:text-5xl font-bold uppercase tracking-tight">Explain Like I'm Dima</h2>
+                <p class="max-w-3xl mx-auto text-sm md:text-base text-gray-700 leading-relaxed">A page for humans who want the gears without killing the theater. It bridges the "Restrained Chaos" feeling on the surface with the "Implementation Architect" logic that actually drives the Loomworks.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-white border border-black/10 rounded-xl p-6 shadow-lg space-y-3">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-red-700">The Silhouette: A Shape in the Dark</div>
+                    <p class="text-base text-gray-900 leading-relaxed">Imagine a corporation that doesn’t sell widgets, but sells Meaning. It looks like a museum, it sounds like a discography longer than Steely Dan, and it feels like a bureaucratic theology that you already belong to.</p>
+                </div>
+                <div class="bg-black text-white rounded-xl p-6 shadow-xl space-y-3">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-red-200">The Detail: What You’re Actually Touching</div>
+                    <p class="text-sm leading-relaxed">Loomworks is a biting American satire—a playable critique of optimization and red tape flattening the modern web.</p>
+                    <ul class="list-disc list-inside text-sm space-y-2 text-gray-100">
+                        <li><span class="font-bold">The Songs</span>: A 200+ track musical archive—including Celli, the spreadsheet that wanted to be human—turning creation into a destination, not a trough.</li>
+                        <li><span class="font-bold">The Poems</span>: "Chemical X" lyrics and Kinetic Resonance operations treating language as an activation space where radical sincerity and industrial scarcity wrestle.</li>
+                        <li><span class="font-bold">The Products</span>: Artifacts that shouldn’t exist, from century-old manufactured icons to Grift Shop items that sell you a 0.000666% share of your own suspicion.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="bg-white border border-black rounded-2xl p-8 shadow-2xl space-y-6">
+                <div class="text-[10px] font-mono uppercase tracking-[0.3em] text-red-700">Why bother?</div>
+                <p class="text-xl font-bold leading-tight">"This is not a brand. It is an argument for re-enchantment: proof that the web can still hold wonder, especially when it glitches instead of optimizes."</p>
+                <p class="text-sm text-gray-800 leading-relaxed">The Calibration Protocol is a friendly in-universe explainer—Humanese for people who want to feel the satire without breaking it. Think of it as the flashlight you can point at the corners without blinding the stage lights.</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-4">
+                <div class="bg-white border border-black/10 rounded-xl p-5 shadow-md space-y-3">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-red-700">History: The Lineage of the World</div>
+                    <p class="text-sm text-gray-800 leading-relaxed">Choose "History" to follow the Resonance Cascade of interactive storytelling:</p>
+                    <ul class="list-disc list-inside text-sm text-gray-800 space-y-1">
+                        <li>I Love Bees (Halo 2): payphones and audio shards proving a story can live everywhere.</li>
+                        <li>Cloverfield &amp; Slusho: industrial scarcity hiding a monster behind "Happy Talk."</li>
+                        <li>The Dark Knight (Why So Serious?): turning a city into a game board for chaos.</li>
+                        <li>Tron Legacy (Flynn Lives): 30-year history treated as a living asset.</li>
+                    </ul>
+                </div>
+                <div class="bg-black text-white rounded-xl p-5 shadow-md space-y-3">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-red-200">Form: The Diegesis</div>
+                    <p class="text-sm leading-relaxed">Entering diegetically means treating the fiction as the only reality. In the Loomworks, the Barter Post and the Lanterns don’t know they are on a website—they operate inside a surveillance-aware shell where the interface is the ideology.</p>
+                </div>
+                <div class="bg-white border border-black/10 rounded-xl p-5 shadow-md space-y-3">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-red-700">Intent: The "Skibidi" Sensitivity</div>
+                    <p class="text-sm text-gray-800 leading-relaxed">Our intent mirrors the Skibidi Toilet phenomenon: a rip in culture where legacy icons collide with viral absurdity. We use that speed to stand on the chest of slow institutions and prove a single human can out-manufacture a corporation.</p>
+                </div>
+            </div>
+
+            <div class="bg-[#0b0b0b] text-white rounded-2xl p-8 shadow-[0_20px_60px_rgba(0,0,0,0.3)] space-y-5">
+                <div class="text-[10px] font-mono uppercase tracking-[0.3em] text-red-200">Onboarding Integration: The Calibration Gate</div>
+                <p class="text-sm text-gray-100 leading-relaxed">Threshold Selection happens before the Identity Assessment. You set your Lumen Level to decide how transparent the satire should be. Answer two quick queries and, if you want extra light, pick which file to carry.</p>
+                <div class="grid md:grid-cols-2 gap-4 text-sm text-gray-100">
+                    <div class="space-y-2">
+                        <div class="font-bold">[Query 01]</div>
+                        <p class="font-mono text-xs uppercase tracking-widest">Have you played an ARG before? [Y/N]</p>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="font-bold">[Query 02]</div>
+                        <p class="font-mono text-xs uppercase tracking-widest">How do you wish to enter the Loomworks?</p>
+                        <ul class="list-disc list-inside space-y-1 text-gray-100">
+                            <li>Go in Blind (Full immersion; satire stays diegetic)</li>
+                            <li>With a Little Light (Thematic context and history provided)</li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="font-semibold text-red-200">Wake up, Mr. Freeman.</p>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="app.navigate('profiler')" class="ui-click bg-white text-black px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 hover:text-white transition-colors">Go to Identity Assessment</button>
+                    <button onclick="app.navigate('press')" class="ui-click border border-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-white hover:text-black transition-colors">Grab Context Pack</button>
+                </div>
+            </div>
+        </div>
     </section>
 
 
@@ -1313,8 +1392,48 @@
 
             <div class="bg-white border border-black rounded-xl shadow-xl overflow-hidden" id="prof-shell">
                 <div class="p-6 space-y-6" id="prof-content-area">
+                    <div id="calibration-gate" class="bg-[#0b0b0b] text-white rounded-xl p-5 space-y-5 shadow-[6px_6px_0px_0px_rgba(205,43,43,1)]">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-red-200">Calibration Gate</div>
+                                <h3 class="text-2xl font-bold">Threshold Selection</h3>
+                            </div>
+                            <div id="lumen-readout" class="font-mono text-xs uppercase tracking-widest px-3 py-1 border border-white/20 rounded-full bg-white/5">Lumen Level: Unset</div>
+                        </div>
+                        <p class="text-sm leading-relaxed text-gray-100">Set your transparency level before the Identity Assessment. Answer the ARG check, choose your entrance style, and opt into extra light if you need it.</p>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <div class="font-bold">[Query 01]</div>
+                                <p class="font-mono text-[11px] uppercase tracking-widest text-red-200">Have you played an ARG before?</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button data-cal-group="arg" onclick="calibrationGate.setArg(true, this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">Yes</button>
+                                    <button data-cal-group="arg" onclick="calibrationGate.setArg(false, this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">No</button>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="font-bold">[Query 02]</div>
+                                <p class="font-mono text-[11px] uppercase tracking-widest text-red-200">How do you wish to enter the Loomworks?</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button data-cal-group="entry" onclick="calibrationGate.setEntry('blind', this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">Go in Blind</button>
+                                    <button data-cal-group="entry" onclick="calibrationGate.setEntry('light', this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">With a Little Light</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid md:grid-cols-3 gap-3 bg-white/5 border border-white/10 rounded-lg p-4">
+                            <label class="flex items-start gap-2 text-sm text-gray-100"><input type="checkbox" class="mt-1 cal-light" onchange="calibrationGate.toggleLight('history', this.checked)"><span><span class="font-bold">History</span>: Track the resonance cascade via I Love Bees, Slusho, Why So Serious?, and Flynn Lives.</span></label>
+                            <label class="flex items-start gap-2 text-sm text-gray-100"><input type="checkbox" class="mt-1 cal-light" onchange="calibrationGate.toggleLight('form', this.checked)"><span><span class="font-bold">Form</span>: Enter diegetically; the Barter Post and Lanterns believe this is their world.</span></label>
+                            <label class="flex items-start gap-2 text-sm text-gray-100"><input type="checkbox" class="mt-1 cal-light" onchange="calibrationGate.toggleLight('intent', this.checked)"><span><span class="font-bold">Intent</span>: Hold the Skibidi-speed collision of legacy icons and absurdist velocity.</span></label>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 justify-between">
+                            <div id="calibration-status" class="font-mono text-xs text-gray-200 uppercase tracking-widest">Set your lumen level to tune how much satire you see.</div>
+                            <button onclick="calibrationGate.confirm()" class="ui-click bg-white text-black px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 hover:text-white transition-colors">Lock Lumen Level</button>
+                        </div>
+                    </div>
+
+                    <div id="prof-stage-locked" class="border border-dashed border-red-400 bg-red-50 text-red-700 p-4 rounded-lg text-sm font-mono uppercase tracking-widest text-center">Complete the Calibration Gate to unlock the Identity Assessment.</div>
+
                     <!-- Stage 1: Intro/Selection -->
-                    <div id="prof-stage-select" class="fade-in space-y-5">
+                    <div id="prof-stage-select" class="fade-in space-y-5 hidden">
                         <p class="font-mono text-xs text-gray-600 text-center uppercase tracking-widest">Pick your lane. A focused quiz will open in a separate overlay to confirm your classification.</p>
                         <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
                             <button onclick="profiler.select('dreamer', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
@@ -3389,6 +3508,94 @@
             });
         };
 
+        const calibrationGate = {
+            state: { arg: null, entry: null, lights: new Set() },
+
+            reset() {
+                this.state = { arg: null, entry: null, lights: new Set() };
+                document.querySelectorAll('.cal-choice').forEach(btn => btn.classList.remove('bg-white', 'text-black', 'border-black', 'ring-2', 'ring-red-500'));
+                document.querySelectorAll('.cal-light').forEach(box => { box.checked = false; });
+
+                const stageSelect = document.getElementById('prof-stage-select');
+                if (stageSelect) stageSelect.classList.add('hidden');
+                const locked = document.getElementById('prof-stage-locked');
+                if (locked) locked.classList.remove('hidden');
+
+                const status = document.getElementById('calibration-status');
+                if (status) {
+                    status.textContent = 'Set your lumen level to tune how much satire you see.';
+                    status.className = 'font-mono text-xs uppercase tracking-widest text-gray-200 md:text-left text-center';
+                }
+
+                const readout = document.getElementById('lumen-readout');
+                if (readout) readout.textContent = 'Lumen Level: Unset';
+            },
+
+            setArg(val, el) {
+                this.state.arg = val;
+                this.highlight('arg', el);
+                this.updateStatus();
+            },
+
+            setEntry(val, el) {
+                this.state.entry = val;
+                this.highlight('entry', el);
+                this.updateStatus();
+            },
+
+            toggleLight(key, checked) {
+                if (checked) this.state.lights.add(key);
+                else this.state.lights.delete(key);
+            },
+
+            highlight(group, el) {
+                document.querySelectorAll(`[data-cal-group="${group}"]`).forEach(btn => btn.classList.remove('bg-white', 'text-black', 'border-black', 'ring-2', 'ring-red-500'));
+                if (el) el.classList.add('bg-white', 'text-black', 'border-black', 'ring-2', 'ring-red-500');
+            },
+
+            updateStatus(msg = 'Set your lumen level to tune how much satire you see.', variant = 'muted') {
+                const status = document.getElementById('calibration-status');
+                if (!status) return;
+                status.textContent = msg;
+                status.className = 'font-mono text-xs uppercase tracking-widest md:text-left text-center';
+                if (variant === 'error') status.classList.add('text-red-200');
+                else if (variant === 'success') status.classList.add('text-green-200');
+                else status.classList.add('text-gray-200');
+            },
+
+            computeLumen() {
+                const entry = this.state.entry === 'blind' ? 'Restrained Chaos' : 'Implementation Architect';
+                const arg = this.state.arg ? 'ARG-Ready' : 'New Signal';
+                const labels = { history: 'History', form: 'Form', intent: 'Intent' };
+                const light = this.state.entry === 'light'
+                    ? (this.state.lights.size ? Array.from(this.state.lights).map(k => labels[k]).join(' / ') : 'Context Requested')
+                    : 'Diegetic Blindfold';
+                return `${entry} — ${light} (${arg})`;
+            },
+
+            confirm() {
+                if (this.state.arg === null || this.state.entry === null) {
+                    this.updateStatus('Answer both queries to set your Lumen Level.', 'error');
+                    return;
+                }
+
+                if (this.state.entry === 'light' && this.state.lights.size === 0) {
+                    this.updateStatus('Pick at least one Light explainer to carry.', 'error');
+                    return;
+                }
+
+                const label = this.computeLumen();
+                const readout = document.getElementById('lumen-readout');
+                if (readout) readout.textContent = `Lumen Level: ${label}`;
+                this.updateStatus('Calibration stored. Proceed to the Identity Assessment when ready.', 'success');
+
+                const stageSelect = document.getElementById('prof-stage-select');
+                if (stageSelect) stageSelect.classList.remove('hidden');
+                const locked = document.getElementById('prof-stage-locked');
+                if (locked) locked.classList.add('hidden');
+            }
+        };
+
         // --- PROFILER LOGIC (QUIZ) ---
         const profiler = {
             initialChoice: null,
@@ -3400,7 +3607,7 @@
             shareTimeout: null,
 
             init: () => {
-                document.getElementById('prof-stage-select').classList.remove('hidden');
+                calibrationGate.reset();
                 document.getElementById('prof-stage-doubt').classList.add('hidden');
                 document.getElementById('prof-stage-quiz').classList.add('hidden');
                 document.getElementById('prof-stage-process').classList.add('hidden');
