@@ -707,61 +707,107 @@
         .pixel-cell { background-color: white; cursor: pointer; }
         .pixel-cell:hover { opacity: 0.8; }
 
-        /* Loader */
+        /* Manufacture Tool */
+        .manufacture-shell { background: #f5f5dc; border: 2px solid #000; box-shadow: 4px 4px 0 #000; padding: 14px; }
+        .manufacture-bezel { background: #fffdf5; border: 2px solid #000; box-shadow: inset 0 0 0 1px #000; position: relative; }
+        .manufacture-topbar { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 2px solid #000; background: linear-gradient(90deg, rgba(0,0,0,0.05), transparent); }
+        .manufacture-canvas { width: 100%; image-rendering: pixelated; background: #f5f5dc; display: block; }
+        .manufacture-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+        .mode-btn { border: 1px solid #111; padding: 8px 10px; font-family: 'Space Mono', monospace; font-size: 11px; text-transform: uppercase; background: #fff; transition: transform 0.12s ease, box-shadow 0.12s ease; }
+        .mode-btn.active { background: #111; color: #fff; box-shadow: 3px 3px 0 #000; transform: translate(-2px, -2px); }
+        .swatch { width: 28px; height: 28px; border: 2px solid #111; cursor: pointer; box-shadow: 2px 2px 0 #111; }
+        .swatch.active { outline: 3px solid #cd2b2b; }
+        .receipt-ticker { overflow: hidden; border: 2px solid #000; background: #0b0b0b; color: #f5f5f5; font-family: 'Space Mono', monospace; text-transform: uppercase; }
+        .receipt-ticker span { display: inline-block; padding: 10px 14px; animation: ticker 12s linear infinite; white-space: nowrap; letter-spacing: 0.18em; }
+        .receipt-ticker.paused span { animation-play-state: paused; }
+        .portfolio-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+        .portfolio-card { border: 1px solid #000; background: #fff; box-shadow: 3px 3px 0 #000; padding: 12px; }
+        .journey-stage { background: #111; color: #f5f5f5; border: 2px solid #000; box-shadow: inset 0 0 0 1px #444; }
+
+        @keyframes ticker {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Loader — Curtain Patch */
         #loader {
             position: fixed; inset: 0; width: 100%; height: 100%;
             background: #000; z-index: 9999; display: flex;
             align-items: center; justify-content: center; transition: opacity 0.7s ease;
+            color: #fff;
         }
         #loader.fade-out { opacity: 0; pointer-events: none; }
+        #loader.blackout .loader-stage { opacity: 0; }
         .loader-stage {
             position: relative;
-            width: min(720px, 88vw);
-            height: min(360px, 64vh);
+            width: min(640px, 92vw);
+            padding: 26px 18px 18px;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.18);
-            box-shadow: 0 20px 70px rgba(0,0,0,0.45), inset 0 0 80px rgba(255,255,255,0.08);
-            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08), transparent 50%);
+            gap: 18px;
+            overflow: visible;
         }
-        .loader-line {
+        .loader-box {
             position: relative;
-            width: 70vh;
-            max-width: 80vw;
-            height: 3px;
-            background: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+            width: min(360px, 80vw);
+            aspect-ratio: 3 / 2;
             transform-origin: center;
-            transform: scaleX(var(--loader-progress, 0));
-            box-shadow: 0 0 18px rgba(255,255,255,0.45), 0 0 30px rgba(255,255,255,0.2);
-            transition: transform 0.8s ease, opacity 0.8s ease;
         }
-        .loader-line.pulse { animation: loaderPulse 0.6s ease; }
-        .loader-stage.split .loader-line { transform: rotate(90deg) scaleX(1); opacity: 0.8; }
-        .loader-text {
+        .loader-box-frame {
             position: absolute;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-family: 'Space Mono', monospace;
-            letter-spacing: 0.3em;
-            font-size: 11px;
-            color: #d9d9d9;
-            text-transform: uppercase;
+            inset: 0;
+            border: 2px solid #fff;
         }
+        .loader-fill {
+            position: absolute;
+            inset: 4px;
+            background: #fff;
+            transform: scaleX(var(--loader-progress, 0));
+            transform-origin: left center;
+            transition: transform 0.16s ease;
+            mix-blend-mode: screen;
+        }
+        .loader-box.wiggle { animation: loaderWiggle 320ms ease-in-out 4; }
+        .loader-box.shattered { opacity: 0; }
+        .loader-text {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            text-align: center;
+        }
+        .loader-particles { position: absolute; inset: 0; pointer-events: none; }
+        .particle { position: absolute; background: #fff; opacity: 1; animation: particleBurst 720ms ease-out forwards; }
         .curtain {
             position: absolute;
             inset: 0;
             width: 50%;
-            background: linear-gradient(135deg, rgba(205,43,43,0.35), rgba(0,0,0,0.6));
-            transition: transform 1.2s cubic-bezier(0.83, 0, 0.17, 1);
-            z-index: 2;
+            height: 100%;
+            top: 0;
+            transition: transform 0.9s ease-in-out, opacity 0.6s ease;
+            z-index: 8;
+            background: radial-gradient(circle at 30% 40%, rgba(255,255,255,0.06), transparent 40%), linear-gradient(135deg, rgba(205,43,43,0.5), rgba(0,0,0,0.8));
+            box-shadow: inset 0 0 0 2px rgba(0,0,0,0.6);
+            opacity: 0;
+            pointer-events: none;
         }
-        .curtain.right { left: 50%; background: linear-gradient(225deg, rgba(205,43,43,0.35), rgba(0,0,0,0.6)); }
+        .curtain.left { left: 0; transform: translateX(0); }
+        .curtain.right { left: 50%; transform: translateX(0); }
+        .curtain.show { opacity: 1; }
         .curtain.open-left { transform: translateX(-100%); }
         .curtain.open-right { transform: translateX(100%); }
-        @keyframes loaderPulse { 0% { transform: scaleX(1); } 50% { transform: scaleX(1.1); } 100% { transform: scaleX(1); } }
+        @keyframes loaderWiggle {
+            0% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(-1deg) scale(1.01); }
+            50% { transform: rotate(1deg) scale(0.995); }
+            75% { transform: rotate(-1deg) scale(1.01); }
+            100% { transform: rotate(0deg) scale(1); }
+        }
+        @keyframes particleBurst {
+            0% { transform: translate(0,0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1.2); opacity: 0; }
+        }
 
         /* Mobile Dime anchor */
         #dime-mobile-anchor {
@@ -794,8 +840,12 @@
         <div id="loader-stage" class="loader-stage">
             <div id="curtain-left" class="curtain left"></div>
             <div id="curtain-right" class="curtain right"></div>
-            <div id="loader-line" class="loader-line" aria-hidden="true"></div>
-            <div id="loader-text" class="loader-text">Initializing Domestic Product</div>
+            <div id="loader-box" class="loader-box">
+                <div class="loader-box-frame"></div>
+                <div id="loader-fill" class="loader-fill" aria-hidden="true"></div>
+            </div>
+            <div id="loader-text" class="loader-text">INITIALIZING LOOMWORKS MANUFACTURE PROTOCOL: CONSTRUCT EMULACRUM.</div>
+            <div id="loader-particles" class="loader-particles" aria-hidden="true"></div>
         </div>
     </div>
 
@@ -1741,6 +1791,73 @@
                 <div class="pt-4 flex flex-wrap gap-3 text-xs font-mono uppercase tracking-[0.25em] text-gray-600">
                     <span>this is not financial advice. this is narrative advice.</span>
                     <span id="grift-hint" class="text-red-600"></span>
+                </div>
+            </div>
+
+            <div class="bg-white border border-black rounded-2xl p-6 shadow-2xl space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div class="space-y-1">
+                        <div class="font-mono text-[10px] uppercase tracking-widest text-gray-600">Initialization Protocol // Curtain Patch</div>
+                        <h3 class="text-2xl font-bold uppercase tracking-tight">Manufacture Tool (16x16)</h3>
+                        <p class="text-sm text-gray-700 max-w-2xl">Retro constraints keep the satire sharp. Use the 16x16 grid to stamp an emulacrum, then send it through the corporate theater: wiggle, burst, blackout, reveal.</p>
+                    </div>
+                    <div class="text-xs font-mono uppercase tracking-[0.24em] text-gray-500">Low-Fidelity Standards Reinforced</div>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-6 items-start">
+                    <div class="space-y-4 manufacture-shell">
+                        <div class="manufacture-bezel">
+                            <div class="manufacture-topbar">
+                                <span class="font-mono text-[10px] uppercase tracking-[0.28em]">Pixel Fabricator // 16 × 16</span>
+                                <div class="flex items-center gap-2" id="manufacture-swatches">
+                                    <div class="swatch active" data-color="#111" style="background:#111" title="Obsidian"></div>
+                                    <div class="swatch" data-color="#ffffff" style="background:#ffffff" title="Signal White"></div>
+                                    <div class="swatch" data-color="#cd2b2b" style="background:#cd2b2b" title="Alarm Red"></div>
+                                    <div class="swatch" data-color="#f5f5dc" style="background:#f5f5dc" title="Retro Creme"></div>
+                                    <div class="swatch" data-color="erase" style="background: repeating-linear-gradient(45deg,#000 0,#000 6px,#f5f5dc 6px,#f5f5dc 12px)" title="Erase"></div>
+                                </div>
+                            </div>
+                            <canvas id="manufacture-canvas" class="manufacture-canvas" width="320" height="320" aria-label="16 by 16 manufacture grid"></canvas>
+                        </div>
+                        <div class="manufacture-controls">
+                            <button class="mode-btn active" data-mode="grid-lines">Grid Lines Visible</button>
+                            <button class="mode-btn" data-mode="grid-gap">Grid Gap</button>
+                            <button class="mode-btn" data-mode="full">Full Pixel</button>
+                            <button class="mode-btn" data-mode="dilate">Abstracted Blob</button>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <input id="manufacture-name" type="text" class="border border-black px-3 py-2 text-sm font-mono" placeholder="Name your artifact" aria-label="Artifact name">
+                            <button id="manufacture-clear" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Clear Grid</button>
+                            <button id="manufacture-submit" class="ui-click border border-black bg-black text-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Submit Artifact</button>
+                            <div class="text-[10px] font-mono uppercase tracking-widest text-gray-600">Protocol Text: INITIALIZING LOOMWORKS MANUFACTURE PROTOCOL: CONSTRUCT EMULACRUM.</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="receipt-ticker" id="receipt-ticker"><span>Economic Transparency Receipt // Awaiting submission // Allocation: 0.000666% of lifetime revenue</span></div>
+
+                        <div class="journey-stage p-4 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="font-mono text-[10px] uppercase tracking-widest">Cinematic Loop</div>
+                                <div id="journey-label" class="text-xs font-mono uppercase tracking-[0.2em] text-gray-300">Museum</div>
+                            </div>
+                            <canvas id="journey-canvas" class="w-full manufacture-canvas" width="160" height="160" aria-label="Journey vignette"></canvas>
+                            <p class="text-xs text-gray-300">Minimalist vignettes cycle through the museum, auction, and NFT mint to show manufactured meaning.</p>
+                        </div>
+
+                        <div class="bg-[#f5f5dc] border border-black p-4 space-y-3 shadow-lg">
+                            <div class="flex items-center justify-between">
+                                <div class="font-mono text-[10px] uppercase tracking-widest text-gray-700">Portfolio Overview</div>
+                                <div id="portfolio-total" class="font-mono text-xs uppercase tracking-[0.2em] text-gray-700">0 submissions • 0.000% accrued</div>
+                            </div>
+                            <div id="portfolio-grid" class="portfolio-grid"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="text-xs font-mono uppercase tracking-[0.24em] text-gray-600">Operational Velocity</div>
+                    <p class="text-sm text-gray-700">The 16x16 constraint keeps build cost near zero and resonance instant. Each submission returns exactly 0.000666% of its projected revenue while reinforcing the ethics of held wonder—showing the gears while inviting you to turn them.</p>
                 </div>
             </div>
 
@@ -3062,6 +3179,7 @@
             droneGain: null,
             hoverSynth: null,
             tokenSynth: null,
+            clunk: null,
             transportStarted: false,
             init: async () => {
                 if (state.audioInitialized) return;
@@ -3112,6 +3230,18 @@
                 }
                 audio.tokenSynth.triggerAttackRelease('C5', '8n');
                 audio.tokenSynth.triggerAttackRelease('G4', '8n', '+0.12');
+            },
+            playClunk: async () => {
+                await audio.init();
+                if (!audio.clunk) {
+                    audio.clunk = new Tone.MembraneSynth({
+                        pitchDecay: 0.006,
+                        octaves: 3,
+                        oscillator: { type: 'sine' },
+                        envelope: { attack: 0.001, decay: 0.32, sustain: 0, release: 0.08 }
+                    }).connect(new Tone.Gain(0.4).connect(audio.master));
+                }
+                audio.clunk.triggerAttackRelease('C2', '8n');
             },
             startLantern: async () => {
                 await audio.init();
@@ -3821,6 +3951,303 @@
             }
         };
         window.grift = grift;
+
+        // --- MANUFACTURE TOOL (16x16) ---
+        const manufacture = {
+            gridSize: 16,
+            pixels: [],
+            canvas: null,
+            ctx: null,
+            journeyCanvas: null,
+            journeyCtx: null,
+            currentColor: '#111',
+            mode: 'grid-lines',
+            drawing: false,
+            bound: false,
+            artifacts: [],
+            journeyIndex: 0,
+            journeyTimer: null,
+            sharePercent: 0.000666,
+            scenes: [
+                {
+                    label: 'Museum',
+                    draw(ctx, cell, size) {
+                        ctx.fillStyle = '#0b0b0b';
+                        ctx.fillRect(0, 0, size, size);
+                        ctx.fillStyle = '#161616';
+                        ctx.fillRect(0, cell * 11, size, cell * 5);
+                        ctx.fillStyle = '#f5f5dc';
+                        ctx.fillRect(cell * 5, cell * 3.5, cell * 6, cell * 6);
+                        ctx.strokeStyle = '#000';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(cell * 5 + 0.5, cell * 3.5 + 0.5, cell * 6 - 1, cell * 6 - 1);
+                        ctx.fillStyle = '#cd2b2b';
+                        ctx.fillRect(cell * 7, cell * 5.5, cell * 2, cell * 2.5);
+                        ctx.fillStyle = '#111';
+                        ctx.fillRect(cell * 7.6, cell * 9.8, cell * 0.8, cell * 1.2);
+                    }
+                },
+                {
+                    label: 'Auction',
+                    draw(ctx, cell, size) {
+                        ctx.fillStyle = '#0a0a0a';
+                        ctx.fillRect(0, 0, size, size);
+                        ctx.fillStyle = '#1f1f1f';
+                        ctx.fillRect(0, cell * 12, size, cell * 4);
+                        ctx.fillStyle = '#8b5a2b';
+                        ctx.fillRect(cell * 6, cell * 7, cell * 4, cell * 1.2);
+                        ctx.fillRect(cell * 8.5, cell * 6.2, cell * 1.5, cell * 0.9);
+                        ctx.fillStyle = '#f5f5dc';
+                        ctx.fillRect(cell * 3, cell * 4, cell * 3, cell * 1);
+                        ctx.fillRect(cell * 9.5, cell * 4, cell * 3, cell * 1);
+                        ctx.fillStyle = '#cd2b2b';
+                        ctx.fillRect(cell * 3, cell * 5, cell * 1, cell * 3);
+                        ctx.fillRect(cell * 11.5, cell * 5, cell * 1, cell * 3);
+                        ctx.fillStyle = '#00ffaa';
+                        ctx.fillRect(cell * 5, cell * 2.5, cell * 6, cell * 1);
+                    }
+                },
+                {
+                    label: 'NFT Mint',
+                    draw(ctx, cell, size) {
+                        ctx.fillStyle = '#050505';
+                        ctx.fillRect(0, 0, size, size);
+                        for (let i = 0; i < 40; i++) {
+                            const x = Math.floor(Math.random() * 16);
+                            const y = Math.floor(Math.random() * 16);
+                            ctx.fillStyle = ['#f5f5f5', '#cd2b2b', '#7c7c7c'][Math.floor(Math.random() * 3)];
+                            ctx.fillRect(x * cell, y * cell, cell, cell);
+                        }
+                        ctx.strokeStyle = '#00c2ff';
+                        ctx.lineWidth = 1.2;
+                        ctx.strokeRect(cell * 4.5, cell * 4.5, cell * 7, cell * 7);
+                        ctx.fillStyle = '#0b0b0b';
+                        ctx.fillRect(cell * 6.5, cell * 6.5, cell * 3, cell * 3);
+                    }
+                }
+            ],
+            init() {
+                manufacture.canvas = document.getElementById('manufacture-canvas');
+                manufacture.journeyCanvas = document.getElementById('journey-canvas');
+                if (!manufacture.canvas || !manufacture.journeyCanvas) return;
+                if (!manufacture.bound) {
+                    manufacture.ctx = manufacture.canvas.getContext('2d');
+                    manufacture.journeyCtx = manufacture.journeyCanvas.getContext('2d');
+                    manufacture.pixels = Array.from({ length: manufacture.gridSize }, () => Array(manufacture.gridSize).fill(null));
+                    manufacture.bindCanvas();
+                    manufacture.bindControls();
+                    manufacture.bound = true;
+                }
+                manufacture.render();
+                manufacture.startJourneyLoop();
+            },
+            bindCanvas() {
+                const canvas = manufacture.canvas;
+                const paint = (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = Math.floor(((e.clientX - rect.left) / rect.width) * manufacture.gridSize);
+                    const y = Math.floor(((e.clientY - rect.top) / rect.height) * manufacture.gridSize);
+                    manufacture.paint(x, y);
+                };
+                canvas.addEventListener('mousedown', (e) => { manufacture.drawing = true; paint(e); });
+                canvas.addEventListener('mousemove', (e) => { if (manufacture.drawing) paint(e); });
+                window.addEventListener('mouseup', () => { manufacture.drawing = false; });
+                canvas.addEventListener('mouseleave', () => { manufacture.drawing = false; });
+            },
+            bindControls() {
+                document.querySelectorAll('.mode-btn').forEach((btn) => {
+                    btn.addEventListener('click', () => manufacture.setMode(btn.dataset.mode));
+                });
+                document.querySelectorAll('#manufacture-swatches .swatch').forEach((swatch) => {
+                    swatch.addEventListener('click', () => manufacture.setColor(swatch.dataset.color));
+                });
+                const clearBtn = document.getElementById('manufacture-clear');
+                if (clearBtn) clearBtn.addEventListener('click', () => manufacture.clear());
+                const submitBtn = document.getElementById('manufacture-submit');
+                if (submitBtn) submitBtn.addEventListener('click', () => manufacture.submit());
+            },
+            setMode(mode) {
+                if (!mode) return;
+                manufacture.mode = mode;
+                document.querySelectorAll('.mode-btn').forEach((btn) => btn.classList.toggle('active', btn.dataset.mode === mode));
+                manufacture.render();
+            },
+            setColor(color) {
+                manufacture.currentColor = color;
+                document.querySelectorAll('#manufacture-swatches .swatch').forEach((swatch) => swatch.classList.toggle('active', swatch.dataset.color === color));
+            },
+            clear() {
+                manufacture.pixels = Array.from({ length: manufacture.gridSize }, () => Array(manufacture.gridSize).fill(null));
+                manufacture.render();
+            },
+            paint(x, y) {
+                if (x < 0 || y < 0 || x >= manufacture.gridSize || y >= manufacture.gridSize) return;
+                manufacture.pixels[y][x] = manufacture.currentColor === 'erase' ? null : manufacture.currentColor;
+                manufacture.render();
+            },
+            render() {
+                if (!manufacture.ctx || !manufacture.canvas) return;
+                const size = manufacture.canvas.width;
+                const cell = size / manufacture.gridSize;
+                manufacture.ctx.clearRect(0, 0, size, size);
+                manufacture.ctx.fillStyle = '#f5f5dc';
+                manufacture.ctx.fillRect(0, 0, size, size);
+
+                if (manufacture.mode === 'dilate') {
+                    manufacture.renderDilated(cell);
+                } else {
+                    for (let y = 0; y < manufacture.gridSize; y++) {
+                        for (let x = 0; x < manufacture.gridSize; x++) {
+                            const color = manufacture.pixels[y][x];
+                            if (!color) continue;
+                            const gap = manufacture.mode === 'grid-gap' ? 1 : 0;
+                            const offset = gap;
+                            const drawSize = manufacture.mode === 'grid-gap' ? cell - gap * 2 : cell;
+                            manufacture.ctx.fillStyle = color;
+                            manufacture.ctx.fillRect(x * cell + offset, y * cell + offset, drawSize, drawSize);
+                        }
+                    }
+                    if (manufacture.mode === 'grid-lines') manufacture.drawGridLines(cell);
+                }
+            },
+            renderDilated(cell) {
+                const visited = new Set();
+                const size = manufacture.canvas.width;
+                const key = (x, y) => `${x},${y}`;
+                for (let y = 0; y < manufacture.gridSize; y++) {
+                    for (let x = 0; x < manufacture.gridSize; x++) {
+                        const color = manufacture.pixels[y][x];
+                        if (!color || visited.has(key(x, y))) continue;
+                        const queue = [[x, y]];
+                        const region = [];
+                        visited.add(key(x, y));
+                        while (queue.length) {
+                            const [cx, cy] = queue.shift();
+                            region.push([cx, cy]);
+                            const neighbors = [
+                                [cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]
+                            ];
+                            neighbors.forEach(([nx, ny]) => {
+                                if (nx < 0 || ny < 0 || nx >= manufacture.gridSize || ny >= manufacture.gridSize) return;
+                                if (visited.has(key(nx, ny))) return;
+                                if (manufacture.pixels[ny][nx] === color) {
+                                    visited.add(key(nx, ny));
+                                    queue.push([nx, ny]);
+                                }
+                            });
+                        }
+
+                        const xs = region.map(([rx]) => rx);
+                        const ys = region.map(([, ry]) => ry);
+                        const minX = Math.min(...xs);
+                        const maxX = Math.max(...xs);
+                        const minY = Math.min(...ys);
+                        const maxY = Math.max(...ys);
+                        const width = (maxX - minX + 1) * cell;
+                        const height = (maxY - minY + 1) * cell;
+                        const radius = Math.min(cell * 1.4, Math.min(width, height) / 2.2);
+                        manufacture.ctx.fillStyle = color;
+                        manufacture.roundRect(manufacture.ctx, minX * cell - 2, minY * cell - 2, width + 4, height + 4, radius);
+                        manufacture.ctx.fill();
+                    }
+                }
+                manufacture.ctx.strokeStyle = '#888';
+                manufacture.ctx.lineWidth = 0.8;
+                manufacture.ctx.strokeRect(0.4, 0.4, size - 0.8, size - 0.8);
+            },
+            drawGridLines(cell) {
+                manufacture.ctx.strokeStyle = '#888';
+                manufacture.ctx.lineWidth = 1;
+                for (let i = 1; i < manufacture.gridSize; i++) {
+                    manufacture.ctx.beginPath();
+                    manufacture.ctx.moveTo(i * cell + 0.5, 0);
+                    manufacture.ctx.lineTo(i * cell + 0.5, manufacture.canvas.height);
+                    manufacture.ctx.stroke();
+                    manufacture.ctx.beginPath();
+                    manufacture.ctx.moveTo(0, i * cell + 0.5);
+                    manufacture.ctx.lineTo(manufacture.canvas.width, i * cell + 0.5);
+                    manufacture.ctx.stroke();
+                }
+            },
+            roundRect(ctx, x, y, width, height, radius) {
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + width - radius, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctx.lineTo(x + width, y + height - radius);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctx.lineTo(x + radius, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
+            },
+            submit() {
+                const nameInput = document.getElementById('manufacture-name');
+                const name = (nameInput?.value || '').trim() || `Artifact ${manufacture.artifacts.length + 1}`;
+                const filledPixels = manufacture.pixels.flat().filter(Boolean).length;
+                const projectedRevenue = Math.max(12000, filledPixels * 64 + Math.random() * 18000);
+                const shareDecimal = manufacture.sharePercent / 100;
+                const shareValue = projectedRevenue * shareDecimal;
+
+                manufacture.artifacts.unshift({
+                    id: Date.now(),
+                    name,
+                    projectedRevenue,
+                    shareValue,
+                    percent: manufacture.sharePercent,
+                    pixels: filledPixels
+                });
+
+                manufacture.renderReceipt(name, projectedRevenue, shareValue);
+                manufacture.updatePortfolio();
+            },
+            renderReceipt(name, revenue, share) {
+                const ticker = document.getElementById('receipt-ticker');
+                if (!ticker) return;
+                const line = `ECONOMIC TRANSPARENCY RECEIPT • ${name} • 0.000666% OF LIFETIME REVENUE • PROJECTED $${manufacture.formatCurrency(revenue)} • YOUR CUT $${manufacture.formatCurrency(share)}`;
+                ticker.innerHTML = `<span>${line} // ${line} // ${line}</span>`;
+                ticker.classList.remove('paused');
+            },
+            updatePortfolio() {
+                const grid = document.getElementById('portfolio-grid');
+                const total = document.getElementById('portfolio-total');
+                const totalPercent = manufacture.artifacts.length * manufacture.sharePercent;
+                if (total) total.innerText = `${manufacture.artifacts.length} submissions • ${totalPercent.toFixed(6)}% accrued`;
+                if (!grid) return;
+                grid.innerHTML = '';
+                manufacture.artifacts.slice(0, 12).forEach((artifact) => {
+                    const card = document.createElement('div');
+                    card.className = 'portfolio-card';
+                    card.innerHTML = `
+                        <div class="font-bold text-sm">${artifact.name}</div>
+                        <div class="text-xs font-mono uppercase tracking-[0.2em] text-gray-600">0.000666% Share</div>
+                        <div class="text-sm font-mono">Lifetime: $${manufacture.formatCurrency(artifact.projectedRevenue)}</div>
+                        <div class="text-sm font-mono text-red-700">Your Cut: $${manufacture.formatCurrency(artifact.shareValue)}</div>
+                        <div class="text-[10px] text-gray-500 font-mono">${artifact.pixels} pixels archived</div>
+                    `;
+                    grid.appendChild(card);
+                });
+            },
+            startJourneyLoop() {
+                if (manufacture.journeyTimer) return;
+                manufacture.renderJourney();
+                manufacture.journeyTimer = setInterval(() => manufacture.renderJourney(), 1800);
+            },
+            renderJourney() {
+                if (!manufacture.journeyCtx || !manufacture.journeyCanvas) return;
+                const scene = manufacture.scenes[manufacture.journeyIndex % manufacture.scenes.length];
+                const cell = manufacture.journeyCanvas.width / manufacture.gridSize;
+                scene.draw(manufacture.journeyCtx, cell, manufacture.journeyCanvas.width);
+                const label = document.getElementById('journey-label');
+                if (label) label.innerText = scene.label;
+                manufacture.journeyIndex += 1;
+            },
+            formatCurrency(value) {
+                return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+            }
+        };
+        window.manufacture = manufacture;
 
         // --- BARTER SHOP + TRANSPARENCY VIEW ---
         const barter = {
@@ -4775,63 +5202,111 @@
         // --- INIT ---
         const loaderSequence = {
             progress: 0,
-            line: null,
+            loadedAssets: 0,
+            totalAssets: 96,
+            fill: null,
             text: null,
             stage: null,
+            box: null,
+            particles: null,
             curtains: null,
             timer: null,
             opened: false,
             start() {
                 loaderSequence.stage = document.getElementById('loader-stage');
-                loaderSequence.line = document.getElementById('loader-line');
+                loaderSequence.fill = document.getElementById('loader-fill');
                 loaderSequence.text = document.getElementById('loader-text');
+                loaderSequence.box = document.getElementById('loader-box');
+                loaderSequence.particles = document.getElementById('loader-particles');
                 loaderSequence.curtains = {
                     left: document.getElementById('curtain-left'),
                     right: document.getElementById('curtain-right')
                 };
 
+                loaderSequence.loadedAssets = 0;
                 loaderSequence.progress = 0;
-                if (!loaderSequence.line || !loaderSequence.text) return;
+                if (!loaderSequence.fill || !loaderSequence.text) return;
 
-                loaderSequence.updateLine();
+                loaderSequence.updateFill();
+                if (loaderSequence.timer) clearInterval(loaderSequence.timer);
                 loaderSequence.timer = setInterval(() => {
-                    loaderSequence.progress = Math.min(90, loaderSequence.progress + Math.random() * 12);
-                    loaderSequence.updateLine();
-                }, 160);
+                    loaderSequence.loadedAssets = Math.min(
+                        loaderSequence.totalAssets,
+                        loaderSequence.loadedAssets + Math.ceil(Math.random() * 4)
+                    );
+                    loaderSequence.updateFill();
+                    if (loaderSequence.loadedAssets >= loaderSequence.totalAssets) loaderSequence.complete();
+                }, 150);
             },
-            updateLine() {
-                if (!loaderSequence.line) return;
-                const scale = Math.max(loaderSequence.progress / 100, 0.05);
-                loaderSequence.line.style.setProperty('--loader-progress', scale.toFixed(3));
+            updateFill() {
+                if (!loaderSequence.fill) return;
+                const scale = Math.max(loaderSequence.loadedAssets / loaderSequence.totalAssets, 0.01);
+                loaderSequence.fill.style.setProperty('--loader-progress', scale.toFixed(3));
                 if (loaderSequence.text) {
-                    loaderSequence.text.innerText = `Initialization ${Math.round(loaderSequence.progress)}%`;
+                    loaderSequence.text.innerText = `INITIALIZING LOOMWORKS MANUFACTURE PROTOCOL: CONSTRUCT EMULACRUM. ${Math.round(scale * 100)}%`;
                 }
             },
             complete() {
-                if (!loaderSequence.line || loaderSequence.opened) return;
+                if (!loaderSequence.fill || loaderSequence.opened) return;
                 loaderSequence.opened = true;
                 clearInterval(loaderSequence.timer);
-                loaderSequence.progress = 100;
-                loaderSequence.updateLine();
-                loaderSequence.text.innerText = 'Curtain Opening';
-                loaderSequence.line.classList.add('pulse');
+                loaderSequence.loadedAssets = loaderSequence.totalAssets;
+                loaderSequence.updateFill();
+                if (loaderSequence.text) loaderSequence.text.innerText = 'PHASE B: WIGGLE & BURST';
+                loaderSequence.wiggleAndBurst();
+            },
+            wiggleAndBurst() {
+                if (loaderSequence.box) loaderSequence.box.classList.add('wiggle');
+                audio.playClunk();
+                audio.startDrone();
+                setTimeout(() => {
+                    loaderSequence.spawnParticles();
+                    if (loaderSequence.box) loaderSequence.box.classList.add('shattered');
+                    loaderSequence.beginBlackout();
+                }, 260);
+            },
+            spawnParticles() {
+                if (!loaderSequence.box || !loaderSequence.particles || !loaderSequence.stage) return;
+                loaderSequence.particles.innerHTML = '';
+                const rect = loaderSequence.box.getBoundingClientRect();
+                const stageRect = loaderSequence.stage.getBoundingClientRect();
+                const particleSize = rect.width / 16;
+                const particleHeight = rect.height / 16;
 
-                requestAnimationFrame(() => {
-                    if (loaderSequence.stage) loaderSequence.stage.classList.add('split');
-                    setTimeout(() => {
-                        loaderSequence.text.innerText = 'Domestic Product Ready';
-                        if (loaderSequence.curtains?.left) loaderSequence.curtains.left.classList.add('open-left');
-                        if (loaderSequence.curtains?.right) loaderSequence.curtains.right.classList.add('open-right');
-                        loaderSequence.line.style.opacity = '0';
-                    }, 320);
-                    setTimeout(() => {
-                        const loader = document.getElementById('loader');
-                        if (loader) {
-                            loader.classList.add('fade-out');
-                            setTimeout(() => loader.remove(), 900);
-                        }
-                    }, 1400);
-                });
+                for (let y = 0; y < 16; y++) {
+                    for (let x = 0; x < 16; x++) {
+                        const particle = document.createElement('div');
+                        particle.className = 'particle';
+                        particle.style.width = `${particleSize}px`;
+                        particle.style.height = `${particleHeight}px`;
+                        particle.style.left = `${rect.left - stageRect.left + x * particleSize}px`;
+                        particle.style.top = `${rect.top - stageRect.top + y * particleHeight}px`;
+                        particle.style.setProperty('--tx', `${(Math.random() - 0.5) * 260}px`);
+                        particle.style.setProperty('--ty', `${(Math.random() - 0.5) * 260}px`);
+                        particle.style.animationDelay = `${Math.random() * 120}ms`;
+                        loaderSequence.particles.appendChild(particle);
+                    }
+                }
+            },
+            beginBlackout() {
+                const loader = document.getElementById('loader');
+                if (loader) loader.classList.add('blackout');
+                setTimeout(() => {
+                    if (loader) loader.classList.remove('blackout');
+                    loaderSequence.revealCurtains();
+                }, 520);
+            },
+            revealCurtains() {
+                if (loaderSequence.text) loaderSequence.text.innerText = 'PHASE C: CINEMATIC REVEAL';
+                if (loaderSequence.curtains?.left) loaderSequence.curtains.left.classList.add('show', 'open-left');
+                if (loaderSequence.curtains?.right) loaderSequence.curtains.right.classList.add('show', 'open-right');
+                const loader = document.getElementById('loader');
+                setTimeout(() => {
+                    if (loader) {
+                        loader.classList.add('fade-out');
+                        setTimeout(() => loader.remove(), 900);
+                    }
+                }, 1200);
             }
         };
 
@@ -4849,6 +5324,7 @@
             dimeBacklog.bind();
             geoQuiz.init();
             grift.init();
+            manufacture.init();
             valueGate.init();
             greComments.mountAll();
             bindHoverAudio();
