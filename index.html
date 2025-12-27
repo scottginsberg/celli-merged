@@ -29,7 +29,11 @@
             font-family: 'Space Grotesk', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
+            overscroll-behavior-y: none;
+            overscroll-behavior-x: none;
         }
+
+        html { overscroll-behavior: none; }
 
         .blueprint {
             background: linear-gradient(0deg, rgba(205,43,43,0.08) 1px, transparent 1px),
@@ -139,6 +143,12 @@
         .grift-card { background: #ffffff; border: 1px solid #111; padding: 16px; border-radius: 14px; box-shadow: 0 14px 34px rgba(0,0,0,0.08); transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
         .grift-card:hover { transform: translateY(-4px); box-shadow: 0 18px 38px rgba(0,0,0,0.12); border-color: #cd2b2b; }
         .value-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid #111; background: #fef3e6; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+        @media (max-width: 640px) {
+            .grift-card { padding: 18px; }
+            .grift-card h3 { font-size: 1.05rem; }
+            .grift-card p { font-size: 0.95rem; line-height: 1.45; }
+            .value-pill { font-size: 11px; }
+        }
 
         @keyframes glitch-blink {
             0%, 92% { opacity: 0; transform: translate3d(0,0,0); }
@@ -699,12 +709,76 @@
 
         /* Loader */
         #loader {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #FDFBF7; z-index: 9999; display: flex;
-            align-items: center; justify-content: center; transition: opacity 0.5s;
+            position: fixed; inset: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999; display: flex;
+            align-items: center; justify-content: center; transition: opacity 0.7s ease;
         }
-        .cursor-blink { animation: blink 1s step-end infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        #loader.fade-out { opacity: 0; pointer-events: none; }
+        .loader-stage {
+            position: relative;
+            width: min(720px, 88vw);
+            height: min(360px, 64vh);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.18);
+            box-shadow: 0 20px 70px rgba(0,0,0,0.45), inset 0 0 80px rgba(255,255,255,0.08);
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08), transparent 50%);
+        }
+        .loader-line {
+            position: relative;
+            width: 70vh;
+            max-width: 80vw;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+            transform-origin: center;
+            transform: scaleX(var(--loader-progress, 0));
+            box-shadow: 0 0 18px rgba(255,255,255,0.45), 0 0 30px rgba(255,255,255,0.2);
+            transition: transform 0.8s ease, opacity 0.8s ease;
+        }
+        .loader-line.pulse { animation: loaderPulse 0.6s ease; }
+        .loader-stage.split .loader-line { transform: rotate(90deg) scaleX(1); opacity: 0.8; }
+        .loader-text {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Space Mono', monospace;
+            letter-spacing: 0.3em;
+            font-size: 11px;
+            color: #d9d9d9;
+            text-transform: uppercase;
+        }
+        .curtain {
+            position: absolute;
+            inset: 0;
+            width: 50%;
+            background: linear-gradient(135deg, rgba(205,43,43,0.35), rgba(0,0,0,0.6));
+            transition: transform 1.2s cubic-bezier(0.83, 0, 0.17, 1);
+            z-index: 2;
+        }
+        .curtain.right { left: 50%; background: linear-gradient(225deg, rgba(205,43,43,0.35), rgba(0,0,0,0.6)); }
+        .curtain.open-left { transform: translateX(-100%); }
+        .curtain.open-right { transform: translateX(100%); }
+        @keyframes loaderPulse { 0% { transform: scaleX(1); } 50% { transform: scaleX(1.1); } 100% { transform: scaleX(1); } }
+
+        /* Mobile Dime anchor */
+        #dime-mobile-anchor {
+            position: fixed;
+            right: 14px;
+            bottom: 16px;
+            z-index: 70;
+            min-width: 44px;
+            min-height: 44px;
+            border-radius: 9999px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+            letter-spacing: 0.18em;
+            display: none;
+        }
+        @media (max-width: 768px) {
+            #dime-mobile-anchor { display: inline-flex; align-items: center; justify-content: center; }
+        }
     </style>
 
     <!-- Import Map for Three.js -->
@@ -717,8 +791,11 @@
 
     <!-- LOADER -->
     <div id="loader">
-        <div class="font-mono text-xs uppercase tracking-widest border border-black p-6 bg-white shadow-xl min-w-[300px]">
-            <span id="loader-text"></span><span class="cursor-blink">_</span>
+        <div id="loader-stage" class="loader-stage">
+            <div id="curtain-left" class="curtain left"></div>
+            <div id="curtain-right" class="curtain right"></div>
+            <div id="loader-line" class="loader-line" aria-hidden="true"></div>
+            <div id="loader-text" class="loader-text">Initializing Domestic Product</div>
         </div>
     </div>
 
@@ -2321,6 +2398,10 @@
         </div>
     </footer>
 
+    <button id="dime-mobile-anchor" class="md:hidden ui-click bg-black text-white px-4 py-3 text-[11px] font-mono uppercase tracking-[0.2em]" onclick="dimeBacklog.open();" aria-label="Open Dime Backlog navigator">
+        Dime Backlog
+    </button>
+
     <div id="invoice-overlay" class="invoice-overlay" aria-hidden="true">
         <div class="invoice-sheet space-y-4">
             <div class="flex items-center justify-between border-b border-black pb-2">
@@ -2977,14 +3058,19 @@
             drone: null,
             chimes: null,
             chimeLoop: null,
+            master: null,
+            droneGain: null,
+            hoverSynth: null,
+            tokenSynth: null,
             transportStarted: false,
             init: async () => {
                 if (state.audioInitialized) return;
                 await Tone.start();
+                audio.master = new Tone.Gain(0.9).toDestination();
                 state.synth = new Tone.NoiseSynth({
                     noise: { type: 'pink' },
                     envelope: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.05 }
-                }).toDestination();
+                }).connect(new Tone.Gain(0.25).connect(audio.master));
                 state.audioInitialized = true;
             },
             click: () => {
@@ -2994,6 +3080,39 @@
                     state.synth.triggerAttackRelease("16n", Tone.now());
                 }
             },
+            startDrone: async () => {
+                await audio.init();
+                if (!audio.drone) {
+                    audio.droneGain = new Tone.Gain(0.06).connect(audio.master);
+                    audio.drone = new Tone.Oscillator(60, 'sine').connect(audio.droneGain);
+                    audio.drone.start();
+                }
+            },
+            playTapeClick: async () => {
+                await audio.init();
+                if (!audio.hoverSynth) {
+                    audio.hoverSynth = new Tone.MembraneSynth({
+                        pitchDecay: 0.02,
+                        octaves: 1.5,
+                        oscillator: { type: 'triangle' },
+                        envelope: { attack: 0.002, decay: 0.12, sustain: 0, release: 0.08 }
+                    }).connect(new Tone.Gain(0.12).connect(audio.master));
+                }
+                audio.hoverSynth.triggerAttackRelease('A3', '16n');
+            },
+            playTokenReward: async () => {
+                await audio.init();
+                if (!audio.tokenSynth) {
+                    audio.tokenSynth = new Tone.AMSynth({
+                        harmonicity: 1.25,
+                        modulationIndex: 3,
+                        oscillator: { type: 'sine' },
+                        envelope: { attack: 0.02, decay: 0.2, sustain: 0.1, release: 0.6 }
+                    }).connect(new Tone.Gain(0.18).connect(audio.master));
+                }
+                audio.tokenSynth.triggerAttackRelease('C5', '8n');
+                audio.tokenSynth.triggerAttackRelease('G4', '8n', '+0.12');
+            },
             startLantern: async () => {
                 await audio.init();
                 if (!audio.transportStarted) {
@@ -3001,12 +3120,13 @@
                     audio.transportStarted = true;
                 }
                 if (!audio.drone) {
-                    audio.drone = new Tone.Oscillator('C2', 'sawtooth').connect(new Tone.Filter(400, 'lowpass')).toDestination();
+                    audio.droneGain = audio.droneGain || new Tone.Gain(0.06).connect(audio.master);
+                    audio.drone = new Tone.Oscillator('C2', 'sawtooth').connect(new Tone.Filter(400, 'lowpass')).connect(audio.droneGain);
                     audio.drone.volume.value = -16;
                     audio.drone.start();
                 }
                 if (!audio.chimes) {
-                    audio.chimes = new Tone.MetalSynth({ resonance: 300, harmonicity: 8, modulationIndex: 15 }).toDestination();
+                    audio.chimes = new Tone.MetalSynth({ resonance: 300, harmonicity: 8, modulationIndex: 15 }).connect(new Tone.Gain(0.12).connect(audio.master));
                 }
                 if (!audio.chimeLoop) {
                     const notes = ['C4', 'G4', 'D5', 'A4'];
@@ -3025,6 +3145,20 @@
                     audio.transportStarted = false;
                 }
             }
+        };
+
+        const bindHoverAudio = () => {
+            const hoverSelectors = [
+                "[data-target='archive']",
+                "[data-target='tickets']",
+                "button[onclick*\"navigate('archive')\"]",
+                "button[onclick*\"navigate('tickets')\"]"
+            ];
+            const hoverTargets = document.querySelectorAll(hoverSelectors.join(', '));
+            hoverTargets.forEach((el) => {
+                el.addEventListener('mouseenter', audio.playTapeClick);
+                el.addEventListener('focus', audio.playTapeClick);
+            });
         };
 
         // --- PROFILER LOGIC (QUIZ) ---
@@ -3557,6 +3691,7 @@
                 if (valueState.solved.has(id)) return;
                 valueState.solved.add(id);
                 valueState.tokens += 1;
+                audio.playTokenReward();
                 valueState.emit();
             },
             emit() {
@@ -3765,7 +3900,7 @@
                             ? `<div class="flex justify-between items-center mb-3"><span class="font-bold text-xl">$${item.price.toFixed(2)}</span><span class="text-[10px] uppercase font-mono text-gray-500">${inventory}</span></div>`
                             : `<div class="space-y-1 mb-3 text-sm"><div class="font-mono text-[11px] uppercase tracking-widest text-gray-700">Cost: $${item.unitCost.toFixed(2)} • Margin: ${margin !== null ? margin + '%' : '—'}</div><div class="text-xs text-gray-600">Inventory bands: ${inventory}</div></div>`
                         }
-                        <button class="w-full bg-black text-white text-xs uppercase py-2 hover:bg-red-600 transition-colors">${barter.mode === 'shop' ? 'Add to Pull Sheet' : 'View Unit Economics'}</button>
+                        <button class="w-full bg-black text-white text-xs uppercase py-3 min-h-[44px] hover:bg-red-600 transition-colors">${barter.mode === 'shop' ? 'Add to Pull Sheet' : 'View Unit Economics'}</button>
                     `;
                     grid.appendChild(card);
                 });
@@ -4638,18 +4773,70 @@
         };
 
         // --- INIT ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const text = "LOADING LOOMWORKS MANUFACTURE PROCESS...";
-            const el = document.getElementById('loader-text');
-            let i = 0;
-            const type = () => {
-                if (i < text.length) {
-                    el.innerHTML += text.charAt(i); i++; setTimeout(type, 30 + Math.random() * 50);
-                } else {
-                    setTimeout(() => { document.getElementById('loader').style.opacity = 0; setTimeout(() => document.getElementById('loader').remove(), 500); }, 800);
+        const loaderSequence = {
+            progress: 0,
+            line: null,
+            text: null,
+            stage: null,
+            curtains: null,
+            timer: null,
+            opened: false,
+            start() {
+                loaderSequence.stage = document.getElementById('loader-stage');
+                loaderSequence.line = document.getElementById('loader-line');
+                loaderSequence.text = document.getElementById('loader-text');
+                loaderSequence.curtains = {
+                    left: document.getElementById('curtain-left'),
+                    right: document.getElementById('curtain-right')
+                };
+
+                loaderSequence.progress = 0;
+                if (!loaderSequence.line || !loaderSequence.text) return;
+
+                loaderSequence.updateLine();
+                loaderSequence.timer = setInterval(() => {
+                    loaderSequence.progress = Math.min(90, loaderSequence.progress + Math.random() * 12);
+                    loaderSequence.updateLine();
+                }, 160);
+            },
+            updateLine() {
+                if (!loaderSequence.line) return;
+                const scale = Math.max(loaderSequence.progress / 100, 0.05);
+                loaderSequence.line.style.setProperty('--loader-progress', scale.toFixed(3));
+                if (loaderSequence.text) {
+                    loaderSequence.text.innerText = `Initialization ${Math.round(loaderSequence.progress)}%`;
                 }
-            };
-            type();
+            },
+            complete() {
+                if (!loaderSequence.line || loaderSequence.opened) return;
+                loaderSequence.opened = true;
+                clearInterval(loaderSequence.timer);
+                loaderSequence.progress = 100;
+                loaderSequence.updateLine();
+                loaderSequence.text.innerText = 'Curtain Opening';
+                loaderSequence.line.classList.add('pulse');
+
+                requestAnimationFrame(() => {
+                    if (loaderSequence.stage) loaderSequence.stage.classList.add('split');
+                    setTimeout(() => {
+                        loaderSequence.text.innerText = 'Domestic Product Ready';
+                        if (loaderSequence.curtains?.left) loaderSequence.curtains.left.classList.add('open-left');
+                        if (loaderSequence.curtains?.right) loaderSequence.curtains.right.classList.add('open-right');
+                        loaderSequence.line.style.opacity = '0';
+                    }, 320);
+                    setTimeout(() => {
+                        const loader = document.getElementById('loader');
+                        if (loader) {
+                            loader.classList.add('fade-out');
+                            setTimeout(() => loader.remove(), 900);
+                        }
+                    }, 1400);
+                });
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loaderSequence.start();
 
             tokiDictionary.init();
             registerHeatmap();
@@ -4664,6 +4851,10 @@
             grift.init();
             valueGate.init();
             greComments.mountAll();
+            bindHoverAudio();
+
+            const primeAudio = () => { audio.startDrone(); };
+            document.addEventListener('pointerdown', primeAudio, { once: true });
 
             document.addEventListener('click', (e) => {
                 if (e.target.closest('.ui-click') || e.target.tagName === 'BUTTON') audio.click();
@@ -4676,6 +4867,7 @@
             gallery.init();
             archive.init();
             barter.init();
+            loaderSequence.complete();
         });
     </script>
 </body>
