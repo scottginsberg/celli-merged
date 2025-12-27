@@ -139,11 +139,12 @@
         .disabled-btn:hover .tooltip { display: block; }
 
         /* Grift Puzzler */
-        .grift-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
-        .grift-card { background: #ffffff; border: 1px solid #111; padding: 16px; border-radius: 14px; box-shadow: 0 14px 34px rgba(0,0,0,0.08); transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
+        .grift-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+        .grift-card { background: #fffdf5; border: 1px solid #111; padding: 16px; border-radius: 14px; box-shadow: 0 14px 34px rgba(0,0,0,0.08); transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
         .grift-card:hover { transform: translateY(-4px); box-shadow: 0 18px 38px rgba(0,0,0,0.12); border-color: #cd2b2b; }
-        .value-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid #111; background: #fef3e6; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+        .value-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid #111; background: #fef3e6; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; box-shadow: 2px 2px 0 rgba(0,0,0,0.12); }
         @media (max-width: 640px) {
+            .grift-grid { grid-template-columns: 1fr; }
             .grift-card { padding: 18px; }
             .grift-card h3 { font-size: 1.05rem; }
             .grift-card p { font-size: 0.95rem; line-height: 1.45; }
@@ -732,9 +733,9 @@
         /* Loader — Curtain Patch */
         #loader {
             position: fixed; inset: 0; width: 100%; height: 100%;
-            background: #000; z-index: 9999; display: flex;
+            background: #fdfbf7; z-index: 9999; display: flex;
             align-items: center; justify-content: center; transition: opacity 0.7s ease;
-            color: #fff;
+            color: #0f0f0f;
         }
         #loader.fade-out { opacity: 0; pointer-events: none; }
         #loader.blackout .loader-stage { opacity: 0; }
@@ -757,12 +758,12 @@
         .loader-box-frame {
             position: absolute;
             inset: 0;
-            border: 2px solid #fff;
+            border: 2px solid #0f0f0f;
         }
         .loader-fill {
             position: absolute;
             inset: 4px;
-            background: #fff;
+            background: linear-gradient(135deg, #f5e7c5, #fffdf5);
             transform: scaleX(var(--loader-progress, 0));
             transform-origin: left center;
             transition: transform 0.16s ease;
@@ -1040,7 +1041,7 @@
                 <div class="space-y-4">
                     <div class="value-tile p-5 rounded-2xl shadow-lg space-y-2">
                         <div class="text-[10px] font-mono uppercase tracking-widest text-gray-600">Ticket Module</div>
-                        <div id="ticket-status" class="text-sm text-gray-800 leading-relaxed">tickets unavailable. value under construction. visit the grift shop to… extract.</div>
+                        <div id="ticket-status" class="text-sm text-gray-800 leading-relaxed">tickets unavailable. collect 6 of 9 grift tokens, then pass the NYC slang quiz 🗽.</div>
                         <div id="ticket-unlock" class="hidden space-y-2">
                             <p class="text-sm text-gray-800">tickets still unavailable, but you’ve been provisionally woven in.</p>
                             <button class="border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">RSVP as future Lantern</button>
@@ -1287,7 +1288,7 @@
 
 
     <!-- VIEW: PROFILER (IDENTITY QUIZ) -->
-    <section id="view-profiler" class="view-section bg-[#FDFBF7] min-h-screen flex flex-col pt-24 relative">
+    <section id="view-profiler" class="view-section bg-[#FDFBF7] min-h-screen flex flex-col pt-20 relative">
 
         <!-- COMPACT RESULT BANNER (Initially Hidden) -->
         <div id="prof-banner" class="hidden w-full bg-white border-b border-black py-4 px-6 sticky top-[57px] z-40 shadow-md transition-all">
@@ -1303,7 +1304,7 @@
             </div>
         </div>
 
-        <div class="max-w-5xl mx-auto px-6 pb-16 w-full flex flex-col gap-10">
+        <div class="max-w-5xl mx-auto px-6 pb-12 w-full flex flex-col gap-8">
             <div class="text-center space-y-4">
                 <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Identity Quiz</div>
                 <h2 class="text-4xl md:text-5xl font-bold uppercase tracking-tight leading-tight">Choose your signal</h2>
@@ -1722,17 +1723,17 @@
     </section>
 
     <!-- VIEW: GRIFT SHOP (Value Puzzler) -->
-    <section id="view-grift" class="view-section bg-gray-100 min-h-screen">
+    <section id="view-grift" class="view-section bg-[#f8f3e8] min-h-screen">
         <div class="max-w-6xl mx-auto px-6 py-12 space-y-10">
             <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 border-b-2 border-black pb-6">
                 <div class="space-y-2">
                     <div class="inline-flex items-center gap-2 bg-white border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest">Welcome to the Grift Shop</div>
                     <h2 class="text-4xl font-bold uppercase tracking-tight">Extract Value</h2>
-                    <p class="text-sm text-gray-700 max-w-2xl">We don’t take your money. We help you notice where it’s been taken before. Solve the micro-grifts, collect Value Tokens, and watch the ticketing module change its mind.</p>
+                    <p class="text-sm text-gray-700 max-w-2xl">We don’t take your money. We help you notice where it’s been taken before. Solve the micro-grifts, collect Value Tokens (9 total), and watch the ticketing module change its mind.</p>
                     <div class="text-xs font-mono uppercase tracking-[0.25em] text-gray-500">State: <span id="grift-state">griftIdle</span></div>
                 </div>
                 <div class="flex flex-wrap gap-3">
-                    <div class="value-pill"><span>Tokens</span><span id="token-count" class="font-bold">0</span></div>
+                    <div class="value-pill"><span>Tokens (need 6)</span><span id="token-count" class="font-bold">0</span></div>
                     <button onclick="app.navigate('tickets')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">View Ticket Gate</button>
                     <button onclick="dimeBacklog.open();" class="ui-click border border-black bg-[#FDFBF7] px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Peek Dime Backlog</button>
                 </div>
@@ -1742,12 +1743,12 @@
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div class="space-y-1">
                         <div class="font-mono text-[10px] uppercase tracking-widest text-gray-600">Grift Loop</div>
-                        <p class="text-sm text-gray-800">Grift modules unlock in any order. Hover, drag, click, and uncheck your way to 3 tokens.</p>
+                        <p class="text-sm text-gray-800">Grift modules unlock in any order. Hover, drag, click, and uncheck your way to 6 of 9 tokens to satisfy the ticket gate.</p>
                     </div>
                     <div id="grift-overlay" class="hidden bg-black text-white px-3 py-2 rounded-lg font-mono text-xs uppercase tracking-[0.2em]">VALUE INDEX REACHED</div>
                 </div>
-                <div class="grift-grid">
-                    <div class="grift-card" id="card-coin">
+                    <div class="grift-grid">
+                        <div class="grift-card" id="card-coin">
                         <div class="flex items-center justify-between">
                             <h3 class="text-lg font-bold uppercase tracking-tight">Influencer Coin</h3>
                             <span class="value-pill" id="coin-yield">Yield: ?</span>
@@ -1773,7 +1774,7 @@
                         </div>
                     </div>
 
-                    <div class="grift-card" id="card-timeshare">
+                        <div class="grift-card" id="card-timeshare">
                         <div class="flex items-center justify-between">
                             <h3 class="text-lg font-bold uppercase tracking-tight">Timeshare of the Soul</h3>
                             <span class="value-pill" id="time-yield">Yield: ?</span>
@@ -1785,6 +1786,102 @@
                             <label class="flex items-center gap-2"><input type="checkbox" class="timeshare-box" checked value="dreams">dreams</label>
                             <button id="timeshare-submit" class="ui-click border border-black bg-gray-200 text-gray-500 px-3 py-2 text-[10px] font-mono uppercase tracking-widest cursor-not-allowed">Submit</button>
                             <div id="timeshare-note" class="text-xs text-gray-600">Uncheck all boxes to keep yourself intact.</div>
+                        </div>
+
+                        <div class="grift-card" id="card-paywall">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-bold uppercase tracking-tight">Paywall Side Door</h3>
+                                <span class="value-pill" id="paywall-yield">Yield: ?</span>
+                            </div>
+                            <p class="text-sm text-gray-700">Pick the response that slips past the meter without stealing the work.</p>
+                            <div class="mt-3 space-y-2 text-sm text-gray-800" id="paywall-options">
+                                <label class="flex items-center gap-2"><input type="radio" name="paywall" value="borrow">Screenshot and repost the whole thing</label>
+                                <label class="flex items-center gap-2"><input type="radio" name="paywall" value="library">Find it at the library or independent archive</label>
+                                <label class="flex items-center gap-2"><input type="radio" name="paywall" value="ignore">Close tab; rage at capitalism</label>
+                            </div>
+                            <p id="paywall-note" class="text-xs text-gray-600 mt-2">One of these honors the work and still gets you through.</p>
+                        </div>
+
+                        <div class="grift-card" id="card-terms">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-bold uppercase tracking-tight">Terms Decoder</h3>
+                                <span class="value-pill" id="terms-yield">Yield: ?</span>
+                            </div>
+                            <p class="text-sm text-gray-700">Hover to spot the clause that actually matters.</p>
+                            <div class="mt-3 bg-white border border-dashed border-gray-300 p-3 rounded-lg text-sm text-gray-800 leading-relaxed" id="terms-copy">
+                                This agreement grants us perpetual, transferable rights to your likeness. By proceeding you waive recourse and agree to binding arbitration in a basement.
+                            </div>
+                            <button id="terms-flag" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors mt-3">Flag the clause</button>
+                        </div>
+
+                        <div class="grift-card" id="card-subscription">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-bold uppercase tracking-tight">Auto-Renew Freeze</h3>
+                                <span class="value-pill" id="subscription-yield">Yield: ?</span>
+                            </div>
+                            <p class="text-sm text-gray-700">Toggle the switches that companies hide behind three menus.</p>
+                            <div class="mt-3 space-y-2 text-sm text-gray-800">
+                                <label class="flex items-center justify-between bg-white border border-gray-300 rounded-lg px-3 py-2">
+                                    <span>Renew annually</span>
+                                    <input type="checkbox" class="subscription-toggle" checked aria-label="Renew annually">
+                                </label>
+                                <label class="flex items-center justify-between bg-white border border-gray-300 rounded-lg px-3 py-2">
+                                    <span>Share data with partners</span>
+                                    <input type="checkbox" class="subscription-toggle" checked aria-label="Share data with partners">
+                                </label>
+                                <label class="flex items-center justify-between bg-white border border-gray-300 rounded-lg px-3 py-2">
+                                    <span>Send me insider hype</span>
+                                    <input type="checkbox" class="subscription-toggle" checked aria-label="Send me insider hype">
+                                </label>
+                            </div>
+                            <p id="subscription-note" class="text-xs text-gray-600 mt-2">Slide everything off to reclaim your agency.</p>
+                        </div>
+
+                        <div class="grift-card" id="card-scam">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-bold uppercase tracking-tight">Inbox Scam Filter</h3>
+                                <span class="value-pill" id="scam-yield">Yield: ?</span>
+                            </div>
+                            <p class="text-sm text-gray-700">Choose the email subject line that is definitely a trap.</p>
+                            <div class="mt-3 grid gap-2" id="scam-options">
+                                <button class="ui-click border border-black bg-white px-3 py-2 text-left text-sm hover:bg-black hover:text-white transition-colors" data-scam="wrong">Invoice attached — need your signature</button>
+                                <button class="ui-click border border-black bg-white px-3 py-2 text-left text-sm hover:bg-black hover:text-white transition-colors" data-scam="right">URGENT: wire funds to secure NFT vault</button>
+                                <button class="ui-click border border-black bg-white px-3 py-2 text-left text-sm hover:bg-black hover:text-white transition-colors" data-scam="wrong">Media request: quote for your project</button>
+                            </div>
+                            <p id="scam-note" class="text-xs text-gray-600 mt-2">Spot the grift before it lands.</p>
+                        </div>
+
+                        <div class="grift-card" id="card-bundle">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-bold uppercase tracking-tight">Bundle Hype Meter</h3>
+                                <span class="value-pill" id="bundle-yield">Yield: ?</span>
+                            </div>
+                            <p class="text-sm text-gray-700">Drag the meter toward reality to cut out the useless add-ons.</p>
+                            <div class="mt-4">
+                                <label class="text-xs font-mono uppercase tracking-widest text-gray-500">Hype Stack</label>
+                                <input id="bundle-slider" type="range" min="0" max="100" value="60" class="w-full accent-yellow-400">
+                            </div>
+                            <p id="bundle-note" class="text-xs text-gray-600 mt-2">Lower the slider until only what matters remains.</p>
+                        </div>
+
+                        <div class="grift-card" id="card-receipt">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-bold uppercase tracking-tight">Street Receipt Audit</h3>
+                                <span class="value-pill" id="receipt-yield">Yield: ?</span>
+                            </div>
+                            <p class="text-sm text-gray-700">Tap the hidden fee to redact it before you pay.</p>
+                            <div class="mt-3 space-y-2 text-sm text-gray-800 bg-white border border-gray-300 rounded-lg p-3">
+                                <div class="flex justify-between">
+                                    <span>Ticket line item</span>
+                                    <span>$25.00</span>
+                                </div>
+                                <button id="receipt-fee" class="ui-click w-full border border-red-500 bg-red-50 text-red-700 px-3 py-2 text-xs font-mono uppercase tracking-widest hover:bg-red-600 hover:text-white transition-colors">"Processing" fee $6</button>
+                                <div class="flex justify-between">
+                                    <span>Total</span>
+                                    <span id="receipt-total">$31.00</span>
+                                </div>
+                            </div>
+                            <p id="receipt-note" class="text-xs text-gray-600 mt-2">Refuse the fee to keep value in the open.</p>
                         </div>
                     </div>
                 </div>
@@ -1813,6 +1910,7 @@
                                     <div class="swatch active" data-color="#111" style="background:#111" title="Obsidian"></div>
                                     <div class="swatch" data-color="#ffffff" style="background:#ffffff" title="Signal White"></div>
                                     <div class="swatch" data-color="#cd2b2b" style="background:#cd2b2b" title="Alarm Red"></div>
+                                    <div class="swatch" data-color="#f4d12b" style="background:#f4d12b" title="Caution Yellow"></div>
                                     <div class="swatch" data-color="#f5f5dc" style="background:#f5f5dc" title="Retro Creme"></div>
                                     <div class="swatch" data-color="erase" style="background: repeating-linear-gradient(45deg,#000 0,#000 6px,#f5f5dc 6px,#f5f5dc 12px)" title="Erase"></div>
                                 </div>
@@ -2372,7 +2470,7 @@
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                         <div class="space-y-1">
                             <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-red-600">NYC Fit Check</div>
-                            <p class="text-sm text-gray-700 max-w-2xl">We gate the reservation line with a fast, tongue-in-cheek New Yorker emoji quiz. Speak the slang, claim the slot.</p>
+                            <p class="text-sm text-gray-700 max-w-2xl">We gate the reservation line with a fast, tongue-in-cheek New Yorker emoji quiz 🗽. Speak the slang, claim the slot.</p>
                         </div>
                         <div class="flex flex-wrap gap-2">
                             <button onclick="geoQuiz.start()" class="ui-click bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Verify Geospatial Compatibility</button>
@@ -2381,7 +2479,7 @@
                     </div>
                     <div id="geo-quiz-stage" class="hidden border border-black bg-white rounded-lg p-4 space-y-3 shadow-sm">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                            <div class="font-mono text-[10px] uppercase tracking-widest text-gray-600">New Yorker Emoji Quiz <span id="geo-quiz-step">0/3</span></div>
+                            <div class="font-mono text-[10px] uppercase tracking-widest text-gray-600">NYC slang emoji quiz 🗽 <span id="geo-quiz-step">0/3</span></div>
                             <div id="geo-quiz-status" class="font-mono text-[10px] uppercase tracking-[0.25em] text-red-600">Tap verify to begin.</div>
                         </div>
                         <div id="geo-quiz-card" class="space-y-3"></div>
@@ -3852,22 +3950,34 @@
                 document.querySelectorAll('.timeshare-box').forEach((box) => box.addEventListener('change', grift.handleTimeshare));
                 const submit = document.getElementById('timeshare-submit');
                 if (submit) submit.addEventListener('click', (e) => { e.preventDefault(); grift.submitTimeshare(); });
+                document.querySelectorAll('#paywall-options input[type="radio"]').forEach((opt) => opt.addEventListener('change', grift.handlePaywall));
+                const termsFlag = document.getElementById('terms-flag');
+                if (termsFlag) termsFlag.addEventListener('click', grift.handleTerms);
+                document.querySelectorAll('.subscription-toggle').forEach((toggle) => toggle.addEventListener('change', grift.handleSubscription));
+                document.querySelectorAll('#scam-options [data-scam]').forEach((btn) => btn.addEventListener('click', grift.handleScam));
+                const bundle = document.getElementById('bundle-slider');
+                if (bundle) bundle.addEventListener('input', grift.handleBundle);
+                const fee = document.getElementById('receipt-fee');
+                if (fee) fee.addEventListener('click', grift.handleReceipt);
                 valueState.subscribe(grift.updateFromValueState);
                 grift.handleTimeshare();
                 grift.updateState('griftIdle');
             },
             updateFromValueState({ tokens, solved }) {
                 const tokenLabels = [document.getElementById('token-count'), document.getElementById('ticket-status-tokens')];
-                tokenLabels.forEach((el) => { if (el) el.innerText = `${tokens} token${tokens === 1 ? '' : 's'}`; });
+                tokenLabels.forEach((el) => {
+                    if (!el) return;
+                    el.innerText = el.id === 'token-count' ? `${tokens}` : `${tokens} token${tokens === 1 ? '' : 's'}`;
+                });
 
                 let stateLabel = 'griftIdle';
-                if (tokens >= 3) stateLabel = 'griftThresholdMet';
-                else if (tokens >= 2) stateLabel = 'griftInOnJoke';
+                if (tokens >= 6) stateLabel = 'griftThresholdMet';
+                else if (tokens >= 3) stateLabel = 'griftInOnJoke';
                 else if (tokens >= 1) stateLabel = 'griftExploring';
                 grift.updateState(stateLabel);
 
                 const overlay = document.getElementById('grift-overlay');
-                if (overlay) overlay.classList.toggle('hidden', tokens < 3);
+                if (overlay) overlay.classList.toggle('hidden', tokens < 6);
 
                 const hint = document.getElementById('grift-hint');
                 if (hint) {
@@ -3880,6 +3990,12 @@
                 if (solved.has('influencer-coin')) grift.setYield('coin-yield');
                 if (solved.has('merch-box')) grift.setYield('box-yield');
                 if (solved.has('timeshare')) grift.setYield('time-yield');
+                if (solved.has('paywall')) grift.setYield('paywall-yield');
+                if (solved.has('terms')) grift.setYield('terms-yield');
+                if (solved.has('subscription')) grift.setYield('subscription-yield');
+                if (solved.has('scam')) grift.setYield('scam-yield');
+                if (solved.has('bundle')) grift.setYield('bundle-yield');
+                if (solved.has('receipt')) grift.setYield('receipt-yield');
             },
             updateState(label) {
                 grift.state = label;
@@ -3948,6 +4064,69 @@
                     submit.setAttribute('disabled', 'true');
                 }
                 document.querySelectorAll('.timeshare-box').forEach((box) => box.setAttribute('disabled', 'true'));
+            },
+            handlePaywall(e) {
+                if (valueState.solved.has('paywall')) return;
+                if (e?.target?.value === 'library') {
+                    valueState.addToken('paywall');
+                    const note = document.getElementById('paywall-note');
+                    if (note) note.innerText = 'you honored labor and still got the knowledge.';
+                    grift.setYield('paywall-yield');
+                }
+            },
+            handleTerms() {
+                if (valueState.solved.has('terms')) return;
+                valueState.addToken('terms');
+                const copy = document.getElementById('terms-copy');
+                if (copy) copy.classList.add('ring', 'ring-red-500', 'bg-[#fff7eb]');
+                const btn = document.getElementById('terms-flag');
+                if (btn) btn.innerText = 'Clause flagged';
+                grift.setYield('terms-yield');
+            },
+            handleSubscription() {
+                const toggles = Array.from(document.querySelectorAll('.subscription-toggle'));
+                const allOff = toggles.every((t) => !t.checked);
+                const note = document.getElementById('subscription-note');
+                if (note) note.innerText = allOff ? 'auto-renew dismantled. you kept your value.' : 'Slide everything off to reclaim your agency.';
+                if (allOff && !valueState.solved.has('subscription')) {
+                    valueState.addToken('subscription');
+                    grift.setYield('subscription-yield');
+                }
+            },
+            handleScam(e) {
+                if (valueState.solved.has('scam')) return;
+                const choice = e?.target?.dataset?.scam;
+                const note = document.getElementById('scam-note');
+                if (choice === 'right') {
+                    valueState.addToken('scam');
+                    if (note) note.innerText = 'you flagged the obvious grift. inbox safe.';
+                    grift.setYield('scam-yield');
+                } else if (note) {
+                    note.innerText = 'that one might be legit; pick the real trap.';
+                }
+            },
+            handleBundle(e) {
+                const val = Number(e?.target?.value || document.getElementById('bundle-slider')?.value || 0);
+                const note = document.getElementById('bundle-note');
+                if (note) note.innerText = val <= 10 ? 'you cut the hype. only the art remains.' : 'Lower the slider until only what matters remains.';
+                if (val <= 10 && !valueState.solved.has('bundle')) {
+                    valueState.addToken('bundle');
+                    grift.setYield('bundle-yield');
+                }
+            },
+            handleReceipt() {
+                if (valueState.solved.has('receipt')) return;
+                const total = document.getElementById('receipt-total');
+                const note = document.getElementById('receipt-note');
+                if (total) total.innerText = '$25.00';
+                if (note) note.innerText = 'fee rejected. the receipt breathes easier.';
+                const fee = document.getElementById('receipt-fee');
+                if (fee) {
+                    fee.innerText = 'Fee removed';
+                    fee.classList.add('line-through', 'bg-green-100', 'text-green-700');
+                }
+                valueState.addToken('receipt');
+                grift.setYield('receipt-yield');
             }
         };
         window.grift = grift;
@@ -4646,15 +4825,15 @@
                 const pill = document.getElementById('ticket-status-pill');
                 const tokenDisplay = document.getElementById('ticket-status-tokens');
                 if (status) {
-                    status.innerText = tokens >= 3
+                    status.innerText = tokens >= 6
                         ? 'tickets still unavailable, but you’ve been provisionally woven in.'
-                        : 'tickets unavailable. value under construction. visit the grift shop to… extract.';
+                        : 'tickets unavailable. collect 6 of 9 grift tokens, then pass the NYC slang quiz 🗽.';
                 }
-                if (unlock) unlock.classList.toggle('hidden', tokens < 3);
+                if (unlock) unlock.classList.toggle('hidden', tokens < 6);
                 if (tokenDisplay) tokenDisplay.innerText = `${tokens} token${tokens === 1 ? '' : 's'}`;
                 if (pill) {
                     const label = pill.querySelector('span');
-                    if (label) label.innerText = tokens >= 3 ? 'Status: provisionally woven' : 'Status: measuring';
+                    if (label) label.innerText = tokens >= 6 ? 'Status: provisionally woven' : 'Status: measuring';
                 }
             }
         };
