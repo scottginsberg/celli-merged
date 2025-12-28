@@ -856,7 +856,7 @@
     <div id="mobile-menu" class="fixed inset-0 bg-[#FDFBF7] z-[60] transform translate-x-full transition-transform duration-300 flex flex-col pt-20 px-6 overflow-y-auto">
         <div class="flex flex-col gap-6 text-xl font-bold uppercase tracking-widest font-mono">
             <button onclick="app.navigate('landing'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Exhibition</button>
-            <button onclick="app.navigate('calibration'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Calibration</button>
+            <button onclick="app.navigate('calibration'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Explain Like I'm Dima</button>
             <button onclick="app.navigate('profiler'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200 text-red-600">Identify</button>
             <button onclick="app.navigate('pitch'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Project Plan</button>
             <button onclick="app.navigate('press'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Press Kit</button>
@@ -883,7 +883,7 @@
         <!-- Desktop Nav -->
         <div class="hidden lg:flex gap-6 text-xs font-mono tracking-wide uppercase">
             <button onclick="app.navigate('landing')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="landing">Exhibition</button>
-            <button onclick="app.navigate('calibration')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="calibration">Calibration</button>
+            <button onclick="app.navigate('calibration')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="calibration">Explain Like I'm Dima</button>
             <button onclick="app.navigate('profiler')" class="nav-btn hover:text-red-600 transition-colors ui-click font-bold text-red-600" data-target="profiler">Identify</button>
             <button onclick="app.navigate('pitch')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="pitch">Pitch</button>
             <button onclick="app.navigate('press')" class="nav-btn hover:text-red-600 transition-colors ui-click" data-target="press">Press Kit</button>
@@ -1005,9 +1005,9 @@
                     <div class="value-tile p-6 rounded-2xl shadow-lg">
                         <div class="text-[10px] font-mono uppercase tracking-widest text-gray-600 mb-2">Gate Options</div>
                         <div class="grid sm:grid-cols-2 gap-3">
-                            <div class="disabled-btn">
-                                <button class="w-full border border-black bg-gray-200 text-gray-500 px-4 py-3 uppercase text-xs tracking-widest cursor-not-allowed">Try to buy ticket</button>
-                                <div class="tooltip text-[10px] font-mono uppercase">Denied: insufficient value artifacts.</div>
+                            <div id="ticket-action-block" class="disabled-btn">
+                                <button id="ticket-action" class="w-full border border-black bg-gray-200 text-gray-500 px-4 py-3 uppercase text-xs tracking-widest cursor-not-allowed">Try to buy ticket</button>
+                                <div id="ticket-action-tooltip" class="tooltip text-[10px] font-mono uppercase">Denied: insufficient value artifacts.</div>
                             </div>
                             <button onclick="app.navigate('grift')" class="w-full border border-black bg-black text-white px-4 py-3 uppercase text-xs tracking-widest hover:bg-red-700 transition-colors">Create value instead</button>
                         </div>
@@ -1046,7 +1046,7 @@
                         <div id="ticket-status" class="text-sm text-gray-800 leading-relaxed">tickets unavailable. collect 6 of 9 grift tokens, then pass the NYC slang quiz 🗽.</div>
                         <div id="ticket-unlock" class="hidden space-y-2">
                             <p class="text-sm text-gray-800">tickets still unavailable, but you’ve been provisionally woven in.</p>
-                            <button class="border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">RSVP as future Lantern</button>
+                            <button id="ticket-unlock-cta" class="border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors cursor-not-allowed opacity-60">RSVP as future Lantern</button>
                         </div>
                     </div>
                     <div class="value-tile p-5 rounded-2xl shadow-lg space-y-2">
@@ -1406,16 +1406,16 @@
                                 <div class="font-bold">[Query 01]</div>
                                 <p class="font-mono text-[11px] uppercase tracking-widest text-red-200">Have you played an ARG before?</p>
                                 <div class="grid grid-cols-2 gap-2">
-                                    <button data-cal-group="arg" onclick="calibrationGate.setArg(true, this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">Yes</button>
-                                    <button data-cal-group="arg" onclick="calibrationGate.setArg(false, this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">No</button>
+                                    <button data-cal-group="arg" data-cal-choice="yes" onclick="calibrationGate.setArg(true, this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">Yes</button>
+                                    <button data-cal-group="arg" data-cal-choice="no" onclick="calibrationGate.setArg(false, this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">No</button>
                                 </div>
                             </div>
                             <div class="space-y-2">
                                 <div class="font-bold">[Query 02]</div>
                                 <p class="font-mono text-[11px] uppercase tracking-widest text-red-200">How do you wish to enter the Loomworks?</p>
                                 <div class="grid grid-cols-2 gap-2">
-                                    <button data-cal-group="entry" onclick="calibrationGate.setEntry('blind', this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">Go in Blind</button>
-                                    <button data-cal-group="entry" onclick="calibrationGate.setEntry('light', this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">With a Little Light</button>
+                                    <button data-cal-group="entry" data-cal-choice="blind" onclick="calibrationGate.setEntry('blind', this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">Go in Blind</button>
+                                    <button data-cal-group="entry" data-cal-choice="light" onclick="calibrationGate.setEntry('light', this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">With a Little Light</button>
                                 </div>
                             </div>
                         </div>
@@ -2541,6 +2541,47 @@
         </div>
     </div>
 
+    <!-- ARG Onboarding Overlay -->
+    <div id="arg-onboarding-modal" class="modal-layer">
+        <div class="bg-white border border-black rounded-2xl shadow-2xl w-full max-w-3xl p-6 space-y-5 modal-card">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <div class="text-[10px] font-mono uppercase tracking-[0.28em] text-gray-600">Calibration Prelude</div>
+                    <div class="text-2xl font-bold uppercase">ARG Onboarding Quiz</div>
+                    <p class="text-sm text-gray-700 max-w-2xl">Answer two fast questions to set your transparency level before the rest of the console unlocks.</p>
+                </div>
+                <button id="arg-onboarding-close" class="ui-click text-[10px] font-mono uppercase tracking-widest border border-black px-2 py-1 bg-white hover:bg-black hover:text-white">Skip</button>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-600">Query 01</div>
+                    <p class="font-mono text-xs uppercase tracking-widest">Have you played an ARG before?</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button data-arg-group="arg" data-arg-value="yes" class="arg-choice border border-black/30 bg-white px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-gray-100 rounded-lg">Yes</button>
+                        <button data-arg-group="arg" data-arg-value="no" class="arg-choice border border-black/30 bg-white px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-gray-100 rounded-lg">No</button>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-600">Query 02</div>
+                    <p class="font-mono text-xs uppercase tracking-widest">How do you wish to enter the Loomworks?</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button data-arg-group="entry" data-arg-value="blind" class="arg-choice border border-black/30 bg-white px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-gray-100 rounded-lg">Go in Blind</button>
+                        <button data-arg-group="entry" data-arg-value="light" class="arg-choice border border-black/30 bg-white px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-gray-100 rounded-lg">With a Little Light</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div id="arg-onboarding-status" class="font-mono text-xs uppercase tracking-widest text-gray-700">Make your selections to calibrate.</div>
+                <div class="flex gap-2 flex-wrap">
+                    <button onclick="app.navigate('calibration');" class="ui-click border border-black px-3 py-2 text-[10px] font-mono uppercase tracking-widest bg-white hover:bg-black hover:text-white">Read the explainer</button>
+                    <button id="arg-onboarding-confirm" class="ui-click bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600">Lock it in</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Spoiler Gate Overlay -->
     <div id="spoiler-pad-layer" class="modal-layer spoiler-layer">
         <div class="spoiler-card rounded-2xl w-full max-w-xl p-6 space-y-4 relative">
@@ -3506,6 +3547,104 @@
                 el.addEventListener('mouseenter', audio.playTapeClick);
                 el.addEventListener('focus', audio.playTapeClick);
             });
+        };
+
+        const argOnboarding = {
+            key: 'loomworks_arg_onboarding_v1',
+            state: { arg: null, entry: null, completed: false },
+            modal: null,
+            statusEl: null,
+
+            init() {
+                argOnboarding.modal = document.getElementById('arg-onboarding-modal');
+                argOnboarding.statusEl = document.getElementById('arg-onboarding-status');
+                const confirm = document.getElementById('arg-onboarding-confirm');
+                const close = document.getElementById('arg-onboarding-close');
+
+                document.querySelectorAll('.arg-choice').forEach((btn) => {
+                    btn.addEventListener('click', () => argOnboarding.choose(btn.dataset.argGroup, btn.dataset.argValue, btn));
+                });
+                if (confirm) confirm.addEventListener('click', argOnboarding.confirm);
+                if (close) close.addEventListener('click', argOnboarding.dismiss);
+
+                argOnboarding.restore();
+            },
+
+            updateStatus(message, variant = 'muted') {
+                if (!argOnboarding.statusEl) return;
+                argOnboarding.statusEl.textContent = message;
+                argOnboarding.statusEl.className = 'font-mono text-xs uppercase tracking-widest';
+                const palette = variant === 'success'
+                    ? 'text-green-700'
+                    : variant === 'error'
+                        ? 'text-red-600'
+                        : 'text-gray-700';
+                argOnboarding.statusEl.classList.add(palette);
+            },
+
+            choose(group, value, el, silent = false) {
+                if (!group) return;
+                argOnboarding.state[group] = value;
+                document.querySelectorAll(`[data-arg-group="${group}"]`).forEach((btn) => {
+                    btn.classList.remove('bg-black', 'text-white', 'border-black', 'ring-2', 'ring-red-500');
+                });
+                if (el) el.classList.add('bg-black', 'text-white', 'border-black', 'ring-2', 'ring-red-500');
+                if (!silent) argOnboarding.updateStatus('Responses cached. Lock to continue.');
+            },
+
+            confirm() {
+                if (!argOnboarding.state.arg || !argOnboarding.state.entry) {
+                    argOnboarding.updateStatus('Answer both prompts to continue.', 'error');
+                    return;
+                }
+                argOnboarding.state.completed = true;
+                argOnboarding.persist();
+                argOnboarding.syncCalibration();
+                argOnboarding.updateStatus('Stored. Welcome to the Loomworks.', 'success');
+                setTimeout(argOnboarding.dismiss, 320);
+            },
+
+            persist() {
+                if (typeof localStorage === 'undefined') return;
+                try { localStorage.setItem(argOnboarding.key, JSON.stringify(argOnboarding.state)); } catch (err) { /* noop */ }
+            },
+
+            restore() {
+                if (typeof localStorage === 'undefined') return;
+                try {
+                    const saved = JSON.parse(localStorage.getItem(argOnboarding.key) || '{}');
+                    if (saved.arg) argOnboarding.choose('arg', saved.arg, document.querySelector(`[data-arg-group="arg"][data-arg-value="${saved.arg}"]`), true);
+                    if (saved.entry) argOnboarding.choose('entry', saved.entry, document.querySelector(`[data-arg-group="entry"][data-arg-value="${saved.entry}"]`), true);
+                    argOnboarding.state.completed = !!saved.completed && !!(saved.arg && saved.entry);
+                    if (argOnboarding.state.completed) argOnboarding.syncCalibration(true);
+                } catch (err) { /* noop */ }
+            },
+
+            syncCalibration(silent = false) {
+                const argVal = argOnboarding.state.arg;
+                const entryVal = argOnboarding.state.entry;
+                const argBtn = document.querySelector(`[data-cal-group="arg"][data-cal-choice="${argVal}"]`);
+                const entryBtn = document.querySelector(`[data-cal-group="entry"][data-cal-choice="${entryVal}"]`);
+                if (typeof calibrationGate !== 'undefined') {
+                    if (argVal !== null && typeof argVal !== 'undefined') calibrationGate.setArg(argVal === 'yes', argBtn || undefined);
+                    if (entryVal) calibrationGate.setEntry(entryVal, entryBtn || undefined);
+                }
+                if (argOnboarding.state.completed && !silent) {
+                    argOnboarding.updateStatus('Calibration synced with the main gate.', 'success');
+                }
+            },
+
+            open() {
+                if (argOnboarding.modal) argOnboarding.modal.classList.add('active');
+                document.body.classList.add('modal-open');
+            },
+            dismiss() {
+                if (argOnboarding.modal) argOnboarding.modal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            },
+            maybeShow() {
+                if (!argOnboarding.state.completed) argOnboarding.open();
+            }
         };
 
         const calibrationGate = {
@@ -4860,6 +4999,7 @@
 
         const geoQuiz = {
             step: 0,
+            completed: false,
             questions: [
                 {
                     title: '“Brick” hits your ears on Canal Street. What are they warning you about?',
@@ -4894,6 +5034,7 @@
             },
             start() {
                 audio.click();
+                geoQuiz.completed = false;
                 geoQuiz.step = 0;
                 geoQuiz.render();
             },
@@ -4907,6 +5048,8 @@
                 if (card) card.innerHTML = '';
                 if (step) step.innerText = `0/${geoQuiz.questions.length}`;
                 geoQuiz.step = 0;
+                geoQuiz.completed = false;
+                valueGate.updateTokens(valueState);
             },
             render() {
                 const stage = document.getElementById('geo-quiz-stage');
@@ -4976,7 +5119,9 @@
                         </div>
                     `;
                 }
+                geoQuiz.completed = true;
                 geoQuiz.step = 0;
+                valueGate.updateTokens(valueState);
             }
         };
         window.geoQuiz = geoQuiz;
@@ -5031,16 +5176,85 @@
                 const unlock = document.getElementById('ticket-unlock');
                 const pill = document.getElementById('ticket-status-pill');
                 const tokenDisplay = document.getElementById('ticket-status-tokens');
+                const unlockCta = document.getElementById('ticket-unlock-cta');
+                const tokensReady = tokens >= 6;
+                const quizReady = !!geoQuiz.completed;
+                const fullyReady = tokensReady && quizReady;
+
                 if (status) {
-                    status.innerText = tokens >= 6
-                        ? 'tickets still unavailable, but you’ve been provisionally woven in.'
-                        : 'tickets unavailable. collect 6 of 9 grift tokens, then pass the NYC slang quiz 🗽.';
+                    status.innerText = fullyReady
+                        ? 'Ticketing unlocked. Claim a tier or RSVP below.'
+                        : tokensReady
+                            ? 'Tokens logged. Pass the NYC slang quiz 🗽 to open ticketing.'
+                            : 'tickets unavailable. collect 6 of 9 grift tokens, then pass the NYC slang quiz 🗽.';
                 }
-                if (unlock) unlock.classList.toggle('hidden', tokens < 6);
+                if (unlock) {
+                    unlock.classList.toggle('hidden', !tokensReady);
+                    const note = unlock.querySelector('p');
+                    if (note) note.innerText = fullyReady
+                        ? 'Ticketing ready. Open the tiers or lock an RSVP stub.'
+                        : 'Tokens recorded. Finish the slang quiz to unlock the tiers.';
+                }
                 if (tokenDisplay) tokenDisplay.innerText = `${tokens} token${tokens === 1 ? '' : 's'}`;
                 if (pill) {
                     const label = pill.querySelector('span');
-                    if (label) label.innerText = tokens >= 6 ? 'Status: provisionally woven' : 'Status: measuring';
+                    if (label) label.innerText = fullyReady
+                        ? 'Status: ticketing unlocked'
+                        : tokensReady ? 'Status: provisionally woven' : 'Status: measuring';
+                }
+                if (unlockCta) {
+                    unlockCta.disabled = !tokensReady;
+                    unlockCta.classList.toggle('cursor-not-allowed', !tokensReady);
+                    unlockCta.classList.toggle('opacity-60', !tokensReady);
+                    if (!tokensReady) {
+                        unlockCta.innerText = 'Collect value tokens first';
+                        unlockCta.onclick = null;
+                    } else if (!quizReady) {
+                        unlockCta.innerText = 'Run the slang quiz';
+                        unlockCta.onclick = () => { ticketing.open(); geoQuiz.start(); };
+                    } else {
+                        unlockCta.innerText = 'Open ticketing tiers';
+                        unlockCta.onclick = () => ticketing.open();
+                    }
+                }
+                valueGate.updateTicketAction(tokensReady, quizReady);
+            },
+            updateTicketAction(tokensReady, quizReady) {
+                const button = document.getElementById('ticket-action');
+                const tooltip = document.getElementById('ticket-action-tooltip');
+                if (!button) return;
+                const base = 'w-full border border-black px-4 py-3 uppercase text-xs tracking-widest';
+                button.onclick = null;
+
+                if (!tokensReady) {
+                    button.className = `${base} bg-gray-200 text-gray-500 cursor-not-allowed`;
+                    button.innerText = 'Try to buy ticket';
+                    button.disabled = true;
+                    if (tooltip) {
+                        tooltip.textContent = 'Denied: insufficient value artifacts.';
+                        tooltip.classList.remove('hidden');
+                    }
+                    return;
+                }
+
+                if (!quizReady) {
+                    button.className = `${base} bg-gray-200 text-gray-700 cursor-not-allowed`;
+                    button.innerText = 'Pass the slang quiz';
+                    button.disabled = true;
+                    if (tooltip) {
+                        tooltip.textContent = 'NYC slang quiz required to unlock tiers.';
+                        tooltip.classList.remove('hidden');
+                    }
+                    return;
+                }
+
+                button.className = `${base} bg-black text-white hover:bg-red-700 transition-colors`;
+                button.innerText = 'Open ticketing tiers';
+                button.onclick = () => ticketing.open();
+                button.disabled = false;
+                if (tooltip) {
+                    tooltip.textContent = 'Ticketing unlocked. Claim your slot.';
+                    tooltip.classList.add('hidden');
                 }
             }
         };
@@ -5690,13 +5904,19 @@
                 setTimeout(() => {
                     if (loader) {
                         loader.classList.add('fade-out');
-                        setTimeout(() => loader.remove(), 900);
+                        setTimeout(() => {
+                            loader.remove();
+                            argOnboarding.maybeShow();
+                        }, 900);
+                    } else {
+                        argOnboarding.maybeShow();
                     }
                 }, 1200);
             }
         };
 
         document.addEventListener('DOMContentLoaded', () => {
+            argOnboarding.init();
             loaderSequence.start();
 
             tokiDictionary.init();
