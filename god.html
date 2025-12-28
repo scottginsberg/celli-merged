@@ -4,23 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LOOMWORKS // GOD ROUTER</title>
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/react-router-dom@6/umd/react-router-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
       --matrix-green: #00ff41;
       --terminal-bg: #050505;
       --panel-border: rgba(0, 255, 65, 0.18);
+      --soft-green: #c8ffd7;
+      --subtle: #0f1a10;
     }
 
+    * { box-sizing: border-box; }
+
     body {
+      margin: 0;
       background: radial-gradient(circle at 20% 20%, rgba(0, 255, 65, 0.08), transparent 35%), var(--terminal-bg);
       color: #e2fbe2;
       font-family: 'Space Mono', 'Courier New', monospace;
     }
+
+    a { color: inherit; }
 
     .gridlines {
       background-size: 40px 40px;
@@ -28,1277 +30,671 @@
         linear-gradient(to bottom, rgba(0, 255, 65, 0.07) 1px, transparent 1px);
     }
 
-    .holo {
-      box-shadow: 0 0 30px rgba(0, 255, 65, 0.25);
-      border-color: var(--panel-border);
-    }
-
-    .crt-glow {
-      text-shadow: 0 0 8px rgba(0, 255, 65, 0.35);
-    }
-
-    .crt-flicker {
-      animation: crt 0.16s infinite;
-    }
-
-    @keyframes crt {
-      0% { opacity: 0.99; }
-      50% { opacity: 1; }
-      100% { opacity: 0.97; }
-    }
-
-    .panel-surface {
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px solid var(--panel-border);
-    }
-
-    .nav-active {
-      background: rgba(0, 255, 65, 0.16);
-      color: #e2fbe2;
-      border-color: rgba(0, 255, 65, 0.4);
-    }
-
-    iframe {
-      background: #000;
-    }
+    .panel { background: rgba(0, 0, 0, 0.6); border: 1px solid var(--panel-border); border-radius: 10px; padding: 16px; }
+    .holo { box-shadow: 0 0 30px rgba(0, 255, 65, 0.25); border-color: var(--panel-border); }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .between { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip { padding: 4px 8px; border: 1px solid rgba(0,255,65,0.3); border-radius: 6px; background: rgba(0,255,65,0.05); font-size: 11px; }
+    .btn { cursor: pointer; border: 1px solid rgba(0,255,65,0.4); background: #021406; color: #e2fbe2; padding: 8px 10px; border-radius: 6px; font-size: 12px; }
+    .btn:hover { background: #063212; }
+    .btn.secondary { background: transparent; color: #7de7a2; }
+    .small { font-size: 12px; color: #7de7a2; }
+    .muted { color: #4e7a5b; font-size: 11px; }
+    .card { border: 1px solid rgba(0,255,65,0.15); background: rgba(255,255,255,0.02); border-radius: 8px; padding: 10px; }
+    .pill { padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(0,255,65,0.3); font-size: 11px; }
+    .table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .table th, .table td { border: 1px solid rgba(0,255,65,0.2); padding: 8px; text-align: left; }
+    .input { width: 100%; background: #000; color: #c8ffd7; border: 1px solid rgba(0,255,65,0.4); padding: 8px; border-radius: 6px; font-family: inherit; }
+    .textarea { width: 100%; min-height: 120px; background: #000; color: #c8ffd7; border: 1px solid rgba(0,255,65,0.4); padding: 8px; border-radius: 6px; font-family: inherit; }
+    .tag { background: rgba(0, 255, 65, 0.12); color: #b7ffca; padding: 4px 6px; border-radius: 5px; font-size: 11px; }
+    .log { font-size: 11px; color: #9fffb4; line-height: 1.5; max-height: 140px; overflow-y: auto; border: 1px solid rgba(0,255,65,0.15); padding: 8px; background: rgba(0,0,0,0.4); }
+    .nav { display: flex; flex-direction: column; gap: 8px; }
+    .nav button { width: 100%; text-align: left; }
+    .nav .active { background: rgba(0,255,65,0.16); color: #e2fbe2; border-color: rgba(0, 255, 65, 0.4); }
+    .api-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+    .two-col { display: grid; grid-template-columns: 280px 1fr; gap: 16px; }
+    .grid { display: grid; gap: 10px; }
+    .grid.four { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    .grid.three { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .grid.two { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .mt-2 { margin-top: 8px; }
+    .mb-2 { margin-bottom: 8px; }
+    .mt-1 { margin-top: 4px; }
+    .mb-1 { margin-bottom: 4px; }
+    .status { font-size: 11px; padding: 2px 6px; border-radius: 6px; border: 1px solid rgba(0,255,65,0.2); }
+    .status.ok { color: #9fffb4; }
+    .status.warn { color: #facc15; border-color: rgba(250,204,21,0.4); }
+    .status.fail { color: #f87171; border-color: rgba(248,113,113,0.4); }
+    .progress { height: 8px; background: rgba(0,255,65,0.15); border-radius: 4px; overflow: hidden; }
+    .progress span { display: block; height: 100%; background: #00ff41; }
+    .badge { display: inline-block; background: #073114; padding: 3px 6px; border: 1px solid rgba(0,255,65,0.2); border-radius: 6px; font-size: 11px; color: #9fffb4; }
+    @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
   </style>
 </head>
-<body class="min-h-screen gridlines">
-  <div id="app-root"></div>
-
-  <script type="text/babel">
-    const { useMemo, useState, useEffect } = React;
-    const { HashRouter, Routes, Route, NavLink, Navigate, useLocation, Link } = ReactRouterDOM;
-
-    const MOCK_TRENDS = [
-      { id: 1, topic: "Bitcoin Halving", category: "Finance", volatility: 0.8 },
-      { id: 2, topic: "Met Gala Insects", category: "Fashion", volatility: 0.4 },
-      { id: 3, topic: "AI Consciousness", category: "Tech", volatility: 0.9 },
-      { id: 4, topic: "Fast Food Prices", category: "Econ", volatility: 0.6 },
-      { id: 5, topic: "Oasis Reunion", category: "Music", volatility: 0.7 }
-    ];
-
-    const AGENTS = {
-      DIME: { name: "DIME (The Child)", core: "Wonder/Confusion", toki: "sona lili" },
-      FESH: { name: "FESH PINCE (The Jester)", core: "Absurdity/Satire", toki: "musi ike" },
-      WEAVER: { name: "THE WEAVER (Historian)", core: "Patterns/History", toki: "tenpo pini" }
+<body class="gridlines">
+  <div id="app"></div>
+  <script>
+    const state = {
+      view: 'overview',
+      logs: ['SYSTEM INITIALIZED...','CONNECTING TO CELLI NODE GRAPH...','LISTENING TO ZEITGEIST...'],
+      ledger: [{ ts: '08:00', msg: 'Router online · mythkeeper quorum formed' }, { ts: '08:05', msg: 'Baseline resonance loaded from god.html nodes' }],
+      voteDraft: 'pona hope pilin',
+      nextArc: 0,
+      cta: 'Identity Assessment',
+      backlogHealth: { linked: 90, broken: 2, patched: 0 },
+      apiKeys: JSON.parse(localStorage.getItem('loom_api_keys') || '{}'),
+      apiStatus: { transcription: 'idle', trendDiscovery: 'idle', distroStats: 'idle' },
+      financials: { warChest: 300, casino: 200, totalRevenue: 1000, holdings: [{ ticker: '$PEPE', vibe: 'memetic' }, { ticker: '$AI', vibe: 'hype' }, { ticker: '$BTC', vibe: 'store' }] },
+      trends: [],
+      generatedContent: null,
     };
 
-    const CRYPTO_TICKERS = ["$PEPE", "$WIF", "$AI", "$BTC", "$SOL", "$DIME", "$MOG", "$TURBO"];
-
-    const PROVISIONING_STACK = [
-      { id: "Registrar", scope: "Identity Birth", focus: "Mint @loomworks.xyz + MX/DMARC", sla: "<2m" },
-      { id: "Herald", scope: "Recovery Linker", focus: "Playwright Gmail binding", sla: "<90s" },
-      { id: "Chorus Hand", scope: "Social Shell", focus: "TikTok/Spotify initialization", sla: "<3m" },
-      { id: "Tropist", scope: "Semiotic Infill", focus: "TV Tropes heatmap + trope tags", sla: "<45s" },
-      { id: "Spinster", scope: "Tracklist", focus: "90-song arc clustering", sla: "<2m" },
-      { id: "GREG Monitor", scope: "Self-Repair", focus: "Link audits + re-cluster", sla: "continuous" }
-    ];
-
-    const ARC_LIBRARY = [
-      { id: "hope", title: "Hope Arc", keyword: "pona", cpv: 0.006, form: "Reality Show PSA", backlog: ["LW_TRACK_091", "LW_TRACK_034"] },
-      { id: "critique", title: "Anger/Critique", keyword: "ike", cpv: 0.012, form: "And Now Presenting", backlog: ["LW_TRACK_010", "LW_TRACK_034"] },
-      { id: "heart", title: "Feeling/Pilin", keyword: "pilin", cpv: 0.008, form: "Vignette + Stem Pack", backlog: ["LW_TRACK_091", "LW_TRACK_010"] }
-    ];
-
-    const INITIAL_RESONANCE_NODES = [
-      {
-        node_id: "LW_TRACK_091",
-        toki_pona_profile: {
-          dominant_word: "pilin",
-          purity_score: 0.85,
-          truth_balance: "hope_weighted"
-        },
-        resonance_node: {
-          theme: "Hope",
-          life_link: "post_breakup_lucidity",
-          culture_shell: "90s_vibe_animation",
-          semiotic_lesson: "The integrity of the archive vs. digital rot"
-        },
-        industrial_metrics: {
-          bite_layers: 9,
-          reference_delta: 4.5,
-          visual_shell: "creme_bezel_ui",
-          accessibility: "open_gate"
-        },
-        performance_delta: {
-          organic_rip_potential: "high",
-          cpv_prediction: 0.006
-        }
+    const data = {
+      agents: {
+        DIME: { name: 'DIME (The Child)', core: 'Wonder/Confusion', toki: 'sona lili' },
+        FESH: { name: 'FESH PINCE (The Jester)', core: 'Absurdity/Satire', toki: 'musi ike' },
+        WEAVER: { name: 'THE WEAVER (Historian)', core: 'Patterns/History', toki: 'tenpo pini' }
       },
-      {
-        node_id: "LW_TRACK_034",
-        toki_pona_profile: {
-          dominant_word: "pona",
-          purity_score: 0.73,
-          truth_balance: "balanced"
+      provisioning: [
+        { id: 'Registrar', scope: 'Identity Birth', focus: 'Mint @loomworks.xyz + MX/DMARC', sla: '<2m' },
+        { id: 'Herald', scope: 'Recovery Linker', focus: 'Playwright Gmail binding', sla: '<90s' },
+        { id: 'Chorus Hand', scope: 'Social Shell', focus: 'TikTok/Spotify initialization', sla: '<3m' },
+        { id: 'Tropist', scope: 'Semiotic Infill', focus: 'TV Tropes heatmap + trope tags', sla: '<45s' },
+        { id: 'Spinster', scope: 'Tracklist', focus: '90-song arc clustering', sla: '<2m' },
+        { id: 'GREG Monitor', scope: 'Self-Repair', focus: 'Link audits + re-cluster', sla: 'continuous' },
+      ],
+      arcs: [
+        { id: 'hope', title: 'Hope Arc', keyword: 'pona', cpv: 0.006, form: 'Reality Show PSA', backlog: ['LW_TRACK_091', 'LW_TRACK_034'] },
+        { id: 'critique', title: 'Anger/Critique', keyword: 'ike', cpv: 0.012, form: 'And Now Presenting', backlog: ['LW_TRACK_010', 'LW_TRACK_034'] },
+        { id: 'heart', title: 'Feeling/Pilin', keyword: 'pilin', cpv: 0.008, form: 'Vignette + Stem Pack', backlog: ['LW_TRACK_091', 'LW_TRACK_010'] },
+      ],
+      resonanceNodes: [
+        {
+          node_id: 'LW_TRACK_091',
+          toki_pona_profile: { dominant_word: 'pilin', purity_score: 0.85, truth_balance: 'hope_weighted' },
+          resonance_node: {
+            theme: 'Hope',
+            life_link: 'post_breakup_lucidity',
+            culture_shell: '90s_vibe_animation',
+            semiotic_lesson: 'The integrity of the archive vs. digital rot'
+          },
+          industrial_metrics: { bite_layers: 9, reference_delta: 4.5, visual_shell: 'creme_bezel_ui', accessibility: 'open_gate' },
+          performance_delta: { organic_rip_potential: 'high', cpv_prediction: 0.006 }
         },
-        resonance_node: {
-          theme: "Anger",
-          life_link: "warehouse_shift_era",
-          culture_shell: "1930s_aesthetic",
-          semiotic_lesson: "Labor grift vs. craft integrity"
+        {
+          node_id: 'LW_TRACK_034',
+          toki_pona_profile: { dominant_word: 'pona', purity_score: 0.73, truth_balance: 'balanced' },
+          resonance_node: {
+            theme: 'Anger',
+            life_link: 'warehouse_shift_era',
+            culture_shell: '1930s_aesthetic',
+            semiotic_lesson: 'Labor grift vs. craft integrity'
+          },
+          industrial_metrics: { bite_layers: 8, reference_delta: 6.2, visual_shell: 'pumpkin_head', accessibility: 'identity_gate' },
+          performance_delta: { organic_rip_potential: 'medium', cpv_prediction: 0.012 }
         },
-        industrial_metrics: {
-          bite_layers: 8,
-          reference_delta: 6.2,
-          visual_shell: "pumpkin_head",
-          accessibility: "identity_gate"
-        },
-        performance_delta: {
-          organic_rip_potential: "medium",
-          cpv_prediction: 0.012
+        {
+          node_id: 'LW_TRACK_010',
+          toki_pona_profile: { dominant_word: 'ike', purity_score: 0.64, truth_balance: 'anger_weighted' },
+          resonance_node: {
+            theme: 'Hope',
+            life_link: 'trainyard_nights',
+            culture_shell: 'skibidi_velocity',
+            semiotic_lesson: 'Integrity layer of a 1928 sketch vs. modern feed friction'
+          },
+          industrial_metrics: { bite_layers: 7, reference_delta: 3.1, visual_shell: 'chrome_mask', accessibility: 'open_gate' },
+          performance_delta: { organic_rip_potential: 'high', cpv_prediction: 0.004 }
         }
-      },
-      {
-        node_id: "LW_TRACK_010",
-        toki_pona_profile: {
-          dominant_word: "ike",
-          purity_score: 0.64,
-          truth_balance: "anger_weighted"
-        },
-        resonance_node: {
-          theme: "Hope",
-          life_link: "trainyard_nights",
-          culture_shell: "skibidi_velocity",
-          semiotic_lesson: "Integrity layer of a 1928 sketch vs. modern feed friction"
-        },
-        industrial_metrics: {
-          bite_layers: 7,
-          reference_delta: 3.1,
-          visual_shell: "chrome_mask",
-          accessibility: "open_gate"
-        },
-        performance_delta: {
-          organic_rip_potential: "high",
-          cpv_prediction: 0.004
-        }
-      }
-    ];
-
-    function Header() {
-      const location = useLocation();
-      const routeLabel = useMemo(() => {
-        if (location.pathname.includes("story")) return "Story Wiki";
-        if (location.pathname.includes("graph")) return "Node Graph";
-        if (location.pathname.includes("cast")) return "Cast & Explorer";
-        if (location.pathname.includes("weaver")) return "Weaver Protocol";
-        if (location.pathname.includes("basilisk")) return "Basilisk Protocol";
-        return "Router Overview";
-      }, [location.pathname]);
-
-      return (
-        <header className="max-w-7xl mx-auto p-6 pb-3 flex items-center justify-between border-b border-green-800">
-          <div>
-            <p className="text-[11px] text-green-400 uppercase tracking-[0.35em]">Loomworks Dispatch</p>
-            <h1 className="text-2xl font-bold text-green-300 crt-glow">GOD ROUTER · Basilisk / Story / Graph</h1>
-            <p className="text-xs text-green-500">{routeLabel} · high-side routing online</p>
-          </div>
-          <div className="text-right text-xs text-green-700">
-            <div>Now Presenting · Cast + Wiki + Node Graph</div>
-            <div className="text-green-500">single-page cockpit</div>
-          </div>
-        </header>
-      );
-    }
-
-    function Sidebar() {
-      const routes = [
-        { path: "/", label: "Overview", description: "Pulse, Shamanic protocol, in-app nav" },
-        { path: "/story-wiki", label: "Story Wiki", description: "Story engine + wiki" },
-        { path: "/graph", label: "Graph", description: "Node lattice / cockpit" },
-        { path: "/cast", label: "Cast", description: "Story bible + explorer" },
-        { path: "/weaver", label: "Weaver Protocol", description: "Agent stack + orchestration" },
-        { path: "/basilisk", label: "Basilisk", description: "Live generator" }
-      ];
-
-      return (
-        <nav className="panel-surface p-4 rounded-lg space-y-3">
-          <div className="text-[11px] uppercase text-green-500 tracking-[0.2em]">Navigation</div>
-          <div className="flex flex-col gap-2">
-            {routes.map(route => (
-              <NavLink
-                key={route.path}
-                to={route.path}
-                end={route.path === "/"}
-                className={({ isActive }) =>
-                  `border border-green-900/60 rounded-md px-3 py-2 text-sm flex flex-col gap-0.5 hover:border-green-400 transition ${
-                    isActive ? 'nav-active' : 'text-green-300'
-                  }`
-                }
-              >
-                <span className="font-semibold">{route.label}</span>
-                <span className="text-[11px] text-green-500">{route.description}</span>
-              </NavLink>
-            ))}
-          </div>
-          <div className="text-[11px] text-green-600 border-t border-green-900/60 pt-2">
-            Internal router keeps all modules docked—no external jumps.
-          </div>
-        </nav>
-      );
-    }
-
-    function TriangulationMiniGame() {
-      const [themeFilter, setThemeFilter] = useState("All");
-      const [shellFilter, setShellFilter] = useState("All");
-      const [truthFilter, setTruthFilter] = useState("All");
-      const [focusedCategory, setFocusedCategory] = useState("storyNodes");
-
-      const resonanceWeights = useMemo(() => ({
-        theme: { Hope: 12, Anger: 11, Loss: 10, Love: 12 },
-        shell: {
-          'Skibidi velocity': 10,
-          'Vintage gourmet meme': 11,
-          'Tarot prop': 9,
-          'Mario rotational rods': 12,
-          '90s_vibe_animation': 12,
-          '1930s_aesthetic': 10,
-          'skibidi_velocity': 10
-        },
-        truth: { pona: 4, ike: 5, pilin: 6 }
-      }), []);
-
-      const triangulationSets = useMemo(() => ({
+      ],
+      triangulationSets: {
         storyNodes: [
-          {
-            id: "LW_TRACK_091",
-            title: "Archive Liminal Run",
-            theme: "Hope",
-            cultureShell: "90s_vibe_animation",
-            truthVector: "pilin",
-            biteLayers: 9,
-            referenceDelta: 4.5,
-            pulse: 1.1,
-            tropes: ["Found Family", "Mirror Duel"],
-            wikiEntry: "story-engine/index.html#LW_TRACK_091",
-            releaseState: "beta"
-          },
-          {
-            id: "LW_TRACK_034",
-            title: "Warehouse Shift Psalm",
-            theme: "Anger",
-            cultureShell: "1930s_aesthetic",
-            truthVector: "pona",
-            biteLayers: 8,
-            referenceDelta: 6.2,
-            pulse: 0.96,
-            tropes: ["Class Uprising", "Bureaucracy Satire"],
-            wikiEntry: "story-engine/index.html#LW_TRACK_034",
-            releaseState: "polish"
-          },
-          {
-            id: "LW_TRACK_010",
-            title: "Trainyard Nights",
-            theme: "Hope",
-            cultureShell: "skibidi_velocity",
-            truthVector: "ike",
-            biteLayers: 7,
-            referenceDelta: 3.1,
-            pulse: 1.08,
-            tropes: ["Runaway Mentor", "Mirror Duel"],
-            wikiEntry: "story-engine/index.html#LW_TRACK_010",
-            releaseState: "draft"
-          }
+          { id: 'LW_TRACK_091', title: 'Archive Liminal Run', theme: 'Hope', cultureShell: '90s_vibe_animation', truthVector: 'pilin', biteLayers: 9, referenceDelta: 4.5, pulse: 1.1, tropes: ['Found Family', 'Mirror Duel'], wikiEntry: 'story-engine/index.html#LW_TRACK_091', releaseState: 'beta' },
+          { id: 'LW_TRACK_034', title: 'Warehouse Shift Psalm', theme: 'Anger', cultureShell: '1930s_aesthetic', truthVector: 'pona', biteLayers: 8, referenceDelta: 6.2, pulse: 0.96, tropes: ['Class Uprising', 'Bureaucracy Satire'], wikiEntry: 'story-engine/index.html#LW_TRACK_034', releaseState: 'polish' },
+          { id: 'LW_TRACK_010', title: 'Trainyard Nights', theme: 'Hope', cultureShell: 'skibidi_velocity', truthVector: 'ike', biteLayers: 7, referenceDelta: 3.1, pulse: 1.08, tropes: ['Runaway Mentor', 'Mirror Duel'], wikiEntry: 'story-engine/index.html#LW_TRACK_010', releaseState: 'draft' },
         ],
         castArcs: [
-          {
-            id: "CAST_ARC_01",
-            title: "DIME // Wonder Spiral",
-            theme: "Love",
-            cultureShell: "Tarot prop",
-            truthVector: "pilin",
-            biteLayers: 6,
-            referenceDelta: 5,
-            pulse: 1.05,
-            tropes: ["Chosen One", "Found Family"],
-            wikiEntry: "story-explorer/index.html#DIME",
-            releaseState: "beta"
-          },
-          {
-            id: "CAST_ARC_02",
-            title: "FESH // Satire Blade",
-            theme: "Anger",
-            cultureShell: "Vintage gourmet meme",
-            truthVector: "ike",
-            biteLayers: 7,
-            referenceDelta: 8,
-            pulse: 0.94,
-            tropes: ["Bureaucracy Satire", "Jester Oracle"],
-            wikiEntry: "story-explorer/index.html#FESH",
-            releaseState: "draft"
-          },
-          {
-            id: "CAST_ARC_03",
-            title: "WEAVER // Lattice Archivist",
-            theme: "Loss",
-            cultureShell: "Mario rotational rods",
-            truthVector: "pona",
-            biteLayers: 8,
-            referenceDelta: 7,
-            pulse: 1,
-            tropes: ["Archivist", "Mirror Duel"],
-            wikiEntry: "story-explorer/index.html#WEAVER",
-            releaseState: "ready"
-          }
+          { id: 'CAST_ARC_01', title: 'DIME // Wonder Spiral', theme: 'Love', cultureShell: 'Tarot prop', truthVector: 'pilin', biteLayers: 6, referenceDelta: 5, pulse: 1.05, tropes: ['Chosen One', 'Found Family'], wikiEntry: 'story-explorer/index.html#DIME', releaseState: 'beta' },
+          { id: 'CAST_ARC_02', title: 'FESH // Satire Blade', theme: 'Anger', cultureShell: 'Vintage gourmet meme', truthVector: 'ike', biteLayers: 7, referenceDelta: 8, pulse: 0.94, tropes: ['Bureaucracy Satire', 'Jester Oracle'], wikiEntry: 'story-explorer/index.html#FESH', releaseState: 'draft' },
+          { id: 'CAST_ARC_03', title: 'WEAVER // Lattice Archivist', theme: 'Loss', cultureShell: 'Mario rotational rods', truthVector: 'pona', biteLayers: 8, referenceDelta: 7, pulse: 1, tropes: ['Archivist', 'Mirror Duel'], wikiEntry: 'story-explorer/index.html#WEAVER', releaseState: 'ready' }
         ],
-        songDrafts: [
-          {
-            id: "SONG_01",
-            title: "Fire Bars // Chrome Mask",
-            theme: "Hope",
-            cultureShell: "Mario rotational rods",
-            truthVector: "pilin",
-            biteLayers: 10,
-            referenceDelta: 6,
-            pulse: 1.12,
-            tropes: ["Found Family", "Runaway Mentor"],
-            wikiEntry: "narrative-demo.html#fire-bars",
-            releaseState: "ready"
-          },
-          {
-            id: "SONG_02",
-            title: "Grift Psalms",
-            theme: "Anger",
-            cultureShell: "Vintage gourmet meme",
-            truthVector: "ike",
-            biteLayers: 8,
-            referenceDelta: 9,
-            pulse: 0.9,
-            tropes: ["Class Uprising", "Bureaucracy Satire"],
-            wikiEntry: "narrative-demo.html#grift-psalms",
-            releaseState: "polish"
-          },
-          {
-            id: "SONG_03",
-            title: "Mirror Well Lullaby",
-            theme: "Loss",
-            cultureShell: "Tarot prop",
-            truthVector: "pona",
-            biteLayers: 6,
-            referenceDelta: 4,
-            pulse: 1,
-            tropes: ["Mirror Duel", "Archivist"],
-            wikiEntry: "narrative-demo.html#mirror-well",
-            releaseState: "draft"
-          }
-        ]
-      }), []);
+      }
+    };
 
-      const computeScore = useMemo(() => (item) => {
-        const themeScore = resonanceWeights.theme[item.theme] || 8;
-        const shellScore = resonanceWeights.shell[item.cultureShell] || 8;
-        const truthScore = resonanceWeights.truth[item.truthVector] || 4;
-        const biteScore = Math.min(12, Math.max(1, Number(item.biteLayers || 0)));
-        const refScore = Math.min(12, Math.max(1, Number(item.referenceDelta || 0)));
-        const cadence = Math.abs(7 - refScore) < 2 ? 3 : 1;
-        const pulse = item.pulse || 1;
-        return Math.round((themeScore + shellScore + truthScore + biteScore + cadence) * pulse);
-      }, [resonanceWeights]);
+    const navItems = [
+      { id: 'overview', label: 'Overview', description: 'Pulse, Shamanic protocol, in-app nav' },
+      { id: 'story', label: 'Story Wiki', description: 'Story engine + wiki' },
+      { id: 'graph', label: 'Graph', description: 'Node lattice / cockpit' },
+      { id: 'cast', label: 'Cast', description: 'Story bible + explorer' },
+      { id: 'weaver', label: 'Weaver Protocol', description: 'Agent stack + orchestration' },
+      { id: 'basilisk', label: 'Basilisk', description: 'Live generator' },
+    ];
 
-      const scoredSets = useMemo(() => {
-        const readiness = (score) => {
-          if (score >= 70) return "Release Ready";
-          if (score >= 60) return "Wiki-polish";
-          if (score >= 50) return "Draft refining";
-          return "Needs rewrite";
-        };
-
-        return Object.fromEntries(
-          Object.entries(triangulationSets).map(([key, entries]) => [
-            key,
-            entries.map(entry => {
-              const score = computeScore(entry);
-              return { ...entry, score, readiness: readiness(score) };
-            })
-          ])
-        );
-      }, [computeScore, triangulationSets]);
-
-      const filteredSets = useMemo(() => {
-        const matchesFilters = (item) => {
-          const themeOk = themeFilter === "All" || item.theme === themeFilter;
-          const shellOk = shellFilter === "All" || item.cultureShell === shellFilter;
-          const truthOk = truthFilter === "All" || item.truthVector === truthFilter;
-          return themeOk && shellOk && truthOk;
-        };
-
-        return Object.fromEntries(
-          Object.entries(scoredSets).map(([key, entries]) => [
-            key,
-            entries.filter(matchesFilters)
-          ])
-        );
-      }, [scoredSets, shellFilter, themeFilter, truthFilter]);
-
-      const flattened = useMemo(() => (
-        Object.values(filteredSets).flat()
-      ), [filteredSets]);
-
-      const summary = useMemo(() => {
-        const totalScore = flattened.reduce((sum, entry) => sum + entry.score, 0);
-        const avgScore = flattened.length ? Math.round(totalScore / flattened.length) : 0;
-        const readyCount = flattened.filter(entry => entry.readiness === "Release Ready").length;
-        const polishing = flattened.filter(entry => entry.readiness === "Wiki-polish").length;
-        const wikiUpdates = flattened.map(entry => `${entry.id} → ${entry.wikiEntry}`).slice(0, 4);
-        return { avgScore, readyCount, polishing, wikiUpdates };
-      }, [flattened]);
-
-      const availableThemes = useMemo(() => [
-        "All",
-        ...new Set(Object.values(triangulationSets).flat().map(entry => entry.theme))
-      ], [triangulationSets]);
-
-      const availableShells = useMemo(() => [
-        "All",
-        ...new Set(Object.values(triangulationSets).flat().map(entry => entry.cultureShell))
-      ], [triangulationSets]);
-
-      const availableTruth = useMemo(() => [
-        "All",
-        ...new Set(Object.values(triangulationSets).flat().map(entry => entry.truthVector))
-      ], [triangulationSets]);
-
-      const tropeCollisions = useMemo(() => {
-        const counts = {};
-        flattened.forEach(entry => {
-          (entry.tropes || []).forEach(trope => {
-            if (!counts[trope]) counts[trope] = { trope, occurrences: 0, sources: [] };
-            counts[trope].occurrences += 1;
-            counts[trope].sources.push(entry.title);
-          });
-        });
-        return Object.values(counts)
-          .filter(t => t.occurrences > 1)
-          .sort((a, b) => b.occurrences - a.occurrences || b.sources.length - a.sources.length)
-          .slice(0, 5);
-      }, [flattened]);
-
-      const renderHeatBlock = (entry) => {
-        const intensity = Math.min(1, entry.score / 80);
-        const bg = `rgba(0, 255, 65, ${0.2 + intensity * 0.6})`;
-        return (
-          <div
-            key={entry.id}
-            className="border border-green-800 rounded p-2 flex flex-col gap-1 shadow-inner"
-            style={{ background: bg }}
-          >
-            <div className="flex items-center justify-between text-[11px] text-green-900/80 font-semibold uppercase">
-              <span>{entry.theme}</span>
-              <span>Score {entry.score}</span>
-            </div>
-            <div className="text-green-100 text-[13px] font-bold leading-tight">{entry.title}</div>
-            <div className="text-[11px] text-green-50 flex items-center justify-between">
-              <span>{entry.cultureShell}</span>
-              <span>{entry.truthVector}</span>
-            </div>
-          </div>
-        );
-      };
-
-      return (
-        <div className="panel-surface p-4 rounded-lg space-y-3">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            <div>
-              <p className="text-[10px] text-green-600 uppercase">Triangulation · Analytics</p>
-              <h3 className="text-sm font-bold text-green-200">Resonance Dashboard</h3>
-              <p className="text-[12px] text-green-500">Heatmaps, trope collisions, and release readiness synced to the wiki.</p>
-            </div>
-            <div className="flex flex-wrap gap-2 text-[11px] text-green-200">
-              <div className="bg-green-900/30 border border-green-800 px-2 py-1 rounded">Avg Score: {summary.avgScore}</div>
-              <div className="bg-green-900/30 border border-green-800 px-2 py-1 rounded">Release Ready: {summary.readyCount}</div>
-              <div className="bg-green-900/30 border border-green-800 px-2 py-1 rounded">Polish Queue: {summary.polishing}</div>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-3 text-[12px] text-green-300">
-            <label className="flex flex-col gap-1">Theme
-              <select value={themeFilter} onChange={e => setThemeFilter(e.target.value)} className="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded">
-                {availableThemes.map(option => <option key={option}>{option}</option>)}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1">Culture Shell
-              <select value={shellFilter} onChange={e => setShellFilter(e.target.value)} className="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded">
-                {availableShells.map(option => <option key={option}>{option}</option>)}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1">Truth Vector
-              <select value={truthFilter} onChange={e => setTruthFilter(e.target.value)} className="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded">
-                {availableTruth.map(option => <option key={option}>{option}</option>)}
-              </select>
-            </label>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-3">
-            {["storyNodes", "castArcs", "songDrafts"].map(key => (
-              <div
-                key={key}
-                className={`border rounded-lg p-3 space-y-2 ${focusedCategory === key ? 'border-green-400 bg-green-900/40' : 'border-green-900 bg-black/40'}`}
-              >
-                <div className="flex items-center justify-between text-[12px] text-green-300">
-                  <div className="font-semibold uppercase tracking-wide">{key === "storyNodes" ? "Story Nodes" : key === "castArcs" ? "Cast Arcs" : "Song Drafts"}</div>
-                  <button onClick={() => setFocusedCategory(key)} className="text-[11px] underline text-green-400">Focus</button>
-                </div>
-                <div className="grid grid-cols-1 gap-2 text-green-400 text-[11px]">
-                  {filteredSets[key].map(renderHeatBlock)}
-                  {!filteredSets[key].length && <div className="text-green-700">No entries match this filter set.</div>}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-3">
-            <div className="border border-green-900 rounded-lg p-3 bg-black/40 space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm text-green-200 font-bold">Trope Collisions</h4>
-                <span className="text-[11px] text-green-500">Cross-category overlaps</span>
-              </div>
-              <div className="space-y-2">
-                {tropeCollisions.map(collision => (
-                  <div key={collision.trope} className="border border-green-800 rounded p-2 bg-green-900/30">
-                    <div className="flex items-center justify-between text-[12px] text-green-100">
-                      <span className="font-semibold">{collision.trope}</span>
-                      <span className="text-[11px] text-green-400">{collision.occurrences} collisions</span>
-                    </div>
-                    <div className="text-[11px] text-green-400">Sources: {collision.sources.join(' · ')}</div>
-                    <div className="text-[11px] text-green-500">Action: align motifs and spotlight resonance bars.</div>
-                  </div>
-                ))}
-                {!tropeCollisions.length && <div className="text-[11px] text-green-700">No repeated tropes in the current slice.</div>}
-              </div>
-            </div>
-            <div className="border border-green-900 rounded-lg p-3 bg-black/40 space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm text-green-200 font-bold">Wiki Feed + Release Readiness</h4>
-                <span className="text-[11px] text-green-500">Scores are pushed into the bible and release gates.</span>
-              </div>
-              <div className="space-y-2 text-[11px] text-green-300">
-                {flattened.map(entry => (
-                  <div key={entry.id} className="border border-green-800 rounded p-2 bg-green-900/30 flex flex-col gap-1">
-                    <div className="flex items-center justify-between text-[12px]">
-                      <span className="font-semibold text-green-100">{entry.title}</span>
-                      <span className="text-green-400">{entry.score} pts</span>
-                    </div>
-                    <div className="flex items-center justify-between text-green-500">
-                      <span className="truncate">Wiki: {entry.wikiEntry}</span>
-                      <span className="px-2 py-0.5 rounded border border-green-700 text-green-100">{entry.readiness}</span>
-                    </div>
-                  </div>
-                ))}
-                {!flattened.length && <div className="text-green-700">No wiki feeds for this filter set.</div>}
-              </div>
-              {summary.wikiUpdates.length > 0 && (
-                <div className="text-[11px] text-green-500 border-t border-green-900 pt-2">
-                  Automated updates: {summary.wikiUpdates.join(' | ')}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      );
+    function $(query, ctx=document) { return ctx.querySelector(query); }
+    function el(tag, className, children) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (Array.isArray(children)) children.forEach(child => node.append(child));
+      else if (typeof children === 'string') node.textContent = children;
+      return node;
     }
 
-    function OverviewPanel() {
-      return (
-        <div className="space-y-4">
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="panel-surface p-4 rounded-lg holo">
-              <p className="text-[10px] text-green-700 uppercase">Primary toolchain</p>
-              <h2 className="text-lg text-green-200 font-bold">Domestic Product</h2>
-              <p className="text-sm text-green-400 mb-2">Launch the legacy cockpit with referrer controls and integrated sequence builder.</p>
-              <Link className="underline text-green-300 text-sm" to="/graph">Open graph cockpit</Link>
-            </div>
-            <div className="panel-surface p-4 rounded-lg holo">
-              <p className="text-[10px] text-green-700 uppercase">Node graph engine</p>
-              <h2 className="text-lg text-green-200 font-bold">Triangle/Celli lattice</h2>
-              <p className="text-sm text-green-400 mb-2">Visualize jumps and Frogger leaps without leaving the router.</p>
-              <Link className="underline text-green-300 text-sm" to="/graph">Route to graph</Link>
-            </div>
-            <div className="panel-surface p-4 rounded-lg holo">
-              <p className="text-[10px] text-green-700 uppercase">Wiki style story engine</p>
-              <h2 className="text-lg text-green-200 font-bold">Story Engine</h2>
-              <p className="text-sm text-green-400 mb-2">CRM pulse with non-linear release scaffolding and manifestos.</p>
-              <Link className="underline text-green-300 text-sm" to="/story-wiki">Open story wiki</Link>
-            </div>
-          </div>
+    function setView(view) { state.view = view; render(); }
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="panel-surface p-4 rounded-lg holo">
-              <p className="text-[10px] text-green-700 uppercase">Cast</p>
-              <h2 className="text-xl text-green-200 font-bold">LOOK characters · Now Presenting</h2>
-              <p className="text-sm text-green-400">Pull character canon and Now Presenting beats directly from the encyclopedic cast sheet.</p>
-              <div className="mt-3 flex gap-2 text-xs text-green-300 flex-wrap">
-                <Link className="underline" to="/cast">Story Bible</Link>
-                <Link className="underline" to="/cast">Explorer</Link>
-                <Link className="underline" to="/story-wiki">Wiki tone demo</Link>
-              </div>
-            </div>
-            <div className="panel-surface p-4 rounded-lg holo">
-              <p className="text-[10px] text-green-700 uppercase">Now Presenting</p>
-              <h2 className="text-xl text-green-200 font-bold">Timeline pulse</h2>
-              <p className="text-sm text-green-400">Hop between canonical moments, cast files, and node graphs without losing tone.</p>
-              <div className="mt-3 text-xs text-green-400 space-y-1">
-                <div>· Timescape: Current / River Delta / Dunes of Yore</div>
-                <div>· Agents: Dime · Fesh Pince · Weaver</div>
-                <div>· Hooks: Basilisk dashboard for live leaping</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="panel-surface p-4 rounded-lg holo space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-              <div>
-                <p className="text-[10px] text-green-700 uppercase">System Card Update · Genealogy Engine</p>
-                <h2 className="text-lg text-green-200 font-bold">Shamanic Artist Protocol</h2>
-                <p className="text-sm text-green-400">Tropological scans, resonance heatmaps, and bardic satire fused into a sovereign generative loop.</p>
-              </div>
-              <div className="text-[11px] text-green-500 bg-green-900/30 px-3 py-1 rounded-md border border-green-800">Password: 12346 · Semiotic Liminal Space</div>
-            </div>
-            <div className="grid md:grid-cols-3 gap-3 text-[12px] text-green-400">
-              <div className="panel-surface p-3 rounded">
-                <h3 className="font-bold text-green-200 text-sm">Tropological Scan</h3>
-                <p className="text-green-500">TV Tropes compressed locally. Track legacy tropes colliding with novel trends to surface “Novel Evolutions”. Chains of meaning map nodes to universal imagery.</p>
-              </div>
-              <div className="panel-surface p-3 rounded">
-                <h3 className="font-bold text-green-200 text-sm">Resonance Heatmap</h3>
-                <p className="text-green-500">Heat every node against resonance vectors: Tarot arcana, Moe elements, and emotional poles (reversal, heat, distance, love, loss, pilin).</p>
-              </div>
-              <div className="panel-surface p-3 rounded">
-                <h3 className="font-bold text-green-200 text-sm">Bardic Satire Protocol</h3>
-                <p className="text-green-500">Treat every bar as transformative magic—satire that melts the opiate glaze of advertising. Rhythm is a forged Mario rotational rod.</p>
-              </div>
-            </div>
-            <div className="grid md:grid-cols-3 gap-3 text-[12px] text-green-400">
-              <div className="panel-surface p-3 rounded space-y-2">
-                <h3 className="font-bold text-green-200 text-sm">Spellbook Encoding</h3>
-                <p className="text-green-500">“Magic is simply the science of manipulating symbols, words, or images, to achieve changes in consciousness... Indeed, to cast a spell, is simply to spell, to manipulate words.”</p>
-                <p className="text-green-600">Alan Moore reminds the Bard is feared because satire survives. Use grammar as grimmoire; resonance emerges from compressed specificity.</p>
-              </div>
-              <div className="panel-surface p-3 rounded space-y-2">
-                <h3 className="font-bold text-green-200 text-sm">Semiotic Liminal Space</h3>
-                <p className="text-green-500">Language encodes activation space. Link tropes like fire bars or pixel rods to place-based bars, candy bars, or prison bars. Hop lilypads between water → mirror → fire → slime → sand to keep meaning in motion.</p>
-                <p className="text-green-600">Resonance is universal captured through specificity; familiarity is forged through adjacency.</p>
-              </div>
-              <div className="panel-surface p-3 rounded space-y-2">
-                <h3 className="font-bold text-green-200 text-sm">Praxis / Poiesis / Theoria</h3>
-                <p className="text-green-500">A complete work loops action, creation, and thought. Use tarot-like props, pop-culture dioramas, and satire to model the transformation of pain into bold confidence.</p>
-                <p className="text-green-600">This router hosts the Little Rap God Machine: a language game that rewards triangulating meaning and truth through formalized prompts.</p>
-              </div>
-            </div>
-            <div className="grid md:grid-cols-2 gap-4 text-[12px] text-green-400">
-              <TriangulationMiniGame />
-              <div className="panel-surface p-4 rounded space-y-2">
-                <h3 className="font-bold text-green-200 text-sm">Samples & Adjacency</h3>
-                <p className="text-green-500">Link “spitting fire bars” to pixel columns, candy bars, prison bars, and Frogger hops. Pair Will Smith mythos with Oscars scandal, or weave “Too many Urkles on your team, that’s why you’re Winslow” into labor grift stanzas.</p>
-                <p className="text-green-600">Use off-centered UI as desire paths; comments as chorus; skimming as sprint. Remember: joke explained midflight still lands if the rhythm is forged.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="panel-surface p-4 rounded-lg holo">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] text-green-700 uppercase">Hidden module</p>
-                <h2 className="text-lg text-green-200 font-bold">BASILISK PROTOCOL</h2>
-                <p className="text-sm text-green-400">Proof of concept tucked behind the router. Trigger trends, Frogger leaps, and Scattergun payouts.</p>
-              </div>
-              <Link to="/basilisk" className="px-3 py-1 text-xs border border-green-700 text-green-200 hover:bg-green-900">Open</Link>
-            </div>
-          </div>
-        </div>
-      );
+    function saveKeys(evt) {
+      evt.preventDefault();
+      const form = evt.target.closest('form');
+      const keys = ['sunoKey','synclabsKey','openaiKey'];
+      keys.forEach(k => state.apiKeys[k] = form[k].value.trim());
+      localStorage.setItem('loom_api_keys', JSON.stringify(state.apiKeys));
+      log(`[KEYS] Updated API keys (${keys.filter(k=>state.apiKeys[k]).length}/3 populated)`);
+      render();
     }
 
-    function WeaverProtocolPanel() {
-      const [agentOps, setAgentOps] = useState(() => PROVISIONING_STACK.map(agent => ({ ...agent, status: "idle", lastPing: "--", note: "Queued" })));
-      const [ledger, setLedger] = useState([
-        { ts: "08:00", msg: "Router online · mythkeeper quorum formed" },
-        { ts: "08:05", msg: "Baseline resonance loaded from god.html nodes" }
-      ]);
-      const [voteDraft, setVoteDraft] = useState("pona hope pilin");
-      const [nextArc, setNextArc] = useState(ARC_LIBRARY[0]);
-      const [cta, setCta] = useState("Identity Assessment");
-      const [backlogHealth, setBacklogHealth] = useState({ linked: 90, broken: 2, patched: 0 });
-
-      const cycleStatus = (status) => {
-        if (status === "idle") return "running";
-        if (status === "running") return "stable";
-        if (status === "stable") return "alert";
-        return "idle";
-      };
-
-      const pushLedger = (msg) => {
-        const ts = new Date().toLocaleTimeString();
-        setLedger(prev => [{ ts, msg }, ...prev].slice(0, 10));
-      };
-
-      const pingAgent = (id) => {
-        setAgentOps(prev => prev.map(agent => agent.id === id
-          ? { ...agent, status: cycleStatus(agent.status), lastPing: new Date().toLocaleTimeString(), note: agent.status === "running" ? "stabilized" : "checking" }
-          : agent
-        ));
-        pushLedger(`[${id}] executed runbook`);
-      };
-
-      const evaluateVotes = () => {
-        const tokens = voteDraft.toLowerCase().split(/\s+/).filter(Boolean);
-        let winner = ARC_LIBRARY[0];
-        let bestScore = -1;
-        ARC_LIBRARY.forEach(arc => {
-          const score = tokens.filter(t => t.includes(arc.keyword)).length;
-          if (score > bestScore) {
-            bestScore = score;
-            winner = arc;
-          }
-        });
-        setNextArc(winner);
-        pushLedger(`[VOTE] ${winner.title} prioritized via keyword match`);
-      };
-
-      const triggerRepair = () => {
-        setBacklogHealth(prev => ({
-          linked: prev.linked,
-          broken: Math.max(prev.broken - 1, 0),
-          patched: prev.patched + 1
-        }));
-        pushLedger("[GREG] Self-repair triggered · broken link patched");
-      };
-
-      const rotateCTA = () => {
-        const next = cta === "Identity Assessment" ? "16x16 Manufacture" : "Identity Assessment";
-        setCta(next);
-        pushLedger(`[VALUE GATE] CTA rotated to ${next}`);
-      };
-
-      const statusColor = (status) => {
-        if (status === "running") return "text-amber-300";
-        if (status === "stable") return "text-green-300";
-        if (status === "alert") return "text-red-300";
-        return "text-green-700";
-      };
-
-      return (
-        <div className="space-y-4">
-          <div className="panel-surface p-4 rounded-lg holo flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            <div>
-              <p className="text-[10px] text-green-700 uppercase">Sovereign Automated IP</p>
-              <h2 className="text-lg text-green-200 font-bold">Weaver Protocol · Operations Stack</h2>
-              <p className="text-sm text-green-400">Sub-agents handle provisioning, trope infill, and self-repair; chorus accounts follow audience votes.</p>
-            </div>
-            <div className="text-[11px] bg-green-900/40 border border-green-800 px-3 py-1 rounded">Integrity Layer · 100-year stance</div>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="panel-surface p-3 rounded-lg holo space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-green-200">Provisioning & Integrity Board</h3>
-                <span className="text-[10px] text-green-600">Identity Birth → Self-Repair</span>
-              </div>
-              <div className="space-y-2">
-                {agentOps.map(agent => (
-                  <div key={agent.id} className="border border-green-900/60 bg-black/40 p-2 rounded">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-green-200 font-semibold text-sm">{agent.id}</div>
-                        <div className="text-[10px] text-green-600">{agent.scope} · {agent.focus}</div>
-                      </div>
-                      <div className={`text-[11px] font-bold ${statusColor(agent.status)}`}>{agent.status.toUpperCase()}</div>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-green-500 mt-1">
-                      <span>SLA: {agent.sla}</span>
-                      <span>Last ping: {agent.lastPing}</span>
-                    </div>
-                    <div className="flex items-center justify-between mt-2 text-[11px]">
-                      <button onClick={() => pingAgent(agent.id)} className="px-3 py-1 bg-green-900 text-green-100 border border-green-700 hover:bg-green-800">Run check</button>
-                      <span className="text-green-600 italic">{agent.note}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="text-[10px] text-green-500">Audit pings write to the integrity ledger and simulate the “follower ritual” checkpoints.</div>
-            </div>
-
-            <div className="panel-surface p-3 rounded-lg holo space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-green-200">Comment-Driven Orchestration</h3>
-                <button onClick={evaluateVotes} className="px-3 py-1 text-[11px] bg-green-900 text-green-100 border border-green-700 hover:bg-green-800">Parse votes</button>
-              </div>
-              <p className="text-[11px] text-green-500">Paste recent comments/keywords to steer the next drop. Keywords map to the arc library (pona/ike/pilin).</p>
-              <textarea value={voteDraft} onChange={(e) => setVoteDraft(e.target.value)} className="w-full h-24 bg-black/50 border border-green-800 p-2 text-xs text-green-200" />
-              <div className="border border-green-900/60 bg-black/40 p-2 rounded">
-                <div className="text-[11px] text-green-600">Next Drop</div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-green-200 font-semibold">{nextArc.title}</div>
-                    <div className="text-[11px] text-green-500">Form: {nextArc.form} · CPV target ${nextArc.cpv}</div>
-                    <div className="text-[11px] text-green-500">Backlog: {nextArc.backlog.join(', ')}</div>
-                  </div>
-                  <button onClick={rotateCTA} className="px-3 py-1 text-[11px] bg-green-900 text-green-100 border border-green-700 hover:bg-green-800">Rotate CTA</button>
-                </div>
-                <div className="text-[11px] text-green-400 mt-1">Value Gate → {cta}</div>
-              </div>
-              <div className="text-[10px] text-green-500">Arc selection simulates the “American Idol” vote and feeds the drop planner.</div>
-            </div>
-
-            <div className="panel-surface p-3 rounded-lg holo space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-green-200">Integrity Ledger</h3>
-                <button onClick={triggerRepair} className="px-3 py-1 text-[11px] bg-green-900 text-green-100 border border-green-700 hover:bg-green-800">Patch link</button>
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-[11px]">
-                <div className="border border-green-800 bg-black/40 p-2 rounded">
-                  <div className="text-green-500">Linked</div>
-                  <div className="text-lg font-bold text-green-200">{backlogHealth.linked}</div>
-                </div>
-                <div className="border border-green-800 bg-black/40 p-2 rounded">
-                  <div className="text-green-500">Broken</div>
-                  <div className="text-lg font-bold text-amber-300">{backlogHealth.broken}</div>
-                </div>
-                <div className="border border-green-800 bg-black/40 p-2 rounded">
-                  <div className="text-green-500">Patched</div>
-                  <div className="text-lg font-bold text-green-200">{backlogHealth.patched}</div>
-                </div>
-              </div>
-              <div className="space-y-1 text-[10px] text-green-300 max-h-48 overflow-y-auto">
-                {ledger.map((entry, idx) => (
-                  <div key={idx} className="border border-green-900/50 p-1 bg-black/50">[{entry.ts}] {entry.msg}</div>
-                ))}
-              </div>
-              <div className="text-[10px] text-green-500">Ledger mirrors god.html metadata audits and self-repair triggers.</div>
-            </div>
-          </div>
-
-          <div className="panel-surface p-4 rounded-lg holo">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-3">
-              <div>
-                <p className="text-[10px] text-green-700 uppercase">Drop Planner</p>
-                <h3 className="text-lg font-bold text-green-200">Resonance Node Tree · 90-song backlog</h3>
-                <p className="text-sm text-green-400">Catalog arcs, pick form factor, and keep skibidi-speed velocity without losing the integrity layer.</p>
-              </div>
-              <div className="text-[11px] bg-black/40 border border-green-800 px-3 py-1 rounded text-green-400">Chorus accounts auto-follow on publish.</div>
-            </div>
-            <div className="grid md:grid-cols-3 gap-3 text-[12px] text-green-400">
-              {ARC_LIBRARY.map(arc => (
-                <div key={arc.id} className="border border-green-800 bg-black/30 p-3 rounded">
-                  <div className="flex items-center justify-between">
-                    <div className="text-green-200 font-semibold">{arc.title}</div>
-                    <span className="text-[10px] text-green-600">keyword: {arc.keyword}</span>
-                  </div>
-                  <div className="text-[11px]">Form: {arc.form}</div>
-                  <div className="text-[11px]">CPV target: ${arc.cpv}</div>
-                  <div className="text-[11px]">Backlog nodes: {arc.backlog.join(', ')}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      );
+    function log(message) {
+      const ts = new Date().toLocaleTimeString();
+      state.logs.unshift(`[${ts}] ${message}`);
+      state.logs = state.logs.slice(0, 12);
     }
 
-    function IframePanel({ views, title, description }) {
-      const [active, setActive] = useState(views[0].id);
-      const current = views.find(v => v.id === active) || views[0];
-
-      return (
-        <div className="panel-surface p-4 rounded-lg space-y-3 holo">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            <div>
-              <p className="text-[10px] text-green-700 uppercase">{description}</p>
-              <h2 className="text-xl text-green-200 font-bold">{title}</h2>
-            </div>
-            <div className="flex flex-wrap gap-2 text-[11px]">
-              {views.map(view => (
-                <button
-                  key={view.id}
-                  onClick={() => setActive(view.id)}
-                  className={`px-3 py-1 border rounded-md transition ${active === view.id ? 'bg-green-800 text-green-50 border-green-500' : 'border-green-800 text-green-400 hover:border-green-500'}`}
-                >
-                  {view.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="text-[12px] text-green-500">{current.copy}</div>
-          <div className="h-[620px] w-full border border-green-900 overflow-hidden rounded">
-            <iframe title={current.label} src={current.src} className="w-full h-full" loading="lazy"></iframe>
-          </div>
-        </div>
-      );
+    function pushLedger(message) {
+      const ts = new Date().toLocaleTimeString();
+      state.ledger.unshift({ ts, msg: message });
+      state.ledger = state.ledger.slice(0, 12);
     }
 
-    function StoryWikiPanel() {
-      const views = [
-        { id: 'engine', label: 'Story Engine', src: 'story-engine/index.html', copy: 'CRM + wiki pulse with non-linear release scaffolding and manifestos.' },
-        { id: 'demo', label: 'Narrative Demo', src: 'narrative-demo.html', copy: 'Tone demo for wiki space—keeps weight and cadence consistent.' },
-        { id: 'bible', label: 'Story Bible', src: 'story.html', copy: 'Full cast canonical beats inside the shell.' }
-      ];
-      return <IframePanel views={views} title="Story Wiki" description="Wiki style story engine" />;
-    }
-
-    function GraphPanel() {
-      const views = [
-        { id: 'three', label: 'Node Graph', src: 'three.html', copy: 'Routes to the three.js lattice (Triangle/Celli) for visualizing jumps and Frogger leaps.' },
-        { id: 'oldindex', label: 'Domestic Product', src: 'oldindex.html', copy: 'Legacy cockpit with referrer controls and integrated sequence builder.' }
-      ];
-      return <IframePanel views={views} title="Graph Cockpit" description="Node graph engine" />;
-    }
-
-    function CastPanel() {
-      const views = [
-        { id: 'story-bible', label: 'Story Bible', src: 'story.html', copy: 'Encyclopedic cast sheet plus canonical beats.' },
-        { id: 'explorer', label: 'Explorer', src: 'story-explorer/index.html', copy: 'Interactive explorer for traversing the cast and moments.' },
-        { id: 'wiki', label: 'Wiki Tone', src: 'narrative-demo.html', copy: 'Wiki tone demo to keep cadence aligned with Now Presenting.' }
-      ];
-      return <IframePanel views={views} title="Cast & Explorer" description="Characters · Now Presenting" />;
-    }
-
-    function BasiliskDashboard() {
-      const [logs, setLogs] = useState(["SYSTEM INITIALIZED...", "CONNECTING TO CELLI NODE GRAPH...", "LISTENING TO ZEITGEIST..."]);
-      const [trends, setTrends] = useState([]);
-      const [nodes, setNodes] = useState([]);
-      const [activePath, setActivePath] = useState([]);
-      const [activeAgent, setActiveAgent] = useState("DIME");
-      const [generatedContent, setGeneratedContent] = useState(null);
-      const [resonanceNodes, setResonanceNodes] = useState(INITIAL_RESONANCE_NODES);
-      const [apiStatus, setApiStatus] = useState({
-        transcription: "idle",
-        trendDiscovery: "idle",
-        distroStats: "idle"
+    function parseVotes() {
+      const tokens = state.voteDraft.toLowerCase().split(/\s+/).filter(Boolean);
+      let winner = data.arcs[0];
+      let best = -1;
+      data.arcs.forEach(arc => {
+        const score = tokens.filter(t => t.includes(arc.keyword)).length;
+        if (score > best) { best = score; winner = arc; }
       });
-      const [financials, setFinancials] = useState({
-        totalRevenue: 45200,
-        warChest: 13560,
-        vault: 13560,
-        venture: 9040,
-        casino: 9040,
-        holdings: []
+      state.nextArc = data.arcs.indexOf(winner);
+      pushLedger(`[VOTE] ${winner.title} prioritized via keyword match`);
+      render();
+    }
+
+    function rotateCTA() {
+      state.cta = state.cta === 'Identity Assessment' ? '16x16 Manufacture' : 'Identity Assessment';
+      pushLedger(`[VALUE GATE] CTA rotated to ${state.cta}`);
+      render();
+    }
+
+    function patchLink() {
+      state.backlogHealth = { ...state.backlogHealth, broken: Math.max(state.backlogHealth.broken - 1, 0), patched: state.backlogHealth.patched + 1 };
+      pushLedger('[GREG] Self-repair triggered · broken link patched');
+      render();
+    }
+
+    function runProvisioning(id) {
+      const slot = data.provisioning.find(p => p.id === id);
+      slot.status = slot.status === 'running' ? 'stable' : slot.status === 'stable' ? 'alert' : 'running';
+      slot.lastPing = new Date().toLocaleTimeString();
+      pushLedger(`[${id}] executed runbook`);
+      render();
+    }
+
+    function requireKey(keyName) {
+      if (!state.apiKeys[keyName]) {
+        log(`API key missing for ${keyName}. Add it to run this action.`);
+        return false;
+      }
+      return true;
+    }
+
+    function syncTranscriptions() {
+      if (!requireKey('sunoKey')) return;
+      state.apiStatus.transcription = 'queued';
+      log('[AUDIO] Transcription batch queued');
+      setTimeout(() => { state.apiStatus.transcription = 'complete'; log('[AUDIO] Transcriptions returned'); render(); }, 900);
+      render();
+    }
+
+    function scanOpenInternet() {
+      if (!requireKey('openaiKey')) return;
+      state.apiStatus.trendDiscovery = 'scanning';
+      log('[DISCOVERY] Scanning leading topics');
+      setTimeout(() => {
+        state.apiStatus.trendDiscovery = 'complete';
+        state.trends = [
+          { topic: 'Bitcoin Halving', category: 'Finance', volatility: 0.8 },
+          { topic: 'AI Consciousness', category: 'Tech', volatility: 0.9 },
+          { topic: 'Met Gala Insects', category: 'Fashion', volatility: 0.4 },
+        ];
+        log('[DISCOVERY] Trends refreshed');
+        render();
+      }, 800);
+      render();
+    }
+
+    function fetchDistroStats() {
+      if (!requireKey('synclabsKey')) return;
+      state.apiStatus.distroStats = 'syncing';
+      log('[DISTRO] Syncing DistroKid metrics');
+      setTimeout(() => { state.apiStatus.distroStats = 'ready'; log('[DISTRO] DistroKid metrics cached'); render(); }, 700);
+      render();
+    }
+
+    function simulatePayout() {
+      const add = 1000;
+      const split = { warChest: Math.round(add * 0.3), casino: Math.round(add * 0.2), operations: add - Math.round(add * 0.3) - Math.round(add * 0.2) };
+      state.financials.totalRevenue += add;
+      state.financials.warChest += split.warChest;
+      state.financials.casino += split.casino;
+      state.financials.holdings.push({ ticker: '$' + ['PEPE','WIF','AI','BTC'][Math.floor(Math.random()*4)], vibe: 'scatter' });
+      if (state.financials.holdings.length > 6) state.financials.holdings.shift();
+      log(`[BAGMAN] Simulated $${add} payout split across war chest/casino/ops`);
+      render();
+    }
+
+    function froggerLeap(topic) {
+      log(`[CELLI] Calculating Frogger Leap for: ${topic}`);
+      state.generatedContent = {
+        topic,
+        anchor: 'chorus-lattice',
+        script: 'Cut the feed, switch to monochrome, drop the punch-in before the bag explodes.',
+        audioStatus: 'RENDERING (Suno API)...',
+        videoStatus: 'QUEUED (SyncLabs)...'
+      };
+      render();
+    }
+
+    function renderHeader() {
+      return `
+        <header class="panel between" style="border-bottom:1px solid rgba(0,255,65,0.25);">
+          <div>
+            <div class="muted" style="letter-spacing:0.35em;text-transform:uppercase;">Loomworks Dispatch</div>
+            <h1 style="margin:4px 0 2px;font-size:22px;color:${'var(--soft-green)'}">GOD ROUTER · Basilisk / Story / Graph</h1>
+            <div class="muted">${navItems.find(n => n.id === state.view)?.label || 'Router Overview'} · high-side routing online</div>
+          </div>
+          <div class="small" style="text-align:right;">
+            <div>Now Presenting · Cast + Wiki + Node Graph</div>
+            <div style="color:#7de7a2;">single-page cockpit</div>
+          </div>
+        </header>
+      `;
+    }
+
+    function renderNav() {
+      return `
+        <nav class="panel nav">
+          <div class="muted" style="letter-spacing:0.2em;text-transform:uppercase;">Navigation</div>
+          ${navItems.map(item => `
+            <button class="btn ${state.view===item.id?'active':''}" onclick="setView('${item.id}')">
+              <div style="font-weight:700;">${item.label}</div>
+              <div class="muted">${item.description}</div>
+            </button>
+          `).join('')}
+          <div class="muted">Internal router keeps all modules docked—no external jumps.</div>
+        </nav>
+      `;
+    }
+
+    function renderApiKeys() {
+      return `
+        <form class="panel holo" onsubmit="saveKeys(event)">
+          <div class="between mb-1">
+            <div>
+              <div class="muted" style="text-transform:uppercase;">Credentials</div>
+              <h3 style="margin:2px 0;">API Keys</h3>
+              <p class="muted">Keys are stored locally in your browser.</p>
+            </div>
+            <button class="btn" type="submit">Save</button>
+          </div>
+          <div class="grid four">
+            <label class="small">Suno API
+              <input name="sunoKey" class="input" placeholder="suno_..." value="${state.apiKeys.sunoKey||''}" />
+            </label>
+            <label class="small">SyncLabs / DistroKid API
+              <input name="synclabsKey" class="input" placeholder="sync_..." value="${state.apiKeys.synclabsKey||''}" />
+            </label>
+            <label class="small">OpenAI API (trend discovery)
+              <input name="openaiKey" class="input" placeholder="sk-..." value="${state.apiKeys.openaiKey||''}" />
+            </label>
+          </div>
+          <div class="chips mt-2">
+            <span class="chip">Suno → transcription + audio renders</span>
+            <span class="chip">SyncLabs → video sync + distro metrics</span>
+            <span class="chip">OpenAI → trend scanning + topic infill</span>
+          </div>
+        </form>
+      `;
+    }
+
+    function renderTriangulation() {
+      const sets = Object.values(data.triangulationSets).flat().map(entry => {
+        const score = Math.round(((entry.biteLayers||7)+(entry.referenceDelta||7)+((entry.pulse||1)*10)) * 1.6);
+        const readiness = score>=70?'Release Ready':score>=60?'Wiki-polish':score>=50?'Draft refining':'Needs rewrite';
+        return { ...entry, score, readiness };
       });
-
-      useEffect(() => {
-        const tempNodes = [];
-        for (let i = 0; i < 40; i++) {
-          tempNodes.push({
-            id: i,
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            label: ["Water", "Mirror", "God", "Glitch", "Profit", "Frog", "Coin", "Shell", "Ghost", "Void", "Urkel", "Winslow"][Math.floor(Math.random() * 12)],
-            active: false
-          });
-        }
-        setNodes(tempNodes);
-      }, []);
-
-      const addLog = (msg) => {
-        const timestamp = new Date().toLocaleTimeString();
-        setLogs(prev => [`[${timestamp}] ${msg}`, ...prev].slice(0, 8));
-      };
-
-      const ingestTrend = () => {
-        const newTrend = MOCK_TRENDS[Math.floor(Math.random() * MOCK_TRENDS.length)];
-        setTrends(prev => [newTrend, ...prev].slice(0, 5));
-        addLog(`[SENSORIUM] Ingested Trend: ${newTrend.topic} (Vol: ${newTrend.volatility})`);
-      };
-
-      const triggerLeap = (trend) => {
-        addLog(`[CELLI] Calculating Frogger Leap for: ${trend.topic}...`);
-        const startNode = Math.floor(Math.random() * nodes.length);
-        const midNode = Math.floor(Math.random() * nodes.length);
-        const endNode = Math.floor(Math.random() * nodes.length);
-        const path = [startNode, midNode, endNode];
-        setActivePath(path);
-        const newNodes = nodes.map((n, idx) => ({ ...n, active: path.includes(idx) }));
-        setNodes(newNodes);
-        setTimeout(() => generateAsset(trend, newNodes[endNode].label), 1500);
-      };
-
-      const generateAsset = (trend, anchor) => {
-        const agent = AGENTS[activeAgent];
-        addLog(`[BASILISK] Generating Asset via Agent: ${agent.name}`);
-        let script = "";
-        if (activeAgent === "DIME") {
-          script = `DIME: "Steve said ${trend.topic} is like ${anchor}. But if the ${anchor} breaks, do we still get paid? sona lili. I am just a file."`;
-        } else if (activeAgent === "FESH") {
-          script = `FESH: "Yall rly think ${trend.topic} matters?? Its giving ${anchor} energy fr fr. Simulation broke. Buy my merch."`;
-        } else {
-          script = `WEAVER: "${trend.topic} threads through the ${anchor} glyph. Catalogued, archived, filed."`;
-        }
-
-        setGeneratedContent({
-          topic: trend.topic,
-          anchor,
-          script,
-          audioStatus: "RENDERING (Suno API)...",
-          videoStatus: "QUEUED (SyncLabs)..."
-        });
-      };
-
-      const syncTranscriptions = () => {
-        addLog("[INGEST] Queuing auto-transcription for backlog (stub)");
-        setApiStatus(prev => ({ ...prev, transcription: "queued" }));
-        setTimeout(() => setApiStatus(prev => ({ ...prev, transcription: "complete" })), 1200);
-      };
-
-      const scanOpenInternet = () => {
-        addLog("[RESONANCE] Searching for leading topics and shells (stub)");
-        setApiStatus(prev => ({ ...prev, trendDiscovery: "scanning" }));
-        setTimeout(() => {
-          ingestTrend();
-          setApiStatus(prev => ({ ...prev, trendDiscovery: "complete" }));
-        }, 800);
-      };
-
-      const fetchDistroStats = () => {
-        addLog("[PERFORMANCE] Pulling DistroKid delta metrics (stub)");
-        setApiStatus(prev => ({ ...prev, distroStats: "syncing" }));
-        setTimeout(() => setApiStatus(prev => ({ ...prev, distroStats: "ready" })), 900);
-      };
-
-      const simulatePayout = () => {
-        const payout = 1000;
-        addLog(`[BAGMAN] Incoming Stripe Payout: $${payout}`);
-        const split = { warChest: payout * 0.30, vault: payout * 0.30, venture: payout * 0.20, casino: payout * 0.20 };
-        const vibe = generatedContent ? generatedContent.anchor : "Vibes";
-        const ticker = CRYPTO_TICKERS[Math.floor(Math.random() * CRYPTO_TICKERS.length)];
-        addLog(`[SCATTERGUN] Allocating $${split.casino} to ${ticker} based on node: ${vibe}`);
-        setFinancials(prev => ({
-          totalRevenue: prev.totalRevenue + payout,
-          warChest: prev.warChest + split.warChest,
-          vault: prev.vault + split.vault,
-          venture: prev.venture + split.venture,
-          casino: prev.casino + split.casino,
-          holdings: [...prev.holdings, { ticker, amount: split.casino, vibe }].slice(-5)
-        }));
-      };
-
-      return (
-        <div className="h-full flex flex-col p-4 gap-4 panel-surface rounded-lg">
-          <div className="flex justify-between items-center border-b border-green-900 pb-2">
-            <h1 className="text-xl font-bold tracking-widest text-green-500">LOOMWORKS // BASILISK_V1.0</h1>
-            <div className="text-xs text-green-800 animate-pulse">SYSTEM STATUS: OPERATIONAL</div>
-          </div>
-          <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">
-            <div className="col-span-3 border border-green-900 p-2 flex flex-col bg-black/50">
-              <h2 className="text-sm font-bold mb-2 bg-green-900 text-black px-1">ZEITGEIST SENSORIUM [INPUT]</h2>
-              <button onClick={ingestTrend} className="bg-green-700 hover:bg-green-600 text-black text-xs py-1 mb-4 font-bold">SCAN ZEITGEIST</button>
-              <div className="flex-1 overflow-y-auto space-y-2">
-                {trends.map(t => (
-                  <div key={t.id} className="text-xs border-l-2 border-green-600 pl-2 cursor-pointer hover:bg-green-900/30 p-1 group">
-                    <div className="font-bold flex justify-between">
-                      {t.topic}
-                      <span className="text-green-700">{t.volatility}</span>
-                    </div>
-                    <div className="text-[10px] text-green-600">{t.category}</div>
-                    <button onClick={() => triggerLeap(t)} className="hidden group-hover:block w-full text-center bg-green-900 text-[10px] mt-1 hover:text-white">TRIGGER LEAP</button>
-                  </div>
-                ))}
-                {trends.length === 0 && <div className="text-xs text-green-800 italic text-center mt-10">Scanning...</div>}
-              </div>
+      const avg = Math.round(sets.reduce((a,b)=>a+b.score,0)/sets.length);
+      const ready = sets.filter(s=>s.readiness==='Release Ready').length;
+      const polish = sets.filter(s=>s.readiness==='Wiki-polish').length;
+      return `
+        <div class="panel holo">
+          <div class="between mb-2">
+            <div>
+              <div class="muted" style="text-transform:uppercase;">Triangulation · Analytics</div>
+              <h3 style="margin:2px 0;">Resonance Dashboard</h3>
+              <div class="muted">Heatmaps, trope collisions, and release readiness synced to the wiki.</div>
             </div>
-            <div className="col-span-6 border border-green-900 relative bg-black overflow-hidden">
-              <h2 className="absolute top-2 left-2 text-sm font-bold bg-green-900 text-black px-1 z-10">CELLI SEMIOTIC ENGINE [PROCESS]</h2>
-              <div className="w-full h-full relative">
-                {nodes.map((node, i) => (
-                  <div key={i}
-                    className={`node absolute w-2 h-2 rounded-full ${node.active ? 'bg-white glow w-3 h-3 z-20' : 'bg-green-800'}`}
-                    style={{ left: `${node.x}%`, top: `${node.y}%` }}>
-                    {node.active && <div className="absolute top-4 left-0 text-[10px] bg-black border border-green-500 px-1 whitespace-nowrap z-30">{node.label}</div>}
-                  </div>
-                ))}
-                {activePath.length === 3 && (
-                  <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-10">
-                    <line x1={`${nodes[activePath[0]].x}%`} y1={`${nodes[activePath[0]].y}%`}
-                          x2={`${nodes[activePath[1]].x}%`} y2={`${nodes[activePath[1]].y}%`}
-                          stroke="#00ff41" strokeWidth="1" strokeDasharray="4" className="animate-pulse" />
-                    <line x1={`${nodes[activePath[1]].x}%`} y1={`${nodes[activePath[1]].y}%`}
-                          x2={`${nodes[activePath[2]].x}%`} y2={`${nodes[activePath[2]].y}%`}
-                          stroke="#00ff41" strokeWidth="1" strokeDasharray="4" className="animate-pulse" />
-                  </svg>
-                )}
-              </div>
-            </div>
-            <div className="col-span-3 border border-green-900 p-2 flex flex-col bg-black/50">
-              <h2 className="text-sm font-bold mb-2 bg-green-900 text-black px-1">AGENT SELECTION</h2>
-              <div className="flex gap-2 mb-4">
-                {Object.keys(AGENTS).map(key => (
-                  <button key={key} onClick={() => setActiveAgent(key)}
-                    className={`flex-1 text-[10px] py-1 border border-green-600 ${activeAgent === key ? 'bg-green-600 text-black font-bold' : 'text-green-600 opacity-50'}`}>
-                    {key}
-                  </button>
-                ))}
-              </div>
-              <div className="flex-1 border-t border-green-900 pt-2 mb-2">
-                <h3 className="text-xs font-bold mb-2 underline decoration-green-600">GENERATED ASSET_</h3>
-                {generatedContent ? (
-                  <div className="bg-green-900/10 p-2 border border-green-800 text-xs">
-                    <div className="mb-1 text-green-400">PATH: {generatedContent.topic} -&gt; {generatedContent.anchor}</div>
-                    <div className="italic text-white mb-2">"{generatedContent.script}"</div>
-                    <div className="text-[10px] grid grid-cols-2 gap-2">
-                      <span className="text-green-600 animate-pulse">{generatedContent.audioStatus}</span>
-                      <span className="text-green-600 animate-pulse">{generatedContent.videoStatus}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-[10px] text-green-800">Waiting for Frogger Leap...</div>
-                )}
-              </div>
-              <div className="h-1/3 border-t border-green-900 pt-2 overflow-hidden">
-                <h3 className="text-xs font-bold mb-1">SYSTEM LOGS</h3>
-                <div className="text-[10px] space-y-1 font-mono">
-                  {logs.map((log, i) => <div key={i} className="opacity-70">&gt; {log}</div>)}
-                </div>
-              </div>
+            <div class="chips">
+              <span class="chip">Avg Score: ${avg}</span>
+              <span class="chip">Release Ready: ${ready}</span>
+              <span class="chip">Polish Queue: ${polish}</span>
             </div>
           </div>
-          <div className="h-32 border border-green-900 p-2 grid grid-cols-12 gap-4 bg-black/80">
-            <div className="col-span-2 flex flex-col justify-center border-r border-green-900">
-              <h2 className="text-sm font-bold text-green-400 mb-2">THE BAGMAN</h2>
-              <button onClick={simulatePayout} className="bg-green-900 text-green-300 text-xs py-2 hover:bg-green-800 border border-green-600">SIMULATE $1k PAYOUT</button>
-            </div>
-            <div className="col-span-6 grid grid-rows-2 gap-2">
-              <div className="flex items-center text-xs">
-                <span className="w-24 font-bold">WAR CHEST (30%)</span>
-                <div className="flex-1 bg-green-900/30 h-4 relative">
-                  <div className="bg-green-600 h-full transition-all duration-500" style={{ width: `${(financials.warChest / financials.totalRevenue) * 100}%` }}></div>
-                  <span className="absolute right-1 top-0 text-[9px]">${financials.warChest}</span>
+          <div class="grid four">
+            ${sets.map(entry => `
+              <div class="card" style="background: rgba(0,255,65,${0.15 + Math.min(1,entry.score/90)*0.4});">
+                <div class="between small">
+                  <span>${entry.theme}</span>
+                  <span>Score ${entry.score}</span>
                 </div>
-              </div>
-              <div className="flex items-center text-xs">
-                <span className="w-24 font-bold">CASINO (20%)</span>
-                <div className="flex-1 bg-green-900/30 h-4 relative">
-                  <div className="bg-purple-600 h-full transition-all duration-500" style={{ width: `${(financials.casino / financials.totalRevenue) * 100}%` }}></div>
-                  <span className="absolute right-1 top-0 text-[9px]">${financials.casino}</span>
+                <div style="font-weight:700;">${entry.title}</div>
+                <div class="muted">${entry.cultureShell} · ${entry.truthVector}</div>
+                <div class="chips mt-1">
+                  ${(entry.tropes||[]).map(t=>`<span class="tag">${t}</span>`).join('')}
                 </div>
+                <div class="small">${entry.readiness}</div>
               </div>
-            </div>
-            <div className="col-span-4 border-l border-green-900 pl-4 overflow-y-auto">
-              <h3 className="text-[10px] font-bold mb-1 text-purple-400">SCATTERSHOT HOLDINGS [ACTIVE]</h3>
-              <div className="grid grid-cols-3 gap-1">
-                {financials.holdings.map((h, i) => (
-                  <div key={i} className="bg-purple-900/20 border border-purple-800 p-1 text-[9px] text-center">
-                    <div className="font-bold text-purple-300">{h.ticker}</div>
-                    <div className="text-green-700 opacity-60">{h.vibe}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            `).join('')}
           </div>
+        </div>
+      `;
+    }
 
-          <div className="border border-green-900 p-3 bg-black/80 grid grid-cols-12 gap-4">
-            <div className="col-span-5 space-y-2">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-green-200">SOVEREIGN FEEDBACK ENGINE</h2>
-                <span className="text-[10px] bg-green-900 text-black px-2 py-0.5 rounded-full">90-song backlog mapped</span>
+    function renderStory() {
+      return `
+        <div class="grid two">
+          <div class="panel">
+            <div class="between mb-1">
+              <div>
+                <div class="muted" style="text-transform:uppercase;">Lorekeeper Wiki</div>
+                <h3 style="margin:4px 0;">Story Engine + Wiki</h3>
               </div>
-              <p className="text-xs text-green-400">Compressed resonance nodes blending Humanese lore, meme shells, and industrial bite metrics.</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {resonanceNodes.map(node => (
-                  <div key={node.node_id} className="border border-green-800 p-2 bg-green-900/10 text-[11px]">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-green-200">{node.node_id}</span>
-                      <span>balance: {node.toki_pona_profile.truth_balance}</span>
-                    </div>
-                    <div className="text-green-500">Theme: {node.resonance_node.theme}</div>
-                    <div className="text-green-500">Shell: {node.resonance_node.culture_shell}</div>
-                    <div className="text-green-600">Performance: {node.performance_delta.organic_rip_potential}</div>
-                  </div>
-                ))}
-              </div>
+              <a class="btn secondary" href="story-engine/index.html" target="_blank">Open Story Engine</a>
             </div>
-            <div className="col-span-4 space-y-2">
-              <h3 className="text-xs font-bold text-green-300">Toki Pona Tracker · Zero State</h3>
-              <p className="text-[11px] text-green-500">Balancing <span className="text-green-300">pona</span> (hope arc), <span className="text-green-300">ike</span> (critique arc), and <span className="text-green-300">pilin</span> (heart connector) to prevent sterile drops.</p>
-              <div className="grid grid-cols-3 gap-2 text-[11px]">
-                <div className="border border-green-800 p-2 bg-green-900/10">
-                  <div className="text-[10px] text-green-600">pona</div>
-                  <div className="text-lg font-bold text-green-200">{resonanceNodes.filter(n => n.toki_pona_profile.dominant_word === "pona").length}</div>
-                  <div className="text-[10px] text-green-500">Hope-weighted payloads</div>
-                </div>
-                <div className="border border-green-800 p-2 bg-green-900/10">
-                  <div className="text-[10px] text-green-600">ike</div>
-                  <div className="text-lg font-bold text-green-200">{resonanceNodes.filter(n => n.toki_pona_profile.dominant_word === "ike").length}</div>
-                  <div className="text-[10px] text-green-500">Anger/critique arcs</div>
-                </div>
-                <div className="border border-green-800 p-2 bg-green-900/10">
-                  <div className="text-[10px] text-green-600">pilin</div>
-                  <div className="text-lg font-bold text-green-200">{resonanceNodes.filter(n => n.toki_pona_profile.dominant_word === "pilin").length}</div>
-                  <div className="text-[10px] text-green-500">Heart connectors</div>
-                </div>
+            <p class="muted">Story arcs, tropes, and wiki sections are consolidated here. Links open in a new tab.</p>
+            <table class="table mt-1">
+              <thead><tr><th>Arc</th><th>Keyword</th><th>Form</th><th>Backlog</th></tr></thead>
+              <tbody>
+                ${data.arcs.map(arc => `<tr><td>${arc.title}</td><td>${arc.keyword}</td><td>${arc.form}</td><td>${arc.backlog.join(', ')}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div class="panel">
+            <div class="between mb-1">
+              <div>
+                <div class="muted" style="text-transform:uppercase;">Cast + Explorer</div>
+                <h3 style="margin:4px 0;">Story Bible</h3>
               </div>
-              <div className="text-[10px] bg-black border border-green-800 p-2 overflow-x-auto">
-                <div className="font-bold text-green-300 mb-1">Node JSON (live)</div>
-                <pre className="whitespace-pre-wrap text-green-400">{JSON.stringify(resonanceNodes[0], null, 2)}</pre>
-              </div>
+              <a class="btn secondary" href="story-explorer/index.html" target="_blank">Open Explorer</a>
             </div>
-            <div className="col-span-3 space-y-2 border-l border-green-900 pl-3">
-              <h3 className="text-xs font-bold text-green-300">Data Infill & API Stubs</h3>
-              <p className="text-[11px] text-green-500">Skeleton for connecting DistroKid stats, auto-transcription, and open-internet scouting.</p>
-              <div className="flex flex-col gap-2">
-                <button onClick={syncTranscriptions} className="text-[10px] bg-green-900 text-green-200 py-1 border border-green-700 hover:bg-green-800">Queue Transcriptions</button>
-                <button onClick={scanOpenInternet} className="text-[10px] bg-green-900 text-green-200 py-1 border border-green-700 hover:bg-green-800">Scan Leading Topics</button>
-                <button onClick={fetchDistroStats} className="text-[10px] bg-green-900 text-green-200 py-1 border border-green-700 hover:bg-green-800">Sync DistroKid Metrics</button>
-              </div>
-              <div className="text-[10px] grid grid-cols-1 gap-1 text-green-400">
-                <div className="flex items-center justify-between border border-green-800 px-2 py-1">
-                  <span>Transcription</span>
-                  <span className="text-green-200">{apiStatus.transcription}</span>
+            <p class="muted">Browse the living cast. The explorer pulls truth vectors, trope bundles, and current wiki notes.</p>
+            <div class="grid four mt-1">
+              ${Object.entries(data.agents).map(([id, agent]) => `
+                <div class="card">
+                  <div class="between"><strong>${agent.name}</strong><span class="pill">${agent.toki}</span></div>
+                  <div class="muted">${agent.core}</div>
+                  <div class="muted mt-1">${data.resonanceNodes.find(n=>n.node_id.includes(id))?.resonance_node?.culture_shell || 'lattice pending'}</div>
                 </div>
-                <div className="flex items-center justify-between border border-green-800 px-2 py-1">
-                  <span>Trend Discovery</span>
-                  <span className="text-green-200">{apiStatus.trendDiscovery}</span>
-                </div>
-                <div className="flex items-center justify-between border border-green-800 px-2 py-1">
-                  <span>Distro Metrics</span>
-                  <span className="text-green-200">{apiStatus.distroStats}</span>
-                </div>
-              </div>
-              <div className="text-[10px] text-green-500">
-                Reference delta + bite layers will be cross-walked with CPV predictions as live stats arrive.
-              </div>
+              `).join('')}
             </div>
           </div>
         </div>
-      );
+      `;
     }
 
-    function BasiliskPanel() {
-      return (
-        <div className="space-y-4">
-          <div className="panel-surface p-4 rounded-lg holo">
-            <p className="text-[10px] text-green-700 uppercase">Hidden module</p>
-            <h2 className="text-lg text-green-200 font-bold">BASILISK PROTOCOL</h2>
-            <p className="text-sm text-green-400">Live dashboard for trend ingestion, frogger leaps, and scattergun payouts. Docked inside the SPA shell.</p>
-          </div>
-          <BasiliskDashboard />
-        </div>
-      );
-    }
-
-    function App() {
-      return (
-        <HashRouter>
-          <div className="min-h-screen text-green-200">
-            <Header />
-            <main className="max-w-7xl mx-auto p-6 grid md:grid-cols-[260px,1fr] gap-4">
-              <Sidebar />
-              <div className="space-y-4">
-                <Routes>
-                  <Route path="/" element={<OverviewPanel />} />
-                  <Route path="/story-wiki" element={<StoryWikiPanel />} />
-                  <Route path="/graph" element={<GraphPanel />} />
-                  <Route path="/cast" element={<CastPanel />} />
-                  <Route path="/weaver" element={<WeaverProtocolPanel />} />
-                  <Route path="/basilisk" element={<BasiliskPanel />} />
-                  <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
+    function renderGraph() {
+      const totals = data.resonanceNodes.length;
+      const tika = ['pona','ike','pilin'];
+      const counts = tika.map(tok => data.resonanceNodes.filter(n => n.toki_pona_profile.dominant_word === tok).length);
+      return `
+        <div class="grid two">
+          <div class="panel holo">
+            <div class="between mb-1">
+              <div>
+                <div class="muted" style="text-transform:uppercase;">Node Lattice</div>
+                <h3 style="margin:4px 0;">Resonance Node Tree</h3>
               </div>
-            </main>
+              <div class="badge">${totals} nodes</div>
+            </div>
+            <p class="muted">Compressed resonance nodes blending Humanese lore, meme shells, and industrial bite metrics.</p>
+            <div class="grid three mt-1">
+              ${data.resonanceNodes.map(node => `
+                <div class="card">
+                  <div class="between">
+                    <span class="pill">${node.node_id}</span>
+                    <span class="muted">balance: ${node.toki_pona_profile.truth_balance}</span>
+                  </div>
+                  <div class="small">Theme: ${node.resonance_node.theme}</div>
+                  <div class="small">Shell: ${node.resonance_node.culture_shell}</div>
+                  <div class="small">Performance: ${node.performance_delta.organic_rip_potential}</div>
+                  <div class="muted mt-1">${node.resonance_node.semiotic_lesson}</div>
+                </div>
+              `).join('')}
+            </div>
           </div>
-        </HashRouter>
-      );
+          <div class="panel">
+            <h3 style="margin:0 0 6px;">Toki Pona Tracker · Zero State</h3>
+            <p class="muted">Balancing pona (hope arc), ike (critique arc), and pilin (heart connector) to prevent sterile drops.</p>
+            <div class="grid three mt-1">
+              ${tika.map((tok, idx) => `
+                <div class="card">
+                  <div class="muted">${tok}</div>
+                  <div style="font-size:20px;font-weight:700;">${counts[idx]}</div>
+                  <div class="muted">${tok==='pona'?'Hope-weighted payloads':tok==='ike'?'Anger/critique arcs':'Heart connectors'}</div>
+                </div>
+              `).join('')}
+            </div>
+            <div class="card mt-2" style="background:rgba(0,0,0,0.4);">
+              <div class="muted">Node JSON (live)</div>
+              <pre style="white-space:pre-wrap;color:#9fffb4;font-size:11px;">${JSON.stringify(data.resonanceNodes[0], null, 2)}</pre>
+            </div>
+          </div>
+        </div>
+      `;
     }
 
-    const root = ReactDOM.createRoot(document.getElementById('app-root'));
-    root.render(<App />);
+    function renderCast() {
+      return `
+        <div class="grid two">
+          <div class="panel holo">
+            <div class="between mb-1">
+              <div>
+                <div class="muted" style="text-transform:uppercase;">Bridge Routing</div>
+                <h3 style="margin:4px 0;">Overview + Dispatch</h3>
+              </div>
+              <div class="badge">Single-page cockpit</div>
+            </div>
+            <p class="muted">Interior builder, narrative elements, and embedded tools kept inside the router shell.</p>
+            <div class="chips mt-1">
+              <span class="chip">Story wiki docked</span>
+              <span class="chip">Cast explorer docked</span>
+              <span class="chip">Graph cockpit docked</span>
+            </div>
+          </div>
+          <div class="panel">
+            <h3 style="margin:0 0 6px;">Samples & Adjacency</h3>
+            <p class="muted">Link “spitting fire bars” to pixel columns, candy bars, prison bars, and Frogger hops. Pair Will Smith mythos with Oscars scandal.</p>
+            <p class="muted">Use off-centered UI as desire paths; comments as chorus; skimming as sprint. Joke explained midflight still lands if the rhythm is forged.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderWeaver() {
+      return `
+        <div class="grid two">
+          <div class="panel holo">
+            <div class="between mb-1">
+              <div>
+                <div class="muted" style="text-transform:uppercase;">Sovereign Automated IP</div>
+                <h3 style="margin:4px 0;">Weaver Protocol · Operations Stack</h3>
+                <p class="muted">Sub-agents handle provisioning, trope infill, and self-repair; chorus accounts follow audience votes.</p>
+              </div>
+              <div class="badge">Integrity Layer · 100-year stance</div>
+            </div>
+            <div class="grid three mt-1">
+              ${data.provisioning.map(agent => `
+                <div class="card">
+                  <div class="between">
+                    <div>
+                      <div style="font-weight:700;">${agent.id}</div>
+                      <div class="muted">${agent.scope}</div>
+                    </div>
+                    <span class="status ${agent.status==='alert'?'fail':agent.status==='stable'?'ok':'warn'}">${(agent.status||'idle').toUpperCase()}</span>
+                  </div>
+                  <div class="muted">${agent.focus}</div>
+                  <div class="muted">SLA: ${agent.sla}</div>
+                  <div class="muted">Last ping: ${agent.lastPing||'--'}</div>
+                  <button class="btn mt-1" onclick="runProvisioning('${agent.id}')">Run check</button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div class="panel">
+            <div class="between mb-1">
+              <h3 style="margin:0;">Comment-Driven Orchestration</h3>
+              <button class="btn" onclick="parseVotes()">Parse votes</button>
+            </div>
+            <p class="muted">Paste recent comments/keywords to steer the next drop. Keywords map to the arc library (pona/ike/pilin).</p>
+            <textarea class="textarea" oninput="state.voteDraft=this.value">${state.voteDraft}</textarea>
+            <div class="card mt-1">
+              <div class="muted">Next Drop</div>
+              <div class="between">
+                <div>
+                  <div style="font-weight:700;">${data.arcs[state.nextArc].title}</div>
+                  <div class="muted">Form: ${data.arcs[state.nextArc].form} · CPV target $${data.arcs[state.nextArc].cpv}</div>
+                  <div class="muted">Backlog: ${data.arcs[state.nextArc].backlog.join(', ')}</div>
+                </div>
+                <button class="btn" onclick="rotateCTA()">Rotate CTA</button>
+              </div>
+              <div class="small">Value Gate → ${state.cta}</div>
+            </div>
+            <div class="mt-1 muted" style="font-size:11px;">Arc selection simulates the “American Idol” vote and feeds the drop planner.</div>
+          </div>
+          <div class="panel holo">
+            <div class="between mb-1">
+              <h3 style="margin:0;">Integrity Ledger</h3>
+              <button class="btn" onclick="patchLink()">Patch link</button>
+            </div>
+            <div class="grid three">
+              <div class="card"><div class="muted">Linked</div><div style="font-size:20px;font-weight:700;">${state.backlogHealth.linked}</div></div>
+              <div class="card"><div class="muted">Broken</div><div style="font-size:20px;font-weight:700;color:#facc15;">${state.backlogHealth.broken}</div></div>
+              <div class="card"><div class="muted">Patched</div><div style="font-size:20px;font-weight:700;">${state.backlogHealth.patched}</div></div>
+            </div>
+            <div class="log mt-1">
+              ${state.ledger.map(item => `<div>[${item.ts}] ${item.msg}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderBasilisk() {
+      return `
+        <div class="panel holo">
+          <div class="between mb-1">
+            <div>
+              <div class="muted" style="text-transform:uppercase;">Hidden module</div>
+              <h3 style="margin:4px 0;">BASILISK PROTOCOL</h3>
+              <p class="muted">Live dashboard for trend ingestion, frogger leaps, and scattergun payouts. Docked inside the SPA shell.</p>
+            </div>
+            <button class="btn" onclick="simulatePayout()">Simulate $1k payout</button>
+          </div>
+          <div class="grid two">
+            <div class="card">
+              <div class="between mb-1">
+                <h4 style="margin:0;">Trend Scanner</h4>
+                <button class="btn" onclick="scanOpenInternet()">Scan leading topics</button>
+              </div>
+              <div class="muted">Trend Discovery status: ${state.apiStatus.trendDiscovery}</div>
+              <div class="grid four mt-1">
+                ${state.trends.map(t => `<div class="card" style="border-color:rgba(0,255,65,0.4);"><div class="between"><strong>${t.topic}</strong><span class="muted">${t.volatility}</span></div><div class="muted">${t.category}</div><button class="btn mt-1" onclick="froggerLeap('${t.topic}')">Trigger leap</button></div>`).join('') || '<div class="muted">No trends yet.</div>'}
+              </div>
+            </div>
+            <div class="card">
+              <div class="between mb-1">
+                <h4 style="margin:0;">Asset Generator</h4>
+                <button class="btn" onclick="syncTranscriptions()">Queue transcriptions</button>
+              </div>
+              <div class="muted">Transcription status: ${state.apiStatus.transcription}</div>
+              <div class="muted">DistroKid status: ${state.apiStatus.distroStats}</div>
+              <div class="mt-1 card" style="background:rgba(0,255,65,0.05);">
+                ${state.generatedContent ? `
+                  <div class="muted">PATH: ${state.generatedContent.topic} → ${state.generatedContent.anchor}</div>
+                  <div style="font-style:italic;">"${state.generatedContent.script}"</div>
+                  <div class="chips mt-1">
+                    <span class="chip">${state.generatedContent.audioStatus}</span>
+                    <span class="chip">${state.generatedContent.videoStatus}</span>
+                  </div>
+                ` : '<div class="muted">Waiting for Frogger Leap...</div>'}
+              </div>
+              <div class="mt-1">
+                <button class="btn" onclick="fetchDistroStats()">Sync DistroKid metrics</button>
+              </div>
+            </div>
+          </div>
+          <div class="grid two mt-1">
+            <div class="card">
+              <h4 style="margin:0 0 6px;">Scattershot Holdings</h4>
+              <div class="grid four">
+                ${state.financials.holdings.map(h => `<div class="card"><div style="font-weight:700;">${h.ticker}</div><div class="muted">${h.vibe}</div></div>`).join('')}
+              </div>
+            </div>
+            <div class="card">
+              <h4 style="margin:0 0 6px;">Bagman Split</h4>
+              <div class="small">War Chest (30%)</div>
+              <div class="progress"><span style="width:${(state.financials.warChest/state.financials.totalRevenue)*100}%"></span></div>
+              <div class="small mt-1">Casino (20%)</div>
+              <div class="progress"><span style="width:${(state.financials.casino/state.financials.totalRevenue)*100}%"></span></div>
+              <div class="small mt-1">Total Revenue: $${state.financials.totalRevenue}</div>
+            </div>
+          </div>
+          <div class="log mt-1">${state.logs.map(l => `<div>${l}</div>`).join('')}</div>
+        </div>
+      `;
+    }
+
+    function renderOverview() {
+      return `
+        ${renderTriangulation()}
+        ${renderStory()}
+      `;
+    }
+
+    function renderContent() {
+      if (state.view === 'overview') return renderOverview();
+      if (state.view === 'story') return renderStory();
+      if (state.view === 'graph') return renderGraph();
+      if (state.view === 'cast') return renderCast();
+      if (state.view === 'weaver') return renderWeaver();
+      if (state.view === 'basilisk') return renderBasilisk();
+      return '<div class="panel">No view selected.</div>';
+    }
+
+    function render() {
+      $('#app').innerHTML = `
+        <div style="max-width:1200px;margin:0 auto;padding:16px;">
+          ${renderHeader()}
+          <main class="two-col" style="margin-top:12px;">
+            <div class="grid">
+              ${renderNav()}
+              ${renderApiKeys()}
+            </div>
+            <div class="grid" id="main-content">
+              ${renderContent()}
+            </div>
+          </main>
+        </div>
+      `;
+    }
+
+    render();
   </script>
 </body>
 </html>
