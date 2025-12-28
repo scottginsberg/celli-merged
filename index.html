@@ -5808,6 +5808,7 @@
             particles: null,
             curtains: null,
             timer: null,
+            fallbackTimer: null,
             opened: false,
             start() {
                 loaderSequence.stage = document.getElementById('loader-stage');
@@ -5822,6 +5823,11 @@
 
                 loaderSequence.loadedAssets = 0;
                 loaderSequence.progress = 0;
+                loaderSequence.opened = false;
+                if (loaderSequence.fallbackTimer) clearTimeout(loaderSequence.fallbackTimer);
+                // Ensure we never get stuck on the loader even if progress updates fail
+                loaderSequence.fallbackTimer = setTimeout(() => loaderSequence.complete(true), 8000);
+
                 if (!loaderSequence.fill || !loaderSequence.text) return;
 
                 loaderSequence.updateFill();
@@ -5843,10 +5849,20 @@
                     loaderSequence.text.innerText = `INITIALIZING LOOMWORKS MANUFACTURE PROTOCOL: CONSTRUCT EMULACRUM. ${Math.round(scale * 100)}%`;
                 }
             },
-            complete() {
-                if (!loaderSequence.fill || loaderSequence.opened) return;
+            complete(force = false) {
+                if (loaderSequence.opened) return;
                 loaderSequence.opened = true;
-                clearInterval(loaderSequence.timer);
+                if (loaderSequence.timer) clearInterval(loaderSequence.timer);
+                if (loaderSequence.fallbackTimer) clearTimeout(loaderSequence.fallbackTimer);
+
+                // If we don't have the loader elements (or were forced), remove the overlay immediately
+                const loader = document.getElementById('loader');
+                if (force || !loaderSequence.fill || !loaderSequence.text || !loaderSequence.box) {
+                    if (loader) loader.remove();
+                    argOnboarding.maybeShow();
+                    return;
+                }
+
                 loaderSequence.loadedAssets = loaderSequence.totalAssets;
                 loaderSequence.updateFill();
                 if (loaderSequence.text) loaderSequence.text.innerText = 'PHASE B: WIGGLE & BURST';
