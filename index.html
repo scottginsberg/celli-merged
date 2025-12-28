@@ -2814,6 +2814,37 @@
     <div id="glitch-banner" class="glitch-banner" aria-live="polite">HOW MUCH DO YOU COST?</div>
 
     <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Fallback navigation wiring so the hamburger/top bar always works
+        (function ensureBasicNav() {
+            const activate = (target) => {
+                const view = document.getElementById(`view-${target}`);
+                if (!view) return;
+
+                document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+                view.classList.add('active');
+
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.toggle('underline', btn.dataset.target === target);
+                    btn.classList.toggle('decoration-red-600', btn.dataset.target === target);
+                    btn.classList.toggle('decoration-2', btn.dataset.target === target);
+                    btn.classList.toggle('underline-offset-4', btn.dataset.target === target);
+                    btn.classList.toggle('text-black', btn.dataset.target === target);
+                });
+            };
+
+            const toggleMobileMenu = () => {
+                const menu = document.getElementById('mobile-menu');
+                if (menu) menu.classList.toggle('translate-x-full');
+            };
+
+            window.app = window.app || {
+                navigate: activate,
+                toggleMobileMenu
+            };
+        })();
+    </script>
+
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -5745,16 +5776,23 @@
         window.gallery = gallery;
 
         // --- NAVIGATION ---
-        window.app = {
-            navigate: (target) => {
+        window.app = window.app || {};
+        window.app.navigate = (target) => {
                 audio.click();
                 if (state.view === 'profiler' && target !== 'profiler') {
                     profiler.closeModal();
                     document.body.classList.remove('modal-open');
                 }
+
+                const targetView = document.getElementById(`view-${target}`);
+                if (!targetView) {
+                    console.warn(`No view found for target: ${target}`);
+                    return;
+                }
+
                 document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-                document.getElementById(`view-${target}`).classList.add('active');
-                
+                targetView.classList.add('active');
+
                 document.querySelectorAll('.nav-btn').forEach(btn => {
                     if(btn.dataset.target === target) btn.classList.add('underline', 'decoration-red-600', 'decoration-2', 'underline-offset-4', 'text-black');
                     else btn.classList.remove('underline', 'decoration-red-600', 'decoration-2', 'underline-offset-4', 'text-black');
@@ -5792,11 +5830,10 @@
 
                 state.view = target;
                 window.scrollTo(0,0);
-            },
-            toggleMobileMenu: () => {
-                const menu = document.getElementById('mobile-menu');
-                menu.classList.toggle('translate-x-full');
-            }
+            };
+        window.app.toggleMobileMenu = () => {
+            const menu = document.getElementById('mobile-menu');
+            if (menu) menu.classList.toggle('translate-x-full');
         };
 
         // --- INIT ---
