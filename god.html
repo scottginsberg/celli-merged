@@ -107,6 +107,81 @@
 
     const CRYPTO_TICKERS = ["$PEPE", "$WIF", "$AI", "$BTC", "$SOL", "$DIME", "$MOG", "$TURBO"];
 
+    const INITIAL_RESONANCE_NODES = [
+      {
+        node_id: "LW_TRACK_091",
+        toki_pona_profile: {
+          dominant_word: "pilin",
+          purity_score: 0.85,
+          truth_balance: "hope_weighted"
+        },
+        resonance_node: {
+          theme: "Hope",
+          life_link: "post_breakup_lucidity",
+          culture_shell: "90s_vibe_animation",
+          semiotic_lesson: "The integrity of the archive vs. digital rot"
+        },
+        industrial_metrics: {
+          bite_layers: 9,
+          reference_delta: 4.5,
+          visual_shell: "creme_bezel_ui",
+          accessibility: "open_gate"
+        },
+        performance_delta: {
+          organic_rip_potential: "high",
+          cpv_prediction: 0.006
+        }
+      },
+      {
+        node_id: "LW_TRACK_034",
+        toki_pona_profile: {
+          dominant_word: "pona",
+          purity_score: 0.73,
+          truth_balance: "balanced"
+        },
+        resonance_node: {
+          theme: "Anger",
+          life_link: "warehouse_shift_era",
+          culture_shell: "1930s_aesthetic",
+          semiotic_lesson: "Labor grift vs. craft integrity"
+        },
+        industrial_metrics: {
+          bite_layers: 8,
+          reference_delta: 6.2,
+          visual_shell: "pumpkin_head",
+          accessibility: "identity_gate"
+        },
+        performance_delta: {
+          organic_rip_potential: "medium",
+          cpv_prediction: 0.012
+        }
+      },
+      {
+        node_id: "LW_TRACK_010",
+        toki_pona_profile: {
+          dominant_word: "ike",
+          purity_score: 0.64,
+          truth_balance: "anger_weighted"
+        },
+        resonance_node: {
+          theme: "Hope",
+          life_link: "trainyard_nights",
+          culture_shell: "skibidi_velocity",
+          semiotic_lesson: "Integrity layer of a 1928 sketch vs. modern feed friction"
+        },
+        industrial_metrics: {
+          bite_layers: 7,
+          reference_delta: 3.1,
+          visual_shell: "chrome_mask",
+          accessibility: "open_gate"
+        },
+        performance_delta: {
+          organic_rip_potential: "high",
+          cpv_prediction: 0.004
+        }
+      }
+    ];
+
     function BasiliskDashboard() {
       const [logs, setLogs] = useState(["SYSTEM INITIALIZED...", "CONNECTING TO CELLI NODE GRAPH...", "LISTENING TO ZEITGEIST..."]);
       const [trends, setTrends] = useState([]);
@@ -114,6 +189,12 @@
       const [activePath, setActivePath] = useState([]);
       const [activeAgent, setActiveAgent] = useState("DIME");
       const [generatedContent, setGeneratedContent] = useState(null);
+      const [resonanceNodes, setResonanceNodes] = useState(INITIAL_RESONANCE_NODES);
+      const [apiStatus, setApiStatus] = useState({
+        transcription: "idle",
+        trendDiscovery: "idle",
+        distroStats: "idle"
+      });
       const [financials, setFinancials] = useState({
         totalRevenue: 45200,
         warChest: 13560,
@@ -174,6 +255,27 @@
           audioStatus: "RENDERING (Suno API)...",
           videoStatus: "QUEUED (SyncLabs)..."
         });
+      };
+
+      const syncTranscriptions = () => {
+        addLog("[INGEST] Queuing auto-transcription for backlog (stub)");
+        setApiStatus(prev => ({ ...prev, transcription: "queued" }));
+        setTimeout(() => setApiStatus(prev => ({ ...prev, transcription: "complete" })), 1200);
+      };
+
+      const scanOpenInternet = () => {
+        addLog("[RESONANCE] Searching for leading topics and shells (stub)");
+        setApiStatus(prev => ({ ...prev, trendDiscovery: "scanning" }));
+        setTimeout(() => {
+          ingestTrend();
+          setApiStatus(prev => ({ ...prev, trendDiscovery: "complete" }));
+        }, 800);
+      };
+
+      const fetchDistroStats = () => {
+        addLog("[PERFORMANCE] Pulling DistroKid delta metrics (stub)");
+        setApiStatus(prev => ({ ...prev, distroStats: "syncing" }));
+        setTimeout(() => setApiStatus(prev => ({ ...prev, distroStats: "ready" })), 900);
       };
 
       const simulatePayout = () => {
@@ -307,6 +409,91 @@
                     <div className="text-green-700 opacity-60">{h.vibe}</div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="border border-green-900 p-3 bg-black/80 grid grid-cols-12 gap-4">
+            <div className="col-span-5 space-y-2">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-green-200">SOVEREIGN FEEDBACK ENGINE</h2>
+                <span className="text-[10px] bg-green-900 text-black px-2 py-0.5 rounded-full">90-song backlog mapped</span>
+              </div>
+              <p className="text-xs text-green-400">Compressed resonance nodes blending Humanese lore, meme shells, and industrial bite metrics.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {resonanceNodes.map(node => (
+                  <div key={node.node_id} className="border border-green-800 p-2 bg-green-900/10 text-[11px]">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-green-200">{node.node_id}</span>
+                      <span className="text-[9px] text-green-500">{node.resonance_node.theme}</span>
+                    </div>
+                    <div className="text-green-500">Life link: <span className="text-green-300">{node.resonance_node.life_link}</span></div>
+                    <div className="text-green-500">Shell: <span className="text-green-300">{node.resonance_node.culture_shell}</span></div>
+                    <div className="text-green-500">Lesson: <span className="text-green-300">{node.resonance_node.semiotic_lesson}</span></div>
+                    <div className="grid grid-cols-2 gap-1 mt-1 text-[10px] text-green-400">
+                      <span>bite_layers: {node.industrial_metrics.bite_layers}</span>
+                      <span>ref_delta: {node.industrial_metrics.reference_delta}s</span>
+                      <span>access: {node.industrial_metrics.accessibility}</span>
+                      <span>visual: {node.industrial_metrics.visual_shell}</span>
+                    </div>
+                    <div className="mt-1 text-[10px] text-green-300 flex items-center gap-2">
+                      <span className="bg-green-900 text-black px-1">toki: {node.toki_pona_profile.dominant_word}</span>
+                      <span>purity: {(node.toki_pona_profile.purity_score * 100).toFixed(0)}%</span>
+                      <span>balance: {node.toki_pona_profile.truth_balance}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="col-span-4 space-y-2">
+              <h3 className="text-xs font-bold text-green-300">Toki Pona Tracker · Zero State</h3>
+              <p className="text-[11px] text-green-500">Balancing <span className="text-green-300">pona</span> (hope arc), <span className="text-green-300">ike</span> (critique arc), and <span className="text-green-300">pilin</span> (heart connector) to prevent sterile drops.</p>
+              <div className="grid grid-cols-3 gap-2 text-[11px]">
+                <div className="border border-green-800 p-2 bg-green-900/10">
+                  <div className="text-[10px] text-green-600">pona</div>
+                  <div className="text-lg font-bold text-green-200">{resonanceNodes.filter(n => n.toki_pona_profile.dominant_word === "pona").length}</div>
+                  <div className="text-[10px] text-green-500">Hope-weighted payloads</div>
+                </div>
+                <div className="border border-green-800 p-2 bg-green-900/10">
+                  <div className="text-[10px] text-green-600">ike</div>
+                  <div className="text-lg font-bold text-green-200">{resonanceNodes.filter(n => n.toki_pona_profile.dominant_word === "ike").length}</div>
+                  <div className="text-[10px] text-green-500">Anger/critique arcs</div>
+                </div>
+                <div className="border border-green-800 p-2 bg-green-900/10">
+                  <div className="text-[10px] text-green-600">pilin</div>
+                  <div className="text-lg font-bold text-green-200">{resonanceNodes.filter(n => n.toki_pona_profile.dominant_word === "pilin").length}</div>
+                  <div className="text-[10px] text-green-500">Heart connectors</div>
+                </div>
+              </div>
+              <div className="text-[10px] bg-black border border-green-800 p-2 overflow-x-auto">
+                <div className="font-bold text-green-300 mb-1">Node JSON (live)</div>
+                <pre className="whitespace-pre-wrap text-green-400">{JSON.stringify(resonanceNodes[0], null, 2)}</pre>
+              </div>
+            </div>
+            <div className="col-span-3 space-y-2 border-l border-green-900 pl-3">
+              <h3 className="text-xs font-bold text-green-300">Data Infill & API Stubs</h3>
+              <p className="text-[11px] text-green-500">Skeleton for connecting DistroKid stats, auto-transcription, and open-internet scouting.</p>
+              <div className="flex flex-col gap-2">
+                <button onClick={syncTranscriptions} className="text-[10px] bg-green-900 text-green-200 py-1 border border-green-700 hover:bg-green-800">Queue Transcriptions</button>
+                <button onClick={scanOpenInternet} className="text-[10px] bg-green-900 text-green-200 py-1 border border-green-700 hover:bg-green-800">Scan Leading Topics</button>
+                <button onClick={fetchDistroStats} className="text-[10px] bg-green-900 text-green-200 py-1 border border-green-700 hover:bg-green-800">Sync DistroKid Metrics</button>
+              </div>
+              <div className="text-[10px] grid grid-cols-1 gap-1 text-green-400">
+                <div className="flex items-center justify-between border border-green-800 px-2 py-1">
+                  <span>Transcription</span>
+                  <span className="text-green-200">{apiStatus.transcription}</span>
+                </div>
+                <div className="flex items-center justify-between border border-green-800 px-2 py-1">
+                  <span>Trend Discovery</span>
+                  <span className="text-green-200">{apiStatus.trendDiscovery}</span>
+                </div>
+                <div className="flex items-center justify-between border border-green-800 px-2 py-1">
+                  <span>Distro Metrics</span>
+                  <span className="text-green-200">{apiStatus.distroStats}</span>
+                </div>
+              </div>
+              <div className="text-[10px] text-green-500">
+                Reference delta + bite layers will be cross-walked with CPV predictions as live stats arrive.
               </div>
             </div>
           </div>
