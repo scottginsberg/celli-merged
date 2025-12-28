@@ -828,10 +828,6 @@
         }
     </style>
 
-    <!-- Import Map for Three.js -->
-    <script type="importmap">
-        { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
-    </script>
 </head>
 
 <body class="overflow-x-hidden">
@@ -2815,8 +2811,9 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        // Use direct CDN imports so the experience works even in browsers without import map support
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+        import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
         
         // --- DATA SETS ---
         const QUIZ = [
