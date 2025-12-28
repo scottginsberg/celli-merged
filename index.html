@@ -855,19 +855,19 @@
     <!-- MOBILE MENU -->
     <div id="mobile-menu" class="fixed inset-0 bg-[#FDFBF7] z-[60] transform translate-x-full transition-transform duration-300 flex flex-col pt-20 px-6 overflow-y-auto">
         <div class="flex flex-col gap-6 text-xl font-bold uppercase tracking-widest font-mono">
-            <button onclick="app.navigate('landing'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Exhibition</button>
-            <button onclick="app.navigate('calibration'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Explain Like I'm Dima</button>
-            <button onclick="app.navigate('profiler'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200 text-red-600">Identify</button>
-            <button onclick="app.navigate('pitch'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Project Plan</button>
-            <button onclick="app.navigate('press'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Press Kit</button>
-            <button onclick="app.navigate('tickets'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Tickets</button>
-            <button onclick="app.navigate('grift'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Grift Shop</button>
-            <button onclick="app.navigate('barter'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Barter Post</button>
-            <button onclick="app.navigate('ambition'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Ambition</button>
-            <button onclick="app.navigate('protocol'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Protocol</button>
-            <button onclick="app.navigate('team'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Meet the Team</button>
-            <button onclick="app.navigate('archive'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Archive Index</button>
-            <button onclick="app.navigate('gallery'); app.toggleMobileMenu()" class="text-left py-2 border-b border-gray-200">Gallery Tool</button>
+            <button data-nav-target="landing" data-close-menu class="text-left py-2 border-b border-gray-200">Exhibition</button>
+            <button data-nav-target="calibration" data-close-menu class="text-left py-2 border-b border-gray-200">Explain Like I'm Dima</button>
+            <button data-nav-target="profiler" data-close-menu class="text-left py-2 border-b border-gray-200 text-red-600">Identify</button>
+            <button data-nav-target="pitch" data-close-menu class="text-left py-2 border-b border-gray-200">Project Plan</button>
+            <button data-nav-target="press" data-close-menu class="text-left py-2 border-b border-gray-200">Press Kit</button>
+            <button data-nav-target="tickets" data-close-menu class="text-left py-2 border-b border-gray-200">Tickets</button>
+            <button data-nav-target="grift" data-close-menu class="text-left py-2 border-b border-gray-200">Grift Shop</button>
+            <button data-nav-target="barter" data-close-menu class="text-left py-2 border-b border-gray-200">Barter Post</button>
+            <button data-nav-target="ambition" data-close-menu class="text-left py-2 border-b border-gray-200">Ambition</button>
+            <button data-nav-target="protocol" data-close-menu class="text-left py-2 border-b border-gray-200">Protocol</button>
+            <button data-nav-target="team" data-close-menu class="text-left py-2 border-b border-gray-200">Meet the Team</button>
+            <button data-nav-target="archive" data-close-menu class="text-left py-2 border-b border-gray-200">Archive Index</button>
+            <button data-nav-target="gallery" data-close-menu class="text-left py-2 border-b border-gray-200">Gallery Tool</button>
             <a href="story-engine/index.html" class="text-left py-2 border-b border-gray-200 font-bold">Story Engine Mockup</a>
             <a href="oldindex.html" class="text-left py-2 border-b border-gray-200 font-bold">Launch Referrer System</a>
         </div>
@@ -2838,6 +2838,28 @@
                 if (menu) menu.classList.toggle('translate-x-full');
             };
 
+            const handleNavigate = (target) => {
+                if (window.app?.navigate) {
+                    window.app.navigate(target);
+                } else {
+                    activate(target);
+                }
+            };
+
+            const bindNavButtons = () => {
+                document.querySelectorAll('[data-nav-target]').forEach((btn) => {
+                    btn.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        const target = btn.dataset.navTarget;
+                        if (!target) return;
+                        handleNavigate(target);
+                        if (btn.dataset.closeMenu !== undefined) toggleMobileMenu();
+                    });
+                });
+            };
+
+            bindNavButtons();
+
             window.app = window.app || {
                 navigate: activate,
                 toggleMobileMenu
@@ -3673,8 +3695,8 @@
                 if (argOnboarding.modal) argOnboarding.modal.classList.remove('active');
                 document.body.classList.remove('modal-open');
             },
-            maybeShow() {
-                if (!argOnboarding.state.completed) argOnboarding.open();
+            maybeShow(force = false) {
+                if (force || !argOnboarding.state.completed) argOnboarding.open();
             }
         };
 
@@ -5943,10 +5965,10 @@
                         loader.classList.add('fade-out');
                         setTimeout(() => {
                             loader.remove();
-                            argOnboarding.maybeShow();
+                            argOnboarding.maybeShow(true);
                         }, 900);
                     } else {
-                        argOnboarding.maybeShow();
+                        argOnboarding.maybeShow(true);
                     }
                 }, 1200);
             }
