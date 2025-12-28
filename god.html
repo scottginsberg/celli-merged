@@ -240,12 +240,10 @@
     }
 
     function TriangulationMiniGame() {
-      const [theme, setTheme] = useState("Hope");
-      const [shell, setShell] = useState("Skibidi velocity");
-      const [truth, setTruth] = useState("pilin");
-      const [bite, setBite] = useState(7);
-      const [ref, setRef] = useState(4);
-      const [verdict, setVerdict] = useState("Awaiting triangulation…");
+      const [themeFilter, setThemeFilter] = useState("All");
+      const [shellFilter, setShellFilter] = useState("All");
+      const [truthFilter, setTruthFilter] = useState("All");
+      const [focusedCategory, setFocusedCategory] = useState("storyNodes");
 
       const resonanceWeights = useMemo(() => ({
         theme: { Hope: 12, Anger: 11, Loss: 10, Love: 12 },
@@ -253,69 +251,349 @@
           'Skibidi velocity': 10,
           'Vintage gourmet meme': 11,
           'Tarot prop': 9,
-          'Mario rotational rods': 12
+          'Mario rotational rods': 12,
+          '90s_vibe_animation': 12,
+          '1930s_aesthetic': 10,
+          'skibidi_velocity': 10
         },
         truth: { pona: 4, ike: 5, pilin: 6 }
       }), []);
 
-      const calculate = () => {
-        const themeScore = resonanceWeights.theme[theme] || 8;
-        const shellScore = resonanceWeights.shell[shell] || 8;
-        const truthScore = resonanceWeights.truth[truth] || 4;
-        const biteScore = Math.min(12, Math.max(1, Number(bite)));
-        const refScore = Math.min(12, Math.max(1, Number(ref)));
+      const triangulationSets = useMemo(() => ({
+        storyNodes: [
+          {
+            id: "LW_TRACK_091",
+            title: "Archive Liminal Run",
+            theme: "Hope",
+            cultureShell: "90s_vibe_animation",
+            truthVector: "pilin",
+            biteLayers: 9,
+            referenceDelta: 4.5,
+            pulse: 1.1,
+            tropes: ["Found Family", "Mirror Duel"],
+            wikiEntry: "story-engine/index.html#LW_TRACK_091",
+            releaseState: "beta"
+          },
+          {
+            id: "LW_TRACK_034",
+            title: "Warehouse Shift Psalm",
+            theme: "Anger",
+            cultureShell: "1930s_aesthetic",
+            truthVector: "pona",
+            biteLayers: 8,
+            referenceDelta: 6.2,
+            pulse: 0.96,
+            tropes: ["Class Uprising", "Bureaucracy Satire"],
+            wikiEntry: "story-engine/index.html#LW_TRACK_034",
+            releaseState: "polish"
+          },
+          {
+            id: "LW_TRACK_010",
+            title: "Trainyard Nights",
+            theme: "Hope",
+            cultureShell: "skibidi_velocity",
+            truthVector: "ike",
+            biteLayers: 7,
+            referenceDelta: 3.1,
+            pulse: 1.08,
+            tropes: ["Runaway Mentor", "Mirror Duel"],
+            wikiEntry: "story-engine/index.html#LW_TRACK_010",
+            releaseState: "draft"
+          }
+        ],
+        castArcs: [
+          {
+            id: "CAST_ARC_01",
+            title: "DIME // Wonder Spiral",
+            theme: "Love",
+            cultureShell: "Tarot prop",
+            truthVector: "pilin",
+            biteLayers: 6,
+            referenceDelta: 5,
+            pulse: 1.05,
+            tropes: ["Chosen One", "Found Family"],
+            wikiEntry: "story-explorer/index.html#DIME",
+            releaseState: "beta"
+          },
+          {
+            id: "CAST_ARC_02",
+            title: "FESH // Satire Blade",
+            theme: "Anger",
+            cultureShell: "Vintage gourmet meme",
+            truthVector: "ike",
+            biteLayers: 7,
+            referenceDelta: 8,
+            pulse: 0.94,
+            tropes: ["Bureaucracy Satire", "Jester Oracle"],
+            wikiEntry: "story-explorer/index.html#FESH",
+            releaseState: "draft"
+          },
+          {
+            id: "CAST_ARC_03",
+            title: "WEAVER // Lattice Archivist",
+            theme: "Loss",
+            cultureShell: "Mario rotational rods",
+            truthVector: "pona",
+            biteLayers: 8,
+            referenceDelta: 7,
+            pulse: 1,
+            tropes: ["Archivist", "Mirror Duel"],
+            wikiEntry: "story-explorer/index.html#WEAVER",
+            releaseState: "ready"
+          }
+        ],
+        songDrafts: [
+          {
+            id: "SONG_01",
+            title: "Fire Bars // Chrome Mask",
+            theme: "Hope",
+            cultureShell: "Mario rotational rods",
+            truthVector: "pilin",
+            biteLayers: 10,
+            referenceDelta: 6,
+            pulse: 1.12,
+            tropes: ["Found Family", "Runaway Mentor"],
+            wikiEntry: "narrative-demo.html#fire-bars",
+            releaseState: "ready"
+          },
+          {
+            id: "SONG_02",
+            title: "Grift Psalms",
+            theme: "Anger",
+            cultureShell: "Vintage gourmet meme",
+            truthVector: "ike",
+            biteLayers: 8,
+            referenceDelta: 9,
+            pulse: 0.9,
+            tropes: ["Class Uprising", "Bureaucracy Satire"],
+            wikiEntry: "narrative-demo.html#grift-psalms",
+            releaseState: "polish"
+          },
+          {
+            id: "SONG_03",
+            title: "Mirror Well Lullaby",
+            theme: "Loss",
+            cultureShell: "Tarot prop",
+            truthVector: "pona",
+            biteLayers: 6,
+            referenceDelta: 4,
+            pulse: 1,
+            tropes: ["Mirror Duel", "Archivist"],
+            wikiEntry: "narrative-demo.html#mirror-well",
+            releaseState: "draft"
+          }
+        ]
+      }), []);
+
+      const computeScore = useMemo(() => (item) => {
+        const themeScore = resonanceWeights.theme[item.theme] || 8;
+        const shellScore = resonanceWeights.shell[item.cultureShell] || 8;
+        const truthScore = resonanceWeights.truth[item.truthVector] || 4;
+        const biteScore = Math.min(12, Math.max(1, Number(item.biteLayers || 0)));
+        const refScore = Math.min(12, Math.max(1, Number(item.referenceDelta || 0)));
         const cadence = Math.abs(7 - refScore) < 2 ? 3 : 1;
-        const pilinBonus = truth === 'pilin' ? 2 : 0;
-        const total = themeScore + shellScore + truthScore + biteScore + cadence + pilinBonus;
+        const pulse = item.pulse || 1;
+        return Math.round((themeScore + shellScore + truthScore + biteScore + cadence) * pulse);
+      }, [resonanceWeights]);
 
-        const verdictCopy = total >= 45
-          ? 'Legendary resonance—fire bars forged.'
-          : total >= 38
-            ? 'Strong pull—semiotic rods spinning hot.'
-            : 'Keep iterating—adjacency needs more heat.';
+      const scoredSets = useMemo(() => {
+        const readiness = (score) => {
+          if (score >= 70) return "Release Ready";
+          if (score >= 60) return "Wiki-polish";
+          if (score >= 50) return "Draft refining";
+          return "Needs rewrite";
+        };
 
-        setVerdict(`Score: ${total} · ${verdictCopy}`);
+        return Object.fromEntries(
+          Object.entries(triangulationSets).map(([key, entries]) => [
+            key,
+            entries.map(entry => {
+              const score = computeScore(entry);
+              return { ...entry, score, readiness: readiness(score) };
+            })
+          ])
+        );
+      }, [computeScore, triangulationSets]);
+
+      const filteredSets = useMemo(() => {
+        const matchesFilters = (item) => {
+          const themeOk = themeFilter === "All" || item.theme === themeFilter;
+          const shellOk = shellFilter === "All" || item.cultureShell === shellFilter;
+          const truthOk = truthFilter === "All" || item.truthVector === truthFilter;
+          return themeOk && shellOk && truthOk;
+        };
+
+        return Object.fromEntries(
+          Object.entries(scoredSets).map(([key, entries]) => [
+            key,
+            entries.filter(matchesFilters)
+          ])
+        );
+      }, [scoredSets, shellFilter, themeFilter, truthFilter]);
+
+      const flattened = useMemo(() => (
+        Object.values(filteredSets).flat()
+      ), [filteredSets]);
+
+      const summary = useMemo(() => {
+        const totalScore = flattened.reduce((sum, entry) => sum + entry.score, 0);
+        const avgScore = flattened.length ? Math.round(totalScore / flattened.length) : 0;
+        const readyCount = flattened.filter(entry => entry.readiness === "Release Ready").length;
+        const polishing = flattened.filter(entry => entry.readiness === "Wiki-polish").length;
+        const wikiUpdates = flattened.map(entry => `${entry.id} → ${entry.wikiEntry}`).slice(0, 4);
+        return { avgScore, readyCount, polishing, wikiUpdates };
+      }, [flattened]);
+
+      const availableThemes = useMemo(() => [
+        "All",
+        ...new Set(Object.values(triangulationSets).flat().map(entry => entry.theme))
+      ], [triangulationSets]);
+
+      const availableShells = useMemo(() => [
+        "All",
+        ...new Set(Object.values(triangulationSets).flat().map(entry => entry.cultureShell))
+      ], [triangulationSets]);
+
+      const availableTruth = useMemo(() => [
+        "All",
+        ...new Set(Object.values(triangulationSets).flat().map(entry => entry.truthVector))
+      ], [triangulationSets]);
+
+      const tropeCollisions = useMemo(() => {
+        const counts = {};
+        flattened.forEach(entry => {
+          (entry.tropes || []).forEach(trope => {
+            if (!counts[trope]) counts[trope] = { trope, occurrences: 0, sources: [] };
+            counts[trope].occurrences += 1;
+            counts[trope].sources.push(entry.title);
+          });
+        });
+        return Object.values(counts)
+          .filter(t => t.occurrences > 1)
+          .sort((a, b) => b.occurrences - a.occurrences || b.sources.length - a.sources.length)
+          .slice(0, 5);
+      }, [flattened]);
+
+      const renderHeatBlock = (entry) => {
+        const intensity = Math.min(1, entry.score / 80);
+        const bg = `rgba(0, 255, 65, ${0.2 + intensity * 0.6})`;
+        return (
+          <div
+            key={entry.id}
+            className="border border-green-800 rounded p-2 flex flex-col gap-1 shadow-inner"
+            style={{ background: bg }}
+          >
+            <div className="flex items-center justify-between text-[11px] text-green-900/80 font-semibold uppercase">
+              <span>{entry.theme}</span>
+              <span>Score {entry.score}</span>
+            </div>
+            <div className="text-green-100 text-[13px] font-bold leading-tight">{entry.title}</div>
+            <div className="text-[11px] text-green-50 flex items-center justify-between">
+              <span>{entry.cultureShell}</span>
+              <span>{entry.truthVector}</span>
+            </div>
+          </div>
+        );
       };
 
       return (
-        <div className="panel-surface p-4 rounded-lg space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-green-200">Triangulation Mini-Game</h3>
-            <span className="text-[11px] text-green-500">Score resonance across shells</span>
+        <div className="panel-surface p-4 rounded-lg space-y-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div>
+              <p className="text-[10px] text-green-600 uppercase">Triangulation · Analytics</p>
+              <h3 className="text-sm font-bold text-green-200">Resonance Dashboard</h3>
+              <p className="text-[12px] text-green-500">Heatmaps, trope collisions, and release readiness synced to the wiki.</p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[11px] text-green-200">
+              <div className="bg-green-900/30 border border-green-800 px-2 py-1 rounded">Avg Score: {summary.avgScore}</div>
+              <div className="bg-green-900/30 border border-green-800 px-2 py-1 rounded">Release Ready: {summary.readyCount}</div>
+              <div className="bg-green-900/30 border border-green-800 px-2 py-1 rounded">Polish Queue: {summary.polishing}</div>
+            </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-[12px] text-green-400">
-            <label className="flex flex-col gap-1 text-green-300">Theme
-              <select value={theme} onChange={e => setTheme(e.target.value)} className="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded">
-                <option>Hope</option>
-                <option>Anger</option>
-                <option>Loss</option>
-                <option>Love</option>
+
+          <div className="grid md:grid-cols-3 gap-3 text-[12px] text-green-300">
+            <label className="flex flex-col gap-1">Theme
+              <select value={themeFilter} onChange={e => setThemeFilter(e.target.value)} className="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded">
+                {availableThemes.map(option => <option key={option}>{option}</option>)}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-green-300">Culture Shell
-              <select value={shell} onChange={e => setShell(e.target.value)} className="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded">
-                <option>Skibidi velocity</option>
-                <option>Vintage gourmet meme</option>
-                <option>Tarot prop</option>
-                <option>Mario rotational rods</option>
+            <label className="flex flex-col gap-1">Culture Shell
+              <select value={shellFilter} onChange={e => setShellFilter(e.target.value)} className="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded">
+                {availableShells.map(option => <option key={option}>{option}</option>)}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-green-300">Truth Vector
-              <select value={truth} onChange={e => setTruth(e.target.value)} className="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded">
-                <option>pona</option>
-                <option>ike</option>
-                <option>pilin</option>
+            <label className="flex flex-col gap-1">Truth Vector
+              <select value={truthFilter} onChange={e => setTruthFilter(e.target.value)} className="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded">
+                {availableTruth.map(option => <option key={option}>{option}</option>)}
               </select>
-            </label>
-            <label className="flex flex-col gap-1 text-green-300">Bite Layers
-              <input value={bite} onChange={e => setBite(e.target.value)} type="number" min="1" max="12" className="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded" />
-            </label>
-            <label className="flex flex-col gap-1 text-green-300">Reference Delta (beats)
-              <input value={ref} onChange={e => setRef(e.target.value)} type="number" min="1" max="12" className="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded" />
             </label>
           </div>
-          <button onClick={calculate} className="mt-2 text-[11px] bg-green-900 text-green-100 px-3 py-1 border border-green-700 hover:bg-green-800">Calculate Resonance Score</button>
-          <div className="text-[11px] text-green-200 bg-green-900/20 border border-green-800 p-2 rounded mt-2">{verdict}</div>
+
+          <div className="grid md:grid-cols-3 gap-3">
+            {["storyNodes", "castArcs", "songDrafts"].map(key => (
+              <div
+                key={key}
+                className={`border rounded-lg p-3 space-y-2 ${focusedCategory === key ? 'border-green-400 bg-green-900/40' : 'border-green-900 bg-black/40'}`}
+              >
+                <div className="flex items-center justify-between text-[12px] text-green-300">
+                  <div className="font-semibold uppercase tracking-wide">{key === "storyNodes" ? "Story Nodes" : key === "castArcs" ? "Cast Arcs" : "Song Drafts"}</div>
+                  <button onClick={() => setFocusedCategory(key)} className="text-[11px] underline text-green-400">Focus</button>
+                </div>
+                <div className="grid grid-cols-1 gap-2 text-green-400 text-[11px]">
+                  {filteredSets[key].map(renderHeatBlock)}
+                  {!filteredSets[key].length && <div className="text-green-700">No entries match this filter set.</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-3">
+            <div className="border border-green-900 rounded-lg p-3 bg-black/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm text-green-200 font-bold">Trope Collisions</h4>
+                <span className="text-[11px] text-green-500">Cross-category overlaps</span>
+              </div>
+              <div className="space-y-2">
+                {tropeCollisions.map(collision => (
+                  <div key={collision.trope} className="border border-green-800 rounded p-2 bg-green-900/30">
+                    <div className="flex items-center justify-between text-[12px] text-green-100">
+                      <span className="font-semibold">{collision.trope}</span>
+                      <span className="text-[11px] text-green-400">{collision.occurrences} collisions</span>
+                    </div>
+                    <div className="text-[11px] text-green-400">Sources: {collision.sources.join(' · ')}</div>
+                    <div className="text-[11px] text-green-500">Action: align motifs and spotlight resonance bars.</div>
+                  </div>
+                ))}
+                {!tropeCollisions.length && <div className="text-[11px] text-green-700">No repeated tropes in the current slice.</div>}
+              </div>
+            </div>
+            <div className="border border-green-900 rounded-lg p-3 bg-black/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm text-green-200 font-bold">Wiki Feed + Release Readiness</h4>
+                <span className="text-[11px] text-green-500">Scores are pushed into the bible and release gates.</span>
+              </div>
+              <div className="space-y-2 text-[11px] text-green-300">
+                {flattened.map(entry => (
+                  <div key={entry.id} className="border border-green-800 rounded p-2 bg-green-900/30 flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-[12px]">
+                      <span className="font-semibold text-green-100">{entry.title}</span>
+                      <span className="text-green-400">{entry.score} pts</span>
+                    </div>
+                    <div className="flex items-center justify-between text-green-500">
+                      <span className="truncate">Wiki: {entry.wikiEntry}</span>
+                      <span className="px-2 py-0.5 rounded border border-green-700 text-green-100">{entry.readiness}</span>
+                    </div>
+                  </div>
+                ))}
+                {!flattened.length && <div className="text-green-700">No wiki feeds for this filter set.</div>}
+              </div>
+              {summary.wikiUpdates.length > 0 && (
+                <div className="text-[11px] text-green-500 border-t border-green-900 pt-2">
+                  Automated updates: {summary.wikiUpdates.join(' | ')}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       );
     }
