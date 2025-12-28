@@ -597,6 +597,150 @@
   .props-view {
     padding:12px;
   }
+  .spellbook-panel {
+    padding:12px;
+    border-top:1px solid var(--border);
+    background:var(--panel);
+  }
+  .spellbook-header {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    justify-content:space-between;
+    margin-bottom:8px;
+  }
+  .spellbook-title {
+    font-size:.85rem;
+    font-weight:700;
+    color:var(--accent);
+  }
+  .spellbook-subtitle {
+    font-size:.65rem;
+    color:var(--sub);
+  }
+  .spellbook-badge {
+    padding:4px 8px;
+    background:var(--accent-dim);
+    color:var(--accent);
+    border:1px solid var(--accent);
+    border-radius:999px;
+    font-size:.65rem;
+    font-weight:700;
+  }
+  .spellbook-context {
+    background:var(--panel-alt);
+    border:1px solid var(--muted);
+    border-radius:var(--radius);
+    padding:10px;
+    font-size:.7rem;
+    line-height:1.5;
+    max-height:200px;
+    overflow-y:auto;
+    white-space:pre-wrap;
+    margin-bottom:10px;
+  }
+  .spellbook-chip {
+    display:inline-block;
+    padding:4px 8px;
+    background:var(--panel);
+    border:1px solid var(--muted);
+    border-radius:999px;
+    font-size:.65rem;
+    margin:2px;
+  }
+  .spellbook-vectors {
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-bottom:10px;
+  }
+  .spellbook-vector {
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:8px;
+    background:var(--panel-alt);
+  }
+  .spellbook-vector strong { color:var(--text); }
+  .spellbook-controls {
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-bottom:12px;
+  }
+  .spellbook-controls label {
+    font-size:.6rem;
+    color:var(--sub);
+    font-weight:700;
+  }
+  .spellbook-controls select,
+  .spellbook-controls textarea {
+    width:100%;
+    border:1px solid var(--muted);
+    border-radius:var(--radius);
+    padding:8px;
+    background:var(--panel-alt);
+    color:var(--text);
+    font-size:.75rem;
+  }
+  .spellbook-controls textarea { min-height:70px; resize:vertical; }
+  .spellbook-actions {
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .spellbook-status {
+    font-size:.65rem;
+    color:var(--sub);
+    min-height:18px;
+  }
+  .spellbook-drafts {
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .spellbook-draft {
+    border:1px solid var(--muted);
+    border-radius:var(--radius);
+    padding:8px;
+    background:var(--panel-alt);
+  }
+  .spellbook-draft textarea {
+    width:100%;
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--text);
+    border-radius:var(--radius);
+    padding:6px;
+    font-size:.7rem;
+    min-height:90px;
+  }
+  .spellbook-draft .meta {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:.65rem;
+    color:var(--sub);
+    margin-bottom:6px;
+  }
+  .spellbook-draft .meta strong { color:var(--text); }
+  .spellbook-draft .tag-row {
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px;
+    margin-bottom:6px;
+  }
+  .spellbook-draft .tag-row .chip {
+    background:var(--panel);
+    border:1px solid var(--muted);
+    padding:2px 6px;
+    border-radius:999px;
+    font-size:.6rem;
+  }
+  .spellbook-draft .actions {
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+  }
   .prop-section {
     margin-bottom:16px;
   }
@@ -1439,6 +1583,9 @@
     <div class="scroll">
       <div class="props-view" id="propsViewContainer">
         <div class="empty-state">No node selected</div>
+      </div>
+      <div class="spellbook-panel" id="spellbookPanel">
+        <div class="empty-state">Select a node to populate the spellbook context</div>
       </div>
     </div>
   </section>
@@ -4551,7 +4698,7 @@ const wikiArticles = [
 ];
 
 // Song drafts and releases connected to cast and canon beats
-const songDrafts = [
+let songDrafts = [
   {
     id: "song_now_presenting_theme",
     title: "Now Presenting: Theme Pulse",
@@ -4584,6 +4731,8 @@ const songDrafts = [
   }
 ];
 
+const meshDraftVersions = {};
+
 // Shared graph store stitches the story bible to songs for mesh/graph views
 const storyGraphStore = new StoryGraphStore(
   nodes,
@@ -4592,6 +4741,11 @@ const storyGraphStore = new StoryGraphStore(
   wikiArticles
 );
 storyGraphStore.buildGraph();
+
+function rebuildStoryGraphStore() {
+  storyGraphStore.songs = songDrafts;
+  storyGraphStore.buildGraph();
+}
 
 // Feedback annotations for generated content
 const feedbackAnnotations = [];
@@ -4948,6 +5102,11 @@ function clearAllAIKeys() {
 function getActiveAPIKey() {
   const config = getAIConfig();
   return config.keys[config.activeProvider] || '';
+}
+
+function getAPIKeyForProvider(provider) {
+  const config = getAIConfig();
+  return config.keys[provider] || '';
 }
 
 // Theme Bank - Tracks recurring themes and their success
@@ -6481,6 +6640,380 @@ function renderNodeView(nodeId) {
   }
 }
 
+// ==================== SPELLBOOK PANEL ====================
+function findSeriesForNode(node) {
+  if (!node) return null;
+
+  if (node.type === "character") {
+    const match = storyConnections.find(conn => conn.characterId === node.id);
+    if (match) return match.seriesId;
+  }
+
+  let cursor = node;
+  while (cursor && cursor.parentId) {
+    const parent = getNode(cursor.parentId);
+    if (parent?.type === "series") return parent.id;
+    cursor = parent;
+  }
+
+  return null;
+}
+
+function buildSpellbookContext(node) {
+  if (!node) {
+    return {
+      contextText: "No node selected; select a node to build the spellbook context.",
+      tropes: [],
+      resonanceVectors: [],
+      wikiRefs: [],
+      canonSlices: []
+    };
+  }
+
+  const canonSlices = [];
+  const wikiRefs = wikiArticles.filter(article => article.linkedNodes?.includes(node.id));
+  const rels = getOutgoingRelationships(node.id);
+  const sentiments = node.type === "character" ? getSentimentsForCharacter(node.id) : [];
+
+  if (node.description) canonSlices.push(node.description);
+  if (node.bio) canonSlices.push(node.bio);
+  if (node.potentialElements) canonSlices.push(`Potential Elements: ${node.potentialElements}`);
+  if (node.drives?.length) canonSlices.push(`Drives: ${node.drives.join(', ')}`);
+  if (node.traits?.length) canonSlices.push(`Traits: ${node.traits.join(', ')}`);
+  if (sentiments.length) {
+    const latest = sentiments[0];
+    canonSlices.push(`Latest sentiment: ${latest.name} → ${latest.value} (${latest.timestamp})`);
+  }
+  if (rels.length) {
+    const relText = rels.slice(0, 4).map(r => `${r.type}: ${getNode(r.to)?.name || r.to}`).join(' | ');
+    canonSlices.push(`Linked relationships: ${relText}`);
+  }
+  wikiRefs.forEach(article => canonSlices.push(`Wiki: ${article.title} — ${article.summary}`));
+
+  const tropes = new Set([...(node.tags || []), ...(node.traits || []), ...(node.drives || [])]);
+
+  const resonanceVectors = [];
+  const adjacency = storyGraphStore.getStorySongCastAdjacency();
+  adjacency.forEach(bundle => {
+    const touchesNode = bundle.cast.some(c => c?.id === node.id) ||
+      bundle.beats.some(b => b?.id === node.id) ||
+      bundle.wiki.some(w => w?.linkedNodes?.includes?.(node.id));
+    if (touchesNode) {
+      const intensity = Math.min(1, (bundle.cast.length + bundle.beats.length + bundle.wiki.length) / 6);
+      resonanceVectors.push({
+        label: bundle.song.title,
+        weight: intensity,
+        notes: `Beats: ${bundle.beats.length}, Cast: ${bundle.cast.length}, Wiki: ${bundle.wiki.length}`
+      });
+    }
+  });
+
+  storyGraphStore.getNowPresentingPulses().slice(0, 2).forEach(pulse => {
+    resonanceVectors.push({
+      label: `${pulse.song.title} pulse`,
+      weight: pulse.intensity,
+      notes: `Cast sync: ${pulse.cast.map(c => c?.name || c?.id).join(', ')}`
+    });
+  });
+
+  const contextLines = [];
+  contextLines.push(`# Spellbook Context: ${node.name}`);
+  contextLines.push(`Type: ${node.type}`);
+  contextLines.push(`Canon text:`);
+  canonSlices.forEach(slice => contextLines.push(`- ${slice}`));
+  contextLines.push(``);
+  contextLines.push(`Tropes & signals: ${[...tropes].join(', ') || 'None listed'}`);
+  contextLines.push(``);
+  contextLines.push(`Resonance vectors:`);
+  resonanceVectors.forEach(vec => contextLines.push(`- ${vec.label} (${Math.round(vec.weight * 100)}%): ${vec.notes}`));
+  contextLines.push(``);
+  contextLines.push(`Instruction: Draft vivid verses/lyrics that honor canon, trope balance, and resonance vectors while staying editable in the mesh.`);
+
+  return {
+    contextText: contextLines.join('\n'),
+    tropes: [...tropes],
+    resonanceVectors,
+    wikiRefs,
+    canonSlices
+  };
+}
+
+function deriveSpellbookBindings(node) {
+  const timelineBeatIds = [];
+  const castIds = [];
+  const wikiArticleIds = [];
+
+  if (!node) {
+    return { timelineBeatIds, castIds, wikiArticleIds, seriesId: null };
+  }
+
+  if (["moment", "event", "scene", "sequence", "act", "story"].includes(node.type)) {
+    timelineBeatIds.push(node.id);
+  }
+  if (node.type === "character") {
+    castIds.push(node.id);
+  }
+
+  wikiArticles.forEach(article => {
+    if (article.linkedNodes?.includes(node.id)) {
+      wikiArticleIds.push(article.id);
+    }
+  });
+
+  const seriesId = findSeriesForNode(node);
+
+  return { timelineBeatIds, castIds, wikiArticleIds, seriesId };
+}
+
+function renderSpellbookPanel(node) {
+  const panel = document.getElementById("spellbookPanel");
+  if (!panel) return;
+
+  if (!node) {
+    panel.innerHTML = '<div class="empty-state">Select a node to populate the spellbook context</div>';
+    return;
+  }
+
+  const spellbook = buildSpellbookContext(node);
+  const config = getAIConfig();
+  const contextId = `spellbookContext_${node.id}`;
+
+  const vectorList = spellbook.resonanceVectors.map(vec => {
+    const pct = Math.round(vec.weight * 100);
+    return `<div class="spellbook-vector"><strong>${vec.label}</strong><div style="font-size:.65rem;color:var(--sub);">${pct}% resonance • ${vec.notes}</div></div>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="spellbook-header">
+      <div>
+        <div class="spellbook-title">Spellbook</div>
+        <div class="spellbook-subtitle">Canon context + tropes + resonance vectors</div>
+      </div>
+      <div class="spellbook-badge">${spellbook.resonanceVectors.length} vectors</div>
+    </div>
+    <div class="spellbook-context" id="${contextId}"></div>
+    <div style="margin-bottom:8px;">
+      ${spellbook.tropes.map(t => `<span class="spellbook-chip">${t}</span>`).join('') || '<span class="spellbook-chip" style="color:var(--sub);">No tropes tagged</span>'}
+    </div>
+    <div class="spellbook-vectors">${vectorList || '<div class="spellbook-vector" style="color:var(--sub);">No resonance vectors yet</div>'}</div>
+    <div class="spellbook-controls">
+      <div>
+        <label>Model</label>
+        <select id="spellbookModel">
+          <option value="openai" ${config.activeProvider === 'openai' ? 'selected' : ''}>GPT (OpenAI)</option>
+          <option value="google" ${config.activeProvider === 'google' ? 'selected' : ''}>Gemini (Google)</option>
+        </select>
+      </div>
+      <div>
+        <label>Prompt</label>
+        <textarea id="spellbookPrompt" placeholder="Guide the verse/lyrics you want with this canon context"></textarea>
+      </div>
+      <div class="spellbook-actions">
+        <button class="form-btn" onclick="draftSpellbookVerse()">Draft verses</button>
+        <div class="spellbook-status" id="spellbookStatus"></div>
+      </div>
+    </div>
+    <div style="font-size:.6rem;color:var(--sub);margin-bottom:8px;">Drafts are injected into the mesh as editable song drafts with version history.</div>
+    <div class="spellbook-drafts" id="spellbookDraftList"></div>
+  `;
+
+  const ctxBlock = document.getElementById(contextId);
+  if (ctxBlock) {
+    ctxBlock.textContent = spellbook.contextText;
+  }
+
+  renderSpellbookDraftList(node.id);
+}
+
+function renderSpellbookDraftList(nodeId) {
+  const list = document.getElementById("spellbookDraftList");
+  if (!list) return;
+
+  const drafts = songDrafts.filter(d => d.origin === 'spellbook' && (!nodeId || d.sourceNodeId === nodeId));
+
+  if (drafts.length === 0) {
+    list.innerHTML = '<div class="empty-state">No spellbook drafts yet. Draft verses to seed the mesh.</div>';
+    return;
+  }
+
+  list.innerHTML = drafts.map(draft => {
+    const versionLabel = `v${draft.version || 1}`;
+    const statusLabel = draft.status ? draft.status.toUpperCase() : 'DRAFT';
+    const bindings = [];
+    if (draft.seriesId) bindings.push(`Series: ${draft.seriesId}`);
+    if (draft.timelineBeatIds?.length) bindings.push(`Beats: ${draft.timelineBeatIds.join(', ')}`);
+    if (draft.castIds?.length) bindings.push(`Cast: ${draft.castIds.join(', ')}`);
+    return `
+      <div class="spellbook-draft">
+        <div class="meta">
+          <div><strong>${draft.title}</strong> • ${versionLabel}</div>
+          <div>${statusLabel}</div>
+        </div>
+        <div class="tag-row">
+          ${bindings.map(b => `<span class="chip">${b}</span>`).join('')}
+          <span class="chip">Model: ${draft.modelUsed || 'N/A'}</span>
+        </div>
+        <textarea id="spellbookDraftEdit_${draft.id}">${draft.content || ''}</textarea>
+        <div class="actions">
+          <button class="form-btn small" onclick="saveSpellbookVersion('${draft.id}')">Save edit</button>
+          <button class="form-btn small" onclick="queueDraftForRelease('${draft.id}')">Queue for release</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function draftSpellbookVerse() {
+  const node = getNode(activeNodeId);
+  const statusEl = document.getElementById('spellbookStatus');
+  if (!node) {
+    if (statusEl) statusEl.textContent = 'Select a node first.';
+    return;
+  }
+
+  const prompt = (document.getElementById('spellbookPrompt')?.value || '').trim();
+  const provider = document.getElementById('spellbookModel')?.value || 'openai';
+  const spellbook = buildSpellbookContext(node);
+
+  if (statusEl) statusEl.textContent = 'Summoning model with full spellbook context...';
+
+  try {
+    const result = await callSpellbookModel(provider, prompt, spellbook.contextText);
+    persistSpellbookDraft(node, provider, prompt, result.text, spellbook);
+    if (statusEl) statusEl.textContent = result.mock ? 'Mock draft created (configure API key for live calls).' : 'Draft captured in mesh state.';
+    renderSpellbookDraftList(node.id);
+  } catch (err) {
+    console.error('Spellbook draft failed', err);
+    if (statusEl) statusEl.textContent = 'Failed to reach model; see console for details.';
+  }
+}
+
+async function callSpellbookModel(provider, prompt, contextText) {
+  const key = getAPIKeyForProvider(provider);
+  const composedPrompt = `${contextText}\n\nUser prompt: ${prompt || 'Generate resonant verses based on the spellbook above.'}`;
+
+  if (!key) {
+    return {
+      text: `[Mock ${provider}] ${prompt || 'Verse draft'}\n\n${contextText.slice(0, 320)}`,
+      mock: true
+    };
+  }
+
+  if (provider === 'google') {
+    const body = {
+      contents: [{
+        parts: [{ text: composedPrompt }]
+      }],
+      system_instruction: {
+        parts: [{ text: 'You draft musical verses with fidelity to provided canon and resonance vectors.' }]
+      }
+    };
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`Gemini request failed: ${err}`);
+    }
+
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Gemini returned no text.';
+    return { text };
+  }
+
+  const body = {
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: 'You are a lyricist honoring canon, tropes, and resonance vectors to draft verses that stay editable.' },
+      { role: 'user', content: composedPrompt }
+    ],
+    temperature: 0.8,
+    max_tokens: 400
+  };
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`GPT request failed: ${err}`);
+  }
+
+  const data = await response.json();
+  return { text: data?.choices?.[0]?.message?.content || 'GPT returned no text.' };
+}
+
+function persistSpellbookDraft(node, provider, prompt, text, spellbook) {
+  const bindings = deriveSpellbookBindings(node);
+  const draft = {
+    id: generateId('song'),
+    title: `${node.name} Spellbook Draft`,
+    status: 'draft',
+    seriesId: bindings.seriesId,
+    timelineBeatIds: bindings.timelineBeatIds,
+    castIds: bindings.castIds,
+    wikiArticleIds: bindings.wikiArticleIds,
+    notes: `Prompt: ${prompt || 'N/A'}`,
+    content: text,
+    spellbookContext: spellbook.contextText,
+    sourceNodeId: node.id,
+    origin: 'spellbook',
+    modelUsed: provider,
+    version: 1,
+    versionHistory: [{ version: 1, text, timestamp: new Date().toISOString() }]
+  };
+
+  songDrafts.push(draft);
+  meshDraftVersions[draft.id] = draft.versionHistory;
+  rebuildStoryGraphStore();
+  if (currentView === 'graph') {
+    renderGraphView();
+  }
+  return draft;
+}
+
+function saveSpellbookVersion(draftId) {
+  const draft = songDrafts.find(d => d.id === draftId);
+  const textarea = document.getElementById(`spellbookDraftEdit_${draftId}`);
+  if (!draft || !textarea) return;
+
+  const nextVersion = (draft.version || 1) + 1;
+  draft.version = nextVersion;
+  draft.content = textarea.value;
+  draft.versionHistory = draft.versionHistory || [];
+  draft.versionHistory.push({ version: nextVersion, text: textarea.value, timestamp: new Date().toISOString() });
+  meshDraftVersions[draftId] = draft.versionHistory;
+
+  rebuildStoryGraphStore();
+  if (currentView === 'graph') {
+    renderGraphView();
+  }
+  renderSpellbookDraftList(draft.sourceNodeId);
+}
+
+function queueDraftForRelease(draftId) {
+  const draft = songDrafts.find(d => d.id === draftId);
+  if (!draft) return;
+
+  draft.status = 'queued';
+  draft.notes = `${draft.notes || ''} • queued ${new Date().toLocaleString()}`.trim();
+  rebuildStoryGraphStore();
+  if (currentView === 'graph') {
+    renderGraphView();
+  }
+  renderSpellbookDraftList(draft.sourceNodeId);
+}
+
 // ==================== PROPERTIES PANEL ====================
 function renderPropertiesPanel(nodeId) {
   const node = getNode(nodeId);
@@ -6574,6 +7107,8 @@ function renderPropertiesPanel(nodeId) {
   }
 
   container.innerHTML = html;
+
+  renderSpellbookPanel(node);
 }
 
 // ==================== TIMELINE VIEW ====================
