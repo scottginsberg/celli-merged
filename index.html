@@ -5808,7 +5808,6 @@
             particles: null,
             curtains: null,
             timer: null,
-            fallbackTimer: null,
             opened: false,
             start() {
                 loaderSequence.stage = document.getElementById('loader-stage');
@@ -5823,11 +5822,6 @@
 
                 loaderSequence.loadedAssets = 0;
                 loaderSequence.progress = 0;
-                loaderSequence.opened = false;
-                if (loaderSequence.fallbackTimer) clearTimeout(loaderSequence.fallbackTimer);
-                // Ensure we never get stuck on the loader even if progress updates fail
-                loaderSequence.fallbackTimer = setTimeout(() => loaderSequence.complete(true), 8000);
-
                 if (!loaderSequence.fill || !loaderSequence.text) return;
 
                 loaderSequence.updateFill();
@@ -5849,20 +5843,10 @@
                     loaderSequence.text.innerText = `INITIALIZING LOOMWORKS MANUFACTURE PROTOCOL: CONSTRUCT EMULACRUM. ${Math.round(scale * 100)}%`;
                 }
             },
-            complete(force = false) {
-                if (loaderSequence.opened) return;
+            complete() {
+                if (!loaderSequence.fill || loaderSequence.opened) return;
                 loaderSequence.opened = true;
-                if (loaderSequence.timer) clearInterval(loaderSequence.timer);
-                if (loaderSequence.fallbackTimer) clearTimeout(loaderSequence.fallbackTimer);
-
-                // If we don't have the loader elements (or were forced), remove the overlay immediately
-                const loader = document.getElementById('loader');
-                if (force || !loaderSequence.fill || !loaderSequence.text || !loaderSequence.box) {
-                    if (loader) loader.remove();
-                    argOnboarding.maybeShow();
-                    return;
-                }
-
+                clearInterval(loaderSequence.timer);
                 loaderSequence.loadedAssets = loaderSequence.totalAssets;
                 loaderSequence.updateFill();
                 if (loaderSequence.text) loaderSequence.text.innerText = 'PHASE B: WIGGLE & BURST';
@@ -5928,41 +5912,25 @@
             }
         };
 
-        const safeRun = (label, fn) => {
-            try {
-                fn();
-            } catch (error) {
-                console.error(`⚠️ ${label} failed:`, error);
-                const status = document.getElementById('loader-text');
-                if (status) status.innerText = 'Recapturing initialization, please standby…';
-            }
-        };
-
-        // Last-resort failsafe to prevent the loader from sticking if early errors occur
-        setTimeout(() => {
-            const loader = document.getElementById('loader');
-            if (loader) loaderSequence.complete(true);
-        }, 12000);
-
         document.addEventListener('DOMContentLoaded', () => {
-            safeRun('loaderSequence.start', () => loaderSequence.start());
-            safeRun('argOnboarding.init', () => argOnboarding.init());
+            argOnboarding.init();
+            loaderSequence.start();
 
-            safeRun('tokiDictionary.init', () => tokiDictionary.init());
-            safeRun('registerHeatmap', () => registerHeatmap());
-            safeRun('observeBlueprints', () => observeBlueprints());
-            safeRun('initScanlineParallax', () => initScanlineParallax());
-            safeRun('ambient.startTooltips', () => ambient.startTooltips());
-            safeRun('startIdleGlitch', () => startIdleGlitch());
-            safeRun('initInvoiceMode', () => initInvoiceMode());
-            safeRun('startGlitchBannerCycle', () => startGlitchBannerCycle());
-            safeRun('dimeBacklog.bind', () => dimeBacklog.bind());
-            safeRun('geoQuiz.init', () => geoQuiz.init());
-            safeRun('grift.init', () => grift.init());
-            safeRun('manufacture.init', () => manufacture.init());
-            safeRun('valueGate.init', () => valueGate.init());
-            safeRun('greComments.mountAll', () => greComments.mountAll());
-            safeRun('bindHoverAudio', () => bindHoverAudio());
+            tokiDictionary.init();
+            registerHeatmap();
+            observeBlueprints();
+            initScanlineParallax();
+            ambient.startTooltips();
+            startIdleGlitch();
+            initInvoiceMode();
+            startGlitchBannerCycle();
+            dimeBacklog.bind();
+            geoQuiz.init();
+            grift.init();
+            manufacture.init();
+            valueGate.init();
+            greComments.mountAll();
+            bindHoverAudio();
 
             const primeAudio = () => { audio.startDrone(); };
             document.addEventListener('pointerdown', primeAudio, { once: true });
@@ -5975,10 +5943,10 @@
         window.addEventListener('resize', () => sculptureEngine.resize());
 
         window.addEventListener('load', () => {
-            safeRun('gallery.init', () => gallery.init());
-            safeRun('archive.init', () => archive.init());
-            safeRun('barter.init', () => barter.init());
-            safeRun('loaderSequence.complete', () => loaderSequence.complete());
+            gallery.init();
+            archive.init();
+            barter.init();
+            loaderSequence.complete();
         });
     </script>
 </body>
