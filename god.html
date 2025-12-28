@@ -70,6 +70,92 @@
       </div>
     </section>
 
+    <section class="border border-green-900 bg-black/70 p-4 rounded-lg holo space-y-4">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+        <div>
+          <p class="text-[10px] text-green-700 uppercase">System Card Update · Genealogy Engine</p>
+          <h2 class="text-lg text-green-200 font-bold">Shamanic Artist Protocol</h2>
+          <p class="text-sm text-green-400">Tropological scans, resonance heatmaps, and bardic satire fused into a sovereign generative loop.</p>
+        </div>
+        <div class="text-[11px] text-green-500 bg-green-900/30 px-3 py-1 rounded-md border border-green-800">Password: 12346 · Semiotic Liminal Space</div>
+      </div>
+      <div class="grid md:grid-cols-3 gap-3 text-[12px] text-green-400">
+        <div class="border border-green-800 bg-black/40 p-3 rounded">
+          <h3 class="font-bold text-green-200 text-sm">Tropological Scan</h3>
+          <p class="text-green-500">TV Tropes compressed locally. Track legacy tropes colliding with novel trends to surface “Novel Evolutions”. Chains of meaning map nodes to universal imagery.</p>
+        </div>
+        <div class="border border-green-800 bg-black/40 p-3 rounded">
+          <h3 class="font-bold text-green-200 text-sm">Resonance Heatmap</h3>
+          <p class="text-green-500">Heat every node against resonance vectors: Tarot arcana (scale, reflection, props), Moe elements (suggest, tease, Celli), and emotional poles (reversal, heat, distance, love, loss, pilin).</p>
+        </div>
+        <div class="border border-green-800 bg-black/40 p-3 rounded">
+          <h3 class="font-bold text-green-200 text-sm">Bardic Satire Protocol</h3>
+          <p class="text-green-500">Treat every bar as transformative magic—satire that melts the opiate glaze of advertising. Rhythm is a forged Mario rotational rod, not found fire.</p>
+        </div>
+      </div>
+      <div class="grid md:grid-cols-3 gap-3 text-[12px] text-green-400">
+        <div class="border border-green-800 bg-black/40 p-3 rounded space-y-2">
+          <h3 class="font-bold text-green-200 text-sm">Spellbook Encoding</h3>
+          <p class="text-green-500">“Magic is simply the science of manipulating symbols, words, or images, to achieve changes in consciousness... Indeed, to cast a spell, is simply to spell, to manipulate words.”</p>
+          <p class="text-green-600">Alan Moore reminds the Bard is feared because satire survives. Use grammar as grimmoire; resonance emerges from compressed specificity.</p>
+        </div>
+        <div class="border border-green-800 bg-black/40 p-3 rounded space-y-2">
+          <h3 class="font-bold text-green-200 text-sm">Semiotic Liminal Space</h3>
+          <p class="text-green-500">Language encodes activation space. Link tropes like fire bars or pixel rods to place-based bars, candy bars, or prison bars. Hop lilypads between water → mirror → fire → slime → sand to keep meaning in motion.</p>
+          <p class="text-green-600">Resonance is universal captured through specificity; familiarity is forged through adjacency.</p>
+        </div>
+        <div class="border border-green-800 bg-black/40 p-3 rounded space-y-2">
+          <h3 class="font-bold text-green-200 text-sm">Praxis / Poiesis / Theoria</h3>
+          <p class="text-green-500">A complete work loops action, creation, and thought. Use tarot-like props, pop-culture dioramas, and satire to model the transformation of pain into bold confidence.</p>
+          <p class="text-green-600">This router hosts the Little Rap God Machine: a language game that rewards triangulating meaning and truth through formalized prompts.</p>
+        </div>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4 text-[12px] text-green-400">
+        <div class="border border-green-800 bg-black/50 p-4 rounded space-y-2">
+          <h3 class="font-bold text-green-200 text-sm">Triangulation Mini-Game</h3>
+          <p class="text-green-500">Score resonance by pairing a theme with a culture shell, an emotional truth, and a bite cadence. The closer you stick to Pilin balance and novel trope mashups, the hotter the bar.</p>
+          <div class="grid grid-cols-2 gap-2 text-[11px]">
+            <label class="flex flex-col gap-1 text-green-300">Theme
+              <select id="theme-select" class="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded">
+                <option>Hope</option>
+                <option>Anger</option>
+                <option>Loss</option>
+                <option>Love</option>
+              </select>
+            </label>
+            <label class="flex flex-col gap-1 text-green-300">Culture Shell
+              <select id="shell-select" class="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded">
+                <option>Skibidi velocity</option>
+                <option>Vintage gourmet meme</option>
+                <option>Tarot prop</option>
+                <option>Mario rotational rods</option>
+              </select>
+            </label>
+            <label class="flex flex-col gap-1 text-green-300">Truth Vector
+              <select id="truth-select" class="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded">
+                <option>pona</option>
+                <option>ike</option>
+                <option>pilin</option>
+              </select>
+            </label>
+            <label class="flex flex-col gap-1 text-green-300">Bite Layers
+              <input id="bite-input" type="number" min="1" max="12" value="7" class="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded" />
+            </label>
+            <label class="flex flex-col gap-1 text-green-300">Reference Delta (beats)
+              <input id="ref-input" type="number" min="1" max="12" value="4" class="bg-black border border-green-700 text-green-200 p-1 text-[11px] rounded" />
+            </label>
+          </div>
+          <button id="score-btn" class="mt-3 text-[11px] bg-green-900 text-green-100 px-3 py-1 border border-green-700 hover:bg-green-800">Calculate Resonance Score</button>
+          <div id="score-output" class="text-[11px] text-green-200 bg-green-900/20 border border-green-800 p-2 rounded mt-2">Awaiting triangulation…</div>
+        </div>
+        <div class="border border-green-800 bg-black/50 p-4 rounded space-y-2">
+          <h3 class="font-bold text-green-200 text-sm">Samples & Adjacency</h3>
+          <p class="text-green-500">Link “spitting fire bars” to pixel columns, candy bars, prison bars, and Frogger hops. Pair Will Smith mythos with Oscars scandal, or weave “Too many Urkles on your team, that’s why you’re Winslow” into labor grift stanzas.</p>
+          <p class="text-green-600">Use off-centered UI as desire paths; comments as chorus; skimming as sprint. Remember: joke explained midflight still lands if the rhythm is forged.</p>
+        </div>
+      </div>
+    </section>
+
     <section class="border border-green-900 bg-black/70 p-4 rounded-lg holo">
       <div class="flex items-center justify-between">
         <div>
@@ -510,6 +596,47 @@
       shell.classList.toggle('hidden');
       toggle.textContent = shell.classList.contains('hidden') ? 'Reveal' : 'Hide';
     });
+
+    const resonanceWeights = {
+      theme: { Hope: 12, Anger: 11, Loss: 10, Love: 12 },
+      shell: {
+        'Skibidi velocity': 10,
+        'Vintage gourmet meme': 11,
+        'Tarot prop': 9,
+        'Mario rotational rods': 12
+      },
+      truth: { pona: 4, ike: 5, pilin: 6 }
+    };
+
+    const scoreButton = document.getElementById('score-btn');
+    const scoreOutput = document.getElementById('score-output');
+    if (scoreButton && scoreOutput) {
+      scoreButton.addEventListener('click', () => {
+        const theme = document.getElementById('theme-select').value;
+        const shellChoice = document.getElementById('shell-select').value;
+        const truth = document.getElementById('truth-select').value;
+        const bite = Number(document.getElementById('bite-input').value || 0);
+        const ref = Number(document.getElementById('ref-input').value || 0);
+
+        const themeScore = resonanceWeights.theme[theme] || 8;
+        const shellScore = resonanceWeights.shell[shellChoice] || 8;
+        const truthScore = resonanceWeights.truth[truth] || 4;
+        const biteScore = Math.min(12, Math.max(1, bite));
+        const refScore = Math.min(12, Math.max(1, ref));
+
+        const cadence = Math.abs(7 - refScore) < 2 ? 3 : 1;
+        const pilinBonus = truth === 'pilin' ? 2 : 0;
+        const total = themeScore + shellScore + truthScore + biteScore + cadence + pilinBonus;
+
+        const verdict = total >= 45
+          ? 'Legendary resonance—fire bars forged.'
+          : total >= 38
+            ? 'Strong pull—semiotic rods spinning hot.'
+            : 'Keep iterating—adjacency needs more heat.';
+
+        scoreOutput.textContent = `Score: ${total} · ${verdict}`;
+      });
+    }
   </script>
 </body>
 </html>
