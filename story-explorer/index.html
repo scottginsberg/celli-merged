@@ -970,6 +970,103 @@
     border:1px solid var(--muted);
     border-radius:4px;
   }
+  .mesh-panel {
+    margin-top:16px;
+    display:grid;
+    gap:12px;
+    grid-template-columns:2fr 1fr;
+    align-items:start;
+  }
+  .mesh-summary {
+    background:var(--panel);
+    border:1px solid var(--muted);
+    border-radius:var(--radius);
+    padding:12px;
+  }
+  .mesh-summary h3 {
+    margin:0 0 8px;
+    font-size:.85rem;
+    color:var(--accent);
+  }
+  .mesh-summary .stat-line {
+    display:flex;
+    justify-content:space-between;
+    font-size:.75rem;
+    padding:4px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .mesh-summary .stat-line:last-child { border-bottom:none; }
+  .mesh-adjacency {
+    background:var(--panel);
+    border:1px solid var(--muted);
+    border-radius:var(--radius);
+    padding:12px;
+  }
+  .mesh-adjacency h3 {
+    margin:0 0 8px;
+    font-size:.85rem;
+    color:var(--accent);
+  }
+  .mesh-adjacency .song-block {
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:8px;
+    margin-bottom:8px;
+  }
+  .mesh-adjacency .song-title { font-weight:700; font-size:.8rem; }
+  .mesh-adjacency .song-meta { font-size:.65rem; color:var(--sub); margin-bottom:4px; }
+  .mesh-adjacency .chip {
+    display:inline-block;
+    padding:2px 8px;
+    margin:2px;
+    background:var(--panel-alt);
+    border:1px solid var(--muted);
+    border-radius:999px;
+    font-size:.65rem;
+  }
+  .pulse-panel {
+    background:var(--panel);
+    border:1px solid var(--muted);
+    border-radius:var(--radius);
+    padding:12px;
+  }
+  .pulse-panel h3 {
+    margin:0 0 8px;
+    font-size:.85rem;
+    color:var(--accent);
+  }
+  .pulse-row {
+    display:flex;
+    gap:8px;
+    align-items:center;
+    margin-bottom:8px;
+  }
+  .pulse-chip {
+    padding:4px 10px;
+    border-radius:999px;
+    background:var(--panel-alt);
+    border:1px solid var(--accent);
+    font-size:.7rem;
+    font-weight:700;
+    color:var(--accent);
+  }
+  .pulse-bar {
+    flex:1;
+    height:8px;
+    border-radius:8px;
+    background:linear-gradient(90deg, rgba(255,215,50,0.15), rgba(255,215,50,0.6));
+    overflow:hidden;
+    position:relative;
+  }
+  .pulse-bar .fill {
+    position:absolute;
+    top:0; left:0;
+    height:100%;
+    background:var(--accent);
+    border-radius:8px;
+    transition:width .2s ease, box-shadow .2s ease;
+    box-shadow:0 0 8px rgba(255,215,50,0.4);
+  }
 
   /* UNIVERSE BUILD */
   .universe-build-view {
@@ -1353,6 +1450,7 @@
 
 <script src="nodes.js"></script>
 <script src="connections.js"></script>
+<script src="story-graph.js"></script>
 <script src="ai-evaluator-enhanced.js"></script>
 <script>
 // ==================== DATA MODEL ====================
@@ -4430,6 +4528,71 @@ const storyConnections = [
   }
 ];
 
+// Wiki-style articles that mirror the story bible reference pages
+const wikiArticles = [
+  {
+    id: "wiki_timescape_primer",
+    title: "Timescape Primer",
+    linkedNodes: ["series_now_presenting", "event_timepiece_discovery", "moment_first_meeting"],
+    summary: "Orientation guide for the Now Presenting anthology—how the Dunes of Yore, Current, and River Delta fit together."
+  },
+  {
+    id: "wiki_hero_register",
+    title: "Hero Register",
+    linkedNodes: ["char_penelope", "char_ziya", "char_mindy"],
+    summary: "Cast registry for teens who carry time, space, and psychic burdens across Loom canon."
+  },
+  {
+    id: "wiki_origin_point",
+    title: "Origin Point Lab Notes",
+    linkedNodes: ["event_origin_activation", "moment_xandy_freed", "artifact_origin_point"],
+    summary: "Recovered engineering notes that chart the activation chain for the Origin Point hoodie."
+  }
+];
+
+// Song drafts and releases connected to cast and canon beats
+const songDrafts = [
+  {
+    id: "song_now_presenting_theme",
+    title: "Now Presenting: Theme Pulse",
+    status: "release",
+    seriesId: "series_now_presenting",
+    timelineBeatIds: ["moment_wakeup", "moment_first_meeting"],
+    castIds: ["char_penelope", "deity_past", "deity_future"],
+    wikiArticleIds: ["wiki_timescape_primer"],
+    notes: "Final mix used for the Now Presenting opener and trailer interstitials."
+  },
+  {
+    id: "song_frame_of_reference",
+    title: "Frame of Reference Sketch",
+    status: "draft",
+    seriesId: "series_now_presenting",
+    timelineBeatIds: ["event_origin_activation", "moment_xandy_freed"],
+    castIds: ["char_ziya", "char_captain_x", "char_captain_y"],
+    wikiArticleIds: ["wiki_origin_point"],
+    notes: "Spatial motif demo that flanges stereo channels in time with the Origin Point hoodie pulses."
+  },
+  {
+    id: "song_mindiore_calls",
+    title: "Mindiore Calls",
+    status: "draft",
+    seriesId: "series_now_presenting",
+    timelineBeatIds: ["moment_manor_threshold"],
+    castIds: ["char_mindy", "char_grey_ma"],
+    wikiArticleIds: ["wiki_hero_register"],
+    notes: "Psychic blues line that bends in and out of the Flipside to mirror Mindy's perception drift."
+  }
+];
+
+// Shared graph store stitches the story bible to songs for mesh/graph views
+const storyGraphStore = new StoryGraphStore(
+  nodes,
+  storyConnections,
+  songDrafts,
+  wikiArticles
+);
+storyGraphStore.buildGraph();
+
 // Feedback annotations for generated content
 const feedbackAnnotations = [];
 
@@ -4585,6 +4748,7 @@ const relationships = [
 // ==================== STATE ====================
 let activeNodeId = null;
 let currentView = "node"; // "node" or "timeline"
+let meshPulseInterval = null;
 
 // ==================== FOLDER STRUCTURE ====================
 // Project-level organization with canon/non-canon separation
@@ -7679,9 +7843,24 @@ function selectNode(nodeId) {
 // ==================== RELATIONSHIP GRAPH ====================
 function renderGraphView() {
   const container = document.getElementById("graphViewContainer");
+  if (meshPulseInterval) {
+    clearInterval(meshPulseInterval);
+    meshPulseInterval = null;
+  }
+
   container.innerHTML = `
     <h2>Character Relationship Graph</h2>
     <div class="graph-canvas" id="graphCanvas"></div>
+    <div class="mesh-panel">
+      <div>
+        <div class="mesh-summary" id="meshSummary"></div>
+        <div class="mesh-adjacency" id="meshAdjacencyList"></div>
+      </div>
+      <div class="pulse-panel">
+        <h3>Now Presenting Pulse</h3>
+        <div id="pulseList"></div>
+      </div>
+    </div>
   `;
   
   const canvas = document.getElementById("graphCanvas");
@@ -7772,18 +7951,80 @@ function renderGraphView() {
         const dy = b2.y - b1.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         const angle = Math.atan2(dy, dx);
-        
+
         const line = document.createElement("div");
         line.className = "graph-line ally";
         line.style.width = dist + "px";
         line.style.left = b1.x + "px";
         line.style.top = b1.y + "px";
         line.style.transform = `rotate(${angle}rad)`;
-        
+
         canvas.insertBefore(line, canvas.firstChild);
       }
     });
   });
+
+  const renderMeshSummary = () => {
+    const summary = storyGraphStore.getSummary();
+    const summaryEl = document.getElementById("meshSummary");
+    summaryEl.innerHTML = `
+      <h3>Story Bible Graph</h3>
+      <div class="stat-line"><span>Cast Nodes</span><span>${summary.castCount}</span></div>
+      <div class="stat-line"><span>Timeline Beats</span><span>${summary.beatCount}</span></div>
+      <div class="stat-line"><span>Wiki Articles</span><span>${summary.wikiCount}</span></div>
+      <div class="stat-line"><span>Songs</span><span>${summary.songCount}</span></div>
+      <div class="stat-line"><span>Edges</span><span>${summary.edgeCount}</span></div>
+    `;
+  };
+
+  const renderAdjacencyList = () => {
+    const adjacencyEl = document.getElementById("meshAdjacencyList");
+    const adjacency = storyGraphStore.getStorySongCastAdjacency();
+
+    adjacencyEl.innerHTML = `
+      <h3>Story ↔ Song ↔ Cast</h3>
+      ${adjacency.map(bundle => `
+        <div class="song-block">
+          <div class="song-title">${bundle.song.title}</div>
+          <div class="song-meta">${bundle.song.status.toUpperCase()} • ${bundle.beats.length} beats • ${bundle.cast.length} cast</div>
+          <div class="song-meta">${bundle.song.notes || ''}</div>
+          <div style="margin-top:6px;">
+            ${bundle.beats.map(beat => `<span class="chip">${beat?.name || beat?.id}</span>`).join('')}
+          </div>
+          <div style="margin-top:4px;">
+            ${bundle.cast.map(cast => `<span class="chip">${cast?.name || cast?.id}</span>`).join('')}
+          </div>
+          <div style="margin-top:4px;">
+            ${bundle.wiki.map(article => `<span class="chip">${article?.title}</span>`).join('')}
+          </div>
+        </div>
+      `).join('')}
+    `;
+  };
+
+  const renderPulses = () => {
+    const list = document.getElementById("pulseList");
+    const pulses = storyGraphStore.getNowPresentingPulses();
+    list.innerHTML = pulses.map(pulse => {
+      const beatNames = pulse.beats.map(b => b?.name || b?.id).join(', ');
+      const castNames = pulse.cast.map(c => c?.name || c?.id).join(', ');
+      const pct = Math.round(pulse.intensity * 100);
+      return `
+        <div class="pulse-row">
+          <div class="pulse-chip">${pulse.song.title}</div>
+          <div class="pulse-bar"><div class="fill" style="width:${pct}%;"></div></div>
+        </div>
+        <div class="song-meta" style="margin:-6px 0 10px 0;">
+          Beats: ${beatNames} • Cast: ${castNames}
+        </div>
+      `;
+    }).join('');
+  };
+
+  renderMeshSummary();
+  renderAdjacencyList();
+  renderPulses();
+  meshPulseInterval = setInterval(renderPulses, 900);
 }
 
 // ==================== CHARACTER JOURNEY VISUALIZATION ====================
@@ -8232,6 +8473,11 @@ function switchView(view) {
   journeyContainer.classList.add("hidden");
   aiEvaluatorContainer.classList.add("hidden");
   universeBuildContainer.classList.add("hidden");
+
+  if (meshPulseInterval && view !== "graph") {
+    clearInterval(meshPulseInterval);
+    meshPulseInterval = null;
+  }
 
   if (view === "node") {
     nodeContainer.classList.remove("hidden");
