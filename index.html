@@ -5928,25 +5928,41 @@
             }
         };
 
-        document.addEventListener('DOMContentLoaded', () => {
-            argOnboarding.init();
-            loaderSequence.start();
+        const safeRun = (label, fn) => {
+            try {
+                fn();
+            } catch (error) {
+                console.error(`⚠️ ${label} failed:`, error);
+                const status = document.getElementById('loader-text');
+                if (status) status.innerText = 'Recapturing initialization, please standby…';
+            }
+        };
 
-            tokiDictionary.init();
-            registerHeatmap();
-            observeBlueprints();
-            initScanlineParallax();
-            ambient.startTooltips();
-            startIdleGlitch();
-            initInvoiceMode();
-            startGlitchBannerCycle();
-            dimeBacklog.bind();
-            geoQuiz.init();
-            grift.init();
-            manufacture.init();
-            valueGate.init();
-            greComments.mountAll();
-            bindHoverAudio();
+        // Last-resort failsafe to prevent the loader from sticking if early errors occur
+        setTimeout(() => {
+            const loader = document.getElementById('loader');
+            if (loader) loaderSequence.complete(true);
+        }, 12000);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            safeRun('loaderSequence.start', () => loaderSequence.start());
+            safeRun('argOnboarding.init', () => argOnboarding.init());
+
+            safeRun('tokiDictionary.init', () => tokiDictionary.init());
+            safeRun('registerHeatmap', () => registerHeatmap());
+            safeRun('observeBlueprints', () => observeBlueprints());
+            safeRun('initScanlineParallax', () => initScanlineParallax());
+            safeRun('ambient.startTooltips', () => ambient.startTooltips());
+            safeRun('startIdleGlitch', () => startIdleGlitch());
+            safeRun('initInvoiceMode', () => initInvoiceMode());
+            safeRun('startGlitchBannerCycle', () => startGlitchBannerCycle());
+            safeRun('dimeBacklog.bind', () => dimeBacklog.bind());
+            safeRun('geoQuiz.init', () => geoQuiz.init());
+            safeRun('grift.init', () => grift.init());
+            safeRun('manufacture.init', () => manufacture.init());
+            safeRun('valueGate.init', () => valueGate.init());
+            safeRun('greComments.mountAll', () => greComments.mountAll());
+            safeRun('bindHoverAudio', () => bindHoverAudio());
 
             const primeAudio = () => { audio.startDrone(); };
             document.addEventListener('pointerdown', primeAudio, { once: true });
@@ -5959,10 +5975,10 @@
         window.addEventListener('resize', () => sculptureEngine.resize());
 
         window.addEventListener('load', () => {
-            gallery.init();
-            archive.init();
-            barter.init();
-            loaderSequence.complete();
+            safeRun('gallery.init', () => gallery.init());
+            safeRun('archive.init', () => archive.init());
+            safeRun('barter.init', () => barter.init());
+            safeRun('loaderSequence.complete', () => loaderSequence.complete());
         });
     </script>
 </body>
