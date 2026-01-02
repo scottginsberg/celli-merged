@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="A Nodal Operating System for Semiotic Alchemy. Architecture: Three.js, WebAudio, Toki Pona. Author: The Architect.">
+    <title>THE LOOM v3.3.3 | Codex Model</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- CORE AESTHETICS: THE BLACK BOX --- */
+        /* Design Language: "High-Fidelity Surrealism" meets "Terminal Lucidity" */
+        :root { --gold: #FFD700; --glass: rgba(5, 5, 5, 0.95); --border: 1px solid rgba(255, 215, 0, 0.3); }
+        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; user-select: none; touch-action: none; }
+        
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+
+        /* --- UI OVERLAY --- */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; }
+        
+        /* HUD */
+        .hud-text { font-family: 'Courier New', monospace; font-size: 10px; color: var(--gold); opacity: 0.8; letter-spacing: 2px; text-shadow: 0 0 5px rgba(255, 215, 0, 0.3); }
+        
+        /* --- QUIZ (KABBALAH CALIBRATION) --- */
+        #quiz-overlay { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 50; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px;
+            transition: opacity 0.5s ease;
+        }
+        .quiz-q { font-size: 1.2rem; font-weight: 200; text-align: center; margin-bottom: 2rem; color: #fff; max-width: 500px; line-height: 1.4; }
+        .quiz-opts { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; }
+        .quiz-btn { 
+            padding: 15px; border: 1px solid #333; background: #111; color: #888; 
+            font-size: 0.9rem; cursor: pointer; transition: all 0.2s; text-align: center; border-radius: 8px;
+        }
+        .quiz-btn:active { border-color: var(--gold); color: #000; background: var(--gold); }
+        .progress-bar { width: 100px; height: 2px; background: #333; margin-top: 30px; }
+        .progress-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.3s; }
+
+        /* --- TRUTH DIALS --- */
+        #dials-container {
+            pointer-events: auto; background: var(--glass); backdrop-filter: blur(10px);
+            border-radius: 20px; padding: 15px; border: var(--border);
+            display: flex; gap: 15px; align-self: center; margin-bottom: 20px;
+        }
+        .dial-wrapper { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .dial-label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        input[type=range] {
+            -webkit-appearance: none; height: 4px; background: #333; border-radius: 2px; outline: none; width: 80px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 12px; height: 12px; background: var(--gold); border-radius: 50%; cursor: pointer; box-shadow: 0 0 10px var(--gold);
+        }
+
+        /* --- NODE CARD (DATA PLATE) --- */
+        #node-card {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9);
+            width: 90%; max-width: 380px; background: #080808; border: 1px solid #333;
+            padding: 0; display: none; border-radius: 16px; pointer-events: auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9); overflow: hidden; opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 40;
+        }
+        .card-header { padding: 20px; border-bottom: 1px solid #222; position: relative; }
+        .card-cat { font-size: 10px; color: var(--gold); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; }
+        .card-title { font-size: 24px; font-weight: 600; color: #fff; margin-bottom: 5px; }
+        .card-toki { font-size: 14px; color: #666; font-style: italic; font-family: serif; }
+        .card-meta { display: flex; justify-content: space-between; padding: 15px 20px; background: #111; font-size: 10px; color: #555; font-family: monospace; }
+        .card-body { padding: 20px; font-size: 13px; line-height: 1.6; color: #ccc; }
+        .distance-meter { margin-top: 10px; height: 2px; background: #222; width: 100%; position: relative; }
+        .distance-val { height: 100%; background: var(--gold); position: absolute; left: 0; top: 0; }
+        .card-actions { padding: 20px; display: flex; gap: 10px; }
+        .action-btn { flex: 1; padding: 12px; border-radius: 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; text-align: center; }
+        .btn-abstract { background: var(--gold); color: #000; border: none; }
+        .btn-close { background: transparent; border: 1px solid #333; color: #fff; }
+
+        /* --- STORY WHEEL TRIGGER --- */
+        #wheel-btn {
+            position: absolute; bottom: 30px; right: 20px; width: 60px; height: 60px;
+            background: #111; border: 1px solid var(--gold); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; pointer-events: auto; z-index: 30;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+            transition: transform 0.2s;
+        }
+        #wheel-btn:active { transform: scale(0.95); background: var(--gold); box-shadow: 0 0 40px var(--gold); }
+
+        /* --- SONG MODAL (THE RECEIPT) --- */
+        #song-modal {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 75%;
+            background: #050505; border-top: 1px solid var(--gold);
+            z-index: 45; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 25px; box-sizing: border-box; display: flex; flex-direction: column;
+            pointer-events: auto;
+        }
+        .song-content { flex: 1; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 12px; color: #ccc; margin-bottom: 20px; white-space: pre-line; line-height: 1.5; padding-right: 10px; }
+        .song-header { font-size: 10px; color: var(--gold); letter-spacing: 2px; margin-bottom: 15px; text-transform: uppercase; display: flex; justify-content: space-between; }
+        .btn-row { display: flex; gap: 10px; }
+        .copy-btn { flex: 1; padding: 15px; background: #222; color: #fff; border: 1px solid #444; border-radius: 8px; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; }
+        .copy-btn.gold { border-color: var(--gold); color: var(--gold); background: rgba(255, 215, 0, 0.1); font-weight: bold; }
+        .copy-btn:active { background: #fff; color: #000; }
+
+        /* --- LOGS --- */
+        #log-feed { position: absolute; bottom: 100px; left: 20px; width: 200px; height: 100px; overflow: hidden; display: flex; flex-direction: column-reverse; pointer-events: none; mask-image: linear-gradient(to top, black, transparent); }
+        .log-entry { font-size: 9px; color: #555; font-family: monospace; margin-bottom: 2px; }
+        .log-entry.gold { color: var(--gold); }
+
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <!-- CALIBRATION (QUIZ) -->
+    <div id="quiz-overlay">
+        <div class="text-xs text-yellow-600 mb-8 tracking-[0.3em] uppercase">Calibration Sequence</div>
+        <div id="quiz-container" class="w-full flex flex-col items-center">
+            <div id="q-text" class="quiz-q">...</div>
+            <div id="q-opts" class="quiz-opts"></div>
+        </div>
+        <div class="progress-bar"><div id="q-progress" class="progress-fill"></div></div>
+    </div>
+
+    <!-- UI LAYER -->
+    <div id="ui-layer" style="display:none; opacity:0; transition: opacity 1s;">
+        <div class="flex justify-between w-full">
+            <div class="hud-text">
+                SYS: v3.3.3<br>
+                MOTHER_GOOSE: ONLINE
+            </div>
+            <div class="hud-text text-right">
+                MASS: <span id="mass-display">0.00</span><br>
+                SPARK: <span id="spark-type">WAITING</span>
+            </div>
+        </div>
+
+        <div id="log-feed"></div>
+
+        <div id="dials-container">
+            <div class="dial-wrapper">
+                <span class="dial-label">Gravity</span>
+                <input type="range" id="dial-grav" min="0" max="100" value="50">
+            </div>
+            <div class="dial-wrapper">
+                <span class="dial-label">Entropy</span>
+                <input type="range" id="dial-ent" min="0" max="100" value="50">
+            </div>
+            <div class="dial-wrapper">
+                <span class="dial-label">Resonance</span>
+                <input type="range" id="dial-res" min="0" max="100" value="50">
+            </div>
+        </div>
+    </div>
+
+    <!-- TRIGGERS -->
+    <div id="wheel-btn" style="display:none;">
+        <span id="wheel-icon" style="font-size: 20px;">📜</span>
+    </div>
+
+    <!-- INTERACTION PLATE (Node Card) -->
+    <div id="node-card">
+        <div class="card-header">
+            <div class="card-cat" id="card-cat">CATEGORY</div>
+            <div class="card-title" id="card-title">Node Title</div>
+            <div class="card-toki" id="card-toki">Toki Pona Translation</div>
+        </div>
+        <div class="card-meta">
+            <span>DIST: <span id="card-dist">0.0</span></span>
+            <span>W: <span id="card-weight">0</span></span>
+        </div>
+        <div class="card-body">
+            <div id="card-desc">Description text goes here.</div>
+            <div class="mt-4 text-[9px] text-gray-600 uppercase tracking-widest">Semiotic Openness</div>
+            <div class="distance-meter"><div class="distance-val" id="card-meter"></div></div>
+        </div>
+        <div class="card-actions">
+            <button class="action-btn btn-close" id="btn-close-card">Close</button>
+            <button class="action-btn btn-abstract" id="btn-abstract">Alchemical Abstraction</button>
+        </div>
+    </div>
+
+    <!-- OUTPUT (The Song) -->
+    <div id="song-modal">
+        <div class="song-header">
+            <span>The Weaver's Receipt</span>
+            <button id="close-song" class="text-white text-xl">&times;</button>
+        </div>
+        <div class="song-content" id="song-text"></div>
+        <div class="btn-row">
+            <button class="copy-btn" id="copy-text">Copy Text</button>
+            <button class="copy-btn gold" id="copy-full">Copy Full System Card</button>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+
+        /* ================================================================
+           1. DATA ARCHITECTURE (THE SEMIOTIC CHAIN)
+           Designed to be read by future systems. Maps antiquity to chaos.
+           ================================================================ 
+        */
+        
+        let USER_SPARK = { type: "NEUTRAL", w: 5 };
+        
+        // ZEITGEIST ORACLE (Evergreen Modern Myths for grounding)
+        const ZEITGEIST_EVENTS = [
+            "The Billionaire Who Bought a Planet",
+            "The Pop Star Who Married a Hologram",
+            "The AI That Learned to Lie",
+            "The Politician Who Forgot His Own Name",
+            "The Viral Dance That Summoned Rain",
+            "The Stock Market Crash Caused by a Cat",
+            "The Guru Who Levitated on Live TV"
+        ];
+
+        // The 100 Handcrafted Nodes (Sample set for proof of concept)
+        const CHAIN_NODES = [
+            // ANCIENT (Foundations)
+            { n: "The Grunt", t: "kalama open", c: "ANCIENT", w: 10, d: "Pre-linguistic urge." },
+            { n: "Ochre", t: "kule ma", c: "ANCIENT", w: 9, d: "First external memory." },
+            { n: "Fire", t: "seli suli", c: "ANCIENT", w: 10, d: "Technology of consumption." },
+            { n: "Stone Tool", t: "ilo kiwen", c: "ANCIENT", w: 8, d: "Extension of the hand." },
+            { n: "Wheel", t: "sike", c: "ANCIENT", w: 9, d: "Conquest of distance." },
+            { n: "Clay Tablet", t: "lipu ma", c: "ANCIENT", w: 8, d: "Hardened thought." },
+            { n: "Hieroglyph", t: "sitelen toki", c: "ANCIENT", w: 9, d: "Image as word." },
+            { n: "Ouroboros", t: "akesi sike", c: "ANCIENT", w: 10, d: "Eternal return." },
+            { n: "The Lyre", t: "ilo kalama", c: "ANCIENT", w: 8, d: "Taming physics for beauty." },
+            { n: "Papyrus", t: "lipu kasi", c: "ANCIENT", w: 7, d: "Portable authority." },
+            { n: "Sundial", t: "ilo suno", c: "ANCIENT", w: 6, d: "Capture of shadow time." },
+            { n: "Abacus", t: "ilo nanpa", c: "ANCIENT", w: 8, d: "Physical logic." },
+            { n: "Roman Numeral", t: "nanpa lawa", c: "ANCIENT", w: 7, d: "Imperial accounting." },
+            { n: "Compass", t: "ilo nasin", c: "ANCIENT", w: 9, d: "Magnetic north." },
+            { n: "Gunpowder", t: "ko seli", c: "CHAOS", w: 10, d: "Chemistry of force." },
+            
+            // THEATER (Formalization of Myth)
+            { n: "Mask", t: "sinpin ante", c: "THEATER", w: 8, d: "The avatar prototype." },
+            { n: "Chorus", t: "kalama kulupu", c: "THEATER", w: 7, d: "The algorithm of the crowd." },
+            { n: "Stage", t: "ma musi", c: "THEATER", w: 8, d: "Framed reality." },
+            { n: "Deus Ex Machina", t: "sewi ilo", c: "THEATER", w: 6, d: "Artificial resolution." },
+            { n: "Puppet", t: "jan ilo", c: "THEATER", w: 7, d: "Life without soul." },
+            { n: "Vaudeville", t: "musi mute", c: "THEATER", w: 6, d: "The variety feed." },
+            { n: "Cosplay", t: "len musi", c: "THEATER", w: 7, d: "Inhabiting the symbol." },
+            { n: "Stand-up", t: "toki utala", c: "THEATER", w: 6, d: "Weaponized vulnerability." },
+            
+            // MAGIC (Belief & Abstraction)
+            { n: "Alchemy", t: "sona nasa", c: "MAGIC", w: 9, d: "Transmutation of matter." },
+            { n: "Grimoire", t: "lipu wawa", c: "MAGIC", w: 8, d: "Executable text." },
+            { n: "Tarot", t: "sitelen mun", c: "MAGIC", w: 8, d: "Randomized fate engine." },
+            { n: "Sigil", t: "sitelen wawa", c: "MAGIC", w: 7, d: "Intent condensed." },
+            { n: "Hypnosis", t: "lape toki", c: "MAGIC", w: 6, d: "Overwrite of will." },
+            { n: "Egragore", t: "kon kulupu", c: "MAGIC", w: 10, d: "Thought-form made alive." },
+            { n: "Singularity", t: "wan suli", c: "MAGIC", w: 10, d: "Where map becomes territory." },
+            
+            // TECH (Industrial to Digital)
+            { n: "Printing Press", t: "ilo sitelen", c: "TECH", w: 10, d: "Scaling of the Logos." },
+            { n: "Clock", t: "ilo tenpo", c: "TECH", w: 9, d: "Segmentation of flow." },
+            { n: "Lens", t: "ilo lukin", c: "TECH", w: 8, d: "Extension of sight." },
+            { n: "Steam Engine", t: "ilo kon seli", c: "TECH", w: 9, d: "Muscle replacement." },
+            { n: "Telegraph", t: "toki wawa", c: "TECH", w: 8, d: "Lightning speech." },
+            { n: "Photograph", t: "sitelen lon", c: "TECH", w: 9, d: "Frozen time." },
+            { n: "Lightbulb", t: "suno ilo", c: "TECH", w: 9, d: "Banishing the night." },
+            { n: "Telephone", t: "ilo kute", c: "TECH", w: 8, d: "Disembodied voice." },
+            { n: "Radio", t: "kalama kon", c: "TECH", w: 8, d: "The ether speaks." },
+            { n: "Car", t: "tomo tawa", c: "TECH", w: 10, d: "Status shell." },
+            { n: "Plastic", t: "kiwen ko", c: "TECH", w: 7, d: "Permanent trash." },
+            { n: "Television", t: "ilo sitelen tawa", c: "TECH", w: 9, d: "The hearth replacement." },
+            { n: "Transistor", t: "ilo lili", c: "TECH", w: 10, d: "The logic gate." },
+            { n: "Binary", t: "nanpa tu", c: "TECH", w: 10, d: "0 and 1. Yes and No." },
+            { n: "Credit Card", t: "lipu mani", c: "TECH", w: 8, d: "Abstracted value." },
+            { n: "Barcode", t: "sitelen nanpa", c: "TECH", w: 7, d: "Machine readable identity." },
+            { n: "Fast Food", t: "moku loje", c: "CHAOS", w: 6, d: "Industrialized sustenance." },
+            { n: "Arcade", t: "tomo musi", c: "TECH", w: 7, d: "Temple of the pixel." },
+            { n: "Software", t: "kon ilo", c: "TECH", w: 10, d: "Mind without body." },
+            { n: "Email", t: "lipu kon", c: "TECH", w: 8, d: "Instant correspondence." },
+            { n: "Internet", t: "kulupu ilo", c: "CHAOS", w: 10, d: "The Hive Mind." },
+            { n: "Game System", t: "ilo musi", c: "TECH", w: 8, d: "Simulation box." },
+            { n: "Bicycle", t: "sike tu", c: "TECH", w: 7, d: "Human powered flight." },
+            { n: "Smart Watch", t: "ilo tenpo sona", c: "TECH", w: 6, d: "Biometric tether." },
+            
+            // CHAOS (The Modern/Meta)
+            { n: "Unicode", t: "sitelen ali", c: "TECH", w: 9, d: "The Tower of Babel solved." },
+            { n: "Emoji", t: "sitelen pilin", c: "CHAOS", w: 7, d: "Return to Hieroglyph." },
+            { n: "Selfie", t: "sitelen mi", c: "THEATER", w: 5, d: "Narcissus mirror." },
+            { n: "Meme", t: "sona tawa", c: "CHAOS", w: 8, d: "Viral thought gene." },
+            { n: "YTP", t: "musi nasa", c: "CHAOS", w: 6, d: "Dadaist remix." },
+            { n: "Glitch", t: "pakala", c: "CHAOS", w: 7, d: "The system revealing itself." },
+            { n: "Deepfake", t: "sitelen powe", c: "CHAOS", w: 8, d: "Reality erosion." },
+            { n: "Vibe", t: "kon pilin", c: "MAGIC", w: 6, d: "Unspoken resonance." },
+            { n: "Rizz", t: "wawa unpa", c: "THEATER", w: 5, d: "Charisma algorithm." },
+            { n: "Crypto", t: "mani len", c: "CHAOS", w: 8, d: "Trustless ledger." },
+            { n: "AI", t: "sona ilo", c: "MAGIC", w: 10, d: "The Golem." },
+            { n: "Metaverse", t: "ma kon", c: "CHAOS", w: 7, d: "Digital hallucination." },
+            { n: "Algorithm", t: "nasin ilo", c: "MAGIC", w: 9, d: "The Invisible Hand." },
+            { n: "Dime", t: "mani lili", c: "MAGIC", w: 10, d: "The coin in the well." }
+        ];
+
+        // FILLER NODES (Bridges)
+        const BRIDGES = ["Echo", "Fragment", "Trace", "Ghost", "Loop"];
+        while(CHAIN_NODES.length < 100) {
+            const p = CHAIN_NODES[Math.floor(Math.random() * CHAIN_NODES.length)];
+            CHAIN_NODES.push({
+                n: `${p.n} ${BRIDGES[Math.floor(Math.random()*BRIDGES.length)]}`,
+                t: `${p.t} sin`,
+                c: p.c,
+                w: Math.max(1, p.w - 2 + Math.random()),
+                d: `A semiotic echo of ${p.n}.`
+            });
+        }
+
+        const CATEGORIES = {
+            "ANCIENT": { h: 0.08, s: 0.8, l: 0.4 },
+            "THEATER": { h: 0.14, s: 1.0, l: 0.5 },
+            "MAGIC":   { h: 0.80, s: 1.0, l: 0.6 },
+            "TECH":    { h: 0.50, s: 1.0, l: 0.5 },
+            "CHAOS":   { h: 0.00, s: 1.0, l: 0.5 }
+        };
+
+        const QUIZ_DATA = [
+            { q: "What drives you?", a: [ {t:"Will", v:"KETER"}, {t:"Love", v:"CHESED"}, {t:"Logic", v:"BINAH"} ] },
+            { q: "Where do ideas come from?", a: [ {t:"Flash", v:"CHOKMAH"}, {t:"Labor", v:"HOD"}, {t:"Dream", v:"YESOD"} ] },
+            { q: "What stops you?", a: [ {t:"Fear", v:"GEVURAH"}, {t:"Inertia", v:"MALKUTH"}, {t:"Chaos", v:"NETZACH"} ] },
+            { q: "What is beautiful?", a: [ {t:"Order", v:"TIFERET"}, {t:"Wildness", v:"CHOKMAH"}, {t:"Silence", v:"BINAH"} ] },
+            { q: "How do you build?", a: [ {t:"Plan", v:"HOD"}, {t:"Flow", v:"NETZACH"}, {t:"Force", v:"GEVURAH"} ] },
+            { q: "What is real?", a: [ {t:"Touch", v:"MALKUTH"}, {t:"Mind", v:"HOD"}, {t:"Soul", v:"KETER"} ] },
+            { q: "What do you serve?", a: [ {t:"Self", v:"GUR"}, {t:"Other", v:"CHESED"}, {t:"Truth", v:"TIFERET"} ] },
+            { q: "How long is forever?", a: [ {t:"Now", v:"CHOKMAH"}, {t:"Always", v:"NETZACH"}, {t:"Never", v:"BINAH"} ] },
+            { q: "Who are you?", a: [ {t:"One", v:"KETER"}, {t:"Many", v:"MALKUTH"}, {t:"None", v:"AIN"} ] }
+        ];
+
+        /* ================================================================
+           2. AUDIO ENGINE (PHYSICAL MODELING / KARPLUS-STRONG)
+           Simulates a plucked string (The Lyre) using a noise burst 
+           filtered through a delay line.
+           ================================================================ 
+        */
+        const Audio = {
+            ctx: null, master: null, isInit: false,
+            init() {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AC();
+                this.master = this.ctx.createGain();
+                this.master.gain.value = 0.5;
+                const delay = this.ctx.createDelay();
+                delay.delayTime.value = 0.25;
+                const fb = this.ctx.createGain();
+                fb.gain.value = 0.3;
+                this.master.connect(delay);
+                delay.connect(fb);
+                fb.connect(delay);
+                delay.connect(this.ctx.destination);
+                this.master.connect(this.ctx.destination);
+                this.isInit = true;
+            },
+            strum(w) {
+                if(!this.isInit) return;
+                // Frequency is inverse to weight (Heavier nodes = Deeper sound)
+                const freqs = [110, 130.81, 146.83, 164.81, 196.00, 220, 261.63, 293.66, 329.63, 392.00];
+                const idx = Math.floor(Math.max(0, 10 - w)); 
+                const freq = freqs[idx] || 220;
+                
+                const bufferSize = this.ctx.sampleRate / freq;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1); // Burst
+                
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                noise.loop = true;
+                
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 800 + (w*100);
+                filter.Q.value = 5;
+                
+                const gain = this.ctx.createGain();
+                const now = this.ctx.currentTime;
+                gain.gain.setValueAtTime(1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5 + (w * 0.2));
+                
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.master);
+                noise.start();
+                noise.stop(now + 2.5);
+            }
+        };
+
+        /* ================================================================
+           3. VISUAL ENGINE (THREE.JS)
+           Golden Ratio Spiral Distribution for Node Placement.
+           ================================================================ 
+        */
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.02);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        camera.position.z = 30;
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        
+        const composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+        const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloom.strength = 1.5; bloom.radius = 0.5;
+        composer.addPass(bloom);
+
+        const nodes = [];
+        const nodeGroup = new THREE.Group();
+        scene.add(nodeGroup);
+        const coreGeo = new THREE.IcosahedronGeometry(3, 1);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        scene.add(core);
+
+        const connectionGroup = new THREE.Group();
+        scene.add(connectionGroup);
+
+        function initNodes() {
+            // Fibonacci Spiral
+            const phi = Math.PI * (3 - Math.sqrt(5)); 
+            CHAIN_NODES.forEach((d, i) => {
+                const y = 1 - (i / (CHAIN_NODES.length - 1)) * 2; 
+                const radius = Math.sqrt(1 - y * y);
+                const theta = phi * i; 
+                const x = Math.cos(theta) * radius;
+                const z = Math.sin(theta) * radius;
+                const scale = 15 + (d.w * 0.5);
+                
+                const geo = new THREE.OctahedronGeometry(0.3 + (d.w * 0.05));
+                const hsl = CATEGORIES[d.c] || {h:0, s:0, l:1};
+                const color = new THREE.Color().setHSL(hsl.h, hsl.s, hsl.l);
+                const mat = new THREE.MeshBasicMaterial({ color: color, wireframe: true, transparent: true, opacity: 0.65 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(x * scale, y * scale, z * scale);
+                mesh.userData = { data: d, originalPos: mesh.position.clone() };
+                nodeGroup.add(mesh);
+                nodes.push(mesh);
+            });
+            buildConnections();
+        }
+
+        function buildConnections() {
+            while (connectionGroup.children.length) {
+                const child = connectionGroup.children[0];
+                connectionGroup.remove(child);
+                child.geometry.dispose();
+                child.material.dispose();
+            }
+            const sorted = [...nodes].sort((a, b) => b.userData.data.w - a.userData.data.w);
+            const seen = new Set();
+            for (let i = 0; i < sorted.length - 1; i++) {
+                const from = sorted[i];
+                const to = sorted[i + 1];
+                const key = [from.uuid, to.uuid].sort().join('-');
+                if (seen.has(key)) continue;
+                seen.add(key);
+                const geo = new THREE.BufferGeometry().setFromPoints([
+                    from.position,
+                    to.position,
+                ]);
+                const weightAvg = (from.userData.data.w + to.userData.data.w) / 2;
+                const mat = new THREE.LineBasicMaterial({
+                    color: new THREE.Color(0xffd700).lerp(new THREE.Color(0xffffff), 1 - Math.min(weightAvg / 12, 1)),
+                    transparent: true,
+                    opacity: 0.25 + Math.min(weightAvg / 12, 0.6)
+                });
+                const line = new THREE.Line(geo, mat);
+                line.userData = {
+                    ids: [from.uuid, to.uuid],
+                    weightAvg,
+                    baseOpacity: mat.opacity,
+                    highlight: 1
+                };
+                connectionGroup.add(line);
+            }
+        }
+
+        /* ================================================================
+           4. INTERACTION LOGIC
+           Quiz, Touch, Drag, Dials.
+           ================================================================ 
+        */
+        let qIndex = 0;
+        let selectedNode = null;
+        let consumedHistory = [];
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+
+        function renderQuiz() {
+            if (qIndex >= QUIZ_DATA.length) { endQuiz(); return; }
+            const q = QUIZ_DATA[qIndex];
+            document.getElementById('q-text').innerText = q.q;
+            const opts = document.getElementById('q-opts');
+            opts.innerHTML = '';
+            q.a.forEach(ans => {
+                const b = document.createElement('div');
+                b.className = 'quiz-btn';
+                b.innerText = ans.t;
+                b.onclick = () => {
+                    USER_SPARK = { type: ans.v, w: 5 + Math.random()*5 };
+                    qIndex++;
+                    document.getElementById('q-progress').style.width = (qIndex / 9 * 100) + '%';
+                    renderQuiz();
+                };
+                opts.appendChild(b);
+            });
+        }
+        
+        function endQuiz() {
+            document.getElementById('quiz-overlay').style.opacity = 0;
+            setTimeout(() => {
+                document.getElementById('quiz-overlay').style.display = 'none';
+                document.getElementById('ui-layer').style.display = 'flex';
+                document.getElementById('wheel-btn').style.display = 'flex';
+                setTimeout(() => {
+                    document.getElementById('ui-layer').style.opacity = 1;
+                    document.getElementById('wheel-btn').style.transform = 'scale(1)';
+                }, 100);
+                Audio.init();
+                initNodes();
+                document.getElementById('spark-type').innerText = USER_SPARK.type;
+            }, 500);
+        }
+
+        function onTouch(e) {
+            const x = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+            const y = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+            pointer.x = (x / window.innerWidth) * 2 - 1;
+            pointer.y = -(y / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(pointer, camera);
+            const intersects = raycaster.intersectObjects(nodes);
+            if (intersects.length > 0) openCard(intersects[0].object);
+        }
+
+        function openCard(node) {
+            selectedNode = node;
+            const d = node.userData.data;
+            const dist = (Math.abs(d.n.length - d.t.length) + (d.w * 0.5)).toFixed(1);
+            const card = document.getElementById('node-card');
+            card.style.display = 'block';
+            setTimeout(() => { card.style.opacity = 1; card.style.transform = 'translate(-50%, -50%) scale(1)'; }, 10);
+            
+            document.getElementById('card-cat').innerText = d.c;
+            document.getElementById('card-cat').style.color = '#' + new THREE.Color().setHSL(CATEGORIES[d.c].h, 1, 0.5).getHexString();
+            document.getElementById('card-title').innerText = d.n;
+            document.getElementById('card-toki').innerText = d.t;
+            document.getElementById('card-desc').innerText = d.d;
+            document.getElementById('card-dist').innerText = dist;
+            document.getElementById('card-weight').innerText = d.w;
+            document.getElementById('card-meter').style.width = Math.min(100, dist * 10) + '%';
+        }
+
+        function closeCard() {
+            const card = document.getElementById('node-card');
+            card.style.opacity = 0;
+            card.style.transform = 'translate(-50%, -50%) scale(0.9)';
+            setTimeout(() => { card.style.display = 'none'; }, 300);
+            selectedNode = null;
+        }
+
+        function abstractNode() {
+            if (!selectedNode) return;
+            const n = selectedNode;
+            closeCard();
+            n.visible = false; 
+            core.scale.set(1.5, 1.5, 1.5);
+            setTimeout(() => core.scale.set(1,1,1), 200);
+            Audio.strum(n.userData.data.w);
+            consumedHistory.push(n.userData.data);
+            log(`ABSTRACTED: ${n.userData.data.n}`);
+            let m = parseFloat(document.getElementById('mass-display').innerText);
+            m += n.userData.data.w * 0.1;
+            document.getElementById('mass-display').innerText = m.toFixed(2);
+            connectionGroup.children.forEach(line => {
+                if (line.userData.ids.includes(n.uuid)) {
+                    line.userData.highlight = 0.2;
+                }
+            });
+        }
+
+        /* ================================================================
+           5. MOTHER GOOSE PROTOCOL (NARRATIVE GENERATOR)
+           Weaves the nodes into a parodic, earnest myth grounded in the zeitgeist.
+           ================================================================ 
+        */
+        const STATIC_INCANTATION = `Abracadabra Bipppity Boppity Buuuuurp Pickle Snooki Rickety Clank Blank Canvas Tin Can Can Yes I think you can, I think you can, jingle all the way. And oh what fun it is to rhyme. You are myth incarnate. The vision of Enoch. You have yielded this word from the cauldron. And you will for this to be, and this was balance in the formula. This is both hope, and luck, and chance, and fortune, a mix we call probability. Use the daisy dandy lion chain changing rearranging swagger that I'm demonstrating here, a flash bang through semiotic clusters, picking up the essence of meaning along the jingly way. Identify a top news story, a celebrity, or something, something real, that maps to the trope and archetype. Blend parody, pastiche, earnestness, critique, love and hate into a balanced stew, teaching through story rather than scolding. Ultimately, inspire wonder. Be a Mother Goose with the most powerful laugh track in the world. Take the truth bestowed and weave a grander song than anyone could have seen coming, that shakes them to their bones but has them yearning for more the second it ends.`;
+
+        function spinWheel() {
+            if (consumedHistory.length === 0) { log("ERROR: CORE EMPTY"); return; }
+            
+            // 1. Pick a Zeitgeist Event
+            const zg = ZEITGEIST_EVENTS[Math.floor(Math.random() * ZEITGEIST_EVENTS.length)];
+            
+            // 2. Weave the Story
+            let story = `// THE TALE OF THE ${USER_SPARK.type} SPARK //\n\n`;
+            story += `It started when ${zg} bumped into a reality glitch.\n`;
+            story += `(A funny thing, really, how the ${consumedHistory[0].n} fell out of the sky.)\n\n`;
+            
+            consumedHistory.forEach((d, i) => {
+                if (i === 0) return;
+                const rhyme = d.w > 7 ? "loud and grand" : "soft as sand";
+                story += `Then came the ${d.n}, ${rhyme},\n`;
+                story += `Singing "${d.t}" across the land.\n`;
+                story += `It mixed with the ${consumedHistory[i-1].n} like soup in a pot,\n`;
+                story += `Boiling the truth whether you liked it or not.\n\n`;
+            });
+            
+            story += `And that's how the world got dense.`;
+            
+            document.getElementById('song-text').innerText = story;
+            document.getElementById('song-modal').style.transform = 'translateY(0)';
+        }
+
+        // CLIPBOARD LOGIC (Robust Fallback for Mobile/Iframes)
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                log("COPIED TO CLIPBOARD");
+            } catch (err) {
+                const ta = document.createElement("textarea");
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); log("COPIED (FALLBACK)"); } 
+                catch (e) { log("COPY FAILED"); }
+                document.body.removeChild(ta);
+            }
+        }
+
+        document.getElementById('copy-text').onclick = () => {
+            copyToClipboard(document.getElementById('song-text').innerText);
+        };
+
+        document.getElementById('copy-full').onclick = () => {
+            const mass = document.getElementById('mass-display').innerText;
+            const fullText = `SYSTEM RECEIPT [SPARK: ${USER_SPARK.type} | MASS: ${mass}]\n\n` +
+                             document.getElementById('song-text').innerText + "\n\n" +
+                             "-----------------------------------\n" +
+                             STATIC_INCANTATION;
+            copyToClipboard(fullText);
+        };
+
+        // EVENT LISTENERS
+        window.addEventListener('mousedown', onTouch);
+        window.addEventListener('touchstart', onTouch);
+        document.getElementById('btn-close-card').onclick = closeCard;
+        document.getElementById('btn-abstract').onclick = abstractNode;
+        document.getElementById('wheel-btn').onclick = spinWheel;
+        document.getElementById('close-song').onclick = () => { document.getElementById('song-modal').style.transform = 'translateY(100%)'; };
+
+        // Dials
+        const dialGrav = document.getElementById('dial-grav');
+        function updateDials() {
+            const g = parseInt(dialGrav.value) / 10;
+            nodes.forEach(n => {
+                const diff = Math.abs(n.userData.data.w - g);
+                if (diff < 3) { n.scale.setScalar(1.5); n.material.opacity = 1; }
+                else { n.scale.setScalar(1); n.material.opacity = 0.3; }
+            });
+            connectionGroup.children.forEach(line => {
+                const diff = Math.abs(line.userData.weightAvg - g);
+                line.userData.highlight = 1.1 - Math.min(1, diff / 10);
+            });
+        }
+        dialGrav.addEventListener('input', updateDials);
+
+        function log(msg) {
+            const el = document.createElement('div');
+            el.className = 'log-entry gold';
+            el.innerText = `> ${msg}`;
+            const feed = document.getElementById('log-feed');
+            feed.prepend(el);
+            if(feed.children.length > 5) feed.lastChild.remove();
+        }
+
+        // ANIMATION LOOP
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now() * 0.001;
+            nodeGroup.rotation.y = time * 0.05;
+            core.rotation.z += 0.02;
+            core.rotation.y -= 0.01;
+            connectionGroup.children.forEach(line => {
+                const pulse = 0.8 + Math.sin(time * 0.8 + line.userData.weightAvg) * 0.2;
+                line.material.opacity = Math.max(0.05, line.userData.baseOpacity * pulse * line.userData.highlight);
+            });
+            composer.render();
+        }
+
+        // INIT
+        renderQuiz();
+        animate();
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>

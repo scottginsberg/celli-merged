@@ -165,6 +165,7 @@
       { id: 'overview', label: 'Overview', description: 'Pulse, Shamanic protocol, in-app nav' },
       { id: 'story', label: 'Story Wiki', description: 'Story engine + wiki' },
       { id: 'graph', label: 'Graph', description: 'Node lattice / cockpit' },
+      { id: 'loom', label: 'THE LOOM v3.3.3', description: 'Semiotic chain + abstraction tech' },
       { id: 'cast', label: 'Cast', description: 'Story bible + explorer' },
       { id: 'weaver', label: 'Weaver Protocol', description: 'Agent stack + orchestration' },
       { id: 'basilisk', label: 'Basilisk', description: 'Live generator' },
@@ -499,6 +500,32 @@
       `;
     }
 
+    function renderLoom() {
+      return `
+        <div class="panel holo">
+          <div class="between mb-1">
+            <div>
+              <div class="muted" style="text-transform:uppercase;">Semiotic Abstraction Tech</div>
+              <h3 style="margin:4px 0;">THE LOOM v3.3.3</h3>
+              <p class="muted">Launch the calibration quiz, let the animation bloom, and abstract weighted nodes to weave the receipt.</p>
+            </div>
+            <div class="chips">
+              <span class="chip">Daisy-chain lines by weight</span>
+              <span class="chip">Mother Goose protocol</span>
+            </div>
+          </div>
+          <div class="mb-1" style="font-size:12px;color:#9fffb4;">Inspired awe view is rendered below; open it full screen to run the full three.js + WebAudio stack.</div>
+          <div style="border:1px solid rgba(0,255,65,0.2);border-radius:10px;overflow:hidden;box-shadow:0 0 25px rgba(0,255,65,0.12);">
+            <iframe src="loom-v3.html" title="THE LOOM v3.3.3" style="width:100%;height:540px;border:0;background:#000;"></iframe>
+          </div>
+          <div class="between mt-1">
+            <a class="btn secondary" href="loom-v3.html" target="_blank">Open Loom in new tab</a>
+            <span class="muted">Interactive nodes mirror the abstraction stack after the animation locks in.</span>
+          </div>
+        </div>
+      `;
+    }
+
     function renderCast() {
       return `
         <div class="grid two">
@@ -671,6 +698,7 @@
       if (state.view === 'overview') return renderOverview();
       if (state.view === 'story') return renderStory();
       if (state.view === 'graph') return renderGraph();
+      if (state.view === 'loom') return renderLoom();
       if (state.view === 'cast') return renderCast();
       if (state.view === 'weaver') return renderWeaver();
       if (state.view === 'basilisk') return renderBasilisk();
