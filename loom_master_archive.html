@@ -22,6 +22,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      padding: clamp(12px, 3vw, 24px);
     }
     .loom-curtain {
       position: absolute;
@@ -75,12 +76,12 @@
     }
     #loom-archive-shell { position: relative; width: 100%; height: 100%; }
     #canvas-container { position: absolute; inset: 0; z-index: 1; }
-    #ui-layer { position: absolute; inset: 0; z-index: 10; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    #ui-layer { position: absolute; inset: 0; z-index: 10; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; text-align: center; }
     .vignette-text { font-size: clamp(1.5rem, 2vw + 1rem, 3.2rem); font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 0.22em; text-shadow: 0 0 18px rgba(255,255,255,0.9); text-align: center; opacity: 0; transition: opacity 0.6s ease; mix-blend-mode: difference; }
     .instruction-text { margin-top: 16px; font-size: 0.8rem; color: #FFD700; letter-spacing: 0.2rem; opacity: 0; animation: pulse 1s infinite; text-align: center; }
-    #start-screen { position: absolute; inset: 0; background: rgba(0,0,0,0.8); z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; transition: opacity 0.9s ease; }
+    #start-screen { position: absolute; inset: 0; background: rgba(0,0,0,0.82); z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; transition: opacity 0.9s ease; padding: clamp(16px, 5vw, 28px); text-align: center; }
     #start-screen.hidden { opacity: 0; pointer-events: none; }
-    .btn { border: 1px solid #fff; color: #fff; padding: 18px 46px; font-size: 1rem; cursor: pointer; background: transparent; text-transform: uppercase; letter-spacing: 0.38em; pointer-events: auto; transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; }
+    .btn { border: 1px solid #fff; color: #fff; padding: 18px 46px; font-size: 1rem; cursor: pointer; background: transparent; text-transform: uppercase; letter-spacing: 0.38em; pointer-events: auto; transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; width: min(360px, 100%); }
     .btn:hover { background: #fff; color: #000; box-shadow: 0 0 30px #fff; }
     #mythos-container { position: absolute; top: 52%; left: 50%; transform: translate(-50%, -50%); width: 90%; text-align: center; display: none; }
     .myth-line { font-size: 1.1rem; color: #FF0055; font-weight: bold; margin: 5px 0; text-shadow: 2px 2px 0px #00FFFF; opacity: 0; animation: flashIn 0.2s forwards; }
@@ -90,6 +91,19 @@
     @keyframes foldFlow { 0% { transform: translateX(0); } 50% { transform: translateX(6px); } 100% { transform: translateX(-6px); } }
     @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 18px rgba(255,255,255,0.18); } 50% { box-shadow: 0 0 38px rgba(255,255,255,0.48); } }
     .closing-link { position: absolute; top: 14px; right: 14px; z-index: 30; pointer-events: auto; }
+
+    @media (max-width: 768px) {
+      body, html { overflow: hidden; }
+      #loom-curtain-text { letter-spacing: 0.24em; padding: 12px 16px; font-size: clamp(1rem, 4vw + 0.6rem, 2.2rem); }
+      #loom-curtain-sub { font-size: 0.68rem; letter-spacing: 0.16em; bottom: 9%; }
+      #start-screen h1 { font-size: clamp(1.4rem, 5vw + 0.6rem, 2.1rem); }
+      #start-screen div { font-size: 0.75rem; letter-spacing: 0.25em; }
+      .btn { padding: 14px 20px; font-size: 0.92rem; letter-spacing: 0.3em; width: min(320px, 92vw); }
+      .vignette-text { font-size: clamp(1.2rem, 5vw + 0.6rem, 2.4rem); }
+      .instruction-text { font-size: 0.75rem; letter-spacing: 0.14em; }
+      #ui-layer { padding: 16px; }
+      #mythos-container { top: 55%; }
+    }
   </style>
   <script type="importmap">
     { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
@@ -496,12 +510,17 @@
       });
     }
 
+    let curtainOpened = false;
+
     function openCurtainAndStart() {
+      if (curtainOpened) return;
+      curtainOpened = true;
       const left = document.getElementById('loom-curtain-left');
       const right = document.getElementById('loom-curtain-right');
       const stage = document.getElementById('loom-curtain-stage');
       const text = document.getElementById('loom-curtain-text');
       const sub = document.getElementById('loom-curtain-sub');
+      const startScreen = document.getElementById('start-screen');
       setTimeout(() => {
         left?.classList.add('open-left');
         right?.classList.add('open-right');
@@ -509,8 +528,8 @@
         sub.style.opacity = '0';
         setTimeout(() => {
           stage?.classList.add('hidden');
+          stage.style.pointerEvents = 'none';
           initExperience();
-          const startScreen = document.getElementById('start-screen');
           startScreen?.classList.add('hidden');
           CURRENT_STATE = STATE.FALL;
           Audio.init();
@@ -522,12 +541,10 @@
     document.getElementById('start-btn').addEventListener('click', () => {
       Audio.init();
       Audio.resume();
-      document.getElementById('start-screen').classList.add('hidden');
-      CURRENT_STATE = STATE.FALL;
+      openCurtainAndStart();
     });
 
     document.addEventListener('pointerdown', () => Audio.resume(), { once: true });
-    openCurtainAndStart();
   </script>
 </body>
 </html>
