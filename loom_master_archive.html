@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loomworks Master Archive</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --iron-bg: #050505;
+      --accent-magenta: #ff008c;
+      --accent-cyan: #00fff7;
+    }
+    * { box-sizing: border-box; }
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--iron-bg); color: #fff; font-family: 'Courier New', monospace; overflow: hidden; }
+    #loom-curtain-stage {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: radial-gradient(circle at 50% 20%, rgba(255,255,255,0.08), transparent 36%), #050505;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .loom-curtain {
+      position: absolute;
+      top: 0;
+      width: 55%;
+      height: 100%;
+      background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08), transparent 40%),
+                  linear-gradient(120deg, rgba(205,43,43,0.9), rgba(40,0,0,0.95));
+      background-size: 140% 140%, 100% 100%;
+      filter: drop-shadow(0 0 30px rgba(0,0,0,0.8));
+      transform-origin: top;
+      animation: sway 6s ease-in-out infinite;
+      box-shadow: inset -12px 0 24px rgba(0,0,0,0.5), inset 12px 0 24px rgba(0,0,0,0.5);
+    }
+    .loom-curtain::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(90deg, rgba(0,0,0,0.2), rgba(0,0,0,0.2) 12px, transparent 12px, transparent 24px);
+      mix-blend-mode: multiply;
+      opacity: 0.5;
+      animation: foldFlow 4.5s ease-in-out infinite;
+    }
+    .loom-curtain.left { left: 0; }
+    .loom-curtain.right { right: 0; }
+    .loom-curtain.open-left { transform: translateX(-110%); transition: transform 1.4s ease-in-out; }
+    .loom-curtain.open-right { transform: translateX(110%); transition: transform 1.4s ease-in-out; }
+    #loom-curtain-text {
+      position: relative;
+      z-index: 2;
+      font-size: clamp(1.2rem, 2vw + 1rem, 3rem);
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      padding: 14px 22px;
+      background: rgba(0,0,0,0.5);
+      border: 2px solid #fff;
+      box-shadow: 0 0 30px rgba(255,255,255,0.2);
+      animation: pulseGlow 1.6s ease-in-out infinite;
+      text-align: center;
+      text-shadow: 0 0 12px rgba(255,255,255,0.8);
+    }
+    #loom-curtain-sub {
+      position: absolute;
+      bottom: 7%;
+      width: 100%;
+      text-align: center;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      opacity: 0.8;
+      font-size: 0.75rem;
+    }
+    #loom-archive-shell { position: relative; width: 100%; height: 100%; }
+    #canvas-container { position: absolute; inset: 0; z-index: 1; }
+    #ui-layer { position: absolute; inset: 0; z-index: 10; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .vignette-text { font-size: clamp(1.5rem, 2vw + 1rem, 3.2rem); font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 0.22em; text-shadow: 0 0 18px rgba(255,255,255,0.9); text-align: center; opacity: 0; transition: opacity 0.6s ease; mix-blend-mode: difference; }
+    .instruction-text { margin-top: 16px; font-size: 0.8rem; color: #FFD700; letter-spacing: 0.2rem; opacity: 0; animation: pulse 1s infinite; text-align: center; }
+    #start-screen { position: absolute; inset: 0; background: rgba(0,0,0,0.8); z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; transition: opacity 0.9s ease; }
+    #start-screen.hidden { opacity: 0; pointer-events: none; }
+    .btn { border: 1px solid #fff; color: #fff; padding: 18px 46px; font-size: 1rem; cursor: pointer; background: transparent; text-transform: uppercase; letter-spacing: 0.38em; pointer-events: auto; transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; }
+    .btn:hover { background: #fff; color: #000; box-shadow: 0 0 30px #fff; }
+    #mythos-container { position: absolute; top: 52%; left: 50%; transform: translate(-50%, -50%); width: 90%; text-align: center; display: none; }
+    .myth-line { font-size: 1.1rem; color: #FF0055; font-weight: bold; margin: 5px 0; text-shadow: 2px 2px 0px #00FFFF; opacity: 0; animation: flashIn 0.2s forwards; }
+    @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+    @keyframes flashIn { to { opacity: 1; } }
+    @keyframes sway { 0% { transform: translateX(0) rotate(-0.4deg); } 50% { transform: translateX(-1%) rotate(0.6deg); } 100% { transform: translateX(0.5%) rotate(-0.2deg); } }
+    @keyframes foldFlow { 0% { transform: translateX(0); } 50% { transform: translateX(6px); } 100% { transform: translateX(-6px); } }
+    @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 18px rgba(255,255,255,0.18); } 50% { box-shadow: 0 0 38px rgba(255,255,255,0.48); } }
+    .closing-link { position: absolute; top: 14px; right: 14px; z-index: 30; pointer-events: auto; }
+  </style>
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+  </script>
+</head>
+<body>
+  <a href="index.html" class="closing-link text-xs font-mono tracking-[0.3em] uppercase bg-black/60 border border-white px-3 py-2 hover:bg-white hover:text-black transition-colors">Return</a>
+  <div id="loom-curtain-stage">
+    <div id="loom-curtain-left" class="loom-curtain left"></div>
+    <div id="loom-curtain-right" class="loom-curtain right"></div>
+    <div id="loom-curtain-text">Now Presenting...</div>
+    <div id="loom-curtain-sub">Loomworks Master Archive</div>
+  </div>
+  <div id="loom-archive-shell">
+    <div id="canvas-container"></div>
+    <div id="start-screen">
+      <h1 class="text-3xl text-white mb-2 tracking-[0.45em] text-center">LOOMWORKS v6.0</h1>
+      <div class="text-xs text-gray-400 tracking-[0.5em] mb-8 text-center">THE BEGINNING IS THE END</div>
+      <button id="start-btn" class="btn">INITIATE</button>
+    </div>
+    <div id="ui-layer">
+      <div id="main-text" class="vignette-text"></div>
+      <div id="sub-text" class="instruction-text"></div>
+      <div id="mythos-container"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+
+    const STATE = { FALL: 0, LANYARD: 1, BOOTH: 2, TRANSITION: 3, MATRYOSHKA: 4, ROOM: 5 };
+    const TEXTS = [
+      { t: 'SHE FELL FROM THE BEANSTALK', s: 'CLICK TO GRASP', c: 0x00ff00 },
+      { t: 'AGENT OF LOOMWORKS', s: 'HOVER TO SCAN', c: 0x00ffff },
+      { t: 'TICKET BOOTH CLEANER', s: 'CLICK TO WIPE', c: 0xff00ff },
+      { t: 'THE SCRIPT IS REAL', s: 'WAIT...', c: 0xffffff }
+    ];
+    const DOLLS = [
+      { id: 'SULTAN', color: 0xffd700, text: 'THE SULTAN', sound: 100 },
+      { id: 'ARCHITECT', color: 0x00ffff, text: 'THE ARCHITECT', sound: 150 },
+      { id: 'WATCHER', color: 0xff00ff, text: 'THE WATCHER', sound: 200 },
+      { id: 'BROTHER', color: 0xff4500, text: 'UNCII', sound: 300 },
+      { id: 'CORE', color: 0xffffff, text: 'NOWAY JOSÉ', sound: 600 }
+    ];
+    const MYTHOS = [
+      'DIMA LANE', 'THE LANTERN', 'BOOTH BABE TO MYTH', 'PENNY\'S LOOP',
+      'THE ZEITGEIST\'S FAILURE', 'THE BUBBLE AROUND TRUTH',
+      'THE 9x11 WOMB', 'ENTROPY\'S LAVA LAMP', 'THE BEGINNING IS THE END'
+    ];
+
+    const Audio = {
+      ctx: null,
+      master: null,
+      windNode: null,
+      init() {
+        if (this.ctx) return;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AC();
+        this.master = this.ctx.createGain();
+        this.master.gain.value = 0.35;
+        this.master.connect(this.ctx.destination);
+      },
+      resume() {
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+      },
+      playWind() {
+        if (!this.ctx) return;
+        const bSize = this.ctx.sampleRate * 2;
+        const buf = this.ctx.createBuffer(1, bSize, this.ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < bSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buf;
+        noise.loop = true;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 420;
+        noise.connect(filter);
+        filter.connect(this.master);
+        noise.start();
+        this.windNode = noise;
+      },
+      playPing(freq) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
+        osc.connect(gain);
+        gain.connect(this.master);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.5);
+      },
+      playLayer(freq) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.value = freq;
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.3, this.ctx.currentTime + 0.5);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2);
+        osc.connect(gain);
+        gain.connect(this.master);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 2);
+      },
+      playRumble() {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        osc.frequency.value = 40;
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.8, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 8);
+        osc.connect(gain);
+        gain.connect(this.master);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 8);
+      }
+    };
+
+    let CURRENT_STATE = STATE.FALL;
+    let fallSpeed = 0.5;
+    let cleanLevel = 0;
+    let dollIndex = 0;
+    let progress = 0;
+    let started = false;
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x000000, 0.02);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.6, 0.4, 0.85);
+    bloom.strength = 1.6;
+    bloom.radius = 0.55;
+    composer.addPass(bloom);
+
+    const stalkGroup = new THREE.Group();
+    const lanyardGroup = new THREE.Group();
+    const boothGroup = new THREE.Group();
+    const dollGroup = new THREE.Group();
+    const roomGroup = new THREE.Group();
+    scene.add(stalkGroup, lanyardGroup, boothGroup, dollGroup, roomGroup);
+    lanyardGroup.visible = boothGroup.visible = dollGroup.visible = roomGroup.visible = false;
+
+    const sGeo = new THREE.BufferGeometry();
+    const sPos = new Float32Array(1000 * 3);
+    for (let i = 0; i < 1000; i++) {
+      const t = i * 0.1;
+      const idx = i * 3;
+      sPos[idx] = Math.cos(t) * 5;
+      sPos[idx + 1] = -i * 0.5;
+      sPos[idx + 2] = Math.sin(t) * 5;
+    }
+    sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
+    const sMat = new THREE.PointsMaterial({ color: 0x00ff00, size: 0.2 });
+    stalkGroup.add(new THREE.Points(sGeo, sMat));
+    const leaves = [];
+    for (let i = 0; i < 10; i++) {
+      const mesh = new THREE.Mesh(new THREE.ConeGeometry(1, 3, 4), new THREE.MeshBasicMaterial({ color: 0x228b22, wireframe: true }));
+      mesh.position.set((Math.random() - 0.5) * 10, -i * 20 - 20, (Math.random() - 0.5) * 10);
+      stalkGroup.add(mesh);
+      leaves.push(mesh);
+    }
+
+    const lMesh = new THREE.Mesh(new THREE.BoxGeometry(4, 6, 0.2), new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true }));
+    lanyardGroup.add(lMesh);
+
+    const bMat = new THREE.ShaderMaterial({
+      uniforms: { time: { value: 0 }, clean: { value: 0.0 } },
+      vertexShader: /* glsl */`
+        varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+      `,
+      fragmentShader: /* glsl */`
+        uniform float time; uniform float clean; varying vec2 vUv;
+        float rand(vec2 co) { return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453); }
+        void main() {
+          float noise = rand(vUv * 10.0 + time);
+          vec3 col = mix(vec3(0.5,0.0,0.5) * noise, vec3(1.0,0.0,1.0), clean);
+          gl_FragColor = vec4(col, noise < 0.2 ? 0.0 : 0.82);
+        }
+      `,
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+    const booth = new THREE.Mesh(new THREE.BoxGeometry(5, 8, 5), bMat);
+    boothGroup.add(booth);
+
+    const dolls = [];
+    for (let i = 0; i < DOLLS.length; i++) {
+      const mat = new THREE.ShaderMaterial({
+        uniforms: { color: { value: new THREE.Color(DOLLS[i].color) }, dissolve: { value: 0.0 }, time: { value: 0.0 } },
+        vertexShader: /* glsl */`
+          varying vec2 vUv; varying vec3 vNormal;
+          void main() { vUv = uv; vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+        `,
+        fragmentShader: /* glsl */`
+          uniform vec3 color; uniform float dissolve; uniform float time; varying vec2 vUv; varying vec3 vNormal;
+          float rand(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123); }
+          void main() {
+            if (rand(vUv * 20.0 + time) < dissolve) discard;
+            float rim = pow(0.7 - dot(vNormal, vec3(0,0,1)), 2.0);
+            gl_FragColor = vec4(color + (color * rim * 2.0), 1.0);
+          }
+        `,
+        transparent: true
+      });
+      const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(6 - i, 2), mat);
+      mesh.visible = i === 0;
+      dollGroup.add(mesh);
+      dolls.push(mesh);
+    }
+
+    const roomWire = new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(9, 8, 11)),
+      new THREE.LineBasicMaterial({ color: 0xff0055 })
+    );
+    roomGroup.add(roomWire);
+    const lavaGeo = new THREE.BufferGeometry();
+    const lavaPos = new Float32Array(900);
+    for (let i = 0; i < 900; i++) lavaPos[i] = (Math.random() - 0.5) * 8;
+    lavaGeo.setAttribute('position', new THREE.BufferAttribute(lavaPos, 3));
+    const lavaSys = new THREE.Points(lavaGeo, new THREE.PointsMaterial({ color: 0xff4500, size: 0.2, transparent: true, opacity: 0.8 }));
+    roomGroup.add(lavaSys);
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function updateUI(idx) {
+      const ui = document.getElementById('main-text');
+      const sub = document.getElementById('sub-text');
+      if (!ui || !sub) return;
+      ui.style.opacity = '0';
+      sub.style.opacity = '0';
+      setTimeout(() => {
+        if (idx < TEXTS.length) {
+          ui.innerText = TEXTS[idx].t;
+          ui.style.color = '#' + new THREE.Color(TEXTS[idx].c).getHexString();
+          sub.innerText = TEXTS[idx].s;
+        }
+        ui.style.opacity = '1';
+        sub.style.opacity = '1';
+      }, 300);
+    }
+
+    function triggerMatryoshka() {
+      CURRENT_STATE = STATE.MATRYOSHKA;
+      boothGroup.visible = false;
+      dollGroup.visible = true;
+      camera.position.set(0, 0, 15);
+      document.getElementById('main-text').innerText = DOLLS[0].text;
+      document.getElementById('sub-text').innerText = 'CLICK TO CRACK';
+    }
+
+    function triggerRoom() {
+      CURRENT_STATE = STATE.ROOM;
+      dollGroup.visible = false;
+      roomGroup.visible = true;
+      Audio.playRumble();
+      const cont = document.getElementById('mythos-container');
+      if (!cont) return;
+      cont.style.display = 'block';
+      document.getElementById('main-text').style.display = 'none';
+      document.getElementById('sub-text').style.display = 'none';
+      let i = 0;
+      const t = setInterval(() => {
+        if (i >= MYTHOS.length) return clearInterval(t);
+        const div = document.createElement('div');
+        div.className = 'myth-line';
+        div.innerText = MYTHOS[i];
+        cont.appendChild(div);
+        if (cont.children.length > 5) cont.removeChild(cont.firstChild);
+        i++;
+      }, 420);
+    }
+
+    function bindInputs() {
+      window.addEventListener('mousemove', (e) => {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        if (CURRENT_STATE === STATE.LANYARD) {
+          raycaster.setFromCamera(mouse, camera);
+          if (raycaster.intersectObject(lMesh).length > 0) {
+            lMesh.rotation.y += 0.08;
+            progress += 2;
+            Audio.playPing(820);
+          }
+        }
+      });
+
+      window.addEventListener('mousedown', () => {
+        raycaster.setFromCamera(mouse, camera);
+        if (CURRENT_STATE === STATE.FALL) {
+          if (raycaster.intersectObjects(leaves).length > 0) {
+            fallSpeed = 0.8;
+            Audio.playPing(400);
+            progress += 50;
+          }
+        } else if (CURRENT_STATE === STATE.BOOTH) {
+          if (raycaster.intersectObject(booth).length > 0) {
+            cleanLevel = Math.min(1, cleanLevel + 0.2);
+            bMat.uniforms.clean.value = cleanLevel;
+            Audio.playPing(200 + cleanLevel * 500);
+            if (cleanLevel >= 1) progress = 10000;
+          }
+        } else if (CURRENT_STATE === STATE.MATRYOSHKA) {
+          const doll = dolls[dollIndex];
+          Audio.playLayer(DOLLS[dollIndex].sound);
+          let d = 0;
+          const burn = setInterval(() => {
+            d += 0.05;
+            doll.material.uniforms.dissolve.value = d;
+            camera.position.x = (Math.random() - 0.5) * 0.25;
+            if (d >= 1) {
+              clearInterval(burn);
+              doll.visible = false;
+              dollIndex++;
+              if (dollIndex < DOLLS.length) {
+                dolls[dollIndex].visible = true;
+                document.getElementById('main-text').innerText = DOLLS[dollIndex].text;
+              } else {
+                triggerRoom();
+              }
+            }
+          }, 32);
+        }
+      });
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const time = Date.now() * 0.001;
+      if (CURRENT_STATE === STATE.FALL) {
+        camera.position.y -= fallSpeed;
+        stalkGroup.rotation.y += 0.01;
+        progress++;
+        if (progress > 500) {
+          CURRENT_STATE = STATE.LANYARD;
+          progress = 0;
+          stalkGroup.visible = false;
+          lanyardGroup.visible = true;
+          camera.position.set(0, 0, 10);
+          updateUI(1);
+        }
+      } else if (CURRENT_STATE === STATE.LANYARD) {
+        lanyardGroup.rotation.z = Math.sin(time) * 0.1;
+        progress++;
+        if (progress > 300) {
+          CURRENT_STATE = STATE.BOOTH;
+          progress = 0;
+          lanyardGroup.visible = false;
+          boothGroup.visible = true;
+          camera.position.set(0, 0, 15);
+          updateUI(2);
+        }
+      } else if (CURRENT_STATE === STATE.BOOTH) {
+        bMat.uniforms.time.value = time;
+        boothGroup.rotation.y = time * 0.2;
+        progress++;
+        if (cleanLevel >= 1 && progress > 100) {
+          CURRENT_STATE = STATE.TRANSITION;
+          updateUI(3);
+          setTimeout(triggerMatryoshka, 2000);
+        }
+      } else if (CURRENT_STATE === STATE.MATRYOSHKA) {
+        dollGroup.rotation.y = time * 0.2;
+        if (dollIndex < dolls.length) dolls[dollIndex].material.uniforms.time.value = time;
+      } else if (CURRENT_STATE === STATE.ROOM) {
+        const pos = lavaSys.geometry.attributes.position.array;
+        for (let i = 1; i < pos.length; i += 3) {
+          pos[i] += Math.sin(time + pos[i - 1]) * 0.05;
+          if (pos[i] > 4) pos[i] = -4;
+        }
+        lavaSys.geometry.attributes.position.needsUpdate = true;
+        roomGroup.rotation.y += 0.006;
+        bloom.strength = 2.0 + Math.sin(time * 10) * 0.5;
+      }
+      composer.render();
+    }
+
+    function initExperience() {
+      if (started) return;
+      started = true;
+      const container = document.getElementById('canvas-container');
+      container.appendChild(renderer.domElement);
+      bindInputs();
+      updateUI(0);
+      animate();
+      Audio.init();
+      Audio.playWind();
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        composer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    function openCurtainAndStart() {
+      const left = document.getElementById('loom-curtain-left');
+      const right = document.getElementById('loom-curtain-right');
+      const stage = document.getElementById('loom-curtain-stage');
+      const text = document.getElementById('loom-curtain-text');
+      const sub = document.getElementById('loom-curtain-sub');
+      setTimeout(() => {
+        left?.classList.add('open-left');
+        right?.classList.add('open-right');
+        text.style.opacity = '0';
+        sub.style.opacity = '0';
+        setTimeout(() => {
+          stage?.classList.add('hidden');
+          initExperience();
+          const startScreen = document.getElementById('start-screen');
+          startScreen?.classList.add('hidden');
+          CURRENT_STATE = STATE.FALL;
+          Audio.init();
+          Audio.resume();
+        }, 1500);
+      }, 1800);
+    }
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+      Audio.init();
+      Audio.resume();
+      document.getElementById('start-screen').classList.add('hidden');
+      CURRENT_STATE = STATE.FALL;
+    });
+
+    document.addEventListener('pointerdown', () => Audio.resume(), { once: true });
+    openCurtainAndStart();
+  </script>
+</body>
+</html>
