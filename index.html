@@ -942,6 +942,7 @@
                 <button onclick="app.navigate('tickets')" class="ui-click border border-black bg-white px-8 py-4 font-mono text-xs hover:bg-black hover:text-white transition-colors uppercase tracking-widest">Value Gate</button>
                 <a href="oldindex.html" class="ui-click border border-black bg-white px-8 py-4 font-mono text-xs hover:bg-black hover:text-white transition-colors uppercase tracking-widest">Launch Referrer Sequence</a>
                 <a href="story-engine/index.html" class="ui-click border border-black bg-white px-8 py-4 font-mono text-xs hover:bg-black hover:text-white transition-colors uppercase tracking-widest">Story Engine PoC</a>
+                <a id="play-trailer-button" href="loom_master_archive.html" class="ui-click border border-black bg-white px-8 py-4 font-mono text-xs hover:bg-black hover:text-white transition-colors uppercase tracking-widest hidden">Play Trailer</a>
             </div>
             <div class="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-white border border-black/10 p-4 shadow-sm space-y-2">
@@ -5981,6 +5982,8 @@
                 if (loaderSequence.text) loaderSequence.text.innerText = 'PHASE C: CINEMATIC REVEAL';
                 if (loaderSequence.curtains?.left) loaderSequence.curtains.left.classList.add('show', 'open-left');
                 if (loaderSequence.curtains?.right) loaderSequence.curtains.right.classList.add('show', 'open-right');
+                const trailerBtn = document.getElementById('play-trailer-button');
+                if (trailerBtn) trailerBtn.classList.remove('hidden');
                 const loader = document.getElementById('loader');
                 setTimeout(() => {
                     if (loader) {
