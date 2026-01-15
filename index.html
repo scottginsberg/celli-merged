@@ -256,8 +256,8 @@
             width: 100%; height: 100vh; display: block; position: absolute; top: 0; left: 0; z-index: 0;
         }
 
-        .view-section { display: none; min-height: 100vh; padding-top: 60px; }
-        .view-section.active { display: block; animation: fadeIn 0.4s ease-out; }
+        .view-section { min-height: 100vh; padding-top: 60px; }
+        .view-section.is-hidden { display: none; }
 
         /* Atmospheric Overlays */
         .film-grain {
@@ -1374,6 +1374,8 @@
         </div>
 
     <!-- VIEW: CALIBRATION (ELI5) -->
+    </section>
+
     <section id="view-calibration" class="view-section bg-[#FDFBF7] py-16">
         <div class="max-w-5xl mx-auto px-6 space-y-10">
             <div class="text-center space-y-3">
@@ -2921,8 +2923,8 @@
                 const view = document.getElementById(`view-${target}`);
                 if (!view) return;
 
-                sections.forEach(el => el.classList.remove('active'));
-                view.classList.add('active');
+                sections.forEach(el => el.classList.add('is-hidden'));
+                view.classList.remove('is-hidden');
                 setNavState(target);
             };
 
@@ -2966,163 +2968,7 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         
-        
-        // --- ENSURE-RENDER FAILSAFE (watchdog + minimal fallback scene + on-screen error monitor) ---
-// Guarantees that Three.js init never fails silently (per Loomworks build standard).
-const ensureRender = (() => {
-    const labels = new Map(); // label -> { ok, timer, startedAt }
-    const id = 'ensure-render-monitor';
-    const fallbackId = 'ensure-render-fallback';
-
-    function createMonitor() {
-        let el = document.getElementById(id);
-        if (el) return el;
-        el = document.createElement('div');
-        el.id = id;
-        el.style.cssText = [
-            'position:fixed',
-            'left:12px',
-            'bottom:12px',
-            'z-index:99999',
-            'max-width:min(520px, calc(100vw - 24px))',
-            'background:rgba(0,0,0,0.85)',
-            'color:#f6f2ea',
-            'border:1px solid rgba(205,43,43,0.9)',
-            'box-shadow:6px 6px 0 rgba(0,0,0,0.35)',
-            'padding:10px 12px',
-            'font-family: Space Mono, monospace',
-            'font-size:11px',
-            'letter-spacing:0.08em',
-            'text-transform:uppercase',
-            'display:none'
-        ].join(';');
-        el.innerHTML = `<div style="display:flex;gap:10px;align-items:flex-start;justify-content:space-between;">
-            <div>
-                <div style="font-weight:700;">Render Watchdog</div>
-                <div id="${id}-msg" style="opacity:0.85;margin-top:4px;line-height:1.35;">Monitoring…</div>
-            </div>
-            <button id="${id}-hide" style="border:1px solid rgba(246,242,234,0.25);background:transparent;color:#f6f2ea;padding:4px 8px;border-radius:10px;font-size:10px;letter-spacing:0.18em;cursor:pointer;">HIDE</button>
-        </div>`;
-        document.body.appendChild(el);
-        el.querySelector(`#${id}-hide`)?.addEventListener('click', () => { el.style.display = 'none'; });
-        return el;
-    }
-
-    function setMsg(msg) {
-        const el = createMonitor();
-        const msgEl = el.querySelector(`#${id}-msg`);
-        if (msgEl) msgEl.textContent = msg;
-        el.style.display = 'block';
-    }
-
-    function webglSupported() {
-        try {
-            const c = document.createElement('canvas');
-            return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
-        } catch (_) { return false; }
-    }
-
-    function showFallback(where, details) {
-        // Minimal fallback scene: branded panel so the page remains navigable + debuggable.
-        if (document.getElementById(fallbackId)) return;
-        const shell = document.createElement('div');
-        shell.id = fallbackId;
-        shell.style.cssText = [
-            'position:fixed',
-            'inset:0',
-            'z-index:99998',
-            'background:radial-gradient(circle at 20% 20%, rgba(205,43,43,0.22), transparent 45%), linear-gradient(135deg, #0b0b0b, #111)',
-            'display:flex',
-            'align-items:center',
-            'justify-content:center',
-            'padding:18px'
-        ].join(';');
-        shell.innerHTML = `
-            <div style="width:min(860px, 96vw);background:#fff;border:2px solid #111;box-shadow:12px 12px 0 rgba(205,43,43,0.18);padding:20px;border-radius:18px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-                    <div>
-                        <div style="font-family:Space Mono, monospace;font-size:10px;letter-spacing:0.28em;text-transform:uppercase;color:#cd2b2b;">LOOMWORKS // FAILSAFE ENGAGED</div>
-                        <div style="font-family:Space Grotesk, sans-serif;font-weight:800;font-size:22px;letter-spacing:-0.02em;margin-top:6px;color:#111;">Renderer did not initialize</div>
-                        <div style="font-family:Space Grotesk, sans-serif;font-size:14px;margin-top:10px;color:#333;line-height:1.45;">
-                            The page is still usable, but the 3D scene for <b>${String(where || 'unknown')}</b> failed to render.
-                            This overlay exists so failure is loud, not silent.
-                        </div>
-                    </div>
-                    <button id="${fallbackId}-dismiss" style="border:1px solid #111;background:#fff;padding:10px 12px;border-radius:12px;font-family:Space Mono, monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;cursor:pointer;">Dismiss</button>
-                </div>
-                <div style="margin-top:14px;border-top:1px solid rgba(0,0,0,0.12);padding-top:12px;">
-                    <div style="font-family:Space Mono, monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:#111;opacity:0.7;">Details</div>
-                    <pre style="margin-top:8px;white-space:pre-wrap;word-break:break-word;background:#0b0b0b;color:#f6f2ea;padding:12px;border-radius:12px;font-size:11px;line-height:1.35;max-height:40vh;overflow:auto;border:1px solid rgba(205,43,43,0.55);">${String(details || '').slice(0, 8000)}</pre>
-                    <div style="margin-top:10px;font-family:Space Mono, monospace;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:#444;">
-                        Tip: check browser console for <span style="color:#cd2b2b;font-weight:700;">[ensure-render]</span> logs.
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(shell);
-        shell.querySelector(`#${fallbackId}-dismiss`)?.addEventListener('click', () => shell.remove());
-    }
-
-    function start(label, timeoutMs = 2200, opts = {}) {
-        const entry = labels.get(label) || { ok: false, timer: null, startedAt: 0 };
-        entry.ok = false;
-        entry.startedAt = performance.now();
-
-        if (opts && opts.note) setMsg(opts.note);
-        else setMsg(`watching: ${label}…`);
-
-        if (!webglSupported() && (opts.requireWebGL ?? true)) {
-            setMsg(`webgl unavailable: ${label}`);
-            showFallback(label, 'WebGL not supported or disabled.');
-            labels.set(label, entry);
-            return;
-        }
-
-        if (entry.timer) clearTimeout(entry.timer);
-        entry.timer = setTimeout(() => {
-            if (!entry.ok) {
-                const dt = Math.round(performance.now() - entry.startedAt);
-                const message = `no first frame after ${dt}ms: ${label}`;
-                console.error('[ensure-render]', message);
-                setMsg(message);
-                showFallback(label, message);
-            }
-        }, timeoutMs);
-
-        labels.set(label, entry);
-    }
-
-    function markOk(label, msg = 'ok') {
-        const entry = labels.get(label);
-        if (entry) {
-            entry.ok = true;
-            if (entry.timer) clearTimeout(entry.timer);
-            entry.timer = null;
-            labels.set(label, entry);
-        }
-        setMsg(`${label}: ${msg}`);
-        // Auto-hide quickly on success so it doesn't live forever.
-        setTimeout(() => {
-            const el = document.getElementById(id);
-            if (el && !document.getElementById(fallbackId)) el.style.display = 'none';
-        }, 1400);
-    }
-
-    function fail(label, err) {
-        const entry = labels.get(label);
-        if (entry && entry.timer) clearTimeout(entry.timer);
-        const msg = `${label}: ${(err && (err.message || err.toString())) || 'unknown error'}`;
-        console.error('[ensure-render]', msg, err);
-        setMsg(msg);
-        showFallback(label, err?.stack || msg);
-    }
-
-    return { start, markOk, fail };
-})()
-window.ensureRender = ensureRender;
-;
-
-// --- DATA SETS ---
+        // --- DATA SETS ---
         const QUIZ = [
             {
                 q: "You find a broken toy on the sidewalk. What is your first instinct?",
@@ -3755,9 +3601,9 @@ window.ensureRender = ensureRender;
             },
             click: () => {
                 if (!state.audioInitialized || !state.synth) {
-                    audio.init().then(() => { if(state.synth) state.synth.triggerAttackRelease("16n"); });
+                    audio.init().then(() => { if(state.synth) state.synth.triggerAttackRelease("16n", audio.safeNow()); });
                 } else {
-                    state.synth.triggerAttackRelease("16n");
+                    state.synth.triggerAttackRelease("16n", audio.safeNow());
                 }
             },
             startDrone: async () => {
@@ -4171,7 +4017,7 @@ window.ensureRender = ensureRender;
                     delay += 800 + Math.random() * 500;
                     setTimeout(() => {
                         container.innerHTML += `<div class="fade-in">> ${line}</div>`;
-                        if (state.synth) state.synth.triggerAttackRelease("32n");
+                        if (state.synth) state.synth.triggerAttackRelease("32n", audio.safeNow());
                     }, delay);
                 });
 
@@ -4536,18 +4382,13 @@ window.ensureRender = ensureRender;
             },
 
             render(profile) {
-                ensureRender.start('sculpture');
-                try {
                 sculptureEngine.init();
                 if (!sculptureEngine.renderer) return;
                 sculptureEngine.setSeed(profile.seedText);
                 sculptureEngine.resetScene();
                 sculptureEngine.buildPrimitives(profile);
                 sculptureEngine.renderer.render(sculptureEngine.scene, sculptureEngine.camera);
-                ensureRender.markOk('sculpture');
-            
-                } catch (e) { ensureRender.fail('sculpture', e); }
-},
+            },
 
             resize() {
                 if (!sculptureEngine.renderer || !sculptureEngine.camera || !sculptureEngine.container) return;
@@ -5830,9 +5671,6 @@ window.ensureRender = ensureRender;
             lanternLight: null,
             lanternTimer: null,
             init: () => {
-                gallery.__firstFrame = false;
-                try {
-
                 const container = document.getElementById('canvas-container');
                 gallery.scene = new THREE.Scene();
                 gallery.scene.background = new THREE.Color('#0f0f0f');
@@ -5862,9 +5700,7 @@ window.ensureRender = ensureRender;
                 gallery.bindUI();
                 gallery.loadFrames();
                 gallery.animate();
-            
-                } catch (e) { ensureRender.fail('gallery', e); }
-},
+            },
             bindUI: () => {
                 const unlockBtn = document.getElementById('gallery-edit-btn');
                 const addBtn = document.getElementById('gallery-add-btn');
@@ -5981,7 +5817,6 @@ window.ensureRender = ensureRender;
                 if (gallery.active && gallery.controls) {
                     gallery.controls.update();
                     if (gallery.lanternGroup) gallery.lanternGroup.rotation.y += 0.004;
-                    if (!gallery.__firstFrame) { ensureRender.markOk('gallery'); gallery.__firstFrame = true; }
                     gallery.renderer.render(gallery.scene, gallery.camera);
                 }
             },
@@ -6062,60 +5897,61 @@ window.ensureRender = ensureRender;
         // --- NAVIGATION ---
         window.app = window.app || {};
         window.app.navigate = (target) => {
-            try { if (window.audio && window.audio.click) window.audio.click(); } catch(_) {}
-
-            // Close profiler modal when leaving
-            if (state.view === 'profiler' && target !== 'profiler') {
-                try { if (window.profiler) window.profiler.closeModal(); } catch(_) {}
-            }
-
-            // Swap views
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            const view = document.getElementById(`view-${target}`);
-            if (!view) { console.warn('No view for target:', target); return; }
-            view.classList.add('active');
-
-            // Nav styling
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                const isActive = btn.dataset.target === target;
-                btn.classList.toggle('active', isActive);
-                btn.setAttribute('aria-current', isActive ? 'page' : 'false');
-            });
-
-            // View-specific init hooks
-            if (target === 'gallery' && window.gallery) {
-                window.gallery.active = true;
-                window.gallery.__firstFrame = false;
-
-                try { window.gallery.resize && window.gallery.resize(); } catch(_) {}
-
-                // Arm watchdog ONLY when entering gallery
-                try { if (window.ensureRender) ensureRender.start('gallery', 2600, { note: 'watching: gallery…' }); } catch(_) {}
-
-                // Force one immediate render so "first frame" is guaranteed when gallery is healthy
-                try {
-                    window.gallery.controls && window.gallery.controls.update && window.gallery.controls.update();
-                    window.gallery.renderer && window.gallery.renderer.render && window.gallery.renderer.render(window.gallery.scene, window.gallery.camera);
-                    if (!window.gallery.__firstFrame) { try { if (window.ensureRender) ensureRender.markOk('gallery'); } catch(_) {} window.gallery.__firstFrame = true; }
-                } catch (e) {
-                    try { if (window.ensureRender) ensureRender.fail('gallery', e); } catch(_) {}
+                audio.click();
+                if (state.view === 'profiler' && target !== 'profiler') {
+                    profiler.closeModal();
+                    document.body.classList.remove('modal-open');
                 }
-            } else if (window.gallery) {
-                window.gallery.active = false;
-                try { window.gallery.stopLanternEffects && window.gallery.stopLanternEffects(); } catch(_) {}
-            }
 
-            if (target === 'archive' && window.archive) { try { window.archive.init(); } catch(_) {} }
-            if (target === 'grift' && window.grift) { try { window.grift.init(); } catch(_) {} }
-            if (target === 'tickets' && window.valueGate) { try { window.valueGate.init(); } catch(_) {} }
-            if (target === 'barter' && window.barter) { try { window.barter.init(); } catch(_) {} }
-            if (target === 'profiler' && window.profiler && window.profiler.initialChoice === null) { try { window.profiler.init(); } catch(_) {} }
-            if (target === 'calibration' && window.calibrationGate) { try { window.calibrationGate.reset(); } catch(_) {} }
+                const targetView = document.getElementById(`view-${target}`);
+                if (!targetView) {
+                    console.warn(`No view found for target: ${target}`);
+                    return;
+                }
 
-            state.view = target;
-            window.scrollTo(0, 0);
-        };
+                document.querySelectorAll('.view-section').forEach(el => el.classList.add('is-hidden'));
+                targetView.classList.remove('is-hidden');
 
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    const isActive = btn.dataset.target === target;
+                    if(isActive) btn.classList.add('underline', 'decoration-red-600', 'decoration-2', 'underline-offset-4', 'text-black');
+                    else btn.classList.remove('underline', 'decoration-red-600', 'decoration-2', 'underline-offset-4', 'text-black');
+                    btn.setAttribute('aria-current', isActive ? 'page' : 'false');
+                });
+
+                if (target === 'gallery') {
+                    gallery.resize(); gallery.active = true;
+                } else {
+                    gallery.active = false;
+                    gallery.stopLanternEffects();
+                }
+
+                if (target === 'archive') {
+                    archive.init();
+                }
+
+                if (target === 'grift') {
+                    grift.init();
+                }
+
+                if (target === 'tickets') {
+                    valueGate.init();
+                }
+
+                if (target === 'barter') {
+                    barter.init();
+                }
+
+                if (target === 'profiler' && profiler.initialChoice === null) {
+                    profiler.init();
+                }
+
+                if (target === 'landing') ambient.startTooltips();
+                else ambient.stopTooltips();
+
+                state.view = target;
+                window.scrollTo(0,0);
+            };
         window.app.toggleMobileMenu = () => {
             const menu = document.getElementById('mobile-menu');
             if (menu) menu.classList.toggle('translate-x-full');
