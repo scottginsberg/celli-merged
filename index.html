@@ -2966,7 +2966,142 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         
-        // --- DATA SETS ---
+        
+        // --- ENSURE-RENDER FAILSAFE (watchdog + minimal fallback scene + on-screen error monitor) ---
+        // Guarantees that Three.js init never fails silently (per Loomworks build standard).
+        const ensureRender = (() => {
+            const state = { ok: false, timer: null, startedAt: 0 };
+            const id = 'ensure-render-monitor';
+            const fallbackId = 'ensure-render-fallback';
+
+            function createMonitor() {
+                let el = document.getElementById(id);
+                if (el) return el;
+                el = document.createElement('div');
+                el.id = id;
+                el.style.cssText = [
+                    'position:fixed',
+                    'left:12px',
+                    'bottom:12px',
+                    'z-index:99999',
+                    'max-width:min(520px, calc(100vw - 24px))',
+                    'background:rgba(0,0,0,0.85)',
+                    'color:#f6f2ea',
+                    'border:1px solid rgba(205,43,43,0.9)',
+                    'box-shadow:6px 6px 0 rgba(0,0,0,0.35)',
+                    'padding:10px 12px',
+                    'font-family: Space Mono, monospace',
+                    'font-size:11px',
+                    'letter-spacing:0.08em',
+                    'text-transform:uppercase',
+                    'display:none'
+                ].join(';');
+                el.innerHTML = `<div style="display:flex;gap:10px;align-items:flex-start;justify-content:space-between;">
+                    <div>
+                        <div style="font-weight:700;">Render Watchdog</div>
+                        <div id="${id}-msg" style="opacity:0.85;margin-top:4px;line-height:1.35;">Monitoring…</div>
+                    </div>
+                    <button id="${id}-hide" style="border:1px solid rgba(246,242,234,0.35);padding:4px 8px;background:transparent;color:#f6f2ea;cursor:pointer;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;">Hide</button>
+                </div>`;
+                document.body.appendChild(el);
+                const hideBtn = el.querySelector(`#${id}-hide`);
+                hideBtn?.addEventListener('click', () => { el.style.display = 'none'; });
+                return el;
+            }
+
+            function setMsg(msg) {
+                const el = createMonitor();
+                const msgEl = el.querySelector(`#${id}-msg`);
+                if (msgEl) msgEl.textContent = msg;
+                el.style.display = 'block';
+            }
+
+            function webglSupported() {
+                try {
+                    const c = document.createElement('canvas');
+                    return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
+                } catch (_) { return false; }
+            }
+
+            function showFallback(where, details) {
+                // Minimal fallback scene: branded panel so the page remains navigable + debuggable.
+                if (document.getElementById(fallbackId)) return;
+                const shell = document.createElement('div');
+                shell.id = fallbackId;
+                shell.style.cssText = [
+                    'position:fixed',
+                    'inset:0',
+                    'z-index:99998',
+                    'background:radial-gradient(circle at 20% 20%, rgba(205,43,43,0.22), transparent 45%), linear-gradient(135deg, #0b0b0b, #111)',
+                    'display:flex',
+                    'align-items:center',
+                    'justify-content:center',
+                    'padding:18px'
+                ].join(';');
+                shell.innerHTML = `
+                    <div style="width:min(860px, 96vw);background:rgba(255,255,255,0.92);border:2px solid #111;box-shadow:12px 12px 0 rgba(205,43,43,0.18);padding:20px;border-radius:18px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                            <div>
+                                <div style="font-family:Space Mono, monospace;font-size:11px;letter-spacing:0.28em;text-transform:uppercase;color:#cd2b2b;">LOOMWORKS // FAILSAFE ENGAGED</div>
+                                <div style="font-family:Space Grotesk, sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.02em;margin-top:6px;color:#111;">Renderer did not initialize</div>
+                                <div style="font-family:Space Grotesk, sans-serif;font-size:14px;opacity:0.85;margin-top:8px;color:#111;">The site remains usable. This overlay exists so failure is loud, not silent.</div>
+                            </div>
+                            <button id="${fallbackId}-dismiss" style="border:1px solid #111;background:#111;color:#fff;padding:10px 12px;border-radius:12px;font-family:Space Mono, monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;cursor:pointer;">Dismiss</button>
+                        </div>
+                        <div style="margin-top:14px;border-top:1px solid rgba(0,0,0,0.12);padding-top:12px;font-family:Space Mono, monospace;font-size:11px;line-height:1.45;color:#111;">
+                            <div style="letter-spacing:0.22em;text-transform:uppercase;opacity:0.7;">Where</div>
+                            <div style="font-weight:700;margin-bottom:10px;">${where || 'Unknown'}</div>
+                            <div style="letter-spacing:0.22em;text-transform:uppercase;opacity:0.7;">Details</div>
+                            <pre style="white-space:pre-wrap;background:#fff;border:1px solid rgba(0,0,0,0.12);padding:10px;border-radius:12px;margin-top:6px;max-height:260px;overflow:auto;">${(details || '').toString()}</pre>
+                            <div style="margin-top:10px;opacity:0.8;">Tip: open DevTools → Console. If WebGL is blocked, try a different browser profile or enable hardware acceleration.</div>
+                        </div>
+                    </div>`;
+                document.body.appendChild(shell);
+                shell.querySelector(`#${fallbackId}-dismiss`)?.addEventListener('click', () => shell.remove());
+            }
+
+            function start(label, timeoutMs = 2200) {
+                state.ok = false;
+                state.startedAt = performance.now();
+                setMsg(`watching: ${label}…`);
+                if (!webglSupported()) {
+                    setMsg(`webgl unavailable: ${label}`);
+                    showFallback(label, 'WebGL not supported or disabled.');
+                    return;
+                }
+                if (state.timer) clearTimeout(state.timer);
+                state.timer = setTimeout(() => {
+                    if (!state.ok) {
+                        const dt = Math.round(performance.now() - state.startedAt);
+                        const message = `no first frame after ${dt}ms: ${label}`;
+                        console.error('[ensure-render]', message);
+                        setMsg(message);
+                        showFallback(label, message);
+                    }
+                }, timeoutMs);
+            }
+
+            function markOk(label) {
+                state.ok = true;
+                if (state.timer) clearTimeout(state.timer);
+                setMsg(`ok: ${label}`);
+                // auto-hide after a beat
+                const el = document.getElementById(id);
+                if (el) setTimeout(() => { el.style.display = 'none'; }, 900);
+            }
+
+            function fail(label, err) {
+                if (state.timer) clearTimeout(state.timer);
+                const msg = `${label}: ${(err && (err.message || err.toString())) || 'unknown error'}`;
+                console.error('[ensure-render]', msg, err);
+                setMsg(msg);
+                showFallback(label, err?.stack || msg);
+            }
+
+            return { start, markOk, fail };
+        })();
+
+// --- DATA SETS ---
         const QUIZ = [
             {
                 q: "You find a broken toy on the sidewalk. What is your first instinct?",
@@ -4380,13 +4515,18 @@
             },
 
             render(profile) {
+                ensureRender.start('sculpture');
+                try {
                 sculptureEngine.init();
                 if (!sculptureEngine.renderer) return;
                 sculptureEngine.setSeed(profile.seedText);
                 sculptureEngine.resetScene();
                 sculptureEngine.buildPrimitives(profile);
                 sculptureEngine.renderer.render(sculptureEngine.scene, sculptureEngine.camera);
-            },
+                ensureRender.markOk('sculpture');
+            
+                } catch (e) { ensureRender.fail('sculpture', e); }
+},
 
             resize() {
                 if (!sculptureEngine.renderer || !sculptureEngine.camera || !sculptureEngine.container) return;
@@ -5669,6 +5809,10 @@
             lanternLight: null,
             lanternTimer: null,
             init: () => {
+                ensureRender.start('gallery');
+                gallery.__firstFrame = false;
+                try {
+
                 const container = document.getElementById('canvas-container');
                 gallery.scene = new THREE.Scene();
                 gallery.scene.background = new THREE.Color('#0f0f0f');
@@ -5698,7 +5842,9 @@
                 gallery.bindUI();
                 gallery.loadFrames();
                 gallery.animate();
-            },
+            
+                } catch (e) { ensureRender.fail('gallery', e); }
+},
             bindUI: () => {
                 const unlockBtn = document.getElementById('gallery-edit-btn');
                 const addBtn = document.getElementById('gallery-add-btn');
@@ -5815,6 +5961,7 @@
                 if (gallery.active && gallery.controls) {
                     gallery.controls.update();
                     if (gallery.lanternGroup) gallery.lanternGroup.rotation.y += 0.004;
+                    if (!gallery.__firstFrame) { ensureRender.markOk('gallery'); gallery.__firstFrame = true; }
                     gallery.renderer.render(gallery.scene, gallery.camera);
                 }
             },
