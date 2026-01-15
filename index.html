@@ -256,8 +256,8 @@
             width: 100%; height: 100vh; display: block; position: absolute; top: 0; left: 0; z-index: 0;
         }
 
-        .view-section { min-height: 100vh; padding-top: 60px; }
-        .view-section.is-hidden { display: none; }
+        .view-section { display: none; min-height: 100vh; padding-top: 60px; }
+        .view-section.active { display: block; animation: fadeIn 0.4s ease-out; }
 
         /* Atmospheric Overlays */
         .film-grain {
@@ -2921,8 +2921,8 @@
                 const view = document.getElementById(`view-${target}`);
                 if (!view) return;
 
-                sections.forEach(el => el.classList.add('is-hidden'));
-                view.classList.remove('is-hidden');
+                sections.forEach(el => el.classList.remove('active'));
+                view.classList.add('active');
                 setNavState(target);
             };
 
@@ -3118,7 +3118,9 @@ const ensureRender = (() => {
     }
 
     return { start, markOk, fail };
-})();
+})()
+window.ensureRender = ensureRender;
+;
 
 // --- DATA SETS ---
         const QUIZ = [
@@ -6060,63 +6062,60 @@ const ensureRender = (() => {
         // --- NAVIGATION ---
         window.app = window.app || {};
         window.app.navigate = (target) => {
-                audio.click();
-                if (state.view === 'profiler' && target !== 'profiler') {
-                    profiler.closeModal();
-                    document.body.classList.remove('modal-open');
+            try { if (window.audio && window.audio.click) window.audio.click(); } catch(_) {}
+
+            // Close profiler modal when leaving
+            if (state.view === 'profiler' && target !== 'profiler') {
+                try { if (window.profiler) window.profiler.closeModal(); } catch(_) {}
+            }
+
+            // Swap views
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            const view = document.getElementById(`view-${target}`);
+            if (!view) { console.warn('No view for target:', target); return; }
+            view.classList.add('active');
+
+            // Nav styling
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                const isActive = btn.dataset.target === target;
+                btn.classList.toggle('active', isActive);
+                btn.setAttribute('aria-current', isActive ? 'page' : 'false');
+            });
+
+            // View-specific init hooks
+            if (target === 'gallery' && window.gallery) {
+                window.gallery.active = true;
+                window.gallery.__firstFrame = false;
+
+                try { window.gallery.resize && window.gallery.resize(); } catch(_) {}
+
+                // Arm watchdog ONLY when entering gallery
+                try { if (window.ensureRender) ensureRender.start('gallery', 2600, { note: 'watching: gallery…' }); } catch(_) {}
+
+                // Force one immediate render so "first frame" is guaranteed when gallery is healthy
+                try {
+                    window.gallery.controls && window.gallery.controls.update && window.gallery.controls.update();
+                    window.gallery.renderer && window.gallery.renderer.render && window.gallery.renderer.render(window.gallery.scene, window.gallery.camera);
+                    if (!window.gallery.__firstFrame) { try { if (window.ensureRender) ensureRender.markOk('gallery'); } catch(_) {} window.gallery.__firstFrame = true; }
+                } catch (e) {
+                    try { if (window.ensureRender) ensureRender.fail('gallery', e); } catch(_) {}
                 }
+            } else if (window.gallery) {
+                window.gallery.active = false;
+                try { window.gallery.stopLanternEffects && window.gallery.stopLanternEffects(); } catch(_) {}
+            }
 
-                const targetView = document.getElementById(`view-${target}`);
-                if (!targetView) {
-                    console.warn(`No view found for target: ${target}`);
-                    return;
-                }
+            if (target === 'archive' && window.archive) { try { window.archive.init(); } catch(_) {} }
+            if (target === 'grift' && window.grift) { try { window.grift.init(); } catch(_) {} }
+            if (target === 'tickets' && window.valueGate) { try { window.valueGate.init(); } catch(_) {} }
+            if (target === 'barter' && window.barter) { try { window.barter.init(); } catch(_) {} }
+            if (target === 'profiler' && window.profiler && window.profiler.initialChoice === null) { try { window.profiler.init(); } catch(_) {} }
+            if (target === 'calibration' && window.calibrationGate) { try { window.calibrationGate.reset(); } catch(_) {} }
 
-                document.querySelectorAll('.view-section').forEach(el => el.classList.add('is-hidden'));
-                targetView.classList.remove('is-hidden');
+            state.view = target;
+            window.scrollTo(0, 0);
+        };
 
-                document.querySelectorAll('.nav-btn').forEach(btn => {
-                    const isActive = btn.dataset.target === target;
-                    if(isActive) btn.classList.add('underline', 'decoration-red-600', 'decoration-2', 'underline-offset-4', 'text-black');
-                    else btn.classList.remove('underline', 'decoration-red-600', 'decoration-2', 'underline-offset-4', 'text-black');
-                    btn.setAttribute('aria-current', isActive ? 'page' : 'false');
-                });
-
-                if (target === 'gallery') {
-                    gallery.__firstFrame = false;
-                    ensureRender.start('gallery', 2200, { note: 'watching: gallery (armed on entry)…', requireWebGL: true });
-                    gallery.resize(); gallery.active = true;
-                } else {
-                    gallery.active = false;
-                    gallery.stopLanternEffects();
-                }
-
-                if (target === 'archive') {
-                    archive.init();
-                }
-
-                if (target === 'grift') {
-                    grift.init();
-                }
-
-                if (target === 'tickets') {
-                    valueGate.init();
-                }
-
-                if (target === 'barter') {
-                    barter.init();
-                }
-
-                if (target === 'profiler' && profiler.initialChoice === null) {
-                    profiler.init();
-                }
-
-                if (target === 'landing') ambient.startTooltips();
-                else ambient.stopTooltips();
-
-                state.view = target;
-                window.scrollTo(0,0);
-            };
         window.app.toggleMobileMenu = () => {
             const menu = document.getElementById('mobile-menu');
             if (menu) menu.classList.toggle('translate-x-full');
