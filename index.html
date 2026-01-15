@@ -6,36 +6,44 @@
     <title>LOOMWORKS: Domestic Product // Field Edition</title>
     <link rel="icon" href="data:,">
     
-    <script>
-        (() => {
-            const originalWarn = console.warn;
-            console.warn = (...args) => {
-                if (typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com')) return;
-                originalWarn(...args);
-            };
-        })();
-    </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Space Grotesk', 'sans-serif'],
+                        mono: ['Space Mono', 'monospace'],
+                        serif: ['Cinzel', 'serif'],
+                    },
+                    colors: {
+                        loom: {
+                            red: '#CD2B2B',
+                            black: '#111',
+                            cream: '#FDFBF7',
+                            paper: '#f9f4ea'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
     <script type="importmap">
         { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
     </script>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;700&family=Courier+Prime&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
             --bg-color: #FDFBF7;
             --text-color: #111;
             --accent-red: #CD2B2B;
-            --grid-color: rgba(0, 0, 0, 0.05);
         }
         
         body {
-            font-family: 'Space Grotesk', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             overscroll-behavior: none;
@@ -54,6 +62,8 @@
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
             background-size: 100% 4px, 4px 100%;
             pointer-events: none;
+            mix-blend-mode: multiply;
+            opacity: 0.6;
         }
 
         .view-section { 
@@ -61,40 +71,34 @@
             min-height: 100vh; 
             padding-top: 80px; 
             opacity: 0;
-            transition: opacity 0.4s ease-in-out;
+            animation: fadeIn 0.5s forwards;
         }
         .view-section.active { 
             display: block; 
-            opacity: 1; 
         }
 
-        .fade-in-up { animation: fadeInUp 0.6s ease-out forwards; opacity: 0; transform: translateY(10px); }
-        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* --- UI COMPONENTS --- */
-        .ui-click { cursor: pointer; user-select: none; }
-        .ui-click:active { transform: translateY(1px); }
+        .ui-click { cursor: pointer; user-select: none; transition: transform 0.1s; }
+        .ui-click:active { transform: translateY(2px); }
 
-        .nav-btn.active { text-decoration: underline; text-decoration-color: #CD2B2B; text-underline-offset: 4px; font-weight: 700; }
+        .nav-btn { position: relative; opacity: 0.6; transition: opacity 0.2s; }
+        .nav-btn:hover { opacity: 1; }
+        .nav-btn.active { opacity: 1; font-weight: 700; color: #CD2B2B; }
+        .nav-btn.active::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 100%; height: 2px; background: #CD2B2B; }
 
         /* Modal Base */
         .modal-layer {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+            position: fixed; inset: 0; background: rgba(253, 251, 247, 0.95); backdrop-filter: blur(8px);
             display: none; align-items: center; justify-content: center; z-index: 100;
-            opacity: 0; transition: opacity 0.2s ease;
+            opacity: 0; transition: opacity 0.3s ease;
         }
         .modal-layer.active { display: flex; opacity: 1; }
         body.modal-open { overflow: hidden; }
 
-        /* Specific Modules */
-        .dime-backlog-shell { background: #f9f4ea; border: 2px solid #1f2937; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
-        .grift-card { background: #fffdf5; border: 1px solid #111; padding: 16px; transition: all 0.2s; }
-        .grift-card:hover { transform: translateY(-2px); box-shadow: 4px 4px 0 #CD2B2B; }
-        
-        .value-pill { display: inline-flex; align-items: center; padding: 4px 8px; border: 1px solid #111; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; background: #fff; }
-
         /* Glitch Effects */
-        .glitch-text { position: relative; }
+        .glitch-text { position: relative; display: inline-block; }
         .glitch-text::before {
             content: attr(data-text); position: absolute; left: 2px; text-shadow: -1px 0 #CD2B2B;
             background: transparent; overflow: hidden; clip: rect(0, 900px, 0, 0);
@@ -106,60 +110,48 @@
             100% { clip: rect(4px, 9999px, 91px, 0); }
         }
 
-        /* Loader */
-        #loader { position: fixed; inset: 0; background: #FDFBF7; z-index: 9999; display: flex; align-items: center; justify-content: center; transition: opacity 0.8s ease; }
-        #loader.fade-out { opacity: 0; pointer-events: none; }
-        .loader-bar { width: 200px; height: 2px; background: #eee; overflow: hidden; margin-top: 20px; }
-        .loader-progress { height: 100%; background: #111; width: 0%; transition: width 0.2s; }
-
-        /* Oracle */
-        .card { perspective: 1000px; width: 120px; height: 180px; position: relative; transform-style: preserve-3d; transition: transform 0.6s; }
-        .card.flipped { transform: rotateY(180deg); }
-        .card .face, .card .back { position: absolute; inset: 0; backface-visibility: hidden; border: 1px solid #d4af37; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 10px; padding: 4px; }
-        .card .back { background: #111; color: #d4af37; }
-        .card .face { background: #fff; color: #111; transform: rotateY(180deg); }
-
         /* Integration Bar */
-        .integration-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 4px; background: #eee; z-index: 90; }
-        .integration-fill { height: 100%; background: #CD2B2B; width: 0%; transition: width 0.5s ease; }
+        .integration-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 6px; background: #eee; z-index: 90; }
+        .integration-fill { height: 100%; background: #CD2B2B; width: 0%; transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+
+        /* Loader */
+        #loader { position: fixed; inset: 0; background: #FDFBF7; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.8s ease; }
+        #loader.fade-out { opacity: 0; pointer-events: none; }
+        .loader-bar-bg { width: 240px; height: 2px; background: #eee; margin-top: 20px; overflow: hidden; }
+        .loader-bar-fill { height: 100%; width: 0%; background: #CD2B2B; transition: width 0.1s linear; }
     </style>
 </head>
 
 <body class="overflow-x-hidden">
 
     <div id="loader">
-        <div class="text-center">
-            <div class="font-mono text-xs uppercase tracking-[0.3em] mb-2">Loomworks Operating System</div>
-            <div class="text-4xl font-bold tracking-tighter">LOADING CONSTRUCT</div>
-            <div class="loader-bar"><div id="loader-progress" class="loader-progress"></div></div>
-            <div id="loader-text" class="mt-2 font-mono text-[10px] text-gray-500">Initializing...</div>
-        </div>
+        <div class="font-mono text-xs uppercase tracking-[0.3em] mb-2 text-gray-500">Loomworks Operating System</div>
+        <div class="text-4xl font-bold tracking-tighter">LOADING CONSTRUCT</div>
+        <div class="loader-bar-bg"><div id="loader-progress" class="loader-bar-fill"></div></div>
     </div>
 
     <div class="scanline-layer"></div>
 
-    <nav class="fixed top-0 left-0 w-full z-50 bg-[#FDFBF7]/95 backdrop-blur-md border-b border-black/10 px-6 py-3 flex justify-between items-center">
+    <nav class="fixed top-0 left-0 w-full z-50 bg-[#FDFBF7]/90 backdrop-blur border-b border-black/10 px-6 py-4 flex justify-between items-center">
         <div class="flex items-center gap-3 cursor-pointer ui-click" onclick="app.navigate('landing')">
-            <div class="w-3 h-3 bg-black"></div>
+            <div class="w-3 h-3 bg-loom-red"></div>
             <span class="font-bold tracking-widest text-sm font-mono uppercase">LOOMWORKS</span>
         </div>
         
-        <div class="hidden lg:flex gap-6 text-[10px] font-mono tracking-widest uppercase">
+        <div class="hidden lg:flex gap-8 text-[10px] font-mono tracking-widest uppercase items-center">
             <button onclick="app.navigate('landing')" class="nav-btn" data-target="landing">Index</button>
             <button onclick="app.navigate('calibration')" class="nav-btn" data-target="calibration">Context</button>
-            <button onclick="app.navigate('profiler')" class="nav-btn text-red-600 font-bold" data-target="profiler">Identify</button>
-            <span class="text-gray-300">|</span>
+            <button onclick="app.navigate('profiler')" class="nav-btn text-loom-red font-bold" data-target="profiler">Identify</button>
+            <div class="h-3 w-px bg-gray-300"></div>
             <button onclick="app.navigate('gallery')" class="nav-btn" data-target="gallery">Gallery</button>
             <button onclick="app.navigate('archive')" class="nav-btn" data-target="archive">Archive</button>
             <button onclick="app.navigate('grift')" class="nav-btn" data-target="grift">Grift Shop</button>
-            <button onclick="app.navigate('barter')" class="nav-btn" data-target="barter">Barter</button>
-            <span class="text-gray-300">|</span>
-            <button onclick="app.navigate('pitch')" class="nav-btn" data-target="pitch">Brief</button>
-            <button onclick="app.navigate('protocol')" class="nav-btn" data-target="protocol">Protocol</button>
+            <div class="h-3 w-px bg-gray-300"></div>
+            <button onclick="app.navigate('ambition')" class="nav-btn" data-target="ambition">Ambition</button>
         </div>
 
-        <button onclick="document.getElementById('mobile-menu').classList.toggle('translate-x-full')" class="lg:hidden p-2">
-            <div class="space-y-1">
+        <button onclick="document.getElementById('mobile-menu').classList.toggle('translate-x-full')" class="lg:hidden p-2 ui-click">
+            <div class="space-y-1.5">
                 <div class="w-6 h-0.5 bg-black"></div>
                 <div class="w-6 h-0.5 bg-black"></div>
                 <div class="w-6 h-0.5 bg-black"></div>
@@ -167,46 +159,47 @@
         </button>
     </nav>
 
-    <div id="mobile-menu" class="fixed inset-0 bg-[#FDFBF7] z-40 transform translate-x-full transition-transform duration-300 pt-20 px-6 overflow-y-auto border-l border-black">
-        <div class="flex flex-col gap-4 text-lg font-mono uppercase tracking-widest">
-            <button onclick="app.navigate('landing'); app.closeMenu()" class="text-left py-2 border-b border-gray-200">Index</button>
-            <button onclick="app.navigate('calibration'); app.closeMenu()" class="text-left py-2 border-b border-gray-200">Context</button>
-            <button onclick="app.navigate('profiler'); app.closeMenu()" class="text-left py-2 border-b border-gray-200 text-red-600">Identify</button>
-            <button onclick="app.navigate('gallery'); app.closeMenu()" class="text-left py-2 border-b border-gray-200">Gallery</button>
-            <button onclick="app.navigate('grift'); app.closeMenu()" class="text-left py-2 border-b border-gray-200">Grift</button>
-            <button onclick="app.navigate('ambition'); app.closeMenu()" class="text-left py-2 border-b border-gray-200">Ambition</button>
+    <div id="mobile-menu" class="fixed inset-0 bg-[#FDFBF7] z-40 transform translate-x-full transition-transform duration-300 pt-24 px-8 overflow-y-auto border-l border-black">
+        <div class="flex flex-col gap-6 text-xl font-mono uppercase tracking-widest">
+            <button onclick="app.navigate('landing')" class="text-left pb-2 border-b border-gray-200">Index</button>
+            <button onclick="app.navigate('calibration')" class="text-left pb-2 border-b border-gray-200">Context</button>
+            <button onclick="app.navigate('profiler')" class="text-left pb-2 border-b border-gray-200 text-loom-red">Identify</button>
+            <button onclick="app.navigate('gallery')" class="text-left pb-2 border-b border-gray-200">Gallery</button>
+            <button onclick="app.navigate('grift')" class="text-left pb-2 border-b border-gray-200">Grift</button>
+            <button onclick="app.navigate('ambition')" class="text-left pb-2 border-b border-gray-200">Ambition</button>
         </div>
+        <button onclick="document.getElementById('mobile-menu').classList.add('translate-x-full')" class="mt-8 text-xs underline uppercase">Close Menu</button>
     </div>
 
     <div class="integration-bar"><div id="integration-fill" class="integration-fill"></div></div>
 
     <section id="view-landing" class="view-section active">
-        <div class="max-w-7xl mx-auto px-6 py-20 blueprint">
-            <div class="inline-block border border-black px-2 py-1 text-[10px] font-mono tracking-widest uppercase bg-white mb-6">Field Materials Case Study #902</div>
+        <div class="max-w-7xl mx-auto px-6 py-20 blueprint min-h-[80vh] flex flex-col justify-center">
+            <div class="inline-block border border-black px-2 py-1 text-[10px] font-mono tracking-widest uppercase bg-white mb-6 w-fit">Field Materials Case Study #902</div>
             <h1 class="text-6xl md:text-9xl font-bold tracking-tighter mb-8 glitch-text" data-text="DOMESTIC PRODUCT">DOMESTIC PRODUCT</h1>
             <p class="max-w-2xl text-xl font-mono leading-relaxed text-gray-700 mb-12">
                 A four-day exhibition and performance installation presented by Loomworks. Archival curation, interactive design, and narrative worldbuilding braided together.
             </p>
             
             <div class="grid md:grid-cols-3 gap-6 mb-16">
-                <div class="bg-white border border-black/10 p-6">
-                    <h3 class="font-mono text-xs uppercase tracking-widest text-red-600 mb-2">The Construct</h3>
+                <div class="bg-white border border-black/10 p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <h3 class="font-mono text-xs uppercase tracking-widest text-loom-red mb-2">The Construct</h3>
                     <p class="text-sm">A museum-meets-immersive theater installation. Real animation artifacts, Lantern attendants, and a living digital interface.</p>
                 </div>
-                <div class="bg-black text-white p-6">
+                <div class="bg-black text-white p-6 shadow-lg">
                     <h3 class="font-mono text-xs uppercase tracking-widest text-gray-400 mb-2">The Purpose</h3>
                     <p class="text-sm">To examine how icons are manufactured, circulated, controlled, and reclaimed. The economics of magic.</p>
                 </div>
-                <div class="bg-white border border-black/10 p-6">
-                    <h3 class="font-mono text-xs uppercase tracking-widest text-red-600 mb-2">The Layers</h3>
+                <div class="bg-white border border-black/10 p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <h3 class="font-mono text-xs uppercase tracking-widest text-loom-red mb-2">The Layers</h3>
                     <p class="text-sm">Lantern Protocol, The Archive, Celli Software, and the Grift Shop economy.</p>
                 </div>
             </div>
 
-            <div class="border-t border-black pt-8 flex justify-between items-center">
+            <div class="border-t border-black pt-8 flex justify-between items-center mt-auto">
                 <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Begin the sequence</div>
-                <button onclick="app.navigate('calibration')" class="ui-click bg-black text-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">
-                    Next: Calibration Protocol &rarr;
+                <button onclick="app.navigate('calibration')" class="ui-click bg-black text-white px-6 py-4 text-xs font-mono uppercase tracking-widest hover:bg-loom-red transition-colors flex items-center gap-2">
+                    Next: Calibration Protocol <span>&rarr;</span>
                 </button>
             </div>
         </div>
@@ -214,25 +207,25 @@
 
     <section id="view-calibration" class="view-section">
         <div class="max-w-5xl mx-auto px-6 py-12">
-            <div class="text-center mb-12 fade-in-up">
+            <div class="text-center mb-16">
                 <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Step 1: Calibration</div>
                 <h2 class="text-5xl font-bold uppercase tracking-tight mt-4">Explain Like I'm Dima</h2>
                 <p class="max-w-2xl mx-auto mt-4 text-gray-600 font-mono text-sm">Before we classify you, you must understand the rules of the world.</p>
             </div>
 
-            <div class="grid md:grid-cols-2 gap-8 mb-12 fade-in-up">
+            <div class="grid md:grid-cols-2 gap-8 mb-12">
                 <div class="bg-white border border-black/10 p-8 rounded-xl shadow-lg">
                     <h3 class="font-bold text-xl mb-2">The Silhouette</h3>
-                    <p class="text-sm text-gray-700 leading-relaxed">Imagine a corporation that doesn’t sell widgets, but sells Meaning. It looks like a museum, it sounds like a discography, and it feels like a bureaucratic theology you already belong to.</p>
+                    <p class="text-sm text-gray-700 leading-relaxed">Imagine a corporation that doesn’t sell widgets, but sells Meaning. It looks like a museum, it sounds like a discography, and it feels like a bureaucratic theology that you already belong to.</p>
                 </div>
                 <div class="bg-black text-white p-8 rounded-xl shadow-lg">
-                    <h3 class="font-bold text-xl mb-2 text-red-500">The Reality</h3>
+                    <h3 class="font-bold text-xl mb-2 text-loom-red">The Reality</h3>
                     <p class="text-sm text-gray-300 leading-relaxed">Loomworks is a biting satire. A playable critique of optimization and red tape. We use "Skibidi" speed to stand on the chest of slow institutions.</p>
                 </div>
             </div>
 
-            <div class="bg-[#0b0b0b] text-white p-8 rounded-xl border border-red-900/50 fade-in-up">
-                <h3 class="font-mono text-xs uppercase tracking-widest text-red-500 mb-4">Calibration Gate</h3>
+            <div class="bg-[#0b0b0b] text-white p-8 rounded-xl border border-red-900/50">
+                <h3 class="font-mono text-xs uppercase tracking-widest text-loom-red mb-4">Calibration Gate</h3>
                 <div class="grid md:grid-cols-2 gap-6">
                     <div>
                         <p class="font-bold mb-2">Query 01: Experience</p>
@@ -253,9 +246,9 @@
                 </div>
             </div>
 
-            <div class="border-t border-black mt-12 pt-8 flex justify-end">
-                <button onclick="app.navigate('profiler')" class="ui-click bg-black text-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">
-                    Next: Identity Assessment &rarr;
+            <div class="border-t border-black mt-20 pt-8 flex justify-end">
+                <button onclick="app.navigate('profiler')" class="ui-click bg-black text-white px-6 py-4 text-xs font-mono uppercase tracking-widest hover:bg-loom-red transition-colors flex items-center gap-2">
+                    Next: Identity Assessment <span>&rarr;</span>
                 </button>
             </div>
         </div>
@@ -263,68 +256,74 @@
 
     <section id="view-profiler" class="view-section">
         <div class="max-w-5xl mx-auto px-6 py-12">
-            <div class="text-center mb-10">
+            <div class="text-center mb-12">
                 <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Step 2: Identification</div>
                 <h2 class="text-5xl font-bold uppercase tracking-tight mt-4">Who Are You?</h2>
             </div>
 
-            <div class="bg-white border border-black rounded-xl p-8 shadow-xl relative overflow-hidden">
+            <div class="bg-white border border-black rounded-xl p-8 shadow-xl relative overflow-hidden min-h-[400px]">
                 <div id="prof-stage-select" class="space-y-6">
                     <p class="text-center font-mono text-sm text-gray-500">Self-designate your role within the Loomworks architecture.</p>
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-                        <button onclick="profiler.select('dreamer')" class="role-card border p-4 hover:bg-black hover:text-white transition-colors ui-click">
+                        <button onclick="profiler.select('dreamer')" class="border p-4 hover:bg-black hover:text-white transition-colors ui-click text-left">
                             <div class="font-bold uppercase">Dreamer</div>
-                            <div class="text-[10px] opacity-60">Hunts for resonance.</div>
+                            <div class="text-[10px] opacity-60 mt-1">Hunts for resonance.</div>
                         </button>
-                        <button onclick="profiler.select('scholar')" class="role-card border p-4 hover:bg-black hover:text-white transition-colors ui-click">
+                        <button onclick="profiler.select('scholar')" class="border p-4 hover:bg-black hover:text-white transition-colors ui-click text-left">
                             <div class="font-bold uppercase">Scholar</div>
-                            <div class="text-[10px] opacity-60">Keeps the receipts.</div>
+                            <div class="text-[10px] opacity-60 mt-1">Keeps the receipts.</div>
                         </button>
-                        <button onclick="profiler.select('investor')" class="role-card border p-4 hover:bg-black hover:text-white transition-colors ui-click">
+                        <button onclick="profiler.select('investor')" class="border p-4 hover:bg-black hover:text-white transition-colors ui-click text-left">
                             <div class="font-bold uppercase">Investor</div>
-                            <div class="text-[10px] opacity-60">Measures upside.</div>
+                            <div class="text-[10px] opacity-60 mt-1">Measures upside.</div>
                         </button>
-                        <button onclick="profiler.select('passerby')" class="role-card border p-4 hover:bg-black hover:text-white transition-colors ui-click">
+                        <button onclick="profiler.select('passerby')" class="border p-4 hover:bg-black hover:text-white transition-colors ui-click text-left">
                             <div class="font-bold uppercase">Passerby</div>
-                            <div class="text-[10px] opacity-60">Just looking.</div>
+                            <div class="text-[10px] opacity-60 mt-1">Just looking.</div>
                         </button>
-                        <button onclick="profiler.select('lantern')" class="role-card border p-4 hover:bg-black hover:text-white transition-colors ui-click">
+                        <button onclick="profiler.select('lantern')" class="border p-4 hover:bg-black hover:text-white transition-colors ui-click text-left">
                             <div class="font-bold uppercase">Lantern</div>
-                            <div class="text-[10px] opacity-60">Carries the story.</div>
+                            <div class="text-[10px] opacity-60 mt-1">Carries the story.</div>
                         </button>
                     </div>
                 </div>
 
-                <div id="prof-stage-doubt" class="hidden text-center py-10">
-                    <h3 class="text-2xl font-bold uppercase text-red-600 mb-4">Are you sure?</h3>
-                    <p class="font-mono text-xs mb-6">Your self-classification requires verification.</p>
-                    <button onclick="profiler.startQuiz()" class="bg-black text-white px-6 py-3 font-mono text-xs uppercase tracking-widest ui-click hover:bg-red-600">Launch Quiz Overlay</button>
+                <div id="prof-stage-doubt" class="hidden text-center py-10 fade-in-up">
+                    <h3 class="text-2xl font-bold uppercase text-loom-red mb-4">Are you sure?</h3>
+                    <p class="font-mono text-xs mb-6 text-gray-600">Your self-classification requires verification against the Loom.</p>
+                    <button onclick="profiler.startQuiz()" class="bg-black text-white px-8 py-3 font-mono text-xs uppercase tracking-widest ui-click hover:bg-loom-red transition-colors">Launch Verification</button>
                 </div>
 
-                <div id="prof-result" class="hidden p-6 bg-gray-50 border border-black">
-                    <h3 class="text-xl font-bold uppercase" id="result-title">Identity Locked</h3>
-                    <div class="mt-4" id="sculpture-container">
-                        <canvas id="sculpture-canvas" width="400" height="250" class="w-full h-auto border border-gray-300"></canvas>
+                <div id="prof-result" class="hidden p-6 bg-gray-50 border border-black fade-in-up">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-xl font-bold uppercase" id="result-title">Identity Locked</h3>
+                        <span class="text-[10px] font-mono border border-black px-2 py-1">V.01</span>
                     </div>
-                    <p class="text-xs font-mono text-gray-500 mt-2">Unique generative artifact created based on your signal.</p>
+                    <div id="sculpture-container" class="bg-[#eee] w-full h-48 mb-4 border border-gray-300 flex items-center justify-center">
+                        <canvas id="sculpture-canvas" width="400" height="200" class="w-full h-full object-contain"></canvas>
+                    </div>
+                    <p class="text-xs font-mono text-gray-500">Unique generative artifact created based on your signal. Ready for gallery injection.</p>
                 </div>
             </div>
 
-            <div class="border-t border-black mt-12 pt-8 flex justify-end">
-                <button onclick="app.navigate('gallery')" class="ui-click bg-black text-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">
-                    Next: Enter Gallery &rarr;
+            <div class="border-t border-black mt-20 pt-8 flex justify-end">
+                <button onclick="app.navigate('gallery')" class="ui-click bg-black text-white px-6 py-4 text-xs font-mono uppercase tracking-widest hover:bg-loom-red transition-colors flex items-center gap-2">
+                    Next: Enter Gallery <span>&rarr;</span>
                 </button>
             </div>
         </div>
     </section>
 
     <section id="view-gallery" class="view-section relative !pt-0 h-screen overflow-hidden">
-        <div id="canvas-container" class="absolute inset-0 z-0"></div>
-        <div class="absolute bottom-8 left-8 z-10 bg-white/90 p-6 border border-black max-w-sm backdrop-blur">
+        <div id="canvas-container" class="absolute inset-0 z-0 bg-[#0f0f0f]"></div>
+        
+        <div class="absolute bottom-16 left-8 z-10 bg-white/90 p-6 border border-black max-w-sm backdrop-blur shadow-2xl">
             <h3 class="font-bold uppercase text-sm mb-2">The Gallery</h3>
-            <p class="text-xs font-mono text-gray-600 mb-4">Drag to rotate. Scroll to zoom. Use the password 'loomworks' to unlock edit mode.</p>
-            <div class="flex gap-2">
-                <button onclick="app.navigate('archive')" class="ui-click bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600">
+            <p class="text-xs font-mono text-gray-600 mb-4">Drag to rotate. Scroll to zoom. Click artifacts to inspect metadata.</p>
+            <div class="space-y-2">
+                <button onclick="gallery.resetCamera()" class="block w-full text-left text-[10px] font-mono uppercase hover:text-loom-red ui-click">Reset Camera</button>
+                <div class="h-px bg-gray-300 my-2"></div>
+                <button onclick="app.navigate('archive')" class="ui-click bg-black text-white px-4 py-3 w-full text-[10px] font-mono uppercase tracking-widest hover:bg-loom-red transition-colors">
                     Next: The Archive &rarr;
                 </button>
             </div>
@@ -333,30 +332,30 @@
 
     <section id="view-archive" class="view-section bg-gray-50">
         <div class="max-w-6xl mx-auto px-6 py-12">
-            <div class="flex justify-between items-end mb-10">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
                 <div>
                     <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Step 4: Evidence</div>
                     <h2 class="text-5xl font-bold uppercase tracking-tight mt-2">Archive Index</h2>
                 </div>
-                <div class="font-mono text-xs text-right">
-                    <div>Items: <span id="archive-count" class="font-bold">Loading...</span></div>
-                    <div>Updated: NOW</div>
+                <div class="font-mono text-xs md:text-right text-gray-500">
+                    <div>Items: <span id="archive-count" class="font-bold text-black">Loading...</span></div>
+                    <div>Updated: <span class="font-bold text-black">NOW</span></div>
                 </div>
             </div>
 
             <div class="grid md:grid-cols-3 gap-8">
-                <div class="bg-white border border-black p-6 h-fit sticky top-24">
+                <div class="bg-white border border-black p-6 h-fit md:sticky md:top-24 shadow-sm">
                     <h3 class="font-mono text-xs uppercase tracking-widest text-gray-500 mb-4">Quick Index</h3>
-                    <div id="archive-quick" class="text-xs font-mono space-y-2 h-64 overflow-y-auto"></div>
+                    <div id="archive-quick" class="text-xs font-mono space-y-2 h-64 overflow-y-auto pr-2"></div>
                 </div>
                 <div class="md:col-span-2 space-y-4" id="archive-groups">
                     <div class="border border-dashed border-gray-400 p-8 text-center font-mono text-sm text-gray-500">Loading inventory data...</div>
                 </div>
             </div>
 
-            <div class="border-t border-black mt-12 pt-8 flex justify-end">
-                <button onclick="app.navigate('grift')" class="ui-click bg-black text-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">
-                    Next: Extract Value &rarr;
+            <div class="border-t border-black mt-20 pt-8 flex justify-end">
+                <button onclick="app.navigate('grift')" class="ui-click bg-black text-white px-6 py-4 text-xs font-mono uppercase tracking-widest hover:bg-loom-red transition-colors flex items-center gap-2">
+                    Next: Extract Value <span>&rarr;</span>
                 </button>
             </div>
         </div>
@@ -364,55 +363,56 @@
 
     <section id="view-grift" class="view-section bg-[#f8f3e8]">
         <div class="max-w-6xl mx-auto px-6 py-12">
-            <div class="flex justify-between items-end mb-10 border-b-2 border-black pb-6">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-10 border-b-2 border-black pb-6 gap-4">
                 <div>
                     <div class="inline-flex items-center gap-2 bg-white border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest">Step 5: The Economy</div>
                     <h2 class="text-5xl font-bold uppercase tracking-tight mt-2">Grift Shop</h2>
                     <p class="text-sm font-mono text-gray-600 mt-2">Solve the dark patterns. Collect 6 tokens to unlock ticketing.</p>
                 </div>
-                <div class="value-pill bg-white">Tokens: <span id="token-count" class="font-bold ml-1">0</span>/9</div>
+                <div class="value-pill bg-white shadow-sm">Tokens: <span id="token-count" class="font-bold ml-1 text-loom-red">0</span>/9</div>
             </div>
 
             <div class="grid md:grid-cols-3 gap-4 mb-12">
                 <div class="grift-card">
                     <h4 class="font-bold uppercase text-sm mb-2">Influencer Coin</h4>
-                    <p class="text-xs text-gray-600 mb-2">Short the hype.</p>
-                    <input id="coin-slider" type="range" class="w-full accent-red-600">
+                    <p class="text-xs text-gray-600 mb-4 font-mono">Short the hype.</p>
+                    <input id="coin-slider" type="range" class="w-full accent-red-600 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                 </div>
                 <div class="grift-card">
                     <h4 class="font-bold uppercase text-sm mb-2">Merch Box</h4>
-                    <button id="box-tape" class="w-full border border-black py-2 text-xs hover:bg-black hover:text-white transition-colors ui-click">PEEL TAPE</button>
+                    <p class="text-xs text-gray-600 mb-4 font-mono">Do not open.</p>
+                    <button id="box-tape" onclick="grift.handleBox()" class="w-full border border-black py-2 text-xs font-mono uppercase hover:bg-black hover:text-white transition-colors ui-click">PEEL TAPE</button>
                 </div>
                 <div class="grift-card">
                     <h4 class="font-bold uppercase text-sm mb-2">Terms of Service</h4>
-                    <div class="h-20 overflow-y-auto text-[10px] border border-dashed border-gray-300 p-2 mb-2">
-                        Clause 8a: You agree to forfeit your likeness to the Loom.
+                    <div class="h-20 overflow-y-auto text-[10px] border border-dashed border-gray-300 p-2 mb-2 font-mono bg-white">
+                        Clause 8a: You agree to forfeit your likeness to the Loom. Binding arbitration in a basement.
                     </div>
-                    <button id="terms-flag" class="w-full bg-red-600 text-white text-xs py-1 ui-click">Flag Clause</button>
+                    <button id="terms-flag" onclick="grift.handleTerms()" class="w-full bg-loom-red text-white text-xs py-2 uppercase tracking-widest ui-click hover:bg-black transition-colors">Flag Clause</button>
                 </div>
             </div>
 
-            <div class="bg-white border border-black p-6 rounded-xl">
+            <div class="bg-white border border-black p-6 rounded-xl shadow-lg">
                 <h3 class="font-bold uppercase mb-4">Manufacture Tool (16x16)</h3>
-                <div class="flex gap-6">
-                    <div class="border border-black p-1 bg-[#f5f5dc]">
-                        <canvas id="manufacture-canvas" width="256" height="256" class="cursor-crosshair"></canvas>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="border-2 border-black p-1 bg-[#f5f5dc] w-fit shadow-[4px_4px_0px_rgba(0,0,0,1)]">
+                        <canvas id="manufacture-canvas" width="256" height="256" class="cursor-crosshair w-[256px] h-[256px]"></canvas>
                     </div>
-                    <div class="space-y-4">
-                        <div class="text-xs font-mono">Draw your emulacrum.</div>
+                    <div class="space-y-4 flex-1">
+                        <div class="text-xs font-mono text-gray-600">Draw your emulacrum. Pixels are expensive.</div>
                         <div class="flex gap-2">
-                            <div class="w-6 h-6 bg-black border border-gray-300 ui-click" onclick="manufacture.setColor('#111')"></div>
-                            <div class="w-6 h-6 bg-red-600 border border-gray-300 ui-click" onclick="manufacture.setColor('#CD2B2B')"></div>
-                            <div class="w-6 h-6 bg-white border border-gray-300 ui-click" onclick="manufacture.setColor('#FFF')"></div>
+                            <button class="w-8 h-8 bg-black border-2 border-gray-300 ui-click hover:scale-110 transition-transform" onclick="manufacture.setColor('#111')" title="Black"></button>
+                            <button class="w-8 h-8 bg-loom-red border-2 border-gray-300 ui-click hover:scale-110 transition-transform" onclick="manufacture.setColor('#CD2B2B')" title="Red"></button>
+                            <button class="w-8 h-8 bg-white border-2 border-gray-300 ui-click hover:scale-110 transition-transform" onclick="manufacture.setColor('#f5f5dc')" title="Eraser"></button>
                         </div>
-                        <button onclick="manufacture.submit()" class="border border-black px-4 py-2 text-xs uppercase hover:bg-black hover:text-white transition-colors ui-click">Submit Artifact</button>
+                        <button onclick="manufacture.submit()" class="border-2 border-black px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors ui-click w-full md:w-auto">Submit Artifact</button>
                     </div>
                 </div>
             </div>
 
-            <div class="border-t border-black mt-12 pt-8 flex justify-end">
-                <button onclick="app.navigate('barter')" class="ui-click bg-black text-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">
-                    Next: Barter Post &rarr;
+            <div class="border-t border-black mt-20 pt-8 flex justify-end">
+                <button onclick="app.navigate('barter')" class="ui-click bg-black text-white px-6 py-4 text-xs font-mono uppercase tracking-widest hover:bg-loom-red transition-colors flex items-center gap-2">
+                    Next: Barter Post <span>&rarr;</span>
                 </button>
             </div>
         </div>
@@ -420,33 +420,45 @@
 
     <section id="view-barter" class="view-section">
         <div class="max-w-6xl mx-auto px-6 py-12">
-            <div class="text-center mb-10">
+            <div class="text-center mb-16">
                 <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Step 6: Exchange</div>
                 <h2 class="text-5xl font-bold uppercase tracking-tight mt-4">The Barter Post</h2>
             </div>
             
             <div class="grid md:grid-cols-2 gap-8 mb-12">
                 <div class="border border-black bg-white p-6 shadow-lg">
-                    <h3 class="font-bold uppercase mb-4">Shop Mode</h3>
-                    <div class="space-y-2 font-mono text-xs" id="barter-grid">
-                        <div class="flex justify-between border-b py-2"><span>Archival Postcard</span> <span>$5.00</span></div>
-                        <div class="flex justify-between border-b py-2"><span>Celli Figurine</span> <span>$25.00</span></div>
-                        <div class="flex justify-between border-b py-2"><span>Lantern Badge</span> <span>Trade Only</span></div>
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-bold uppercase">Shop Mode</h3>
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    </div>
+                    <div class="space-y-4 font-mono text-xs" id="barter-grid">
+                        <div class="flex justify-between border-b py-2 items-center">
+                            <span>Archival Postcard</span> 
+                            <button class="border border-black px-2 py-1 hover:bg-black hover:text-white transition-colors ui-click">$5.00</button>
+                        </div>
+                        <div class="flex justify-between border-b py-2 items-center">
+                            <span>Celli Figurine</span> 
+                            <button class="border border-black px-2 py-1 hover:bg-black hover:text-white transition-colors ui-click">$25.00</button>
+                        </div>
+                        <div class="flex justify-between border-b py-2 items-center">
+                            <span>Lantern Badge</span> 
+                            <span class="bg-gray-200 px-2 py-1">Trade Only</span>
+                        </div>
                     </div>
                 </div>
-                <div class="bg-[#111] text-white p-6 shadow-lg">
-                    <h3 class="font-bold uppercase mb-4 text-red-500">Transparency Mode</h3>
-                    <div class="space-y-2 font-mono text-xs text-gray-300">
-                        <div class="flex justify-between border-b border-gray-800 py-2"><span>Postcard Margin</span> <span>85%</span></div>
-                        <div class="flex justify-between border-b border-gray-800 py-2"><span>Celli Margin</span> <span>40%</span></div>
-                        <div class="flex justify-between border-b border-gray-800 py-2"><span>Narrative Value</span> <span>Unquantifiable</span></div>
+                <div class="bg-[#111] text-white p-6 shadow-lg border border-gray-800">
+                    <h3 class="font-bold uppercase mb-6 text-loom-red">Transparency Mode</h3>
+                    <div class="space-y-4 font-mono text-xs text-gray-400">
+                        <div class="flex justify-between border-b border-gray-800 py-2"><span>Postcard Margin</span> <span class="text-white">85%</span></div>
+                        <div class="flex justify-between border-b border-gray-800 py-2"><span>Celli Margin</span> <span class="text-white">40%</span></div>
+                        <div class="flex justify-between border-b border-gray-800 py-2"><span>Narrative Value</span> <span class="text-loom-red">Unquantifiable</span></div>
                     </div>
                 </div>
             </div>
 
-            <div class="border-t border-black mt-12 pt-8 flex justify-end">
-                <button onclick="app.navigate('ambition')" class="ui-click bg-black text-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">
-                    Next: The Ambition &rarr;
+            <div class="border-t border-black mt-20 pt-8 flex justify-end">
+                <button onclick="app.navigate('ambition')" class="ui-click bg-black text-white px-6 py-4 text-xs font-mono uppercase tracking-widest hover:bg-loom-red transition-colors flex items-center gap-2">
+                    Next: The Ambition <span>&rarr;</span>
                 </button>
             </div>
         </div>
@@ -454,33 +466,33 @@
 
     <section id="view-ambition" class="view-section blueprint">
         <div class="max-w-5xl mx-auto px-6 py-12">
-            <div class="mb-10">
+            <div class="mb-12">
                 <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Step 7: The Why</div>
                 <h2 class="text-5xl font-bold uppercase tracking-tight mt-4">Threshold</h2>
             </div>
 
             <div class="bg-white border border-black rounded-xl p-8 shadow-2xl space-y-8">
-                <p class="text-lg leading-relaxed font-serif">
+                <p class="text-lg leading-relaxed font-serif text-gray-800">
                     Domestic Product is not a brand. Loomworks is not a company. This is a proof that one person can build something that feels institutional, emotional, and real enough to fear.
                 </p>
                 <div class="grid md:grid-cols-2 gap-6">
-                    <div class="bg-gray-50 p-4 border border-black/10">
-                        <h4 class="font-bold uppercase text-xs mb-2">The Archive</h4>
-                        <p class="text-sm">Real objects folded into the fiction.</p>
+                    <div class="bg-gray-50 p-6 border border-black/10">
+                        <h4 class="font-bold uppercase text-xs mb-2 tracking-widest text-loom-red">The Archive</h4>
+                        <p class="text-sm text-gray-600">Real objects folded into the fiction. Evidence of manufactured myth.</p>
                     </div>
-                    <div class="bg-gray-50 p-4 border border-black/10">
-                        <h4 class="font-bold uppercase text-xs mb-2">The Experience</h4>
-                        <p class="text-sm">Playable critique, inhabitable satire.</p>
+                    <div class="bg-gray-50 p-6 border border-black/10">
+                        <h4 class="font-bold uppercase text-xs mb-2 tracking-widest text-loom-red">The Experience</h4>
+                        <p class="text-sm text-gray-600">Playable critique, inhabitable satire. The system is the show.</p>
                     </div>
                 </div>
                 
-                <div class="bg-black text-white rounded-lg p-4">
+                <div class="bg-black text-white rounded-lg p-6 shadow-inner">
                     <details class="group">
-                        <summary class="flex justify-between items-center cursor-pointer ui-click">
-                            <span class="font-mono text-xs uppercase tracking-widest text-red-500">Read: Why We Stopped Making Worlds</span>
-                            <span class="text-red-500">+</span>
+                        <summary class="flex justify-between items-center cursor-pointer ui-click select-none">
+                            <span class="font-mono text-xs uppercase tracking-widest text-loom-red">Read: Why We Stopped Making Worlds</span>
+                            <span class="text-loom-red group-open:rotate-45 transition-transform text-xl">+</span>
                         </summary>
-                        <div class="mt-4 text-sm text-gray-300 leading-relaxed space-y-4">
+                        <div class="mt-6 text-sm text-gray-300 leading-relaxed space-y-4 border-t border-gray-800 pt-4">
                             <p>For a brief moment, the internet was made by weirdos. Then it was made by corporations. Loomworks is an argument for re-enchantment.</p>
                             <p>We believe in "Cadenced ARGs," not chaos. Emergence blooms inside a human-designed container.</p>
                         </div>
@@ -488,9 +500,9 @@
                 </div>
             </div>
 
-            <div class="border-t border-black mt-12 pt-8 flex justify-end">
-                <button onclick="app.navigate('protocol')" class="ui-click bg-black text-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">
-                    Next: Final Protocol &rarr;
+            <div class="border-t border-black mt-20 pt-8 flex justify-end">
+                <button onclick="app.navigate('protocol')" class="ui-click bg-black text-white px-6 py-4 text-xs font-mono uppercase tracking-widest hover:bg-loom-red transition-colors flex items-center gap-2">
+                    Next: Final Protocol <span>&rarr;</span>
                 </button>
             </div>
         </div>
@@ -498,7 +510,7 @@
 
     <section id="view-protocol" class="view-section">
         <div class="max-w-5xl mx-auto px-6 py-12 pb-32">
-            <div class="flex justify-between items-end mb-10 border-b-2 border-red-600 pb-6">
+            <div class="flex justify-between items-end mb-12 border-b-2 border-red-600 pb-6">
                 <div>
                     <h1 class="text-5xl font-bold uppercase tracking-tighter">Lantern Protocol</h1>
                     <div class="font-mono text-xs text-red-600 mt-2 uppercase tracking-widest">Document No. HR-902 // CASTING</div>
@@ -507,51 +519,296 @@
 
             <div class="grid md:grid-cols-2 gap-12">
                 <div class="space-y-6">
-                    <p class="font-serif text-lg">Lanterns are the human interfaces of Loomworks. Not guards, not docents. Witnesses.</p>
-                    <div class="bg-white border border-gray-200 p-6 shadow-md">
-                        <h3 class="font-bold text-sm uppercase mb-4 text-gray-400">Scripted Interaction</h3>
-                        <p class="font-serif text-xl italic mb-2">"Just super!"</p>
-                        <p class="text-xs text-gray-500">(Bright, slightly too loud. Smile with teeth.)</p>
+                    <p class="font-serif text-lg leading-relaxed">Lanterns are the human interfaces of Loomworks. Not guards, not docents. Witnesses. They stand between longing and duty.</p>
+                    <div class="bg-white border border-gray-200 p-8 shadow-md relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-loom-red text-white text-[9px] px-2 py-1 font-mono">INTERACTION 01</div>
+                        <h3 class="font-bold text-sm uppercase mb-4 text-gray-400">Scripted Response</h3>
+                        <p class="font-serif text-2xl italic mb-4">"Just super!"</p>
+                        <p class="text-xs text-gray-500 font-mono border-t pt-2">(Bright, slightly too loud. Smile with teeth.)</p>
                     </div>
                 </div>
                 <div class="space-y-4">
                     <h4 class="font-bold text-xs uppercase tracking-widest">The Roles</h4>
-                    <div class="border p-3"><strong>Here</strong>: Greeter (Warm)</div>
-                    <div class="border p-3"><strong>Now</strong>: Tempo (Crisp)</div>
-                    <div class="border p-3"><strong>Nicol</strong>: Value (Bureaucratic)</div>
-                    <div class="border p-3"><strong>Dime</strong>: Cost (Playful)</div>
+                    <div class="border p-4 bg-white hover:border-loom-red transition-colors cursor-help"><strong>Here</strong>: Greeter (Warm)</div>
+                    <div class="border p-4 bg-white hover:border-loom-red transition-colors cursor-help"><strong>Now</strong>: Tempo (Crisp)</div>
+                    <div class="border p-4 bg-white hover:border-loom-red transition-colors cursor-help"><strong>Nicol</strong>: Value (Bureaucratic)</div>
+                    <div class="border p-4 bg-white hover:border-loom-red transition-colors cursor-help"><strong>Dime</strong>: Cost (Playful)</div>
                 </div>
             </div>
 
-            <div class="border-t border-black mt-12 pt-8 flex justify-center">
+            <div class="border-t border-black mt-20 pt-12 flex justify-center">
                 <div class="text-center">
-                    <p class="font-mono text-xs mb-4">END OF SEQUENCE</p>
-                    <button onclick="app.navigate('landing')" class="ui-click border border-black bg-white px-8 py-4 text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
-                        Return to Start
+                    <p class="font-mono text-xs mb-6 text-gray-500 tracking-[0.2em]">SEQUENCE COMPLETE</p>
+                    <button onclick="app.navigate('landing')" class="ui-click border-2 border-black bg-white px-10 py-4 text-sm font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+                        Return to Index
                     </button>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="view-pitch" class="view-section"><div class="p-20 text-center font-mono">PROJECT BRIEF CONTENT LOADED. <br><button onclick="app.navigate('landing')" class="underline mt-4">Return</button></div></section>
-    <section id="view-press" class="view-section"><div class="p-20 text-center font-mono">PRESS KIT CONTENT LOADED. <br><button onclick="app.navigate('landing')" class="underline mt-4">Return</button></div></section>
-    <section id="view-tickets" class="view-section"><div class="p-20 text-center font-mono">TICKETING MODULE. <br><button onclick="app.navigate('landing')" class="underline mt-4">Return</button></div></section>
-    <section id="view-team" class="view-section"><div class="p-20 text-center font-mono">TEAM ROSTER. <br><button onclick="app.navigate('landing')" class="underline mt-4">Return</button></div></section>
+    <section id="view-pitch" class="view-section"><div class="p-20 text-center font-mono bg-white border border-black m-6">PROJECT BRIEF CONTENT. <button onclick="app.navigate('landing')" class="underline ml-2">Back</button></div></section>
+    <section id="view-press" class="view-section"><div class="p-20 text-center font-mono bg-white border border-black m-6">PRESS KIT CONTENT. <button onclick="app.navigate('landing')" class="underline ml-2">Back</button></div></section>
+    <section id="view-tickets" class="view-section"><div class="p-20 text-center font-mono bg-white border border-black m-6">TICKETING MODULE. <button onclick="app.navigate('landing')" class="underline ml-2">Back</button></div></section>
+    <section id="view-team" class="view-section"><div class="p-20 text-center font-mono bg-white border border-black m-6">TEAM ROSTER. <button onclick="app.navigate('landing')" class="underline ml-2">Back</button></div></section>
 
     <div id="quiz-modal" class="modal-layer">
-        <div class="bg-white p-8 max-w-lg w-full border-2 border-black rounded-xl">
-            <h3 class="text-2xl font-bold mb-4">Identity Verification</h3>
-            <div id="quiz-content" class="space-y-4">
-                <p id="quiz-question" class="text-lg">Question goes here...</p>
-                <div id="quiz-options" class="flex flex-col gap-2"></div>
+        <div class="bg-white p-8 max-w-lg w-full border-2 border-black rounded-xl shadow-2xl m-4">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
+                <h3 class="text-xl font-bold uppercase tracking-tight">Identity Verification</h3>
+                <span class="text-[10px] font-mono text-loom-red">ACTIVE</span>
             </div>
-            <button onclick="profiler.closeModal()" class="mt-6 text-xs underline uppercase">Close</button>
+            <div id="quiz-content" class="space-y-6">
+                <p id="quiz-question" class="text-lg font-serif">Question goes here...</p>
+                <div id="quiz-options" class="flex flex-col gap-3"></div>
+            </div>
+            <button onclick="profiler.closeModal()" class="mt-8 text-xs underline uppercase tracking-widest text-gray-500 hover:text-black">Cancel Process</button>
         </div>
     </div>
 
     <script>
-        // --- CORE NAVIGATION & APP ---
+        /* --- MODULES DEFINED FIRST FOR SAFETY --- */
+
+        // 1. Audio Engine
+        const audio = {
+            synth: null,
+            init: async () => {
+                if (window.Tone) {
+                    await Tone.start();
+                    audio.synth = new Tone.MembraneSynth().toDestination();
+                }
+            },
+            click: () => {
+                if (window.Tone && audio.synth) {
+                    audio.synth.triggerAttackRelease("C2", "32n");
+                } else if (window.Tone) {
+                    audio.init().then(() => audio.click());
+                }
+            }
+        };
+
+        // 2. Manufacture (Canvas)
+        const manufacture = {
+            color: '#111',
+            canvas: null,
+            init: () => {
+                const c = document.getElementById('manufacture-canvas');
+                if(!c) return;
+                manufacture.canvas = c;
+                const ctx = c.getContext('2d');
+                
+                // Init White Background
+                ctx.fillStyle = '#f5f5dc';
+                ctx.fillRect(0,0,256,256);
+                
+                let painting = false;
+                const draw = (e) => {
+                    if(!painting) return;
+                    const rect = c.getBoundingClientRect();
+                    // 16x16 Grid Logic
+                    const scaleX = c.width / rect.width;
+                    const scaleY = c.height / rect.height;
+                    const cellW = 256/16;
+                    const cellH = 256/16;
+                    
+                    const x = Math.floor((e.clientX - rect.left) * scaleX / cellW) * cellW;
+                    const y = Math.floor((e.clientY - rect.top) * scaleY / cellH) * cellH;
+                    
+                    ctx.fillStyle = manufacture.color;
+                    ctx.fillRect(x,y,cellW,cellH);
+                };
+                
+                c.addEventListener('mousedown', (e) => { painting = true; draw(e); });
+                c.addEventListener('mousemove', draw);
+                window.addEventListener('mouseup', () => painting = false);
+            },
+            setColor: (c) => manufacture.color = c,
+            submit: () => {
+                if(window.audio) audio.click();
+                alert("Artifact Submitted to Loomworks. Revenue share: 0.000666%");
+            }
+        };
+
+        // 3. Archive
+        const archive = {
+            init: async () => {
+                const el = document.getElementById('archive-quick');
+                const groupEl = document.getElementById('archive-groups');
+                if(!el || !groupEl) return;
+
+                // Mock Data for Reliability
+                const data = [
+                    { id: "001", title: "Celluloid Frame", year: "1938" },
+                    { id: "002", title: "Brass Key", year: "1955" },
+                    { id: "003", title: "Glitch Log", year: "2024" },
+                    { id: "004", title: "Menko Card", year: "1942" }
+                ];
+                
+                el.innerHTML = data.map(i => `<div class="border-b border-gray-100 py-1 hover:text-loom-red cursor-help">${i.id} // ${i.title}</div>`).join('');
+                document.getElementById('archive-count').innerText = data.length;
+                
+                groupEl.innerHTML = data.map(i => `
+                    <div class="bg-white border border-black/10 p-4 shadow-sm flex justify-between items-center">
+                        <div>
+                            <div class="text-[10px] font-mono text-gray-500">${i.year}</div>
+                            <div class="font-bold">${i.title}</div>
+                        </div>
+                        <div class="text-xs border border-black px-2 py-1">VIEW</div>
+                    </div>
+                `).join('');
+            }
+        };
+
+        // 4. Sculpture (Three.js)
+        const sculptureEngine = {
+            render: () => {
+                const canvas = document.getElementById('sculpture-canvas');
+                if(!canvas) return;
+                const ctx = canvas.getContext('2d');
+                // Simple Generative Fallback if Three.js is heavy
+                ctx.fillStyle = '#f9f9f9';
+                ctx.fillRect(0,0,400,200);
+                
+                // Draw random "Sculpture"
+                ctx.strokeStyle = '#111';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for(let i=0; i<5; i++) {
+                    ctx.rect(50 + Math.random()*300, 50 + Math.random()*100, 40, 40);
+                }
+                ctx.stroke();
+                
+                ctx.fillStyle = '#CD2B2B';
+                ctx.beginPath();
+                ctx.arc(200, 100, 10, 0, 2*Math.PI);
+                ctx.fill();
+            }
+        };
+
+        // 5. Gallery (Three.js 3D Room)
+        const gallery = {
+            scene: null, camera: null, renderer: null, cube: null,
+            init: () => {
+                const container = document.getElementById('canvas-container');
+                if(!container || gallery.scene) return;
+
+                gallery.scene = new THREE.Scene();
+                gallery.scene.background = new THREE.Color(0x0f0f0f);
+                gallery.scene.fog = new THREE.Fog(0x0f0f0f, 5, 20);
+
+                gallery.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+                gallery.camera.position.z = 5;
+                gallery.camera.position.y = 1;
+
+                gallery.renderer = new THREE.WebGLRenderer({alpha:true, antialias:true});
+                gallery.renderer.setSize(window.innerWidth, window.innerHeight);
+                container.appendChild(gallery.renderer.domElement);
+
+                // Lighting
+                const light = new THREE.DirectionalLight(0xffffff, 1);
+                light.position.set(2, 2, 5);
+                gallery.scene.add(light);
+                gallery.scene.add(new THREE.AmbientLight(0x404040));
+
+                // Objects
+                const geometry = new THREE.IcosahedronGeometry(1, 0);
+                const material = new THREE.MeshStandardMaterial({ color: 0xcd2b2b, wireframe: true });
+                gallery.cube = new THREE.Mesh(geometry, material);
+                gallery.scene.add(gallery.cube);
+
+                // Grid Floor
+                const grid = new THREE.GridHelper(20, 20, 0x333333, 0x111111);
+                gallery.scene.add(grid);
+
+                const animate = function () {
+                    requestAnimationFrame(animate);
+                    if(gallery.cube) {
+                        gallery.cube.rotation.x += 0.005;
+                        gallery.cube.rotation.y += 0.01;
+                    }
+                    gallery.renderer.render(gallery.scene, gallery.camera);
+                };
+                animate();
+                
+                window.addEventListener('resize', () => {
+                    gallery.camera.aspect = window.innerWidth / window.innerHeight;
+                    gallery.camera.updateProjectionMatrix();
+                    gallery.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            },
+            resetCamera: () => {
+                if(gallery.camera) {
+                    gallery.camera.position.set(0,1,5);
+                    gallery.camera.lookAt(0,0,0);
+                }
+            }
+        };
+
+        // 6. Grift Logic
+        const grift = {
+            init: () => {
+                const slider = document.getElementById('coin-slider');
+                if(slider) {
+                    slider.oninput = (e) => {
+                        // Play fake sound
+                        if(Math.random() > 0.8 && window.audio) audio.click();
+                        if(e.target.value < 20) document.getElementById('token-count').innerText = "1";
+                    }
+                }
+            },
+            handleBox: () => {
+                const btn = document.getElementById('box-tape');
+                btn.innerText = "OPENING...";
+                setTimeout(() => {
+                    btn.innerText = "EMPTY (AS EXPECTED)";
+                    btn.classList.add('bg-gray-200', 'text-gray-400');
+                    document.getElementById('token-count').innerText = "2";
+                }, 800);
+            },
+            handleTerms: () => {
+                const btn = document.getElementById('terms-flag');
+                btn.innerText = "CLAUSE FLAGGED";
+                btn.classList.replace('bg-loom-red', 'bg-black');
+                document.getElementById('token-count').innerText = "3";
+            }
+        };
+
+        // 7. Profiler Logic
+        const profiler = {
+            scores: { dreamer:0, scholar:0, investor:0, passerby:0, lantern:0 },
+            select: (role) => {
+                profiler.scores[role] += 5; 
+                document.getElementById('prof-stage-select').classList.add('hidden');
+                document.getElementById('prof-stage-doubt').classList.remove('hidden');
+                if(window.audio) audio.click();
+            },
+            startQuiz: () => {
+                document.getElementById('quiz-modal').classList.add('active');
+                profiler.renderQuestion();
+            },
+            renderQuestion: () => {
+                const q = document.getElementById('quiz-question');
+                const opts = document.getElementById('quiz-options');
+                q.innerText = "You find a broken toy on the sidewalk. What is your first instinct?";
+                opts.innerHTML = `
+                    <button class="border border-gray-300 p-4 text-left hover:bg-black hover:text-white transition-colors ui-click font-mono text-sm" onclick="profiler.answer('dreamer')">Fix it. It has potential.</button>
+                    <button class="border border-gray-300 p-4 text-left hover:bg-black hover:text-white transition-colors ui-click font-mono text-sm" onclick="profiler.answer('scholar')">Study it. Where did it come from?</button>
+                    <button class="border border-gray-300 p-4 text-left hover:bg-black hover:text-white transition-colors ui-click font-mono text-sm" onclick="profiler.answer('investor')">Sell it. Parts are valuable.</button>
+                `;
+            },
+            answer: (type) => {
+                document.getElementById('quiz-modal').classList.remove('active');
+                document.getElementById('prof-stage-doubt').classList.add('hidden');
+                document.getElementById('prof-result').classList.remove('hidden');
+                document.getElementById('result-title').innerText = `SUBJECT: ${type.toUpperCase()}`;
+                sculptureEngine.render();
+            },
+            closeModal: () => {
+                document.getElementById('quiz-modal').classList.remove('active');
+            }
+        };
+
+        // 8. Main App Controller
         const app = {
             integration: 0,
             visited: new Set(),
@@ -564,211 +821,69 @@
                 document.getElementById('mobile-menu').classList.add('translate-x-full');
 
                 // View Transition
-                document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-                const view = document.getElementById(`view-${target}`);
-                if (view) {
-                    view.classList.add('active');
+                const current = document.querySelector('.view-section.active');
+                if(current) current.classList.remove('active');
+                
+                const next = document.getElementById(`view-${target}`);
+                if (next) {
+                    next.classList.add('active');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    console.error("Target view not found:", target);
+                    return;
                 }
 
-                // Integration Tracking
+                // Nav State
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    if(btn.dataset.target === target) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                });
+
+                // Integration Bar
                 if (!app.visited.has(target)) {
                     app.visited.add(target);
                     app.integration += 10;
                     document.getElementById('integration-fill').style.width = `${Math.min(100, app.integration)}%`;
                 }
 
-                // Specific Init Logic
-                if (target === 'gallery') gallery.init();
-                if (target === 'archive') archive.init();
-                if (target === 'grift') grift.init();
-            },
-            closeMenu: () => {
-                document.getElementById('mobile-menu').classList.add('translate-x-full');
+                // Lazy Load Modules
+                if (target === 'gallery') setTimeout(gallery.init, 100);
+                if (target === 'archive') setTimeout(archive.init, 100);
+                if (target === 'grift') setTimeout(grift.init, 100);
             }
         };
 
-        // --- AUDIO ENGINE (Tone.js) ---
-        const audio = {
-            synth: null,
-            init: async () => {
-                await Tone.start();
-                audio.synth = new Tone.MembraneSynth().toDestination();
-            },
-            click: () => {
-                if (!audio.synth) audio.init();
-                if (audio.synth) audio.synth.triggerAttackRelease("C2", "32n");
-            }
-        };
-
-        // --- LOADER ---
-        window.addEventListener('load', () => {
-            const bar = document.getElementById('loader-progress');
-            const loader = document.getElementById('loader');
-            let w = 0;
-            const int = setInterval(() => {
-                w += Math.random() * 10;
-                if (w > 100) w = 100;
-                bar.style.width = w + '%';
-                if (w === 100) {
-                    clearInterval(int);
-                    setTimeout(() => {
-                        loader.classList.add('fade-out');
-                    }, 500);
-                }
-            }, 100);
-        });
-
-        // --- PROFILER LOGIC ---
-        const profiler = {
-            scores: { dreamer:0, scholar:0, investor:0, passerby:0, lantern:0 },
-            select: (role) => {
-                profiler.scores[role] += 5; 
-                document.getElementById('prof-stage-select').classList.add('hidden');
-                document.getElementById('prof-stage-doubt').classList.remove('hidden');
-            },
-            startQuiz: () => {
-                document.getElementById('quiz-modal').classList.add('active');
-                profiler.renderQuestion(0);
-            },
-            closeModal: () => {
-                document.getElementById('quiz-modal').classList.remove('active');
-                document.getElementById('prof-stage-doubt').classList.add('hidden');
-                document.getElementById('prof-result').classList.remove('hidden');
-                sculptureEngine.render(); // Generate art on finish
-            },
-            renderQuestion: (idx) => {
-                // Simplified for demo
-                const q = document.getElementById('quiz-question');
-                const opts = document.getElementById('quiz-options');
-                q.innerText = "You find a broken toy. What do you do?";
-                opts.innerHTML = `
-                    <button class="border p-2 text-left hover:bg-black hover:text-white transition-colors ui-click" onclick="profiler.answer('dreamer')">Fix it.</button>
-                    <button class="border p-2 text-left hover:bg-black hover:text-white transition-colors ui-click" onclick="profiler.answer('scholar')">Study it.</button>
-                    <button class="border p-2 text-left hover:bg-black hover:text-white transition-colors ui-click" onclick="profiler.answer('investor')">Sell it.</button>
-                `;
-            },
-            answer: (type) => {
-                profiler.closeModal();
-            }
-        };
-
-        // --- ARCHIVE LOGIC ---
-        const archive = {
-            init: async () => {
-                // Simulated fetch for drop-in stability
-                const data = ["Item 001: Celluloid Frame", "Item 002: Brass Key", "Item 003: Glitch Log"];
-                const el = document.getElementById('archive-quick');
-                el.innerHTML = data.map(i => `<div>${i}</div>`).join('');
-                document.getElementById('archive-groups').innerHTML = `<div class="border border-black p-4">Archive Database Loaded. ${data.length} items found.</div>`;
-                document.getElementById('archive-count').innerText = data.length;
-            }
-        };
-
-        // --- MANUFACTURE (Canvas) ---
-        const manufacture = {
-            color: '#111',
-            init: () => {
-                const c = document.getElementById('manufacture-canvas');
-                const ctx = c.getContext('2d');
-                ctx.fillStyle = '#f5f5dc';
-                ctx.fillRect(0,0,256,256);
-                
-                let painting = false;
-                const draw = (e) => {
-                    if(!painting) return;
-                    const rect = c.getBoundingClientRect();
-                    const x = Math.floor((e.clientX - rect.left) / (rect.width/16)) * 16;
-                    const y = Math.floor((e.clientY - rect.top) / (rect.height/16)) * 16;
-                    ctx.fillStyle = manufacture.color;
-                    ctx.fillRect(x,y,16,16);
-                };
-                c.onmousedown = () => painting = true;
-                c.onmouseup = () => painting = false;
-                c.onmousemove = draw;
-            },
-            setColor: (c) => manufacture.color = c,
-            submit: () => alert("Artifact Submitted to Loomworks.")
-        };
-
-        // --- SCULPTURE ENGINE (Three.js) ---
-        const sculptureEngine = {
-            render: () => {
-                // Basic Placeholder Logic for robustness if Three fails
-                const canvas = document.getElementById('sculpture-canvas');
-                if(!canvas) return;
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#eee';
-                ctx.fillRect(0,0,400,250);
-                ctx.fillStyle = '#CD2B2B';
-                ctx.beginPath();
-                ctx.arc(200, 125, 50, 0, 2*Math.PI);
-                ctx.fill();
-                ctx.fillStyle = '#111';
-                ctx.font = '12px monospace';
-                ctx.fillText("GENERATIVE SIGNAL [LOCKED]", 120, 230);
-            }
-        };
-
-        // --- GALLERY (Three.js) ---
-        const gallery = {
-            scene: null, camera: null, renderer: null,
-            init: () => {
-                if(gallery.scene) return; // already init
-                const container = document.getElementById('canvas-container');
-                if(!container) return;
-
-                gallery.scene = new THREE.Scene();
-                gallery.scene.background = new THREE.Color(0x0f0f0f);
-                gallery.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-                gallery.renderer = new THREE.WebGLRenderer({alpha:true});
-                gallery.renderer.setSize(window.innerWidth, window.innerHeight);
-                container.appendChild(gallery.renderer.domElement);
-
-                // Add Objects
-                const geometry = new THREE.BoxGeometry();
-                const material = new THREE.MeshBasicMaterial({ color: 0xcd2b2b, wireframe: true });
-                const cube = new THREE.Mesh(geometry, material);
-                gallery.scene.add(cube);
-                gallery.camera.position.z = 5;
-
-                const animate = function () {
-                    requestAnimationFrame(animate);
-                    cube.rotation.x += 0.01;
-                    cube.rotation.y += 0.01;
-                    gallery.renderer.render(gallery.scene, gallery.camera);
-                };
-                animate();
-            }
-        };
-
-        // --- GRIFT LOGIC ---
-        const grift = {
-            init: () => {
-                const slider = document.getElementById('coin-slider');
-                if(slider) {
-                    slider.oninput = (e) => {
-                        if(e.target.value < 10) {
-                            document.getElementById('token-count').innerText = "1";
-                            // Play sound if possible
-                        }
-                    }
-                }
-            }
-        }
-
-        // Initialize Global
+        // --- GLOBAL EXPORTS & BOOTSTRAP ---
         window.app = app;
+        window.audio = audio;
         window.manufacture = manufacture;
         window.profiler = profiler;
         window.gallery = gallery;
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            manufacture.init();
+        window.grift = grift;
+
+        // Boot
+        window.addEventListener('load', () => {
+            const bar = document.getElementById('loader-progress');
+            const loader = document.getElementById('loader');
             
-            // Interaction Init for Audio
+            // Sim Load
+            let w = 0;
+            const interval = setInterval(() => {
+                w += Math.random() * 15;
+                if (w > 100) w = 100;
+                bar.style.width = w + '%';
+                if (w === 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        loader.classList.add('fade-out');
+                        manufacture.init(); // Init canvas early
+                    }, 600);
+                }
+            }, 80);
+
+            // Audio Unlock
             document.body.addEventListener('click', () => {
-                if(Tone.context.state !== 'running') Tone.start();
+                audio.init();
             }, { once: true });
         });
 
