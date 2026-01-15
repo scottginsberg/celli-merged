@@ -29,6 +29,7 @@
 
     <!-- CSS Styles -->
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Courier+Prime&display=swap');
         :root {
             --bg-color: #FDFBF7;
             --text-color: #111;
@@ -188,6 +189,46 @@
         }
 
         body.modal-open { overflow: hidden; }
+
+        /* Oracle Easter Egg */
+        .oracle-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); z-index: 80; display: none; overflow-y: auto; }
+        .oracle-overlay.active { display: flex; }
+        .oracle-shell { margin: auto; width: min(1100px, 100%); padding: 28px 18px 48px; position: relative; }
+        .oracle-close { position: absolute; top: 18px; right: 18px; background: #0b0b0b; color: #d4af37; border: 1px solid #d4af37; padding: 8px 10px; font-family: 'Courier Prime', monospace; letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 18px rgba(0,0,0,0.4); }
+        .oracle-loader-btn { position: absolute; bottom: 12px; right: 12px; z-index: 10; background: rgba(0,0,0,0.72); color: #d4af37; border: 1px solid #d4af37; padding: 6px 10px; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; cursor: pointer; border-radius: 8px; box-shadow: 0 0 18px rgba(0,0,0,0.4); }
+        .oracle-loader-btn:hover { background: #0f0f0f; }
+        .oracle-shell .oracle-table { background-color: #050505; color: #d4af37; font-family: 'Courier Prime', monospace; box-shadow: 0 14px 40px rgba(0,0,0,0.5); border: 1px solid #333; border-radius: 12px; overflow: hidden; }
+        .oracle-shell h1 { font-family: 'Cinzel', serif; letter-spacing: 0.2rem; color: #fff; }
+        .oracle-shell .oracle-sub { color: #666; letter-spacing: 0.1rem; }
+        .oracle-shell #oracle-section-title { color: #fff; font-family: 'Cinzel', serif; }
+        .oracle-shell .oracle-progress { position: fixed; bottom: 0; left: 0; width: 100%; height: 4px; background: #222; }
+        .oracle-shell .oracle-progress-bar { height: 100%; background: #d4af37; width: 0%; transition: width 0.5s; }
+        .oracle-shell .oracle-completion { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; justify-content: center; align-items: center; flex-direction: column; z-index: 100; }
+        .oracle-shell .oracle-completion .final-msg { font-family: 'Cinzel'; font-size: 2rem; color: #fff; text-align: center; margin-bottom: 20px; }
+        .oracle-shell .oracle-completion .oracle-sub { color: #d4af37; }
+        .oracle-shell .oracle-table .card-slot { opacity: 0; animation: fadeIn 0.5s forwards; }
+        .oracle-table #oracle-deck-container { transition: transform 0.2s; }
+        .oracle-table #oracle-deck-container:hover { transform: scale(1.05); }
+        .oracle-table .card-back { width: 100%; height: 100%; background: linear-gradient(135deg, #111 0%, #222 100%); border: 2px solid #d4af37; border-radius: 8px; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 15px rgba(212, 175, 55, 0.2); position: absolute; top: 0; left: 0; }
+        .oracle-table .card-back::after { content: "۞"; font-size: 2rem; color: #d4af37; }
+        .oracle-table .card-slot { display: flex; flex-direction: column; align-items: center; width: 140px; margin-bottom: 20px; }
+        .oracle-table .question { font-size: 0.7rem; color: #888; text-align: center; margin-bottom: 10px; height: 30px; display: flex; align-items: end; justify-content: center; }
+        .oracle-table .card { width: 120px; height: 190px; position: relative; transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; }
+        .oracle-table .card.flipped { transform: rotateY(180deg); }
+        .oracle-table .face, .oracle-table .back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 8px; border: 1px solid #d4af37; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .oracle-table .back { background: #111; background-image: radial-gradient(#222 1px, transparent 1px); background-size: 10px 10px; }
+        .oracle-table .back::before { content: "I"; font-family: 'Cinzel'; font-size: 1.5rem; color: #333; }
+        .oracle-table .face { background: #000; transform: rotateY(180deg); padding: 10px; border: 2px solid #fff; }
+        .oracle-table .card-name { font-family: 'Cinzel', serif; font-size: 0.8rem; font-weight: bold; margin-bottom: 5px; color: #fff; }
+        .oracle-table .card-arcana { font-size: 0.6rem; color: #d4af37; margin-bottom: 10px; text-transform: uppercase; }
+        .oracle-table .card-meaning { font-size: 0.65rem; color: #aaa; display: none; line-height: 1.2; }
+        .oracle-table .card.flipped .card-meaning { display: block; animation: textFade 0.5s 0.3s forwards; opacity: 0; }
+        .oracle-table .suit-swords { border-color: #a0aec0; }
+        .oracle-table .suit-wands { border-color: #ed8936; }
+        .oracle-table .suit-cups { border-color: #4299e1; }
+        .oracle-table .suit-pentacles { border-color: #48bb78; }
+        .oracle-table .suit-major { border-color: #9f7aea; }
+        @keyframes textFade { to { opacity: 1; } }
 
         .font-mono { font-family: 'Space Mono', monospace; }
         .bg-grid { background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px); background-size: 20px 20px; }
@@ -858,6 +899,39 @@
             </div>
             <div id="loader-text" class="loader-text">INITIALIZING LOOMWORKS MANUFACTURE PROTOCOL: CONSTRUCT EMULACRUM.</div>
             <div id="loader-particles" class="loader-particles" aria-hidden="true"></div>
+            <button id="oracle-easter-egg-trigger" class="oracle-loader-btn ui-click" type="button" aria-label="Open Oracle Easter Egg">THE ORACLE</button>
+        </div>
+    </div>
+
+    <div id="oracle-overlay" class="oracle-overlay" aria-hidden="true">
+        <div class="oracle-shell">
+            <div class="oracle-table" id="oracle-table">
+                <header class="text-center border-b border-[#333] pb-4 pt-6">
+                    <h1 class="text-3xl">THE ORACLE</h1>
+                    <div class="oracle-sub text-sm uppercase tracking-widest">The Architect's Spread • 78 Degrees of Wisdom</div>
+                </header>
+
+                <div class="flex flex-col items-center p-6">
+                    <div id="oracle-deck-container" class="relative w-[100px] h-[160px] mb-10 cursor-pointer" aria-label="Deal next spread">
+                        <div class="card-back"></div>
+                        <div class="absolute -bottom-8 w-full text-center text-[11px] text-[#666] tracking-widest">CLICK TO DEAL NEXT ACT</div>
+                    </div>
+
+                    <a href="loom_master_archive.html" class="mb-6 inline-block border border-[#d4af37] text-[#d4af37] px-4 py-2 tracking-widest text-xs" target="_blank" rel="noopener">Launch Trailer Archive</a>
+
+                    <div id="oracle-section-title" class="mb-5 text-center text-xl opacity-0"></div>
+
+                    <div id="oracle-spread-area" class="flex flex-wrap justify-center gap-6 w-full perspective-[1000px]"></div>
+                </div>
+            </div>
+
+            <button id="oracle-close" class="oracle-close" type="button">Close</button>
+            <div class="oracle-progress" aria-hidden="true"><div id="oracle-progress-bar" class="oracle-progress-bar"></div></div>
+            <div id="oracle-completion" class="oracle-completion" role="dialog" aria-modal="true">
+                <div class="final-msg">THE HOUSE IS BUILT.</div>
+                <div class="oracle-sub">"I AM NOWAY JOSÉ"</div>
+                <a href="loom_master_archive.html" class="mt-6 inline-block border border-[#d4af37] text-[#d4af37] px-4 py-2 tracking-widest text-xs" target="_blank" rel="noopener">Launch Trailer Archive</a>
+            </div>
         </div>
     </div>
 
@@ -5881,6 +5955,195 @@
             if (menu) menu.classList.toggle('translate-x-full');
         };
 
+        // --- ORACLE EASTER EGG ---
+        const oracle = {
+            spreads: [
+                { title: "ACT I: THE COST OF DEATH", cards: [
+                    { q: "Would I?", n: "DEATH", s: "major", m: "The End of the Old Self. Irreversible transition." },
+                    { q: "Of who?", n: "THE HANGED MAN", s: "major", m: "Sacrifice of Perspective. Suspension." },
+                    { q: "Of what?", n: "10 of Pentacles", s: "pentacles", m: "Lord of Wealth. Legacy vs Lineage." },
+                    { q: "Of when?", n: "9 of Pentacles", s: "pentacles", m: "Lord of Material Gain. Solitary Luxury." },
+                    { q: "Of where?", n: "8 of Pentacles", s: "pentacles", m: "Lord of Prudence. The Craft/Workshop." },
+                    { q: "Why?", n: "7 of Pentacles", s: "pentacles", m: "The Pause. Waiting for Harvest." }
+                ]},
+                { title: "ACT II: ENDING THE WORLD", cards: [
+                    { q: "Should I?", n: "6 of Pentacles", s: "pentacles", m: "Success/Generosity. Balancing the scales." },
+                    { q: "Could I?", n: "5 of Pentacles", s: "pentacles", m: "Worry/Material Trouble. The Exclusion." },
+                    { q: "Would I?", n: "4 of Pentacles", s: "pentacles", m: "Power/Possession. Holding the Coin." }
+                ]},
+                { title: "ACT III: HERO (THE DAUGHTER)", cards: [
+                    { q: "Her Past", n: "Strength", s: "major", m: "Fortitude. Taming the Lion." },
+                    { q: "Her Present", n: "The Tower", s: "major", m: "The Event. Shattering the Framework." },
+                    { q: "Immediate Future", n: "The Devil", s: "major", m: "Playing with Fire/Chains." },
+                    { q: "Her Mind?", n: "4 of Pentacles", s: "pentacles", m: "Lord of Earthly Power. Grounded." },
+                    { q: "Her Theory?", n: "3 of Pentacles", s: "pentacles", m: "Lord of Material Work. Collaboration." },
+                    { q: "Her Praxis?", n: "2 of Swords", s: "swords", m: "Peace Restored. Equilibrium." }
+                ]},
+                { title: "ACT IV: THE RELATIONSHIP", cards: [
+                    { q: "World's View?", n: "King of Wands", s: "wands", m: "Prince of the Chariot of Fire." },
+                    { q: "Your Feeling?", n: "8 of Cups", s: "cups", m: "Lord of Abandoned Success. Walking away." },
+                    { q: "The Meeting?", n: "7 of Cups", s: "cups", m: "Lord of Illusionary Success. Dreamscape." },
+                    { q: "Understanding?", n: "6 of Cups", s: "cups", m: "Lord of Pleasure. Shared Childhood." }
+                ]},
+                { title: "ACT V: THE ARCHITECT'S JOURNEY", cards: [
+                    { q: "My Past", n: "3 of Swords", s: "swords", m: "Lord of Sorrow. The Heartbreak." },
+                    { q: "My Present", n: "10 of Cups", s: "cups", m: "Lord of Perfected Success. The 18%." },
+                    { q: "My Future", n: "9 of Cups", s: "cups", m: "Lord of Material Happiness. The Wish." }
+                ]},
+                { title: "ACT VI: THE DAUGHTER'S JOURNEY", cards: [
+                    { q: "Her Past", n: "Princess of Pentacles", s: "pentacles", m: "The Seed in the Room." },
+                    { q: "Her Present", n: "Princess of Swords", s: "swords", m: "Princess of Echoing Hills. The Watcher." },
+                    { q: "Her Future", n: "2 of Pentacles", s: "pentacles", m: "Lord of Harmonious Change. The Juggler." }
+                ]},
+                { title: "ACT VII: THE SHARED MIND", cards: [
+                    { q: "Mind", n: "The Emperor", s: "major", m: "Structure. The Father." },
+                    { q: "Theory", n: "The Universe", s: "major", m: "Completeness. The World Disc." },
+                    { q: "Praxis", n: "The Moon", s: "major", m: "Magic. The Uncanny Valley." }
+                ]},
+                { title: "ACT VIII: THE TOGETHERNESS", cards: [
+                    { q: "Who?", n: "The Star", s: "major", m: "Hope. The Lantern." },
+                    { q: "What?", n: "High Priestess", s: "major", m: "The Veil. The Mystery." },
+                    { q: "When?", n: "The Magician", s: "major", m: "Manifestation. As Above, So Below." },
+                    { q: "Where?", n: "The Fool", s: "major", m: "The Beginning. Zero." },
+                    { q: "Why?", n: "Justice", s: "major", m: "Adjustment. Balance." }
+                ]},
+                { title: "ACT IX: THE PERCEPTION", cards: [
+                    { q: "Who will see us?", n: "Princess of Wands", s: "wands", m: "The Spark. The Goose." },
+                    { q: "What will they think?", n: "Judgment", s: "major", m: "The Last Judgment. Revelation." },
+                    { q: "When?", n: "The Sun", s: "major", m: "Amalgamation. Dawn of Cosmos." },
+                    { q: "Where?", n: "Queen of Cups", s: "cups", m: "The Water. The Reflection." },
+                    { q: "Why?", n: "The Lovers", s: "major", m: "Union. The Choice." }
+                ]},
+                { title: "FINALE: THE WASD COUNTDOWN", cards: [
+                    { q: "The Future (Home)", n: "5 of Cups", s: "cups", m: "Lord of Loss in Pleasure. Spilled Wine." },
+                    { q: "W (Forward)", n: "4 of Cups", s: "cups", m: "Lord of Blended Pleasure. Refusal." },
+                    { q: "A (Left/Past)", n: "3 of Cups", s: "cups", m: "Lord of Abundance. The Potluck." },
+                    { q: "S (Back/Anchor)", n: "2 of Cups", s: "cups", m: "Lord of Love. The Connection." },
+                    { q: "D (Right/Truth)", n: "The Hierophant", s: "major", m: "The Magus of Eternal Gods. The Teacher." }
+                ]}
+            ],
+            index: -1,
+            elements: {},
+            init() {
+                this.elements = {
+                    overlay: document.getElementById('oracle-overlay'),
+                    deck: document.getElementById('oracle-deck-container'),
+                    spread: document.getElementById('oracle-spread-area'),
+                    title: document.getElementById('oracle-section-title'),
+                    progress: document.getElementById('oracle-progress-bar'),
+                    completion: document.getElementById('oracle-completion'),
+                    close: document.getElementById('oracle-close'),
+                    loaderBtn: document.getElementById('oracle-easter-egg-trigger'),
+                    trailerBtn: document.getElementById('play-trailer-button'),
+                };
+
+                if (this.elements.deck) this.elements.deck.addEventListener('click', () => this.dealNext());
+                if (this.elements.close) this.elements.close.addEventListener('click', () => this.close());
+                if (this.elements.overlay) this.elements.overlay.addEventListener('click', (e) => { if (e.target.id === 'oracle-overlay') this.close(); });
+
+                [this.elements.loaderBtn, this.elements.trailerBtn].forEach(btn => {
+                    if (!btn) return;
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.open();
+                    });
+                });
+
+                this.reset();
+            },
+            reset() {
+                this.index = -1;
+                if (this.elements.spread) this.elements.spread.innerHTML = '';
+                if (this.elements.title) {
+                    this.elements.title.innerText = 'THE DECK IS SHUFFLED.';
+                    this.elements.title.style.opacity = 1;
+                }
+                this.updateProgress();
+                if (this.elements.completion) this.elements.completion.style.display = 'none';
+            },
+            open() {
+                if (!this.elements.overlay) return;
+                this.reset();
+                this.elements.overlay.classList.add('active');
+                this.elements.overlay.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('modal-open');
+            },
+            close() {
+                if (!this.elements.overlay) return;
+                this.elements.overlay.classList.remove('active');
+                this.elements.overlay.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('modal-open');
+            },
+            updateProgress() {
+                if (!this.elements.progress) return;
+                const pct = ((this.index + 1) / this.spreads.length) * 100;
+                this.elements.progress.style.width = `${Math.max(0, pct)}%`;
+            },
+            dealNext() {
+                if (this.index >= this.spreads.length - 1) {
+                    if (this.elements.completion) this.elements.completion.style.display = 'flex';
+                    return;
+                }
+
+                this.index++;
+                const spread = this.spreads[this.index];
+                const area = this.elements.spread;
+                const title = this.elements.title;
+
+                if (!spread || !area || !title) return;
+
+                area.innerHTML = '';
+                title.style.opacity = 0;
+
+                setTimeout(() => {
+                    title.innerText = spread.title;
+                    title.style.opacity = 1;
+                    spread.cards.forEach((cardData, i) => {
+                        setTimeout(() => this.renderCard(cardData, area), i * 200);
+                    });
+                }, 300);
+
+                this.updateProgress();
+            },
+            renderCard(data, container) {
+                const slot = document.createElement('div');
+                slot.className = 'card-slot';
+
+                const question = document.createElement('div');
+                question.className = 'question';
+                question.innerText = data.q;
+
+                const card = document.createElement('div');
+                card.className = `card suit-${data.s}`;
+                card.onclick = () => card.classList.toggle('flipped');
+
+                const back = document.createElement('div');
+                back.className = 'back';
+
+                const face = document.createElement('div');
+                face.className = `face suit-${data.s}`;
+
+                let icon = '✦';
+                if (data.s === 'cups') icon = 'U';
+                if (data.s === 'swords') icon = '†';
+                if (data.s === 'wands') icon = '/';
+                if (data.s === 'pentacles') icon = 'O';
+                if (data.s === 'major') icon = 'X';
+
+                face.innerHTML = `
+                    <div class="card-name">${data.n}</div>
+                    <div class="card-arcana">${icon}</div>
+                    <div class="card-meaning">${data.m}</div>
+                `;
+
+                card.appendChild(back);
+                card.appendChild(face);
+                slot.appendChild(question);
+                slot.appendChild(card);
+                container.appendChild(slot);
+            }
+        };
+
         // --- INIT ---
         const loaderSequence = {
             progress: 0,
@@ -6003,6 +6266,7 @@
             argOnboarding.init();
             loaderSequence.start();
 
+            oracle.init();
             tokiDictionary.init();
             registerHeatmap();
             observeBlueprints();
