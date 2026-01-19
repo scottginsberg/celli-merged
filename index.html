@@ -499,6 +499,56 @@
                 </div>
             </div>
 
+            <div class="bg-white border border-black p-6 shadow-sm mb-10">
+                <div class="flex flex-col md:flex-row justify-between gap-4 mb-4">
+                    <div>
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Curatorial Tutorial Island</div>
+                        <h3 class="text-2xl font-bold uppercase tracking-tight">Tarot Draw Engine (It Works)</h3>
+                    </div>
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500 md:text-right">
+                        <div>Archive KB Usage: <span id="archive-kb" class="font-bold text-black">...</span></div>
+                        <div>Story Payload: <span id="story-kb" class="font-bold text-black">...</span></div>
+                    </div>
+                </div>
+                <p class="text-xs font-mono text-gray-600 mb-6">Three pulls become a narrative. Add extra images and the vocabulary compresses itself around them. The joke is that it works.</p>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="md:col-span-2 space-y-6">
+                        <div class="grid sm:grid-cols-3 gap-3" id="tarot-slots">
+                            <div class="border border-black/20 bg-gray-50 p-4 text-center font-mono text-xs uppercase tracking-widest">Card 1</div>
+                            <div class="border border-black/20 bg-gray-50 p-4 text-center font-mono text-xs uppercase tracking-widest">Card 2</div>
+                            <div class="border border-black/20 bg-gray-50 p-4 text-center font-mono text-xs uppercase tracking-widest">Card 3</div>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button id="draw-three" class="ui-click bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-loom-red transition-colors">Draw Three</button>
+                            <button id="mean-it" class="ui-click border border-black px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Mean It (Use Selected)</button>
+                            <button id="add-influence" class="ui-click border border-black/40 px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:border-black transition-colors">Add Influence Image</button>
+                            <button id="clear-selection" class="ui-click text-[10px] font-mono uppercase tracking-widest underline text-gray-500">Clear Selections</button>
+                        </div>
+                        <div class="bg-gray-50 border border-black/10 p-4 text-xs font-mono text-gray-600">
+                            <div class="uppercase tracking-widest text-[10px] text-gray-500 mb-2">Influence Tray</div>
+                            <div id="influence-tray" class="flex flex-wrap gap-2"></div>
+                        </div>
+                        <div class="bg-black text-white p-5 rounded-lg">
+                            <div class="text-[10px] font-mono uppercase tracking-widest text-loom-red mb-2">Narrative Output</div>
+                            <div id="story-output" class="text-sm leading-relaxed font-serif">Draw cards to begin the compression trick.</div>
+                            <div id="story-meta" class="mt-4 text-[10px] font-mono uppercase tracking-widest text-gray-400"></div>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <details class="border border-black/10 bg-gray-50 p-4 text-[10px] font-mono text-gray-600" open>
+                            <summary class="uppercase tracking-widest text-gray-500 cursor-pointer">Requirements + Architecture (Compressed)</summary>
+                            <div class="mt-3 space-y-2 leading-relaxed">
+                                <div><strong>Vision:</strong> A curatorial tutorial island that turns archive artifacts into living, randomized, three-card story draws. The "proprietary engine" is encoded directly in language; compression is the punchline.</div>
+                                <div><strong>Requirements:</strong> 1) JSON archive dataset. 2) Random draw of three like tarot. 3) Manual selection with click-to-select and “Mean It”. 4) Extra image influence that meaningfully changes story. 5) Hyper-light noise layer for variability. 6) KB usage display. 7) Metadata for narrative + semiotic containment. 8) Works without external services.</div>
+                                <div><strong>Architecture:</strong> UI (Archive/Island) → Selection State → Narrative Engine (vocab + motifs + compression rules) → Story + Meta + KB. All deterministic logic in client JS.</div>
+                                <div><strong>ERD:</strong> Artifact(id, title, year, motif, glyph, tags, role, weight) ↔ Selection(cardSlot, artifactId, source=random/manual) ↔ Influence(artifactId, intensity) → Narrative(meta, story, noise, containment).</div>
+                                <div><strong>Execution:</strong> Update JSON dataset, render cards + archive list, wire click handlers, generate story + meta, calculate KB usage from payload sizes.</div>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </div>
+
             <div class="grid md:grid-cols-3 gap-8">
                 <div class="bg-white border border-black p-6 h-fit md:sticky md:top-24 shadow-sm">
                     <h3 class="font-mono text-xs uppercase tracking-widest text-gray-500 mb-4">Quick Index</h3>
@@ -801,6 +851,20 @@
         </div>
     </div>
 
+    <script type="application/json" id="archive-json">
+        [
+            { "id": "001", "title": "Celluloid Frame", "year": "1938", "motif": "memory", "glyph": "🎞️", "tags": ["analog", "keepsake"], "role": "lens", "weight": 3 },
+            { "id": "002", "title": "Brass Key", "year": "1955", "motif": "access", "glyph": "🗝️", "tags": ["unlock", "vault"], "role": "gate", "weight": 4 },
+            { "id": "003", "title": "Glitch Log", "year": "2024", "motif": "error", "glyph": "📟", "tags": ["signal", "static"], "role": "spark", "weight": 5 },
+            { "id": "004", "title": "Menko Card", "year": "1942", "motif": "play", "glyph": "🃏", "tags": ["ritual", "chance"], "role": "trickster", "weight": 2 },
+            { "id": "005", "title": "Lantern Badge", "year": "1969", "motif": "witness", "glyph": "🏷️", "tags": ["oath", "duty"], "role": "guide", "weight": 4 },
+            { "id": "006", "title": "Ashen Ticket", "year": "1977", "motif": "journey", "glyph": "🎟️", "tags": ["passage", "threshold"], "role": "ticket", "weight": 3 },
+            { "id": "007", "title": "Copper Relay", "year": "1988", "motif": "connection", "glyph": "🧲", "tags": ["network", "pulse"], "role": "bridge", "weight": 4 },
+            { "id": "008", "title": "Glass Seed", "year": "1999", "motif": "growth", "glyph": "🌱", "tags": ["future", "fragile"], "role": "seed", "weight": 3 },
+            { "id": "009", "title": "Velvet Receipt", "year": "2007", "motif": "value", "glyph": "🧾", "tags": ["cost", "proof"], "role": "measure", "weight": 2 }
+        ]
+    </script>
+
     <script>
         /* --- MODULES DEFINED FIRST FOR SAFETY --- */
 
@@ -865,32 +929,229 @@
         };
 
         // 3. Archive
+        const archiveData = JSON.parse(document.getElementById('archive-json').textContent);
+        const archiveState = {
+            selectedIds: [],
+            influenceIds: [],
+            drawnIds: [],
+            lastStory: '',
+            lastMeta: ''
+        };
+
+        const archiveEngine = {
+            vocab: {
+                verbs: ["finds", "tucks", "mends", "carries", "shares", "whispers", "locks", "opens"],
+                tones: ["gentle", "bright", "soft", "oddly brave", "glimmering", "quietly bold"],
+                noise: ["a tiny hum", "a velvet static", "a light hiss", "a friendly fizz"],
+                roles: {
+                    lens: "the seeing thing",
+                    gate: "the opening",
+                    spark: "the jolt",
+                    trickster: "the flip",
+                    guide: "the hand",
+                    ticket: "the pass",
+                    bridge: "the link",
+                    seed: "the sprout",
+                    measure: "the count"
+                }
+            },
+            compress: (cards, influences) => {
+                const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+                const roles = cards.map(card => archiveEngine.vocab.roles[card.role] || "the part");
+                const verbs = cards.map(() => pick(archiveEngine.vocab.verbs));
+                const tone = pick(archiveEngine.vocab.tones);
+                const noise = pick(archiveEngine.vocab.noise);
+                const influenceText = influences.length
+                    ? ` Extra images (${influences.map(i => i.glyph).join(' ')}) re-tune the story toward ${influences.map(i => i.motif).join(', ')}.`
+                    : "";
+                return {
+                    story: `Once a ${tone} child ${verbs[0]} ${roles[0]}, ${verbs[1]} ${roles[1]}, and ${verbs[2]} ${roles[2]}. The ${cards.map(c => c.glyph).join(' ')} promise the tale can fold small and still mean big. ${noise} proves the compression engine is laughing and working.${influenceText}`,
+                    meta: {
+                        narrative: `${cards.map(c => c.motif).join(" → ")} with ${tone} cadence`,
+                        semioticContainment: `${cards.map(c => c.tags[0]).join(" / ")} sealed by ${cards.map(c => c.role).join(", ")}`
+                    }
+                };
+            }
+        };
+
+        const archiveUI = {
+            renderQuick: () => {
+                const el = document.getElementById('archive-quick');
+                if(!el) return;
+                el.innerHTML = archiveData.map(i => `<div class="border-b border-gray-100 py-1 hover:text-loom-red cursor-help">${i.id} // ${i.title}</div>`).join('');
+            },
+            renderGroups: () => {
+                const groupEl = document.getElementById('archive-groups');
+                if(!groupEl) return;
+                groupEl.innerHTML = archiveData.map(i => {
+                    const selected = archiveState.selectedIds.includes(i.id);
+                    const influenced = archiveState.influenceIds.includes(i.id);
+                    return `
+                        <div class="bg-white border border-black/10 p-4 shadow-sm flex flex-col sm:flex-row justify-between gap-3" data-archive-id="${i.id}">
+                            <div>
+                                <div class="text-[10px] font-mono text-gray-500">${i.year} • ${i.motif}</div>
+                                <div class="font-bold flex items-center gap-2">${i.glyph} ${i.title}</div>
+                                <div class="text-[10px] font-mono uppercase tracking-widest text-gray-400">${i.tags.join(" / ")}</div>
+                            </div>
+                            <div class="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest">
+                                <button class="ui-click border border-black px-2 py-1 ${selected ? 'bg-black text-white' : ''}" data-action="select">Select</button>
+                                <button class="ui-click border border-black/40 px-2 py-1 ${influenced ? 'bg-loom-red text-white border-loom-red' : ''}" data-action="influence">Influence</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+            renderTarot: () => {
+                const slots = document.getElementById('tarot-slots');
+                if(!slots) return;
+                const cards = archiveState.drawnIds.map(id => archiveData.find(item => item.id === id)).filter(Boolean);
+                slots.innerHTML = cards.length ? cards.map(card => `
+                    <div class="border border-black bg-white p-4 text-center">
+                        <div class="text-2xl">${card.glyph}</div>
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500 mt-2">${card.year}</div>
+                        <div class="font-bold text-sm">${card.title}</div>
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-loom-red mt-1">${card.motif}</div>
+                    </div>
+                `).join('') : `
+                    <div class="border border-black/20 bg-gray-50 p-4 text-center font-mono text-xs uppercase tracking-widest">Card 1</div>
+                    <div class="border border-black/20 bg-gray-50 p-4 text-center font-mono text-xs uppercase tracking-widest">Card 2</div>
+                    <div class="border border-black/20 bg-gray-50 p-4 text-center font-mono text-xs uppercase tracking-widest">Card 3</div>
+                `;
+            },
+            renderInfluenceTray: () => {
+                const tray = document.getElementById('influence-tray');
+                if(!tray) return;
+                const influences = archiveState.influenceIds.map(id => archiveData.find(item => item.id === id)).filter(Boolean);
+                tray.innerHTML = influences.length
+                    ? influences.map(card => `<span class="px-2 py-1 border border-black/20 bg-white">${card.glyph} ${card.title}</span>`).join('')
+                    : '<span class="text-gray-400">No influence images added.</span>';
+            },
+            renderStory: () => {
+                const output = document.getElementById('story-output');
+                const meta = document.getElementById('story-meta');
+                if(!output || !meta) return;
+                output.textContent = archiveState.lastStory || 'Draw cards to begin the compression trick.';
+                meta.textContent = archiveState.lastMeta || '';
+            },
+            renderKb: () => {
+                const archiveKb = document.getElementById('archive-kb');
+                const storyKb = document.getElementById('story-kb');
+                if(!archiveKb || !storyKb) return;
+                const archiveBytes = new TextEncoder().encode(JSON.stringify(archiveData)).length;
+                const storyBytes = new TextEncoder().encode(archiveState.lastStory || '').length;
+                archiveKb.textContent = `${(archiveBytes / 1024).toFixed(2)} KB`;
+                storyKb.textContent = `${(storyBytes / 1024).toFixed(2)} KB`;
+            },
+            renderAll: () => {
+                archiveUI.renderQuick();
+                archiveUI.renderGroups();
+                archiveUI.renderTarot();
+                archiveUI.renderInfluenceTray();
+                archiveUI.renderStory();
+                archiveUI.renderKb();
+            }
+        };
+
         const archive = {
             init: async () => {
                 const el = document.getElementById('archive-quick');
                 const groupEl = document.getElementById('archive-groups');
                 if(!el || !groupEl) return;
-
-                // Mock Data for Reliability
-                const data = [
-                    { id: "001", title: "Celluloid Frame", year: "1938" },
-                    { id: "002", title: "Brass Key", year: "1955" },
-                    { id: "003", title: "Glitch Log", year: "2024" },
-                    { id: "004", title: "Menko Card", year: "1942" }
-                ];
-                
-                el.innerHTML = data.map(i => `<div class="border-b border-gray-100 py-1 hover:text-loom-red cursor-help">${i.id} // ${i.title}</div>`).join('');
-                document.getElementById('archive-count').innerText = data.length;
-                
-                groupEl.innerHTML = data.map(i => `
-                    <div class="bg-white border border-black/10 p-4 shadow-sm flex justify-between items-center">
-                        <div>
-                            <div class="text-[10px] font-mono text-gray-500">${i.year}</div>
-                            <div class="font-bold">${i.title}</div>
-                        </div>
-                        <div class="text-xs border border-black px-2 py-1">VIEW</div>
-                    </div>
-                `).join('');
+                document.getElementById('archive-count').innerText = archiveData.length;
+                archiveUI.renderAll();
+                archive.bindEvents();
+            },
+            bindEvents: () => {
+                const groupEl = document.getElementById('archive-groups');
+                const drawBtn = document.getElementById('draw-three');
+                const meanBtn = document.getElementById('mean-it');
+                const influenceBtn = document.getElementById('add-influence');
+                const clearBtn = document.getElementById('clear-selection');
+                if(groupEl) {
+                    groupEl.onclick = (event) => {
+                        const button = event.target.closest('button[data-action]');
+                        const cardEl = event.target.closest('[data-archive-id]');
+                        if(!button || !cardEl) return;
+                        const id = cardEl.getAttribute('data-archive-id');
+                        if(button.dataset.action === 'select') {
+                            archive.toggleSelection(id);
+                        } else {
+                            archive.toggleInfluence(id);
+                        }
+                    };
+                }
+                if(drawBtn) drawBtn.onclick = () => archive.drawRandom();
+                if(meanBtn) meanBtn.onclick = () => archive.meanIt();
+                if(influenceBtn) influenceBtn.onclick = () => archive.addInfluenceRandom();
+                if(clearBtn) clearBtn.onclick = () => archive.clearSelections();
+            },
+            drawRandom: () => {
+                const pool = [...archiveData];
+                archiveState.drawnIds = [];
+                while(archiveState.drawnIds.length < 3 && pool.length) {
+                    const index = Math.floor(Math.random() * pool.length);
+                    archiveState.drawnIds.push(pool.splice(index, 1)[0].id);
+                }
+                archive.generateStory();
+            },
+            meanIt: () => {
+                if(archiveState.selectedIds.length !== 3) {
+                    alert('Select exactly three artifacts, then press Mean It.');
+                    return;
+                }
+                archiveState.drawnIds = [...archiveState.selectedIds];
+                archive.generateStory();
+            },
+            toggleSelection: (id) => {
+                const idx = archiveState.selectedIds.indexOf(id);
+                if(idx >= 0) {
+                    archiveState.selectedIds.splice(idx, 1);
+                } else if(archiveState.selectedIds.length < 3) {
+                    archiveState.selectedIds.push(id);
+                } else {
+                    alert('Selection limit: three artifacts.');
+                }
+                archiveUI.renderGroups();
+            },
+            toggleInfluence: (id) => {
+                const idx = archiveState.influenceIds.indexOf(id);
+                if(idx >= 0) {
+                    archiveState.influenceIds.splice(idx, 1);
+                } else {
+                    archiveState.influenceIds.push(id);
+                }
+                archiveUI.renderGroups();
+                archiveUI.renderInfluenceTray();
+            },
+            addInfluenceRandom: () => {
+                const options = archiveData.filter(item => !archiveState.influenceIds.includes(item.id));
+                if(!options.length) return;
+                const choice = options[Math.floor(Math.random() * options.length)];
+                archiveState.influenceIds.push(choice.id);
+                archive.generateStory();
+            },
+            clearSelections: () => {
+                archiveState.selectedIds = [];
+                archiveState.influenceIds = [];
+                archiveUI.renderAll();
+            },
+            generateStory: () => {
+                const cards = archiveState.drawnIds.map(id => archiveData.find(item => item.id === id)).filter(Boolean);
+                const influences = archiveState.influenceIds.map(id => archiveData.find(item => item.id === id)).filter(Boolean);
+                if(cards.length !== 3) {
+                    archiveUI.renderTarot();
+                    archiveUI.renderInfluenceTray();
+                    archiveUI.renderStory();
+                    archiveUI.renderKb();
+                    return;
+                }
+                const result = archiveEngine.compress(cards, influences);
+                archiveState.lastStory = result.story;
+                archiveState.lastMeta = `Narrative: ${result.meta.narrative} • Semiotic Containment: ${result.meta.semioticContainment}`;
+                archiveUI.renderTarot();
+                archiveUI.renderInfluenceTray();
+                archiveUI.renderStory();
+                archiveUI.renderKb();
             }
         };
 
