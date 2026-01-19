@@ -22,6 +22,12 @@
                             black: '#111',
                             cream: '#FDFBF7',
                             paper: '#f9f4ea'
+                        },
+                        tonka: {
+                            gold: '#FFC54D',
+                            cobalt: '#2555FF',
+                            mint: '#3DFFB5',
+                            plum: '#5A2D82'
                         }
                     }
                 }
@@ -148,6 +154,7 @@
             <button onclick="app.navigate('grift')" class="nav-btn" data-target="grift">Grift Shop</button>
             <div class="h-3 w-px bg-gray-300"></div>
             <button onclick="app.navigate('ambition')" class="nav-btn" data-target="ambition">Ambition</button>
+            <button onclick="siteMap.open()" class="nav-btn">Site Map</button>
         </div>
 
         <button onclick="document.getElementById('mobile-menu').classList.toggle('translate-x-full')" class="lg:hidden p-2 ui-click">
@@ -167,6 +174,7 @@
             <button onclick="app.navigate('gallery')" class="text-left pb-2 border-b border-gray-200">Gallery</button>
             <button onclick="app.navigate('grift')" class="text-left pb-2 border-b border-gray-200">Grift</button>
             <button onclick="app.navigate('ambition')" class="text-left pb-2 border-b border-gray-200">Ambition</button>
+            <button onclick="siteMap.open()" class="text-left pb-2 border-b border-gray-200">Site Map</button>
         </div>
         <button onclick="document.getElementById('mobile-menu').classList.add('translate-x-full')" class="mt-8 text-xs underline uppercase">Close Menu</button>
     </div>
@@ -174,29 +182,177 @@
     <div class="integration-bar"><div id="integration-fill" class="integration-fill"></div></div>
 
     <section id="view-landing" class="view-section active">
-        <div class="max-w-7xl mx-auto px-6 py-20 blueprint min-h-[80vh] flex flex-col justify-center">
-            <div class="inline-block border border-black px-2 py-1 text-[10px] font-mono tracking-widest uppercase bg-white mb-6 w-fit">Field Materials Case Study #902</div>
-            <h1 class="text-6xl md:text-9xl font-bold tracking-tighter mb-8 glitch-text" data-text="DOMESTIC PRODUCT">DOMESTIC PRODUCT</h1>
-            <p class="max-w-2xl text-xl font-mono leading-relaxed text-gray-700 mb-12">
-                A four-day exhibition and performance installation presented by Loomworks. Archival curation, interactive design, and narrative worldbuilding braided together.
-            </p>
-            
-            <div class="grid md:grid-cols-3 gap-6 mb-16">
-                <div class="bg-white border border-black/10 p-6 shadow-sm hover:shadow-md transition-shadow">
-                    <h3 class="font-mono text-xs uppercase tracking-widest text-loom-red mb-2">The Construct</h3>
-                    <p class="text-sm">A museum-meets-immersive theater installation. Real animation artifacts, Lantern attendants, and a living digital interface.</p>
+        <div class="max-w-7xl mx-auto px-6 py-20 blueprint min-h-[80vh] flex flex-col gap-16">
+            <div>
+                <div class="inline-block border border-black px-2 py-1 text-[10px] font-mono tracking-widest uppercase bg-white mb-6 w-fit">Field Materials Case Study #902</div>
+                <h1 class="text-6xl md:text-9xl font-bold tracking-tighter mb-6 glitch-text" data-text="DOMESTIC PRODUCT">DOMESTIC PRODUCT</h1>
+                <p class="max-w-3xl text-xl font-mono leading-relaxed text-gray-700 mb-8">
+                    An alchemical exchange of Mickey, Monroe, and Muppets. A Tonka-color culture lab where Dima, the actress, mutates into Dime — an avatar of myth and IP incarnate. A monster. A smart cookie. A little wonky.
+                </p>
+                <div class="bg-black text-white px-6 py-4 inline-flex items-center gap-3 font-mono text-xs uppercase tracking-widest">
+                    <span class="text-tonka-gold">Thesis</span>
+                    <span>Happiness DOES have a cost, but it's not fixed. What does it take to build the happiest place on Earth?</span>
                 </div>
-                <div class="bg-black text-white p-6 shadow-lg">
-                    <h3 class="font-mono text-xs uppercase tracking-widest text-gray-400 mb-2">The Purpose</h3>
-                    <p class="text-sm">To examine how icons are manufactured, circulated, controlled, and reclaimed. The economics of magic.</p>
-                </div>
-                <div class="bg-white border border-black/10 p-6 shadow-sm hover:shadow-md transition-shadow">
-                    <h3 class="font-mono text-xs uppercase tracking-widest text-loom-red mb-2">The Layers</h3>
-                    <p class="text-sm">Lantern Protocol, The Archive, Celli Software, and the Grift Shop economy.</p>
+                <div class="mt-6 flex flex-wrap gap-4 text-[10px] font-mono uppercase tracking-widest">
+                    <div class="bg-white border border-black px-4 py-2">TikTok Velocity</div>
+                    <div class="bg-black text-white px-4 py-2">28.2K Followers</div>
+                    <div class="bg-black text-white px-4 py-2">265.8K Likes</div>
+                    <div class="bg-white border border-black px-4 py-2">3 Weeks</div>
                 </div>
             </div>
 
-            <div class="border-t border-black pt-8 flex justify-between items-center mt-auto">
+            <div class="grid lg:grid-cols-[1.1fr_0.9fr] gap-10">
+                <div class="space-y-6">
+                    <div class="bg-white border border-black/10 p-6 shadow-sm hover:shadow-md transition-shadow">
+                        <h3 class="font-mono text-xs uppercase tracking-widest text-loom-red mb-2">The Construct</h3>
+                        <p class="text-sm">A museum-meets-immersive theater installation. Real animation artifacts, Lantern attendants, and a living digital interface.</p>
+                    </div>
+                    <div class="bg-black text-white p-6 shadow-lg">
+                        <h3 class="font-mono text-xs uppercase tracking-widest text-gray-400 mb-2">The Purpose</h3>
+                        <p class="text-sm">To examine how icons are manufactured, circulated, controlled, and reclaimed. The economics of magic.</p>
+                    </div>
+                    <div class="bg-white border border-black/10 p-6 shadow-sm hover:shadow-md transition-shadow">
+                        <h3 class="font-mono text-xs uppercase tracking-widest text-loom-red mb-2">The Layers</h3>
+                        <p class="text-sm">Lantern Protocol, The Archive, Celli Software, and the Grift Shop economy.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_rgba(0,0,0,1)] space-y-5">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">The Script (Linear)</div>
+                    <div class="space-y-4 text-sm">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 bg-tonka-cobalt text-white flex items-center justify-center font-bold text-xs">01</div>
+                            <div>
+                                <div class="font-bold uppercase">The Hook</div>
+                                <div class="text-xs text-gray-500">Meet Dime Lane. TikTok velocity, dream logic, a face becoming myth.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 bg-tonka-gold text-black flex items-center justify-center font-bold text-xs">02</div>
+                            <div>
+                                <div class="font-bold uppercase">The Alchemical Exchange</div>
+                                <div class="text-xs text-gray-500">1934 Mickey acquisition, Henson artifacts, and the swap market of nostalgia.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 bg-tonka-mint text-black flex items-center justify-center font-bold text-xs">03</div>
+                            <div>
+                                <div class="font-bold uppercase">The Lab</div>
+                                <div class="text-xs text-gray-500">Loomworks, the 4D Musical Spreadsheet, and the Celli voxel engine.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 bg-tonka-plum text-white flex items-center justify-center font-bold text-xs">04</div>
+                            <div>
+                                <div class="font-bold uppercase">The Pitch</div>
+                                <div class="text-xs text-gray-500">Low overhead, revenue split, and the Domestic Product thesis.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-3 pt-4 border-t border-black/10">
+                        <button onclick="app.navigate('calibration')" class="ui-click bg-black text-white px-6 py-4 text-xs font-mono uppercase tracking-widest hover:bg-loom-red transition-colors flex items-center justify-between">
+                            Start the Script <span>&rarr;</span>
+                        </button>
+                        <button onclick="siteMap.open()" class="ui-click border-2 border-black bg-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+                            Open the Site Map
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-[0.6fr_1.4fr] gap-10 items-start">
+                <div class="space-y-6">
+                    <div class="border-2 border-black bg-white p-6">
+                        <h3 class="font-bold uppercase text-sm mb-3">Dima &rarr; Dime</h3>
+                        <p class="text-xs font-mono text-gray-600 leading-relaxed">
+                            Dima begins as the actress. Dime is the avatar that survives the scroll. The name is a cost, a coin, a metric. The persona becomes a domestic product, produced by the Lab and delivered to the room.
+                        </p>
+                        <div class="mt-4 text-[10px] font-mono uppercase tracking-widest text-loom-red">Identity loop: human &rarr; myth &rarr; interface</div>
+                    </div>
+                    <div class="bg-white border-2 border-black p-6 shadow-[4px_4px_0px_rgba(0,0,0,1)]">
+                        <h3 class="font-bold uppercase text-sm mb-3">The Mensch Manifesto</h3>
+                        <p class="text-xs font-mono text-gray-600 leading-relaxed mb-3">
+                            Trauma and fortune are both dumb luck. The agency is in the response: kindness as the default setting. We turn suffering into meaningful productivity loss and build the opposite of pain — a sanctuary of wonder.
+                        </p>
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-loom-red">Systemic Grace &middot; Opposite of suffering</div>
+                    </div>
+                    <div class="bg-black text-white p-6">
+                        <h3 class="font-bold uppercase text-sm mb-3 text-tonka-mint">The Site Map (Exploratory)</h3>
+                        <p class="text-xs font-mono text-gray-300 leading-relaxed">A Loom Map hand-drawing rendered as clickable nodes. sun.settings, Under/Over, Lumania Cent, and more.</p>
+                        <button onclick="siteMap.open()" class="mt-4 ui-click border border-white/30 px-4 py-2 text-[10px] uppercase tracking-widest hover:bg-white hover:text-black transition-colors">View Nodes</button>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-black p-6 shadow-lg">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="font-bold uppercase text-sm">Multimedia Nodes</h3>
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Philosophy Layer</div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="border border-black/10 p-4">
+                            <div class="text-[10px] font-mono uppercase tracking-widest text-loom-red mb-2">The Conflict</div>
+                            <div class="text-xs font-mono text-gray-500 mb-2">Argument Clinic</div>
+                            <div class="aspect-video bg-black">
+                                <iframe class="w-full h-full" src="https://www.youtube.com/embed/ohDB5gbtaEQ" title="Argument Clinic" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                        </div>
+                        <div class="border border-black/10 p-4">
+                            <div class="text-[10px] font-mono uppercase tracking-widest text-loom-red mb-2">The Humanity</div>
+                            <div class="text-xs font-mono text-gray-500 mb-2">People of the Land (Gene Wilder)</div>
+                            <div class="aspect-video bg-black">
+                                <iframe class="w-full h-full" src="https://www.youtube.com/embed/KHJbSvidohg" title="Common Clay" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                        </div>
+                        <div class="border border-black/10 p-4">
+                            <div class="text-[10px] font-mono uppercase tracking-widest text-loom-red mb-2">The Observation</div>
+                            <div class="text-xs font-mono text-gray-500 mb-2">Candid Camera</div>
+                            <div class="aspect-video bg-black">
+                                <iframe class="w-full h-full" src="https://www.youtube.com/embed/B8E_mpcowmY" title="Candid Camera" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                        </div>
+                        <div class="border border-black/10 p-4">
+                            <div class="text-[10px] font-mono uppercase tracking-widest text-loom-red mb-2">The Calculation</div>
+                            <div class="text-xs font-mono text-gray-500 mb-2">Abbott &amp; Costello</div>
+                            <div class="aspect-video bg-black">
+                                <iframe class="w-full h-full" src="https://www.youtube.com/embed/2LZsJb7_D7Q" title="Abbott and Costello" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-[1.2fr_0.8fr] gap-10 items-start">
+                <div class="bg-white border border-black p-6 shadow-lg">
+                    <h3 class="font-bold uppercase text-sm mb-4">Artifacts of the Loom</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <details class="border border-black/10 p-4 group">
+                            <summary class="cursor-pointer font-mono text-xs uppercase tracking-widest text-loom-red">1934 Mickey Acquisition</summary>
+                            <p class="text-xs text-gray-600 mt-3">The receipt that started the swap. Proof that myth can be bought, licensed, and reanimated.</p>
+                        </details>
+                        <details class="border border-black/10 p-4 group">
+                            <summary class="cursor-pointer font-mono text-xs uppercase tracking-widest text-loom-red">Medusa Wedgwood</summary>
+                            <p class="text-xs text-gray-600 mt-3">The brutalist anchor. Luxury history for Mice and Monsters.</p>
+                        </details>
+                        <details class="border border-black/10 p-4 group">
+                            <summary class="cursor-pointer font-mono text-xs uppercase tracking-widest text-loom-red">Antique Spinning Wheel</summary>
+                            <p class="text-xs text-gray-600 mt-3">The literal Loom. A physical engine for myth-making in real time.</p>
+                        </details>
+                        <details class="border border-black/10 p-4 group">
+                            <summary class="cursor-pointer font-mono text-xs uppercase tracking-widest text-loom-red">Ring Collection</summary>
+                            <p class="text-xs text-gray-600 mt-3">Sideways integration: carnelian, masked turquoise, brutalist silver. Vibes and algorithms tell the story.</p>
+                        </details>
+                    </div>
+                </div>
+                <div class="bg-black text-white p-6 shadow-lg">
+                    <h3 class="font-bold uppercase text-sm mb-4 text-tonka-gold">Celli Voxel Field</h3>
+                    <p class="text-xs font-mono text-gray-400 mb-4">A low-fidelity voxel grid that responds to your cursor — the 3D spatial spreadsheet in miniature.</p>
+                    <div class="border border-white/20 p-2 bg-[#0b0b0b]">
+                        <canvas id="voxel-celli" width="360" height="240" class="w-full h-auto"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-black pt-8 flex justify-between items-center">
                 <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Begin the sequence</div>
                 <button onclick="app.navigate('calibration')" class="ui-click bg-black text-white px-6 py-4 text-xs font-mono uppercase tracking-widest hover:bg-loom-red transition-colors flex items-center gap-2">
                     Next: Calibration Protocol <span>&rarr;</span>
@@ -519,7 +675,23 @@
 
             <div class="grid md:grid-cols-2 gap-12">
                 <div class="space-y-6">
-                    <p class="font-serif text-lg leading-relaxed">Lanterns are the human interfaces of Loomworks. Not guards, not docents. Witnesses. They stand between longing and duty.</p>
+                    <p class="font-serif text-lg leading-relaxed">
+                        Lanterns are the human interfaces of Loomworks. Not guards, not docents — witnesses. Traditional theater indexes macro expressions for the back row. The Loomworks indexes micro expressions: the intimate truth of a character standing inches away.
+                    </p>
+                    <div class="bg-white border border-gray-200 p-6 shadow-md">
+                        <h3 class="font-mono text-xs uppercase tracking-widest text-loom-red mb-4">Operational Win</h3>
+                        <ul class="space-y-3 text-sm text-gray-700">
+                            <li><strong>Low Overhead:</strong> The density of artifacts does the heavy lifting. No months of choreography.</li>
+                            <li><strong>Rapid Training:</strong> Performers inhabit roles through stage notes and the physical history of the room.</li>
+                            <li><strong>No Backstage:</strong> The show is laid bare. The person becomes the performer in the same space as the guest.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-black text-white p-6 border border-gray-800">
+                        <h3 class="font-mono text-xs uppercase tracking-widest text-tonka-gold mb-3">Maestro Musika</h3>
+                        <p class="text-xs font-mono text-gray-300 leading-relaxed">
+                            Auditory, visual, interactive — guided by restraint. Overwhelm when called for, and disappear when the room needs breath. Milano ni momo bebe: the last note lands soft, poetic, human.
+                        </p>
+                    </div>
                     <div class="bg-white border border-gray-200 p-8 shadow-md relative overflow-hidden">
                         <div class="absolute top-0 right-0 bg-loom-red text-white text-[9px] px-2 py-1 font-mono">INTERACTION 01</div>
                         <h3 class="font-bold text-sm uppercase mb-4 text-gray-400">Scripted Response</h3>
@@ -533,6 +705,10 @@
                     <div class="border p-4 bg-white hover:border-loom-red transition-colors cursor-help"><strong>Now</strong>: Tempo (Crisp)</div>
                     <div class="border p-4 bg-white hover:border-loom-red transition-colors cursor-help"><strong>Nicol</strong>: Value (Bureaucratic)</div>
                     <div class="border p-4 bg-white hover:border-loom-red transition-colors cursor-help"><strong>Dime</strong>: Cost (Playful)</div>
+                    <div class="border border-black bg-black text-white p-6 mt-6">
+                        <h4 class="font-mono text-xs uppercase tracking-widest text-tonka-gold mb-3">Lantern Theory</h4>
+                        <p class="text-xs font-mono text-gray-300">Micro-expression indexing turns guests into co-authors. The room trains the performer; the performer trains the room.</p>
+                    </div>
                 </div>
             </div>
 
@@ -551,6 +727,55 @@
     <section id="view-press" class="view-section"><div class="p-20 text-center font-mono bg-white border border-black m-6">PRESS KIT CONTENT. <button onclick="app.navigate('landing')" class="underline ml-2">Back</button></div></section>
     <section id="view-tickets" class="view-section"><div class="p-20 text-center font-mono bg-white border border-black m-6">TICKETING MODULE. <button onclick="app.navigate('landing')" class="underline ml-2">Back</button></div></section>
     <section id="view-team" class="view-section"><div class="p-20 text-center font-mono bg-white border border-black m-6">TEAM ROSTER. <button onclick="app.navigate('landing')" class="underline ml-2">Back</button></div></section>
+
+    <div id="site-map-modal" class="modal-layer">
+        <div class="bg-white p-8 max-w-4xl w-full border-2 border-black rounded-xl shadow-2xl m-4">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
+                <div>
+                    <h3 class="text-xl font-bold uppercase tracking-tight">Loom Map</h3>
+                    <p class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Exploratory Node Index</p>
+                </div>
+                <button onclick="siteMap.close()" class="text-xs uppercase tracking-widest underline">Close</button>
+            </div>
+            <div class="grid md:grid-cols-3 gap-4">
+                <button onclick="siteMap.jump('landing')" class="border border-black/10 p-4 text-left hover:border-loom-red transition-colors">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node</div>
+                    <div class="font-bold uppercase">sun.settings</div>
+                    <div class="text-xs text-gray-600">Mood temperature switchboard.</div>
+                </button>
+                <button onclick="siteMap.jump('archive')" class="border border-black/10 p-4 text-left hover:border-loom-red transition-colors">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node</div>
+                    <div class="font-bold uppercase">Under/Over</div>
+                    <div class="text-xs text-gray-600">Class altitude &amp; backstage truth.</div>
+                </button>
+                <button onclick="siteMap.jump('gallery')" class="border border-black/10 p-4 text-left hover:border-loom-red transition-colors">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node</div>
+                    <div class="font-bold uppercase">Lumania Cent</div>
+                    <div class="text-xs text-gray-600">A plaza of pixels and patronage.</div>
+                </button>
+                <button onclick="siteMap.jump('grift')" class="border border-black/10 p-4 text-left hover:border-loom-red transition-colors">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node</div>
+                    <div class="font-bold uppercase">Reality Shows</div>
+                    <div class="text-xs text-gray-600">The algorithm as co-author and co-star.</div>
+                </button>
+                <button onclick="siteMap.jump('calibration')" class="border border-black/10 p-4 text-left hover:border-loom-red transition-colors">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node</div>
+                    <div class="font-bold uppercase">Dime Lane</div>
+                    <div class="text-xs text-gray-600">The runway where Dima becomes Dime.</div>
+                </button>
+                <button onclick="siteMap.jump('ambition')" class="border border-black/10 p-4 text-left hover:border-loom-red transition-colors">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node</div>
+                    <div class="font-bold uppercase">Oath Garden</div>
+                    <div class="text-xs text-gray-600">Why the myth must persist.</div>
+                </button>
+                <button onclick="siteMap.jump('protocol')" class="border border-black/10 p-4 text-left hover:border-loom-red transition-colors">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node</div>
+                    <div class="font-bold uppercase">Lantern Protocol</div>
+                    <div class="text-xs text-gray-600">Operational advantage dossier.</div>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div id="quiz-modal" class="modal-layer">
         <div class="bg-white p-8 max-w-lg w-full border-2 border-black rounded-xl shadow-2xl m-4">
@@ -773,7 +998,86 @@
             }
         };
 
-        // 7. Profiler Logic
+        // 7. Site Map Modal
+        const siteMap = {
+            open: () => {
+                const modal = document.getElementById('site-map-modal');
+                if (!modal) return;
+                modal.classList.add('active');
+                document.body.classList.add('modal-open');
+            },
+            close: () => {
+                const modal = document.getElementById('site-map-modal');
+                if (!modal) return;
+                modal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            },
+            jump: (target) => {
+                siteMap.close();
+                app.navigate(target);
+            }
+        };
+
+        // 8. Voxel Field
+        const voxelField = {
+            canvas: null,
+            ctx: null,
+            cols: 18,
+            rows: 12,
+            size: 20,
+            cells: [],
+            hover: null,
+            init: () => {
+                const canvas = document.getElementById('voxel-celli');
+                if (!canvas) return;
+                voxelField.canvas = canvas;
+                voxelField.ctx = canvas.getContext('2d');
+                voxelField.size = Math.floor(canvas.width / voxelField.cols);
+                voxelField.cells = Array.from({ length: voxelField.cols * voxelField.rows }, () => Math.random());
+                voxelField.render();
+                canvas.addEventListener('mousemove', voxelField.onMove);
+                canvas.addEventListener('mouseleave', voxelField.onLeave);
+            },
+            onMove: (event) => {
+                const rect = voxelField.canvas.getBoundingClientRect();
+                const scaleX = voxelField.canvas.width / rect.width;
+                const scaleY = voxelField.canvas.height / rect.height;
+                const x = Math.floor((event.clientX - rect.left) * scaleX / voxelField.size);
+                const y = Math.floor((event.clientY - rect.top) * scaleY / voxelField.size);
+                voxelField.hover = { x, y };
+                voxelField.render();
+            },
+            onLeave: () => {
+                voxelField.hover = null;
+                voxelField.render();
+            },
+            render: () => {
+                const ctx = voxelField.ctx;
+                if (!ctx) return;
+                const palette = ['#2555FF', '#FFC54D', '#3DFFB5', '#CD2B2B', '#5A2D82'];
+                ctx.clearRect(0, 0, voxelField.canvas.width, voxelField.canvas.height);
+                ctx.fillStyle = '#0b0b0b';
+                ctx.fillRect(0, 0, voxelField.canvas.width, voxelField.canvas.height);
+                for (let row = 0; row < voxelField.rows; row += 1) {
+                    for (let col = 0; col < voxelField.cols; col += 1) {
+                        const idx = row * voxelField.cols + col;
+                        const value = voxelField.cells[idx];
+                        const colorIndex = Math.floor(value * palette.length);
+                        ctx.fillStyle = palette[colorIndex] || palette[0];
+                        const x = col * voxelField.size + 2;
+                        const y = row * voxelField.size + 2;
+                        ctx.fillRect(x, y, voxelField.size - 4, voxelField.size - 4);
+                        if (voxelField.hover && voxelField.hover.x === col && voxelField.hover.y === row) {
+                            ctx.strokeStyle = '#FDFBF7';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(x - 1, y - 1, voxelField.size - 2, voxelField.size - 2);
+                        }
+                    }
+                }
+            }
+        };
+
+        // 9. Profiler Logic
         const profiler = {
             scores: { dreamer:0, scholar:0, investor:0, passerby:0, lantern:0 },
             select: (role) => {
@@ -808,7 +1112,7 @@
             }
         };
 
-        // 8. Main App Controller
+        // 10. Main App Controller
         const app = {
             integration: 0,
             visited: new Set(),
@@ -860,6 +1164,8 @@
         window.profiler = profiler;
         window.gallery = gallery;
         window.grift = grift;
+        window.siteMap = siteMap;
+        window.voxelField = voxelField;
 
         // Boot
         window.addEventListener('load', () => {
@@ -877,6 +1183,7 @@
                     setTimeout(() => {
                         loader.classList.add('fade-out');
                         manufacture.init(); // Init canvas early
+                        voxelField.init();
                     }, 600);
                 }
             }, 80);
