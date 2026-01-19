@@ -138,13 +138,13 @@
 
     <div class="scanline-layer"></div>
 
-    <nav class="fixed top-0 left-0 w-full z-50 bg-[#FDFBF7]/90 backdrop-blur border-b border-black/10 px-6 py-4 flex justify-between items-center">
+    <nav class="fixed top-0 left-0 w-full z-50 bg-[#FDFBF7]/90 backdrop-blur border-b border-black/10 px-6 py-4 flex justify-between items-center gap-6">
         <div class="flex items-center gap-3 cursor-pointer ui-click" onclick="app.navigate('landing')">
             <div class="w-3 h-3 bg-loom-red"></div>
             <span class="font-bold tracking-widest text-sm font-mono uppercase">LOOMWORKS</span>
         </div>
         
-        <div class="hidden lg:flex gap-8 text-[10px] font-mono tracking-widest uppercase items-center">
+        <div class="hidden lg:flex gap-8 text-[10px] font-mono tracking-widest uppercase items-center flex-1 justify-center">
             <button onclick="app.navigate('landing')" class="nav-btn" data-target="landing">Index</button>
             <button onclick="app.navigate('calibration')" class="nav-btn" data-target="calibration">Context</button>
             <button onclick="app.navigate('profiler')" class="nav-btn text-loom-red font-bold" data-target="profiler">Identify</button>
@@ -154,30 +154,31 @@
             <button onclick="app.navigate('grift')" class="nav-btn" data-target="grift">Grift Shop</button>
             <div class="h-3 w-px bg-gray-300"></div>
             <button onclick="app.navigate('ambition')" class="nav-btn" data-target="ambition">Ambition</button>
-            <button onclick="siteMap.open()" class="nav-btn">Site Map</button>
+            <button onclick="siteMap.open()" class="nav-btn flex items-center gap-2">
+                <span class="text-[8px]">☰</span>
+                Loom Map
+            </button>
         </div>
 
-        <button onclick="document.getElementById('mobile-menu').classList.toggle('translate-x-full')" class="lg:hidden p-2 ui-click">
-            <div class="space-y-1.5">
-                <div class="w-6 h-0.5 bg-black"></div>
-                <div class="w-6 h-0.5 bg-black"></div>
-                <div class="w-6 h-0.5 bg-black"></div>
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 text-[9px] font-mono uppercase tracking-widest border border-black/10 bg-white px-3 py-2">
+                <span class="text-gray-500">TikTok Velocity</span>
+                <span class="font-bold text-loom-red">28.2k</span>
+                <span class="text-gray-400">/</span>
+                <span class="font-bold text-black">265.8k</span>
             </div>
-        </button>
-    </nav>
-
-    <div id="mobile-menu" class="fixed inset-0 bg-[#FDFBF7] z-40 transform translate-x-full transition-transform duration-300 pt-24 px-8 overflow-y-auto border-l border-black">
-        <div class="flex flex-col gap-6 text-xl font-mono uppercase tracking-widest">
-            <button onclick="app.navigate('landing')" class="text-left pb-2 border-b border-gray-200">Index</button>
-            <button onclick="app.navigate('calibration')" class="text-left pb-2 border-b border-gray-200">Context</button>
-            <button onclick="app.navigate('profiler')" class="text-left pb-2 border-b border-gray-200 text-loom-red">Identify</button>
-            <button onclick="app.navigate('gallery')" class="text-left pb-2 border-b border-gray-200">Gallery</button>
-            <button onclick="app.navigate('grift')" class="text-left pb-2 border-b border-gray-200">Grift</button>
-            <button onclick="app.navigate('ambition')" class="text-left pb-2 border-b border-gray-200">Ambition</button>
-            <button onclick="siteMap.open()" class="text-left pb-2 border-b border-gray-200">Site Map</button>
+            <button onclick="app.navigate('calibration')" class="ui-click hidden sm:inline-flex bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-loom-red transition-colors">
+                Successor Pitch &rarr;
+            </button>
+            <button onclick="siteMap.open()" class="p-2 ui-click lg:hidden" aria-label="Open Loom Map">
+                <div class="space-y-1.5">
+                    <div class="w-6 h-0.5 bg-black"></div>
+                    <div class="w-6 h-0.5 bg-black"></div>
+                    <div class="w-6 h-0.5 bg-black"></div>
+                </div>
+            </button>
         </div>
-        <button onclick="document.getElementById('mobile-menu').classList.add('translate-x-full')" class="mt-8 text-xs underline uppercase">Close Menu</button>
-    </div>
+    </nav>
 
     <div class="integration-bar"><div id="integration-fill" class="integration-fill"></div></div>
 
@@ -218,7 +219,7 @@
                 </div>
 
                 <div class="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_rgba(0,0,0,1)] space-y-5">
-                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">The Script (Linear)</div>
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Successor Pitch (Linear)</div>
                     <div class="space-y-4 text-sm">
                         <div class="flex items-start gap-3">
                             <div class="w-8 h-8 bg-tonka-cobalt text-white flex items-center justify-center font-bold text-xs">01</div>
@@ -245,16 +246,16 @@
                             <div class="w-8 h-8 bg-tonka-plum text-white flex items-center justify-center font-bold text-xs">04</div>
                             <div>
                                 <div class="font-bold uppercase">The Pitch</div>
-                                <div class="text-xs text-gray-500">Low overhead, revenue split, and the Domestic Product thesis.</div>
+                                <div class="text-xs text-gray-500">A luxury history-imbued Meow Wolf: low overhead, revenue split, and the Domestic Product thesis.</div>
                             </div>
                         </div>
                     </div>
                     <div class="flex flex-col gap-3 pt-4 border-t border-black/10">
                         <button onclick="app.navigate('calibration')" class="ui-click bg-black text-white px-6 py-4 text-xs font-mono uppercase tracking-widest hover:bg-loom-red transition-colors flex items-center justify-between">
-                            Start the Script <span>&rarr;</span>
+                            Start the Pitch <span>&rarr;</span>
                         </button>
                         <button onclick="siteMap.open()" class="ui-click border-2 border-black bg-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
-                            Open the Site Map
+                            Open the Loom Map
                         </button>
                     </div>
                 </div>
@@ -277,8 +278,8 @@
                         <div class="text-[10px] font-mono uppercase tracking-widest text-loom-red">Systemic Grace &middot; Opposite of suffering</div>
                     </div>
                     <div class="bg-black text-white p-6">
-                        <h3 class="font-bold uppercase text-sm mb-3 text-tonka-mint">The Site Map (Exploratory)</h3>
-                        <p class="text-xs font-mono text-gray-300 leading-relaxed">A Loom Map hand-drawing rendered as clickable nodes. sun.settings, Under/Over, Lumania Cent, and more.</p>
+                        <h3 class="font-bold uppercase text-sm mb-3 text-tonka-mint">Loom Map (Non-Linear)</h3>
+                        <p class="text-xs font-mono text-gray-300 leading-relaxed">A hand-drawn site map rendered as clickable nodes. sun.settings, Celli, Under/Over, Lumania Cent, and more.</p>
                         <button onclick="siteMap.open()" class="mt-4 ui-click border border-white/30 px-4 py-2 text-[10px] uppercase tracking-widest hover:bg-white hover:text-black transition-colors">View Nodes</button>
                     </div>
                 </div>
@@ -733,7 +734,7 @@
             <div class="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
                 <div>
                     <h3 class="text-xl font-bold uppercase tracking-tight">Loom Map</h3>
-                    <p class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Exploratory Node Index</p>
+                    <p class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Hand-Drawn Node Index</p>
                 </div>
                 <button onclick="siteMap.close()" class="text-xs uppercase tracking-widest underline">Close</button>
             </div>
@@ -742,6 +743,11 @@
                     <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node</div>
                     <div class="font-bold uppercase">sun.settings</div>
                     <div class="text-xs text-gray-600">Mood temperature switchboard.</div>
+                </button>
+                <button onclick="siteMap.jump('landing')" class="border border-black/10 p-4 text-left hover:border-loom-red transition-colors">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node</div>
+                    <div class="font-bold uppercase">Celli</div>
+                    <div class="text-xs text-gray-600">Voxel engine &amp; spatial spreadsheet.</div>
                 </button>
                 <button onclick="siteMap.jump('archive')" class="border border-black/10 p-4 text-left hover:border-loom-red transition-colors">
                     <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node</div>
@@ -1120,9 +1126,12 @@
                 // Audio Feedback
                 if (window.audio) audio.click();
 
-                // Close Mobile Menu
-                document.getElementById('mobile-menu').classList.remove('translate-x-full');
-                document.getElementById('mobile-menu').classList.add('translate-x-full');
+                // Close Mobile Menu (if present)
+                const mobileMenu = document.getElementById('mobile-menu');
+                if (mobileMenu) {
+                    mobileMenu.classList.remove('translate-x-full');
+                    mobileMenu.classList.add('translate-x-full');
+                }
 
                 // View Transition
                 const current = document.querySelector('.view-section.active');
