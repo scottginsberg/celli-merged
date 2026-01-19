@@ -297,6 +297,57 @@
     border-left: 2px solid rgba(255, 204, 102, 0.5);
     margin-bottom: 8px;
   }
+  .node-card-price {
+    display: grid;
+    gap: 8px;
+  }
+  .price-reveal-button {
+    --crack-level: 0;
+    background: #fff;
+    border: 1px solid #111;
+    color: #111;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    padding: 10px 14px;
+    text-transform: uppercase;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.1s ease, box-shadow 0.2s ease;
+  }
+  .price-reveal-button::before,
+  .price-reveal-button::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 0%, rgba(0, 0, 0, 0.35) 45%, transparent 60%);
+    opacity: var(--crack-level);
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+  .price-reveal-button::after {
+    background: linear-gradient(45deg, transparent 0%, rgba(0, 0, 0, 0.4) 50%, transparent 70%);
+  }
+  .price-reveal-button.price-reveal-button--cracked {
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.15) inset;
+    transform: translateY(1px);
+  }
+  .price-reveal-button.price-reveal-button--broken {
+    background: #111;
+    color: #fff;
+    cursor: default;
+    box-shadow: none;
+  }
+  .price-reveal-value {
+    display: none;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+  .price-reveal-value.visible {
+    display: block;
+  }
   .node-connections-list {
     display: flex;
     flex-direction: column;
@@ -4356,6 +4407,17 @@ function showNodeCard(particle) {
     });
     bodyHTML += `</div>`;
   }
+
+  if (data.price) {
+    const revealClicks = Number.isFinite(data.priceRevealClicks) ? data.priceRevealClicks : 13;
+    bodyHTML += `
+      <div class="node-card-section node-card-price" data-price="${escapeHtml(data.price)}" data-reveal-clicks="${revealClicks}">
+        <div class="node-card-section-title">Price</div>
+        <button class="price-reveal-button" type="button">How much do you cost...</button>
+        <div class="price-reveal-value" aria-hidden="true"></div>
+      </div>
+    `;
+  }
   
   // Category section
   if (data.category) {
@@ -4442,9 +4504,49 @@ function showNodeCard(particle) {
   }
   
   nodeCardBody.innerHTML = bodyHTML;
+  initPriceReveal(nodeCardBody);
   nodeCard.classList.add('visible');
   
   console.log(`📋 Node card opened: ${data.title}`);
+}
+
+function initPriceReveal(container) {
+  const priceSections = container.querySelectorAll('.node-card-price');
+  priceSections.forEach(section => {
+    const button = section.querySelector('.price-reveal-button');
+    const value = section.querySelector('.price-reveal-value');
+    if (!button || !value) {
+      return;
+    }
+
+    const price = section.getAttribute('data-price') || '';
+    const revealClicks = Number(section.getAttribute('data-reveal-clicks')) || 13;
+    let clicks = 0;
+
+    const updateCrackLevel = () => {
+      const level = Math.min(1, clicks / revealClicks);
+      button.style.setProperty('--crack-level', level.toString());
+    };
+
+    button.addEventListener('click', () => {
+      if (button.classList.contains('price-reveal-button--broken')) {
+        return;
+      }
+      clicks += 1;
+      button.classList.add('price-reveal-button--cracked');
+      updateCrackLevel();
+      if (clicks >= revealClicks) {
+        button.classList.add('price-reveal-button--broken');
+        button.disabled = true;
+        button.textContent = 'Price revealed';
+        value.textContent = price;
+        value.classList.add('visible');
+        value.setAttribute('aria-hidden', 'false');
+      }
+    });
+
+    updateCrackLevel();
+  });
 }
 
 // Helper: Escape HTML
