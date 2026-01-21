@@ -36,10 +36,6 @@
     </script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
-    <script type="importmap">
-        { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
-    </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
@@ -125,6 +121,33 @@
         #loader.fade-out { opacity: 0; pointer-events: none; }
         .loader-bar-bg { width: 240px; height: 2px; background: #eee; margin-top: 20px; overflow: hidden; }
         .loader-bar-fill { height: 100%; width: 0%; background: #CD2B2B; transition: width 0.1s linear; }
+
+        .evolve-overlay {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease;
+            z-index: 120;
+        }
+
+        .evolve-overlay.active {
+            opacity: 1;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease forwards;
+        }
+
+        .patchit-copy {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .patchit-copy p {
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 
@@ -135,6 +158,8 @@
         <div class="text-4xl font-bold tracking-tighter">LOADING CONSTRUCT</div>
         <div class="loader-bar-bg"><div id="loader-progress" class="loader-bar-fill"></div></div>
     </div>
+
+    <div id="evolve-overlay" class="evolve-overlay" aria-hidden="true"></div>
 
     <div class="scanline-layer"></div>
 
@@ -150,6 +175,7 @@
             <button onclick="app.navigate('profiler')" class="nav-btn text-loom-red font-bold" data-target="profiler">Identify</button>
             <div class="h-3 w-px bg-gray-300"></div>
             <button onclick="app.navigate('gallery')" class="nav-btn" data-target="gallery">Gallery</button>
+            <button onclick="app.navigate('patchit')" class="nav-btn" data-target="patchit">Patchit</button>
             <button onclick="app.navigate('archive')" class="nav-btn" data-target="archive">Archive</button>
             <button onclick="app.navigate('grift')" class="nav-btn" data-target="grift">Grift Shop</button>
             <div class="h-3 w-px bg-gray-300"></div>
@@ -172,6 +198,7 @@
             <button onclick="app.navigate('calibration')" class="text-left pb-2 border-b border-gray-200">Context</button>
             <button onclick="app.navigate('profiler')" class="text-left pb-2 border-b border-gray-200 text-loom-red">Identify</button>
             <button onclick="app.navigate('gallery')" class="text-left pb-2 border-b border-gray-200">Gallery</button>
+            <button onclick="app.navigate('patchit')" class="text-left pb-2 border-b border-gray-200">Patchit</button>
             <button onclick="app.navigate('grift')" class="text-left pb-2 border-b border-gray-200">Grift</button>
             <button onclick="app.navigate('ambition')" class="text-left pb-2 border-b border-gray-200">Ambition</button>
             <button onclick="siteMap.open()" class="text-left pb-2 border-b border-gray-200">Site Map</button>
@@ -198,6 +225,12 @@
                     <div class="bg-black text-white px-4 py-2">28.2K Followers</div>
                     <div class="bg-black text-white px-4 py-2">265.8K Likes</div>
                     <div class="bg-white border border-black px-4 py-2">3 Weeks</div>
+                </div>
+                <div class="mt-8 flex flex-wrap items-center gap-4">
+                    <button onclick="app.evolveToArchive()" class="ui-click border-2 border-black bg-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
+                        Evolve the Museum
+                    </button>
+                    <span class="text-xs font-mono uppercase tracking-widest text-gray-500">Recovered artifacts fade in below.</span>
                 </div>
             </div>
 
@@ -470,17 +503,47 @@
         </div>
     </section>
 
-    <section id="view-gallery" class="view-section relative !pt-0 h-screen overflow-hidden">
-        <div id="canvas-container" class="absolute inset-0 z-0 bg-[#0f0f0f]"></div>
-        
-        <div class="absolute bottom-16 left-8 z-10 bg-white/90 p-6 border border-black max-w-sm backdrop-blur shadow-2xl">
-            <h3 class="font-bold uppercase text-sm mb-2">The Gallery</h3>
-            <p class="text-xs font-mono text-gray-600 mb-4">Drag to rotate. Scroll to zoom. Click artifacts to inspect metadata.</p>
-            <div class="space-y-2">
-                <button onclick="gallery.resetCamera()" class="block w-full text-left text-[10px] font-mono uppercase hover:text-loom-red ui-click">Reset Camera</button>
-                <div class="h-px bg-gray-300 my-2"></div>
-                <button onclick="app.navigate('archive')" class="ui-click bg-black text-white px-4 py-3 w-full text-[10px] font-mono uppercase tracking-widest hover:bg-loom-red transition-colors">
-                    Next: The Archive &rarr;
+    <section id="view-gallery" class="view-section relative !pt-0 h-screen overflow-hidden bg-black text-white">
+        <div class="absolute inset-0 flex items-center justify-center">
+            <div class="text-center px-6">
+                <div class="text-xs font-mono uppercase tracking-[0.4em] text-gray-400 mb-4">Gallery Status</div>
+                <div class="text-3xl md:text-5xl font-bold uppercase tracking-tight">nah thats irl lol</div>
+                <button onclick="app.navigate('archive')" class="mt-8 ui-click border border-white/40 px-6 py-3 text-[10px] font-mono uppercase tracking-widest hover:bg-white hover:text-black transition-colors">
+                    Still want the archive? &rarr;
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section id="view-patchit" class="view-section bg-[#0f0f0f] text-white">
+        <div class="max-w-6xl mx-auto px-6 py-12">
+            <div class="flex flex-col md:flex-row justify-between items-end gap-6 mb-8">
+                <div>
+                    <div class="inline-flex items-center gap-2 border border-white/30 px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white/5">Patchit Intake</div>
+                    <h2 class="text-4xl md:text-6xl font-bold uppercase tracking-tight mt-3">Patchit Field Copy</h2>
+                    <p class="text-sm font-mono text-gray-300 mt-4 max-w-2xl">
+                        The old site is stripped for parts and reassembled here. Every line of copy and every linkout is re-housed inside this evolving museum pitch.
+                    </p>
+                </div>
+                <div class="text-xs font-mono uppercase tracking-widest text-gray-400">Recovered Source: patchit.html</div>
+            </div>
+            <div class="grid lg:grid-cols-[1.6fr_1fr] gap-6">
+                <div class="border border-white/20 bg-black/40 shadow-2xl overflow-hidden rounded-xl p-6">
+                    <div class="text-xs font-mono uppercase tracking-widest text-gray-400 mb-4">Recovered Copy</div>
+                    <div id="patchit-copy" class="patchit-copy text-sm font-mono text-gray-200 leading-relaxed">
+                        <div class="text-xs uppercase tracking-[0.3em] text-gray-500">Transcribing patchit.html...</div>
+                    </div>
+                </div>
+                <div class="border border-white/20 bg-black/60 shadow-2xl overflow-hidden rounded-xl p-6">
+                    <div class="text-xs font-mono uppercase tracking-widest text-gray-400 mb-4">Linkouts</div>
+                    <div id="patchit-links" class="space-y-3 text-xs font-mono">
+                        <div class="text-gray-500">Gathering outbound threads...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-white/10 mt-10 pt-6 flex justify-end">
+                <button onclick="app.navigate('archive')" class="ui-click bg-white text-black px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-loom-red hover:text-white transition-colors flex items-center gap-2">
+                    Next: Archive Index <span>&rarr;</span>
                 </button>
             </div>
         </div>
@@ -802,6 +865,11 @@
                     <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node</div>
                     <div class="font-bold uppercase">Under/Over</div>
                     <div class="text-xs text-gray-600">Class altitude &amp; backstage truth.</div>
+                </button>
+                <button onclick="siteMap.jump('patchit')" class="border border-black/10 p-4 text-left hover:border-loom-red transition-colors">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node</div>
+                    <div class="font-bold uppercase">Patchit Field</div>
+                    <div class="text-xs text-gray-600">Imported copy &amp; linkouts.</div>
                 </button>
                 <button onclick="siteMap.jump('gallery')" class="border border-black/10 p-4 text-left hover:border-loom-red transition-colors">
                     <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node</div>
@@ -1181,63 +1249,10 @@
             }
         };
 
-        // 5. Gallery (Three.js 3D Room)
+        // 5. Gallery (IRL Only)
         const gallery = {
-            scene: null, camera: null, renderer: null, cube: null,
-            init: () => {
-                const container = document.getElementById('canvas-container');
-                if(!container || gallery.scene) return;
-
-                gallery.scene = new THREE.Scene();
-                gallery.scene.background = new THREE.Color(0x0f0f0f);
-                gallery.scene.fog = new THREE.Fog(0x0f0f0f, 5, 20);
-
-                gallery.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-                gallery.camera.position.z = 5;
-                gallery.camera.position.y = 1;
-
-                gallery.renderer = new THREE.WebGLRenderer({alpha:true, antialias:true});
-                gallery.renderer.setSize(window.innerWidth, window.innerHeight);
-                container.appendChild(gallery.renderer.domElement);
-
-                // Lighting
-                const light = new THREE.DirectionalLight(0xffffff, 1);
-                light.position.set(2, 2, 5);
-                gallery.scene.add(light);
-                gallery.scene.add(new THREE.AmbientLight(0x404040));
-
-                // Objects
-                const geometry = new THREE.IcosahedronGeometry(1, 0);
-                const material = new THREE.MeshStandardMaterial({ color: 0xcd2b2b, wireframe: true });
-                gallery.cube = new THREE.Mesh(geometry, material);
-                gallery.scene.add(gallery.cube);
-
-                // Grid Floor
-                const grid = new THREE.GridHelper(20, 20, 0x333333, 0x111111);
-                gallery.scene.add(grid);
-
-                const animate = function () {
-                    requestAnimationFrame(animate);
-                    if(gallery.cube) {
-                        gallery.cube.rotation.x += 0.005;
-                        gallery.cube.rotation.y += 0.01;
-                    }
-                    gallery.renderer.render(gallery.scene, gallery.camera);
-                };
-                animate();
-                
-                window.addEventListener('resize', () => {
-                    gallery.camera.aspect = window.innerWidth / window.innerHeight;
-                    gallery.camera.updateProjectionMatrix();
-                    gallery.renderer.setSize(window.innerWidth, window.innerHeight);
-                });
-            },
-            resetCamera: () => {
-                if(gallery.camera) {
-                    gallery.camera.position.set(0,1,5);
-                    gallery.camera.lookAt(0,0,0);
-                }
-            }
+            init: () => {},
+            resetCamera: () => {}
         };
 
         // 6. Grift Logic
@@ -1348,7 +1363,52 @@
             }
         };
 
-        // 9. Profiler Logic
+        // 9. Patchit Archive
+        const patchitArchive = {
+            hasLoaded: false,
+            load: async () => {
+                if (patchitArchive.hasLoaded) return;
+                patchitArchive.hasLoaded = true;
+                const copyEl = document.getElementById('patchit-copy');
+                const linkEl = document.getElementById('patchit-links');
+                if (!copyEl || !linkEl) return;
+                try {
+                    const response = await fetch('patchit.html', { cache: 'no-store' });
+                    const html = await response.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const rawText = doc.body ? doc.body.innerText : '';
+                    const lines = rawText.split(/\n+/).map(line => line.trim()).filter(Boolean);
+                    const paragraphs = lines.map(line => `<p>${line}</p>`).join('');
+                    copyEl.innerHTML = paragraphs || '<p>Patchit copy unavailable.</p>';
+                    copyEl.classList.add('fade-in');
+
+                    const links = Array.from(doc.querySelectorAll('a[href]')).map(anchor => {
+                        const href = anchor.getAttribute('href') || '';
+                        const text = anchor.textContent ? anchor.textContent.trim() : href;
+                        return { href, text };
+                    });
+                    if (links.length === 0) {
+                        linkEl.innerHTML = '<div class="text-gray-500">No linkouts found.</div>';
+                        return;
+                    }
+                    linkEl.innerHTML = links.map(link => {
+                        const safeHref = link.href;
+                        const safeText = link.text || link.href;
+                        return `
+                            <a class="block underline hover:text-loom-red" href="${safeHref}" target="_blank" rel="noopener">
+                                ${safeText}
+                            </a>
+                        `;
+                    }).join('');
+                    linkEl.classList.add('fade-in');
+                } catch (error) {
+                    copyEl.innerHTML = '<p>Patchit copy failed to load.</p>';
+                    linkEl.innerHTML = '<div class="text-gray-500">Linkouts failed to load.</div>';
+                }
+            }
+        };
+
+        // 10. Profiler Logic
         const profiler = {
             scores: { dreamer:0, scholar:0, investor:0, passerby:0, lantern:0 },
             select: (role) => {
@@ -1383,10 +1443,18 @@
             }
         };
 
-        // 10. Main App Controller
+        // 11. Main App Controller
         const app = {
             integration: 0,
             visited: new Set(),
+            evolveToArchive: () => {
+                const overlay = document.getElementById('evolve-overlay');
+                if (overlay) overlay.classList.add('active');
+                setTimeout(() => {
+                    app.navigate('patchit');
+                    if (overlay) overlay.classList.remove('active');
+                }, 600);
+            },
             navigate: (target) => {
                 // Audio Feedback
                 if (window.audio) audio.click();
@@ -1423,6 +1491,7 @@
 
                 // Lazy Load Modules
                 if (target === 'gallery') setTimeout(gallery.init, 100);
+                if (target === 'patchit') setTimeout(patchitArchive.load, 100);
                 if (target === 'archive') setTimeout(archive.init, 100);
                 if (target === 'grift') setTimeout(grift.init, 100);
             }
@@ -1437,6 +1506,7 @@
         window.grift = grift;
         window.siteMap = siteMap;
         window.voxelField = voxelField;
+        window.patchitArchive = patchitArchive;
 
         // Boot
         window.addEventListener('load', () => {
