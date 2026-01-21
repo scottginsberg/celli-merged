@@ -640,8 +640,7 @@
       border: 2px solid rgba(138,201,255,0.5);
     }
   </style>
-  <script src="giant-finger.js"></script>
-  <script src="narrative-builder.js"></script>
+  <!-- Optional systems removed (files not present in repo). -->
 </head>
 <body>
   <div id="loading">
@@ -9310,6 +9309,10 @@
     let fingerAnimating = false; // Track if finger is currently animating
     
     function createGiantFinger() {
+      if (typeof createGiantFingerSystem !== "function") {
+        console.warn("⚠️ Giant finger system unavailable; skipping.");
+        return;
+      }
       // Use external finger system from giant-finger.js (6000x scale for visibility)
       giantFinger = createGiantFingerSystem(THREE, scene, 6000);
       console.log('☝️ Giant finger loaded from external script');
@@ -27677,8 +27680,6 @@
   </script>
 </body>
 </html>
-
-
 
 
 
