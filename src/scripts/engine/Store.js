@@ -692,6 +692,23 @@ export const Store = createStore((set,get)=>{
           introMeta.on_click = '=STARTINTROEXPERIENCE()';
           cell.meta = introMeta;
           console.log('A3 meta set:', cell.meta);
+
+          const fullBuildUrl = './templates/componentized/cellireal-complete.html';
+          const redirectCoord = {x:1,y:2,z:0};
+          window.Actions.resizeArrayIfNeeded(home, redirectCoord);
+          const redirectChunkKey = keyChunk(...Object.values(chunkOf(redirectCoord.x, redirectCoord.y, redirectCoord.z)));
+          let redirectChunk = home.chunks[redirectChunkKey];
+          if(!redirectChunk){ console.warn('B3 chunk missing after resize'); return; }
+          let redirectCell = redirectChunk.cells.find(c=>c.x===redirectCoord.x&&c.y===redirectCoord.y&&c.z===redirectCoord.z);
+          if(!redirectCell){
+            redirectChunk.cells.push({x:redirectCoord.x,y:redirectCoord.y,z:redirectCoord.z,value:'',formula:null,meta:{}});
+            redirectCell = redirectChunk.cells[redirectChunk.cells.length-1];
+          }
+          const redirectMeta = normalizeMetaKeys(redirectCell.meta||{});
+          redirectMeta.noteText = 'Click Me! (Full Build)';
+          redirectMeta.on_click = `=OPEN_URL("${fullBuildUrl}")`;
+          redirectCell.meta = redirectMeta;
+          console.log('B3 meta set:', redirectCell.meta);
         }catch(e){ console.warn('Direct A3 setup failed', e); }
 
         try {

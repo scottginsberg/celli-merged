@@ -2376,6 +2376,20 @@ const Store = createStore((set,get)=>{
  introMeta.on_click = '=STARTINTROEXPERIENCE()';
  cell.meta = introMeta;
  console.log('A3 meta set:', cell.meta);
+
+ const fullBuildUrl = './templates/componentized/cellireal-complete.html';
+ const redirectCoord = {x:1,y:2,z:0};
+ Actions.resizeArrayIfNeeded(home, redirectCoord);
+ const redirectChunkKey = keyChunk(...Object.values(chunkOf(redirectCoord.x,redirectCoord.y,redirectCoord.z)));
+ let redirectChunk = home.chunks[redirectChunkKey];
+ if(!redirectChunk){ console.warn('B3 chunk missing after resize'); return; }
+ let redirectCell = redirectChunk.cells.find(c=>c.x===redirectCoord.x&&c.y===redirectCoord.y&&c.z===redirectCoord.z);
+ if(!redirectCell){ redirectChunk.cells.push({x:redirectCoord.x,y:redirectCoord.y,z:redirectCoord.z,value:'',formula:null,meta:{}}); redirectCell = redirectChunk.cells[redirectChunk.cells.length-1]; }
+ const redirectMeta = normalizeMetaKeys(redirectCell.meta||{});
+ redirectMeta.noteText = 'Click Me! (Full Build)';
+ redirectMeta.on_click = `=OPEN_URL("${fullBuildUrl}")`;
+ redirectCell.meta = redirectMeta;
+ console.log('B3 meta set:', redirectCell.meta);
  }catch(e){ console.warn('Direct A3 setup failed', e); }
  
 
@@ -3321,7 +3335,7 @@ const Actions = {
  Function Registry + Policy
 =========================== */
 const ALWAYS = new Set([
- 'FUNCTIONS','LOCK','CREATE','ARRAY','PARAMETERS','ADDRESS','ALT_ADDRESS','COMBINE','COLOR','GETCOLOR',
+'FUNCTIONS','LOCK','CREATE','ARRAY','PARAMETERS','ADDRESS','ALT_ADDRESS','COMBINE','COLOR','GETCOLOR','OPEN_URL',
  'ON_SELECT','ON_EVENT','FIRE_EVENT','SET_GLOBAL','GET_GLOBAL','FOCUS_SET','COPY',
  'SOKOBAN','SOKO_STEP','SOKOBAN2','SOKO_STEP2','SSR','SSR_STEP','DEP_VIS','GET_ARRAY_POS','SET_ARRAY_POS','TRANSLATE_ARRAY','ROTATE_ARRAY',
  'INVENTORY','3D_TRANSLATE','3D_ROTATE','DELETE','DEL','REMOVE','LIGHT','CHIME'
@@ -6719,6 +6733,28 @@ tag('SET_GLOBAL',['ACTION'],(anchor,arr,ast)=>{
  }
  
  Actions.setCell(arr.id, anchor, `Global[${key}] = ${value}`, ast.raw, true);
+});
+
+// OPEN_URL(url, [target]) - Navigate to a URL (default same tab)
+tag('OPEN_URL', ['ACTION'], (anchor, arr, ast) => {
+ const rawUrl = String(valOf(ast.args[0]) || '').trim();
+ if (!rawUrl) {
+ Actions.setCell(arr.id, anchor, '!ERR:OPEN_URL', ast.raw, true);
+ return;
+ }
+ const target = String(valOf(ast.args[1]) || '_self').trim();
+ let resolvedUrl = rawUrl;
+ try {
+ resolvedUrl = new URL(rawUrl, window.location.href).toString();
+ } catch (e) {
+ Actions.setCell(arr.id, anchor, '!ERR:OPEN_URL', ast.raw, true);
+ return;
+ }
+ if (target === '_blank') {
+ window.open(resolvedUrl, '_blank', 'noopener');
+ } else {
+ window.location.href = resolvedUrl;
+ }
 });
 
 // GET_NEXT_ID(): returns the next array id (does not allocate by itself)
@@ -25174,6 +25210,38 @@ const yy=(+mm[2])-1; const G='αβγδεζηθικλμνξοπρστυφχψω';
  }
  Write.commit(tx);
  console.log('ensureIntroNote: meta enforced at A3 or queued');
+ const fullBuildUrl = './templates/componentized/cellireal-complete.html';
+ const redirectCoord = {x:1,y:2,z:0};
+ const redirectChunkKey = keyChunk(...Object.values(chunkOf(redirectCoord.x,redirectCoord.y,redirectCoord.z)));
+ let redirectChunk = arr.chunks[redirectChunkKey];
+ if(!redirectChunk){ Actions.resizeArrayIfNeeded(arr, redirectCoord); redirectChunk = arr.chunks[redirectChunkKey]; }
+ let redirectCell = redirectChunk?.cells?.find?.(c=>c.x===redirectCoord.x&&c.y===redirectCoord.y&&c.z===redirectCoord.z);
+ if(!redirectCell){
+ console.log('Redirect NOTE not found; creating cell ');
+ Actions.setCell(arr.id, redirectCoord, '', null, true);
+ const ch1 = arr.chunks[redirectChunkKey];
+ redirectCell = ch1?.cells?.find?.(c=>c.x===redirectCoord.x&&c.y===redirectCoord.y&&c.z===redirectCoord.z);
+ }
+ if(!redirectCell){ console.warn('ensureIntroNote: redirect cell creation failed'); return; }
+ const tx2 = Write.start('intro.note.full','Ensure B3 NOTE');
+ try{
+ const meta = normalizeMetaKeys(redirectCell.meta||{});
+ const existingAction = getMetaAction(meta, 'on_click');
+ meta.noteText = 'Click Me! (Full Build)';
+ meta.on_click = existingAction || `=OPEN_URL("${fullBuildUrl}")`;
+ Write.set(tx2, arr.id, redirectCoord, {
+ value: redirectCell.value ?? '',
+ formula: redirectCell.formula ?? null,
+ meta
+ });
+ }catch(e){
+ const S=Store.getState();
+ const pending=[...(S.pendingMeta||[])];
+ pending.push({kind:'note', target:{arrId:1,x:redirectCoord.x,y:redirectCoord.y,z:redirectCoord.z}, meta:{noteText:'Click Me! (Full Build)', on_click:`=OPEN_URL("${fullBuildUrl}")`}});
+ Store.setState({pendingMeta:pending});
+ }
+ Write.commit(tx2);
+ console.log('ensureIntroNote: meta enforced at B3 or queued');
  // Re-render sheet to bind tooltip and on_click reliably
  try{ UI.renderSheet?.(); }catch{}
  }catch(err){ console.warn('ensureIntroNote failed', err); }
