@@ -125,6 +125,49 @@
         #loader.fade-out { opacity: 0; pointer-events: none; }
         .loader-bar-bg { width: 240px; height: 2px; background: #eee; margin-top: 20px; overflow: hidden; }
         .loader-bar-fill { height: 100%; width: 0%; background: #CD2B2B; transition: width 0.1s linear; }
+
+        /* Evolving Cel Flow */
+        .entropy-overlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            background: repeating-radial-gradient(circle at 20% 20%, rgba(0,0,0,0.04) 0 2px, transparent 2px 6px),
+                        repeating-linear-gradient(90deg, rgba(205,43,43,0.05) 0 1px, transparent 1px 6px);
+            mix-blend-mode: multiply;
+            z-index: 8;
+        }
+        body.entropy-1 .entropy-overlay { opacity: 0.3; }
+        body.entropy-2 .entropy-overlay { opacity: 0.55; filter: hue-rotate(10deg) saturate(1.1); }
+        body.entropy-3 .entropy-overlay { opacity: 0.8; filter: hue-rotate(24deg) saturate(1.3) contrast(1.1); }
+        body.entropy-2 .view-section { transform: translateZ(0); }
+        body.entropy-3 .view-section { filter: contrast(1.05) saturate(1.05); }
+
+        .cel-card { border: 1px solid #111; background: #fff; padding: 16px; transition: transform 0.18s ease, box-shadow 0.18s ease; cursor: pointer; }
+        .cel-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.12); }
+        .cel-card.active { border-color: #CD2B2B; box-shadow: 0 0 0 2px #CD2B2B, 0 14px 30px rgba(0,0,0,0.18); }
+        .cel-stage { font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase; font-family: 'Space Mono', monospace; color: #6b7280; }
+        .cel-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid #111; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; }
+        .cel-detail { background: #fff; border: 1px solid #111; padding: 20px; position: relative; overflow: hidden; }
+        .cel-detail::after { content: ''; position: absolute; inset: 0; background: linear-gradient(120deg, rgba(205,43,43,0.08), transparent 60%); opacity: 0; transition: opacity 0.3s ease; }
+        body.entropy-2 .cel-detail::after { opacity: 1; }
+        body.entropy-3 .cel-detail::after { opacity: 1; mix-blend-mode: multiply; }
+
+        .grift-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+        .grift-card { background: #fffdf5; border: 1px solid #111; padding: 16px; border-radius: 14px; box-shadow: 0 14px 34px rgba(0,0,0,0.08); transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
+        .grift-card:hover { transform: translateY(-4px); box-shadow: 0 18px 38px rgba(0,0,0,0.12); border-color: #cd2b2b; }
+        .value-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid #111; background: #fef3e6; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; box-shadow: 2px 2px 0 rgba(0,0,0,0.12); }
+        .geo-quiz-tile { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 16px; border-radius: 12px; transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease; text-align: left; background: #fff; }
+        .geo-quiz-tile:hover { transform: translateY(-2px); box-shadow: 4px 8px 0 rgba(0,0,0,0.18); border-color: #0f0f0f; }
+        .geo-quiz-tile.selected { border-color: #d31313; box-shadow: 0 0 0 2px #d31313, 6px 10px 0 rgba(0,0,0,0.14); }
+        @media (max-width: 640px) {
+            .grift-grid { grid-template-columns: 1fr; }
+            .grift-card { padding: 18px; }
+            .grift-card h3 { font-size: 1.05rem; }
+            .grift-card p { font-size: 0.95rem; line-height: 1.45; }
+            .value-pill { font-size: 11px; }
+        }
     </style>
 </head>
 
@@ -137,6 +180,7 @@
     </div>
 
     <div class="scanline-layer"></div>
+    <div id="entropy-overlay" class="entropy-overlay"></div>
 
     <nav class="fixed top-0 left-0 w-full z-50 bg-[#FDFBF7]/90 backdrop-blur border-b border-black/10 px-6 py-4 flex justify-between items-center">
         <div class="flex items-center gap-3 cursor-pointer ui-click" onclick="app.navigate('landing')">
@@ -352,6 +396,24 @@
                 </div>
             </div>
 
+            <div class="bg-white border-2 border-black p-6 shadow-lg space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <div class="cel-stage">Evolving Flow</div>
+                        <h3 class="text-2xl font-bold uppercase tracking-tight">Cel Atlas (Return for More)</h3>
+                        <p class="text-sm text-gray-600 max-w-2xl">Each cel is a memory frame. Revisit a cel to unpack more detail. The system learns your attention and rewrites itself.</p>
+                    </div>
+                    <div class="cel-badge">Entropy Index <span id="entropy-count">0</span></div>
+                </div>
+                <div id="cel-grid" class="grid md:grid-cols-3 gap-4"></div>
+                <div id="cel-detail" class="cel-detail">
+                    <div class="cel-stage" id="cel-stage-label">Stage 00</div>
+                    <h4 class="text-xl font-bold uppercase tracking-tight mt-2" id="cel-title">Select a cel</h4>
+                    <p class="text-sm text-gray-700 mt-3" id="cel-copy">The atlas stays quiet until you return. Pick any card to begin the sequence.</p>
+                    <p class="text-[11px] font-mono uppercase tracking-[0.25em] text-gray-500 mt-4" id="cel-whisper">Return count: 0</p>
+                </div>
+            </div>
+
             <div class="border-t border-black pt-8 flex justify-between items-center">
                 <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Begin the sequence</div>
                 <button onclick="app.navigate('calibration')" class="ui-click bg-black text-white px-6 py-4 text-xs font-mono uppercase tracking-widest hover:bg-loom-red transition-colors flex items-center gap-2">
@@ -455,6 +517,7 @@
                         <h3 class="text-xl font-bold uppercase" id="result-title">Identity Locked</h3>
                         <span class="text-[10px] font-mono border border-black px-2 py-1">V.01</span>
                     </div>
+                    <p class="text-xs font-mono uppercase tracking-[0.25em] text-gray-500 mb-4" id="result-motto">Awaiting motto...</p>
                     <div id="sculpture-container" class="bg-[#eee] w-full h-48 mb-4 border border-gray-300 flex items-center justify-center">
                         <canvas id="sculpture-canvas" width="400" height="200" class="w-full h-full object-contain"></canvas>
                     </div>
@@ -568,33 +631,169 @@
     </section>
 
     <section id="view-grift" class="view-section bg-[#f8f3e8]">
-        <div class="max-w-6xl mx-auto px-6 py-12">
-            <div class="flex flex-col md:flex-row justify-between items-end mb-10 border-b-2 border-black pb-6 gap-4">
-                <div>
+        <div class="max-w-6xl mx-auto px-6 py-12 space-y-10">
+            <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 border-b-2 border-black pb-6">
+                <div class="space-y-2">
                     <div class="inline-flex items-center gap-2 bg-white border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest">Step 5: The Economy</div>
-                    <h2 class="text-5xl font-bold uppercase tracking-tight mt-2">Grift Shop</h2>
-                    <p class="text-sm font-mono text-gray-600 mt-2">Solve the dark patterns. Collect 6 tokens to unlock ticketing.</p>
+                    <h2 class="text-4xl font-bold uppercase tracking-tight">Grift Shop</h2>
+                    <p class="text-sm text-gray-700 max-w-2xl">We don’t take your money. We help you notice where it’s been taken before. Solve the micro-grifts, collect Value Tokens (9 total), and watch the ticketing module change its mind.</p>
+                    <div class="text-xs font-mono uppercase tracking-[0.25em] text-gray-500">State: <span id="grift-state">griftIdle</span></div>
                 </div>
-                <div class="value-pill bg-white shadow-sm">Tokens: <span id="token-count" class="font-bold ml-1 text-loom-red">0</span>/9</div>
+                <div class="flex flex-wrap gap-3">
+                    <div class="value-pill bg-white">Tokens (need 6): <span id="token-count" class="font-bold">0</span></div>
+                    <button onclick="app.navigate('tickets')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">View Ticket Gate</button>
+                </div>
             </div>
 
-            <div class="grid md:grid-cols-3 gap-4 mb-12">
-                <div class="grift-card">
-                    <h4 class="font-bold uppercase text-sm mb-2">Influencer Coin</h4>
-                    <p class="text-xs text-gray-600 mb-4 font-mono">Short the hype.</p>
-                    <input id="coin-slider" type="range" class="w-full accent-red-600 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                </div>
-                <div class="grift-card">
-                    <h4 class="font-bold uppercase text-sm mb-2">Merch Box</h4>
-                    <p class="text-xs text-gray-600 mb-4 font-mono">Do not open.</p>
-                    <button id="box-tape" onclick="grift.handleBox()" class="w-full border border-black py-2 text-xs font-mono uppercase hover:bg-black hover:text-white transition-colors ui-click">PEEL TAPE</button>
-                </div>
-                <div class="grift-card">
-                    <h4 class="font-bold uppercase text-sm mb-2">Terms of Service</h4>
-                    <div class="h-20 overflow-y-auto text-[10px] border border-dashed border-gray-300 p-2 mb-2 font-mono bg-white">
-                        Clause 8a: You agree to forfeit your likeness to the Loom. Binding arbitration in a basement.
+            <div class="bg-white border border-black rounded-2xl p-6 shadow-lg space-y-4">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div class="space-y-1">
+                        <div class="font-mono text-[10px] uppercase tracking-widest text-gray-600">Grift Loop</div>
+                        <p class="text-sm text-gray-800">Grift modules unlock in any order. Hover, drag, click, and uncheck your way to 6 of 9 tokens to satisfy the ticket gate.</p>
                     </div>
-                    <button id="terms-flag" onclick="grift.handleTerms()" class="w-full bg-loom-red text-white text-xs py-2 uppercase tracking-widest ui-click hover:bg-black transition-colors">Flag Clause</button>
+                    <div id="grift-overlay" class="hidden bg-black text-white px-3 py-2 rounded-lg font-mono text-xs uppercase tracking-[0.2em]">VALUE INDEX REACHED</div>
+                </div>
+                <div class="grift-grid">
+                    <div class="grift-card" id="card-coin">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold uppercase tracking-tight">Influencer Coin</h3>
+                            <span class="value-pill" id="coin-yield">Yield: ?</span>
+                        </div>
+                        <p class="text-sm text-gray-700">BUY HIGH / SELL STORY. Drag the slider toward craft to short pure hype.</p>
+                        <div class="mt-4">
+                            <label class="text-xs font-mono uppercase tracking-widest text-gray-500">Clout ← → Craft</label>
+                            <input id="coin-slider" type="range" min="0" max="100" value="55" class="w-full accent-orange-500">
+                        </div>
+                        <p id="coin-lore" class="text-xs text-gray-600 mt-2">Drag toward craft. See what happens.</p>
+                    </div>
+
+                    <div class="grift-card" id="card-box">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold uppercase tracking-tight">Unopened Merch Box</h3>
+                            <span class="value-pill" id="box-yield">Yield: ?</span>
+                        </div>
+                        <p class="text-sm text-gray-700">Tape reads “DO NOT OPEN UNTIL VIRAL.” Keep tapping anyway.</p>
+                        <div class="mt-4 space-y-2">
+                            <button id="box-tape" class="ui-click border border-black bg-white px-3 py-2 text-xs font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Peel tape</button>
+                            <div id="box-progress" class="text-xs font-mono uppercase tracking-[0.2em] text-gray-500">Waiting…</div>
+                            <div id="box-note" class="text-sm text-gray-800 hidden">Value appears when somebody actually uses the thing.</div>
+                        </div>
+                    </div>
+
+                    <div class="grift-card" id="card-timeshare">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold uppercase tracking-tight">Timeshare of the Soul</h3>
+                            <span class="value-pill" id="time-yield">Yield: ?</span>
+                        </div>
+                        <p class="text-sm text-gray-700">Fake contract offering slices of your schedule. Keep your hours intact to unlock value.</p>
+                        <div class="mt-3 space-y-2 text-sm text-gray-800">
+                            <label class="flex items-center gap-2"><input type="checkbox" class="timeshare-box" checked value="weekends">weekends</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" class="timeshare-box" checked value="evenings">evenings</label>
+                            <label class="flex items-center gap-2"><input type="checkbox" class="timeshare-box" checked value="dreams">dreams</label>
+                            <button id="timeshare-submit" class="ui-click border border-black bg-gray-200 text-gray-500 px-3 py-2 text-[10px] font-mono uppercase tracking-widest cursor-not-allowed">Submit</button>
+                            <div id="timeshare-note" class="text-xs text-gray-600">Uncheck all boxes to keep yourself intact.</div>
+                        </div>
+                    </div>
+
+                    <div class="grift-card" id="card-paywall">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold uppercase tracking-tight">Paywall Side Door</h3>
+                            <span class="value-pill" id="paywall-yield">Yield: ?</span>
+                        </div>
+                        <p class="text-sm text-gray-700">Pick the response that slips past the meter without stealing the work.</p>
+                        <div class="mt-3 space-y-2 text-sm text-gray-800" id="paywall-options">
+                            <label class="flex items-center gap-2"><input type="radio" name="paywall" value="borrow">Screenshot and repost the whole thing</label>
+                            <label class="flex items-center gap-2"><input type="radio" name="paywall" value="library">Find it at the library or independent archive</label>
+                            <label class="flex items-center gap-2"><input type="radio" name="paywall" value="ignore">Close tab; rage at capitalism</label>
+                        </div>
+                        <p id="paywall-note" class="text-xs text-gray-600 mt-2">One of these honors the work and still gets you through.</p>
+                    </div>
+
+                    <div class="grift-card" id="card-terms">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold uppercase tracking-tight">Terms Decoder</h3>
+                            <span class="value-pill" id="terms-yield">Yield: ?</span>
+                        </div>
+                        <p class="text-sm text-gray-700">Tap to spot the clause that actually matters.</p>
+                        <div class="mt-3 bg-white border border-dashed border-gray-300 p-3 rounded-lg text-sm text-gray-800 leading-relaxed" id="terms-copy">
+                            This agreement grants us perpetual, transferable rights to your likeness. By proceeding you waive recourse and agree to binding arbitration in a basement.
+                        </div>
+                        <button id="terms-flag" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors mt-3">Flag the clause</button>
+                    </div>
+
+                    <div class="grift-card" id="card-subscription">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold uppercase tracking-tight">Auto-Renew Freeze</h3>
+                            <span class="value-pill" id="subscription-yield">Yield: ?</span>
+                        </div>
+                        <p class="text-sm text-gray-700">Toggle the switches that companies hide behind three menus.</p>
+                        <div class="mt-3 space-y-2 text-sm text-gray-800">
+                            <label class="flex items-center justify-between bg-white border border-gray-300 rounded-lg px-3 py-2">
+                                <span>Renew annually</span>
+                                <input type="checkbox" class="subscription-toggle" checked aria-label="Renew annually">
+                            </label>
+                            <label class="flex items-center justify-between bg-white border border-gray-300 rounded-lg px-3 py-2">
+                                <span>Share data with partners</span>
+                                <input type="checkbox" class="subscription-toggle" checked aria-label="Share data with partners">
+                            </label>
+                            <label class="flex items-center justify-between bg-white border border-gray-300 rounded-lg px-3 py-2">
+                                <span>Send me insider hype</span>
+                                <input type="checkbox" class="subscription-toggle" checked aria-label="Send me insider hype">
+                            </label>
+                        </div>
+                        <p id="subscription-note" class="text-xs text-gray-600 mt-2">Slide everything off to reclaim your agency.</p>
+                    </div>
+
+                    <div class="grift-card" id="card-scam">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold uppercase tracking-tight">Inbox Scam Filter</h3>
+                            <span class="value-pill" id="scam-yield">Yield: ?</span>
+                        </div>
+                        <p class="text-sm text-gray-700">Choose the email subject line that is definitely a trap.</p>
+                        <div class="mt-3 grid gap-2" id="scam-options">
+                            <button class="ui-click border border-black bg-white px-3 py-2 text-left text-sm hover:bg-black hover:text-white transition-colors" data-scam="wrong">Invoice attached — need your signature</button>
+                            <button class="ui-click border border-black bg-white px-3 py-2 text-left text-sm hover:bg-black hover:text-white transition-colors" data-scam="right">URGENT: wire funds to secure NFT vault</button>
+                            <button class="ui-click border border-black bg-white px-3 py-2 text-left text-sm hover:bg-black hover:text-white transition-colors" data-scam="wrong">Media request: quote for your project</button>
+                        </div>
+                        <p id="scam-note" class="text-xs text-gray-600 mt-2">Spot the grift before it lands.</p>
+                    </div>
+
+                    <div class="grift-card" id="card-bundle">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold uppercase tracking-tight">Bundle Hype Meter</h3>
+                            <span class="value-pill" id="bundle-yield">Yield: ?</span>
+                        </div>
+                        <p class="text-sm text-gray-700">Drag the meter toward reality to cut out the useless add-ons.</p>
+                        <div class="mt-4">
+                            <label class="text-xs font-mono uppercase tracking-widest text-gray-500">Hype Stack</label>
+                            <input id="bundle-slider" type="range" min="0" max="100" value="60" class="w-full accent-yellow-400">
+                        </div>
+                        <p id="bundle-note" class="text-xs text-gray-600 mt-2">Lower the slider until only what matters remains.</p>
+                    </div>
+
+                    <div class="grift-card" id="card-receipt">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold uppercase tracking-tight">Street Receipt Audit</h3>
+                            <span class="value-pill" id="receipt-yield">Yield: ?</span>
+                        </div>
+                        <p class="text-sm text-gray-700">Tap the hidden fee to redact it before you pay.</p>
+                        <div class="mt-3 space-y-2 text-sm text-gray-800 bg-white border border-gray-300 rounded-lg p-3">
+                            <div class="flex justify-between">
+                                <span>Ticket line item</span>
+                                <span>$25.00</span>
+                            </div>
+                            <button id="receipt-fee" class="ui-click w-full border border-red-500 bg-red-50 text-red-700 px-3 py-2 text-xs font-mono uppercase tracking-widest hover:bg-red-600 hover:text-white transition-colors">"Processing" fee $6</button>
+                            <div class="flex justify-between">
+                                <span>Total</span>
+                                <span id="receipt-total">$31.00</span>
+                            </div>
+                        </div>
+                        <p id="receipt-note" class="text-xs text-gray-600 mt-2">Refuse the fee to keep value in the open.</p>
+                    </div>
+                </div>
+                <div class="pt-4 flex flex-wrap gap-3 text-xs font-mono uppercase tracking-[0.25em] text-gray-600">
+                    <span>this is not financial advice. this is narrative advice.</span>
+                    <span id="grift-hint" class="text-red-600"></span>
                 </div>
             </div>
 
@@ -614,6 +813,13 @@
                         <button onclick="manufacture.submit()" class="border-2 border-black px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors ui-click w-full md:w-auto">Submit Artifact</button>
                     </div>
                 </div>
+            </div>
+
+            <div class="pt-4 border-t border-gray-300 flex flex-wrap gap-3 items-center">
+                <div class="value-pill bg-white">Loomworks Note: <span id="grift-note">griftIdle</span></div>
+                <button onclick="app.navigate('tickets')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Check Ticket Status</button>
+                <button onclick="app.navigate('barter')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Barter Post</button>
+                <button onclick="app.navigate('gallery')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Gallery</button>
             </div>
 
             <div class="border-t border-black mt-20 pt-8 flex justify-end">
@@ -780,7 +986,36 @@
 
     <section id="view-pitch" class="view-section"><div class="p-20 text-center font-mono bg-white border border-black m-6">PROJECT BRIEF CONTENT. <button onclick="app.navigate('landing')" class="underline ml-2">Back</button></div></section>
     <section id="view-press" class="view-section"><div class="p-20 text-center font-mono bg-white border border-black m-6">PRESS KIT CONTENT. <button onclick="app.navigate('landing')" class="underline ml-2">Back</button></div></section>
-    <section id="view-tickets" class="view-section"><div class="p-20 text-center font-mono bg-white border border-black m-6">TICKETING MODULE. <button onclick="app.navigate('landing')" class="underline ml-2">Back</button></div></section>
+    <section id="view-tickets" class="view-section bg-[#FDFBF7]">
+        <div class="max-w-5xl mx-auto px-6 py-12 space-y-10">
+            <div class="border-2 border-black bg-white p-8 shadow-xl">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-loom-red">Ticket Gate // Value Scan</div>
+                        <h2 class="text-4xl font-bold uppercase tracking-tight mt-2">Ticketing Module</h2>
+                        <p class="text-sm font-mono uppercase tracking-[0.22em] text-gray-600 mt-2">tickets will not accept your currency yet. we’re measuring something else first. (it might be you.)</p>
+                    </div>
+                    <div class="value-pill bg-white">Tokens: <span id="ticket-token-count" class="font-bold">0</span>/9</div>
+                </div>
+                <div class="mt-6 space-y-3">
+                    <div id="ticket-status" class="text-sm text-gray-800 leading-relaxed">tickets unavailable. collect 6 of 9 grift tokens, then pass the NYC slang quiz 🗽.</div>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="ticket-verify" onclick="geoQuiz.start()" class="ui-click bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Verify Geospatial Compatibility</button>
+                        <button onclick="geoQuiz.reset()" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Reset Quiz</button>
+                        <button onclick="app.navigate('grift')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Return to Grift Shop</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="geo-quiz-stage" class="hidden border border-black bg-white rounded-lg p-4 space-y-3 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div class="font-mono text-[10px] uppercase tracking-widest text-gray-600">NYC slang emoji quiz 🗽 <span id="geo-quiz-step">0/3</span></div>
+                    <div id="geo-quiz-status" class="font-mono text-[10px] uppercase tracking-[0.25em] text-red-600">Tap verify to begin.</div>
+                </div>
+                <div id="geo-quiz-card" class="space-y-3"></div>
+            </div>
+        </div>
+    </section>
     <section id="view-team" class="view-section"><div class="p-20 text-center font-mono bg-white border border-black m-6">TEAM ROSTER. <button onclick="app.navigate('landing')" class="underline ml-2">Back</button></div></section>
 
     <div id="site-map-modal" class="modal-layer">
@@ -844,6 +1079,10 @@
                 <span class="text-[10px] font-mono text-loom-red">ACTIVE</span>
             </div>
             <div id="quiz-content" class="space-y-6">
+                <div class="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-gray-500">
+                    <span>Question <span id="quiz-num">1</span>/<span id="quiz-total">5</span></span>
+                    <span class="text-loom-red">Classification Loop</span>
+                </div>
                 <p id="quiz-question" class="text-lg font-serif">Question goes here...</p>
                 <div id="quiz-options" class="flex flex-col gap-3"></div>
             </div>
@@ -864,9 +1103,134 @@
             { "id": "009", "title": "Velvet Receipt", "year": "2007", "motif": "value", "glyph": "🧾", "tags": ["cost", "proof"], "role": "measure", "weight": 2 }
         ]
     </script>
+    <script type="application/json" id="cel-data">
+        [
+            {
+                "id": "cel-dima",
+                "title": "Dima → Dime",
+                "glyph": "🧵",
+                "stages": [
+                    { "label": "Cel 01", "summary": "The actress enters the lab.", "detail": "Dima is hired as a face. Dime is what the room remembers. The switch is small but permanent.", "whisper": "Return to let the name harden into myth." },
+                    { "label": "Cel 02", "summary": "The avatar learns to loop.", "detail": "TikTok velocity turns gesture into algorithm. The name becomes a price point, the price point becomes a character.", "whisper": "Your attention is a casting note." },
+                    { "label": "Cel 03", "summary": "The domestic product ships itself.", "detail": "Dime is now a SKU. Identity inventory gets scanned, the scan becomes a ritual, the ritual becomes a show.", "whisper": "Entrop: when a person is multiplied, meaning gets noisy." }
+                ]
+            },
+            {
+                "id": "cel-archive",
+                "title": "Archive / Myth",
+                "glyph": "🗝️",
+                "stages": [
+                    { "label": "Cel 01", "summary": "Artifacts are proof-of-life.", "detail": "Real objects are folded into fiction, asking if evidence is still sacred once it is staged.", "whisper": "Return to unseal the second label." },
+                    { "label": "Cel 02", "summary": "The evidence becomes an argument.", "detail": "Provenance is a spell. The archive does not certify the myth—it manufactures it.", "whisper": "Your memory is a co-signer." },
+                    { "label": "Cel 03", "summary": "The archive begins to overwrite.", "detail": "Every object starts describing the viewer. The inventory makes a mirror and refuses to apologize.", "whisper": "Entropy: the mirror cracks into more mirrors." }
+                ]
+            },
+            {
+                "id": "cel-grift",
+                "title": "Grift Shop",
+                "glyph": "🧾",
+                "stages": [
+                    { "label": "Cel 01", "summary": "Notice the dark pattern.", "detail": "Every box is a lesson in extraction. The game is not to buy—it is to identify where value slipped away.", "whisper": "Return when your skepticism is measurable." },
+                    { "label": "Cel 02", "summary": "Value tokens appear.", "detail": "Tokens are not rewards. They are a record of where you refused to be optimized.", "whisper": "The gate counts your refusals." },
+                    { "label": "Cel 03", "summary": "The gate softens.", "detail": "Ticketing reluctantly respects the visitor who can see the seams. The satire bends, not breaks.", "whisper": "Entropy: the joke starts sounding like truth." }
+                ]
+            },
+            {
+                "id": "cel-quiz",
+                "title": "Identity Quiz",
+                "glyph": "🧠",
+                "stages": [
+                    { "label": "Cel 01", "summary": "Self-classify.", "detail": "Pick a role. The system pretends to trust you.", "whisper": "Return for the verification ritual." },
+                    { "label": "Cel 02", "summary": "The Loom responds.", "detail": "Five questions, five nervous mirrors. The score tilts the title.", "whisper": "Return to watch the title mutate." },
+                    { "label": "Cel 03", "summary": "Identity becomes output.", "detail": "A voxel relic is minted from your answers. You are now a tiny grid inside the archive.", "whisper": "Entropy: the tool starts using you." }
+                ]
+            },
+            {
+                "id": "cel-lantern",
+                "title": "Lantern Protocol",
+                "glyph": "🕯️",
+                "stages": [
+                    { "label": "Cel 01", "summary": "Witness, not guard.", "detail": "Lanterns are human interfaces. They hold the room in their posture.", "whisper": "Return for the scripted responses." },
+                    { "label": "Cel 02", "summary": "Micro-expression indexing.", "detail": "The show happens inches away. The performer is trained by the artifacts.", "whisper": "Return to hear the whisper behind glass." },
+                    { "label": "Cel 03", "summary": "The light learns you.", "detail": "The lantern becomes a translator of longing. Guests become co-authors.", "whisper": "Entropy: the witness becomes the story." }
+                ]
+            },
+            {
+                "id": "cel-celli",
+                "title": "Celli Engine",
+                "glyph": "🧩",
+                "stages": [
+                    { "label": "Cel 01", "summary": "A spreadsheet with bones.", "detail": "The voxel grid is a tiny museum of constraints: 16x16, cheap, fast, alive.", "whisper": "Return for the manufacturing loop." },
+                    { "label": "Cel 02", "summary": "Tools become theatre.", "detail": "Every pixel submission is a staged economy. Revenue share is a punchline, not a promise.", "whisper": "Return when the loop feels familiar." },
+                    { "label": "Cel 03", "summary": "Meaning decays into pattern.", "detail": "The tool starts telling its own story. What was function becomes folklore.", "whisper": "Entropy: the interface remembers more than you." }
+                ]
+            }
+        ]
+    </script>
 
     <script>
         /* --- MODULES DEFINED FIRST FOR SAFETY --- */
+
+        const QUIZ = [
+            {
+                q: "You find a broken toy on the sidewalk. What is your first instinct?",
+                opts: [
+                    { txt: "Fix it. It has potential.", type: "dreamer", score: 2 },
+                    { txt: "Study it. Where did it come from?", type: "scholar", score: 2 },
+                    { txt: "Leave it. It is trash.", type: "passerby", score: 2 },
+                    { txt: "Evaluate it. Could it be sold?", type: "investor", score: 2 },
+                    { txt: "Feel for it. It looks lonely.", type: "lantern", score: 2 }
+                ]
+            },
+            {
+                q: "The room is dark. You have one match. What do you illuminate?",
+                opts: [
+                    { txt: "The door. I need to leave.", type: "passerby", score: 2 },
+                    { txt: "The map. I need to know where I am.", type: "scholar", score: 2 },
+                    { txt: "My face. I need to be seen.", type: "lantern", score: 2 },
+                    { txt: "The inventory. What is in here?", type: "investor", score: 2 },
+                    { txt: "The ceiling. I want to see the height.", type: "dreamer", score: 2 }
+                ]
+            },
+            {
+                q: "Loomworks asks for your childhood memory. What do you do?",
+                opts: [
+                    { txt: "Sell it for maximum credit.", type: "investor", score: 3 },
+                    { txt: "Archive it for history.", type: "scholar", score: 3 },
+                    { txt: "Re-write it to be better.", type: "dreamer", score: 3 },
+                    { txt: "Guard it with my life.", type: "lantern", score: 3 },
+                    { txt: "I don't remember anything.", type: "passerby", score: 3 }
+                ]
+            },
+            {
+                q: "A guest insists the archive is fake. You...",
+                opts: [
+                    { txt: "Walk away; disbelief is a choice.", type: "passerby", score: 3 },
+                    { txt: "Hand them the provenance binder.", type: "scholar", score: 3 },
+                    { txt: "Ask what they'd pay if it weren't.", type: "investor", score: 3 },
+                    { txt: "Tell them the ghost stories instead.", type: "dreamer", score: 3 },
+                    { txt: "Hold their gaze until they soften.", type: "lantern", score: 3 }
+                ]
+            },
+            {
+                q: "The lights flicker during the show. What do you protect first?",
+                opts: [
+                    { txt: "The visitors' pathfinding.", type: "lantern", score: 3 },
+                    { txt: "The rarest object on the wall.", type: "scholar", score: 3 },
+                    { txt: "The credit stream.", type: "investor", score: 3 },
+                    { txt: "The story. Darkness is part of it.", type: "dreamer", score: 3 },
+                    { txt: "Myself. I shouldn't be here.", type: "passerby", score: 3 }
+                ]
+            }
+        ];
+
+        const ROLES = {
+            dreamer: { adj: "DREAMING", motto: "Dream forward." },
+            scholar: { adj: "SCHOLARLY", motto: "Nothing is unimportant." },
+            investor: { adj: "SPECULATIVE", motto: "What is magic worth?" },
+            passerby: { adj: "WANDERING", motto: "No one is 'just looking'." },
+            lantern: { adj: "ILLUMINATED", motto: "Keep the light." }
+        };
 
         // 1. Audio Engine
         const audio = {
@@ -1240,32 +1604,336 @@
             }
         };
 
-        // 6. Grift Logic
+        // 6. Value State + Grift Logic
+        const valueState = {
+            tokens: 0,
+            solved: new Set(),
+            listeners: [],
+            addToken(id) {
+                if (valueState.solved.has(id)) return;
+                valueState.solved.add(id);
+                valueState.tokens += 1;
+                valueState.emit();
+            },
+            emit() {
+                valueState.listeners.forEach((fn) => fn(valueState));
+            },
+            subscribe(fn) {
+                valueState.listeners.push(fn);
+                fn(valueState);
+            }
+        };
+
         const grift = {
+            bound: false,
+            boxClicks: 0,
             init: () => {
+                if (grift.bound) {
+                    grift.updateFromValueState(valueState);
+                    return;
+                }
+                grift.bound = true;
                 const slider = document.getElementById('coin-slider');
-                if(slider) {
-                    slider.oninput = (e) => {
-                        // Play fake sound
-                        if(Math.random() > 0.8 && window.audio) audio.click();
-                        if(e.target.value < 20) document.getElementById('token-count').innerText = "1";
-                    }
+                if (slider) slider.addEventListener('input', grift.handleCoin);
+                const tape = document.getElementById('box-tape');
+                if (tape) tape.addEventListener('click', grift.handleBox);
+                document.querySelectorAll('.timeshare-box').forEach((box) => box.addEventListener('change', grift.handleTimeshare));
+                document.querySelectorAll('#paywall-options input[type="radio"]').forEach((opt) => opt.addEventListener('change', grift.handlePaywall));
+                const termsFlag = document.getElementById('terms-flag');
+                if (termsFlag) termsFlag.addEventListener('click', grift.handleTerms);
+                document.querySelectorAll('.subscription-toggle').forEach((toggle) => toggle.addEventListener('change', grift.handleSubscription));
+                document.querySelectorAll('#scam-options [data-scam]').forEach((btn) => btn.addEventListener('click', grift.handleScam));
+                const bundle = document.getElementById('bundle-slider');
+                if (bundle) bundle.addEventListener('input', grift.handleBundle);
+                const fee = document.getElementById('receipt-fee');
+                if (fee) fee.addEventListener('click', grift.handleReceipt);
+                valueState.subscribe(grift.updateFromValueState);
+                grift.handleTimeshare();
+                grift.updateState('griftIdle');
+            },
+            updateFromValueState: (state) => {
+                const tokenCount = document.getElementById('token-count');
+                if (tokenCount) tokenCount.innerText = state.tokens;
+                let stateLabel = 'griftIdle';
+                if (state.tokens >= 6) stateLabel = 'griftThresholdMet';
+                else if (state.tokens >= 3) stateLabel = 'griftInOnJoke';
+                else if (state.tokens >= 1) stateLabel = 'griftExploring';
+                grift.updateState(stateLabel);
+                const overlay = document.getElementById('grift-overlay');
+                if (overlay) overlay.classList.toggle('hidden', state.tokens < 6);
+                if (state.solved.has('influencer-coin')) grift.setYield('coin-yield');
+                if (state.solved.has('merch-box')) grift.setYield('box-yield');
+                if (state.solved.has('timeshare')) grift.setYield('time-yield');
+                if (state.solved.has('paywall')) grift.setYield('paywall-yield');
+                if (state.solved.has('terms')) grift.setYield('terms-yield');
+                if (state.solved.has('subscription')) grift.setYield('subscription-yield');
+                if (state.solved.has('scam')) grift.setYield('scam-yield');
+                if (state.solved.has('bundle')) grift.setYield('bundle-yield');
+                if (state.solved.has('receipt')) grift.setYield('receipt-yield');
+                valueGate.updateTokens(valueState);
+            },
+            updateState: (label) => {
+                grift.state = label;
+                const stateLabel = document.getElementById('grift-state');
+                const note = document.getElementById('grift-note');
+                const hint = document.getElementById('grift-hint');
+                const messages = {
+                    griftIdle: 'waiting for you to notice the seams.',
+                    griftExploring: 'value under construction. keep digging.',
+                    griftInOnJoke: 'copy shifts to conspiratorial whispers.',
+                    griftThresholdMet: 'tickets still unavailable, but you are provisionally woven in.'
+                };
+                if (stateLabel) stateLabel.innerText = label;
+                if (note) note.innerText = messages[label] || '';
+                if (hint) {
+                    hint.innerText = label === 'griftThresholdMet'
+                        ? 'LOOMWORKS NOTE: applicant displays healthy suspicion. good.'
+                        : label === 'griftInOnJoke'
+                            ? 'you feel like you’re in on the joke now.'
+                            : label === 'griftExploring'
+                                ? 'keep poking the boxes. value leaks out.'
+                                : '';
+                }
+            },
+            setYield: (id) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = 'Yield: +1';
+            },
+            handleCoin: (event) => {
+                if (Math.random() > 0.85 && window.audio) audio.click();
+                const val = Number(event.target.value);
+                const lore = document.getElementById('coin-lore');
+                if (val <= 12) {
+                    if (lore) lore.innerText = 'Craft dips the price; the value stabilizes.';
+                    valueState.addToken('influencer-coin');
+                } else if (lore) {
+                    lore.innerText = 'Drag toward craft. See what happens.';
                 }
             },
             handleBox: () => {
-                const btn = document.getElementById('box-tape');
-                btn.innerText = "OPENING...";
-                setTimeout(() => {
-                    btn.innerText = "EMPTY (AS EXPECTED)";
-                    btn.classList.add('bg-gray-200', 'text-gray-400');
-                    document.getElementById('token-count').innerText = "2";
-                }, 800);
+                grift.boxClicks += 1;
+                const progress = document.getElementById('box-progress');
+                const note = document.getElementById('box-note');
+                const words = ['TAP', 'AGAIN', 'OPEN'];
+                if (progress) progress.innerText = grift.boxClicks <= words.length ? words[grift.boxClicks - 1] : 'OPEN';
+                if (grift.boxClicks >= 3) {
+                    if (note) note.classList.remove('hidden');
+                    valueState.addToken('merch-box');
+                }
+            },
+            handleTimeshare: () => {
+                const boxes = Array.from(document.querySelectorAll('.timeshare-box'));
+                const submit = document.getElementById('timeshare-submit');
+                const note = document.getElementById('timeshare-note');
+                const allOff = boxes.length ? boxes.every((box) => !box.checked) : false;
+                if (submit) {
+                    submit.classList.toggle('cursor-not-allowed', !allOff);
+                    submit.classList.toggle('bg-gray-200', !allOff);
+                    submit.classList.toggle('bg-black', allOff);
+                    submit.classList.toggle('text-white', allOff);
+                }
+                if (allOff) {
+                    if (note) note.innerText = 'Contract voided. You kept your hours.';
+                    valueState.addToken('timeshare');
+                }
+            },
+            handlePaywall: (event) => {
+                const note = document.getElementById('paywall-note');
+                if (event.target.value === 'library') {
+                    if (note) note.innerText = 'Respectful workaround unlocked.';
+                    valueState.addToken('paywall');
+                } else if (note) {
+                    note.innerText = 'One of these honors the work and still gets you through.';
+                }
             },
             handleTerms: () => {
                 const btn = document.getElementById('terms-flag');
-                btn.innerText = "CLAUSE FLAGGED";
-                btn.classList.replace('bg-loom-red', 'bg-black');
-                document.getElementById('token-count').innerText = "3";
+                if (btn) btn.innerText = 'CLAUSE FLAGGED';
+                valueState.addToken('terms');
+            },
+            handleSubscription: () => {
+                const toggles = Array.from(document.querySelectorAll('.subscription-toggle'));
+                const allOff = toggles.length ? toggles.every((toggle) => !toggle.checked) : false;
+                const note = document.getElementById('subscription-note');
+                if (allOff) {
+                    if (note) note.innerText = 'Auto-renew disabled. You are free.';
+                    valueState.addToken('subscription');
+                }
+            },
+            handleScam: (event) => {
+                const note = document.getElementById('scam-note');
+                if (event.currentTarget.dataset.scam === 'right') {
+                    if (note) note.innerText = 'You flagged the obvious grift. Inbox safe.';
+                    valueState.addToken('scam');
+                } else if (note) {
+                    note.innerText = 'That one feels normal. Try again.';
+                }
+            },
+            handleBundle: (event) => {
+                const val = Number(event.target.value);
+                const note = document.getElementById('bundle-note');
+                if (val <= 12) {
+                    if (note) note.innerText = 'Bundle stripped down to the real need.';
+                    valueState.addToken('bundle');
+                }
+            },
+            handleReceipt: () => {
+                const fee = document.getElementById('receipt-fee');
+                const total = document.getElementById('receipt-total');
+                const note = document.getElementById('receipt-note');
+                if (fee) fee.classList.add('hidden');
+                if (total) total.innerText = '$25.00';
+                if (note) note.innerText = 'Fee deleted. Value preserved.';
+                valueState.addToken('receipt');
+            }
+        };
+
+        const geoQuiz = {
+            step: 0,
+            completed: false,
+            questions: [
+                {
+                    title: '“Brick” hits your ears on Canal Street. What are they warning you about?',
+                    copy: 'New Yorkers weaponize understatement. Decode the emoji, dodge the frostbite.',
+                    options: [
+                        { emoji: '🧊', label: 'Arctic wind slicing between the avenues.', hint: 'Layer up or turn back.', toast: 'Confirmed: you know “brick” is freeze-your-face cold.', correct: true },
+                        { emoji: '🛑', label: 'NYPD sweeping for alternate-side violators.', hint: 'Different kind of ticket.', toast: 'Nice paranoia, but “brick” isn’t a parking scare.' },
+                        { emoji: '💪', label: 'Time to flex at an Equinox stairwell selfie.', hint: 'Respect the hustle.', toast: 'Bold move. Wrong slang axis though.' }
+                    ]
+                },
+                {
+                    title: 'A friend orders a chopped cheese run. Where are you headed?',
+                    copy: 'No couriers; no apps. Just you, a grill, and a hum of fluorescent lights.',
+                    options: [
+                        { emoji: '🧀', label: 'The bodega flat-top under the humming fan.', hint: 'Cash only, wrapped in foil.', toast: 'Correct. You can smell the hero bread already.', correct: true },
+                        { emoji: '💈', label: 'Your barber who swears he “also chefs.”', hint: 'Please don’t.', toast: 'Sharp fade, questionable sandwich.' },
+                        { emoji: '🎲', label: 'An alley dice game off the J train.', hint: 'Different hustle.', toast: 'That’s a different kind of chopped.' }
+                    ]
+                },
+                {
+                    title: 'Someone taps you and says “you’ve got schmutz.” What happens next?',
+                    copy: 'Yiddish lives on the subway. Handle it like you belong.',
+                    options: [
+                        { emoji: '🫟', label: 'Swipe the face, keep moving before the doors close.', hint: 'Efficient correction.', toast: 'True local move: wipe and ride.', correct: true },
+                        { emoji: '♀️', label: 'Strike a Lady Liberty pose and hope for the best.', hint: 'Patriotism is not a napkin.', toast: 'Statuesque, but no.' },
+                        { emoji: '🥴', label: 'Tell them the city’s energy is the real smudge.', hint: 'Meta, but messy.', toast: 'Points for poetry, not for cleanliness.' }
+                    ]
+                }
+            ],
+            init() {
+                geoQuiz.reset();
+            },
+            start() {
+                audio.click();
+                geoQuiz.completed = false;
+                geoQuiz.step = 0;
+                geoQuiz.render();
+            },
+            reset() {
+                const stage = document.getElementById('geo-quiz-stage');
+                const status = document.getElementById('geo-quiz-status');
+                const card = document.getElementById('geo-quiz-card');
+                const step = document.getElementById('geo-quiz-step');
+                if (stage) stage.classList.add('hidden');
+                if (status) status.innerText = 'Tap verify to begin.';
+                if (card) card.innerHTML = '';
+                if (step) step.innerText = `0/${geoQuiz.questions.length}`;
+                geoQuiz.step = 0;
+                geoQuiz.completed = false;
+                valueGate.updateTokens(valueState);
+            },
+            render() {
+                const stage = document.getElementById('geo-quiz-stage');
+                const status = document.getElementById('geo-quiz-status');
+                const card = document.getElementById('geo-quiz-card');
+                const step = document.getElementById('geo-quiz-step');
+                if (!stage || !status || !card || !step) return;
+                stage.classList.remove('hidden');
+                const q = geoQuiz.questions[geoQuiz.step];
+                step.innerText = `${geoQuiz.step + 1}/${geoQuiz.questions.length}`;
+                status.innerText = 'Pick the tile that feels right.';
+                card.innerHTML = `
+                    <div class="bg-[#FDFBF7] border border-black/10 rounded-xl p-4 shadow-sm space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-red-600">Bodega Banter Check</span>
+                            <span class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-600">No wrong answers, just vibes.</span>
+                        </div>
+                        <h4 class="text-xl font-bold uppercase leading-tight">${q.title}</h4>
+                        <p class="text-sm text-gray-700">${q.copy}</p>
+                        <div class="grid sm:grid-cols-3 gap-3 pt-2" id="geo-quiz-options"></div>
+                    </div>
+                `;
+
+                const optionsWrap = document.getElementById('geo-quiz-options');
+                if (!optionsWrap) return;
+                optionsWrap.innerHTML = '';
+                q.options.forEach((opt) => {
+                    const tile = document.createElement('button');
+                    tile.className = 'geo-quiz-tile ui-click border border-gray-200';
+                    tile.innerHTML = `
+                        <div class="text-3xl">${opt.emoji}</div>
+                        <div class="text-sm font-mono text-gray-800 leading-snug">${opt.label}</div>
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">${opt.hint}</div>
+                    `;
+                    tile.onclick = () => geoQuiz.choose(opt, tile);
+                    optionsWrap.appendChild(tile);
+                });
+            },
+            choose(opt, tile) {
+                audio.click();
+                document.querySelectorAll('.geo-quiz-tile').forEach((btn) => btn.classList.remove('selected'));
+                tile.classList.add('selected');
+                const status = document.getElementById('geo-quiz-status');
+                if (status) status.innerText = opt.toast || 'Noted.';
+                setTimeout(() => {
+                    geoQuiz.step += 1;
+                    if (geoQuiz.step < geoQuiz.questions.length) geoQuiz.render();
+                    else geoQuiz.complete();
+                }, 480);
+            },
+            complete() {
+                const card = document.getElementById('geo-quiz-card');
+                const status = document.getElementById('geo-quiz-status');
+                const step = document.getElementById('geo-quiz-step');
+                if (step) step.innerText = `${geoQuiz.questions.length}/${geoQuiz.questions.length}`;
+                if (status) status.innerText = 'Stamped: ready for the ticket gate.';
+                if (card) {
+                    card.innerHTML = `
+                        <div class="bg-black text-white rounded-xl p-5 border border-red-500 shadow-lg space-y-3">
+                            <div class="font-mono text-[10px] uppercase tracking-widest text-red-200">Validated • New Yorker Enough</div>
+                            <h4 class="text-2xl font-bold uppercase">Geospatial Compatibility Confirmed</h4>
+                            <p class="text-sm text-gray-100 leading-relaxed">You clocked the slang and kept it moving. The ticketing tiers are unlocked without embarrassing anyone’s borough.</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="geoQuiz.reset()" class="ui-click border border-white/40 text-xs font-mono uppercase tracking-widest px-3 py-2 hover:bg-white hover:text-black transition-colors">Re-run Quiz</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                geoQuiz.completed = true;
+                geoQuiz.step = 0;
+                valueGate.updateTokens(valueState);
+            }
+        };
+
+        const valueGate = {
+            updateTokens: (state) => {
+                const tokenCount = document.getElementById('ticket-token-count');
+                if (tokenCount) tokenCount.innerText = state.tokens;
+                const status = document.getElementById('ticket-status');
+                const verifyBtn = document.getElementById('ticket-verify');
+                const tokensReady = state.tokens >= 6;
+                const quizReady = geoQuiz.completed;
+                if (!status) return;
+                if (!tokensReady) {
+                    status.innerText = 'tickets unavailable. collect 6 of 9 grift tokens, then pass the NYC slang quiz 🗽.';
+                    if (verifyBtn) verifyBtn.disabled = false;
+                } else if (!quizReady) {
+                    status.innerText = 'Tokens logged. Pass the NYC slang quiz 🗽 to open ticketing.';
+                    if (verifyBtn) verifyBtn.disabled = false;
+                } else {
+                    status.innerText = 'tickets still unavailable, but you’ve been provisionally woven in.';
+                    if (verifyBtn) verifyBtn.disabled = true;
+                }
             }
         };
 
@@ -1348,34 +2016,141 @@
             }
         };
 
-        // 9. Profiler Logic
+        // 9. Cel Engine (Evolving Flow)
+        const celEngine = {
+            data: JSON.parse(document.getElementById('cel-data').textContent),
+            visits: {},
+            activeId: null,
+            init: () => {
+                const stored = window.localStorage.getItem('loom-cel-visits');
+                celEngine.visits = stored ? JSON.parse(stored) : {};
+                celEngine.renderGrid();
+                celEngine.updateEntropy();
+            },
+            save: () => {
+                window.localStorage.setItem('loom-cel-visits', JSON.stringify(celEngine.visits));
+            },
+            renderGrid: () => {
+                const grid = document.getElementById('cel-grid');
+                if (!grid) return;
+                grid.innerHTML = '';
+                celEngine.data.forEach((cel) => {
+                    const visits = celEngine.visits[cel.id] || 0;
+                    const stageIndex = Math.min(Math.max(visits - 1, 0), cel.stages.length - 1);
+                    const stage = cel.stages[stageIndex];
+                    const card = document.createElement('button');
+                    card.className = 'cel-card ui-click text-left';
+                    card.dataset.celId = cel.id;
+                    card.innerHTML = `
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <div class="cel-stage">${stage.label}</div>
+                                <div class="font-bold uppercase text-sm mt-1">${cel.title}</div>
+                                <div class="text-xs text-gray-600 mt-2">${stage.summary}</div>
+                            </div>
+                            <div class="text-2xl">${cel.glyph}</div>
+                        </div>
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500 mt-3">Returns: ${visits}</div>
+                    `;
+                    card.addEventListener('click', () => celEngine.activate(cel.id));
+                    if (celEngine.activeId === cel.id) card.classList.add('active');
+                    grid.appendChild(card);
+                });
+            },
+            activate: (id) => {
+                celEngine.visits[id] = (celEngine.visits[id] || 0) + 1;
+                celEngine.activeId = id;
+                const cel = celEngine.data.find((item) => item.id === id);
+                if (!cel) return;
+                const visits = celEngine.visits[id];
+                const stageIndex = Math.min(visits - 1, cel.stages.length - 1);
+                const stage = cel.stages[stageIndex];
+                const label = document.getElementById('cel-stage-label');
+                const title = document.getElementById('cel-title');
+                const copy = document.getElementById('cel-copy');
+                const whisper = document.getElementById('cel-whisper');
+                if (label) label.innerText = stage.label;
+                if (title) title.innerText = cel.title;
+                if (copy) copy.innerText = stage.detail;
+                if (whisper) whisper.innerText = `${stage.whisper} • Return count: ${visits}`;
+                celEngine.save();
+                celEngine.renderGrid();
+                celEngine.updateEntropy();
+            },
+            updateEntropy: () => {
+                const total = Object.values(celEngine.visits).reduce((sum, count) => sum + count, 0);
+                const entropyCount = document.getElementById('entropy-count');
+                if (entropyCount) entropyCount.innerText = total;
+                document.body.classList.remove('entropy-1', 'entropy-2', 'entropy-3');
+                if (total >= 10) document.body.classList.add('entropy-3');
+                else if (total >= 6) document.body.classList.add('entropy-2');
+                else if (total >= 3) document.body.classList.add('entropy-1');
+            }
+        };
+
+        // 10. Profiler Logic
         const profiler = {
-            scores: { dreamer:0, scholar:0, investor:0, passerby:0, lantern:0 },
+            initialChoice: null,
+            scores: { dreamer: 0, scholar: 0, investor: 0, passerby: 0, lantern: 0 },
+            currentQ: 0,
             select: (role) => {
-                profiler.scores[role] += 5; 
+                profiler.initialChoice = role;
+                profiler.scores[role] += 3;
                 document.getElementById('prof-stage-select').classList.add('hidden');
                 document.getElementById('prof-stage-doubt').classList.remove('hidden');
-                if(window.audio) audio.click();
+                if (window.audio) audio.click();
             },
             startQuiz: () => {
+                profiler.currentQ = 0;
+                profiler.scores = { dreamer: 0, scholar: 0, investor: 0, passerby: 0, lantern: 0 };
+                const totalEl = document.getElementById('quiz-total');
+                if (totalEl) totalEl.innerText = QUIZ.length;
                 document.getElementById('quiz-modal').classList.add('active');
                 profiler.renderQuestion();
             },
             renderQuestion: () => {
-                const q = document.getElementById('quiz-question');
+                const q = QUIZ[profiler.currentQ];
+                const qEl = document.getElementById('quiz-question');
                 const opts = document.getElementById('quiz-options');
-                q.innerText = "You find a broken toy on the sidewalk. What is your first instinct?";
-                opts.innerHTML = `
-                    <button class="border border-gray-300 p-4 text-left hover:bg-black hover:text-white transition-colors ui-click font-mono text-sm" onclick="profiler.answer('dreamer')">Fix it. It has potential.</button>
-                    <button class="border border-gray-300 p-4 text-left hover:bg-black hover:text-white transition-colors ui-click font-mono text-sm" onclick="profiler.answer('scholar')">Study it. Where did it come from?</button>
-                    <button class="border border-gray-300 p-4 text-left hover:bg-black hover:text-white transition-colors ui-click font-mono text-sm" onclick="profiler.answer('investor')">Sell it. Parts are valuable.</button>
-                `;
+                const numEl = document.getElementById('quiz-num');
+                if (numEl) numEl.innerText = profiler.currentQ + 1;
+                qEl.innerText = q.q;
+                opts.innerHTML = '';
+                const shuffled = [...q.opts].sort(() => 0.5 - Math.random());
+                shuffled.forEach((opt) => {
+                    const btn = document.createElement('button');
+                    btn.className = "border border-gray-300 p-4 text-left hover:bg-black hover:text-white transition-colors ui-click font-mono text-sm";
+                    btn.innerText = `> ${opt.txt}`;
+                    btn.onclick = () => profiler.answer(opt);
+                    opts.appendChild(btn);
+                });
             },
-            answer: (type) => {
+            answer: (opt) => {
+                profiler.scores[opt.type] += opt.score;
+                profiler.currentQ += 1;
+                if (profiler.currentQ < QUIZ.length) {
+                    profiler.renderQuestion();
+                } else {
+                    profiler.calculate();
+                }
+            },
+            calculate: () => {
                 document.getElementById('quiz-modal').classList.remove('active');
                 document.getElementById('prof-stage-doubt').classList.add('hidden');
                 document.getElementById('prof-result').classList.remove('hidden');
-                document.getElementById('result-title').innerText = `SUBJECT: ${type.toUpperCase()}`;
+                let maxScore = -1;
+                let winner = profiler.initialChoice || 'dreamer';
+                Object.entries(profiler.scores).forEach(([key, val]) => {
+                    if (val > maxScore) {
+                        maxScore = val;
+                        winner = key;
+                    }
+                });
+                const noun = winner.toUpperCase();
+                const adjSource = profiler.initialChoice ? ROLES[profiler.initialChoice] : ROLES[winner];
+                const title = profiler.initialChoice === winner ? `THE PURE ${noun}` : `THE ${adjSource.adj} ${noun}`;
+                document.getElementById('result-title').innerText = title;
+                document.getElementById('result-motto').innerText = ROLES[winner].motto;
                 sculptureEngine.render();
             },
             closeModal: () => {
@@ -1425,6 +2200,7 @@
                 if (target === 'gallery') setTimeout(gallery.init, 100);
                 if (target === 'archive') setTimeout(archive.init, 100);
                 if (target === 'grift') setTimeout(grift.init, 100);
+                if (target === 'tickets') setTimeout(geoQuiz.init, 100);
             }
         };
 
@@ -1435,6 +2211,9 @@
         window.profiler = profiler;
         window.gallery = gallery;
         window.grift = grift;
+        window.geoQuiz = geoQuiz;
+        window.valueState = valueState;
+        window.celEngine = celEngine;
         window.siteMap = siteMap;
         window.voxelField = voxelField;
 
@@ -1455,6 +2234,8 @@
                         loader.classList.add('fade-out');
                         manufacture.init(); // Init canvas early
                         voxelField.init();
+                        celEngine.init();
+                        geoQuiz.init();
                     }, 600);
                 }
             }, 80);
