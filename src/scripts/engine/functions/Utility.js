@@ -142,6 +142,31 @@ tag('SET_GLOBAL',['ACTION'],(anchor,arr,ast)=>{
 });
 
 /**
+ * OPEN_URL(url, [target]) - Navigate to a URL (default same tab)
+ */
+tag('OPEN_URL', ['ACTION'], (anchor, arr, ast) => {
+  const valOf = window.Formula.valOf;
+  const rawUrl = String(valOf(ast.args[0]) || '').trim();
+  if (!rawUrl) {
+    window.Actions.setCell(arr.id, anchor, '!ERR:OPEN_URL', ast.raw, true);
+    return;
+  }
+  const target = String(valOf(ast.args[1]) || '_self').trim();
+  let resolvedUrl = rawUrl;
+  try {
+    resolvedUrl = new URL(rawUrl, window.location.href).toString();
+  } catch (e) {
+    window.Actions.setCell(arr.id, anchor, '!ERR:OPEN_URL', ast.raw, true);
+    return;
+  }
+  if (target === '_blank') {
+    window.open(resolvedUrl, '_blank', 'noopener');
+  } else {
+    window.location.href = resolvedUrl;
+  }
+});
+
+/**
  * VALUE_AT(x, y, z, arrId) - Get value at absolute coordinates
  * Lines 16452-16463 (~12 lines)
  */
