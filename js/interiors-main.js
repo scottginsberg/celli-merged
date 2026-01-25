@@ -9,8 +9,8 @@ export let interiorsMode = false;
 export let savedCityObjects = null;
 export let savedPlayerChunk = null;
 export let interiorsGroup = null;
-export let interiorRoomObjects = [];
-export let interiorInteractiveObjects = [];
+export const interiorRoomObjects = [];
+export const interiorInteractiveObjects = [];
 export const interactiveInteriorsObjects = [];
 
 // References to external dependencies (injected by scale-ultra.html)
@@ -144,8 +144,8 @@ export function clearInteriorRoom() {
   });
   
   // Clear arrays
-  interiorRoomObjects = [];
-  interiorInteractiveObjects = [];
+  interiorRoomObjects.length = 0;
+  interiorInteractiveObjects.length = 0;
   interactiveInteriorsObjects.length = 0;  // Clear interactions
   
   // Clear the group's children without removing the group itself
