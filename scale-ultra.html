@@ -1494,6 +1494,16 @@
     let chunkRoots = new Map();    // Map<"x,z", THREE.Group>
     let chunkPhysicsBodies = new Map();  // Map<"x,z", Array<RigidBody>> for chunk floor physics
     
+    // Cached scene object lists (avoid full scene traversal each frame)
+    const cachedObjects = {
+      grass: new Set(),
+      spinners: new Set(),
+      lodNodes: new Set(),
+      windowMeshes: new Set(),
+      sillMeshes: new Set()
+    };
+    const chunkObjectCache = new Map(); // Map<"x,z", {grass, spinners, lodNodes, windowMeshes, sillMeshes}>
+    
     // Map System
     let mapVisible = false;
     let mapCanvas, mapCtx;
@@ -2427,6 +2437,21 @@
     let dragDepth = 3.0;
     let blockPointerLock = false;
     let suppressedPhysics = new Set();
+    
+    const DOM_UPDATE_INTERVAL = 250;
+    let lastStatsUpdate = 0;
+    let lastMapUpdate = 0;
+    let lastWindowSillUpdate = 0;
+    const DROPPED_VIEWPORT_FPS = 8;
+    const DROPPED_VIEWPORT_READBACK_INTERVAL = 1000 / DROPPED_VIEWPORT_FPS;
+    let lastDroppedViewportReadback = 0;
+    let droppedViewportPixels = null;
+    let droppedViewportImageData = null;
+    let droppedViewportTempCanvas = null;
+    let droppedViewportTempCtx = null;
+    let droppedViewportHudCanvas = null;
+    let droppedViewportHudCtx = null;
+    let statsElements = null;
     
     // Jar System
     let pluckJar = null;  // The jar mesh
@@ -4537,6 +4562,59 @@
       chunkPhysicsBodies.get(key).push(body);
     }
     
+    function registerCachedObject(cacheKey, obj, cacheEntry) {
+      if (!obj || !cachedObjects[cacheKey]) return;
+      cachedObjects[cacheKey].add(obj);
+      if (cacheEntry && cacheEntry[cacheKey]) {
+        cacheEntry[cacheKey].push(obj);
+      }
+    }
+    
+    function cacheChunkObjects(key, chunkRoot) {
+      if (!chunkRoot) return;
+      if (chunkObjectCache.has(key)) {
+        clearChunkCache(key);
+      }
+      const cacheEntry = {
+        grass: [],
+        spinners: [],
+        lodNodes: [],
+        windowMeshes: [],
+        sillMeshes: []
+      };
+      
+      chunkRoot.traverse(obj => {
+        if (obj.userData?.isGrass) {
+          registerCachedObject('grass', obj, cacheEntry);
+        }
+        if (obj.userData?.isSpinner) {
+          registerCachedObject('spinners', obj, cacheEntry);
+        }
+        if (obj.isLOD) {
+          registerCachedObject('lodNodes', obj, cacheEntry);
+        }
+        if (obj.userData?.isWindow) {
+          registerCachedObject('windowMeshes', obj, cacheEntry);
+        }
+        if (obj.userData?.isSill) {
+          registerCachedObject('sillMeshes', obj, cacheEntry);
+        }
+      });
+      
+      chunkObjectCache.set(key, cacheEntry);
+    }
+    
+    function clearChunkCache(key) {
+      const cacheEntry = chunkObjectCache.get(key);
+      if (!cacheEntry) return;
+      cacheEntry.grass.forEach(obj => cachedObjects.grass.delete(obj));
+      cacheEntry.spinners.forEach(obj => cachedObjects.spinners.delete(obj));
+      cacheEntry.lodNodes.forEach(obj => cachedObjects.lodNodes.delete(obj));
+      cacheEntry.windowMeshes.forEach(obj => cachedObjects.windowMeshes.delete(obj));
+      cacheEntry.sillMeshes.forEach(obj => cachedObjects.sillMeshes.delete(obj));
+      chunkObjectCache.delete(key);
+    }
+    
     function loadChunk(key) {
       const [chunkX, chunkZ] = key.split(',').map(Number);
       
@@ -4572,6 +4650,8 @@
       
       // Generate chunk buildings
       generateChunkBuildings(chunkRoot, chunkX, chunkZ, district);
+      
+      cacheChunkObjects(key, chunkRoot);
       
       console.log(`✅ Loaded chunk ${key} (${district}) with grass base and physics`);
       
@@ -4793,6 +4873,8 @@
     function unloadChunk(key) {
       const chunkRoot = chunkRoots.get(key);
       if (!chunkRoot) return;
+      
+      clearChunkCache(key);
       
       // Immediately hide the chunk (visual feedback)
       chunkRoot.visible = false;
@@ -11042,6 +11124,7 @@
       spinnerGroup.position.set(4, 1.5, 3);
       spinnerGroup.userData.isSpinner = true;
       spinnerGroup.userData.spinSpeed = 0.5; // radians per second
+      registerCachedObject('spinners', spinnerGroup);
       playgroundGroup.add(spinnerGroup);
       playgroundGroup.userData.spinner = spinnerGroup;
       
@@ -26076,7 +26159,8 @@
         activeChunks.clear();
         
         // Clear existing chunk roots
-        chunkRoots.forEach(root => {
+        chunkRoots.forEach((root, key) => {
+          clearChunkCache(key);
           if (root.parent) root.parent.remove(root);
         });
         chunkRoots.clear();
@@ -26397,37 +26481,80 @@
       } else {
         console.log('Grass blades DISABLED (G to enable) - Grass removed from chunks');
         // Remove grass from all active chunks
-        scene.traverse(obj => {
-          if (obj.userData && obj.userData.isGrass) {
-            obj.visible = false;
-            if (obj.parent) {
-              obj.parent.remove(obj);
-            }
-            if (obj.geometry) obj.geometry.dispose();
-            if (obj.material) obj.material.dispose();
+        const grassMeshes = Array.from(cachedObjects.grass);
+        grassMeshes.forEach(obj => {
+          obj.visible = false;
+          if (obj.parent) {
+            obj.parent.remove(obj);
           }
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) obj.material.dispose();
+        });
+        cachedObjects.grass.clear();
+        chunkObjectCache.forEach(entry => {
+          entry.grass = [];
         });
       }
     }
     
-    function updateStats() {
+    function ensureDroppedViewportBuffers() {
+      if (!droppedViewportRT) return false;
+      const width = droppedViewportRT.width;
+      const height = droppedViewportRT.height;
+      
+      if (!droppedViewportPixels || droppedViewportPixels.length !== width * height * 4) {
+        droppedViewportPixels = new Uint8Array(width * height * 4);
+        droppedViewportImageData = new ImageData(
+          new Uint8ClampedArray(droppedViewportPixels.buffer),
+          width,
+          height
+        );
+        droppedViewportTempCanvas = document.createElement('canvas');
+        droppedViewportTempCanvas.width = width;
+        droppedViewportTempCanvas.height = height;
+        droppedViewportTempCtx = droppedViewportTempCanvas.getContext('2d');
+      }
+      
+      if (!droppedViewportHudCanvas) {
+        droppedViewportHudCanvas = document.getElementById('hud-mini-canvas');
+        droppedViewportHudCtx = droppedViewportHudCanvas?.getContext('2d');
+      }
+      
+      return Boolean(droppedViewportHudCanvas && droppedViewportHudCtx && droppedViewportTempCtx);
+    }
+    
+    function updateStats(time) {
+      if (time - lastStatsUpdate < DOM_UPDATE_INTERVAL) return;
+      lastStatsUpdate = time;
+      
+      if (!statsElements) {
+        statsElements = {
+          scale: document.getElementById('stat-scale'),
+          worldScale: document.getElementById('stat-world-scale'),
+          position: document.getElementById('stat-position'),
+          velocity: document.getElementById('stat-velocity'),
+          buildings: document.getElementById('stat-buildings'),
+          objects: document.getElementById('stat-objects'),
+          fps: document.getElementById('stat-fps')
+        };
+      }
+      
       const pos = playerBody.translation();
       const vel = playerBody.linvel();
       const speed = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
       
-      document.getElementById('stat-scale').textContent = playerScale.toFixed(2) + 'x';
-      document.getElementById('stat-world-scale').textContent = worldScale.toFixed(2) + 'x';
-      document.getElementById('stat-position').textContent = 
+      statsElements.scale.textContent = playerScale.toFixed(2) + 'x';
+      statsElements.worldScale.textContent = worldScale.toFixed(2) + 'x';
+      statsElements.position.textContent = 
         `${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`;
-      document.getElementById('stat-velocity').textContent = speed.toFixed(1) + ' m/s';
-      document.getElementById('stat-buildings').textContent = buildings.length;
-      document.getElementById('stat-objects').textContent = worldObjects.length;
+      statsElements.velocity.textContent = speed.toFixed(1) + ' m/s';
+      statsElements.buildings.textContent = buildings.length;
+      statsElements.objects.textContent = worldObjects.length;
       
-      frameCount++;
       const now = performance.now();
       if (now - lastFPSUpdate > 1000) {
         fpsValue = frameCount;
-        document.getElementById('stat-fps').textContent = fpsValue;
+        statsElements.fps.textContent = fpsValue;
         frameCount = 0;
         lastFPSUpdate = now;
       }
@@ -26597,14 +26724,13 @@
         
         // Cull grass
         const grassCullDistSq = LOD_CONFIG.GRASS_CULL_DISTANCE * LOD_CONFIG.GRASS_CULL_DISTANCE;
-        worldRoot.traverse(obj => {
-          if (obj.userData.isGrass && obj.isMesh) {
-            const distSq = camPos.distanceToSquared(obj.position);
-            const shouldShow = distSq < grassCullDistSq;
-            if (obj.visible !== shouldShow) {
-              obj.visible = shouldShow;
-              if (shouldShow) objectsVisible++; else objectsCulled++;
-            }
+        cachedObjects.grass.forEach(obj => {
+          if (!obj || !obj.isMesh) return;
+          const distSq = camPos.distanceToSquared(obj.position);
+          const shouldShow = distSq < grassCullDistSq;
+          if (obj.visible !== shouldShow) {
+            obj.visible = shouldShow;
+            if (shouldShow) objectsVisible++; else objectsCulled++;
           }
         });
         
@@ -26707,6 +26833,7 @@
       const deltaTime = Math.min((time - lastTime) / 1000, 0.05);
       lastTime = time;
       
+      frameCount++;
       if (deltaTime === 0) return;
       
       // Check if rocket is in space to skip expensive updates
@@ -26734,9 +26861,9 @@
        
        // Update THREE.LOD objects (buildings) - SKIP when in space
        if (!rocketInSpace) {
-         worldRoot.traverse((obj) => {
-           if (obj.isLOD) {
-             obj.update(camera);
+         cachedObjects.lodNodes.forEach(lodNode => {
+           if (lodNode) {
+             lodNode.update(camera);
            }
          });
        }
@@ -26751,8 +26878,8 @@
        updateSwingPhysics(deltaTime);
        
        // Update grass shader time
-       scene.traverse(obj => {
-         if (obj.userData.isGrass && obj.userData.material) {
+       cachedObjects.grass.forEach(obj => {
+         if (obj?.userData?.material?.uniforms?.time) {
            obj.userData.material.uniforms.time.value = time * 0.001;
          }
        });
@@ -26811,9 +26938,9 @@
        
        // Update playground spinners - SKIP when in space
        if (!rocketInSpace) {
-         scene.traverse(obj => {
-           if (obj.userData.spinner) {
-             obj.userData.spinner.rotation.y += obj.userData.spinner.userData.spinSpeed * deltaTime;
+         cachedObjects.spinners.forEach(spinner => {
+           if (spinner) {
+             spinner.rotation.y += (spinner.userData.spinSpeed || 0) * deltaTime;
            }
          });
        }
@@ -27008,32 +27135,18 @@
       
       // Control individual windows and sills visibility (throttled to avoid performance hit)
       // Only check every 100ms instead of every frame
-      if (!window._lastWindowSillUpdate || time - window._lastWindowSillUpdate > 100) {
-        window._lastWindowSillUpdate = time;
+      if (time - lastWindowSillUpdate > DOM_UPDATE_INTERVAL) {
+        lastWindowSillUpdate = time;
         
-        buildings.forEach(building => {
-          if (building.mesh) {
-            building.mesh.traverse(child => {
-              if (child.userData.isWindow) {
-                child.visible = optimizationConfig.windows.enabled;
-              }
-              if (child.userData.isSill) {
-                child.visible = optimizationConfig.sills.enabled;
-              }
-            });
+        cachedObjects.windowMeshes.forEach(windowMesh => {
+          if (windowMesh) {
+            windowMesh.visible = optimizationConfig.windows.enabled;
           }
         });
-        
-        // Also check chunks for windows/sills
-        chunkRoots.forEach(chunkRoot => {
-          chunkRoot.traverse(child => {
-            if (child.userData.isWindow) {
-              child.visible = optimizationConfig.windows.enabled;
-            }
-            if (child.userData.isSill) {
-              child.visible = optimizationConfig.sills.enabled;
-            }
-          });
+        cachedObjects.sillMeshes.forEach(sillMesh => {
+          if (sillMesh) {
+            sillMesh.visible = optimizationConfig.sills.enabled;
+          }
         });
       }
       
@@ -27042,8 +27155,8 @@
         instancedManagers.grass.mesh.visible = optimizationConfig.grass.enabled;
       }
       // Also hide all individual grass blades
-      scene.traverse(obj => {
-        if (obj.userData.isGrass) {
+      cachedObjects.grass.forEach(obj => {
+        if (obj) {
           obj.visible = optimizationConfig.grass.enabled;
         }
       });
@@ -27247,31 +27360,39 @@
       
       // Render dropped viewport
       if (droppedViewport && droppedViewportRT && droppedViewportCam) {
-        const n = new THREE.Vector3(0, 0, -1).applyQuaternion(droppedViewport.quaternion);
-        droppedViewportCam.position.copy(droppedViewport.position).addScaledVector(n, 0.05);
-        droppedViewportCam.quaternion.copy(droppedViewport.quaternion);
-        
-        renderer.setRenderTarget(droppedViewportRT);
-        renderer.render(scene, droppedViewportCam);
-        renderer.setRenderTarget(null);
-        
-        // Copy to HUD canvas
-        const canvas = document.getElementById('hud-mini-canvas');
-        const ctx = canvas.getContext('2d');
-        const pixels = new Uint8Array(droppedViewportRT.width * droppedViewportRT.height * 4);
-        renderer.readRenderTargetPixels(droppedViewportRT, 0, 0, droppedViewportRT.width, droppedViewportRT.height, pixels);
-        
-        const imageData = new ImageData(new Uint8ClampedArray(pixels), droppedViewportRT.width, droppedViewportRT.height);
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = droppedViewportRT.width;
-        tempCanvas.height = droppedViewportRT.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.putImageData(imageData, 0, 0);
-        
-        ctx.save();
-        ctx.scale(1, -1);
-        ctx.drawImage(tempCanvas, 0, -canvas.height, canvas.width, canvas.height);
-        ctx.restore();
+        if (time - lastDroppedViewportReadback > DROPPED_VIEWPORT_READBACK_INTERVAL && ensureDroppedViewportBuffers()) {
+          lastDroppedViewportReadback = time;
+          
+          const n = new THREE.Vector3(0, 0, -1).applyQuaternion(droppedViewport.quaternion);
+          droppedViewportCam.position.copy(droppedViewport.position).addScaledVector(n, 0.05);
+          droppedViewportCam.quaternion.copy(droppedViewport.quaternion);
+          
+          renderer.setRenderTarget(droppedViewportRT);
+          renderer.render(scene, droppedViewportCam);
+          renderer.setRenderTarget(null);
+          
+          renderer.readRenderTargetPixels(
+            droppedViewportRT,
+            0,
+            0,
+            droppedViewportRT.width,
+            droppedViewportRT.height,
+            droppedViewportPixels
+          );
+          
+          droppedViewportTempCtx.putImageData(droppedViewportImageData, 0, 0);
+          
+          droppedViewportHudCtx.save();
+          droppedViewportHudCtx.scale(1, -1);
+          droppedViewportHudCtx.drawImage(
+            droppedViewportTempCanvas,
+            0,
+            -droppedViewportHudCanvas.height,
+            droppedViewportHudCanvas.width,
+            droppedViewportHudCanvas.height
+          );
+          droppedViewportHudCtx.restore();
+        }
       }
       
       // Update pluck candidates only when camera moves significantly (optimization)
@@ -27281,12 +27402,13 @@
       updateVisitedBuildings();
       
       // Render map if visible
-      if (mapVisible) {
+      if (mapVisible && time - lastMapUpdate > DOM_UPDATE_INTERVAL) {
+        lastMapUpdate = time;
         renderMap();
       }
       
       // Update stats
-      updateStats();
+      updateStats(time);
       
       // Render
       if (postFXEnabled) {
@@ -27680,7 +27802,3 @@
   </script>
 </body>
 </html>
-
-
-
-
