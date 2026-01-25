@@ -85,6 +85,22 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
+        .archive-mode-btn { border: 1px solid #111; background: #fff; padding: 6px 10px; }
+        .archive-mode-btn.active { background: #111; color: #fff; }
+        .archive-constructing #archive-groups > div,
+        .archive-constructing #archive-quick > div,
+        .archive-constructing #tarot-slots > div,
+        .archive-constructing #influence-tray > span {
+            animation: forge-shift 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+            animation-delay: var(--forge-delay, 0ms);
+        }
+
+        @keyframes forge-shift {
+            0% { transform: translateY(12px) scale(0.98); opacity: 0; filter: blur(2px); }
+            60% { transform: translateY(-4px) scale(1.02); opacity: 0.9; filter: blur(0); }
+            100% { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); }
+        }
+
         /* --- UI COMPONENTS --- */
         .ui-click { cursor: pointer; user-select: none; transition: transform 0.1s; }
         .ui-click:active { transform: translateY(2px); }
@@ -576,6 +592,12 @@
                 <p class="text-xs font-mono text-gray-600 mb-6">Three pulls become a narrative. Add extra images and the vocabulary compresses itself around them. The joke is that it works.</p>
                 <div class="grid md:grid-cols-3 gap-6">
                     <div class="md:col-span-2 space-y-6">
+                        <div class="flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-gray-500">
+                            <span>Mode</span>
+                            <button class="archive-mode-btn ui-click" data-archive-mode="default">Default/Test Mode</button>
+                            <button class="archive-mode-btn ui-click" data-archive-mode="industrialized">Industrialized Reality</button>
+                            <span id="archive-mode-note" class="text-gray-500"></span>
+                        </div>
                         <div class="grid sm:grid-cols-3 gap-3" id="tarot-slots">
                             <div class="border border-black/20 bg-gray-50 p-4 text-center font-mono text-xs uppercase tracking-widest">Card 1</div>
                             <div class="border border-black/20 bg-gray-50 p-4 text-center font-mono text-xs uppercase tracking-widest">Card 2</div>
@@ -1091,17 +1113,2869 @@
     </div>
 
     <script type="application/json" id="archive-json">
-        [
-            { "id": "001", "title": "Celluloid Frame", "year": "1938", "motif": "memory", "glyph": "🎞️", "tags": ["analog", "keepsake"], "role": "lens", "weight": 3 },
-            { "id": "002", "title": "Brass Key", "year": "1955", "motif": "access", "glyph": "🗝️", "tags": ["unlock", "vault"], "role": "gate", "weight": 4 },
-            { "id": "003", "title": "Glitch Log", "year": "2024", "motif": "error", "glyph": "📟", "tags": ["signal", "static"], "role": "spark", "weight": 5 },
-            { "id": "004", "title": "Menko Card", "year": "1942", "motif": "play", "glyph": "🃏", "tags": ["ritual", "chance"], "role": "trickster", "weight": 2 },
-            { "id": "005", "title": "Lantern Badge", "year": "1969", "motif": "witness", "glyph": "🏷️", "tags": ["oath", "duty"], "role": "guide", "weight": 4 },
-            { "id": "006", "title": "Ashen Ticket", "year": "1977", "motif": "journey", "glyph": "🎟️", "tags": ["passage", "threshold"], "role": "ticket", "weight": 3 },
-            { "id": "007", "title": "Copper Relay", "year": "1988", "motif": "connection", "glyph": "🧲", "tags": ["network", "pulse"], "role": "bridge", "weight": 4 },
-            { "id": "008", "title": "Glass Seed", "year": "1999", "motif": "growth", "glyph": "🌱", "tags": ["future", "fragile"], "role": "seed", "weight": 3 },
-            { "id": "009", "title": "Velvet Receipt", "year": "2007", "motif": "value", "glyph": "🧾", "tags": ["cost", "proof"], "role": "measure", "weight": 2 }
-        ]
+{
+        "modes": {
+                "default": {
+                        "label": "Default / Test Mode",
+                        "description": "Sample artifacts for calibration and quick tarot draws.",
+                        "items": [
+                                {
+                                        "id": "001",
+                                        "title": "Celluloid Frame",
+                                        "year": "1938",
+                                        "motif": "memory",
+                                        "glyph": "🎞️",
+                                        "tags": [
+                                                "analog",
+                                                "keepsake"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "002",
+                                        "title": "Brass Key",
+                                        "year": "1955",
+                                        "motif": "access",
+                                        "glyph": "🗝️",
+                                        "tags": [
+                                                "unlock",
+                                                "vault"
+                                        ],
+                                        "role": "gate",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "003",
+                                        "title": "Glitch Log",
+                                        "year": "2024",
+                                        "motif": "error",
+                                        "glyph": "📟",
+                                        "tags": [
+                                                "signal",
+                                                "static"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 5
+                                },
+                                {
+                                        "id": "004",
+                                        "title": "Menko Card",
+                                        "year": "1942",
+                                        "motif": "play",
+                                        "glyph": "🃏",
+                                        "tags": [
+                                                "ritual",
+                                                "chance"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "005",
+                                        "title": "Lantern Badge",
+                                        "year": "1969",
+                                        "motif": "witness",
+                                        "glyph": "🏷️",
+                                        "tags": [
+                                                "oath",
+                                                "duty"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "006",
+                                        "title": "Ashen Ticket",
+                                        "year": "1977",
+                                        "motif": "journey",
+                                        "glyph": "🎟️",
+                                        "tags": [
+                                                "passage",
+                                                "threshold"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "007",
+                                        "title": "Copper Relay",
+                                        "year": "1988",
+                                        "motif": "connection",
+                                        "glyph": "🧲",
+                                        "tags": [
+                                                "network",
+                                                "pulse"
+                                        ],
+                                        "role": "bridge",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "008",
+                                        "title": "Glass Seed",
+                                        "year": "1999",
+                                        "motif": "growth",
+                                        "glyph": "🌱",
+                                        "tags": [
+                                                "future",
+                                                "fragile"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "009",
+                                        "title": "Velvet Receipt",
+                                        "year": "2007",
+                                        "motif": "value",
+                                        "glyph": "🧾",
+                                        "tags": [
+                                                "cost",
+                                                "proof"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 2
+                                }
+                        ]
+                },
+                "industrialized": {
+                        "label": "Industrialized Reality",
+                        "description": "A cinematic industrial feed of collectibles, rearranged into a myth-making machine.",
+                        "items": [
+                                {
+                                        "id": "A",
+                                        "title": "The Wizard of Oz Re-Release One-Sheet",
+                                        "year": "n.d.",
+                                        "motif": "spectacle",
+                                        "glyph": "🎬",
+                                        "tags": [
+                                                "poster",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "2A",
+                                        "title": "Wizard of Oz Ceramic Figure",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "5A",
+                                        "title": "Pair of Gone With the Wind Publicity Photos",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "📷",
+                                        "tags": [
+                                                "photo",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "6A",
+                                        "title": "Cecil B. Demille's Cleopatra Re-Release 6-Sheet",
+                                        "year": "n.d.",
+                                        "motif": "spectacle",
+                                        "glyph": "🎬",
+                                        "tags": [
+                                                "poster",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "8A",
+                                        "title": "Marilyn Monroe The Asphalt Jungle Re-Release One-Sheet",
+                                        "year": "n.d.",
+                                        "motif": "spectacle",
+                                        "glyph": "🎬",
+                                        "tags": [
+                                                "poster",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "10",
+                                        "title": "Original Poster Concept Art for Devil Goddess",
+                                        "year": "n.d.",
+                                        "motif": "spectacle",
+                                        "glyph": "🎬",
+                                        "tags": [
+                                                "poster",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "133A",
+                                        "title": "Porky Pig Crema Cacao Ceramic Decanter",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "135A",
+                                        "title": "Bugs Bunny and Daffy Duck Sericel",
+                                        "year": "n.d.",
+                                        "motif": "frame",
+                                        "glyph": "🎞️",
+                                        "tags": [
+                                                "cel",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "136",
+                                        "title": "Animated Animations Bugs & Elmer A Classic Confrontation",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "140A",
+                                        "title": "1963 Beany and Cecil Thermos",
+                                        "year": "1963",
+                                        "motif": "vessel",
+                                        "glyph": "🧊",
+                                        "tags": [
+                                                "vessel",
+                                                "myth"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "141A",
+                                        "title": "Pair of Signed Beany and Cecil Souvenirs",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "142",
+                                        "title": "Three Tom and Jerry Toys",
+                                        "year": "n.d.",
+                                        "motif": "play",
+                                        "glyph": "🧸",
+                                        "tags": [
+                                                "toy",
+                                                "myth"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "143",
+                                        "title": "A Tom and Jerry Ceramic Figurine Box Set by Wade",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "144",
+                                        "title": "Mr. Magoo UPA Staff Sign",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "145",
+                                        "title": "A Top Cat Choo-Choo Model Sheet",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "model",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "146",
+                                        "title": "A Pair of Top Cat TV-Tinykins & Boxes by Marx",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "153",
+                                        "title": "A Fred Flintstone Cocoa Pebbles Production Drawing",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "✏️",
+                                        "tags": [
+                                                "drawing",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "154",
+                                        "title": "The Flintstones Limited Edition Serigraph Cel",
+                                        "year": "n.d.",
+                                        "motif": "frame",
+                                        "glyph": "🎞️",
+                                        "tags": [
+                                                "cel",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "155",
+                                        "title": "A 1962 Yogi Bear Kellogg's Ad",
+                                        "year": "1962",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "156",
+                                        "title": "A Signed 1968 Jetsons Comic",
+                                        "year": "1968",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "157",
+                                        "title": "A Cartoon Comic Book Collection",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "158",
+                                        "title": "A Signed Jane Jetson Poster Print",
+                                        "year": "n.d.",
+                                        "motif": "spectacle",
+                                        "glyph": "🎬",
+                                        "tags": [
+                                                "poster",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "159",
+                                        "title": "A Signed Judy Jetson Portrait",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "160",
+                                        "title": "A Signed The Jetsons Astro Poster Print",
+                                        "year": "n.d.",
+                                        "motif": "spectacle",
+                                        "glyph": "🎬",
+                                        "tags": [
+                                                "poster",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "161",
+                                        "title": "A Cowboy and Horse Commercial Production Cel and Background",
+                                        "year": "n.d.",
+                                        "motif": "frame",
+                                        "glyph": "🎞️",
+                                        "tags": [
+                                                "cel",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "162",
+                                        "title": "A Misterjaw Hand-Painted Production Cel",
+                                        "year": "n.d.",
+                                        "motif": "frame",
+                                        "glyph": "🎞️",
+                                        "tags": [
+                                                "cel",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "163",
+                                        "title": "A Dennis the Menace Original Production Cel",
+                                        "year": "n.d.",
+                                        "motif": "frame",
+                                        "glyph": "🎞️",
+                                        "tags": [
+                                                "cel",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "164",
+                                        "title": "A Teenage Mutant Ninja Turtles Original Production Cel",
+                                        "year": "n.d.",
+                                        "motif": "frame",
+                                        "glyph": "🎞️",
+                                        "tags": [
+                                                "cel",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "166",
+                                        "title": "Original Archie Comic Book and Digest Art",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "168",
+                                        "title": "A Carnival Plaster Fox Figure with Boxing Gloves",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "169",
+                                        "title": "A 1930s Celluloid Baby Carriage Toy & Box",
+                                        "year": "1930",
+                                        "motif": "frame",
+                                        "glyph": "🎞️",
+                                        "tags": [
+                                                "cel",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "172",
+                                        "title": "A Rare Japanese 1930s Police Officer Tin Toy",
+                                        "year": "1930",
+                                        "motif": "play",
+                                        "glyph": "🧸",
+                                        "tags": [
+                                                "toy",
+                                                "myth"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "180",
+                                        "title": "A Pair of Gene Autry and the Lone Ranger Watches",
+                                        "year": "n.d.",
+                                        "motif": "time",
+                                        "glyph": "⌚",
+                                        "tags": [
+                                                "timepiece",
+                                                "myth"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "181",
+                                        "title": "A The Rifleman Comic Book",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "182",
+                                        "title": "A Brayton Laguna Sally Girl Planter",
+                                        "year": "n.d.",
+                                        "motif": "growth",
+                                        "glyph": "🌿",
+                                        "tags": [
+                                                "vessel",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "184",
+                                        "title": "A U.S. Navy Radar-Rocket Ship by Keystone",
+                                        "year": "n.d.",
+                                        "motif": "access",
+                                        "glyph": "🔑",
+                                        "tags": [
+                                                "access",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "186",
+                                        "title": "A Rare Black Beauty Rocking Horse by Delphos",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "187",
+                                        "title": "A Hopalong Cassidy Spoon",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "190",
+                                        "title": "A Pair of Alice and Robin Hood Literary Watches",
+                                        "year": "n.d.",
+                                        "motif": "time",
+                                        "glyph": "⌚",
+                                        "tags": [
+                                                "timepiece",
+                                                "myth"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "192",
+                                        "title": "A Military Police Motorcycle Toy by Modern Toys",
+                                        "year": "n.d.",
+                                        "motif": "play",
+                                        "glyph": "🧸",
+                                        "tags": [
+                                                "toy",
+                                                "myth"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "217",
+                                        "title": "A 1936 Fisher Price Pop Up Kritter Pluto Toy",
+                                        "year": "1936",
+                                        "motif": "play",
+                                        "glyph": "🧸",
+                                        "tags": [
+                                                "toy",
+                                                "myth"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "218",
+                                        "title": "A Mickey Mouse Wooden Doll",
+                                        "year": "n.d.",
+                                        "motif": "play",
+                                        "glyph": "🧸",
+                                        "tags": [
+                                                "toy",
+                                                "myth"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "219",
+                                        "title": "A Dixon Mickey Mouse Pencil Case",
+                                        "year": "n.d.",
+                                        "motif": "carry",
+                                        "glyph": "🧳",
+                                        "tags": [
+                                                "carry",
+                                                "myth"
+                                        ],
+                                        "role": "bridge",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "220",
+                                        "title": "A Mickey Mouse Dixon Student Pencil Case",
+                                        "year": "n.d.",
+                                        "motif": "carry",
+                                        "glyph": "🧳",
+                                        "tags": [
+                                                "carry",
+                                                "myth"
+                                        ],
+                                        "role": "bridge",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "221",
+                                        "title": "A Dixon's Mickey Mouse Map of the United States",
+                                        "year": "n.d.",
+                                        "motif": "navigation",
+                                        "glyph": "🗺️",
+                                        "tags": [
+                                                "map",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "222",
+                                        "title": "A Mickey Mouse Waddle Book Reprint Edition",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "223",
+                                        "title": "A Walt and Mickey's Shadow Poster",
+                                        "year": "n.d.",
+                                        "motif": "spectacle",
+                                        "glyph": "🎬",
+                                        "tags": [
+                                                "poster",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "224",
+                                        "title": "A 1930s Hall Bros. Mickey Mouse Birthday Card",
+                                        "year": "1930",
+                                        "motif": "access",
+                                        "glyph": "🎟️",
+                                        "tags": [
+                                                "card",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "225",
+                                        "title": "A Mickey Mouse Cork Soda Bottle Cap",
+                                        "year": "n.d.",
+                                        "motif": "access",
+                                        "glyph": "🔑",
+                                        "tags": [
+                                                "access",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "226",
+                                        "title": "A Rare Pluto Figure by Seiberling",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "227",
+                                        "title": "A Yours Truly Mickey Mouse Book Marker",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "235",
+                                        "title": "A Snow White Doll by Knickerbocker",
+                                        "year": "n.d.",
+                                        "motif": "play",
+                                        "glyph": "🧸",
+                                        "tags": [
+                                                "toy",
+                                                "myth"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "267",
+                                        "title": "A WDCC Tea for Two Figure with Ilene Woods Signed Saucer",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 5
+                                },
+                                {
+                                        "id": "269",
+                                        "title": "A Donald Duck and the Hidden Gold Children's Book",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "270",
+                                        "title": "A Donald Duck Transfers Book from Britain",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "272",
+                                        "title": "An Alice in Wonderland March Hare Figurine",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "273",
+                                        "title": "A Sheet of Re-Release Alice in Wonderland Stationery",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "274",
+                                        "title": "An Alice in Wonderland Mug",
+                                        "year": "n.d.",
+                                        "motif": "vessel",
+                                        "glyph": "☕",
+                                        "tags": [
+                                                "vessel",
+                                                "myth"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "275",
+                                        "title": "An Orange and Blue Cheshire Cat Vinyl Figure",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "276",
+                                        "title": "A Walt Disney's Peter Pan Game by Transogram",
+                                        "year": "n.d.",
+                                        "motif": "chance",
+                                        "glyph": "🎲",
+                                        "tags": [
+                                                "game",
+                                                "myth"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "277",
+                                        "title": "A Collection of Framed Peter Pan Embroideries",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "278",
+                                        "title": "A 1960s Peter Pan Game",
+                                        "year": "1960",
+                                        "motif": "chance",
+                                        "glyph": "🎲",
+                                        "tags": [
+                                                "game",
+                                                "myth"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "286",
+                                        "title": "A Tinker Bell Animated Animations",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "287",
+                                        "title": "A Peter Pan Tick-Tock Figurine by Royal Doulton",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "288",
+                                        "title": "A Marie Osmond Baby Tinker Bell Tiny Tot Doll",
+                                        "year": "n.d.",
+                                        "motif": "play",
+                                        "glyph": "🧸",
+                                        "tags": [
+                                                "toy",
+                                                "myth"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "289",
+                                        "title": "An Olszewski Peter Pan Heirloom Box",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "290",
+                                        "title": "A Pair of Rob Roy Lobby Cards",
+                                        "year": "n.d.",
+                                        "motif": "spectacle",
+                                        "glyph": "🎬",
+                                        "tags": [
+                                                "poster",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "291",
+                                        "title": "A 1953 New Explorations in True-Life Adventures and People and Places Booklet",
+                                        "year": "1953",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "292",
+                                        "title": "A Rare Pair of Davy Crockett Moccasins",
+                                        "year": "n.d.",
+                                        "motif": "journey",
+                                        "glyph": "👞",
+                                        "tags": [
+                                                "wear",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "293",
+                                        "title": "Three Pairs of Davy Crockett Children's Moccasins",
+                                        "year": "n.d.",
+                                        "motif": "journey",
+                                        "glyph": "👞",
+                                        "tags": [
+                                                "wear",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "294",
+                                        "title": "A Pair of Leather Davy Crockett Children's Shoes",
+                                        "year": "n.d.",
+                                        "motif": "journey",
+                                        "glyph": "👞",
+                                        "tags": [
+                                                "wear",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "295",
+                                        "title": "A Pair of Davy Crockett Sandals",
+                                        "year": "n.d.",
+                                        "motif": "journey",
+                                        "glyph": "👡",
+                                        "tags": [
+                                                "wear",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "297",
+                                        "title": "A Davy Crockett Souvenir Cap",
+                                        "year": "n.d.",
+                                        "motif": "vow",
+                                        "glyph": "🧢",
+                                        "tags": [
+                                                "wear",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "298",
+                                        "title": "A Collection of 4 Davy Crockett Wallets",
+                                        "year": "n.d.",
+                                        "motif": "value",
+                                        "glyph": "👛",
+                                        "tags": [
+                                                "carry",
+                                                "myth"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "299",
+                                        "title": "A Collection of 7 Davy Crockett Wallets",
+                                        "year": "n.d.",
+                                        "motif": "value",
+                                        "glyph": "👛",
+                                        "tags": [
+                                                "carry",
+                                                "myth"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "300",
+                                        "title": "A Collection of 7 Davy Crockett Wallets",
+                                        "year": "n.d.",
+                                        "motif": "value",
+                                        "glyph": "👛",
+                                        "tags": [
+                                                "carry",
+                                                "myth"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "301",
+                                        "title": "A Collection of 7 Davy Crockett Wallets",
+                                        "year": "n.d.",
+                                        "motif": "value",
+                                        "glyph": "👛",
+                                        "tags": [
+                                                "carry",
+                                                "myth"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "302",
+                                        "title": "Collection of 4 Davy & Polly Crockett Wallets & Purse",
+                                        "year": "n.d.",
+                                        "motif": "value",
+                                        "glyph": "👛",
+                                        "tags": [
+                                                "carry",
+                                                "myth"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "304",
+                                        "title": "A Davy Crockett Original Dispatch Case",
+                                        "year": "n.d.",
+                                        "motif": "carry",
+                                        "glyph": "🧳",
+                                        "tags": [
+                                                "carry",
+                                                "myth"
+                                        ],
+                                        "role": "bridge",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "305",
+                                        "title": "A Davy Crockett Canvas Messenger Bag",
+                                        "year": "n.d.",
+                                        "motif": "carry",
+                                        "glyph": "👜",
+                                        "tags": [
+                                                "carry",
+                                                "myth"
+                                        ],
+                                        "role": "bridge",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "306",
+                                        "title": "A Davy Crockett Indian Fighter Bag",
+                                        "year": "n.d.",
+                                        "motif": "carry",
+                                        "glyph": "👜",
+                                        "tags": [
+                                                "carry",
+                                                "myth"
+                                        ],
+                                        "role": "bridge",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "307",
+                                        "title": "A Davy Crockett Vinyl Satchel",
+                                        "year": "n.d.",
+                                        "motif": "carry",
+                                        "glyph": "🧳",
+                                        "tags": [
+                                                "carry",
+                                                "myth"
+                                        ],
+                                        "role": "bridge",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "308",
+                                        "title": "A Collection of 5 Davy Crockett Buttons",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "309",
+                                        "title": "A Davy Crockett Bolo Tie with Pin Collection",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "310",
+                                        "title": "A Davy Crockett Bolo Tie",
+                                        "year": "n.d.",
+                                        "motif": "vow",
+                                        "glyph": "🪢",
+                                        "tags": [
+                                                "wear",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "311",
+                                        "title": "A Davy Crockett Brush & Comb",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "312",
+                                        "title": "A Davy Crockett Binoculars Toy & Box",
+                                        "year": "n.d.",
+                                        "motif": "play",
+                                        "glyph": "🧸",
+                                        "tags": [
+                                                "toy",
+                                                "myth"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "313",
+                                        "title": "A Pair of Davy Crockett Flashlights",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "314",
+                                        "title": "A Davy Crockett Flashlight & Box by Bantam Lite",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "315",
+                                        "title": "A Fess Parker Signed Davy Crockett Photo",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "📷",
+                                        "tags": [
+                                                "photo",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "316",
+                                        "title": "A Davy Crockett Whistling Playpen Pet by Eastern",
+                                        "year": "n.d.",
+                                        "motif": "play",
+                                        "glyph": "🎺",
+                                        "tags": [
+                                                "play",
+                                                "myth"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "317",
+                                        "title": "An Ohio Art Davy Crockett Tin Pail",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "318",
+                                        "title": "A Walt Disney's Official Davy Crockett by Fortune Toy",
+                                        "year": "n.d.",
+                                        "motif": "play",
+                                        "glyph": "🧸",
+                                        "tags": [
+                                                "toy",
+                                                "myth"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "319",
+                                        "title": "A Davy Crockett Rocking Spring Horse by Rich Toys",
+                                        "year": "n.d.",
+                                        "motif": "play",
+                                        "glyph": "🧸",
+                                        "tags": [
+                                                "toy",
+                                                "myth"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "320",
+                                        "title": "A Pair of Metal Davy Crockett-Themed Figures",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "321",
+                                        "title": "An Ideal Davy Crockett and His Horse with Box",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "335",
+                                        "title": "A Walt Disney & Davy Crockett LOOK Magazine",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📰",
+                                        "tags": [
+                                                "print",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "336",
+                                        "title": "The Ballad of Davy Crockett Sheet Music",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "🎼",
+                                        "tags": [
+                                                "score",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "337",
+                                        "title": "A Davy Crockett China Plate and Bowl",
+                                        "year": "n.d.",
+                                        "motif": "vessel",
+                                        "glyph": "🍽️",
+                                        "tags": [
+                                                "vessel",
+                                                "myth"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "339",
+                                        "title": "A Davy Crockett Tin Creamer Cup Toy",
+                                        "year": "n.d.",
+                                        "motif": "play",
+                                        "glyph": "🧸",
+                                        "tags": [
+                                                "toy",
+                                                "myth"
+                                        ],
+                                        "role": "trickster",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "344",
+                                        "title": "A Davy Crockett Ceramic Planter",
+                                        "year": "n.d.",
+                                        "motif": "growth",
+                                        "glyph": "🌿",
+                                        "tags": [
+                                                "vessel",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "345",
+                                        "title": "A McCoy Pottery Davy Crockett Ceramic Planter",
+                                        "year": "n.d.",
+                                        "motif": "growth",
+                                        "glyph": "🌿",
+                                        "tags": [
+                                                "vessel",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "354",
+                                        "title": "The 1956 Saturday Evening Post My Dad Walt Disney Issue",
+                                        "year": "1956",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "355",
+                                        "title": "A 1957 Swim Fun Coloring Book with Mickey",
+                                        "year": "1957",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "356",
+                                        "title": "A Multi-Signed 1957 Mickey Mouse Club Annual",
+                                        "year": "1957",
+                                        "motif": "access",
+                                        "glyph": "🔑",
+                                        "tags": [
+                                                "access",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "357",
+                                        "title": "A Signed The Mickey Mouse Club Scrapbook",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "360",
+                                        "title": "A Walt Disney's Sleeping Beauty Selection Score",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 5
+                                },
+                                {
+                                        "id": "361",
+                                        "title": "A Damaged Maleficent Big Fig",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "362",
+                                        "title": "A One Hundred and One Dalmatians Dye Transfer",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "363",
+                                        "title": "A Disney Consumer Product Display Reference Photo",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "📷",
+                                        "tags": [
+                                                "photo",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "364",
+                                        "title": "A Sword in the Stone Live-Action Reference Photo",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "📷",
+                                        "tags": [
+                                                "photo",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "365",
+                                        "title": "A 1964 Mickey Mouse Hi-There Record Card",
+                                        "year": "1964",
+                                        "motif": "access",
+                                        "glyph": "🎟️",
+                                        "tags": [
+                                                "card",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "366",
+                                        "title": "A Walt Disney's Wonderful World of Color Color Weave Set",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "367",
+                                        "title": "A Collection of Mary Poppins Publicity Stills",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "📷",
+                                        "tags": [
+                                                "photo",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 5
+                                },
+                                {
+                                        "id": "368",
+                                        "title": "A Mary Poppins 1980 Re-release One-Sheet",
+                                        "year": "1980",
+                                        "motif": "spectacle",
+                                        "glyph": "🎬",
+                                        "tags": [
+                                                "poster",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "369",
+                                        "title": "A Walt Disney's Masterpieces French Publicity Photo Collection",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "📷",
+                                        "tags": [
+                                                "photo",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "370",
+                                        "title": "Watch Your Footwork The Happiest Millionaire Sheet Music",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "🎼",
+                                        "tags": [
+                                                "score",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "372",
+                                        "title": "A 1967 The Jungle Book Production Story",
+                                        "year": "1967",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "373",
+                                        "title": "An Original Release One-Sheet for The Jungle Book",
+                                        "year": "n.d.",
+                                        "motif": "spectacle",
+                                        "glyph": "🎬",
+                                        "tags": [
+                                                "poster",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "377",
+                                        "title": "A Child's Minnie Mouse Choker-Style Necklace",
+                                        "year": "n.d.",
+                                        "motif": "vow",
+                                        "glyph": "📿",
+                                        "tags": [
+                                                "wear",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "380",
+                                        "title": "A 1970s Pluto Ceramic Coin Bank",
+                                        "year": "1970",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "381",
+                                        "title": "A Spanish You Can Draw Chip and Dale Book",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "384",
+                                        "title": "A 1970s Marx Goofy Figurine",
+                                        "year": "1970",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "385",
+                                        "title": "A Mickey Mouse Club Twinton Ceramic Figurine Prototype",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "386",
+                                        "title": "A Disney on Parade Coloring Book",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "395",
+                                        "title": "A Mickey Mouse Hi-Fi Radio by Concept 2000",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📻",
+                                        "tags": [
+                                                "device",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "397",
+                                        "title": "A Mickey Mouse Train Alarm Clock",
+                                        "year": "n.d.",
+                                        "motif": "time",
+                                        "glyph": "⏰",
+                                        "tags": [
+                                                "timepiece",
+                                                "myth"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "399",
+                                        "title": "A Goofy Figurine by United China & Glass",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "402",
+                                        "title": "A Donald Duck as a Lawyer Ceramic Figurine",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "403",
+                                        "title": "A Donald Duck's 50th Birthday Set of Airline Ticket Vouchers",
+                                        "year": "n.d.",
+                                        "motif": "access",
+                                        "glyph": "🎟️",
+                                        "tags": [
+                                                "ticket",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "404",
+                                        "title": "A Disney Team 85 Button",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "405",
+                                        "title": "A Return to Oz Collection",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "409",
+                                        "title": "A Who Framed Roger Rabbit Original Production Cel",
+                                        "year": "n.d.",
+                                        "motif": "frame",
+                                        "glyph": "🎞️",
+                                        "tags": [
+                                                "cel",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 5
+                                },
+                                {
+                                        "id": "410",
+                                        "title": "A Marc Davis Signed Mickey Caricature",
+                                        "year": "n.d.",
+                                        "motif": "access",
+                                        "glyph": "🔑",
+                                        "tags": [
+                                                "access",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "411",
+                                        "title": "A Collection of Disney Movie Books",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "412",
+                                        "title": "A Pair of Disney Afternoon Cartoon Flyers",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "413",
+                                        "title": "A Collection of Aladdin Publicity Photos",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "📷",
+                                        "tags": [
+                                                "photo",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "414",
+                                        "title": "A Russi Taylor Voice of Minnie Autograph",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "415",
+                                        "title": "A Pair of Pocahontas Movie Programs",
+                                        "year": "n.d.",
+                                        "motif": "ritual",
+                                        "glyph": "🗂️",
+                                        "tags": [
+                                                "program",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "416",
+                                        "title": "A Sweating Bullets Mug",
+                                        "year": "n.d.",
+                                        "motif": "vessel",
+                                        "glyph": "☕",
+                                        "tags": [
+                                                "vessel",
+                                                "myth"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "418",
+                                        "title": "A Pair of A Bug's Life One-Sheet Posters",
+                                        "year": "n.d.",
+                                        "motif": "spectacle",
+                                        "glyph": "🎬",
+                                        "tags": [
+                                                "poster",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "419",
+                                        "title": "A Pair of Disney 75 Years Celluloid Prints",
+                                        "year": "n.d.",
+                                        "motif": "frame",
+                                        "glyph": "🎞️",
+                                        "tags": [
+                                                "cel",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "427",
+                                        "title": "Donald Duck: 50 Years of Happy Frustration Book",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "430",
+                                        "title": "A Goofy Olympic Martial Arts Pin",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "431",
+                                        "title": "A Let Freedom Ring VoluntEAR Pin",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "432",
+                                        "title": "A Disney Auctions Aurora Cameo Pin",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "433",
+                                        "title": "A Disney Auctions Limited Edition Goofy Pin",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "434",
+                                        "title": "A Disney Auctions Tinker Bell Pin",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "435",
+                                        "title": "A Disney Auction Limited Edition Stitch Pin",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "437",
+                                        "title": "A Disney Shopping Mickey and Minnie Jack and Jill Nursery Rhyme Pin",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "440",
+                                        "title": "A Pecos Bill Book Pin",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "441",
+                                        "title": "A Peter and the Wolf Book Pin",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "442",
+                                        "title": "A Once Upon a Wintertime Book Pin",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "444",
+                                        "title": "A The Ugly Duckling Book Pin",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "445",
+                                        "title": "A The Reluctant Dragon Book Pin",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "446",
+                                        "title": "A Mary Poppins Book Pin",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "452",
+                                        "title": "An Early Disneyland Land Tablecloth",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "453",
+                                        "title": "An Early Disneyland Child Admission A Ticket",
+                                        "year": "n.d.",
+                                        "motif": "access",
+                                        "glyph": "🎟️",
+                                        "tags": [
+                                                "ticket",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "460",
+                                        "title": "A 1962 Ford Times with What Khrushchev missed in Disneyland Article",
+                                        "year": "1962",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "461",
+                                        "title": "S&H Green Stamp Book for Disneyland Redemption",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "464",
+                                        "title": "A Disneyland Perpetual/Click-a-Day Calendar",
+                                        "year": "n.d.",
+                                        "motif": "time",
+                                        "glyph": "📅",
+                                        "tags": [
+                                                "timepiece",
+                                                "myth"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "479",
+                                        "title": "A Collection of Ruggles Disneyland Bone China Figurines",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "480",
+                                        "title": "A Collection of Disneyland Postcards and Postcard Books",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "481",
+                                        "title": "A Disneyland Donald Duck Party Decoration Set",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "482",
+                                        "title": "A 1960s Disneyland Mickey Mouse Lenticular Button",
+                                        "year": "1960",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "487",
+                                        "title": "A Disneyland Carnation Ice Cream Magazine Insert",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📰",
+                                        "tags": [
+                                                "print",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "490",
+                                        "title": "A Main Street Market House Glass Car with Cinnamon Imperials",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "491",
+                                        "title": "Three Disneyland Attraction Dishes by Treasure Craft",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "492",
+                                        "title": "A Disneyland Film Club Film Developing Envelope",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "493",
+                                        "title": "The Walt Disney Story Dedication Plaque Souvenir",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "494",
+                                        "title": "A 1979 Disneyland Hardcover Book",
+                                        "year": "1979",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "495",
+                                        "title": "The Official Album of Disneyland/Walt Disney World",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "💿",
+                                        "tags": [
+                                                "audio",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "496",
+                                        "title": "A Disneyland Silhouette Studio Collection",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "501",
+                                        "title": "A Collection of Disneylander Issues",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "502",
+                                        "title": "A Trio of Disneyland Cast Member Name Badges with Rare Service Pins",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📛",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "516",
+                                        "title": "A Coca Cola America on Parade Glass",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "519",
+                                        "title": "A 1976 Disneyland AEA Family Fun Night Card",
+                                        "year": "1976",
+                                        "motif": "access",
+                                        "glyph": "🎟️",
+                                        "tags": [
+                                                "card",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "520",
+                                        "title": "A Disneyland: The First Quarter Century Book",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "521",
+                                        "title": "1980 Disneyland Main Street Gazette - Fantasy in the Sky",
+                                        "year": "1980",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "522",
+                                        "title": "A Disneyland Cast Member One Year Service Pin",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "523",
+                                        "title": "A Disneyland Line Magazine Collection",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📰",
+                                        "tags": [
+                                                "print",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "524",
+                                        "title": "A 1984 Disneyland Strike Examiner Newspaper",
+                                        "year": "1984",
+                                        "motif": "story",
+                                        "glyph": "📰",
+                                        "tags": [
+                                                "print",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "525",
+                                        "title": "A Pair of Disney Courtesy Policies Booklets",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "526",
+                                        "title": "A Collection of Disneyland Blast to the Past Yo-Yos",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "528",
+                                        "title": "A Signed Disneyland 30 Years of Magic Poster",
+                                        "year": "n.d.",
+                                        "motif": "spectacle",
+                                        "glyph": "🎬",
+                                        "tags": [
+                                                "poster",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "529",
+                                        "title": "A Disneyland 35 Years of Magic Poster",
+                                        "year": "n.d.",
+                                        "motif": "spectacle",
+                                        "glyph": "🎬",
+                                        "tags": [
+                                                "poster",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "530",
+                                        "title": "A 35 Years of Magic Pop-Up Map",
+                                        "year": "n.d.",
+                                        "motif": "navigation",
+                                        "glyph": "🗺️",
+                                        "tags": [
+                                                "map",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "534",
+                                        "title": "A 40 Years of Adventure Steven Name Badge",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📛",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "535",
+                                        "title": "A Set of Swiss Family Tree House Trading Cards",
+                                        "year": "n.d.",
+                                        "motif": "access",
+                                        "glyph": "🎟️",
+                                        "tags": [
+                                                "card",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "536",
+                                        "title": "A Main Street Electrical Parade Farewell Season Nite Lite",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "537",
+                                        "title": "A Disneyland Grad Nite Sign",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "538",
+                                        "title": "A 45 Years of Magic Jay Name Badge",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📛",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "539",
+                                        "title": "A WDCC Mickey Mouse Club Ears Figure",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "figure",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "540",
+                                        "title": "A Disneyland Turns 50 LIFE Magazine",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📰",
+                                        "tags": [
+                                                "print",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "541",
+                                        "title": "A Disneyland 50th Anniversary Pamphlet",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "542",
+                                        "title": "A Disneyland Cast Member Fact Book",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "543",
+                                        "title": "A Disneyland 50th Anniversary Guidebook Replica & Box",
+                                        "year": "n.d.",
+                                        "motif": "story",
+                                        "glyph": "📖",
+                                        "tags": [
+                                                "book",
+                                                "myth"
+                                        ],
+                                        "role": "guide",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "544",
+                                        "title": "A Disneyland 50th Anniversary Pocket Watch",
+                                        "year": "n.d.",
+                                        "motif": "time",
+                                        "glyph": "⌚",
+                                        "tags": [
+                                                "timepiece",
+                                                "myth"
+                                        ],
+                                        "role": "measure",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "545",
+                                        "title": "A Disneyland 50th Anniversary Cast Member Pin",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "546",
+                                        "title": "A Disneyland 50th Anniversary Walt Name Tag Pin",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "547",
+                                        "title": "A D23 Key Keychain",
+                                        "year": "n.d.",
+                                        "motif": "access",
+                                        "glyph": "🔑",
+                                        "tags": [
+                                                "access",
+                                                "myth"
+                                        ],
+                                        "role": "ticket",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "548",
+                                        "title": "A Disneyland Alumni Club Watch and Pin",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "549",
+                                        "title": "A Disneyland Alumni Club 60th Anniversary Pin",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 1
+                                },
+                                {
+                                        "id": "553",
+                                        "title": "A Jungle Cruise 50th Anniversary Congo Queen Model",
+                                        "year": "n.d.",
+                                        "motif": "relic",
+                                        "glyph": "🗿",
+                                        "tags": [
+                                                "model",
+                                                "myth"
+                                        ],
+                                        "role": "seed",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "554",
+                                        "title": "A Disneyland 50th SHAG Adventureland Print",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "🖼️",
+                                        "tags": [
+                                                "print",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "555",
+                                        "title": "An Early New Orleans Square Gift Bag",
+                                        "year": "n.d.",
+                                        "motif": "carry",
+                                        "glyph": "👜",
+                                        "tags": [
+                                                "carry",
+                                                "myth"
+                                        ],
+                                        "role": "bridge",
+                                        "weight": 3
+                                },
+                                {
+                                        "id": "558",
+                                        "title": "A Club 33 Walt Disney Quote Etched Paperweight",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 4
+                                },
+                                {
+                                        "id": "559",
+                                        "title": "A Club 33 Court of Angels Walt Disney Pin",
+                                        "year": "n.d.",
+                                        "motif": "signal",
+                                        "glyph": "📌",
+                                        "tags": [
+                                                "pin",
+                                                "myth"
+                                        ],
+                                        "role": "spark",
+                                        "weight": 5
+                                },
+                                {
+                                        "id": "560",
+                                        "title": "A Large Disney Park Swizzle Stick Collection",
+                                        "year": "n.d.",
+                                        "motif": "memory",
+                                        "glyph": "🧩",
+                                        "tags": [
+                                                "relic",
+                                                "myth"
+                                        ],
+                                        "role": "lens",
+                                        "weight": 2
+                                },
+                                {
+                                        "id": "561",
+                                        "title": "A Disney Gallery Souvenir Gift Bag",
+                                        "year": "n.d.",
+                                        "motif": "carry",
+                                        "glyph": "👜",
+                                        "tags": [
+                                                "carry",
+                                                "myth"
+                                        ],
+                                        "role": "bridge",
+                                        "weight": 2
+                                }
+                        ]
+                }
+        }
+}
     </script>
     <script type="application/json" id="cel-data">
         [
@@ -1293,8 +4167,18 @@
         };
 
         // 3. Archive
-        const archiveData = JSON.parse(document.getElementById('archive-json').textContent);
+        const archiveCatalog = JSON.parse(document.getElementById('archive-json').textContent);
+        const archiveModes = archiveCatalog.modes || {
+            default: {
+                label: 'Archive',
+                description: 'Default archive dataset.',
+                items: Array.isArray(archiveCatalog) ? archiveCatalog : []
+            }
+        };
+        const defaultModeKey = archiveModes.default ? 'default' : Object.keys(archiveModes)[0];
+        let archiveData = archiveModes[defaultModeKey]?.items || [];
         const archiveState = {
+            mode: defaultModeKey,
             selectedIds: [],
             influenceIds: [],
             drawnIds: [],
@@ -1342,16 +4226,20 @@
             renderQuick: () => {
                 const el = document.getElementById('archive-quick');
                 if(!el) return;
-                el.innerHTML = archiveData.map(i => `<div class="border-b border-gray-100 py-1 hover:text-loom-red cursor-help">${i.id} // ${i.title}</div>`).join('');
+                el.innerHTML = archiveData.map((i, index) => `
+                    <div class="border-b border-gray-100 py-1 hover:text-loom-red cursor-help" style="--forge-delay: ${index * 8}ms;">
+                        ${i.id} // ${i.title}
+                    </div>
+                `).join('');
             },
             renderGroups: () => {
                 const groupEl = document.getElementById('archive-groups');
                 if(!groupEl) return;
-                groupEl.innerHTML = archiveData.map(i => {
+                groupEl.innerHTML = archiveData.map((i, index) => {
                     const selected = archiveState.selectedIds.includes(i.id);
                     const influenced = archiveState.influenceIds.includes(i.id);
                     return `
-                        <div class="bg-white border border-black/10 p-4 shadow-sm flex flex-col sm:flex-row justify-between gap-3" data-archive-id="${i.id}">
+                        <div class="bg-white border border-black/10 p-4 shadow-sm flex flex-col sm:flex-row justify-between gap-3" data-archive-id="${i.id}" style="--forge-delay: ${index * 6}ms;">
                             <div>
                                 <div class="text-[10px] font-mono text-gray-500">${i.year} • ${i.motif}</div>
                                 <div class="font-bold flex items-center gap-2">${i.glyph} ${i.title}</div>
@@ -1370,7 +4258,7 @@
                 if(!slots) return;
                 const cards = archiveState.drawnIds.map(id => archiveData.find(item => item.id === id)).filter(Boolean);
                 slots.innerHTML = cards.length ? cards.map(card => `
-                    <div class="border border-black bg-white p-4 text-center">
+                    <div class="border border-black bg-white p-4 text-center" style="--forge-delay: 0ms;">
                         <div class="text-2xl">${card.glyph}</div>
                         <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500 mt-2">${card.year}</div>
                         <div class="font-bold text-sm">${card.title}</div>
@@ -1387,8 +4275,21 @@
                 if(!tray) return;
                 const influences = archiveState.influenceIds.map(id => archiveData.find(item => item.id === id)).filter(Boolean);
                 tray.innerHTML = influences.length
-                    ? influences.map(card => `<span class="px-2 py-1 border border-black/20 bg-white">${card.glyph} ${card.title}</span>`).join('')
+                    ? influences.map((card, index) => `<span class="px-2 py-1 border border-black/20 bg-white" style="--forge-delay: ${index * 12}ms;">${card.glyph} ${card.title}</span>`).join('')
                     : '<span class="text-gray-400">No influence images added.</span>';
+            },
+            renderMode: () => {
+                const note = document.getElementById('archive-mode-note');
+                const modeData = archiveModes[archiveState.mode];
+                if(note && modeData) {
+                    note.textContent = `• ${modeData.label}: ${modeData.description}`;
+                }
+                document.querySelectorAll('[data-archive-mode]').forEach(button => {
+                    const isActive = button.dataset.archiveMode === archiveState.mode;
+                    button.classList.toggle('active', isActive);
+                });
+                const count = document.getElementById('archive-count');
+                if(count) count.innerText = archiveData.length;
             },
             renderStory: () => {
                 const output = document.getElementById('story-output');
@@ -1411,6 +4312,7 @@
                 archiveUI.renderGroups();
                 archiveUI.renderTarot();
                 archiveUI.renderInfluenceTray();
+                archiveUI.renderMode();
                 archiveUI.renderStory();
                 archiveUI.renderKb();
             }
@@ -1421,7 +4323,6 @@
                 const el = document.getElementById('archive-quick');
                 const groupEl = document.getElementById('archive-groups');
                 if(!el || !groupEl) return;
-                document.getElementById('archive-count').innerText = archiveData.length;
                 archiveUI.renderAll();
                 archive.bindEvents();
             },
@@ -1431,6 +4332,7 @@
                 const meanBtn = document.getElementById('mean-it');
                 const influenceBtn = document.getElementById('add-influence');
                 const clearBtn = document.getElementById('clear-selection');
+                const modeButtons = document.querySelectorAll('[data-archive-mode]');
                 if(groupEl) {
                     groupEl.onclick = (event) => {
                         const button = event.target.closest('button[data-action]');
@@ -1448,6 +4350,28 @@
                 if(meanBtn) meanBtn.onclick = () => archive.meanIt();
                 if(influenceBtn) influenceBtn.onclick = () => archive.addInfluenceRandom();
                 if(clearBtn) clearBtn.onclick = () => archive.clearSelections();
+                modeButtons.forEach(button => {
+                    button.onclick = () => archive.setMode(button.dataset.archiveMode);
+                });
+            },
+            setMode: (modeId) => {
+                const modeData = archiveModes[modeId];
+                if(!modeData) return;
+                archiveState.mode = modeId;
+                archiveData = modeData.items;
+                archiveState.selectedIds = [];
+                archiveState.influenceIds = [];
+                archiveState.drawnIds = [];
+                archiveState.lastStory = '';
+                archiveState.lastMeta = '';
+                const view = document.getElementById('view-archive');
+                if(view) {
+                    view.classList.remove('archive-constructing');
+                    void view.offsetWidth;
+                    view.classList.add('archive-constructing');
+                    setTimeout(() => view.classList.remove('archive-constructing'), 900);
+                }
+                archiveUI.renderAll();
             },
             drawRandom: () => {
                 const pool = [...archiveData];
