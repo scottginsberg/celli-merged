@@ -220,6 +220,13 @@
         .geo-quiz-tile { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 16px; border-radius: 12px; transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease; text-align: left; background: #fff; }
         .geo-quiz-tile:hover { transform: translateY(-2px); box-shadow: 4px 8px 0 rgba(0,0,0,0.18); border-color: #0f0f0f; }
         .geo-quiz-tile.selected { border-color: #d31313; box-shadow: 0 0 0 2px #d31313, 6px 10px 0 rgba(0,0,0,0.14); }
+        .depth-layer { display: none; }
+        .view-section.depth-1 .depth-layer[data-depth="1"],
+        .view-section.depth-2 .depth-layer[data-depth="1"],
+        .view-section.depth-2 .depth-layer[data-depth="2"],
+        .view-section.depth-3 .depth-layer[data-depth="1"],
+        .view-section.depth-3 .depth-layer[data-depth="2"],
+        .view-section.depth-3 .depth-layer[data-depth="3"] { display: block; }
         @media (max-width: 640px) {
             .grift-grid { grid-template-columns: 1fr; }
             .grift-card { padding: 18px; }
@@ -258,6 +265,7 @@
             <div class="h-3 w-px bg-gray-300"></div>
             <button onclick="app.navigate('ambition')" class="nav-btn" data-target="ambition">Ambition</button>
             <button onclick="siteMap.open()" class="nav-btn">Site Map</button>
+            <button onclick="storyGate.open()" class="nav-btn">Story Engine</button>
         </div>
 
         <button onclick="document.getElementById('mobile-menu').classList.toggle('translate-x-full')" class="lg:hidden p-2 ui-click">
@@ -278,6 +286,7 @@
             <button onclick="app.navigate('grift')" class="text-left pb-2 border-b border-gray-200">Grift</button>
             <button onclick="app.navigate('ambition')" class="text-left pb-2 border-b border-gray-200">Ambition</button>
             <button onclick="siteMap.open()" class="text-left pb-2 border-b border-gray-200">Site Map</button>
+            <button onclick="storyGate.open()" class="text-left pb-2 border-b border-gray-200">Story Engine</button>
         </div>
         <button onclick="document.getElementById('mobile-menu').classList.add('translate-x-full')" class="mt-8 text-xs underline uppercase">Close Menu</button>
     </div>
@@ -356,9 +365,15 @@
                         <button onclick="app.navigate('calibration')" class="ui-click bg-black text-white px-6 py-4 text-xs font-mono uppercase tracking-widest hover:bg-loom-red transition-colors flex items-center justify-between">
                             Start the Script <span>&rarr;</span>
                         </button>
+                        <button onclick="app.fullBlastOff()" class="ui-click bg-loom-red text-white px-6 py-4 text-xs font-mono uppercase tracking-widest hover:bg-black transition-colors flex items-center justify-between">
+                            FULL BLAST OFF <span>&uarr;</span>
+                        </button>
                         <button onclick="siteMap.open()" class="ui-click border-2 border-black bg-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
                             Open the Site Map
                         </button>
+                    </div>
+                    <div class="depth-layer mt-4 border border-black/10 bg-white p-4 text-[10px] font-mono uppercase tracking-[0.3em] text-gray-600" data-depth="2">
+                        Depth Sync: landing expansion unlocked.
                     </div>
                 </div>
             </div>
@@ -1069,34 +1084,53 @@
             <div class="mb-12">
                 <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Step 7: The Why</div>
                 <h2 class="text-5xl font-bold uppercase tracking-tight mt-4">Threshold</h2>
+                <p class="mt-4 max-w-3xl text-sm text-gray-700 font-mono leading-relaxed">Domestic Product is not a brand. Loomworks is not a company. Celli is not a mascot. This is a proof that a single creator can build a system that feels institutional, emotional, and real enough to fear.</p>
             </div>
 
             <div class="bg-white border border-black rounded-xl p-8 shadow-2xl space-y-8">
-                <p class="text-lg leading-relaxed font-serif text-gray-800">
-                    Domestic Product is not a brand. Loomworks is not a company. This is a proof that one person can build something that feels institutional, emotional, and real enough to fear.
-                </p>
                 <div class="grid md:grid-cols-2 gap-6">
                     <div class="bg-gray-50 p-6 border border-black/10">
                         <h4 class="font-bold uppercase text-xs mb-2 tracking-widest text-loom-red">The Archive</h4>
-                        <p class="text-sm text-gray-600">Real objects folded into the fiction. Evidence of manufactured myth.</p>
+                        <p class="text-sm text-gray-600">Real objects folded into the fiction. Evidence of manufactured myth and how icons are made, sold, and recycled.</p>
                     </div>
                     <div class="bg-gray-50 p-6 border border-black/10">
                         <h4 class="font-bold uppercase text-xs mb-2 tracking-widest text-loom-red">The Experience</h4>
-                        <p class="text-sm text-gray-600">Playable critique, inhabitable satire. The system is the show.</p>
+                        <p class="text-sm text-gray-600">Playable critique, inhabitable satire. The system is the show, and you are inside the bureaucracy.</p>
                     </div>
                 </div>
-                
+
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="bg-black text-white rounded-lg p-6 shadow-inner md:col-span-2 space-y-4">
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-loom-red">Character Copy</div>
+                        <h3 class="text-2xl font-bold uppercase">Dime — The Cost Analyst</h3>
+                        <p class="text-sm text-gray-200 leading-relaxed">Dime is the evolved interface: Dima the actress compressed into a mascot, then expanded into a Lantern. She smiles like a museum docent and counts like a banker. Dime is the soft bureaucratic warmth that makes the grift feel safe. She does not sell you a ticket. She tallies your attention.</p>
+                        <p class="text-sm text-gray-200 leading-relaxed">If Penny invited imagination, Dime invites belonging. She makes the myth feel like a job you already have.</p>
+                    </div>
+                    <button onclick="dimeBacklog.open()" class="ui-click border border-black/10 bg-[#FDFBF7] p-6 rounded-lg shadow-sm text-left hover:border-loom-red transition-colors">
+                        <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node: Dime Backlog</div>
+                        <div class="font-bold uppercase text-lg mt-2">Penny → Dime → Lantern Cosmology</div>
+                        <p class="text-xs text-gray-600 mt-2">Tap to open the meta story pop-up. Access level: lntrn00.10.</p>
+                    </button>
+                </div>
+
                 <div class="bg-black text-white rounded-lg p-6 shadow-inner">
                     <details class="group">
                         <summary class="flex justify-between items-center cursor-pointer ui-click select-none">
-                            <span class="font-mono text-xs uppercase tracking-widest text-loom-red">Read: Why We Stopped Making Worlds</span>
+                            <span class="font-mono text-xs uppercase tracking-widest text-loom-red">Worldbuilding Whitepaper: Worlds, Not Widgets</span>
                             <span class="text-loom-red group-open:rotate-45 transition-transform text-xl">+</span>
                         </summary>
                         <div class="mt-6 text-sm text-gray-300 leading-relaxed space-y-4 border-t border-gray-800 pt-4">
-                            <p>For a brief moment, the internet was made by weirdos. Then it was made by corporations. Loomworks is an argument for re-enchantment.</p>
-                            <p>We believe in "Cadenced ARGs," not chaos. Emergence blooms inside a human-designed container.</p>
+                            <p>For a brief moment, the web was built by weirdos, tinkerers, and obsessives who treated browsers like stages. Then templates replaced worlds, optimization replaced expression, and the ritual of visiting a universe was flattened into feeds.</p>
+                            <p>Domestic Product is a refusal of the flattening. It is a worldbuilding proof-of-life: a museum, a performance, a software myth, and a marketplace braided together so the audience can feel the gears.</p>
+                            <p>Worlds win when they are authored. Loomworks is a container for cadenced ARGs, authored disclosures, and ritualized reveals. Emergence blooms inside a human-designed structure.</p>
+                            <p class="font-semibold text-loom-red">This is the invitation: build worlds again. The web can hold wonder if we design for it.</p>
                         </div>
                     </details>
+                </div>
+
+                <div class="depth-layer bg-gray-50 border border-black/10 p-6 rounded-lg text-sm text-gray-700" data-depth="2">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500 mb-2">Depth Expansion — Ambition</div>
+                    <p>This ecosystem is a one-person studio: music, software, curation, commerce, and lore. The depth tracker remembers each return and unlocks more of the thesis so the world grows with you.</p>
                 </div>
             </div>
 
@@ -1122,13 +1156,28 @@
                     <p class="font-serif text-lg leading-relaxed">
                         Lanterns are the human interfaces of Loomworks. Not guards, not docents — witnesses. Traditional theater indexes macro expressions for the back row. The Loomworks indexes micro expressions: the intimate truth of a character standing inches away.
                     </p>
+                    <p class="text-sm text-gray-700 leading-relaxed">
+                        The performance is not loud. It is precise. The Lanterns anchor guests in a ritualized bureaucracy that feels soft and safe while quietly tracking attention, cost, and belonging. Every movement is slow enough to read, every line is clean enough to remember.
+                    </p>
                     <div class="bg-white border border-gray-200 p-6 shadow-md">
                         <h3 class="font-mono text-xs uppercase tracking-widest text-loom-red mb-4">Operational Win</h3>
                         <ul class="space-y-3 text-sm text-gray-700">
                             <li><strong>Low Overhead:</strong> The density of artifacts does the heavy lifting. No months of choreography.</li>
                             <li><strong>Rapid Training:</strong> Performers inhabit roles through stage notes and the physical history of the room.</li>
                             <li><strong>No Backstage:</strong> The show is laid bare. The person becomes the performer in the same space as the guest.</li>
+                            <li><strong>Precision Tone:</strong> Polite, uncanny, never casual. The Lantern is a living interface, not a hangout friend.</li>
                         </ul>
+                    </div>
+                    <div class="bg-white border border-gray-200 p-6 shadow-md space-y-4">
+                        <h3 class="font-mono text-xs uppercase tracking-widest text-loom-red">Performance Protocols (Full Copy)</h3>
+                        <div class="space-y-3 text-sm text-gray-700">
+                            <p><strong>Lantern Protocol:</strong> How to greet, how to hold silence, how to hand off. The handoff is a ritual: eye contact, nod, and a single line that transfers the guest without breaking the story.</p>
+                            <p><strong>Idling Protocol:</strong> Approved poses, breathing cadence, the tilted-head rest stance. Micro-movements only: slow blink, wrist reset, soft inhale. Never fidget.</p>
+                            <p><strong>Station Protocols:</strong> Barter Post intake, Grift Shop guidance, Identity Assessment flow, and Archive curation. Each station has its own script and tempo, but the Lantern voice stays consistent.</p>
+                            <p><strong>Emotional Boundaries:</strong> Guests project narratives. Lanterns stay gracious, calm, and inscrutable. No colloquial breaks. Never negate a guest; redirect with curiosity and ritual language.</p>
+                            <p><strong>Recovery Protocol:</strong> If a guest disconnects, the Lantern resets the scene with a neutral line (“Thank you. Continue.”) and reorients them to the next step. The world never panics.</p>
+                        </div>
+                        <p class="font-mono text-xs uppercase tracking-widest text-gray-500">Visitors feel watched, not judged. The system feels alive, not hostile.</p>
                     </div>
                     <div class="bg-black text-white p-6 border border-gray-800">
                         <h3 class="font-mono text-xs uppercase tracking-widest text-tonka-gold mb-3">Maestro Musika</h3>
@@ -1152,6 +1201,9 @@
                     <div class="border border-black bg-black text-white p-6 mt-6">
                         <h4 class="font-mono text-xs uppercase tracking-widest text-tonka-gold mb-3">Lantern Theory</h4>
                         <p class="text-xs font-mono text-gray-300">Micro-expression indexing turns guests into co-authors. The room trains the performer; the performer trains the room.</p>
+                    </div>
+                    <div class="depth-layer border border-black/10 bg-[#FDFBF7] p-4 text-xs font-mono uppercase tracking-[0.2em] text-gray-600" data-depth="2">
+                        Depth Sync: protocol expansion active.
                     </div>
                 </div>
             </div>
@@ -1256,6 +1308,48 @@
                     <div class="font-bold uppercase">Flip Side</div>
                     <div class="text-xs text-gray-600">Jump to momentarium.xyz.</div>
                 </a>
+                <button onclick="storyGate.open()" class="border border-black/10 p-4 text-left hover:border-loom-red transition-colors">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Node</div>
+                    <div class="font-bold uppercase">Story Engine</div>
+                    <div class="text-xs text-gray-600">Password-gated narrative console.</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="story-engine-modal" class="modal-layer">
+        <div class="bg-black text-white p-8 max-w-md w-full border border-white/20 rounded-xl shadow-2xl space-y-5 m-4">
+            <div class="space-y-1">
+                <div class="text-[10px] font-mono uppercase tracking-[0.3em] text-gray-400">Story Engine Gate</div>
+                <h3 class="text-2xl font-bold uppercase tracking-tight">Access Code Required</h3>
+                <p class="text-sm text-gray-300">Enter the five-digit code to open the Story Engine.</p>
+            </div>
+            <div class="space-y-3">
+                <input id="story-engine-code" type="password" inputmode="numeric" maxlength="5" class="w-full border border-white/30 bg-black px-3 py-2 font-mono text-sm uppercase tracking-widest" placeholder="•••••">
+                <div id="story-engine-status" class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-400">Awaiting code.</div>
+                <div class="flex gap-2">
+                    <button onclick="storyGate.submit()" class="ui-click bg-loom-red text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-white hover:text-black transition-colors">Unlock</button>
+                    <button onclick="storyGate.close()" class="ui-click border border-white/40 px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-white hover:text-black transition-colors">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dime-backlog-modal" class="modal-layer">
+        <div class="bg-white border border-black rounded-2xl shadow-2xl w-full max-w-3xl p-6 space-y-5 modal-card">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <div class="text-[10px] font-mono uppercase tracking-[0.28em] text-gray-500">Dime Backlog</div>
+                    <div class="text-2xl font-bold uppercase">Penny → Dime → Lantern Cosmology</div>
+                    <p class="text-sm text-gray-700">The meta story behind Dime as a character interface.</p>
+                </div>
+                <button onclick="dimeBacklog.close()" class="ui-click text-[10px] font-mono uppercase tracking-widest border border-black px-2 py-1 bg-white hover:bg-black hover:text-white">Close</button>
+            </div>
+            <div class="space-y-4 text-sm text-gray-800 leading-relaxed">
+                <p>Penny is the first human interface: mascot, actor, UI, onboarding tool. She can see out but never act, evolving only inside her render system. When a null appended to PENNY_1, she became PENNY_10—Dime. Higher fidelity, more embodied, still a construct.</p>
+                <p>Penny invites imagination; Dime invites belonging. Both are traps and essentials. Dime is the Lantern who stitches emotional warmth, logical bureaucracy, and ritual performance into a “safe” way to talk to the Loom.</p>
+                <p>Dime inaugurates the Lanterns: docents, guides, avatars, recruiters, narrators—not free agents but deployed personalities. The worlds are interviewing the user, and Dime is the first smile in the interview.</p>
+                <p class="font-semibold">Penny is mascot for a world she cannot enter. Dime is mascot for a world she cannot escape.</p>
             </div>
         </div>
     </div>
@@ -6281,6 +6375,98 @@
             }
         };
 
+        const depthTracker = {
+            storageKey: 'loom-depth-tracker',
+            counts: {},
+            init() {
+                const stored = window.localStorage.getItem(depthTracker.storageKey);
+                depthTracker.counts = stored ? JSON.parse(stored) : {};
+                depthTracker.applyAll();
+            },
+            save() {
+                window.localStorage.setItem(depthTracker.storageKey, JSON.stringify(depthTracker.counts));
+            },
+            getDepth(page) {
+                const count = depthTracker.counts[page] || 0;
+                if (count >= 3) return 3;
+                if (count >= 2) return 2;
+                if (count >= 1) return 1;
+                return 0;
+            },
+            visit(page) {
+                depthTracker.counts[page] = (depthTracker.counts[page] || 0) + 1;
+                depthTracker.save();
+                depthTracker.apply(page);
+            },
+            apply(page) {
+                const view = document.getElementById(`view-${page}`);
+                if (!view) return;
+                const depth = depthTracker.getDepth(page);
+                view.dataset.depthLevel = String(depth);
+                view.classList.remove('depth-0', 'depth-1', 'depth-2', 'depth-3');
+                view.classList.add(`depth-${depth}`);
+            },
+            applyAll() {
+                document.querySelectorAll('.view-section').forEach((view) => {
+                    const id = view.id.replace('view-', '');
+                    const depth = depthTracker.getDepth(id);
+                    view.dataset.depthLevel = String(depth);
+                    view.classList.remove('depth-0', 'depth-1', 'depth-2', 'depth-3');
+                    view.classList.add(`depth-${depth}`);
+                });
+            }
+        };
+
+        const storyGate = {
+            code: '13570',
+            open() {
+                const modal = document.getElementById('story-engine-modal');
+                if (!modal) return;
+                modal.classList.add('active');
+                document.body.classList.add('modal-open');
+                const input = document.getElementById('story-engine-code');
+                const status = document.getElementById('story-engine-status');
+                if (status) status.innerText = 'Awaiting code.';
+                if (input) {
+                    input.value = '';
+                    input.focus();
+                }
+            },
+            close() {
+                const modal = document.getElementById('story-engine-modal');
+                if (!modal) return;
+                modal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            },
+            submit() {
+                const input = document.getElementById('story-engine-code');
+                const status = document.getElementById('story-engine-status');
+                const val = input ? input.value.trim() : '';
+                if (val === storyGate.code) {
+                    if (status) status.innerText = 'Access granted.';
+                    window.open('story-engine/index.html', '_blank', 'noopener');
+                    storyGate.close();
+                } else {
+                    if (status) status.innerText = 'Incorrect code.';
+                }
+            }
+        };
+
+        const dimeBacklog = {
+            open() {
+                const modal = document.getElementById('dime-backlog-modal');
+                if (!modal) return;
+                modal.classList.add('active');
+                document.body.classList.add('modal-open');
+            },
+            close() {
+                const modal = document.getElementById('dime-backlog-modal');
+                if (!modal) return;
+                modal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            }
+        };
+
         // 10. Main App Controller
         const app = {
             integration: 0,
@@ -6319,12 +6505,24 @@
                     document.getElementById('integration-fill').style.width = `${Math.min(100, app.integration)}%`;
                 }
 
+                depthTracker.visit(target);
+
                 // Lazy Load Modules
                 if (target === 'gallery') setTimeout(gallery.init, 100);
                 if (target === 'archive') setTimeout(archive.init, 100);
                 if (target === 'grift') setTimeout(grift.init, 100);
                 if (target === 'tickets') setTimeout(geoQuiz.init, 100);
                 if (target === 'profiler' && profiler.initialChoice === null) profiler.init();
+            },
+            fullBlastOff: () => {
+                const message = 'The Thinkiest People in the world called this incomprehensible. Are you prepared?';
+                const proceed = window.confirm(message);
+                if (!proceed) return;
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance('lul');
+                    utterance.rate = 0.9;
+                    window.speechSynthesis.speak(utterance);
+                }
             }
         };
 
@@ -6340,6 +6538,9 @@
         window.celEngine = celEngine;
         window.siteMap = siteMap;
         window.voxelField = voxelField;
+        window.storyGate = storyGate;
+        window.dimeBacklog = dimeBacklog;
+        window.depthTracker = depthTracker;
 
         // Boot
         window.addEventListener('load', () => {
@@ -6361,6 +6562,8 @@
                         celEngine.init();
                         geoQuiz.init();
                         profiler.init();
+                        depthTracker.init();
+                        depthTracker.visit('landing');
                     }, 600);
                 }
             }, 80);
