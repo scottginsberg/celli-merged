@@ -6195,7 +6195,7 @@
                 if (!dataUrl) return profiler.flashShareStatus('Preview not ready.');
                 const link = document.createElement('a');
                 link.href = dataUrl;
-                link.download = `${payload.title.replace(/[^a-z0-9\\- ]/gi, '').replace(/\\s+/g, '_')}.png`;
+                link.download = `${payload.title.replace(/[^a-z0-9\- ]/gi, '').replace(/\s+/g, '_')}.png`;
                 link.click();
                 profiler.flashShareStatus('Preview downloaded.');
             }
