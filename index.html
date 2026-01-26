@@ -84,6 +84,7 @@
         }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.4s ease forwards; }
 
         .archive-mode-btn { border: 1px solid #111; background: #fff; padding: 6px 10px; }
         .archive-mode-btn.active { background: #111; color: #fff; }
@@ -169,6 +170,48 @@
         .cel-detail::after { content: ''; position: absolute; inset: 0; background: linear-gradient(120deg, rgba(205,43,43,0.08), transparent 60%); opacity: 0; transition: opacity 0.3s ease; }
         body.entropy-2 .cel-detail::after { opacity: 1; }
         body.entropy-3 .cel-detail::after { opacity: 1; mix-blend-mode: multiply; }
+
+        .role-card { transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        .role-card:hover { transform: translateY(-4px); border-color: #000; box-shadow: 4px 4px 0px #000; }
+        .role-card.selected { background: #000; color: #fff; transform: scale(1.02); }
+        .role-card.selected .role-desc { color: #ccc; }
+
+        .sculpture-preview {
+            border: 1px solid #111;
+            background: linear-gradient(180deg, #fef8ef 0%, #f7efe6 100%);
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
+        }
+        .sculpture-preview .grid {
+            align-items: stretch;
+        }
+        .sculpture-canvas-shell {
+            background: #f6f0e6;
+            border: 1px solid rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .sculpture-canvas-shell canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .sculpture-readout {
+            background: #fff;
+            border: 1px solid rgba(0,0,0,0.12);
+        }
+        .sculpture-share-button {
+            border: 1px solid #111;
+            background: #fff;
+            padding: 6px 10px;
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .sculpture-share-button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 2px 2px 0 #111; }
+        .sculpture-share-button:disabled { opacity: 0.4; cursor: not-allowed; }
 
         .grift-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
         .grift-card { background: #fffdf5; border: 1px solid #111; padding: 16px; border-radius: 14px; box-shadow: 0 14px 34px rgba(0,0,0,0.08); transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
@@ -489,62 +532,184 @@
     </section>
 
     <section id="view-profiler" class="view-section">
-        <div class="max-w-5xl mx-auto px-6 py-12">
-            <div class="text-center mb-12">
-                <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Step 2: Identification</div>
-                <h2 class="text-5xl font-bold uppercase tracking-tight mt-4">Who Are You?</h2>
-            </div>
-
-            <div class="bg-white border border-black rounded-xl p-8 shadow-xl relative overflow-hidden min-h-[400px]">
-                <div id="prof-stage-select" class="space-y-6">
-                    <p class="text-center font-mono text-sm text-gray-500">Self-designate your role within the Loomworks architecture.</p>
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-                        <button onclick="profiler.select('dreamer')" class="border p-4 hover:bg-black hover:text-white transition-colors ui-click text-left">
-                            <div class="font-bold uppercase">Dreamer</div>
-                            <div class="text-[10px] opacity-60 mt-1">Hunts for resonance.</div>
-                        </button>
-                        <button onclick="profiler.select('scholar')" class="border p-4 hover:bg-black hover:text-white transition-colors ui-click text-left">
-                            <div class="font-bold uppercase">Scholar</div>
-                            <div class="text-[10px] opacity-60 mt-1">Keeps the receipts.</div>
-                        </button>
-                        <button onclick="profiler.select('investor')" class="border p-4 hover:bg-black hover:text-white transition-colors ui-click text-left">
-                            <div class="font-bold uppercase">Investor</div>
-                            <div class="text-[10px] opacity-60 mt-1">Measures upside.</div>
-                        </button>
-                        <button onclick="profiler.select('passerby')" class="border p-4 hover:bg-black hover:text-white transition-colors ui-click text-left">
-                            <div class="font-bold uppercase">Passerby</div>
-                            <div class="text-[10px] opacity-60 mt-1">Just looking.</div>
-                        </button>
-                        <button onclick="profiler.select('lantern')" class="border p-4 hover:bg-black hover:text-white transition-colors ui-click text-left">
-                            <div class="font-bold uppercase">Lantern</div>
-                            <div class="text-[10px] opacity-60 mt-1">Carries the story.</div>
-                        </button>
-                    </div>
+        <div id="prof-banner" class="hidden w-full bg-white border-b border-black py-4 px-6 sticky top-[57px] z-40 shadow-md transition-all">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <div class="text-[10px] font-mono text-gray-400 uppercase tracking-widest">Classification Locked</div>
+                    <h2 class="text-2xl md:text-3xl font-bold uppercase text-red-600" id="banner-title">Identity Stored</h2>
                 </div>
-
-                <div id="prof-stage-doubt" class="hidden text-center py-10 fade-in-up">
-                    <h3 class="text-2xl font-bold uppercase text-loom-red mb-4">Are you sure?</h3>
-                    <p class="font-mono text-xs mb-6 text-gray-600">Your self-classification requires verification against the Loom.</p>
-                    <button onclick="profiler.startQuiz()" class="bg-black text-white px-8 py-3 font-mono text-xs uppercase tracking-widest ui-click hover:bg-loom-red transition-colors">Launch Verification</button>
-                </div>
-
-                <div id="prof-result" class="hidden p-6 bg-gray-50 border border-black fade-in-up">
-                    <div class="flex justify-between items-start mb-4">
-                        <h3 class="text-xl font-bold uppercase" id="result-title">Identity Locked</h3>
-                        <span class="text-[10px] font-mono border border-black px-2 py-1">V.01</span>
-                    </div>
-                    <p class="text-xs font-mono uppercase tracking-[0.25em] text-gray-500 mb-4" id="result-motto">Awaiting motto...</p>
-                    <div id="sculpture-container" class="bg-[#eee] w-full h-48 mb-4 border border-gray-300 flex items-center justify-center">
-                        <canvas id="sculpture-canvas" width="400" height="200" class="w-full h-full object-contain"></canvas>
-                    </div>
-                    <p class="text-xs font-mono text-gray-500">Unique generative artifact created based on your signal. Ready for gallery injection.</p>
+                <div class="flex gap-4 items-center">
+                    <p class="hidden md:block font-mono text-xs italic text-gray-600 mr-4" id="banner-motto">Prepared for entry.</p>
+                    <button onclick="app.navigate('gallery')" class="bg-black text-white px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600">Enter Gallery</button>
                 </div>
             </div>
+        </div>
 
-            <div class="border-t border-black mt-20 pt-8 flex justify-end">
-                <button onclick="app.navigate('gallery')" class="ui-click bg-black text-white px-6 py-4 text-xs font-mono uppercase tracking-widest hover:bg-loom-red transition-colors flex items-center gap-2">
-                    Next: Enter Gallery <span>&rarr;</span>
-                </button>
+        <div class="max-w-5xl mx-auto px-6 pb-12 w-full flex flex-col gap-8">
+            <div class="text-center space-y-4">
+                <div class="inline-flex items-center gap-2 border border-black px-3 py-1 text-[10px] font-mono uppercase tracking-widest bg-white">Identity Quiz</div>
+                <h2 class="text-4xl md:text-5xl font-bold uppercase tracking-tight leading-tight">Choose your signal</h2>
+                <p class="font-mono text-sm text-gray-700 leading-relaxed max-w-3xl mx-auto">Pick your lane and we will open a sealed quiz overlay to confirm it, then mint a shareable sculpture identity artifact.</p>
+            </div>
+
+            <div class="bg-white border border-black rounded-xl shadow-xl overflow-hidden" id="prof-shell">
+                <div class="p-6 space-y-6" id="prof-content-area">
+                    <div id="calibration-gate" class="bg-[#0b0b0b] text-white rounded-xl p-5 space-y-5 shadow-[6px_6px_0px_0px_rgba(205,43,43,1)]">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-red-200">Calibration Gate</div>
+                                <h3 class="text-2xl font-bold">Threshold Selection</h3>
+                            </div>
+                            <div id="lumen-readout" class="font-mono text-xs uppercase tracking-widest px-3 py-1 border border-white/20 rounded-full bg-white/5">Lumen Level: Unset</div>
+                        </div>
+                        <p class="text-sm leading-relaxed text-gray-100">Set your transparency level before the Identity Assessment. Answer the ARG check, choose your entrance style, and opt into extra light if you need it.</p>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <div class="font-bold">[Query 01]</div>
+                                <p class="font-mono text-[11px] uppercase tracking-widest text-red-200">Have you played an ARG before?</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button data-cal-group="arg" data-cal-choice="yes" onclick="calibrationGate.setArg(true, this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">Yes</button>
+                                    <button data-cal-group="arg" data-cal-choice="no" onclick="calibrationGate.setArg(false, this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">No</button>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="font-bold">[Query 02]</div>
+                                <p class="font-mono text-[11px] uppercase tracking-widest text-red-200">How do you wish to enter the Loomworks?</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button data-cal-group="entry" data-cal-choice="blind" onclick="calibrationGate.setEntry('blind', this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">Go in Blind</button>
+                                    <button data-cal-group="entry" data-cal-choice="light" onclick="calibrationGate.setEntry('light', this)" class="cal-choice border border-white/30 bg-white/5 px-3 py-3 text-sm font-mono uppercase tracking-widest hover:bg-white/10 rounded-lg">With a Little Light</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid md:grid-cols-3 gap-3 bg-white/5 border border-white/10 rounded-lg p-4">
+                            <label class="flex items-start gap-2 text-sm text-gray-100"><input type="checkbox" class="mt-1 cal-light" onchange="calibrationGate.toggleLight('history', this.checked)"><span><span class="font-bold">History</span>: Track the resonance cascade via I Love Bees, Slusho, Why So Serious?, and Flynn Lives.</span></label>
+                            <label class="flex items-start gap-2 text-sm text-gray-100"><input type="checkbox" class="mt-1 cal-light" onchange="calibrationGate.toggleLight('form', this.checked)"><span><span class="font-bold">Form</span>: Enter diegetically; the Barter Post and Lanterns believe this is their world.</span></label>
+                            <label class="flex items-start gap-2 text-sm text-gray-100"><input type="checkbox" class="mt-1 cal-light" onchange="calibrationGate.toggleLight('intent', this.checked)"><span><span class="font-bold">Intent</span>: Hold the Skibidi-speed collision of legacy icons and absurdist velocity.</span></label>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 justify-between">
+                            <div id="calibration-status" class="font-mono text-xs text-gray-200 uppercase tracking-widest">Set your lumen level to tune how much satire you see.</div>
+                            <button onclick="calibrationGate.confirm()" class="ui-click bg-white text-black px-4 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600 hover:text-white transition-colors">Lock Lumen Level</button>
+                        </div>
+                    </div>
+
+                    <div id="prof-stage-locked" class="border border-dashed border-red-400 bg-red-50 text-red-700 p-4 rounded-lg text-sm font-mono uppercase tracking-widest text-center">Complete the Calibration Gate to unlock the Identity Assessment.</div>
+
+                    <div id="prof-stage-select" class="space-y-5 hidden">
+                        <p class="font-mono text-xs text-gray-600 text-center uppercase tracking-widest">Pick your lane. A focused quiz will open in a separate overlay to confirm your classification.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                            <button onclick="profiler.select('dreamer', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
+                                <div class="text-lg font-bold uppercase mb-1">Dreamer</div>
+                                <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Hunts for resonance and lyrical angles.</div>
+                            </button>
+                            <button onclick="profiler.select('scholar', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
+                                <div class="text-lg font-bold uppercase mb-1">Scholar</div>
+                                <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Documents provenance and keeps the receipts.</div>
+                            </button>
+                            <button onclick="profiler.select('investor', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
+                                <div class="text-lg font-bold uppercase mb-1">Investor</div>
+                                <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Measures upside; tracks viable returns.</div>
+                            </button>
+                            <button onclick="profiler.select('passerby', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
+                                <div class="text-lg font-bold uppercase mb-1">Passerby</div>
+                                <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Arrives without baggage; reads the room plainly.</div>
+                            </button>
+                            <button onclick="profiler.select('lantern', this)" class="role-card border border-gray-200 p-4 text-left hover:bg-white bg-white/70 ui-click rounded-lg">
+                                <div class="text-lg font-bold uppercase mb-1">Lantern</div>
+                                <div class="role-desc font-mono text-[10px] text-gray-500 leading-tight">Carries the story; keeps guests oriented.</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="prof-stage-doubt" class="hidden text-center border border-black p-8 bg-[#FDFBF7] shadow-[6px_6px_0px_0px_rgba(205,43,43,1)] rounded-lg">
+                        <h3 class="text-3xl font-bold uppercase mb-3 text-red-600">Are you sure?</h3>
+                        <p class="font-mono text-xs mb-6 leading-relaxed text-gray-700">
+                            Your self-classification clashes with most visitor patterns. We'll open a focused pop-up quiz to test it without pinning anything to the top of the page.
+                        </p>
+                        <div class="flex gap-4 justify-center flex-wrap">
+                            <button onclick="profiler.reset()" class="ui-click border-b-2 border-gray-300 hover:border-black text-xs font-mono uppercase pb-1">Reconsider</button>
+                            <button onclick="profiler.startQuiz()" class="ui-click bg-black text-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-red-600 transition-colors">Launch Verification Pop-up</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="prof-result-card" class="hidden grid md:grid-cols-3 gap-4 items-start">
+                <div class="md:col-span-2 bg-white border border-black rounded-xl p-6 shadow-lg">
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-red-600 mb-2">Assessment Complete</div>
+                    <div class="font-bold text-2xl mb-1" id="result-title">Identity Stored</div>
+                    <div class="font-mono text-sm text-gray-600 mb-4" id="result-motto">Proceed to Gallery or sculpt.</div>
+                    <p class="text-sm text-gray-600">Your badge is pinned above. Use the Sculpture Generator to mint a bespoke artifact from your profile, or drop straight into the gallery.</p>
+                </div>
+                <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-3">
+                    <div class="font-mono text-[10px] uppercase tracking-widest text-gray-500">Next</div>
+                    <button onclick="app.navigate('gallery')" class="ui-click w-full border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Gallery</button>
+                    <button onclick="app.navigate('ambition')" class="ui-click w-full border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Ambition Blueprint</button>
+                </div>
+            </div>
+
+            <div id="sculpture-generator" class="hidden bg-white border border-black rounded-xl shadow-xl p-6 grid md:grid-cols-2 gap-6">
+                <div class="space-y-3">
+                    <div class="font-mono text-[10px] uppercase tracking-widest text-red-600">Sculpture / Art Generator</div>
+                    <h3 class="text-2xl font-bold">Generate a signal artifact</h3>
+                    <p class="text-sm text-gray-600">We translate your classification into a compact blueprint: material suggestions, silhouette, and a mood palette ready for fabrication or AI pipelines.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <label class="text-xs font-mono uppercase tracking-widest text-gray-600 flex flex-col gap-1">Material Bias
+                            <select id="sculpture-material" class="border border-gray-300 px-2 py-2 text-sm">
+                                <option>Cast glass + steel</option>
+                                <option>Folded paper + neon</option>
+                                <option>Reclaimed plastic + resin</option>
+                                <option>Stone powder + pigment</option>
+                            </select>
+                        </label>
+                        <label class="text-xs font-mono uppercase tracking-widest text-gray-600 flex flex-col gap-1">Format
+                            <select id="sculpture-format" class="border border-gray-300 px-2 py-2 text-sm">
+                                <option>Table-top maquette</option>
+                                <option>Wall relief</option>
+                                <option>Suspended mobile</option>
+                                <option>Floor totem</option>
+                            </select>
+                        </label>
+                        <label class="text-xs font-mono uppercase tracking-widest text-gray-600 flex flex-col gap-1">Render Mode
+                            <select id="sculpture-mode" class="border border-gray-300 px-2 py-2 text-sm">
+                                <option value="2d" selected>2D (Current)</option>
+                                <option value="3d">3D (Legacy)</option>
+                            </select>
+                        </label>
+                    </div>
+                    <button onclick="profiler.generateSculpture()" class="ui-click bg-black text-white px-4 py-3 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600">Generate Blueprint</button>
+                </div>
+                <div class="sculpture-preview rounded-lg p-4" id="sculpture-preview">
+                    <div class="grid md:grid-cols-2 gap-5 lg:gap-6">
+                        <div class="sculpture-canvas-shell rounded-lg overflow-hidden" id="sculpture-canvas-shell">
+                            <canvas id="sculpture-canvas" width="420" height="260" aria-label="Sculpture preview"></canvas>
+                        </div>
+                        <div class="sculpture-readout rounded-lg p-4 font-mono text-xs flex flex-col gap-4 justify-between" id="sculpture-readout">
+                            <div class="space-y-2">
+                                <div class="text-[10px] uppercase tracking-widest text-gray-500">Awaiting prompt...</div>
+                                <p class="text-sm text-gray-700">Run the quiz and generate a specimen to see the deterministic sketch and dossier.</p>
+                            </div>
+                            <div class="border-t border-gray-200 pt-3 space-y-2">
+                                <div class="text-[10px] uppercase tracking-widest text-gray-500">Share Blueprint</div>
+                                <div class="flex flex-wrap gap-2">
+                                    <button class="sculpture-share-button" onclick="profiler.shareBlueprint()" disabled>Share</button>
+                                    <button class="sculpture-share-button" onclick="profiler.copyBlueprint()" disabled>Copy Brief</button>
+                                    <button class="sculpture-share-button" onclick="profiler.downloadBlueprint()" disabled>Download</button>
+                                </div>
+                                <div id="sculpture-share-status" class="text-[10px] uppercase tracking-widest text-gray-500">Generate to unlock sharing.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-gray-200">
+                <div class="font-mono text-[10px] uppercase tracking-[0.25em] text-gray-500">Continue the experience</div>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button onclick="app.navigate('pitch')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Project Brief</button>
+                    <button onclick="app.navigate('gallery')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Gallery</button>
+                    <button onclick="app.navigate('grift')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Grift Shop</button>
+                    <button onclick="app.navigate('barter')" class="ui-click border border-black bg-white px-3 py-2 text-[10px] font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors">Barter Post</button>
+                </div>
             </div>
         </div>
     </section>
@@ -1096,20 +1261,32 @@
     </div>
 
     <div id="quiz-modal" class="modal-layer">
-        <div class="bg-white p-8 max-w-lg w-full border-2 border-black rounded-xl shadow-2xl m-4">
-            <div class="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
-                <h3 class="text-xl font-bold uppercase tracking-tight">Identity Verification</h3>
-                <span class="text-[10px] font-mono text-loom-red">ACTIVE</span>
+        <div class="bg-white border border-black rounded-2xl shadow-2xl w-full max-w-3xl relative overflow-hidden">
+            <div class="absolute top-3 right-3">
+                <button onclick="profiler.closeModal()" class="ui-click text-[10px] font-mono uppercase tracking-widest border border-black px-2 py-1 bg-white hover:bg-black hover:text-white">Close</button>
             </div>
-            <div id="quiz-content" class="space-y-6">
-                <div class="flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-gray-500">
-                    <span>Question <span id="quiz-num">1</span>/<span id="quiz-total">5</span></span>
-                    <span class="text-loom-red">Classification Loop</span>
+            <div class="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
+                <div class="font-bold uppercase tracking-widest">Identity Verification</div>
+                <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-gray-500">Pop-up Deck</div>
+            </div>
+            <div class="p-6 space-y-8">
+                <div id="prof-stage-quiz" class="hidden w-full">
+                    <div class="mb-6 border-b border-gray-200 pb-4 flex justify-between items-center">
+                        <span class="font-mono text-xs uppercase tracking-widest">Question <span id="quiz-num">1</span>/<span id="quiz-total">5</span></span>
+                        <span class="font-mono text-xs text-red-600 uppercase tracking-widest">Stay present</span>
+                    </div>
+
+                    <h3 class="text-2xl md:text-3xl font-bold mb-8" id="quiz-q">Question Text Here</h3>
+
+                    <div class="space-y-3" id="quiz-options">
+                    </div>
                 </div>
-                <p id="quiz-question" class="text-lg font-serif">Question goes here...</p>
-                <div id="quiz-options" class="flex flex-col gap-3"></div>
+
+                <div id="prof-stage-process" class="hidden text-center max-w-xl mx-auto">
+                    <div class="font-mono text-sm uppercase tracking-widest space-y-4" id="decon-lines">
+                    </div>
+                </div>
             </div>
-            <button onclick="profiler.closeModal()" class="mt-8 text-xs underline uppercase tracking-widest text-gray-500 hover:text-black">Cancel Process</button>
         </div>
     </div>
 
@@ -4774,31 +4951,316 @@
             }
         };
 
-        // 4. Sculpture (Three.js)
+        // 4. Sculpture Identity Generator (2D current, 3D legacy)
         const sculptureEngine = {
-            render: () => {
-                const canvas = document.getElementById('sculpture-canvas');
-                if(!canvas) return;
-                const ctx = canvas.getContext('2d');
-                // Simple Generative Fallback if Three.js is heavy
-                ctx.fillStyle = '#f9f9f9';
-                ctx.fillRect(0,0,400,200);
-                
-                // Draw random "Sculpture"
+            renderer: null,
+            scene: null,
+            camera: null,
+            container: null,
+            ctx: null,
+            rand: null,
+            mode: '2d',
+            lastProfile: null,
+
+            hash(text) {
+                let h = 0;
+                for (let i = 0; i < text.length; i++) {
+                    h = Math.imul(31, h) + text.charCodeAt(i) | 0;
+                }
+                return Math.abs(h);
+            },
+
+            setSeed(seedText) {
+                let seed = sculptureEngine.hash(seedText) || 1;
+                sculptureEngine.rand = () => {
+                    seed += 1;
+                    const x = Math.sin(seed) * 10000;
+                    return x - Math.floor(x);
+                };
+            },
+
+            randRange(min, max) {
+                if (!sculptureEngine.rand) return min;
+                return min + (max - min) * sculptureEngine.rand();
+            },
+
+            prepare2DCanvas() {
+                sculptureEngine.container = document.getElementById('sculpture-canvas');
+                if (!sculptureEngine.container) return null;
+                const bounds = sculptureEngine.container.getBoundingClientRect();
+                const width = bounds.width || 420;
+                const height = bounds.height || 260;
+                const dpr = window.devicePixelRatio || 1;
+                sculptureEngine.container.width = width * dpr;
+                sculptureEngine.container.height = height * dpr;
+                sculptureEngine.ctx = sculptureEngine.container.getContext('2d');
+                sculptureEngine.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                return sculptureEngine.ctx;
+            },
+
+            init3D() {
+                sculptureEngine.container = document.getElementById('sculpture-canvas');
+                if (!sculptureEngine.container || !window.THREE) return;
+                if (!sculptureEngine.renderer) {
+                    sculptureEngine.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, canvas: sculptureEngine.container });
+                }
+                const bounds = sculptureEngine.container.getBoundingClientRect();
+                sculptureEngine.renderer.setSize(bounds.width || 420, bounds.height || 260);
+
+                sculptureEngine.camera = new THREE.PerspectiveCamera(40, (bounds.width || 420) / (bounds.height || 260), 0.1, 50);
+                sculptureEngine.camera.position.set(3.2, 2.6, 4.8);
+                sculptureEngine.camera.lookAt(0, 1, 0);
+
+                sculptureEngine.scene = new THREE.Scene();
+                sculptureEngine.scene.background = new THREE.Color('#f6f0e6');
+            },
+
+            resetScene() {
+                if (!sculptureEngine.scene) return;
+                while (sculptureEngine.scene.children.length) {
+                    sculptureEngine.scene.remove(sculptureEngine.scene.children[0]);
+                }
+
+                sculptureEngine.scene.add(new THREE.AmbientLight('#f6f0e6', 0.55));
+                const key = new THREE.DirectionalLight('#ffffff', 0.9);
+                key.position.set(3, 6, 5);
+                sculptureEngine.scene.add(key);
+                const rim = new THREE.DirectionalLight('#d7342a', 0.35);
+                rim.position.set(-4, 3, -2);
+                sculptureEngine.scene.add(rim);
+
+                const floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), new THREE.MeshStandardMaterial({ color: '#ede7dc', metalness: 0.1, roughness: 0.8 }));
+                floor.rotation.x = -Math.PI / 2;
+                floor.position.y = -0.5;
+                sculptureEngine.scene.add(floor);
+            },
+
+            buildPrimitives(profile) {
+                const group = new THREE.Group();
+                const mode = sculptureEngine.randRange(0, 1) > 0.7 ? 'outline' : 'stacked';
+                if (mode === 'outline') {
+                    sculptureEngine.buildOutlineVariant(group);
+                } else {
+                    sculptureEngine.buildStackedVariant(group, profile);
+                }
+
+                sculptureEngine.scene.add(group);
+            },
+
+            buildStackedVariant(group, profile) {
+                const voxelCount = 10 + Math.floor(sculptureEngine.randRange(0, 8));
+                for (let i = 0; i < voxelCount; i++) {
+                    const size = sculptureEngine.randRange(0.4, 1.2);
+                    const cube = new THREE.Mesh(
+                        new THREE.BoxGeometry(size, sculptureEngine.randRange(0.5, 1.6), size),
+                        new THREE.MeshStandardMaterial({
+                            color: profile.palette[i % profile.palette.length],
+                            metalness: 0.35,
+                            roughness: 0.4
+                        })
+                    );
+                    cube.position.set(
+                        sculptureEngine.randRange(-1.4, 1.4),
+                        sculptureEngine.randRange(0.2, 2.2),
+                        sculptureEngine.randRange(-1.4, 1.4)
+                    );
+                    cube.rotation.y = sculptureEngine.randRange(0, Math.PI * 2);
+                    group.add(cube);
+
+                    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(cube.geometry), new THREE.LineBasicMaterial({ color: '#0f0f0f', linewidth: 1 }));
+                    edges.position.copy(cube.position);
+                    edges.rotation.copy(cube.rotation);
+                    group.add(edges);
+                }
+
+                for (let i = 0; i < 4; i++) {
+                    const rod = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.05, 0.05, sculptureEngine.randRange(1.2, 2.8), 8),
+                        new THREE.MeshStandardMaterial({ color: '#111111', metalness: 0.6, roughness: 0.25 })
+                    );
+                    rod.position.set(sculptureEngine.randRange(-1.6, 1.6), sculptureEngine.randRange(0.4, 2.4), sculptureEngine.randRange(-1.6, 1.6));
+                    rod.rotation.z = sculptureEngine.randRange(-0.6, 0.6);
+                    rod.rotation.x = sculptureEngine.randRange(-0.2, 0.2);
+                    group.add(rod);
+                }
+
+                for (let i = 0; i < 3; i++) {
+                    const voidBox = new THREE.Mesh(
+                        new THREE.BoxGeometry(sculptureEngine.randRange(0.6, 1.3), sculptureEngine.randRange(0.4, 0.9), sculptureEngine.randRange(0.6, 1.3)),
+                        new THREE.MeshStandardMaterial({ color: '#ffffff', transparent: true, opacity: 0.28, metalness: 0, roughness: 1 })
+                    );
+                    voidBox.position.set(sculptureEngine.randRange(-1.2, 1.2), sculptureEngine.randRange(0.6, 1.8), sculptureEngine.randRange(-1.2, 1.2));
+                    group.add(voidBox);
+                }
+
+                const plate = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.1, 3.8), new THREE.MeshStandardMaterial({ color: '#0f0f0f', metalness: 0.7, roughness: 0.35 }));
+                plate.position.y = 0;
+                group.add(plate);
+
+                const accent = new THREE.Mesh(
+                    new THREE.PlaneGeometry(3.8, 0.2),
+                    new THREE.MeshBasicMaterial({ color: '#d7342a' })
+                );
+                accent.rotation.x = -Math.PI / 2;
+                accent.position.set(0, 0.06, -1.3);
+                group.add(accent);
+            },
+
+            buildOutlineVariant(group) {
+                const redLine = new THREE.LineBasicMaterial({ color: '#d31313', linewidth: 1.2 });
+                const frameCount = 6 + Math.floor(sculptureEngine.randRange(0, 4));
+                for (let i = 0; i < frameCount; i++) {
+                    const box = new THREE.BoxGeometry(
+                        sculptureEngine.randRange(0.8, 1.8),
+                        sculptureEngine.randRange(0.4, 1.5),
+                        sculptureEngine.randRange(0.8, 1.8)
+                    );
+                    const wire = new THREE.LineSegments(new THREE.EdgesGeometry(box), redLine.clone());
+                    wire.position.set(
+                        sculptureEngine.randRange(-1.6, 1.6),
+                        sculptureEngine.randRange(0.3, 2.5),
+                        sculptureEngine.randRange(-1.6, 1.6)
+                    );
+                    wire.rotation.y = sculptureEngine.randRange(0, Math.PI * 2);
+                    wire.rotation.x = sculptureEngine.randRange(-0.3, 0.3);
+                    group.add(wire);
+                }
+
+                const ringCount = 3 + Math.floor(sculptureEngine.randRange(0, 3));
+                for (let i = 0; i < ringCount; i++) {
+                    const torus = new THREE.TorusGeometry(sculptureEngine.randRange(0.6, 1.4), 0.02, 8, 32);
+                    const torusWire = new THREE.LineSegments(new THREE.WireframeGeometry(torus), redLine.clone());
+                    torusWire.position.set(
+                        sculptureEngine.randRange(-0.8, 0.8),
+                        sculptureEngine.randRange(0.5, 1.8),
+                        sculptureEngine.randRange(-0.8, 0.8)
+                    );
+                    torusWire.rotation.x = sculptureEngine.randRange(0, Math.PI * 2);
+                    torusWire.rotation.y = sculptureEngine.randRange(0, Math.PI * 2);
+                    group.add(torusWire);
+                }
+
+                const plate = new THREE.LineSegments(
+                    new THREE.EdgesGeometry(new THREE.BoxGeometry(3.8, 0.06, 3.8)),
+                    redLine.clone()
+                );
+                plate.position.y = 0;
+                group.add(plate);
+
+                const halo = new THREE.LineSegments(
+                    new THREE.WireframeGeometry(new THREE.CylinderGeometry(1.3, 1.3, 0.06, 28, 1, true)),
+                    redLine.clone()
+                );
+                halo.rotation.x = Math.PI / 2;
+                halo.position.y = 0.22;
+                group.add(halo);
+            },
+
+            render2D(profile) {
+                const ctx = sculptureEngine.prepare2DCanvas();
+                if (!ctx) return;
+                const bounds = sculptureEngine.container.getBoundingClientRect();
+                const width = bounds.width || 420;
+                const height = bounds.height || 260;
+                sculptureEngine.setSeed(profile.seedText);
+
+                const bgGradient = ctx.createLinearGradient(0, 0, width, height);
+                bgGradient.addColorStop(0, profile.palette[0]);
+                bgGradient.addColorStop(0.5, '#fef8ef');
+                bgGradient.addColorStop(1, profile.palette[1]);
+                ctx.fillStyle = bgGradient;
+                ctx.fillRect(0, 0, width, height);
+
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                ctx.lineWidth = 1;
+                const grid = 26;
+                for (let x = 0; x <= width; x += grid) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y <= height; y += grid) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+
+                const layers = 6;
+                for (let i = 0; i < layers; i++) {
+                    const color = profile.palette[i % profile.palette.length];
+                    ctx.fillStyle = color;
+                    ctx.globalAlpha = 0.12 + i * 0.1;
+                    const w = sculptureEngine.randRange(40, 160);
+                    const h = sculptureEngine.randRange(30, 120);
+                    const x = sculptureEngine.randRange(20, width - w - 20);
+                    const y = sculptureEngine.randRange(20, height - h - 20);
+                    ctx.save();
+                    ctx.translate(x + w / 2, y + h / 2);
+                    ctx.rotate(sculptureEngine.randRange(-0.4, 0.4));
+                    ctx.fillRect(-w / 2, -h / 2, w, h);
+                    ctx.restore();
+                }
+
+                ctx.globalAlpha = 1;
                 ctx.strokeStyle = '#111';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
-                for(let i=0; i<5; i++) {
-                    ctx.rect(50 + Math.random()*300, 50 + Math.random()*100, 40, 40);
+                for (let i = 0; i < 6; i++) {
+                    const x = sculptureEngine.randRange(40, width - 40);
+                    const y = sculptureEngine.randRange(40, height - 40);
+                    ctx.moveTo(x, y);
+                    ctx.arc(x, y, sculptureEngine.randRange(8, 24), 0, Math.PI * 2);
                 }
                 ctx.stroke();
-                
-                ctx.fillStyle = '#CD2B2B';
-                ctx.beginPath();
-                ctx.arc(200, 100, 10, 0, 2*Math.PI);
-                ctx.fill();
+
+                ctx.fillStyle = '#d7342a';
+                ctx.globalAlpha = 0.9;
+                ctx.fillRect(width * 0.08, height * 0.72, width * 0.2, 6);
+                ctx.globalAlpha = 1;
+            },
+
+            render(profile) {
+                sculptureEngine.lastProfile = profile;
+                sculptureEngine.mode = profile.mode || '2d';
+                if (sculptureEngine.mode === '3d' && window.THREE) {
+                    sculptureEngine.init3D();
+                    if (!sculptureEngine.renderer) return sculptureEngine.render2D(profile);
+                    sculptureEngine.setSeed(profile.seedText);
+                    sculptureEngine.resetScene();
+                    sculptureEngine.buildPrimitives(profile);
+                    sculptureEngine.renderer.render(sculptureEngine.scene, sculptureEngine.camera);
+                } else {
+                    sculptureEngine.mode = '2d';
+                    sculptureEngine.render2D(profile);
+                }
+            },
+
+            resize() {
+                if (sculptureEngine.mode === '3d') {
+                    if (!sculptureEngine.renderer || !sculptureEngine.camera || !sculptureEngine.container) return;
+                    const bounds = sculptureEngine.container.getBoundingClientRect();
+                    sculptureEngine.camera.aspect = (bounds.width || 420) / (bounds.height || 260);
+                    sculptureEngine.camera.updateProjectionMatrix();
+                    sculptureEngine.renderer.setSize(bounds.width || 420, bounds.height || 260);
+                    sculptureEngine.renderer.render(sculptureEngine.scene, sculptureEngine.camera);
+                } else if (sculptureEngine.lastProfile) {
+                    sculptureEngine.render2D(sculptureEngine.lastProfile);
+                }
+            },
+
+            exportImage() {
+                if (sculptureEngine.mode === '3d' && sculptureEngine.renderer) {
+                    return sculptureEngine.renderer.domElement.toDataURL('image/png');
+                }
+                if (sculptureEngine.container) {
+                    return sculptureEngine.container.toDataURL('image/png');
+                }
+                return null;
             }
         };
+        window.sculptureEngine = sculptureEngine;
 
         // 5. Gallery (Three.js 3D Room)
         const gallery = {
@@ -5343,73 +5805,399 @@
             }
         };
 
-        // 10. Profiler Logic
+        // 10. Profiler Logic + Calibration Gate
+        const calibrationGate = {
+            state: { arg: null, entry: null, lights: new Set() },
+
+            reset() {
+                this.state = { arg: null, entry: null, lights: new Set() };
+                document.querySelectorAll('.cal-choice').forEach(btn => btn.classList.remove('bg-white', 'text-black', 'border-black', 'ring-2', 'ring-red-500'));
+                document.querySelectorAll('.cal-light').forEach(box => { box.checked = false; });
+
+                const stageSelect = document.getElementById('prof-stage-select');
+                if (stageSelect) stageSelect.classList.add('hidden');
+                const locked = document.getElementById('prof-stage-locked');
+                if (locked) locked.classList.remove('hidden');
+
+                const status = document.getElementById('calibration-status');
+                if (status) {
+                    status.textContent = 'Set your lumen level to tune how much satire you see.';
+                    status.className = 'font-mono text-xs uppercase tracking-widest text-gray-200';
+                }
+
+                const readout = document.getElementById('lumen-readout');
+                if (readout) readout.textContent = 'Lumen Level: Unset';
+            },
+
+            setArg(val, el) {
+                this.state.arg = val;
+                this.highlight('arg', el);
+                this.updateStatus();
+            },
+
+            setEntry(val, el) {
+                this.state.entry = val;
+                this.highlight('entry', el);
+                this.updateStatus();
+            },
+
+            toggleLight(key, checked) {
+                if (checked) this.state.lights.add(key);
+                else this.state.lights.delete(key);
+            },
+
+            highlight(group, el) {
+                document.querySelectorAll(`[data-cal-group="${group}"]`).forEach(btn => btn.classList.remove('bg-white', 'text-black', 'border-black', 'ring-2', 'ring-red-500'));
+                if (el) el.classList.add('bg-white', 'text-black', 'border-black', 'ring-2', 'ring-red-500');
+            },
+
+            updateStatus(msg = 'Set your lumen level to tune how much satire you see.', variant = 'muted') {
+                const status = document.getElementById('calibration-status');
+                if (!status) return;
+                status.textContent = msg;
+                status.className = 'font-mono text-xs uppercase tracking-widest';
+                if (variant === 'error') status.classList.add('text-red-200');
+                else if (variant === 'success') status.classList.add('text-green-200');
+                else status.classList.add('text-gray-200');
+            },
+
+            computeLumen() {
+                const entry = this.state.entry === 'blind' ? 'Restrained Chaos' : 'Implementation Architect';
+                const arg = this.state.arg ? 'ARG-Ready' : 'New Signal';
+                const labels = { history: 'History', form: 'Form', intent: 'Intent' };
+                const light = this.state.entry === 'light'
+                    ? (this.state.lights.size ? Array.from(this.state.lights).map(k => labels[k]).join(' / ') : 'Context Requested')
+                    : 'Diegetic Blindfold';
+                return `${entry} — ${light} (${arg})`;
+            },
+
+            confirm() {
+                if (this.state.arg === null || this.state.entry === null) {
+                    this.updateStatus('Answer both queries to set your Lumen Level.', 'error');
+                    return;
+                }
+
+                if (this.state.entry === 'light' && this.state.lights.size === 0) {
+                    this.updateStatus('Pick at least one Light explainer to carry.', 'error');
+                    return;
+                }
+
+                const label = this.computeLumen();
+                const readout = document.getElementById('lumen-readout');
+                if (readout) readout.textContent = `Lumen Level: ${label}`;
+                this.updateStatus('Calibration stored. Proceed to the Identity Assessment when ready.', 'success');
+
+                const stageSelect = document.getElementById('prof-stage-select');
+                if (stageSelect) stageSelect.classList.remove('hidden');
+                const locked = document.getElementById('prof-stage-locked');
+                if (locked) locked.classList.add('hidden');
+            }
+        };
+
         const profiler = {
             initialChoice: null,
             scores: { dreamer: 0, scholar: 0, investor: 0, passerby: 0, lantern: 0 },
             currentQ: 0,
-            select: (role) => {
-                profiler.initialChoice = role;
-                profiler.scores[role] += 3;
-                document.getElementById('prof-stage-select').classList.add('hidden');
-                document.getElementById('prof-stage-doubt').classList.remove('hidden');
-                if (window.audio) audio.click();
-            },
-            startQuiz: () => {
-                profiler.currentQ = 0;
-                profiler.scores = { dreamer: 0, scholar: 0, investor: 0, passerby: 0, lantern: 0 };
+            lastWinner: null,
+            lastTitle: '',
+            lastProfile: null,
+            shareTimeout: null,
+
+            init: () => {
+                calibrationGate.reset();
+                document.getElementById('prof-stage-doubt').classList.add('hidden');
+                document.getElementById('prof-stage-quiz').classList.add('hidden');
+                document.getElementById('prof-stage-process').classList.add('hidden');
+                document.getElementById('prof-banner').classList.add('hidden');
+                document.getElementById('quiz-modal').classList.remove('active');
+                document.body.classList.remove('modal-open');
+                document.getElementById('prof-result-card').classList.add('hidden');
+                document.getElementById('sculpture-generator').classList.add('hidden');
                 const totalEl = document.getElementById('quiz-total');
                 if (totalEl) totalEl.innerText = QUIZ.length;
+                profiler.scores = { dreamer: 0, scholar: 0, investor: 0, passerby: 0, lantern: 0 };
+                profiler.currentQ = 0;
+                profiler.initialChoice = null;
+                profiler.lastWinner = null;
+                profiler.lastTitle = '';
+                const readout = document.getElementById('sculpture-readout');
+                if (readout) {
+                    readout.innerHTML = `<div class="text-[10px] uppercase tracking-widest text-gray-500">Awaiting prompt...</div><p class="text-sm text-gray-700">Run the quiz and generate a specimen to see the deterministic sketch and dossier.</p>`;
+                }
+            },
+
+            select: (role, el) => {
+                audio.click();
+                profiler.initialChoice = role;
+                const target = el || null;
+                document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+                if (target) target.classList.add('selected');
+                setTimeout(() => {
+                    document.getElementById('prof-stage-select').classList.add('hidden');
+                    document.getElementById('prof-stage-doubt').classList.remove('hidden');
+                }, 500);
+            },
+
+            reset: () => {
+                audio.click();
+                profiler.init();
+            },
+
+            startQuiz: () => {
+                audio.click();
+                document.getElementById('prof-stage-doubt').classList.add('hidden');
+                document.getElementById('prof-stage-quiz').classList.remove('hidden');
+                document.getElementById('prof-stage-process').classList.add('hidden');
                 document.getElementById('quiz-modal').classList.add('active');
+                document.body.classList.add('modal-open');
                 profiler.renderQuestion();
             },
+
             renderQuestion: () => {
                 const q = QUIZ[profiler.currentQ];
-                const qEl = document.getElementById('quiz-question');
-                const opts = document.getElementById('quiz-options');
-                const numEl = document.getElementById('quiz-num');
-                if (numEl) numEl.innerText = profiler.currentQ + 1;
-                qEl.innerText = q.q;
-                opts.innerHTML = '';
-                const shuffled = [...q.opts].sort(() => 0.5 - Math.random());
-                shuffled.forEach((opt) => {
+                document.getElementById('quiz-num').innerText = profiler.currentQ + 1;
+                document.getElementById('quiz-q').innerText = q.q;
+
+                const optsContainer = document.getElementById('quiz-options');
+                optsContainer.innerHTML = '';
+
+                const shuffled = q.opts.sort(() => 0.5 - Math.random());
+
+                shuffled.forEach(opt => {
                     const btn = document.createElement('button');
-                    btn.className = "border border-gray-300 p-4 text-left hover:bg-black hover:text-white transition-colors ui-click font-mono text-sm";
+                    btn.className = "w-full text-left border border-gray-300 p-4 hover:bg-black hover:text-white transition-colors font-mono text-sm ui-click";
                     btn.innerText = `> ${opt.txt}`;
                     btn.onclick = () => profiler.answer(opt);
-                    opts.appendChild(btn);
+                    optsContainer.appendChild(btn);
                 });
             },
+
             answer: (opt) => {
+                audio.click();
                 profiler.scores[opt.type] += opt.score;
-                profiler.currentQ += 1;
+                profiler.currentQ++;
                 if (profiler.currentQ < QUIZ.length) {
                     profiler.renderQuestion();
                 } else {
                     profiler.calculate();
                 }
             },
+
             calculate: () => {
-                document.getElementById('quiz-modal').classList.remove('active');
-                document.getElementById('prof-stage-doubt').classList.add('hidden');
-                document.getElementById('prof-result').classList.remove('hidden');
+                document.getElementById('prof-stage-quiz').classList.add('hidden');
+                document.getElementById('prof-stage-process').classList.remove('hidden');
+
                 let maxScore = -1;
-                let winner = profiler.initialChoice || 'dreamer';
-                Object.entries(profiler.scores).forEach(([key, val]) => {
+                let winner = profiler.initialChoice;
+
+                for (const [key, val] of Object.entries(profiler.scores)) {
                     if (val > maxScore) {
                         maxScore = val;
                         winner = key;
                     }
-                });
+                }
+
+                const adj = ROLES[profiler.initialChoice || winner].adj;
                 const noun = winner.toUpperCase();
-                const adjSource = profiler.initialChoice ? ROLES[profiler.initialChoice] : ROLES[winner];
-                const title = profiler.initialChoice === winner ? `THE PURE ${noun}` : `THE ${adjSource.adj} ${noun}`;
-                document.getElementById('result-title').innerText = title;
-                document.getElementById('result-motto').innerText = ROLES[winner].motto;
-                sculptureEngine.render();
+                const finalTitle = profiler.initialChoice === winner ? `THE PURE ${noun}` : `THE ${adj} ${noun}`;
+
+                profiler.lastWinner = winner;
+                profiler.lastTitle = finalTitle;
+
+                profiler.runTypewriter(finalTitle, winner);
             },
+
+            runTypewriter: (title, winnerKey) => {
+                const lines = [
+                    "Analyzing inputs...",
+                    "Comparing against self-perception...",
+                    "Detecting dissonance...",
+                    "Re-calibrating identity matrix...",
+                    "Classification Complete."
+                ];
+                const container = document.getElementById('decon-lines');
+                container.innerHTML = '';
+                let delay = 0;
+                lines.forEach((line) => {
+                    delay += 800 + Math.random() * 500;
+                    setTimeout(() => {
+                        container.innerHTML += `<div class="fade-in">> ${line}</div>`;
+                        if (audio.synth) audio.synth.triggerAttackRelease("C3", "32n");
+                    }, delay);
+                });
+
+                setTimeout(() => {
+                    profiler.showResult(title, winnerKey);
+                }, delay + 1000);
+            },
+
+            showResult: (title, winnerKey) => {
+                document.getElementById('prof-stage-process').classList.add('hidden');
+                profiler.closeModal();
+
+                const banner = document.getElementById('prof-banner');
+                banner.classList.remove('hidden');
+                document.getElementById('banner-title').innerText = title;
+                document.getElementById('banner-motto').innerText = ROLES[winnerKey].motto;
+
+                const resultCard = document.getElementById('prof-result-card');
+                resultCard.classList.remove('hidden');
+                document.getElementById('result-title').innerText = title;
+                document.getElementById('result-motto').innerText = ROLES[winnerKey].motto;
+
+                const sculptor = document.getElementById('sculpture-generator');
+                sculptor.classList.remove('hidden');
+                profiler.generateSculpture();
+
+                if (audio.synth) audio.synth.triggerAttackRelease("C4", "8n");
+            },
+
             closeModal: () => {
-                document.getElementById('quiz-modal').classList.remove('active');
+                const modal = document.getElementById('quiz-modal');
+                modal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            },
+
+            buildProfile: () => {
+                const mat = document.getElementById('sculpture-material').value;
+                const fmt = document.getElementById('sculpture-format').value;
+                const mode = document.getElementById('sculpture-mode')?.value || '2d';
+                const role = profiler.lastWinner || 'dreamer';
+                const palettes = {
+                    dreamer: ['#1f2a7e', '#d6d5cc', '#f5d9c3'],
+                    scholar: ['#7d6338', '#f6f0e6', '#0f172a'],
+                    investor: ['#c0c6cc', '#1b1b1b', '#1db954'],
+                    passerby: ['#7fb3ff', '#9ca3af', '#f4f4f5'],
+                    lantern: ['#d13f23', '#111111', '#f7c99a']
+                };
+                const gestures = {
+                    dreamer: 'spiraling helix with soft gaps',
+                    scholar: 'stacked folios with interlocking bands',
+                    investor: 'angled plinths with mirrored insets',
+                    passerby: 'offset slabs that almost slip',
+                    lantern: 'caged beam held by vertical struts'
+                };
+
+                const totalScore = Object.values(profiler.scores).reduce((a, b) => a + b, 0) || 1;
+                const alignment = Math.min(99, Math.round((profiler.scores[role] / totalScore) * 42) + 55);
+                const seedText = `${Date.now()}-${role}-${fmt}-${mat}-${mode}-${profiler.lastTitle || 'specimen'}`;
+                const hash = sculptureEngine.hash(seedText).toString(36).slice(0, 5).toUpperCase();
+
+                return {
+                    role,
+                    material: mat,
+                    format: fmt,
+                    mode,
+                    modeLabel: mode === '3d' ? '3D (Legacy)' : '2D (Current)',
+                    palette: palettes[role] || palettes.dreamer,
+                    gesture: gestures[role] || gestures.dreamer,
+                    alignment,
+                    seedText,
+                    hash,
+                    specimenId: `Specimen-${role.slice(0, 3).toUpperCase()}-${hash}`,
+                    anomalies: [
+                        `Role deviation: ${Math.max(2, 100 - alignment)}% mismatch from cohort`,
+                        `Pulse ingress: ${Math.round(alignment * 0.23)}bps`,
+                        `Void pockets: ${(7 + (alignment % 5)).toFixed(1)}cm`
+                    ]
+                };
+            },
+
+            renderSculptureReadout: (profile) => {
+                const readout = document.getElementById('sculpture-readout');
+                if (!readout) return;
+                readout.innerHTML = `
+                    <div class="text-[10px] uppercase tracking-widest text-red-600 mb-2">${profile.specimenId}</div>
+                    <div class="space-y-1 text-gray-800">
+                        <div class="font-bold text-sm">${profiler.lastTitle || 'Signal Artifact'}</div>
+                        <div class="text-[11px] uppercase tracking-[0.25em] text-gray-500">${profile.format} • ${profile.material}</div>
+                        <div class="text-sm">${profile.gesture} rendered in ${profile.modeLabel}.</div>
+                    </div>
+                    <div class="mt-3 space-y-1 text-[11px] uppercase tracking-widest text-gray-600">
+                        <div>Alignment: ${profile.alignment}%</div>
+                        <div>Seed: ${profile.hash}</div>
+                        <div>Palette: ${profile.palette.join(' / ')}</div>
+                    </div>
+                    <div class="mt-3 text-[11px] text-gray-600 space-y-1">
+                        ${profile.anomalies.map(a => `<div class="flex items-start gap-2"><span class="text-red-600">●</span><span>${a}</span></div>`).join('')}
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-gray-200 space-y-2">
+                        <div class="text-[10px] uppercase tracking-widest text-gray-500">Share Blueprint</div>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="sculpture-share-button" onclick="profiler.shareBlueprint()">Share</button>
+                            <button class="sculpture-share-button" onclick="profiler.copyBlueprint()">Copy Brief</button>
+                            <button class="sculpture-share-button" onclick="profiler.downloadBlueprint()">Download</button>
+                        </div>
+                        <div id="sculpture-share-status" class="text-[10px] uppercase tracking-widest text-gray-500">Ready to distribute.</div>
+                    </div>
+                `;
+            },
+
+            generateSculpture: () => {
+                const profile = profiler.buildProfile();
+                profiler.lastProfile = profile;
+                sculptureEngine.render(profile);
+                profiler.renderSculptureReadout(profile);
+            },
+
+            getSharePayload: () => {
+                if (!profiler.lastProfile) return null;
+                const { specimenId, format, material, gesture, hash, modeLabel } = profiler.lastProfile;
+                return {
+                    title: `${specimenId} — ${profiler.lastTitle || 'Signal Artifact'}`,
+                    text: `${gesture} built for ${format} (${material}) in ${modeLabel}. Seed ${hash}.`,
+                    url: window.location.href.split('#')[0]
+                };
+            },
+
+            flashShareStatus: (msg) => {
+                const el = document.getElementById('sculpture-share-status');
+                if (!el) return;
+                el.innerText = msg;
+                el.style.color = '#d31313';
+                if (profiler.shareTimeout) clearTimeout(profiler.shareTimeout);
+                profiler.shareTimeout = setTimeout(() => {
+                    el.style.color = '';
+                }, 1200);
+            },
+
+            copyBlueprint: async () => {
+                const payload = profiler.getSharePayload();
+                if (!payload || !navigator.clipboard) return profiler.flashShareStatus('Generate first.');
+                const summary = `${payload.title}\n${payload.text}\n${payload.url}`;
+                try {
+                    await navigator.clipboard.writeText(summary);
+                    profiler.flashShareStatus('Copied blueprint.');
+                } catch (err) {
+                    profiler.flashShareStatus('Clipboard blocked.');
+                }
+            },
+
+            shareBlueprint: async () => {
+                const payload = profiler.getSharePayload();
+                if (!payload) return profiler.flashShareStatus('Generate first.');
+                if (navigator.share) {
+                    try {
+                        await navigator.share(payload);
+                        profiler.flashShareStatus('Shared.');
+                    } catch (err) {
+                        profiler.flashShareStatus('Share dismissed.');
+                    }
+                } else {
+                    profiler.copyBlueprint();
+                }
+            },
+
+            downloadBlueprint: () => {
+                const payload = profiler.getSharePayload();
+                if (!payload) return profiler.flashShareStatus('Generate first.');
+                const dataUrl = sculptureEngine.exportImage();
+                if (!dataUrl) return profiler.flashShareStatus('Preview not ready.');
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = `${payload.title.replace(/[^a-z0-9\\- ]/gi, '').replace(/\\s+/g, '_')}.png`;
+                link.click();
+                profiler.flashShareStatus('Preview downloaded.');
             }
         };
 
@@ -5456,6 +6244,7 @@
                 if (target === 'archive') setTimeout(archive.init, 100);
                 if (target === 'grift') setTimeout(grift.init, 100);
                 if (target === 'tickets') setTimeout(geoQuiz.init, 100);
+                if (target === 'profiler' && profiler.initialChoice === null) profiler.init();
             }
         };
 
@@ -5491,6 +6280,7 @@
                         voxelField.init();
                         celEngine.init();
                         geoQuiz.init();
+                        profiler.init();
                     }, 600);
                 }
             }, 80);
@@ -5500,6 +6290,8 @@
                 audio.init();
             }, { once: true });
         });
+
+        window.addEventListener('resize', () => sculptureEngine.resize());
 
     </script>
 </body>
