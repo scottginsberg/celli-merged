@@ -150,6 +150,72 @@
         .nav-btn.active { opacity: 1; font-weight: 700; color: #CD2B2B; }
         .nav-btn.active::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 100%; height: 2px; background: #CD2B2B; }
 
+        .cave-chamber {
+            background: radial-gradient(circle at top, rgba(37, 85, 255, 0.15), rgba(0, 0, 0, 0.85) 50%), #050505;
+            border: 2px solid rgba(255, 255, 255, 0.08);
+        }
+        .cave-glyph-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+        }
+        .cave-link {
+            position: relative;
+            display: inline-block;
+            font-family: 'Space Mono', monospace;
+            font-size: 18px;
+            letter-spacing: 0.35em;
+            color: #111;
+            text-decoration: none;
+            text-transform: uppercase;
+            white-space: nowrap;
+            padding: 10px 6px;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.12);
+        }
+        .cave-link::before {
+            content: attr(data-glyph);
+            position: absolute;
+            inset: 10px 6px auto;
+            color: #2555FF;
+            width: 0;
+            overflow: hidden;
+            transition: width 0.35s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .cave-link::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 50%;
+            bottom: 100%;
+            transform: translate(-50%, 12px) scale(0.6);
+            opacity: 0;
+            background: #111;
+            color: #FDFBF7;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+        }
+        .cave-link:hover::before,
+        .cave-link:focus-visible::before {
+            width: 100%;
+        }
+        .cave-link:hover::after,
+        .cave-link:focus-visible::after {
+            opacity: 1;
+            transform: translate(-50%, -6px) scale(1);
+        }
+        .cave-link--gag {
+            cursor: help;
+        }
+
         .trick-embed {
             aspect-ratio: 9 / 16;
             background: #111;
@@ -751,6 +817,29 @@
                     <h4 class="text-xl font-bold uppercase tracking-tight mt-2" id="cel-title">Select a cel</h4>
                     <p class="text-sm text-gray-700 mt-3" id="cel-copy">The atlas stays quiet until you return. Pick any card to begin the sequence.</p>
                     <p class="text-[11px] font-mono uppercase tracking-[0.25em] text-gray-500 mt-4" id="cel-whisper">Return count: 0</p>
+                </div>
+            </div>
+
+            <div class="cave-chamber px-6 py-10 shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                    <div class="space-y-3 max-w-3xl">
+                        <div class="text-[10px] font-mono uppercase tracking-[0.3em] text-tonka-mint">Subterranean Patch Notes</div>
+                        <h3 class="text-3xl md:text-4xl font-bold uppercase tracking-tight text-white">Al Gregory Cave's Johnson Hidey Hole</h3>
+                        <p class="text-sm font-mono text-gray-300 leading-relaxed">
+                            A funny techy Plato parody: the coders in the cave argue over shadow renders while the pager light paints the wall. Every glitch is a revelation, every cache miss is a revelation of a revelation, and the only true form is a deprecated API doc they keep interpreting as prophecy.
+                        </p>
+                    </div>
+                    <div class="bg-black/60 border border-white/10 px-4 py-3 text-[10px] font-mono uppercase tracking-[0.25em] text-gray-300">
+                        Cave Wall Syntax: hover to decode.
+                    </div>
+                </div>
+
+                <div class="mt-8 cave-glyph-grid">
+                    <a class="cave-link" data-cave-item data-label="zombo.com" data-tooltip="zombo.com" data-url="https://zombo.com" href="https://zombo.com" target="_blank" rel="noopener"></a>
+                    <a class="cave-link" data-cave-item data-label="divorcedatforty.help" data-tooltip="divorcedatforty.help" data-url="https://divorcedatforty.help" href="https://divorcedatforty.help" target="_blank" rel="noopener"></a>
+                    <span class="cave-link cave-link--gag" data-cave-item data-label="HELP HELP HELP HELP HELP HELP" data-tooltip="HELP HELP HELP HELP HELP HELP"></span>
+                    <span class="cave-link cave-link--gag" data-cave-item data-label="married at 42" data-tooltip="married at 42"></span>
+                    <a class="cave-link" data-cave-item data-label="increpare.com" data-tooltip="increpare.com" data-url="https://www.increpare.com" href="https://www.increpare.com" target="_blank" rel="noopener"></a>
                 </div>
             </div>
 
@@ -7314,6 +7403,25 @@
             }
         };
 
+        const caveGlyphs = {
+            glyphSet: [
+                '⟁', '⟟', '⧉', '⧗', '⨀', '⧖', '⟊', '⧙', '⧃', '⧄', '⧫', '⌁', '⌘', '⌬', '⍜', '⍝', '⍟', '⍤',
+                '⊹', '⊶', '⊷', '⟁', '⋰', '⋱', '✶', '✺', '✹', '✷', '✦', '⟡', '⟁', '⟐', '⟁', '⟒', '⟟'
+            ],
+            generate(length) {
+                return Array.from({ length }, () => this.glyphSet[Math.floor(Math.random() * this.glyphSet.length)]).join('');
+            },
+            init() {
+                document.querySelectorAll('[data-cave-item]').forEach((item) => {
+                    const baseLength = Math.max(8, Math.min(20, (item.dataset.label || '').length));
+                    const jitter = Math.floor(Math.random() * 6);
+                    const glyphs = this.generate(baseLength + jitter);
+                    item.textContent = glyphs;
+                    item.dataset.glyph = glyphs;
+                });
+            }
+        };
+
         // 10. Main App Controller
         const app = {
             integration: 0,
@@ -7419,6 +7527,7 @@
                         depthTracker.visit('landing');
                         surveillance.init();
                         spotifyOverlay.init();
+                        caveGlyphs.init();
                         document.querySelectorAll('.trick-embed iframe').forEach((frame) => {
                             const parent = frame.closest('.trick-embed');
                             if (!parent) return;
