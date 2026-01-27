@@ -198,6 +198,64 @@
             opacity: 1;
             transform: translateY(0) scale(1);
         }
+        .spotify-overlay {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            width: min(360px, 92vw);
+            background: #fff;
+            border: 2px solid #111;
+            border-radius: 16px;
+            box-shadow: 10px 14px 0 rgba(0,0,0,0.2);
+            z-index: 90;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: width 0.3s ease, box-shadow 0.3s ease;
+        }
+        .spotify-overlay__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            background: #111;
+            color: #FDFBF7;
+            font-family: 'Space Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.22em;
+            font-size: 10px;
+        }
+        .spotify-overlay__toggle {
+            border: 1px solid #FDFBF7;
+            padding: 4px 8px;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .spotify-overlay__toggle:hover {
+            background: #FDFBF7;
+            color: #111;
+        }
+        .spotify-overlay__body {
+            height: 352px;
+            transition: height 0.3s ease, opacity 0.3s ease;
+        }
+        .spotify-overlay__body iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+        .spotify-overlay.minimized {
+            width: min(240px, 70vw);
+            box-shadow: 6px 10px 0 rgba(0,0,0,0.18);
+        }
+        .spotify-overlay.minimized .spotify-overlay__body {
+            height: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
         .surveillance-popup::before,
         .surveillance-popup::after {
             content: '';
@@ -382,6 +440,15 @@
         </div>
     </div>
     <div id="glitch-banner" class="glitch-banner era-shift" aria-live="polite">HOW MUCH DO YOU COST? :(/:)</div>
+    <div id="spotify-overlay" class="spotify-overlay" aria-label="Playlist overlay">
+        <div class="spotify-overlay__header">
+            <span>Field Playlist</span>
+            <button id="spotify-toggle" class="spotify-overlay__toggle" type="button" aria-expanded="true">Minimize</button>
+        </div>
+        <div class="spotify-overlay__body">
+            <iframe src="https://open.spotify.com/embed/playlist/0bDJZ89nH6RHIpPE8WMcfw?utm_source=generator&theme=0" title="Loomworks field playlist" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+        </div>
+    </div>
 
     <section id="view-landing" class="view-section active">
         <div class="max-w-7xl mx-auto px-6 py-20 blueprint min-h-[80vh] flex flex-col gap-16">
@@ -6598,6 +6665,19 @@
             }
         };
 
+        const spotifyOverlay = {
+            init: () => {
+                const overlay = document.getElementById('spotify-overlay');
+                const toggle = document.getElementById('spotify-toggle');
+                if (!overlay || !toggle) return;
+                toggle.addEventListener('click', () => {
+                    const minimized = overlay.classList.toggle('minimized');
+                    toggle.textContent = minimized ? 'Expand' : 'Minimize';
+                    toggle.setAttribute('aria-expanded', String(!minimized));
+                });
+            }
+        };
+
         // 10. Main App Controller
         const app = {
             integration: 0,
@@ -6673,6 +6753,7 @@
         window.dimeBacklog = dimeBacklog;
         window.depthTracker = depthTracker;
         window.surveillance = surveillance;
+        window.spotifyOverlay = spotifyOverlay;
 
         // Boot
         window.addEventListener('load', () => {
@@ -6697,6 +6778,7 @@
                         depthTracker.init();
                         depthTracker.visit('landing');
                         surveillance.init();
+                        spotifyOverlay.init();
                     }, 600);
                 }
             }, 80);
