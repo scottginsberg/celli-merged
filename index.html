@@ -350,6 +350,9 @@
         }
         .sculpture-share-button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 2px 2px 0 #111; }
         .sculpture-share-button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .sculpture-action-button { border: 2px solid #111; padding: 12px 16px; font-size: 11px; font-family: 'Space Mono', monospace; letter-spacing: 0.2em; text-transform: uppercase; transition: transform 0.1s ease, box-shadow 0.1s ease; width: 100%; }
+        .sculpture-action-button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 3px 3px 0 #111; }
+        .sculpture-action-button:disabled { opacity: 0.4; cursor: not-allowed; }
 
         .grift-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
         .grift-card { background: #fffdf5; border: 1px solid #111; padding: 16px; border-radius: 14px; box-shadow: 0 14px 34px rgba(0,0,0,0.08); transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
@@ -874,6 +877,10 @@
                         </label>
                     </div>
                     <button onclick="profiler.generateSculpture()" class="ui-click bg-black text-white px-4 py-3 text-[10px] font-mono uppercase tracking-widest hover:bg-red-600">Generate Blueprint</button>
+                    <div class="grid grid-cols-1 gap-3 pt-2">
+                        <button id="add-to-gallery" onclick="profiler.addToGallery()" class="ui-click sculpture-action-button bg-red-600 text-white hover:bg-red-700" disabled>ADD TO GALLERY</button>
+                        <button id="send-to-grift" onclick="profiler.sendToGriftShop()" class="ui-click sculpture-action-button bg-black text-white hover:bg-loom-red" disabled>Send to the Grift Shop</button>
+                    </div>
                 </div>
                 <div class="sculpture-preview rounded-lg p-4" id="sculpture-preview">
                     <div class="grid md:grid-cols-2 gap-5 lg:gap-6">
@@ -916,9 +923,11 @@
         
         <div class="absolute bottom-16 left-8 z-10 bg-white/90 p-6 border border-black max-w-sm backdrop-blur shadow-2xl">
             <h3 class="font-bold uppercase text-sm mb-2">The Gallery</h3>
-            <p class="text-xs font-mono text-gray-600 mb-4">Drag to rotate. Scroll to zoom. Click artifacts to inspect metadata.</p>
+            <p class="text-xs font-mono text-gray-600 mb-4">Click + drag to rotate. Shift + drag to pan. Right-drag or scroll to dolly. WASD to walk.</p>
             <div class="space-y-2">
                 <button onclick="gallery.resetCamera()" class="block w-full text-left text-[10px] font-mono uppercase hover:text-loom-red ui-click">Reset Camera</button>
+                <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Works on display</div>
+                <div id="gallery-works" class="text-xs font-mono text-gray-700 space-y-1">No works yet.</div>
                 <div class="h-px bg-gray-300 my-2"></div>
                 <button onclick="app.navigate('archive')" class="ui-click bg-black text-white px-4 py-3 w-full text-[10px] font-mono uppercase tracking-widest hover:bg-loom-red transition-colors">
                     Next: The Archive &rarr;
@@ -1198,6 +1207,15 @@
                         <button onclick="manufacture.submit()" class="border-2 border-black px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors ui-click w-full md:w-auto">Submit Artifact</button>
                     </div>
                 </div>
+            </div>
+
+            <div class="bg-black text-white border border-gray-800 p-6 rounded-xl shadow-lg mt-8">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <h3 class="font-bold uppercase text-loom-red">Grift Shop Provenance Feed</h3>
+                    <div class="text-[10px] font-mono uppercase tracking-widest text-gray-300">Assets Sold: <span id="grift-asset-count">0</span></div>
+                </div>
+                <p class="text-xs font-mono text-gray-300 mb-4">Every asset submitted to the Grift Shop spins a chain of custody: auctions, NFTs, freeports, and yacht-side trades. The list is long, factual, and still ridiculous.</p>
+                <div id="grift-ledger" class="space-y-4 text-xs font-mono text-gray-200"></div>
             </div>
 
             <div class="pt-4 border-t border-gray-300 flex flex-wrap gap-3 items-center">
@@ -4946,6 +4964,14 @@
             setColor: (c) => manufacture.color = c,
             submit: () => {
                 if(window.audio) audio.click();
+                const image = manufacture.canvas ? manufacture.canvas.toDataURL('image/png') : null;
+                const asset = {
+                    title: `Manufacture-16x16-${Date.now().toString().slice(-5)}`,
+                    origin: 'Manufacture Tool',
+                    modeLabel: 'Pixel Draft',
+                    dataUrl: image
+                };
+                griftLedger.addSale(asset);
                 alert("Artifact Submitted to Loomworks. Revenue share: 0.000666%");
             }
         };
@@ -5618,9 +5644,128 @@
         };
         window.sculptureEngine = sculptureEngine;
 
+        const assetState = {
+            storageKey: 'loom-assets',
+            items: [],
+            listeners: [],
+            init() {
+                const stored = window.localStorage.getItem(assetState.storageKey);
+                assetState.items = stored ? JSON.parse(stored) : [];
+            },
+            save() {
+                window.localStorage.setItem(assetState.storageKey, JSON.stringify(assetState.items));
+            },
+            add(item) {
+                assetState.items.push(item);
+                assetState.save();
+                assetState.emit();
+            },
+            emit() {
+                assetState.listeners.forEach((fn) => fn(assetState.items));
+            },
+            subscribe(fn) {
+                assetState.listeners.push(fn);
+                fn(assetState.items);
+            }
+        };
+
+        const griftLedger = {
+            storageKey: 'loom-grift-ledger',
+            entries: [],
+            facts: [
+                'NFTs are tokens on a blockchain that can reference off-chain media.',
+                'Christie’s sold Beeple’s “Everydays: The First 5000 Days” for $69 million in 2021.',
+                'Freeports in places like Geneva store art tax-free for years.',
+                'Auction houses add buyer’s premiums on top of hammer prices.',
+                'Maurizio Cattelan’s banana taped to a wall (“Comedian”) sold for $120,000 in 2019.',
+                'Leonardo da Vinci’s “Salvator Mundi” sold for $450.3 million in 2017.',
+                'Basquiat’s 1982 skull painting sold for $110.5 million in 2017.',
+                'Banksy’s “Love is in the Bin” was partially shredded after it sold at auction in 2018.',
+                'Art funds and fractional ownership platforms let investors buy slices of artworks.',
+                'Major auction houses have accepted cryptocurrency for select lots.',
+                'The global art market clears tens of billions of dollars annually in reported sales.',
+                'Private sales often outweigh public auction totals in the art market.',
+                'Provenance records can include gallery invoices, exhibition catalogs, and customs forms.',
+                'Museums deaccession works to fund operations or acquire new pieces.',
+                'A 2017 report estimated billions in art and antiquities are held in freeports.',
+                'High-value art is routinely insured for transport, storage, and exhibition.',
+                'The original 2010 sale of “Salvator Mundi” was for under $10,000 before its rediscovery.',
+                'Andy Warhol’s “Shot Sage Blue Marilyn” sold for $195 million in 2022.',
+                'Art Basel’s UBS report tracks global art market trends every year.',
+                'Some collectors lend works to museums for tax and prestige benefits.',
+                'Auction records are public, private sale prices are often confidential.',
+                'The auction term “third-party guarantee” is used to secure minimum prices.',
+                'Yachts above 100 meters can cost hundreds of millions of dollars.',
+                'Some NFT projects paid creators in crypto that later swung wildly in value.',
+                'Tokenized art platforms sometimes link on-chain tokens to off-chain vault storage.',
+                'Art shipping crates can be custom-built with climate control.',
+                'Gagosian and other mega-galleries represent dozens of top-tier artists.',
+                'An art advisor can place works with collectors privately, off the auction floor.',
+                'Art market compliance rules now include sanctions screening in many jurisdictions.'
+            ],
+            init() {
+                const stored = window.localStorage.getItem(griftLedger.storageKey);
+                griftLedger.entries = stored ? JSON.parse(stored) : [];
+                griftLedger.render();
+            },
+            save() {
+                window.localStorage.setItem(griftLedger.storageKey, JSON.stringify(griftLedger.entries));
+            },
+            addSale(asset) {
+                const stamp = new Date().toLocaleString();
+                const shuffled = griftLedger.facts.slice().sort(() => 0.5 - Math.random());
+                const chain = shuffled.slice(0, 8);
+                griftLedger.entries.unshift({
+                    id: `grift-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                    title: asset.title || asset.specimenId || 'Unnamed Asset',
+                    origin: asset.origin || 'Unknown Intake',
+                    mode: asset.modeLabel || asset.mode || asset.type || 'mixed',
+                    stamp,
+                    chain
+                });
+                griftLedger.save();
+                griftLedger.render();
+            },
+            render() {
+                const ledger = document.getElementById('grift-ledger');
+                const count = document.getElementById('grift-asset-count');
+                if (count) count.innerText = griftLedger.entries.length;
+                if (!ledger) return;
+                if (!griftLedger.entries.length) {
+                    ledger.innerHTML = '<div class="text-gray-400">No assets pushed through the Grift Shop yet.</div>';
+                    return;
+                }
+                ledger.innerHTML = griftLedger.entries.map(entry => `
+                    <div class="border border-gray-700 p-4 rounded-lg">
+                        <div class="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Intake • ${entry.stamp}</div>
+                        <div class="font-bold uppercase text-loom-red">${entry.title}</div>
+                        <div class="text-[10px] uppercase tracking-widest text-gray-400">Origin: ${entry.origin} • Mode: ${entry.mode}</div>
+                        <ul class="mt-3 space-y-2 text-gray-200">
+                            ${entry.chain.map(item => `<li>• ${item}</li>`).join('')}
+                        </ul>
+                    </div>
+                `).join('');
+            }
+        };
+
         // 5. Gallery (Three.js 3D Room)
         const gallery = {
-            scene: null, camera: null, renderer: null, cube: null,
+            scene: null,
+            camera: null,
+            renderer: null,
+            wallGroup: null,
+            vitrineGroup: null,
+            assetIds: new Set(),
+            controls: {
+                yaw: 0,
+                pitch: 0,
+                position: new THREE.Vector3(0, 1.6, 6),
+                isDragging: false,
+                dragMode: 'rotate',
+                lastX: 0,
+                lastY: 0,
+                keys: {}
+            },
             init: () => {
                 const container = document.getElementById('canvas-container');
                 if(!container || gallery.scene) return;
@@ -5630,35 +5775,37 @@
                 gallery.scene.fog = new THREE.Fog(0x0f0f0f, 5, 20);
 
                 gallery.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-                gallery.camera.position.z = 5;
-                gallery.camera.position.y = 1;
+                gallery.camera.position.copy(gallery.controls.position);
 
                 gallery.renderer = new THREE.WebGLRenderer({alpha:true, antialias:true});
                 gallery.renderer.setSize(window.innerWidth, window.innerHeight);
                 container.appendChild(gallery.renderer.domElement);
+                gallery.renderer.setPixelRatio(window.devicePixelRatio || 1);
 
                 // Lighting
                 const light = new THREE.DirectionalLight(0xffffff, 1);
-                light.position.set(2, 2, 5);
+                light.position.set(3, 6, 5);
                 gallery.scene.add(light);
-                gallery.scene.add(new THREE.AmbientLight(0x404040));
+                gallery.scene.add(new THREE.AmbientLight(0x404040, 1.2));
 
-                // Objects
-                const geometry = new THREE.IcosahedronGeometry(1, 0);
-                const material = new THREE.MeshStandardMaterial({ color: 0xcd2b2b, wireframe: true });
-                gallery.cube = new THREE.Mesh(geometry, material);
-                gallery.scene.add(gallery.cube);
+                gallery.wallGroup = new THREE.Group();
+                gallery.vitrineGroup = new THREE.Group();
+                gallery.scene.add(gallery.wallGroup);
+                gallery.scene.add(gallery.vitrineGroup);
 
                 // Grid Floor
                 const grid = new THREE.GridHelper(20, 20, 0x333333, 0x111111);
                 gallery.scene.add(grid);
 
+                gallery.buildEnvironment();
+                assetState.subscribe((items) => gallery.updateAssets(items));
+
+                gallery.bindControls();
+
                 const animate = function () {
                     requestAnimationFrame(animate);
-                    if(gallery.cube) {
-                        gallery.cube.rotation.x += 0.005;
-                        gallery.cube.rotation.y += 0.01;
-                    }
+                    gallery.updateMovement();
+                    gallery.updateCamera();
                     gallery.renderer.render(gallery.scene, gallery.camera);
                 };
                 animate();
@@ -5669,10 +5816,178 @@
                     gallery.renderer.setSize(window.innerWidth, window.innerHeight);
                 });
             },
+            buildEnvironment: () => {
+                const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8, metalness: 0.1 });
+                const wall = new THREE.Mesh(new THREE.PlaneGeometry(14, 6), wallMaterial);
+                wall.position.set(0, 3, -7);
+                gallery.scene.add(wall);
+
+                const floor = new THREE.Mesh(
+                    new THREE.PlaneGeometry(20, 20),
+                    new THREE.MeshStandardMaterial({ color: 0x0b0b0b, roughness: 0.9, metalness: 0.05 })
+                );
+                floor.rotation.x = -Math.PI / 2;
+                floor.position.y = 0;
+                gallery.scene.add(floor);
+            },
+            updateAssets: (items) => {
+                gallery.clearGroup(gallery.wallGroup);
+                gallery.clearGroup(gallery.vitrineGroup);
+                gallery.assetIds = new Set();
+                const twoDAssets = items.filter((item) => item.type === '2d');
+                const threeDAssets = items.filter((item) => item.type === '3d');
+                twoDAssets.forEach((asset, index) => gallery.add2DAsset(asset, index));
+                threeDAssets.forEach((asset, index) => gallery.add3DAsset(asset, index));
+                gallery.updateWorksList(items);
+            },
+            updateWorksList: (items) => {
+                const list = document.getElementById('gallery-works');
+                if (!list) return;
+                if (!items.length) {
+                    list.textContent = 'No works yet.';
+                    return;
+                }
+                list.innerHTML = items.slice(0, 6).map(item => `
+                    <div>${item.title || item.specimenId} • ${item.modeLabel || item.type}</div>
+                `).join('');
+            },
+            add2DAsset: (asset, index) => {
+                if (!asset.dataUrl) return;
+                const texture = new THREE.TextureLoader().load(asset.dataUrl);
+                texture.needsUpdate = true;
+                const plane = new THREE.Mesh(
+                    new THREE.PlaneGeometry(1.4, 1.0),
+                    new THREE.MeshStandardMaterial({ map: texture, metalness: 0.1, roughness: 0.8 })
+                );
+                const cols = 4;
+                const row = Math.floor(index / cols);
+                const col = index % cols;
+                const startX = -3.2;
+                const startY = 4.4;
+                plane.position.set(startX + col * 2.1, startY - row * 1.4, -6.95);
+                gallery.wallGroup.add(plane);
+
+                const frame = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.48, 1.08, 0.05),
+                    new THREE.MeshStandardMaterial({ color: 0x2a2a2a })
+                );
+                frame.position.copy(plane.position);
+                frame.position.z = -7.0;
+                gallery.wallGroup.add(frame);
+            },
+            add3DAsset: (asset, index) => {
+                const group = new THREE.Group();
+                const base = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.8, 0.2, 1.2),
+                    new THREE.MeshStandardMaterial({ color: 0x1b1b1b, metalness: 0.2, roughness: 0.7 })
+                );
+                base.position.y = 0.1;
+                group.add(base);
+
+                const glass = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.6, 1.2, 1.0),
+                    new THREE.MeshStandardMaterial({ color: 0x88aacc, transparent: true, opacity: 0.25, roughness: 0.1 })
+                );
+                glass.position.y = 0.8;
+                group.add(glass);
+
+                const palette = asset.palette || ['#d7342a', '#f6f0e6', '#111111'];
+                const core = new THREE.Mesh(
+                    new THREE.DodecahedronGeometry(0.35, 0),
+                    new THREE.MeshStandardMaterial({ color: palette[0] || '#d7342a', metalness: 0.6, roughness: 0.3 })
+                );
+                core.position.y = 0.8;
+                core.rotation.set(0.4, 0.6, 0);
+                group.add(core);
+
+                const ring = new THREE.Mesh(
+                    new THREE.TorusGeometry(0.45, 0.05, 10, 36),
+                    new THREE.MeshStandardMaterial({ color: palette[1] || '#f6f0e6', metalness: 0.4, roughness: 0.4 })
+                );
+                ring.position.y = 0.8;
+                ring.rotation.x = Math.PI / 2;
+                group.add(ring);
+
+                const x = -3.5 + index * 2.2;
+                group.position.set(x, 0, -2);
+                gallery.vitrineGroup.add(group);
+            },
+            clearGroup: (group) => {
+                if (!group) return;
+                while (group.children.length) {
+                    group.remove(group.children[0]);
+                }
+            },
+            bindControls: () => {
+                const canvas = gallery.renderer.domElement;
+                canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+                canvas.addEventListener('pointerdown', (event) => {
+                    gallery.controls.isDragging = true;
+                    gallery.controls.dragMode = event.shiftKey ? 'pan' : (event.button === 2 ? 'dolly' : 'rotate');
+                    gallery.controls.lastX = event.clientX;
+                    gallery.controls.lastY = event.clientY;
+                    canvas.setPointerCapture(event.pointerId);
+                });
+                canvas.addEventListener('pointermove', (event) => {
+                    if (!gallery.controls.isDragging) return;
+                    const dx = event.clientX - gallery.controls.lastX;
+                    const dy = event.clientY - gallery.controls.lastY;
+                    gallery.controls.lastX = event.clientX;
+                    gallery.controls.lastY = event.clientY;
+                    if (gallery.controls.dragMode === 'rotate') {
+                        gallery.controls.yaw -= dx * 0.005;
+                        gallery.controls.pitch -= dy * 0.005;
+                        gallery.controls.pitch = Math.max(-1.2, Math.min(1.2, gallery.controls.pitch));
+                    } else if (gallery.controls.dragMode === 'pan') {
+                        const right = new THREE.Vector3(Math.cos(gallery.controls.yaw), 0, -Math.sin(gallery.controls.yaw));
+                        const up = new THREE.Vector3(0, 1, 0);
+                        gallery.controls.position.add(right.multiplyScalar(-dx * 0.01));
+                        gallery.controls.position.add(up.multiplyScalar(dy * 0.01));
+                    } else {
+                        const forward = new THREE.Vector3(Math.sin(gallery.controls.yaw), 0, Math.cos(gallery.controls.yaw));
+                        gallery.controls.position.add(forward.multiplyScalar(dy * 0.02));
+                    }
+                });
+                canvas.addEventListener('pointerup', (event) => {
+                    gallery.controls.isDragging = false;
+                    canvas.releasePointerCapture(event.pointerId);
+                });
+                canvas.addEventListener('wheel', (event) => {
+                    const forward = new THREE.Vector3(Math.sin(gallery.controls.yaw), 0, Math.cos(gallery.controls.yaw));
+                    gallery.controls.position.add(forward.multiplyScalar(event.deltaY * 0.01));
+                });
+                window.addEventListener('keydown', (event) => {
+                    gallery.controls.keys[event.code] = true;
+                });
+                window.addEventListener('keyup', (event) => {
+                    gallery.controls.keys[event.code] = false;
+                });
+            },
+            updateMovement: () => {
+                const keys = gallery.controls.keys;
+                const speed = 0.08;
+                const forward = new THREE.Vector3(Math.sin(gallery.controls.yaw), 0, Math.cos(gallery.controls.yaw));
+                const right = new THREE.Vector3(Math.cos(gallery.controls.yaw), 0, -Math.sin(gallery.controls.yaw));
+                if (keys['KeyW']) gallery.controls.position.add(forward.clone().multiplyScalar(-speed));
+                if (keys['KeyS']) gallery.controls.position.add(forward.clone().multiplyScalar(speed));
+                if (keys['KeyA']) gallery.controls.position.add(right.clone().multiplyScalar(-speed));
+                if (keys['KeyD']) gallery.controls.position.add(right.clone().multiplyScalar(speed));
+            },
+            updateCamera: () => {
+                const direction = new THREE.Vector3(
+                    Math.sin(gallery.controls.yaw) * Math.cos(gallery.controls.pitch),
+                    Math.sin(gallery.controls.pitch),
+                    Math.cos(gallery.controls.yaw) * Math.cos(gallery.controls.pitch)
+                );
+                gallery.camera.position.copy(gallery.controls.position);
+                gallery.camera.lookAt(gallery.controls.position.clone().add(direction));
+            },
             resetCamera: () => {
                 if(gallery.camera) {
-                    gallery.camera.position.set(0,1,5);
-                    gallery.camera.lookAt(0,0,0);
+                    gallery.controls.position.set(0, 1.6, 6);
+                    gallery.controls.yaw = 0;
+                    gallery.controls.pitch = 0;
+                    gallery.updateCamera();
                 }
             }
         };
@@ -6280,6 +6595,10 @@
                 if (readout) {
                     readout.innerHTML = `<div class="text-[10px] uppercase tracking-widest text-gray-500">Awaiting prompt...</div><p class="text-sm text-gray-700">Run the quiz and generate a specimen to see the deterministic sketch and dossier.</p>`;
                 }
+                const addBtn = document.getElementById('add-to-gallery');
+                const griftBtn = document.getElementById('send-to-grift');
+                if (addBtn) addBtn.disabled = true;
+                if (griftBtn) griftBtn.disabled = true;
             },
 
             select: (role, el) => {
@@ -6494,6 +6813,38 @@
                 profiler.lastProfile = profile;
                 sculptureEngine.render(profile);
                 profiler.renderSculptureReadout(profile);
+                const addBtn = document.getElementById('add-to-gallery');
+                const griftBtn = document.getElementById('send-to-grift');
+                if (addBtn) addBtn.disabled = false;
+                if (griftBtn) griftBtn.disabled = false;
+            },
+            addToGallery: () => {
+                if (!profiler.lastProfile) return profiler.flashShareStatus('Generate first.');
+                const image = sculptureEngine.exportImage();
+                const asset = {
+                    id: `asset-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                    type: profiler.lastProfile.mode === '3d' ? '3d' : '2d',
+                    title: profiler.lastProfile.specimenId,
+                    modeLabel: profiler.lastProfile.modeLabel,
+                    palette: profiler.lastProfile.palette,
+                    profile: profiler.lastProfile,
+                    origin: 'Identity Generator',
+                    dataUrl: image,
+                    createdAt: new Date().toISOString()
+                };
+                assetState.add(asset);
+                profiler.flashShareStatus('Added to gallery.');
+            },
+            sendToGriftShop: () => {
+                if (!profiler.lastProfile) return profiler.flashShareStatus('Generate first.');
+                const payload = {
+                    specimenId: profiler.lastProfile.specimenId,
+                    title: profiler.lastProfile.specimenId,
+                    modeLabel: profiler.lastProfile.modeLabel,
+                    origin: 'Identity Generator'
+                };
+                griftLedger.addSale(payload);
+                profiler.flashShareStatus('Shipped to grift shop.');
             },
 
             getSharePayload: () => {
@@ -6746,6 +7097,8 @@
         window.grift = grift;
         window.geoQuiz = geoQuiz;
         window.valueState = valueState;
+        window.assetState = assetState;
+        window.griftLedger = griftLedger;
         window.celEngine = celEngine;
         window.siteMap = siteMap;
         window.voxelField = voxelField;
@@ -6775,6 +7128,8 @@
                         celEngine.init();
                         geoQuiz.init();
                         profiler.init();
+                        assetState.init();
+                        griftLedger.init();
                         depthTracker.init();
                         depthTracker.visit('landing');
                         surveillance.init();
