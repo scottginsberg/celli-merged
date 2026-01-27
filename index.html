@@ -54,6 +54,7 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             overscroll-behavior: none;
+            touch-action: manipulation;
         }
 
         /* --- CORE AESTHETICS --- */
@@ -106,6 +107,43 @@
         /* --- UI COMPONENTS --- */
         .ui-click { cursor: pointer; user-select: none; transition: transform 0.1s; }
         .ui-click:active { transform: translateY(2px); }
+        button,
+        a,
+        [role="button"],
+        .ui-click {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #canvas-container canvas {
+            touch-action: none;
+        }
+
+        .gallery-panel {
+            pointer-events: auto;
+        }
+
+        .lantern-toggle {
+            border: 1px solid #111;
+            letter-spacing: 0.22em;
+            font-family: 'Cinzel', serif;
+            box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.45);
+        }
+        .lantern-toggle:hover {
+            background: #111;
+            color: #FDFBF7;
+        }
+
+        @media (max-width: 768px) {
+            .gallery-panel {
+                left: 50%;
+                bottom: 12px;
+                transform: translateX(-50%);
+                width: calc(100% - 24px);
+                max-width: 100%;
+                padding: 16px;
+            }
+        }
 
         .nav-btn { position: relative; opacity: 0.6; transition: opacity 0.2s; }
         .nav-btn:hover { opacity: 1; }
@@ -922,11 +960,12 @@
     <section id="view-gallery" class="view-section relative !pt-0 h-screen overflow-hidden">
         <div id="canvas-container" class="absolute inset-0 z-0 bg-[#0f0f0f]"></div>
         
-        <div class="absolute bottom-16 left-8 z-10 bg-white/90 p-6 border border-black max-w-sm backdrop-blur shadow-2xl">
+        <div class="gallery-panel absolute bottom-16 left-8 z-10 bg-white/90 p-6 border border-black max-w-sm backdrop-blur shadow-2xl">
             <h3 class="font-bold uppercase text-sm mb-2">The Gallery</h3>
             <p class="text-xs font-mono text-gray-600 mb-4">Click + drag to rotate. Shift + drag to pan. Right-drag or scroll to dolly. WASD to walk.</p>
             <div class="space-y-2">
                 <button onclick="gallery.resetCamera()" class="block w-full text-left text-[10px] font-mono uppercase hover:text-loom-red ui-click">Reset Camera</button>
+                <button id="gallery-lantern-toggle" onclick="gallery.toggleLantern()" class="ui-click lantern-toggle w-full px-3 py-2 text-[10px] uppercase tracking-widest bg-white transition-colors">Turn On Lantern</button>
                 <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">Works on display</div>
                 <div id="gallery-works" class="text-xs font-mono text-gray-700 space-y-1">No works yet.</div>
                 <div class="h-px bg-gray-300 my-2"></div>
@@ -5756,6 +5795,12 @@
             renderer: null,
             wallGroup: null,
             vitrineGroup: null,
+            lanternGroup: null,
+            lanternLight: null,
+            lanternSpot: null,
+            lanternGlow: null,
+            lanternActive: false,
+            lanternFlickerSeed: Math.random() * 1000,
             assetIds: new Set(),
             controls: {
                 yaw: 0,
@@ -5782,6 +5827,7 @@
                 gallery.renderer.setSize(window.innerWidth, window.innerHeight);
                 container.appendChild(gallery.renderer.domElement);
                 gallery.renderer.setPixelRatio(window.devicePixelRatio || 1);
+                gallery.renderer.domElement.style.touchAction = 'none';
 
                 // Lighting
                 const light = new THREE.DirectionalLight(0xffffff, 1);
@@ -5807,6 +5853,7 @@
                     requestAnimationFrame(animate);
                     gallery.updateMovement();
                     gallery.updateCamera();
+                    gallery.updateLantern();
                     gallery.renderer.render(gallery.scene, gallery.camera);
                 };
                 animate();
@@ -5923,12 +5970,13 @@
                 const canvas = gallery.renderer.domElement;
                 canvas.addEventListener('contextmenu', (event) => event.preventDefault());
                 canvas.addEventListener('pointerdown', (event) => {
+                    if (event.pointerType === 'touch') event.preventDefault();
                     gallery.controls.isDragging = true;
                     gallery.controls.dragMode = event.shiftKey ? 'pan' : (event.button === 2 ? 'dolly' : 'rotate');
                     gallery.controls.lastX = event.clientX;
                     gallery.controls.lastY = event.clientY;
                     canvas.setPointerCapture(event.pointerId);
-                });
+                }, { passive: false });
                 canvas.addEventListener('pointermove', (event) => {
                     if (!gallery.controls.isDragging) return;
                     const dx = event.clientX - gallery.controls.lastX;
@@ -5989,6 +6037,141 @@
                     gallery.controls.yaw = 0;
                     gallery.controls.pitch = 0;
                     gallery.updateCamera();
+                }
+            },
+            buildLantern: () => {
+                const group = new THREE.Group();
+                group.name = 'gallery-lantern';
+
+                const brass = new THREE.MeshStandardMaterial({
+                    color: 0xb08d57,
+                    metalness: 0.85,
+                    roughness: 0.35
+                });
+                const iron = new THREE.MeshStandardMaterial({
+                    color: 0x1a1a1a,
+                    metalness: 0.6,
+                    roughness: 0.5
+                });
+                const glass = new THREE.MeshStandardMaterial({
+                    color: 0xffd8a3,
+                    transparent: true,
+                    opacity: 0.35,
+                    roughness: 0.15,
+                    metalness: 0.1,
+                    emissive: 0x4a2d12,
+                    emissiveIntensity: 0.6
+                });
+
+                const plinth = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.9, 0.14, 24), iron);
+                plinth.position.y = 0.07;
+                group.add(plinth);
+
+                const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 0.5, 16), brass);
+                stem.position.y = 0.39;
+                group.add(stem);
+
+                const baseRing = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.56, 0.12, 18), brass);
+                baseRing.position.y = 0.7;
+                group.add(baseRing);
+
+                const glassBody = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.42, 0.7, 20), glass);
+                glassBody.position.y = 1.02;
+                group.add(glassBody);
+                gallery.lanternGlow = glassBody;
+
+                const cap = new THREE.Mesh(new THREE.ConeGeometry(0.52, 0.35, 20), brass);
+                cap.position.y = 1.47;
+                group.add(cap);
+
+                const vent = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 0.18, 16), iron);
+                vent.position.y = 1.6;
+                group.add(vent);
+
+                const postGeom = new THREE.BoxGeometry(0.05, 0.8, 0.05);
+                const postOffsets = [
+                    [0.34, 1.02, 0.34],
+                    [-0.34, 1.02, 0.34],
+                    [0.34, 1.02, -0.34],
+                    [-0.34, 1.02, -0.34]
+                ];
+                postOffsets.forEach(([x, y, z]) => {
+                    const post = new THREE.Mesh(postGeom, iron);
+                    post.position.set(x, y, z);
+                    group.add(post);
+                });
+
+                const handle = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.03, 12, 36, Math.PI), brass);
+                handle.position.y = 1.78;
+                handle.rotation.x = Math.PI;
+                group.add(handle);
+
+                return group;
+            },
+            toggleLantern: () => {
+                if (!gallery.scene) return;
+                if (gallery.lanternActive) {
+                    gallery.removeLantern();
+                } else {
+                    gallery.addLantern();
+                }
+            },
+            addLantern: () => {
+                if (gallery.lanternGroup) return;
+                const group = gallery.buildLantern();
+                group.position.set(0, 0, 0);
+                gallery.scene.add(group);
+                gallery.lanternGroup = group;
+
+                const light = new THREE.PointLight(0xffc679, 2.4, 14, 2);
+                light.position.set(0, 1.1, 0);
+                gallery.scene.add(light);
+                gallery.lanternLight = light;
+
+                const spot = new THREE.SpotLight(0xffb35a, 1.2, 18, Math.PI / 5, 0.4, 1);
+                spot.position.set(0, 2.6, 0.6);
+                spot.target = group;
+                gallery.scene.add(spot);
+                gallery.lanternSpot = spot;
+
+                gallery.lanternActive = true;
+                gallery.updateLanternButton();
+            },
+            removeLantern: () => {
+                if (gallery.lanternGroup) {
+                    gallery.scene.remove(gallery.lanternGroup);
+                    gallery.lanternGroup = null;
+                }
+                if (gallery.lanternLight) {
+                    gallery.scene.remove(gallery.lanternLight);
+                    gallery.lanternLight = null;
+                }
+                if (gallery.lanternSpot) {
+                    gallery.scene.remove(gallery.lanternSpot);
+                    gallery.lanternSpot = null;
+                }
+                gallery.lanternGlow = null;
+                gallery.lanternActive = false;
+                gallery.updateLanternButton();
+            },
+            updateLanternButton: () => {
+                const button = document.getElementById('gallery-lantern-toggle');
+                if (!button) return;
+                button.textContent = gallery.lanternActive ? 'Extinguish Lantern' : 'Turn On Lantern';
+            },
+            updateLantern: () => {
+                if (!gallery.lanternActive || !gallery.lanternLight) return;
+                const t = performance.now() * 0.002 + gallery.lanternFlickerSeed;
+                const flicker = 0.6 + Math.sin(t * 2.1) * 0.2 + Math.sin(t * 7.4) * 0.1;
+                gallery.lanternLight.intensity = 2.2 + flicker;
+                if (gallery.lanternSpot) {
+                    gallery.lanternSpot.intensity = 1.0 + flicker * 0.4;
+                }
+                if (gallery.lanternGlow && gallery.lanternGlow.material) {
+                    gallery.lanternGlow.material.emissiveIntensity = 0.6 + flicker * 0.6;
+                }
+                if (gallery.lanternGroup) {
+                    gallery.lanternGroup.rotation.y += 0.002;
                 }
             }
         };
