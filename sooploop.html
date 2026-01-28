@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sooploop | Proof-of-Good-Faith Currency</title>
+    <link rel="icon" href="data:,">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: radial-gradient(circle at top, rgba(37, 85, 255, 0.08), transparent 55%), #fdfbf7;
+        }
+        .mono { font-family: 'Space Mono', monospace; }
+        .panel {
+            border: 1px solid #111;
+            box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.15);
+        }
+        .meter {
+            background: linear-gradient(90deg, #111 0%, #111 55%, #f9f4ea 55%);
+        }
+        .tag {
+            letter-spacing: 0.3em;
+        }
+    </style>
+</head>
+<body class="text-[#111]">
+    <header class="border-b border-black/10 bg-[#fdfbf7]/90 backdrop-blur">
+        <div class="max-w-6xl mx-auto px-6 py-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+                <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Sooploop Sim Lab</div>
+                <h1 class="text-3xl md:text-5xl font-semibold tracking-tight">Proof-of-Good-Faith Currency</h1>
+                <p class="mt-3 max-w-2xl text-gray-700">A three-balance system that throttles speech, rewards signal, and lets users amplify responsibly without turning the feed into pay-to-win.</p>
+            </div>
+            <a href="index.html" class="mono text-xs uppercase tracking-[0.3em] border border-black px-4 py-2 hover:bg-black hover:text-[#fdfbf7] transition">Back to Loomworks</a>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-12 flex flex-col gap-16">
+        <section class="grid lg:grid-cols-[1.2fr_0.8fr] gap-8">
+            <div class="panel bg-white p-8">
+                <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Core Premise</div>
+                <h2 class="text-2xl font-semibold mt-3">Separate speech from cash-out.</h2>
+                <p class="mt-4 text-gray-700 leading-relaxed">Voice Credits throttle how much someone can speak, Trust captures reputation that cannot be sold, and Boost is the only spendable amplifier. That separation blocks bot farms while letting real users cash in on earned trust.</p>
+                <div class="mt-6 grid md:grid-cols-3 gap-4">
+                    <div class="border border-black p-4">
+                        <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">VC</div>
+                        <div class="text-lg font-semibold">Voice Credits</div>
+                        <p class="mt-2 text-sm text-gray-700">Oxygen for posting. Regens daily. Refunds when quality lands.</p>
+                    </div>
+                    <div class="border border-black p-4">
+                        <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">TR</div>
+                        <div class="text-lg font-semibold">Trust</div>
+                        <p class="mt-2 text-sm text-gray-700">Non-transferable reputation. Raises caps and unlocks features.</p>
+                    </div>
+                    <div class="border border-black p-4">
+                        <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">BT</div>
+                        <div class="text-lg font-semibold">Boost</div>
+                        <p class="mt-2 text-sm text-gray-700">Spendable spotlight fuel. Earned from Trust or top signal moments.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="panel bg-[#111] text-[#fdfbf7] p-8">
+                <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-400">Mental Model</div>
+                <ul class="mt-6 space-y-4">
+                    <li class="flex items-center justify-between border-b border-white/20 pb-4">
+                        <span class="text-lg font-semibold">VC = Oxygen</span>
+                        <span class="mono text-xs uppercase tracking-[0.3em] text-gray-300">Spend to speak</span>
+                    </li>
+                    <li class="flex items-center justify-between border-b border-white/20 pb-4">
+                        <span class="text-lg font-semibold">TR = Bone density</span>
+                        <span class="mono text-xs uppercase tracking-[0.3em] text-gray-300">Earned only</span>
+                    </li>
+                    <li class="flex items-center justify-between">
+                        <span class="text-lg font-semibold">BT = Spotlight time</span>
+                        <span class="mono text-xs uppercase tracking-[0.3em] text-gray-300">Spend to amplify</span>
+                    </li>
+                </ul>
+                <div class="mt-8">
+                    <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-400">Refund Logic</div>
+                    <p class="mt-2 text-sm text-gray-300">If a post is rated helpful, fair, or cited within the refund window, 50–100% of its VC cost is returned. Noise flags increase drift and raise costs.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid lg:grid-cols-2 gap-8">
+            <div class="panel bg-white p-8">
+                <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Cost Model</div>
+                <h3 class="text-xl font-semibold mt-3">Voice Credits throttle speech in noisy rooms.</h3>
+                <div class="mt-4 text-sm text-gray-700 leading-relaxed">
+                    <p><span class="mono">cost</span> = baseCost × congestionMultiplier × driftMultiplier</p>
+                    <ul class="mt-4 space-y-2 list-disc list-inside">
+                        <li>baseCost: 1–3 VC per message</li>
+                        <li>congestionMultiplier: 1.0 → 3.0 as messages/min rises</li>
+                        <li>driftMultiplier: 1.0 → 5.0 when flagged</li>
+                    </ul>
+                </div>
+                <div class="mt-6 grid grid-cols-3 gap-4 text-center text-xs">
+                    <div class="border border-black px-3 py-2">
+                        <div class="mono uppercase tracking-[0.3em]">Room</div>
+                        <div class="mt-1 font-semibold">Quiet</div>
+                        <div class="text-gray-500">1.0×</div>
+                    </div>
+                    <div class="border border-black px-3 py-2">
+                        <div class="mono uppercase tracking-[0.3em]">Room</div>
+                        <div class="mt-1 font-semibold">Busy</div>
+                        <div class="text-gray-500">1.8×</div>
+                    </div>
+                    <div class="border border-black px-3 py-2">
+                        <div class="mono uppercase tracking-[0.3em]">Room</div>
+                        <div class="mt-1 font-semibold">Overload</div>
+                        <div class="text-gray-500">2.7×</div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel bg-white p-8">
+                <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Trust + Boost</div>
+                <h3 class="text-xl font-semibold mt-3">Earned reputation mints spotlight over time.</h3>
+                <div class="mt-4 text-sm text-gray-700 leading-relaxed">
+                    <p><span class="mono">daily BT</span> = √TR × k</p>
+                    <p class="mt-4">Trust decays slowly to prevent early whales from dominating. Boost spending is quadratic with daily caps, especially for self-boosts.</p>
+                </div>
+                <div class="mt-6 space-y-3">
+                    <div class="flex items-center justify-between border border-black px-4 py-2">
+                        <span class="mono text-xs uppercase tracking-[0.3em]">Self-boost cap</span>
+                        <span class="font-semibold">30% of daily BT</span>
+                    </div>
+                    <div class="flex items-center justify-between border border-black px-4 py-2">
+                        <span class="mono text-xs uppercase tracking-[0.3em]">Diversity rule</span>
+                        <span class="font-semibold">&lt; X% feed share</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel bg-[#111] text-[#fdfbf7] p-8">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div>
+                    <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-400">Rewards Pool</div>
+                    <h3 class="text-2xl font-semibold mt-3">Cash-out only via earned Boost.</h3>
+                    <p class="mt-3 text-gray-300 leading-relaxed max-w-3xl">BT redemption is rate-limited, KYC&apos;d, and only applies to earned BT. Purchased boosts never cash out. Use cooldowns, audits, and clawbacks to shut down fraud incentives.</p>
+                </div>
+                <div class="flex flex-col gap-2 text-xs mono uppercase tracking-[0.3em] text-gray-300">
+                    <div class="border border-white/20 px-3 py-2">KYC + minimum threshold</div>
+                    <div class="border border-white/20 px-3 py-2">BT aging window (7–30 days)</div>
+                    <div class="border border-white/20 px-3 py-2">Clawback for proven abuse</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid lg:grid-cols-[1fr_1.1fr] gap-8">
+            <div class="panel bg-white p-8">
+                <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Abuse Resistance</div>
+                <h3 class="text-xl font-semibold mt-3">Make trust expensive to fake.</h3>
+                <ul class="mt-4 space-y-3 text-sm text-gray-700 list-disc list-inside">
+                    <li>Device + IP risk scoring with verified phone/email.</li>
+                    <li>Structured rooms with peer feedback for TR earnings.</li>
+                    <li>Weighted ratings: high-TR weights, capped for fairness.</li>
+                    <li>New-account throttle: can speak, but can’t earn much yet.</li>
+                    <li>Slashing for brigading, harassment, or misinfo fraud.</li>
+                </ul>
+            </div>
+            <div class="panel bg-white p-8">
+                <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Simulated Environment</div>
+                <h3 class="text-xl font-semibold mt-3">Current News Rooms (non-political).</h3>
+                <div class="mt-5 grid gap-4">
+                    <article class="border border-black p-4">
+                        <div class="flex items-center justify-between">
+                            <span class="mono text-[10px] uppercase tracking-[0.3em]">Ocean Lab</span>
+                            <span class="text-xs text-gray-500">Room noise: low</span>
+                        </div>
+                        <h4 class="text-lg font-semibold mt-2">Coral nursery reports 40% survival boost after moonlight cycle tests.</h4>
+                        <p class="mt-2 text-sm text-gray-700">Top signal: cited research roundup earned +2 TR and refunded 75% VC.</p>
+                    </article>
+                    <article class="border border-black p-4">
+                        <div class="flex items-center justify-between">
+                            <span class="mono text-[10px] uppercase tracking-[0.3em]">Mobility Desk</span>
+                            <span class="text-xs text-gray-500">Room noise: medium</span>
+                        </div>
+                        <h4 class="text-lg font-semibold mt-2">E-bike battery swap pilot cuts delivery downtime by 28%.</h4>
+                        <p class="mt-2 text-sm text-gray-700">Boost pool is highlighting a field report with verified photos.</p>
+                    </article>
+                    <article class="border border-black p-4">
+                        <div class="flex items-center justify-between">
+                            <span class="mono text-[10px] uppercase tracking-[0.3em]">Culture Wire</span>
+                            <span class="text-xs text-gray-500">Room noise: high</span>
+                        </div>
+                        <h4 class="text-lg font-semibold mt-2">Indie co-op puzzle game breaks 1M community levels shared.</h4>
+                        <p class="mt-2 text-sm text-gray-700">Self-boost cap engaged; only 30% of BT can go to creator posts.</p>
+                    </article>
+                    <article class="border border-black p-4">
+                        <div class="flex items-center justify-between">
+                            <span class="mono text-[10px] uppercase tracking-[0.3em]">City Life</span>
+                            <span class="text-xs text-gray-500">Room noise: low</span>
+                        </div>
+                        <h4 class="text-lg font-semibold mt-2">Rooftop garden program opens 12 new learning plots.</h4>
+                        <p class="mt-2 text-sm text-gray-700">Participants earned +BT for a supply map with supplier links.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel bg-white p-8">
+            <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Balances Snapshot</div>
+            <h3 class="text-xl font-semibold mt-3">Live meters for a simulated session.</h3>
+            <div class="mt-6 grid md:grid-cols-3 gap-6">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="mono text-xs uppercase tracking-[0.3em]">Voice Credits</span>
+                        <span class="text-sm font-semibold">42 VC</span>
+                    </div>
+                    <div class="mt-2 h-3 border border-black bg-[#f9f4ea]">
+                        <div class="h-full bg-black" style="width: 70%"></div>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500">Refund window open: 18 min.</p>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="mono text-xs uppercase tracking-[0.3em]">Trust</span>
+                        <span class="text-sm font-semibold">86 TR</span>
+                    </div>
+                    <div class="mt-2 h-3 border border-black bg-[#f9f4ea]">
+                        <div class="h-full bg-black" style="width: 86%"></div>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500">Decay check in 5 days.</p>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="mono text-xs uppercase tracking-[0.3em]">Boost</span>
+                        <span class="text-sm font-semibold">18 BT</span>
+                    </div>
+                    <div class="mt-2 h-3 border border-black bg-[#f9f4ea]">
+                        <div class="h-full bg-black" style="width: 45%"></div>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-500">Daily spend cap: 12 BT.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="border-t border-black/10 mt-16">
+        <div class="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-xs text-gray-500">
+            <span class="mono uppercase tracking-[0.3em]">Sooploop Currency Simulation</span>
+            <span>Built for rapid product visualization and signal-first experimentation.</span>
+        </div>
+    </footer>
+</body>
+</html>
