@@ -1408,7 +1408,16 @@ function triggerColorInversion(){
   sky.material.needsUpdate = true;
 }
 
-const columnGeo = new THREE.BoxGeometry(COL_SIZE_X, 1, COL_SIZE_Z);
+const columnBarGeo = new THREE.BoxGeometry(COL_SIZE_X, 1, COL_SIZE_Z);
+const columnTriangleGeo = new THREE.CylinderGeometry(
+  COL_SIZE_X * 0.65,
+  COL_SIZE_X * 0.65,
+  1,
+  3,
+  1,
+  false
+);
+columnTriangleGeo.rotateY(Math.PI / 2);
 const columnMat = new THREE.MeshStandardMaterial({
   color: 0xffffff, 
   metalness: 0.1,  // Start flat
@@ -1419,7 +1428,7 @@ const columnMat = new THREE.MeshStandardMaterial({
   envMapIntensity: 0.5
 });
 const instanceCount = COLS_X * ROWS_Z;
-const columns = new THREE.InstancedMesh(columnGeo, columnMat, instanceCount);
+const columns = new THREE.InstancedMesh(columnBarGeo, columnMat, instanceCount);
 columns.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 columns.castShadow = false; columns.receiveShadow = false;
 scene.add(columns);
@@ -1437,6 +1446,17 @@ let rowOffset = 0;
 let scrollZ = 0;
 let ROAD_COLOR = new THREE.Color(0x0a0a20);
 let ROAD_EDGE_COLOR = new THREE.Color(0x0066ff);
+let useTriangleTerrainGeometry = false;
+
+function setTerrainGeometry(shouldUseTriangles) {
+  if (shouldUseTriangles === useTriangleTerrainGeometry) return;
+  useTriangleTerrainGeometry = shouldUseTriangles;
+  columns.geometry = shouldUseTriangles ? columnTriangleGeo : columnBarGeo;
+  columns.geometry.computeBoundingSphere();
+  columns.geometry.computeBoundingBox();
+  columns.instanceMatrix.needsUpdate = true;
+  console.log(shouldUseTriangles ? '🔺 Terrain geometry switched to triangles' : '🟦 Terrain geometry switched to bars');
+}
 
 // Lightbike-inspired rectangular vehicle with animated veering
 // Bike is attached to camera rig so it's always visible in front/below camera
@@ -2728,6 +2748,8 @@ const visualProgression = {
   roadExpansion: 0,  // 0 = normal, 1 = expanded
   waveIntensity: 0,   // 0 = flat, 1 = max wave
   skiHillIntensity: 0,  // 0 = normal, 1 = steep ski slope
+  terrainDensity: 0,   // 0 = chunky bars, 1 = dense micro-voxels
+  triangleTransition: 0, // 0 = bars, 1 = triangle prisms
   
   update(time) {
     const phaseEl = document.getElementById('phaseStatus');
@@ -2881,11 +2903,15 @@ const visualProgression = {
       this.roadExpansion = THREE.MathUtils.lerp(this.roadExpansion, 1.0, 0.08);
       this.waveIntensity = THREE.MathUtils.lerp(this.waveIntensity, 1.0, 0.08);
       this.skiHillIntensity = THREE.MathUtils.lerp(this.skiHillIntensity, 0, 0.08);
+      this.terrainDensity = THREE.MathUtils.lerp(this.terrainDensity, 0.45, 0.08);
+      this.triangleTransition = THREE.MathUtils.lerp(this.triangleTransition, 0, 0.08);
     } else if (time >= 50 && time < 60) {
       // Ski hill sequence (50-60s)
       this.roadExpansion = THREE.MathUtils.lerp(this.roadExpansion, 0, 0.08);  // Normal width for ski hill
       this.waveIntensity = THREE.MathUtils.lerp(this.waveIntensity, 0, 0.08);  // No wave
       this.skiHillIntensity = THREE.MathUtils.lerp(this.skiHillIntensity, 1.0, 0.08);  // Full ski slope
+      this.terrainDensity = THREE.MathUtils.lerp(this.terrainDensity, 0.8, 0.08);
+      this.triangleTransition = THREE.MathUtils.lerp(this.triangleTransition, 0.35, 0.08);
       
       // Debug logging every second
       if (Math.floor(time) !== Math.floor(time - 0.016)) {
@@ -2896,7 +2922,14 @@ const visualProgression = {
       this.roadExpansion = THREE.MathUtils.lerp(this.roadExpansion, 0, 0.03);
       this.waveIntensity = THREE.MathUtils.lerp(this.waveIntensity, 0, 0.03);
       this.skiHillIntensity = THREE.MathUtils.lerp(this.skiHillIntensity, 0, 0.03);
+      this.terrainDensity = THREE.MathUtils.lerp(this.terrainDensity, 1.0, 0.05);
+      this.triangleTransition = THREE.MathUtils.lerp(this.triangleTransition, 1.0, 0.05);
+    } else {
+      this.terrainDensity = THREE.MathUtils.lerp(this.terrainDensity, 0, 0.05);
+      this.triangleTransition = THREE.MathUtils.lerp(this.triangleTransition, 0, 0.05);
     }
+
+    setTerrainGeometry(this.triangleTransition > 0.7);
     
     // Bloom control based on phase
     let targetBloom = 0;
@@ -3564,6 +3597,11 @@ function tick(now){
         let col = getTricolor(xw, worldZBase);
         let h = 0;
         let audioHeightBoost = 0;
+        const fidelityProgress = Math.min(1, Math.max(0,
+          visualProgression.terrainDensity + visualProgression.triangleTransition * 0.4
+        ));
+        const densityScale = THREE.MathUtils.lerp(1.0, 0.35, fidelityProgress);
+        const yStretch = THREE.MathUtils.lerp(1.0, 1.15, fidelityProgress);
         
         // SKI HILL MODE - One continuous smooth wave, smaller cubes
         if (visualProgression.skiHillIntensity >= 0.3) {
@@ -3579,7 +3617,7 @@ function tick(now){
           const baseY = roadElev;
           
           // Smaller cube height for finer detail
-          const cubeHeight = Math.max(0.3, 0.3 + h);
+          const cubeHeight = Math.max(0.3, 0.3 + h) * yStretch;
           
           // Update matrix directly
           const i = idx(ix, iz);
@@ -3587,9 +3625,10 @@ function tick(now){
           columns.instanceMatrix.array[matrixOffset + 13] = baseY + cubeHeight * 0.5;
           columns.instanceMatrix.array[matrixOffset + 5] = cubeHeight;
           
-          // Scale down X and Z for smaller cubes
-          columns.instanceMatrix.array[matrixOffset + 0] = 0.6;  // X scale
-          columns.instanceMatrix.array[matrixOffset + 10] = 0.6;  // Z scale
+          // Scale down X and Z progressively as fidelity increases
+          const skiDensityScale = 0.6 * densityScale;
+          columns.instanceMatrix.array[matrixOffset + 0] = skiDensityScale;  // X scale
+          columns.instanceMatrix.array[matrixOffset + 10] = skiDensityScale;  // Z scale
           
           color.copy(col);
           columns.instanceColor.setXYZ(i, color.r, color.g, color.b);
@@ -3599,8 +3638,8 @@ function tick(now){
           // Reset scale to normal when not in ski mode
           const i = idx(ix, iz);
           const matrixOffset = i * 16;
-          columns.instanceMatrix.array[matrixOffset + 0] = 1.0;  // X scale
-          columns.instanceMatrix.array[matrixOffset + 10] = 1.0;  // Z scale
+          columns.instanceMatrix.array[matrixOffset + 0] = densityScale;  // X scale
+          columns.instanceMatrix.array[matrixOffset + 10] = densityScale;  // Z scale
         }
         
         // Normal terrain logic (non-ski mode)
@@ -3639,7 +3678,7 @@ function tick(now){
         }
         
         const baseY = roadElev;
-        const columnHeight = Math.max(0.5, 0.5 + h + audioHeightBoost);
+        const columnHeight = Math.max(0.5, 0.5 + h + audioHeightBoost) * yStretch;
         
         // Update Y position and scale in matrix directly (keep Z unchanged)
         const i = idx(ix, iz);
