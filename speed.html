@@ -3042,6 +3042,7 @@ let targetSpeed = 180;
 let distKm = 0;
 let boostEnergy = 100;
 let gameTime = 0;
+let trailDirectionAngle = 0;
 let audioLevel = 0;
 let goals = [];
 let currentGoalIndex = 0;
@@ -3513,6 +3514,11 @@ function tick(now){
   const forward = mps * dt;
   distKm += (mps*dt)/1000;
 
+  // Align voxel strip orientation with rider travel direction (trail wall effect)
+  const lateralMotion = playerVx;
+  const travelDirectionTarget = THREE.MathUtils.clamp(Math.atan2(lateralMotion, Math.max(10, mps)), -0.85, 0.85);
+  trailDirectionAngle = THREE.MathUtils.lerp(trailDirectionAngle, travelDirectionTarget, 0.12);
+
   // Emit particles (from camera rig world position)
   if (Math.random() < 0.2){
     const bikeWorldPos = new THREE.Vector3();
@@ -3600,8 +3606,13 @@ function tick(now){
         const fidelityProgress = Math.min(1, Math.max(0,
           visualProgression.terrainDensity + visualProgression.triangleTransition * 0.4
         ));
-        const densityScale = THREE.MathUtils.lerp(1.0, 0.35, fidelityProgress);
-        const yStretch = THREE.MathUtils.lerp(1.0, 1.15, fidelityProgress);
+        const stripHyper = Math.min(1.0, Math.max(0, (speedKmh - 180) / 220));
+        const boostHyper = keys.has('BOOST') ? 0.35 : 0.0;
+        const stripCrossScale = THREE.MathUtils.lerp(1.0, 0.28, fidelityProgress) * (1.0 - stripHyper * 0.2);
+        const stripAlongScale = THREE.MathUtils.lerp(1.0, 2.25, fidelityProgress) * (1.0 + stripHyper * 0.7 + boostHyper);
+        const yStretch = THREE.MathUtils.lerp(1.0, 1.15, fidelityProgress) * (1.0 + stripHyper * 0.18);
+        const trailSin = Math.sin(trailDirectionAngle);
+        const trailCos = Math.cos(trailDirectionAngle);
         
         // SKI HILL MODE - One continuous smooth wave, smaller cubes
         if (visualProgression.skiHillIntensity >= 0.3) {
@@ -3626,9 +3637,12 @@ function tick(now){
           columns.instanceMatrix.array[matrixOffset + 5] = cubeHeight;
           
           // Scale down X and Z progressively as fidelity increases
-          const skiDensityScale = 0.6 * densityScale;
-          columns.instanceMatrix.array[matrixOffset + 0] = skiDensityScale;  // X scale
-          columns.instanceMatrix.array[matrixOffset + 10] = skiDensityScale;  // Z scale
+          const skiCrossScale = 0.6 * stripCrossScale;
+          const skiAlongScale = 0.8 * stripAlongScale;
+          columns.instanceMatrix.array[matrixOffset + 0] = trailCos * skiCrossScale;
+          columns.instanceMatrix.array[matrixOffset + 2] = -trailSin * skiCrossScale;
+          columns.instanceMatrix.array[matrixOffset + 8] = trailSin * skiAlongScale;
+          columns.instanceMatrix.array[matrixOffset + 10] = trailCos * skiAlongScale;
           
           color.copy(col);
           columns.instanceColor.setXYZ(i, color.r, color.g, color.b);
@@ -3638,8 +3652,10 @@ function tick(now){
           // Reset scale to normal when not in ski mode
           const i = idx(ix, iz);
           const matrixOffset = i * 16;
-          columns.instanceMatrix.array[matrixOffset + 0] = densityScale;  // X scale
-          columns.instanceMatrix.array[matrixOffset + 10] = densityScale;  // Z scale
+          columns.instanceMatrix.array[matrixOffset + 0] = trailCos * stripCrossScale;
+          columns.instanceMatrix.array[matrixOffset + 2] = -trailSin * stripCrossScale;
+          columns.instanceMatrix.array[matrixOffset + 8] = trailSin * stripAlongScale;
+          columns.instanceMatrix.array[matrixOffset + 10] = trailCos * stripAlongScale;
         }
         
         // Normal terrain logic (non-ski mode)
