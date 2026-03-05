@@ -3104,6 +3104,17 @@ if (goals.length === 0) {
 
 // Input
 const keys = new Set();
+const activeTouchSteering = new Map();
+let mobileWheelieTimeout = null;
+
+function setWheelieFromMobile(durationMs = 1200) {
+  keys.add('WHEELIE');
+  if (mobileWheelieTimeout) clearTimeout(mobileWheelieTimeout);
+  mobileWheelieTimeout = setTimeout(() => {
+    keys.delete('WHEELIE');
+    mobileWheelieTimeout = null;
+  }, durationMs);
+}
 
 // Auto-start countdown on load
 setTimeout(() => {
@@ -3159,7 +3170,71 @@ addEventListener('keyup', e=>{
   }
 });
 
-// D-pad removed - keyboard/mouse only controls
+// Mobile touch controls:
+// - Tap left/right side to steer (like A/D)
+// - Swipe down to wheelie
+// - Tap center area to jump/boost (like Space)
+addEventListener('touchstart', (e) => {
+  if (e.target.closest('button, input, select, textarea, a, #debugPanel, #timeline')) return;
+
+  for (const touch of e.changedTouches) {
+    const xRatio = touch.clientX / window.innerWidth;
+    let action = null;
+
+    if (xRatio < 0.33) {
+      keys.add('L');
+      action = 'L';
+    } else if (xRatio > 0.67) {
+      keys.add('R');
+      action = 'R';
+    } else {
+      keys.add('BOOST');
+      action = 'BOOST';
+    }
+
+    activeTouchSteering.set(touch.identifier, {
+      action,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      wheelieTriggered: false
+    });
+  }
+}, { passive: true });
+
+addEventListener('touchmove', (e) => {
+  for (const touch of e.changedTouches) {
+    const state = activeTouchSteering.get(touch.identifier);
+    if (!state) continue;
+
+    const deltaY = touch.clientY - state.startY;
+    if (!state.wheelieTriggered && deltaY > 60) {
+      setWheelieFromMobile();
+      state.wheelieTriggered = true;
+    }
+  }
+}, { passive: true });
+
+function clearTouchAction(identifier) {
+  const state = activeTouchSteering.get(identifier);
+  if (!state) return;
+
+  if (state.action === 'L') keys.delete('L');
+  if (state.action === 'R') keys.delete('R');
+  if (state.action === 'BOOST') keys.delete('BOOST');
+  activeTouchSteering.delete(identifier);
+}
+
+addEventListener('touchend', (e) => {
+  for (const touch of e.changedTouches) {
+    clearTouchAction(touch.identifier);
+  }
+}, { passive: true });
+
+addEventListener('touchcancel', (e) => {
+  for (const touch of e.changedTouches) {
+    clearTouchAction(touch.identifier);
+  }
+}, { passive: true });
 
 // Mouse drag for orbit camera
 addEventListener('mousedown', (e) => {
