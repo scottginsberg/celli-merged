@@ -17227,7 +17227,12 @@ function ensureTimed3D(){
  }
  // Per-array timed: config exists; animate only if previewInArray is enabled
  for(const arr of arrays){
- if(!arr) continue; const T = arr.params && arr.params.timed; if(!T) continue;
+ if(!arr) continue;
+ let T = arr.params && arr.params.timed;
+ if(!T && G && G.preview && includeArrayIn3D(arr.id)) {
+ try{ T = (Scene.ensureTimedState||ensureTimedState)(arr); }catch{}
+ }
+ if(!T) continue;
  if(T.previewInArray){
  // Ensure timing defaults are sane even if only PREVIEW was called
  if(!T.ticks) { T.ticks = 120; }
