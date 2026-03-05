@@ -3341,7 +3341,7 @@ const Actions = {
 const ALWAYS = new Set([
 'FUNCTIONS','LOCK','CREATE','ARRAY','PARAMETERS','ADDRESS','ALT_ADDRESS','COMBINE','COLOR','GETCOLOR','OPEN_URL',
  'ON_SELECT','ON_EVENT','FIRE_EVENT','SET_GLOBAL','GET_GLOBAL','FOCUS_SET','COPY',
- 'SOKOBAN','SOKO_STEP','SOKOBAN2','SOKO_STEP2','SSR','SSR_STEP','DEP_VIS','GET_ARRAY_POS','SET_ARRAY_POS','TRANSLATE_ARRAY','ROTATE_ARRAY',
+ 'SOKOBAN','SOKO_STEP','SOKOBAN2','SOKO_STEP2','SSR','SSR_STEP','DEP_VIS','GET_ARRAY_POS','SET_ARRAY_POS','ARRAY_TRANSLATE','TRANSLATE_ARRAY','ROTATE_ARRAY',
  'INVENTORY','3D_TRANSLATE','3D_ROTATE','DELETE','DEL','REMOVE','LIGHT','CHIME'
 ]);
 const Fn = {}; // name -> {tags:[...], impl(anchor, arr, ast)}
@@ -3634,62 +3634,37 @@ function isAllowed(arr, fnName){
 }
 
 // Utility tags (registered after policy init)
-// 3D_TRANSLATE(target, dx, dy, dz[, originRef])
-// - target: array id (number) or ref within target array; if ref, its arrId is used
-// - dx,dy,dz: integer notch offsets (snap grid)
-// - originRef: optional ref used only for semantic symmetry; translation is uniform so origin isn't needed, but kept for API parity
+// 3D_TRANSLATE(target, x, y, z)
+// - target: array id (number) or ref within target array; defaults to current array
+// - x,y,z: absolute world-space final position for the target array (docked arrays preserve relative offsets)
 tag('3D_TRANSLATE',["SCENE"],(anchor,arr,ast)=>{
- // Args: target (arrId | ref | "@[x,y,z,id]" | SELF()), dx, dy, dz[, continuous]
- const targetArg = ast.args[0];
- const toInt = (a)=>{ try{ const v = Formula.valOf(a); const s = String(v==null? a : v); const n = parseFloat(s.replace(/[^0-9\-+.]/g,'')); return Number.isFinite(n)? (n|0) : 0; }catch{ return 0; } };
- const dx = toInt(ast.args[1]);
- const dy = toInt(ast.args[2]);
- const dz = toInt(ast.args[3]);
- const cont = !!toInt(ast.args[4]||0);
-
+ const toInt = (a)=>{ try{ const v = Formula.valOf(a); const s = String(v==null? a : v); const n = parseFloat(s.replace(/[^0-9\-+.]/g,'')); return Number.isFinite(n)? Math.round(n) : 0; }catch{ return 0; } };
+ const resolveTargetArray = (targetArg)=>{
  const S = Store.getState();
- let targetArr = null;
- let queueAnchor = anchor; // default to the calling cell if no explicit ref provided
-
- if(targetArg && targetArg.kind==='ref'){
- targetArr = S.arrays[targetArg.arrId];
- queueAnchor = { x:targetArg.x, y:targetArg.y, z:targetArg.z, arrId: targetArg.arrId };
- } else {
+ if(targetArg && targetArg.kind==='ref') return S.arrays[targetArg.arrId] || null;
  const raw = Formula.valOf(targetArg);
- // Try parsing absolute ref strings like SELF() => "@[x,y,z,id]"
  if(typeof raw === 'string'){
  try{
  const parsed = parseAlt(raw, anchor);
- if(parsed && S.arrays[parsed.arrId]){
- targetArr = S.arrays[parsed.arrId];
- queueAnchor = { x:parsed.x, y:parsed.y, z:parsed.z, arrId: parsed.arrId };
- }
+ if(parsed && S.arrays[parsed.arrId]) return S.arrays[parsed.arrId];
  }catch{}
  }
- if(!targetArr){
- const id = +raw;
- if(Number.isFinite(id) && S.arrays[id]){
- targetArr = S.arrays[id];
- // If only an ID was provided, anchor defaults to A1a of the target for preview semantics
- queueAnchor = { x:0, y:0, z:0, arrId:id };
- }
- }
- }
+ const id = Number(raw);
+ if(Number.isFinite(id) && S.arrays[id]) return S.arrays[id];
+ return null;
+ };
 
+ const targetArr = resolveTargetArray(ast.args[0]) || arr;
+ const x = toInt(ast.args[1]);
+ const y = toInt(ast.args[2]);
+ const z = toInt(ast.args[3]);
  if(!targetArr){ Actions.setCell(arr.id, anchor, '!ERR:TARGET', ast.raw, true); return; }
 
- const ak = aKey(anchor);
- let existingTranslateRec = null;
- try{ existingTranslateRec = (S.activeTranslations||new Map()).get(ak); }catch{}
-
- // If PREVIEW is on (in-array or 3D), do not apply now; animation system will read formulas
  let timed = null; try{ if(typeof Scene!=='undefined' && Scene.ensureTimedState) timed = Scene.ensureTimedState(targetArr); }catch{}
  const G0 = (Store.getState().scene||{}).timed3D;
- if((timed && timed.previewInArray) || (G0 && G0.preview)){
- return;
- }
+ if((timed && timed.previewInArray) || (G0 && G0.preview)) return;
 
- // Immediate translation respecting docking/parentage (apply to group as a unit)
+ const S = Store.getState();
  const group = [...(S.dockGroups||new Map()).values()].find(g=>g.members.includes(targetArr.id));
  const ids = group
  ? (group.mode==='parent'
@@ -3698,85 +3673,15 @@ tag('3D_TRANSLATE',["SCENE"],(anchor,arr,ast)=>{
  : [targetArr.id];
  const arrays = ids.map(id=>S.arrays[id]).filter(Boolean);
 
- const cloneOffset=(src)=>({
- x: Number.isFinite(+src?.x) ? Math.round(+src.x) : 0,
- y: Number.isFinite(+src?.y) ? Math.round(+src.y) : 0,
- z: Number.isFinite(+src?.z) ? Math.round(+src.z) : 0
+ const baseTarget = { x: Number(targetArr.offset?.x)||0, y: Number(targetArr.offset?.y)||0, z: Number(targetArr.offset?.z)||0 };
+ const delta = { x: x - baseTarget.x, y: y - baseTarget.y, z: z - baseTarget.z };
+ arrays.forEach(a=>{
+ const off = a.offset||{x:0,y:0,z:0};
+ const next = { x: (Number(off.x)||0) + delta.x, y: (Number(off.y)||0) + delta.y, z: (Number(off.z)||0) + delta.z };
+ Scene.setArrayOffset(a, next, {interactive:true, _skipDock:true, _skipConnections:true});
  });
- const captureBases=(list)=> list.map(a=>({ id:a.id, offset:cloneOffset(a.offset||{x:0,y:0,z:0}) }));
 
- let baseRecords=null;
- if(existingTranslateRec && !cont){
- const baseMap=new Map();
- if(Array.isArray(existingTranslateRec.bases)){
- existingTranslateRec.bases.forEach(entry=>{
- if(entry==null) return;
- const id=Number.isFinite(+entry.id)?(+entry.id|0):null;
- if(id==null) return;
- const src=entry.offset||entry.base||entry;
- baseMap.set(id, cloneOffset(src));
- });
- }
- if(existingTranslateRec.from){
- const base=cloneOffset(existingTranslateRec.from);
- const targetId=Number.isFinite(+existingTranslateRec.targetId)?(+existingTranslateRec.targetId|0):targetArr.id;
- if(!baseMap.has(targetId)) baseMap.set(targetId, base);
- }
- arrays.forEach(a=>{
- const base=baseMap.get(a.id);
- if(base){ Scene.setArrayOffset(a, base, {interactive:true, _skipDock:true, _skipConnections:true}); }
- });
- baseRecords=captureBases(arrays);
- } else if(existingTranslateRec && cont){
- if(Array.isArray(existingTranslateRec.bases) && existingTranslateRec.bases.length){
- baseRecords=existingTranslateRec.bases.map(entry=>({
- id:Number.isFinite(+entry.id)?(+entry.id|0):targetArr.id,
- offset:cloneOffset(entry.offset||entry.base||entry)
- }));
- } else {
- baseRecords=captureBases(arrays);
- if(existingTranslateRec.from){
- const base=cloneOffset(existingTranslateRec.from);
- const targetId=Number.isFinite(+existingTranslateRec.targetId)?(+existingTranslateRec.targetId|0):targetArr.id;
- baseRecords=baseRecords.map(rec=> rec.id===targetId ? {id:rec.id, offset:base} : rec);
- }
- }
- } else {
- baseRecords=captureBases(arrays);
- }
-
- arrays.forEach(a=>{
- const offA = a.offset||{x:0,y:0,z:0};
- const nextA = { x: Math.round((offA.x||0) + dx), y: Math.round((offA.y||0) + dy), z: Math.round((offA.z||0) + dz) };
- Scene.setArrayOffset(a, nextA, {interactive:true, _skipDock:true, _skipConnections:true});
- });
- try{
- arrays.forEach(a=>{
- if(!a) return;
- const timedLocal = a.params?.timed;
- if(timedLocal){
- timedLocal.baseOffset = { ...(a.offset||{x:0,y:0,z:0}) };
- if(a._frame && a._frame.quaternion){
- try{ timedLocal.baseQuat = a._frame.quaternion.clone(); }catch{}
- }
- }
- });
- }catch{}
- Actions.setCell(arr.id, anchor, `Moved:${dx},${dy},${dz}`, ast.raw, true);
- // Record for revert when this anchor's formula is cleared; suppress repeat execution
- try{
- const S=Store.getState();
- const map=new Map(S.activeTranslations||new Map());
- const basesCloned = (baseRecords||[]).map(rec=>({ id:rec.id, offset:{...rec.offset} }));
- const targetBase = basesCloned.find(rec=>rec.id===targetArr.id)?.offset || cloneOffset(targetArr.offset||{x:0,y:0,z:0});
- map.set(ak, { targetId: targetArr.id, from:{...targetBase}, delta:{dx,dy,dz}, bases:basesCloned });
- Store.setState({activeTranslations:map});
- // Persist revert info in meta so refresh can restore revert behavior
- const txw = Write.start('mark.3d.translate','mark');
- const cell = Formula.getCell(anchor) || {value:'',formula:null,meta:{}};
- Write.set(txw, arr.id, {x:anchor.x,y:anchor.y,z:anchor.z}, { value: cell.value, formula: cell.formula, meta:{...(cell.meta||{}), appliedTranslate:{ targetId: targetArr.id, from: targetBase, delta:{dx,dy,dz}, bases:basesCloned } } });
- Write.commit(txw);
- }catch{}
+ Actions.setCell(arr.id, anchor, `ArrayPos:${x},${y},${z}`, ast.raw, true);
 });
 // 3D_ROTATE(targetOrPivot, stepsX[, stepsY[, stepsZ]])
 // - First arg: array ID or cell address (pivot + derives array ID). If ID, pivot defaults to A1a.
@@ -7883,8 +7788,10 @@ tag('SCALE',["SCENE","VOXEL"],(anchor,arr,ast)=>{
  const stamp = `Scale ${units}`;
  Actions.setCell(arr.id, anchor, stamp, ast.raw, true);
 });
-// Backward-compatible alias: TRANSLATE_ARRAY delegates to 3D_TRANSLATE
-tag('TRANSLATE_ARRAY',["SCENE"],(anchor,arr,ast)=> Fn['3D_TRANSLATE'].impl(anchor,arr,ast));
+// Array translation helpers
+tag('ARRAY_TRANSLATE',["SCENE"],(anchor,arr,ast)=> Fn['3D_TRANSLATE'].impl(anchor,arr,ast));
+// Backward-compatible alias
+tag('TRANSLATE_ARRAY',["SCENE"],(anchor,arr,ast)=> Fn['ARRAY_TRANSLATE'].impl(anchor,arr,ast));
 // 3D_ROTATE(stepsY) or 3D_ROTATE(stepsX,stepsY,stepsZ)
 tag('3D_ROTATE',["SCENE"],(anchor,arr,ast)=>{
  // Parse args
@@ -8775,7 +8682,7 @@ tag('PREVIEW',["SCENE"],(anchor,arr,ast)=>{
  }catch(e){ Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true); }
 });
 
-// TIMED_TRANSLATION(ticks, repeat, reverse?, reverseTicks?) config only, no animation
+// TIMED_TRANSLATION(ticks, repeat, reverse?, reverseTicks?, smooth?) config only, no animation
 tag('TIMED_TRANSLATION',["SCENE"],(anchor,arr,ast)=>{
  try{
  const ticks = (+Formula.valOf(ast.args[0]||60))|0;
@@ -8789,7 +8696,7 @@ tag('TIMED_TRANSLATION',["SCENE"],(anchor,arr,ast)=>{
  }catch(e){ Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true); }
 });
 
-// 3D_TIMED_TRANSLATION(ticks, repeat, reverse?, reverseTicks?, smooth?, scope?) global config
+// 3D_TIMED_TRANSLATION(ticks, repeat, reverse?, reverseTicks?, smooth?, mode?, scope?) global config
 tag('3D_TIMED_TRANSLATION',["SCENE"],(anchor,arr,ast)=>{
  try{
  const ticks = (+Formula.valOf(ast.args[0]||60))|0;
@@ -8797,8 +8704,12 @@ tag('3D_TIMED_TRANSLATION',["SCENE"],(anchor,arr,ast)=>{
  const reverse = !!Formula.valOf(ast.args[2]||0);
  const reverseTicks = (ast.args[3]!==undefined) ? ((+Formula.valOf(ast.args[3])|0) || ticks) : null;
  const smooth = !!((+Formula.valOf(ast.args[4]||0))|0);
+ const rawMode = String(Formula.valOf(ast.args[5]||'simultaneous')||'simultaneous').trim().toLowerCase();
+ const mode = (rawMode==='stepped_array' || rawMode==='array' || rawMode==='queue_array' || rawMode==='1')
+ ? 'stepped_array'
+ : ((rawMode==='stepped_cell' || rawMode==='cell' || rawMode==='queue_cell' || rawMode==='2') ? 'stepped_cell' : 'simultaneous');
  let scopeConfig;
- try{ scopeConfig = parseArrayScopeArg(ast.args[5], anchor, arr); }
+ try{ scopeConfig = parseArrayScopeArg(ast.args[6], anchor, arr); }
  catch{ scopeConfig = parseArrayScopeArg(null, anchor, arr); }
  // Robust ensure timed3D state
  let G = null;
@@ -8806,16 +8717,16 @@ tag('3D_TIMED_TRANSLATION',["SCENE"],(anchor,arr,ast)=>{
  if(!G){
  const S = Store.getState();
  const sceneState = S.scene || {};
- if(!sceneState.timed3D){ sceneState.timed3D = { configured:false, ticks:60, repeat:false, reverse:false, reverseTicks:null, t:0, dir:1, preview:false, smooth:false }; }
+ if(!sceneState.timed3D){ sceneState.timed3D = { configured:false, ticks:60, repeat:false, reverse:false, reverseTicks:null, t:0, dir:1, preview:false, smooth:false, mode:'simultaneous' }; }
  Store.setState(s=>({ scene: { ...s.scene, timed3D: sceneState.timed3D } }));
  G = sceneState.timed3D;
  }
- G.configured = true; G.ticks=Math.max(1,ticks|0); G.repeat=repeat; G.reverse=reverse; G.reverseTicks=reverseTicks; G.t=0; G.dir=1; G.smooth = smooth;
+ G.configured = true; G.ticks=Math.max(1,ticks|0); G.repeat=repeat; G.reverse=reverse; G.reverseTicks=reverseTicks; G.t=0; G.dir=1; G.smooth = smooth; G.mode = mode;
  G.hostId = arr?.id ?? anchor?.arrId ?? null;
  if(scopeConfig){
  G.scope = { mode: scopeConfig.mode, ids: Array.from(scopeConfig.ids||[]) };
  }
- Actions.setCell(arr.id, anchor, `3D_Timed:cfg(${ticks})`, ast.raw, true);
+ Actions.setCell(arr.id, anchor, `3D_Timed:cfg(${ticks};${mode})`, ast.raw, true);
  }catch(e){ Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true); }
 });
 
@@ -16009,10 +15920,10 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  for(const ch of Object.values(arr.chunks||{})){
  for(const c of ch.cells||[]){
  const f = String(c?.formula||''); if(!f) continue;
- if(/(?:3D_)?TRANSLATE(?:_ARRAY)?\(/i.test(f) || /TRANSLATE_ARRAY\(/i.test(f)){
+ if(/(?:3D_TRANSLATE|ARRAY_TRANSLATE|TRANSLATE_ARRAY)\(/i.test(f)){
  // Robust arg parsing: extract top-level args ignoring nested parens/addresses
  try{
- const start = f.search(/(?:3D_)?TRANSLATE(?:_ARRAY)?\(/i);
+ const start = f.search(/(?:3D_TRANSLATE|ARRAY_TRANSLATE|TRANSLATE_ARRAY)\(/i);
  if(start>=0){
  let i=start; while(i<f.length && f[i]!== '(') i++;
  if(i<f.length && f[i]==='('){
@@ -16130,11 +16041,11 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  try{ maskArrayForPreview(arr, false); }catch{}
  }
  // Global 3D timed config (overworld movement)
- function ensureTimed3D(){
+function ensureTimed3D(){
  const S=Store.getState();
  const sceneState = S.scene || ({});
  if(!sceneState.timed3D){
- sceneState.timed3D = { configured:false, ticks:60, repeat:false, reverse:false, reverseTicks:null, t:0, dir:1, preview:false, waitStart:0, waitEnd:0, _waitCounter:0, scope:null, hostId:null, activeHostIds:[] };
+ sceneState.timed3D = { configured:false, ticks:60, repeat:false, reverse:false, reverseTicks:null, t:0, dir:1, preview:false, waitStart:0, waitEnd:0, _waitCounter:0, scope:null, hostId:null, activeHostIds:[], mode:'simultaneous' };
  Store.setState(s=>({scene:{...s.scene, timed3D: sceneState.timed3D}}));
  } else {
  if(typeof sceneState.timed3D.waitStart!=='number') sceneState.timed3D.waitStart = 0;
@@ -16143,9 +16054,10 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  if(!sceneState.timed3D.hasOwnProperty('scope')) sceneState.timed3D.scope = null;
  if(!sceneState.timed3D.hasOwnProperty('hostId')) sceneState.timed3D.hostId = null;
  if(!Array.isArray(sceneState.timed3D.activeHostIds)) sceneState.timed3D.activeHostIds = [];
+ if(!sceneState.timed3D.mode) sceneState.timed3D.mode = 'simultaneous';
  }
  return sceneState.timed3D;
- }
+}
  // Temporarily hide colored fills/formulas so expansion overlay is visible over white grid
  function maskArrayForPreview(arr, enable){
  try{
@@ -16241,7 +16153,7 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  // Parse op
  const text = String(op||'').trim();
  const reNum = (s)=>{ const n = parseFloat(String(s).replace(/[^0-9\-+.]/g,'')); return Number.isFinite(n)? n : 0; };
- const mTrans = /(?:3D_)?TRANSLATE(?:_ARRAY)?\(\s*(?:[^,]+\s*,\s*)?([^,]+)\s*,\s*([^,]+)\s*,\s*([^,\)]+)\s*\)/i.exec(text);
+ const mTrans = /(?:3D_TRANSLATE|ARRAY_TRANSLATE|TRANSLATE_ARRAY)\(\s*(?:[^,]+\s*,\s*)?([^,]+)\s*,\s*([^,]+)\s*,\s*([^,\)]+)\s*\)/i.exec(text);
  const mRot = /(?:3D_)?ROTATE(?:_ARRAY)?\(\s*([^,)]*)\s*(?:,\s*([^,)]*)\s*)?(?:,\s*([^,)]*)\s*)?\)/i.exec(text);
  const mArrayFill = /ARRAY\(\s*"fill"\s*,\s*([^,]+)\s*,\s*([^,\)]+)\s*(?:,\s*([^,\)]+)\s*)?/i.exec(text);
  const isTranspose = /TRANSPOSE\(/i.test(text);
@@ -17203,11 +17115,47 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  return true;
  };
  let p3D = 0;
+ const mode3D = String(G?.mode||'simultaneous').toLowerCase();
+ let queueOrder3D = [];
+ let queueIndexByArr = new Map();
+ if(G && G.preview && (mode3D==='stepped_array' || mode3D==='stepped_cell')){
+ const inScope = arrays.filter(a=>a && includeArrayIn3D(a.id));
+ if(mode3D==='stepped_cell'){
+ const cellKey = (a)=>{
+ const T = a?.params?.timed;
+ const ops = Array.isArray(T?.plan) ? T.plan : [];
+ let minX=Infinity,minY=Infinity,minZ=Infinity;
+ ops.forEach(op=>{
+ const k=op?.anchor;
+ if(!k) return;
+ const x = Number.isFinite(+k.x) ? (+k.x|0) : 0;
+ const y = Number.isFinite(+k.y) ? (+k.y|0) : 0;
+ const z = Number.isFinite(+k.z) ? (+k.z|0) : 0;
+ if(x<minX || (x===minX && (y<minY || (y===minY && z<minZ)))){ minX=x; minY=y; minZ=z; }
+ });
+ if(!Number.isFinite(minX)){
+ minX = Number.isFinite(+a?.offset?.x) ? Math.round(+a.offset.x) : 0;
+ minY = Number.isFinite(+a?.offset?.y) ? Math.round(+a.offset.y) : 0;
+ minZ = Number.isFinite(+a?.offset?.z) ? Math.round(+a.offset.z) : 0;
+ }
+ return {minX,minY,minZ};
+ };
+ queueOrder3D = inScope.slice().sort((a,b)=>{
+ const ka = cellKey(a), kb = cellKey(b);
+ return (ka.minX-kb.minX) || (ka.minY-kb.minY) || (ka.minZ-kb.minZ) || ((a.id|0)-(b.id|0));
+ });
+ } else {
+ queueOrder3D = inScope.slice().sort((a,b)=>(a.id|0)-(b.id|0));
+ }
+ queueOrder3D.forEach((a,i)=> queueIndexByArr.set(a.id, i));
+ }
  if(G && G.preview){
  // Default configuration if none provided via 3D_TIMED_TRANSLATION
  if(!G.ticks){ G.ticks=240; G.reverseTicks=G.reverseTicks||G.ticks; G.dir=1; G.t=0; }
  if(typeof G._waitCounter!=='number') G._waitCounter = 0;
  const dur3D = (G.dir>0? G.ticks : (G.reverseTicks||G.ticks));
+ const queueLen3D = Math.max(1, queueOrder3D.length || 1);
+ const totalDur3D = (mode3D==='simultaneous') ? dur3D : (dur3D * queueLen3D);
  let r3D = 0;
  // Wait-at-start: hold time; still render p3D=0 so arrays snap to base
  if(G.dir>0 && G.t===0 && (G.waitStart|0) > 0 && G._waitCounter < (G.waitStart|0)){
@@ -17216,7 +17164,7 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  r3D = 0;
  } else {
  G.t = (G.t + 1);
- r3D = Math.min(1, G.t/Math.max(1,dur3D));
+ r3D = Math.min(1, G.t/Math.max(1,totalDur3D));
  p3D = (G.dir>0? r3D : (1-r3D));
  }
  if(r3D>=1){
@@ -17443,7 +17391,16 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  const baseRotPivot = pivotLocal.clone().applyQuaternion(T.baseQuat);
  // Rotation progress and quaternion (snapshot of applied rotation steps; inverse toward pre-transform)
  const steps = arr.rotationSteps || {x:0,y:0,z:0};
- const rotProg = smooth ? (1 - p3D) : (1 - (Math.round(p3D*4)/4));
+ let arrP3D = p3D;
+ if(mode3D!=='simultaneous'){
+ const idx = queueIndexByArr.get(arr.id);
+ if(idx==null){ arrP3D = 0; }
+ else {
+ const q = Math.max(0, Math.min(1, p3D));
+ arrP3D = Math.max(0, Math.min(1, q * Math.max(1,queueOrder3D.length) - idx));
+ }
+ }
+ const rotProg = smooth ? (1 - arrP3D) : (1 - (Math.round(arrP3D*4)/4));
  const ax = (steps.x|0) * (Math.PI/2) * rotProg;
  const ay = (steps.y|0) * (Math.PI/2) * rotProg;
  const az = (steps.z|0) * (Math.PI/2) * rotProg;
@@ -17456,11 +17413,11 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  // Translation progress (preview un-applies first, then returns to final)
  let dxp=0,dyp=0,dzp=0;
  if(smooth){
- dxp = -tx * (1 - p3D); dyp = -ty * (1 - p3D); dzp = -tz * (1 - p3D);
+ dxp = -tx * (1 - arrP3D); dyp = -ty * (1 - arrP3D); dzp = -tz * (1 - arrP3D);
  } else {
- dxp = tx!==0 ? (Math.round(T.baseOffset.x - tx*(1-p3D)) - T.baseOffset.x) : 0;
- dyp = ty!==0 ? (Math.round(T.baseOffset.y - ty*(1-p3D)) - T.baseOffset.y) : 0;
- dzp = tz!==0 ? (Math.round(T.baseOffset.z - tz*(1-p3D)) - T.baseOffset.z) : 0;
+ dxp = tx!==0 ? (Math.round(T.baseOffset.x - tx*(1-arrP3D)) - T.baseOffset.x) : 0;
+ dyp = ty!==0 ? (Math.round(T.baseOffset.y - ty*(1-arrP3D)) - T.baseOffset.y) : 0;
+ dzp = tz!==0 ? (Math.round(T.baseOffset.z - tz*(1-arrP3D)) - T.baseOffset.z) : 0;
  }
  const disp = new THREE.Vector3(dxp,dyp,dzp);
  const newOffset = new THREE.Vector3(T.baseOffset.x, T.baseOffset.y, T.baseOffset.z)
@@ -17474,7 +17431,7 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  try{
  if(!arr._frame) Scene.renderArray(arr);
  // apply a gentle XY tilt oscillation based on p3D
- const tilt = 0.20 * Math.sin(p3D*Math.PI);
+ const tilt = 0.20 * Math.sin(arrP3D*Math.PI);
  arr._frame.rotation.set(tilt, arr._frame.rotation.y, -tilt);
  }catch{}
  }
@@ -23887,8 +23844,10 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  {name:'CUBE',tags:'SCENE VOXEL',syntax:'=CUBE(front, back, left, right, top, bottom[, options])',params:'faces: values or colors per face options: {emissive,opacity}',desc:'Assigns per-face sprites/colors to a voxel and syncs with face-aware highlighting.'},
  {name:'SCALE',tags:'SCENE VOXEL',syntax:'=SCALE(factor)',params:'factor: integer =1',desc:'Expands voxel mesh coverage (2?2 2 2, 3?4 4 4, etc.) and adjusts collision/selection volumes.'},
  {name:'LIGHT',tags:'SCENE',syntax:'=LIGHT(state[, targetCell[, lumens]])',params:'state: TRUE/FALSE or 1/0 targetCell: optional cell reference (0 keeps point light) lumens: brightness in lumens (default 800)',desc:'Creates a light at the calling cell using its color. Optionally aim at another cell for a spotlight. Lights follow array transforms.'},
- {name:'TIMED_TRANSLATION',tags:'SCENE',syntax:'=TIMED_TRANSLATION(state[, ticks[, reverse]])',params:'state: 0/1 enable ticks: duration reverse: 0/1 bidirectional',desc:'Sets animation preview state; shows green prism motion previews.'},
- {name:'3D_TIMED_TRANSLATION',tags:'SCENE',syntax:'=3D_TIMED_TRANSLATION(ticks, repeat, reverse?, reverseTicks?, smooth?, scope?)',params:'ticks: cycle length repeat: 0/1 loop reverse: 0/1 ping-pong reverseTicks: optional reverse duration smooth: 0/1 easing scope: optional LIMIT()/ALL() descriptor',desc:'Configures overworld timed preview cadence and the array scope it affects.'},
+ {name:'ARRAY_TRANSLATE',tags:'SCENE',syntax:'=ARRAY_TRANSLATE(target, x, y, z)',params:'target: array id/ref (optional, defaults to current array) x,y,z: absolute final world position',desc:'Sets an array (and docked members) to a final absolute position independent of prior translations.'},
+ {name:'3D_TRANSLATE',tags:'SCENE',syntax:'=3D_TRANSLATE(target, x, y, z)',params:'target: array id/ref (optional, defaults to current array) x,y,z: absolute final world position',desc:'Alias of ARRAY_TRANSLATE for 3D scene movement formulas.'},
+ {name:'TIMED_TRANSLATION',tags:'SCENE',syntax:'=TIMED_TRANSLATION(ticks, repeat[, reverse[, reverseTicks[, smooth]]])',params:'ticks: duration repeat: 0/1 loop reverse: 0/1 ping-pong reverseTicks: optional reverse duration smooth: 0/1 easing',desc:'Configures per-array preview cadence; pair with PREVIEW(1,0) to animate from origin to final transform.'},
+ {name:'3D_TIMED_TRANSLATION',tags:'SCENE',syntax:'=3D_TIMED_TRANSLATION(ticks, repeat[, reverse[, reverseTicks[, smooth[, mode[, scope]]]]])',params:'ticks: cycle length repeat: 0/1 loop reverse: 0/1 ping-pong reverseTicks: optional reverse duration smooth: 0/1 easing mode: "simultaneous" (default), "stepped_array", or "stepped_cell" scope: optional LIMIT()/ALL() descriptor',desc:'Configures global 3D timed translation and queue behavior from origin to each array's final transform.'},
  {name:'HIDE',tags:'SCENE',syntax:'=HIDE(target, mode[, scope])',params:'target: ref/range/array mode: 0=show,1=hide scope: "contents"|"voxel"|"array"',desc:'Hides cell contents, voxels themselves, ranges, or entire arrays with axes/2D visibility.'},
  {name:'HYPERLINK',tags:'IO',syntax:'=HYPERLINK(url[, label])',params:'url: string/ref label: optional display text',desc:'Creates clickable link in cell with metadata.'},
  {name:'GOAL',tags:'PURE DEBUG',syntax:'=GOAL("id", conditionRefOrBool)',params:'string id boolean or ref',desc:'Registers a goal that shows OK/FAIL; win triggers when all OK.'},
@@ -24946,9 +24905,10 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  
  // Also handle Enter in the formula textbox
  // Autocomplete system
- let autocompleteDiv = null;
- let autocompleteVisible = false;
- let selectedSuggestion = -1;
+let autocompleteDiv = null;
+let autocompleteVisible = false;
+let selectedSuggestion = -1;
+let autocompleteSuggestions = [];
 
  // Move mergeDocsAndComputeDeps to accessible scope
  function mergeDocsAndComputeDeps(){
@@ -25004,13 +24964,24 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  return autocompleteDiv;
  }
 
- function showAutocomplete(input, suggestions){
+function showAutocomplete(input, suggestions){
  const div = createAutocomplete();
  if(suggestions.length === 0){ hideAutocomplete(); return; }
- 
+ autocompleteSuggestions = suggestions;
+ if(selectedSuggestion < 0 || selectedSuggestion >= suggestions.length) selectedSuggestion = 0;
+
+ const selectedFn = suggestions[selectedSuggestion] || suggestions[0] || null;
+ const helpHtml = selectedFn
+ ? `<div id="acHelp" style="padding: 8px 10px; font-size: 11px; color:#334155; background:#f8fafc; border-top:1px solid #e2e8f0; line-height:1.35;">
+ <div style="font-weight:700; color:#0f172a; margin-bottom:4px;">${selectedFn.name}</div>
+ <div style="margin-bottom:3px;"><span style="color:#64748b;">Syntax:</span> ${selectedFn.syntax || `=${selectedFn.name}()`}</div>
+ <div style="margin-bottom:3px;"><span style="color:#64748b;">Params:</span> ${selectedFn.params || 'None'}</div>
+ <div><span style="color:#64748b;">About:</span> ${selectedFn.desc || ''}</div>
+ </div>`
+ : '';
  div.innerHTML = suggestions.map((fn, idx) => 
  `<div class="ac-item" data-idx="${idx}" style="padding: 6px 10px; cursor: pointer; border-bottom: 1px solid #f3f4f6; ${idx === selectedSuggestion ? 'background: #f3f4f6;' : ''}">${fn.name}<span style="color: #6b7280; margin-left: 8px; font-size: 10px;">${fn.tags}</span></div>`
- ).join('');
+ ).join('') + helpHtml;
  
  const rect = input.getBoundingClientRect();
  div.style.left = rect.left + 'px';
@@ -25029,11 +25000,12 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  });
  }
 
- function hideAutocomplete(){
+function hideAutocomplete(){
  if(autocompleteDiv) autocompleteDiv.style.display = 'none';
  autocompleteVisible = false;
  selectedSuggestion = -1;
- }
+ autocompleteSuggestions = [];
+}
 
  function applyAutocomplete(input, fn){
  const val = input.value;
@@ -25162,12 +25134,20 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  }
  });
 
- function updateAutocompleteHighlight(){
+function updateAutocompleteHighlight(){
  if(!autocompleteDiv) return;
  autocompleteDiv.querySelectorAll('.ac-item').forEach((item, idx) => {
  item.style.background = (idx === selectedSuggestion) ? '#f3f4f6' : '';
  });
+ const help = autocompleteDiv.querySelector('#acHelp');
+ const selectedFn = autocompleteSuggestions[selectedSuggestion] || autocompleteSuggestions[0];
+ if(help && selectedFn){
+ help.innerHTML = `<div style="font-weight:700; color:#0f172a; margin-bottom:4px;">${selectedFn.name}</div>
+ <div style="margin-bottom:3px;"><span style="color:#64748b;">Syntax:</span> ${selectedFn.syntax || `=${selectedFn.name}()`}</div>
+ <div style="margin-bottom:3px;"><span style="color:#64748b;">Params:</span> ${selectedFn.params || 'None'}</div>
+ <div><span style="color:#64748b;">About:</span> ${selectedFn.desc || ''}</div>`;
  }
+}
 
  // Hide autocomplete when clicking outside
  document.addEventListener('click', (e) => {
