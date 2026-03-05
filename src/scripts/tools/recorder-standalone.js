@@ -69,6 +69,7 @@
       this.injectStyles();
       this.createUI();
       this.setupEventListeners();
+      this.setupHotkeys();
       this.trackCursor();
       
       // Detect canvas on initialization and periodically
@@ -252,6 +253,7 @@
       `;
       
       document.body.appendChild(this.panel);
+      this.hideRecorderUI();
       
       setTimeout(() => {
         this.statusText = this.panel?.querySelector('#recStatusText');
@@ -330,6 +332,27 @@
       if (cancelBtn) {
         cancelBtn.addEventListener('click', () => this.closePanel());
       }
+    }
+
+    setupHotkeys() {
+      window.addEventListener('keydown', (e) => {
+        const tag = (document.activeElement?.tagName || '').toUpperCase();
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
+
+        if (e.key === '/') {
+          e.preventDefault();
+          this.showRecorderUI();
+          this.showToast('Recorder controls shown');
+          return;
+        }
+
+        if (e.key === ',') {
+          e.preventDefault();
+          this.hideRecorderUI();
+          this.closePanel();
+          this.showToast('Recorder controls hidden');
+        }
+      });
     }
     
     trackCursor() {
