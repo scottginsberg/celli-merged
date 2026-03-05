@@ -35,8 +35,9 @@
 .ui-icon{ position:fixed; width:50px; height:50px; background:#1f2937; border-radius:10px; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:10002; transition:transform .2s ease; color:#e5e7eb; }
 .ui-icon:hover{ transform:scale(1.1); }
 .ui-icon svg{ pointer-events:none; }
-#terminal-icon{ bottom:24px; right:24px; }
-#notepad-icon{ bottom:108px; right:24px; }
+#terminal-icon{ bottom:96px; right:24px; }
+#notepad-icon{ bottom:168px; right:24px; }
+#media-icon{ bottom:240px; right:24px; }
 
 /* Narrative windows */
 #terminal{ position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:90vw; max-width:700px; height:460px; background:rgba(17,24,39,.95); border:1px solid rgba(255,255,255,.12); border-radius:12px; box-shadow:0 25px 50px -12px rgb(0 0 0 / .5); z-index:10002; display:none; flex-direction:column; color:#e5e7eb; font-family:'Roboto Mono',monospace; }
@@ -23122,6 +23123,14 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  const padClose=document.getElementById('pad-close');
  const toast=document.getElementById('toast');
  const showToast2=(msg)=>{ if(toast){ toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2200); } };
+ const getDesktopMode=()=>{
+  try{
+   if(typeof window.__CELLI_DESKTOP_MODE === 'boolean') return window.__CELLI_DESKTOP_MODE;
+   const sheet=document.getElementById('sheet');
+   return !!(sheet && sheet.classList.contains('intro-centered') && !window.__INTRO_FIRED);
+  }catch{ return false; }
+ };
+ const setDesktopMode=(next)=>{ try{ window.__CELLI_DESKTOP_MODE = !!next; }catch{} };
  // Track last pointer type to distinguish touch vs keyboard/mouse
  let lastPointerType = 'mouse';
  window.addEventListener('pointerdown', (e)=>{ lastPointerType = e.pointerType || 'mouse'; }, {passive:true});
@@ -23230,15 +23239,14 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  };
  wireMediaButton();
  
- // Position media icon
+ // Position media icon in fixed dock stack (no overlap with recorder)
  const positionMediaIcon=()=>{
   const mediaIcon=document.getElementById('media-icon');
-  const notepadIcon=document.getElementById('notepad-icon');
-  if(mediaIcon && notepadIcon){
-   const noteRect=notepadIcon.getBoundingClientRect();
+  if(mediaIcon){
    mediaIcon.style.position='fixed';
-   mediaIcon.style.right=(window.innerWidth - noteRect.right)+'px';
-   mediaIcon.style.top=(noteRect.bottom + 16)+'px';
+   mediaIcon.style.right='24px';
+   mediaIcon.style.top='';
+   mediaIcon.style.bottom='240px';
    mediaIcon.style.display='flex';
   }
  };
@@ -23286,10 +23294,14 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
   const padIcon = document.getElementById('notepad-icon');
   const mediaIcon = document.getElementById('media-icon');
 
-  // Show icons
+  // Close floating windows and show dock icons
+  try{ if(termWin) termWin.style.display='none'; if(padWin) padWin.style.display='none'; }catch{}
   if(termIcon){ termIcon.style.display = 'flex'; }
   if(padIcon){ padIcon.style.display = 'flex'; }
   if(mediaIcon){ mediaIcon.style.display = 'flex'; positionMediaIcon(); }
+
+  try{ window.__INTRO_FIRED = false; }catch{}
+  setDesktopMode(true);
 
   // Update debug button title
   dbg.setAttribute('title','Return to 3D');
@@ -23313,12 +23325,20 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
   if(now - lastHudToggle < 220) return; 
   lastHudToggle = now; 
   
-  // Check if in 3D mode - if so, return to OS instead of toggling HUD
+  // Desktop mode: re-enter 3D, otherwise return to desktop from 3D
+  if(getDesktopMode()){
+   try{ UI.kickIntroSequence?.('debug-return-3d'); }catch{}
+   try{ window.__INTRO_FIRED = true; }catch{}
+   setDesktopMode(false);
+   return;
+  }
+
   if(isIn3DMode()){
    returnToOS();
-  } else {
-   toggleHud(); 
+   return;
   }
+
+  toggleHud();
  };
  
  dbg.addEventListener('click', (e)=>{ e.preventDefault(); safeToggle(); });
@@ -23468,7 +23488,7 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  }
 
  // Hide narrative after intro collapse
- const oldKick=UI?.startIntroExperience; UI.startIntroExperience=()=>{ try{ oldKick?.(); }catch{}; try{ termWin.style.display='none'; padWin.style.display='none'; document.getElementById('terminal-icon').style.display='none'; document.getElementById('notepad-icon').style.display='none'; }catch{} };
+ const oldKick=UI?.startIntroExperience; UI.startIntroExperience=()=>{ try{ oldKick?.(); }catch{}; try{ setDesktopMode(false); }catch{}; try{ termWin.style.display='none'; padWin.style.display='none'; document.getElementById('terminal-icon').style.display='none'; document.getElementById('notepad-icon').style.display='none'; }catch{} };
 
  // Wire D-Pad HUD
  const dpad=document.getElementById('dpad');
@@ -24399,7 +24419,7 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  action = getMetaAction(fresh?.meta, 'on_click') || action;
  }catch{}
  if(!action){
- try{ if(!window.__INTRO_FIRED) action = '=STARTINTROEXPERIENCE()'; }catch{}
+ try{ if(getDesktopMode() || !window.__INTRO_FIRED) action = '=STARTINTROEXPERIENCE()'; }catch{}
  }
  const normalized = normalizeActionFormula(action||'');
  if(!normalized) return;
