@@ -3635,30 +3635,36 @@ function isAllowed(arr, fnName){
 }
 
 // Utility tags (registered after policy init)
-// 3D_TRANSLATE(target, x, y, z)
-// - target: array id (number) or ref within target array; defaults to current array
-// - x,y,z: absolute world-space final position for the target array (docked arrays preserve relative offsets)
+// 3D_TRANSLATE([target], y, x, z)
+// - target: 0/"default"/blank=self, number=array id, or ref/alt address to pick array
+// - y,x,z: offset steps applied to the full target array (+ docked members), independent of prior formulas
 tag('3D_TRANSLATE',["SCENE"],(anchor,arr,ast)=>{
  const toInt = (a)=>{ try{ const v = Formula.valOf(a); const s = String(v==null? a : v); const n = parseFloat(s.replace(/[^0-9\-+.]/g,'')); return Number.isFinite(n)? Math.round(n) : 0; }catch{ return 0; } };
  const resolveTargetArray = (targetArg)=>{
  const S = Store.getState();
  if(targetArg && targetArg.kind==='ref') return S.arrays[targetArg.arrId] || null;
  const raw = Formula.valOf(targetArg);
+ if(raw==null || raw==='') return arr;
  if(typeof raw === 'string'){
+ const trimmed = raw.trim().toLowerCase();
+ if(trimmed==='' || trimmed==='default' || trimmed==='self' || trimmed==='0') return arr;
  try{
  const parsed = parseAlt(raw, anchor);
  if(parsed && S.arrays[parsed.arrId]) return S.arrays[parsed.arrId];
  }catch{}
  }
  const id = Number(raw);
+ if(Number.isFinite(id) && id===0) return arr;
  if(Number.isFinite(id) && S.arrays[id]) return S.arrays[id];
  return null;
  };
 
- const targetArr = resolveTargetArray(ast.args[0]) || arr;
- const x = toInt(ast.args[1]);
- const y = toInt(ast.args[2]);
- const z = toInt(ast.args[3]);
+ const args = Array.isArray(ast?.args) ? ast.args : [];
+ const hasExplicitTarget = args.length >= 4;
+ const targetArr = hasExplicitTarget ? (resolveTargetArray(args[0]) || arr) : arr;
+ const y = toInt(args[hasExplicitTarget ? 1 : 0]);
+ const x = toInt(args[hasExplicitTarget ? 2 : 1]);
+ const z = toInt(args[hasExplicitTarget ? 3 : 2]);
  if(!targetArr){ Actions.setCell(arr.id, anchor, '!ERR:TARGET', ast.raw, true); return; }
 
  let timed = null; try{ if(typeof Scene!=='undefined' && Scene.ensureTimedState) timed = Scene.ensureTimedState(targetArr); }catch{}
@@ -3674,15 +3680,13 @@ tag('3D_TRANSLATE',["SCENE"],(anchor,arr,ast)=>{
  : [targetArr.id];
  const arrays = ids.map(id=>S.arrays[id]).filter(Boolean);
 
- const baseTarget = { x: Number(targetArr.offset?.x)||0, y: Number(targetArr.offset?.y)||0, z: Number(targetArr.offset?.z)||0 };
- const delta = { x: x - baseTarget.x, y: y - baseTarget.y, z: z - baseTarget.z };
  arrays.forEach(a=>{
  const off = a.offset||{x:0,y:0,z:0};
- const next = { x: (Number(off.x)||0) + delta.x, y: (Number(off.y)||0) + delta.y, z: (Number(off.z)||0) + delta.z };
+ const next = { x: (Number(off.x)||0) + x, y: (Number(off.y)||0) + y, z: (Number(off.z)||0) + z };
  Scene.setArrayOffset(a, next, {interactive:true, _skipDock:true, _skipConnections:true});
  });
 
- Actions.setCell(arr.id, anchor, `ArrayPos:${x},${y},${z}`, ast.raw, true);
+ Actions.setCell(arr.id, anchor, `ArrayStep:${targetArr.id};y${y},x${x},z${z}`, ast.raw, true);
 });
 // 3D_ROTATE(targetOrPivot, stepsX[, stepsY[, stepsZ]])
 // - First arg: array ID or cell address (pivot + derives array ID). If ID, pivot defaults to A1a.
@@ -8683,19 +8687,38 @@ tag('PREVIEW',["SCENE"],(anchor,arr,ast)=>{
  }catch(e){ Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true); }
 });
 
-// TIMED_TRANSLATION(ticks, repeat, reverse?, reverseTicks?, smooth?) config only, no animation
+// TIMED_TRANSLATION(enable[, ticks[, loop[, returnToOrigin[, frameDelay[, smooth[, mode]]]]]])
+// enable: 1 starts preview immediately, 0 stops; defaults to 1
+// default loop=true; default returnToOrigin=true for ping-pong back to origin before next loop
 tag('TIMED_TRANSLATION',["SCENE"],(anchor,arr,ast)=>{
  try{
- const ticks = (+Formula.valOf(ast.args[0]||60))|0;
- const repeat = !!Formula.valOf(ast.args[1]||0);
- const reverse = !!Formula.valOf(ast.args[2]||0);
- const reverseTicks = (ast.args[3]!==undefined) ? ((+Formula.valOf(ast.args[3])|0) || ticks) : null;
- const smooth = !!((+Formula.valOf(ast.args[4]||0))|0);
- const cfgFn = (typeof Scene!=='undefined' && Scene.configTimed) ? Scene.configTimed : (a,c)=>{ try{ /* fallback no-op */ }catch{} };
- cfgFn(arr, { ticks, repeat, reverse, reverseTicks, smooth });
- Actions.setCell(arr.id, anchor, `Timed:cfg(${ticks})`, ast.raw, true);
+ const enable = ast.args[0]===undefined ? true : !!Formula.valOf(ast.args[0]);
+ if(!enable){
+ try{ (Scene.stopTimed||stopTimed)(arr); }catch{}
+ Actions.setCell(arr.id, anchor, `Timed:off`, ast.raw, true);
+ return;
+ }
+ const ticks = (+Formula.valOf(ast.args[1]||60))|0;
+ const repeat = ast.args[2]===undefined ? true : !!Formula.valOf(ast.args[2]);
+ const reverse = ast.args[3]===undefined ? true : !!Formula.valOf(ast.args[3]);
+ const frameDelay = ast.args[4]===undefined ? 0 : Math.max(0, (+Formula.valOf(ast.args[4])|0));
+ const smooth = !!((+Formula.valOf(ast.args[5]||0))|0);
+ const rawMode = String(Formula.valOf(ast.args[6]||'simultaneous')||'simultaneous').trim().toLowerCase();
+ const mode = (rawMode==='stepped_array' || rawMode==='array' || rawMode==='queue_array' || rawMode==='1')
+ ? 'stepped_array'
+ : ((rawMode==='stepped_cell' || rawMode==='cell' || rawMode==='queue_cell' || rawMode==='2') ? 'stepped_cell' : 'simultaneous');
+ const cfgFn = (typeof Scene!=='undefined' && Scene.configTimed) ? Scene.configTimed : (a,c)=>{ try{}catch{} };
+ cfgFn(arr, { ticks, repeat, reverse, reverseTicks:ticks, smooth });
+ const t = (typeof Scene!=='undefined' && Scene.ensureTimedState) ? Scene.ensureTimedState(arr) : (arr.params?.timed||null);
+ if(t){ t.previewInArray = true; try{ (Scene.buildTimedPlanFromArray||buildTimedPlanFromArray)(arr); }catch{} }
+ const G = (typeof Scene!=='undefined' && Scene.ensureTimed3D) ? Scene.ensureTimed3D() : null;
+ if(G){ G.mode = mode; G.waitStart = frameDelay; }
+ Actions.setCell(arr.id, anchor, `Timed:on(${ticks};${mode})`, ast.raw, true);
  }catch(e){ Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true); }
 });
+// Alias for convenience in formulas/help
+tag('TIMED_TRANSLATE',["SCENE"],(anchor,arr,ast)=> Fn['TIMED_TRANSLATION'].impl(anchor,arr,ast));
+
 
 // 3D_TIMED_TRANSLATION(ticks, repeat, reverse?, reverseTicks?, smooth?, mode?, scope?) global config
 tag('3D_TIMED_TRANSLATION',["SCENE"],(anchor,arr,ast)=>{
@@ -15946,7 +15969,7 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  const dxv = reNum(args[n-3]);
  const dyv = reNum(args[n-2]);
  const dzv = reNum(args[n-1]);
- queueTimedOp(arr, {x:c.x,y:c.y,z:c.z,arrId:arr.id}, {type:'translate', dx:dxv, dy:dyv, dz:dzv, opText:f});
+ queueTimedOp(arr, {x:c.x,y:c.y,z:c.z,arrId:arr.id}, {type:'translate', dx:dyv, dy:dxv, dz:dzv, opText:f});
  }
  }
  }
@@ -16192,7 +16215,7 @@ function ensureTimed3D(){
  }
 
  if(!animType){
- if(mTrans){ animType='translate'; params={ dx: reNum(mTrans[1]), dy: reNum(mTrans[2]), dz: reNum(mTrans[3]) }; }
+ if(mTrans){ animType='translate'; params={ dx: reNum(mTrans[2]), dy: reNum(mTrans[1]), dz: reNum(mTrans[3]) }; }
  else if(mRot){ animType='rotate'; params={ sx: reNum(mRot[1]||0), sy: reNum(mRot[2]||0), sz: reNum(mRot[3]||0) }; }
  else if(mArrayFill){ animType='array'; params={ w: Math.max(1, reNum(mArrayFill[1])|0), h: Math.max(1, reNum(mArrayFill[2])|0), d: Math.max(1, reNum(mArrayFill[3]||1)|0) }; }
  else if(isTranspose){ animType='transpose'; params={}; }
@@ -23864,9 +23887,10 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  {name:'CUBE',tags:'SCENE VOXEL',syntax:'=CUBE(front, back, left, right, top, bottom[, options])',params:'faces: values or colors per face options: {emissive,opacity}',desc:'Assigns per-face sprites/colors to a voxel and syncs with face-aware highlighting.'},
  {name:'SCALE',tags:'SCENE VOXEL',syntax:'=SCALE(factor)',params:'factor: integer =1',desc:'Expands voxel mesh coverage (2?2 2 2, 3?4 4 4, etc.) and adjusts collision/selection volumes.'},
  {name:'LIGHT',tags:'SCENE',syntax:'=LIGHT(state[, targetCell[, lumens]])',params:'state: TRUE/FALSE or 1/0 targetCell: optional cell reference (0 keeps point light) lumens: brightness in lumens (default 800)',desc:'Creates a light at the calling cell using its color. Optionally aim at another cell for a spotlight. Lights follow array transforms.'},
- {name:'ARRAY_TRANSLATE',tags:'SCENE',syntax:'=ARRAY_TRANSLATE(target, x, y, z)',params:'target: array id/ref (optional, defaults to current array) x,y,z: absolute final world position',desc:'Sets an array (and docked members) to a final absolute position independent of prior translations.'},
- {name:'3D_TRANSLATE',tags:'SCENE',syntax:'=3D_TRANSLATE(target, x, y, z)',params:'target: array id/ref (optional, defaults to current array) x,y,z: absolute final world position',desc:'Alias of ARRAY_TRANSLATE for 3D scene movement formulas.'},
- {name:'TIMED_TRANSLATION',tags:'SCENE',syntax:'=TIMED_TRANSLATION(ticks, repeat[, reverse[, reverseTicks[, smooth]]])',params:'ticks: duration repeat: 0/1 loop reverse: 0/1 ping-pong reverseTicks: optional reverse duration smooth: 0/1 easing',desc:'Configures per-array preview cadence; pair with PREVIEW(1,0) to animate from origin to final transform.'},
+ {name:'ARRAY_TRANSLATE',tags:'SCENE',syntax:'=ARRAY_TRANSLATE([target], y, x, z)',params:'target: optional array selector (0/default/self, array id, or ref with ^/alt notation) y,x,z: offset steps for the whole array',desc:'Moves the target array and docked members by relative step offsets (Y then X then Z).'},
+ {name:'3D_TRANSLATE',tags:'SCENE',syntax:'=3D_TRANSLATE([target], y, x, z)',params:'target: optional array selector (0/default/self, array id, or ref with ^/alt notation) y,x,z: offset steps for the whole array',desc:'Alias of ARRAY_TRANSLATE with Y/X/Z step ordering for whole-array movement.'},
+ {name:'TIMED_TRANSLATION',tags:'SCENE',syntax:'=TIMED_TRANSLATION(enable[, ticks[, loop[, returnToOrigin[, frameDelay[, smooth[, mode]]]]]])',params:'enable: 1 start/0 stop ticks: forward duration loop: 0/1 (default 1) returnToOrigin: 0/1 (default 1) frameDelay: pause at origin between loops smooth: 0/1 mode: simultaneous|stepped_array|stepped_cell (for shared queue mode)',desc:'Enables timed preview for this array immediately. With defaults, it loops and returns to origin before replaying.'},
+ {name:'TIMED_TRANSLATE',tags:'SCENE',syntax:'=TIMED_TRANSLATE(enable[, ticks[, loop[, returnToOrigin[, frameDelay[, smooth[, mode]]]]]])',params:'Alias of TIMED_TRANSLATION with identical parameters.',desc:'Convenience alias for timed translation setup and inline readability.'},
  {name:'3D_TIMED_TRANSLATION',tags:'SCENE',syntax:'=3D_TIMED_TRANSLATION(ticks, repeat[, reverse[, reverseTicks[, smooth[, mode[, scope]]]]])',params:'ticks: cycle length repeat: 0/1 loop reverse: 0/1 ping-pong reverseTicks: optional reverse duration smooth: 0/1 easing mode: "simultaneous" (default), "stepped_array", or "stepped_cell" scope: optional LIMIT()/ALL() descriptor',desc:'Configures global 3D timed translation and queue behavior from origin to each array's final transform.'},
  {name:'HIDE',tags:'SCENE',syntax:'=HIDE(target, mode[, scope])',params:'target: ref/range/array mode: 0=show,1=hide scope: "contents"|"voxel"|"array"',desc:'Hides cell contents, voxels themselves, ranges, or entire arrays with axes/2D visibility.'},
  {name:'HYPERLINK',tags:'IO',syntax:'=HYPERLINK(url[, label])',params:'url: string/ref label: optional display text',desc:'Creates clickable link in cell with metadata.'},
