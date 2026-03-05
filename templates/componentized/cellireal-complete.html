@@ -23208,7 +23208,7 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  wirePadTabs();
  
  // Media button controls
- const wireMediaButton=()=>{
+const wireMediaButton=()=>{
   const mediaIcon=document.getElementById('media-icon');
   if(!mediaIcon) return;
   if(!mediaIcon._wired){
@@ -23227,14 +23227,34 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
      mediaIcon.style.opacity='0.6';
     }
    });
-  }
- };
- wireMediaButton();
+ }
+};
+wireMediaButton();
+
+const resolveRestoreIntroState = ()=>{
+ try{
+  if(typeof window.restoreCelliOsIntroState === 'function') return window.restoreCelliOsIntroState;
+  if(typeof restoreCelliOsIntroState === 'function') return restoreCelliOsIntroState;
+ }catch{}
+ return null;
+};
+
+const syncDesktopChrome=(isDesktop)=>{
+ const termIcon=document.getElementById('terminal-icon');
+ const padIcon=document.getElementById('notepad-icon');
+ const mediaIcon=document.getElementById('media-icon');
+ const iconDisplay=isDesktop?'flex':'none';
+ try{ if(termWin) termWin.style.display='none'; if(padWin) padWin.style.display='none'; }catch{}
+ if(termIcon) termIcon.style.display=iconDisplay;
+ if(padIcon) padIcon.style.display=iconDisplay;
+ if(mediaIcon) mediaIcon.style.display=iconDisplay;
+ if(isDesktop) positionMediaIcon();
+};
  
  // Position media icon in fixed dock stack (no overlap with recorder)
- const positionMediaIcon=()=>{
+const positionMediaIcon=()=>{
   const mediaIcon=document.getElementById('media-icon');
-  if(mediaIcon){
+  if(mediaIcon && getDesktopMode()){
    mediaIcon.style.position='fixed';
    mediaIcon.style.right='24px';
    mediaIcon.style.top='';
@@ -23269,28 +23289,10 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  dbg._wired = true;
  let lastHudToggle = 0;
  
- // Function to check if we're in 3D mode (sheet is hidden/collapsed)
- const isIn3DMode = ()=>{
-  const sheet = document.getElementById('sheet');
-  if(!sheet) return true;
-  const style = getComputedStyle(sheet);
-  const isHidden = sheet.style.display === 'none' || style.display === 'none' || 
-                   sheet.classList.contains('intro-centered') === false;
-  return isHidden || window.__INTRO_FIRED;
- };
- 
  // Return to OS function - shows desktop view with icons
  const returnToOS = ()=>{
   console.log('Returning to OS...');
-  const termIcon = document.getElementById('terminal-icon');
-  const padIcon = document.getElementById('notepad-icon');
-  const mediaIcon = document.getElementById('media-icon');
-
-  // Close floating windows and show dock icons
-  try{ if(termWin) termWin.style.display='none'; if(padWin) padWin.style.display='none'; }catch{}
-  if(termIcon){ termIcon.style.display = 'flex'; }
-  if(padIcon){ padIcon.style.display = 'flex'; }
-  if(mediaIcon){ mediaIcon.style.display = 'flex'; positionMediaIcon(); }
+  syncDesktopChrome(true);
 
   try{ window.__INTRO_FIRED = false; }catch{}
   setDesktopMode(true);
@@ -23299,8 +23301,11 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
   dbg.setAttribute('title','Return to 3D');
 
   // Restore the full OS presentation (gradient, sheet layout, etc.)
-  try{ restoreCelliOsIntroState(); }
-  catch(err){ console.warn('returnToOS: failed to restore intro state', err); }
+  try{
+   const restoreIntroState = resolveRestoreIntroState();
+   if(restoreIntroState) restoreIntroState();
+   else throw new Error('restoreCelliOsIntroState unavailable');
+  }catch(err){ console.warn('returnToOS: failed to restore intro state', err); }
 
   // Ensure overlay matches desktop palette even if helper was skipped
   const overlay = document.getElementById('introOverlay');
@@ -23316,27 +23321,13 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
   const now=Date.now(); 
   if(now - lastHudToggle < 220) return; 
   lastHudToggle = now; 
-  
-  // Desktop mode: re-enter 3D, otherwise return to desktop from 3D
-  if(getDesktopMode()){
-   try{ UI.kickIntroSequence?.('debug-return-3d'); }catch{}
-   try{ window.__INTRO_FIRED = true; }catch{}
-   setDesktopMode(false);
-   return;
-  }
-
-  if(isIn3DMode()){
-   returnToOS();
-   return;
-  }
-
   toggleHud();
  };
  
  dbg.addEventListener('click', (e)=>{ e.preventDefault(); safeToggle(); });
  // Also handle pointerup (covers touch) to ensure one, reliable toggle
  dbg.addEventListener('pointerup', (e)=>{ if(e.button===0 || e.pointerType){ e.preventDefault(); safeToggle(); } });
- dbg.setAttribute('title','Return to OS');
+ dbg.setAttribute('title','Toggle Debug Menu');
  dbg.setAttribute('role','button');
  dbg.tabIndex = 0;
  dbg.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); safeToggle(); }});
@@ -23352,7 +23343,9 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
    safeToggle();
   });
  }
+ window.__celliReturnToOS = returnToOS;
 }
+window.__celliSyncDesktopChrome = syncDesktopChrome;
  setTimeout(wireNarrative,0);
  setTimeout(wireNarrative,500);
 
@@ -23480,7 +23473,7 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  }
 
  // Hide narrative after intro collapse
- const oldKick=UI?.startIntroExperience; UI.startIntroExperience=()=>{ try{ oldKick?.(); }catch{}; try{ setDesktopMode(false); }catch{}; try{ termWin.style.display='none'; padWin.style.display='none'; document.getElementById('terminal-icon').style.display='none'; document.getElementById('notepad-icon').style.display='none'; }catch{} };
+ const oldKick=UI?.startIntroExperience; UI.startIntroExperience=()=>{ try{ oldKick?.(); }catch{}; try{ setDesktopMode(false); }catch{}; try{ syncDesktopChrome(false); }catch{} };
 
  // Wire D-Pad HUD
  const dpad=document.getElementById('dpad');
@@ -24249,6 +24242,7 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  debugIntroState('kick:pre');
  const hid = hideIntroOverlay();
  const col = triggerIntroCollapse();
+ try{ window.__celliSyncDesktopChrome?.(false); }catch{}
  debugIntroState('kick:post');
  showToast('? Intro');
  try{ window.__INTRO_FIRED = true; }catch{}
