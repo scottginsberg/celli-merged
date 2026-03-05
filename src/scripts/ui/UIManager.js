@@ -26,7 +26,8 @@ export class UIManager {
       onCellSelect: callbacks.onCellSelect || null,
       onFormulaExecute: callbacks.onFormulaExecute || null,
       onNavigate: callbacks.onNavigate || null,
-      onPresentToggle: callbacks.onPresentToggle || null
+      onPresentToggle: callbacks.onPresentToggle || null,
+      onTerminalOpen: callbacks.onTerminalOpen || null
     };
     
     this.state = {
@@ -77,7 +78,9 @@ export class UIManager {
       }
 
       // Initialize narrative windows
-      this.state.windows = new NarrativeWindows();
+      this.state.windows = new NarrativeWindows({
+        onTerminalOpen: this.callbacks.onTerminalOpen
+      });
       const windowsSuccess = this.state.windows.init();
       if (!windowsSuccess) {
         console.warn('[UIManager] Narrative windows initialization failed');
@@ -294,6 +297,11 @@ export class UIManager {
    */
   getWindows() {
     return this.state.windows;
+  }
+
+  setTerminalOpenHandler(handler) {
+    this.callbacks.onTerminalOpen = typeof handler === 'function' ? handler : null;
+    this.state.windows?.setTerminalOpenHandler(this.callbacks.onTerminalOpen);
   }
 
   /**
