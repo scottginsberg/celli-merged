@@ -1,393 +1,531 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sooploop | Proof-of-Good-Faith Currency</title>
-    <link rel="icon" href="data:,">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Space Grotesk', sans-serif;
-            background: radial-gradient(circle at top, rgba(37, 85, 255, 0.08), transparent 55%), #fdfbf7;
-        }
-        .mono { font-family: 'Space Mono', monospace; }
-        .panel {
-            border: 1px solid #111;
-            box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.15);
-        }
-        .meter {
-            background: linear-gradient(90deg, #111 0%, #111 55%, #f9f4ea 55%);
-        }
-        .tag {
-            letter-spacing: 0.3em;
-        }
-        .cluster-shell {
-            background: radial-gradient(circle at center, rgba(37, 85, 255, 0.12), transparent 55%), #fff;
-        }
-        .cluster-node {
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .cluster-node:hover {
-            transform: translate(-50%, -50%) scale(1.08);
-            box-shadow: 0 0 18px rgba(17, 17, 17, 0.35);
-        }
-        .cluster-node.is-active {
-            transform: translate(-50%, -50%) scale(1.15);
-            box-shadow: 0 0 24px rgba(17, 17, 17, 0.45);
-            z-index: 5;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sooploop — Proof-of-Good-Faith Mock</title>
+  <link rel="icon" href="data:," />
+  <style>
+    :root {
+      --bg: #0c1020;
+      --panel: #121933;
+      --panel-soft: #1a2447;
+      --ink: #e8edff;
+      --muted: #9ca8d4;
+      --accent: #77e9ff;
+      --good: #3ee08a;
+      --warn: #ffd06d;
+      --bad: #ff7f9f;
+      --border: rgba(162, 184, 255, 0.25);
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      --radius: 14px;
+    }
+    [data-mode="user"] { --bg: #0c1020; --panel: #121933; --panel-soft: #1a2447; }
+    [data-mode="engine"] { --bg: #161106; --panel: #2a1f0e; --panel-soft: #3b2a11; --accent: #ffbf4e; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, Arial, sans-serif;
+      background: radial-gradient(circle at top right, rgba(95,120,255,.22), transparent 45%), var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+    .app { display: grid; grid-template-rows: auto auto 1fr; min-height: 100vh; }
+    .mode-banner {
+      position: sticky; top: 0; z-index: 50;
+      background: linear-gradient(90deg, rgba(119,233,255,.15), rgba(255,191,78,.15));
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex; gap: 14px; align-items: center; justify-content: space-between;
+      backdrop-filter: blur(8px);
+    }
+    .toggle { display: flex; background: rgba(0,0,0,.25); border: 1px solid var(--border); border-radius: 999px; padding: 4px; }
+    .toggle button {
+      border: 0; padding: 8px 14px; border-radius: 999px; color: var(--ink);
+      background: transparent; cursor: pointer; font-weight: 600;
+    }
+    .toggle .active { background: var(--accent); color: #081024; }
+    .main-nav { display: flex; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .main-nav button { background: var(--panel); border: 1px solid var(--border); color: var(--ink); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+    .main-nav .active { outline: 2px solid var(--accent); }
+    .shell { display: grid; grid-template-columns: 220px 1fr 320px; gap: 12px; padding: 12px; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .left, .right { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .content { padding: 14px; min-height: 68vh; }
+    .balance-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .pill { background: var(--panel-soft); border-radius: 12px; padding: 10px; border: 1px solid var(--border); }
+    .pill b { display: block; font-size: 20px; }
+    .muted { color: var(--muted); font-size: 12px; }
+    .grid { display: grid; gap: 12px; }
+    .feed-card { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--panel-soft); }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .btn { background: #26367c; border: 1px solid var(--border); color: var(--ink); border-radius: 10px; padding: 7px 10px; cursor: pointer; }
+    .btn.warn { background: #58410f; }
+    .btn.good { background: #13462d; }
+    .chip { font-size: 11px; border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; }
+    .split { display: grid; grid-template-columns: 1.2fr .8fr; gap: 12px; }
+    .composer textarea { width: 100%; min-height: 90px; border-radius: 10px; background: #0e1430; color: var(--ink); border: 1px solid var(--border); padding: 10px; }
+    .engine { border-left: 3px solid var(--accent); padding-left: 10px; margin-top: 8px; }
+    .map {
+      min-height: 430px; background: radial-gradient(circle, rgba(255,255,255,.06), transparent 58%), #090e20;
+      border: 1px solid var(--border); border-radius: 12px; position: relative; overflow: hidden;
+    }
+    .node {
+      position: absolute; border-radius: 50%; border: 2px solid rgba(255,255,255,.75);
+      display: grid; place-items: center; color: #081024; font-size: 11px; font-weight: 700; cursor: pointer;
+      transition: transform .2s;
+    }
+    .node:hover { transform: scale(1.1); }
+    .legend li { margin-bottom: 6px; }
+    .toast {
+      position: fixed; right: 14px; bottom: 14px; z-index: 60; padding: 10px 12px;
+      border-radius: 10px; background: #0c1538; border: 1px solid var(--border); max-width: 330px;
+    }
+    .meter { height: 10px; border-radius: 999px; background: #0a122d; border: 1px solid var(--border); overflow: hidden; }
+    .meter > div { height: 100%; background: linear-gradient(90deg,var(--accent), var(--good)); }
+    .sim-controls input[type="range"] { width: 100%; }
+    @media (max-width: 1100px) { .shell { grid-template-columns: 1fr; } .split { grid-template-columns: 1fr; } }
+  </style>
 </head>
-<body class="text-[#111]">
-    <header class="border-b border-black/10 bg-[#fdfbf7]/90 backdrop-blur">
-        <div class="max-w-6xl mx-auto px-6 py-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-                <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Sooploop Sim Lab</div>
-                <h1 class="text-3xl md:text-5xl font-semibold tracking-tight">Proof-of-Good-Faith Currency</h1>
-                <p class="mt-3 max-w-2xl text-gray-700">A three-balance system that throttles speech, rewards signal, and lets users amplify responsibly without turning the feed into pay-to-win.</p>
-            </div>
-            <a href="index.html" class="mono text-xs uppercase tracking-[0.3em] border border-black px-4 py-2 hover:bg-black hover:text-[#fdfbf7] transition">Back to Loomworks</a>
-        </div>
+<body data-mode="user">
+  <div class="app">
+    <header class="mode-banner">
+      <div>
+        <strong id="mode-title">User View</strong>
+        <div class="muted" id="mode-subtitle">See the platform the way participants do.</div>
+      </div>
+      <div class="toggle" role="tablist" aria-label="Mode toggle">
+        <button id="userModeBtn" class="active">User View</button>
+        <button id="engineModeBtn">Engine View</button>
+      </div>
+      <div class="row">
+        <button class="btn" id="resetSimBtn">Reset Simulation</button>
+        <label class="muted">Seed <input id="seedInput" type="number" value="42" min="1" style="width:76px"/></label>
+      </div>
     </header>
+    <nav class="main-nav" id="mainNav"></nav>
 
-    <main class="max-w-6xl mx-auto px-6 py-12 flex flex-col gap-16">
-        <section class="panel cluster-shell p-8">
-            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-                <div>
-                    <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Sim Lab</div>
-                    <h2 class="text-2xl md:text-4xl font-semibold mt-3">Simulate the story cluster.</h2>
-                    <p class="mt-3 text-gray-700 max-w-2xl">A 2D, agario-style constellation of stories. Click a story-planet to inspect it, then spend Trust to cast a Sus vote.</p>
-                </div>
-                <button id="simulateBtn" class="px-8 py-4 text-lg md:text-xl font-bold uppercase tracking-[0.3em] border-2 border-black bg-black text-[#fdfbf7] shadow-[6px_6px_0_rgba(0,0,0,0.25)] hover:translate-x-1 hover:translate-y-1 transition">
-                    Simulate
-                </button>
-            </div>
-            <div class="mt-8 grid lg:grid-cols-[1.5fr_0.9fr] gap-6">
-                <div class="relative border-2 border-black h-[420px] overflow-hidden">
-                    <div class="absolute inset-0">
-                        <div class="absolute top-3 left-1/2 -translate-x-1/2 mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Love / Hate / Inbetween (North)</div>
-                        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Indifference (South)</div>
-                        <div class="absolute left-3 top-1/2 -translate-y-1/2 rotate-[-90deg] mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Curiosity</div>
-                        <div class="absolute right-3 top-1/2 -translate-y-1/2 rotate-[90deg] mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Information Share</div>
-                    </div>
-                    <div id="clusterField" class="absolute inset-0"></div>
-                </div>
-                <div class="border-2 border-black bg-white p-5 flex flex-col gap-4">
-                    <div>
-                        <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Selected Story</div>
-                        <h3 id="storyTitle" class="text-xl font-semibold mt-2">Click a planet to inspect.</h3>
-                        <p id="storyMeta" class="text-sm text-gray-700 mt-2">Story sentiment, curiosity, and trust stakes will appear here.</p>
-                    </div>
-                    <div class="border border-black p-4">
-                        <div class="flex items-center justify-between">
-                            <span class="mono text-xs uppercase tracking-[0.3em] text-gray-500">Trust balance</span>
-                            <span id="trustBalance" class="font-semibold">86 TR</span>
-                        </div>
-                        <div class="mt-3 flex items-center justify-between">
-                            <span class="mono text-xs uppercase tracking-[0.3em] text-gray-500">Authority weight</span>
-                            <span id="authorityWeight" class="font-semibold">1.00×</span>
-                        </div>
-                        <p class="mt-3 text-xs text-gray-500">Honesty earns authority. Accurate flags increase your weight; false flags reduce it.</p>
-                    </div>
-                    <div class="border border-black p-4">
-                        <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Sus Vote</div>
-                        <p class="mt-2 text-sm text-gray-700">Spend Trust to flag something as sus. Higher authority means your flag carries more weight.</p>
-                        <button id="susBtn" class="mt-4 w-full border-2 border-black py-3 font-semibold uppercase tracking-[0.2em] hover:bg-black hover:text-[#fdfbf7] transition">
-                            Spend 4 TR · Flag Sus
-                        </button>
-                        <p id="susStatus" class="mt-3 text-xs text-gray-500">Select a story to cast a Sus vote.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-        <section class="grid lg:grid-cols-[1.2fr_0.8fr] gap-8">
-            <div class="panel bg-white p-8">
-                <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Core Premise</div>
-                <h2 class="text-2xl font-semibold mt-3">Separate speech from cash-out.</h2>
-                <p class="mt-4 text-gray-700 leading-relaxed">Voice Credits throttle how much someone can speak, Trust captures reputation that cannot be sold, and Boost is the only spendable amplifier. That separation blocks bot farms while letting real users cash in on earned trust.</p>
-                <div class="mt-6 grid md:grid-cols-3 gap-4">
-                    <div class="border border-black p-4">
-                        <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">VC</div>
-                        <div class="text-lg font-semibold">Voice Credits</div>
-                        <p class="mt-2 text-sm text-gray-700">Oxygen for posting. Regens daily. Refunds when quality lands.</p>
-                    </div>
-                    <div class="border border-black p-4">
-                        <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">TR</div>
-                        <div class="text-lg font-semibold">Trust</div>
-                        <p class="mt-2 text-sm text-gray-700">Non-transferable reputation. Raises caps and unlocks features.</p>
-                    </div>
-                    <div class="border border-black p-4">
-                        <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">BT</div>
-                        <div class="text-lg font-semibold">Boost</div>
-                        <p class="mt-2 text-sm text-gray-700">Spendable spotlight fuel. Earned from Trust or top signal moments.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="panel bg-[#111] text-[#fdfbf7] p-8">
-                <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-400">Mental Model</div>
-                <ul class="mt-6 space-y-4">
-                    <li class="flex items-center justify-between border-b border-white/20 pb-4">
-                        <span class="text-lg font-semibold">VC = Oxygen</span>
-                        <span class="mono text-xs uppercase tracking-[0.3em] text-gray-300">Spend to speak</span>
-                    </li>
-                    <li class="flex items-center justify-between border-b border-white/20 pb-4">
-                        <span class="text-lg font-semibold">TR = Bone density</span>
-                        <span class="mono text-xs uppercase tracking-[0.3em] text-gray-300">Earned only</span>
-                    </li>
-                    <li class="flex items-center justify-between">
-                        <span class="text-lg font-semibold">BT = Spotlight time</span>
-                        <span class="mono text-xs uppercase tracking-[0.3em] text-gray-300">Spend to amplify</span>
-                    </li>
-                </ul>
-                <div class="mt-8">
-                    <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-400">Refund Logic</div>
-                    <p class="mt-2 text-sm text-gray-300">If a post is rated helpful, fair, or cited within the refund window, 50–100% of its VC cost is returned. Noise flags increase drift and raise costs.</p>
-                </div>
-            </div>
-        </section>
-
-        <section class="grid lg:grid-cols-2 gap-8">
-            <div class="panel bg-white p-8">
-                <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Cost Model</div>
-                <h3 class="text-xl font-semibold mt-3">Voice Credits throttle speech in noisy rooms.</h3>
-                <div class="mt-4 text-sm text-gray-700 leading-relaxed">
-                    <p><span class="mono">cost</span> = baseCost × congestionMultiplier × driftMultiplier</p>
-                    <ul class="mt-4 space-y-2 list-disc list-inside">
-                        <li>baseCost: 1–3 VC per message</li>
-                        <li>congestionMultiplier: 1.0 → 3.0 as messages/min rises</li>
-                        <li>driftMultiplier: 1.0 → 5.0 when flagged</li>
-                    </ul>
-                </div>
-                <div class="mt-6 grid grid-cols-3 gap-4 text-center text-xs">
-                    <div class="border border-black px-3 py-2">
-                        <div class="mono uppercase tracking-[0.3em]">Room</div>
-                        <div class="mt-1 font-semibold">Quiet</div>
-                        <div class="text-gray-500">1.0×</div>
-                    </div>
-                    <div class="border border-black px-3 py-2">
-                        <div class="mono uppercase tracking-[0.3em]">Room</div>
-                        <div class="mt-1 font-semibold">Busy</div>
-                        <div class="text-gray-500">1.8×</div>
-                    </div>
-                    <div class="border border-black px-3 py-2">
-                        <div class="mono uppercase tracking-[0.3em]">Room</div>
-                        <div class="mt-1 font-semibold">Overload</div>
-                        <div class="text-gray-500">2.7×</div>
-                    </div>
-                </div>
-            </div>
-            <div class="panel bg-white p-8">
-                <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Trust + Boost</div>
-                <h3 class="text-xl font-semibold mt-3">Earned reputation mints spotlight over time.</h3>
-                <div class="mt-4 text-sm text-gray-700 leading-relaxed">
-                    <p><span class="mono">daily BT</span> = √TR × k</p>
-                    <p class="mt-4">Trust decays slowly to prevent early whales from dominating. Boost spending is quadratic with daily caps, especially for self-boosts.</p>
-                </div>
-                <div class="mt-6 space-y-3">
-                    <div class="flex items-center justify-between border border-black px-4 py-2">
-                        <span class="mono text-xs uppercase tracking-[0.3em]">Self-boost cap</span>
-                        <span class="font-semibold">30% of daily BT</span>
-                    </div>
-                    <div class="flex items-center justify-between border border-black px-4 py-2">
-                        <span class="mono text-xs uppercase tracking-[0.3em]">Diversity rule</span>
-                        <span class="font-semibold">&lt; X% feed share</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="panel bg-[#111] text-[#fdfbf7] p-8">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                <div>
-                    <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-400">Rewards Pool</div>
-                    <h3 class="text-2xl font-semibold mt-3">Cash-out only via earned Boost.</h3>
-                    <p class="mt-3 text-gray-300 leading-relaxed max-w-3xl">BT redemption is rate-limited, KYC&apos;d, and only applies to earned BT. Purchased boosts never cash out. Use cooldowns, audits, and clawbacks to shut down fraud incentives.</p>
-                </div>
-                <div class="flex flex-col gap-2 text-xs mono uppercase tracking-[0.3em] text-gray-300">
-                    <div class="border border-white/20 px-3 py-2">KYC + minimum threshold</div>
-                    <div class="border border-white/20 px-3 py-2">BT aging window (7–30 days)</div>
-                    <div class="border border-white/20 px-3 py-2">Clawback for proven abuse</div>
-                </div>
-            </div>
-        </section>
-
-        <section class="grid lg:grid-cols-[1fr_1.1fr] gap-8">
-            <div class="panel bg-white p-8">
-                <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Abuse Resistance</div>
-                <h3 class="text-xl font-semibold mt-3">Make trust expensive to fake.</h3>
-                <ul class="mt-4 space-y-3 text-sm text-gray-700 list-disc list-inside">
-                    <li>Device + IP risk scoring with verified phone/email.</li>
-                    <li>Structured rooms with peer feedback for TR earnings.</li>
-                    <li>Weighted ratings: high-TR weights, capped for fairness.</li>
-                    <li>New-account throttle: can speak, but can’t earn much yet.</li>
-                    <li>Slashing for brigading, harassment, or misinfo fraud.</li>
-                </ul>
-            </div>
-            <div class="panel bg-white p-8">
-                <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Simulated Environment</div>
-                <h3 class="text-xl font-semibold mt-3">Current News Rooms (non-political).</h3>
-                <div class="mt-5 grid gap-4">
-                    <article class="border border-black p-4">
-                        <div class="flex items-center justify-between">
-                            <span class="mono text-[10px] uppercase tracking-[0.3em]">Ocean Lab</span>
-                            <span class="text-xs text-gray-500">Room noise: low</span>
-                        </div>
-                        <h4 class="text-lg font-semibold mt-2">Coral nursery reports 40% survival boost after moonlight cycle tests.</h4>
-                        <p class="mt-2 text-sm text-gray-700">Top signal: cited research roundup earned +2 TR and refunded 75% VC.</p>
-                    </article>
-                    <article class="border border-black p-4">
-                        <div class="flex items-center justify-between">
-                            <span class="mono text-[10px] uppercase tracking-[0.3em]">Mobility Desk</span>
-                            <span class="text-xs text-gray-500">Room noise: medium</span>
-                        </div>
-                        <h4 class="text-lg font-semibold mt-2">E-bike battery swap pilot cuts delivery downtime by 28%.</h4>
-                        <p class="mt-2 text-sm text-gray-700">Boost pool is highlighting a field report with verified photos.</p>
-                    </article>
-                    <article class="border border-black p-4">
-                        <div class="flex items-center justify-between">
-                            <span class="mono text-[10px] uppercase tracking-[0.3em]">Culture Wire</span>
-                            <span class="text-xs text-gray-500">Room noise: high</span>
-                        </div>
-                        <h4 class="text-lg font-semibold mt-2">Indie co-op puzzle game breaks 1M community levels shared.</h4>
-                        <p class="mt-2 text-sm text-gray-700">Self-boost cap engaged; only 30% of BT can go to creator posts.</p>
-                    </article>
-                    <article class="border border-black p-4">
-                        <div class="flex items-center justify-between">
-                            <span class="mono text-[10px] uppercase tracking-[0.3em]">City Life</span>
-                            <span class="text-xs text-gray-500">Room noise: low</span>
-                        </div>
-                        <h4 class="text-lg font-semibold mt-2">Rooftop garden program opens 12 new learning plots.</h4>
-                        <p class="mt-2 text-sm text-gray-700">Participants earned +BT for a supply map with supplier links.</p>
-                    </article>
-                </div>
-            </div>
-        </section>
-
-        <section class="panel bg-white p-8">
-            <div class="mono text-[10px] uppercase tracking-[0.3em] text-gray-500">Balances Snapshot</div>
-            <h3 class="text-xl font-semibold mt-3">Live meters for a simulated session.</h3>
-            <div class="mt-6 grid md:grid-cols-3 gap-6">
-                <div>
-                    <div class="flex items-center justify-between">
-                        <span class="mono text-xs uppercase tracking-[0.3em]">Voice Credits</span>
-                        <span class="text-sm font-semibold">42 VC</span>
-                    </div>
-                    <div class="mt-2 h-3 border border-black bg-[#f9f4ea]">
-                        <div class="h-full bg-black" style="width: 70%"></div>
-                    </div>
-                    <p class="mt-2 text-xs text-gray-500">Refund window open: 18 min.</p>
-                </div>
-                <div>
-                    <div class="flex items-center justify-between">
-                        <span class="mono text-xs uppercase tracking-[0.3em]">Trust</span>
-                        <span class="text-sm font-semibold">86 TR</span>
-                    </div>
-                    <div class="mt-2 h-3 border border-black bg-[#f9f4ea]">
-                        <div class="h-full bg-black" style="width: 86%"></div>
-                    </div>
-                    <p class="mt-2 text-xs text-gray-500">Decay check in 5 days.</p>
-                </div>
-                <div>
-                    <div class="flex items-center justify-between">
-                        <span class="mono text-xs uppercase tracking-[0.3em]">Boost</span>
-                        <span class="text-sm font-semibold">18 BT</span>
-                    </div>
-                    <div class="mt-2 h-3 border border-black bg-[#f9f4ea]">
-                        <div class="h-full bg-black" style="width: 45%"></div>
-                    </div>
-                    <p class="mt-2 text-xs text-gray-500">Daily spend cap: 12 BT.</p>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <footer class="border-t border-black/10 mt-16">
-        <div class="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3 text-xs text-gray-500">
-            <span class="mono uppercase tracking-[0.3em]">Sooploop Currency Simulation</span>
-            <span>Built for rapid product visualization and signal-first experimentation.</span>
+    <div class="shell">
+      <aside class="panel left">
+        <h3 style="margin:0">Wallet / Balances</h3>
+        <div class="balance-row" id="balances"></div>
+        <div class="panel" style="padding:10px;background:var(--panel-soft)">
+          <strong>Glossary</strong>
+          <ul class="legend muted">
+            <li><b>VC:</b> Speak carefully, earn refunds when your signal lands.</li>
+            <li><b>TR:</b> Earned respect. Cannot be bought.</li>
+            <li><b>BT:</b> Use earned spotlight responsibly.</li>
+          </ul>
         </div>
-    </footer>
-    <script>
-        const stories = [
-            { title: "Harbor algae cleanup hits 90% recovery.", sentiment: "Love", curiosity: 32, share: 68, size: 68 },
-            { title: "Neighborhood drone swap sparks privacy debate.", sentiment: "Inbetween", curiosity: 55, share: 45, size: 54 },
-            { title: "New battery catalyst halves charging time.", sentiment: "Love", curiosity: 48, share: 72, size: 62 },
-            { title: "Celebrity charity ledger questioned by auditors.", sentiment: "Hate", curiosity: 22, share: 81, size: 58 },
-            { title: "Open-source translation model hits 120 languages.", sentiment: "Love", curiosity: 66, share: 40, size: 52 },
-            { title: "Stadium noise cap sparks late-night protests.", sentiment: "Hate", curiosity: 38, share: 64, size: 56 },
-            { title: "Museum digitizes lost archives for students.", sentiment: "Inbetween", curiosity: 61, share: 39, size: 50 }
-        ];
-        const clusterField = document.getElementById("clusterField");
-        const storyTitle = document.getElementById("storyTitle");
-        const storyMeta = document.getElementById("storyMeta");
-        const trustBalance = document.getElementById("trustBalance");
-        const authorityWeight = document.getElementById("authorityWeight");
-        const susStatus = document.getElementById("susStatus");
-        const simulateBtn = document.getElementById("simulateBtn");
-        const susBtn = document.getElementById("susBtn");
-        let trust = 86;
-        let authority = 1.0;
-        let selectedIndex = null;
+        <div class="panel" style="padding:10px;background:var(--panel-soft)">
+          <strong>Coach Marks</strong>
+          <div class="muted">Tip: Citing sources improves refund odds in noisy rooms.</div>
+          <div class="muted">Tip: Boosting others is currently 22% more efficient than self-boost.</div>
+        </div>
+      </aside>
 
-        const renderCluster = () => {
-            clusterField.innerHTML = "";
-            stories.forEach((story, index) => {
-                const node = document.createElement("button");
-                node.className = "cluster-node absolute rounded-full border-2 border-black bg-[#fdfbf7] text-xs font-semibold";
-                const x = 15 + Math.random() * 70;
-                const y = 15 + Math.random() * 70;
-                node.style.left = `${x}%`;
-                node.style.top = `${y}%`;
-                node.style.width = `${story.size}px`;
-                node.style.height = `${story.size}px`;
-                node.style.transform = "translate(-50%, -50%)";
-                node.innerHTML = `<span class="block px-2">${story.title.split(" ").slice(0, 2).join(" ")}</span>`;
-                node.addEventListener("click", () => selectStory(index));
-                clusterField.appendChild(node);
-            });
+      <main class="panel content" id="viewRoot"></main>
+
+      <aside class="panel right">
+        <h3 style="margin:0">Engine Diagnostics</h3>
+        <div id="diagnostics" class="muted"></div>
+        <div class="panel" style="padding:10px;background:var(--panel-soft)">
+          <strong>Simulation Control Bar</strong>
+          <div class="sim-controls">
+            <label class="muted">Scenario <select id="scenarioSelect"></select></label>
+            <div class="row" style="margin-top:8px">
+              <button class="btn" id="playPauseBtn">Play</button>
+              <button class="btn" id="stepBtn">Step +1 tick</button>
+            </div>
+            <label class="muted">Speed <input type="range" id="speedRange" min="1" max="4" value="1"/></label>
+            <label class="muted">Noise level <input type="range" id="noiseRange" min="0" max="100" value="40"/></label>
+            <label class="muted">Overlap density <input type="range" id="overlapRange" min="10" max="100" value="54"/></label>
+            <label class="muted">Trust decay <input type="range" id="decayRange" min="0" max="40" value="8"/></label>
+            <label class="muted">Self-boost cap % <input type="range" id="capRange" min="10" max="50" value="30"/></label>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const navTabs = ["Home", "Rooms", "Clusters", "Sim Lab", "Notifications", "Profile", "Wallet", "Settings"];
+    const scenarios = [
+      "Low-noise thoughtful room", "Medium-noise trending room", "High-noise overloaded room",
+      "Coordination attack / brigading", "Healthy bridge-building", "Creator self-boost saturation"
+    ];
+
+    const state = {
+      mode: sessionStorage.getItem("sooploopMode") || "user",
+      nav: "Home",
+      seed: Number(sessionStorage.getItem("sooploopSeed") || 42),
+      tick: 0,
+      isPlaying: false,
+      speed: 1,
+      scenario: scenarios[0],
+      sliders: { noise: 40, overlap: 54, decay: 8, cap: 30 },
+      user: {
+        id: "u-1", handle: "@sofia", trustTier: "Builder", citationRate: 0.64,
+        VC: 42.8, TR: 86.0, BT: 12.2, authorityWeight: 1.29, falseFlagRate: 0.05
+      },
+      rooms: [
+        { id: "r1", name: "Ocean Lab", congestion: 0.38, messagesPerMinute: 42 },
+        { id: "r2", name: "Mobility Desk", congestion: 0.64, messagesPerMinute: 89 },
+        { id: "r3", name: "Culture Wire", congestion: 0.52, messagesPerMinute: 71 },
+        { id: "r4", name: "City Life", congestion: 0.73, messagesPerMinute: 112 },
+      ],
+      clusters: [],
+      posts: [],
+      comments: [],
+      ledger: [],
+      selectedClusterId: null,
+      toasts: []
+    };
+
+    function random(seed) { let t = seed + 0x6D2B79F5; return () => (t = Math.imul(t ^ t >>> 15, t | 1), t ^= t + Math.imul(t ^ t >>> 7, t | 61), ((t ^ t >>> 14) >>> 0) / 4294967296); }
+
+    function seedData(seed) {
+      const rnd = random(seed);
+      const names = ["Ocean Microplastics", "Transit Fare Equity", "Museum AR Guides", "Harbor Heat Islands", "Bike Lane Sensors", "Repair Cafes", "Soundwalk Ethics", "Floodplain Housing", "Open Data Commons", "Studio Labor Rights", "Food Waste Loops", "Maker Curriculum", "Wetland Restoration", "Inclusive Design Tokens", "Night Bus Safety", "Neighborhood Air Quality", "Street Tree Index", "E-bike Battery Swap", "Community Mesh Nets", "Public WiFi Neutrality", "Library AI Tutors", "Marina Noise Rules", "City Compost Signals", "Accessible Wayfinding"];
+      state.clusters = names.map((label, i) => ({
+        clusterId: `c-${i+1}`,
+        label,
+        momentum: Math.round((30 + rnd() * 70)),
+        sentimentNorthSouth: (rnd() * 2 - 1).toFixed(2),
+        sentimentEastWest: (rnd() * 2 - 1).toFixed(2),
+        overlapUserCount: Math.floor(20 + rnd() * 180),
+        overlapCitationCount: Math.floor(8 + rnd() * 75),
+        overlapReferenceCount: Math.floor(6 + rnd() * 64),
+        x: 10 + rnd() * 80,
+        y: 12 + rnd() * 74
+      }));
+      state.posts = Array.from({ length: 120 }).map((_, i) => {
+        const room = state.rooms[Math.floor(rnd() * state.rooms.length)];
+        const cluster = state.clusters[Math.floor(rnd() * state.clusters.length)];
+        const base = 1 + rnd()*4;
+        const helpful = rnd();
+        const cited = rnd();
+        const bridge = rnd();
+        const boost = rnd()*3;
+        const penalty = rnd()*1.5;
+        const rank = base + helpful*2 + cited*1.4 + bridge*1.6 + boost - penalty;
+        return {
+          postId: `p-${i+1}`,
+          authorId: i % 3 === 0 ? "u-1" : `u-${2 + (i % 12)}`,
+          roomId: room.id,
+          clusterId: cluster.clusterId,
+          title: `${cluster.label}: signal report #${i+1}`,
+          body: "Synthesis of cited updates across adjacent rooms with fairness and bridge indicators.",
+          citationCount: Math.floor(cited * 8),
+          helpfulScore: Number((helpful*100).toFixed(0)),
+          fairnessScore: Number((rnd()*100).toFixed(0)),
+          bridgeValue: Number((bridge*100).toFixed(0)),
+          freshness: Number((100 - i * 0.7).toFixed(1)),
+          boostSpend: Number(boost.toFixed(2)),
+          selfBoostSpend: Number((i % 5 === 0 ? boost*0.7 : boost*0.15).toFixed(2)),
+          rankScore: Number(rank.toFixed(2)),
+          VCcost: 0,
+          refundedAmount: 0,
+          noiseFlags: Number((rnd()*0.8).toFixed(2)),
         };
+      });
+      state.comments = Array.from({length: 200}).map((_,i)=>({
+        commentId:`cm-${i+1}`, postId:`p-${1+Math.floor(rnd()*120)}`, body:"Bridge comment with cite and fairness framing.", helpfulScore:Math.floor(rnd()*100), citationScore:Math.floor(rnd()*5)
+      }));
+      state.selectedClusterId = state.clusters[0].clusterId;
+      state.ledger = [{type:"VC_REFUND", amount:1.2, reason:"Helpful + cited post", ts:Date.now()}];
+    }
 
-        const selectStory = (index) => {
-            selectedIndex = index;
-            const nodes = clusterField.querySelectorAll(".cluster-node");
-            nodes.forEach((node, idx) => {
-                node.classList.toggle("is-active", idx === index);
-            });
-            const story = stories[index];
-            storyTitle.textContent = story.title;
-            storyMeta.textContent = `Sentiment: ${story.sentiment} · Curiosity ${story.curiosity}% · Info Share ${story.share}%`;
-            susStatus.textContent = "Ready to cast a Sus vote.";
-        };
+    function calcAuthority() {
+      state.user.authorityWeight = Number((1 + Math.log10(Math.max(state.user.TR,1)) * 0.15).toFixed(2));
+    }
 
-        const updateTrustUI = () => {
-            trustBalance.textContent = `${trust} TR`;
-            authorityWeight.textContent = `${authority.toFixed(2)}×`;
-        };
+    function costPreview(action, roomId) {
+      const base = action === "post" ? 3 : action === "topic" ? 4 : 1;
+      const room = state.rooms.find(r => r.id === roomId) || state.rooms[0];
+      const congestionMultiplier = Number((1 + room.congestion * 1.8).toFixed(2));
+      const driftMultiplier = Number((1 + state.user.falseFlagRate * 3 + state.sliders.noise / 100).toFixed(2));
+      return { base, congestionMultiplier, driftMultiplier, total: Number((base*congestionMultiplier*driftMultiplier).toFixed(2)) };
+    }
 
-        simulateBtn.addEventListener("click", () => {
-            renderCluster();
-            susStatus.textContent = "Simulation refreshed. Pick a planet.";
-        });
+    function makeToast(text) {
+      const node = document.createElement("div");
+      node.className = "toast";
+      node.textContent = text;
+      document.body.appendChild(node);
+      setTimeout(() => node.remove(), 3000);
+    }
 
-        susBtn.addEventListener("click", () => {
-            if (selectedIndex === null) {
-                susStatus.textContent = "Select a story before flagging.";
-                return;
-            }
-            if (trust < 4) {
-                susStatus.textContent = "Not enough Trust to flag this story.";
-                return;
-            }
-            trust -= 4;
-            authority = Math.min(2.0, authority + 0.05);
-            updateTrustUI();
-            susStatus.textContent = "Sus flag submitted. Authority weight increased for honest voting.";
-        });
+    function renderNav() {
+      mainNav.innerHTML = navTabs.map(tab => `<button class="${state.nav===tab?"active":""}" data-tab="${tab}">${tab}</button>`).join("");
+      mainNav.querySelectorAll("button").forEach(btn => btn.onclick = () => { state.nav = btn.dataset.tab; render(); });
+    }
 
-        renderCluster();
-        updateTrustUI();
-    </script>
+    function renderBalances() {
+      calcAuthority();
+      balances.innerHTML = `
+        <div class="pill" title="Voice Credits help keep noisy rooms readable."><small>VC</small><b>${state.user.VC.toFixed(1)}</b><div class="muted">Spend to speak</div></div>
+        <div class="pill" title="Trust is earned from useful, fair, and cited participation."><small>TR</small><b>${state.user.TR.toFixed(1)}</b><div class="muted">Earned only</div></div>
+        <div class="pill" title="Boost increases visibility, but caps and diversity rules limit domination."><small>BT</small><b>${state.user.BT.toFixed(1)}</b><div class="muted">Spend to amplify</div></div>
+      `;
+    }
+
+    function renderDiagnostics() {
+      const top = [...state.posts].sort((a,b)=>b.rankScore-a.rankScore)[0];
+      const cp = costPreview("post", top.roomId);
+      diagnostics.innerHTML = `
+        <div><b>Scenario:</b> ${state.scenario}</div>
+        <div><b>Tick:</b> ${state.tick}</div>
+        <div><b>Congestion multiplier:</b> ${cp.congestionMultiplier}x</div>
+        <div><b>Drift multiplier:</b> ${cp.driftMultiplier}x</div>
+        <div><b>Authority weight:</b> ${state.user.authorityWeight}x</div>
+        <div><b>Refund eligibility:</b> top post ${Math.min(100, top.helpfulScore + top.citationCount*5)}%</div>
+        <div><b>Diversity cap:</b> ${state.sliders.cap}% self-boost limit</div>
+      `;
+    }
+
+    function homeView() {
+      const feed = [...state.posts].sort((a,b)=>b.rankScore-a.rankScore).slice(0,12);
+      return `
+        <div class="grid">
+          <div class="split">
+            <section class="panel" style="padding:12px;background:var(--panel-soft)">
+              <h2 style="margin-top:0">Home Feed</h2>
+              <div class="muted">Aligned first, with bridge-aware exploration and anti-monopoly caps.</div>
+              ${feed.map(p => `
+                <article class="feed-card">
+                  <div class="row"><span class="chip">${roomName(p.roomId)}</span><span class="chip">${clusterName(p.clusterId)}</span><span class="chip">citations ${p.citationCount}</span></div>
+                  <h4>${p.title}</h4>
+                  <div class="muted">${p.body}</div>
+                  <div class="row">
+                    <button class="btn" data-act="reply" data-id="${p.postId}">Reply</button>
+                    <button class="btn" data-act="cite" data-id="${p.postId}">Cite</button>
+                    <button class="btn" data-act="boost" data-id="${p.postId}">Boost</button>
+                    <button class="btn warn" data-act="sus" data-id="${p.postId}">Flag Sus</button>
+                    <span class="muted">Rank ${p.rankScore}</span>
+                  </div>
+                  ${state.mode === "engine" ? `<div class="engine muted">freshness ${p.freshness} • alignment ${(p.rankScore*8).toFixed(1)} • bridge ${p.bridgeValue} • noise penalty ${p.noiseFlags}</div>` : `<div class="muted">Why this is near top: cited + helpful + bridges nearby clusters.</div>`}
+                </article>
+              `).join("")}
+            </section>
+            <section class="panel" style="padding:12px;background:var(--panel-soft)">
+              <h3 style="margin-top:0">Composer</h3>
+              <div class="composer">
+                <textarea id="postBody" placeholder="Share a synthesis, add citations, or bridge a related room..."></textarea>
+              </div>
+              <div class="row" style="margin-top:8px"><label><input id="citeCheck" type="checkbox"> include citation</label><label><input id="bridgeCheck" type="checkbox"> add bridge topic</label></div>
+              <div id="costPreview" class="muted" style="margin-top:8px"></div>
+              <div class="row" style="margin-top:8px"><button class="btn good" id="submitPostBtn">Post</button><span class="chip">refund window: 2h</span></div>
+              <h4>Recommended Bridges</h4>
+              ${state.clusters.slice(0,5).map(c=>`<div class="row"><span>${c.label}</span><span class="muted">overlap ${c.overlapUserCount}</span></div>`).join("")}
+            </section>
+          </div>
+        </div>
+      `;
+    }
+
+    function roomsView() {
+      return `<h2>Topic Rooms</h2>${state.rooms.map(r=>{
+        const c = costPreview("comment", r.id);
+        return `<div class="feed-card"><div class="row"><b>${r.name}</b><span class="chip">noise ${(r.congestion*100).toFixed(0)}%</span><span class="chip">${r.messagesPerMinute} msg/min</span></div>
+        <div class="muted">Posting now costs ${c.total} VC. Add citation to improve refund odds.</div>
+        <div class="meter"><div style="width:${Math.min(100,r.congestion*100)}%"></div></div></div>`;
+      }).join("")}`;
+    }
+
+    function clusterView() {
+      const selected = state.clusters.find(c=>c.clusterId===state.selectedClusterId) || state.clusters[0];
+      return `
+      <h2>Cluster Constellation</h2>
+      <div class="split">
+        <div class="map" id="clusterMap"></div>
+        <div class="feed-card">
+          <h3>${selected.label}</h3>
+          <div class="muted">activity ${selected.momentum} • overlap users ${selected.overlapUserCount}</div>
+          <div class="muted">sentiment NS ${selected.sentimentNorthSouth}, EW ${selected.sentimentEastWest}</div>
+          <h4>Top bridging post</h4>
+          <div class="muted">${state.posts.find(p=>p.clusterId===selected.clusterId)?.title || "None"}</div>
+          <h4>Edge reasons</h4>
+          <ul class="muted"><li>shared participants</li><li>shared citations</li><li>explicit references</li><li>semantic proximity</li></ul>
+          ${state.mode === "engine" ? `<div class="engine muted">Edge confidence = ${(selected.overlapUserCount*0.3 + selected.overlapCitationCount*0.5).toFixed(1)}</div>` : `<div class="muted">Pull out to see the wider web.</div>`}
+        </div>
+      </div>`;
+    }
+
+    function simLabView() {
+      return `<h2>Simulation Lab</h2>
+      <div class="feed-card">
+        <div class="row"><span class="chip">tick ${state.tick}</span><span class="chip">scenario ${state.scenario}</span></div>
+        <p>Run seeded scenarios: brigading swarms, self-boost saturation, and healthy bridge-building.</p>
+        <ul class="muted"><li>Topic node sizes and edges react to overlap and noise.</li><li>Refund windows and VC costs shift with congestion.</li><li>Authority and trust decay update each tick.</li></ul>
+      </div>`;
+    }
+
+    function walletView() {
+      return `<h2>Wallet & Ledger</h2>
+      <div class="feed-card"><b>Daily BT mint:</b> √TR × k = ${(Math.sqrt(state.user.TR) * 1.2).toFixed(2)}</div>
+      ${state.ledger.slice(-8).map(e=>`<div class="feed-card"><div class="row"><span class="chip">${e.type}</span><span>${e.amount>0?'+':''}${e.amount.toFixed(2)}</span></div><div class="muted">${e.reason}</div></div>`).join('')}
+      <div class="feed-card"><div>Self-boost cap meter</div><div class="meter"><div style="width:${Math.min(100, (state.user.BT/12)*100)}%"></div></div></div>`;
+    }
+
+    function simpleView(title, copy) { return `<h2>${title}</h2><div class="feed-card"><p>${copy}</p></div>`; }
+    const roomName = id => state.rooms.find(r=>r.id===id)?.name || id;
+    const clusterName = id => state.clusters.find(c=>c.clusterId===id)?.label || id;
+
+    function renderMain() {
+      if (state.nav === "Home") viewRoot.innerHTML = homeView();
+      else if (state.nav === "Rooms") viewRoot.innerHTML = roomsView();
+      else if (state.nav === "Clusters") viewRoot.innerHTML = clusterView();
+      else if (state.nav === "Sim Lab") viewRoot.innerHTML = simLabView();
+      else if (state.nav === "Wallet") viewRoot.innerHTML = walletView();
+      else if (state.nav === "Notifications") viewRoot.innerHTML = simpleView("Notifications", "Trust deltas, refunds, anti-abuse warnings, and engine explanation updates appear here.");
+      else if (state.nav === "Profile") viewRoot.innerHTML = simpleView("Profile", `Tier ${state.user.trustTier}, citation rate ${(state.user.citationRate*100).toFixed(0)}%, false flag rate ${(state.user.falseFlagRate*100).toFixed(1)}%.`);
+      else viewRoot.innerHTML = simpleView("Settings", "Motion reduction, tooltip verbosity, and simulation defaults.");
+
+      bindDynamicActions();
+      if (state.nav === "Clusters") paintMap();
+      if (state.nav === "Home") showComposerCost();
+    }
+
+    function bindDynamicActions() {
+      document.querySelectorAll("[data-act='boost']").forEach(btn => btn.onclick = () => spendBoost(btn.dataset.id));
+      document.querySelectorAll("[data-act='sus']").forEach(btn => btn.onclick = () => susVote(btn.dataset.id));
+      const postBtn = document.getElementById("submitPostBtn");
+      if (postBtn) postBtn.onclick = submitPost;
+      const citeCheck = document.getElementById("citeCheck");
+      const bridgeCheck = document.getElementById("bridgeCheck");
+      if (citeCheck) citeCheck.onchange = showComposerCost;
+      if (bridgeCheck) bridgeCheck.onchange = showComposerCost;
+    }
+
+    function showComposerCost() {
+      const cp = costPreview("post", state.rooms[0].id);
+      const cited = document.getElementById("citeCheck")?.checked;
+      const bridge = document.getElementById("bridgeCheck")?.checked;
+      const discount = (cited ? 0.15 : 0) + (bridge ? 0.1 : 0);
+      const final = Math.max(0.5, cp.total * (1 - discount));
+      costPreview.innerHTML = `VC preview: ${final.toFixed(2)} = base ${cp.base} × congestion ${cp.congestionMultiplier} × drift ${cp.driftMultiplier} ${discount ? `(discount ${Math.round(discount*100)}%)` : ""}`;
+    }
+
+    function submitPost() {
+      const text = document.getElementById("postBody").value.trim();
+      if (!text) return makeToast("Add text before posting.");
+      const cp = costPreview("post", state.rooms[0].id);
+      if (state.user.VC < cp.total) return makeToast("Insufficient VC. Wait for regen or earn refunds.");
+      state.user.VC -= cp.total;
+      const id = `p-${state.posts.length + 1}`;
+      state.posts.unshift({ postId:id, authorId:"u-1", roomId:"r1", clusterId:state.selectedClusterId, title:"New local synthesis", body:text, citationCount:0, helpfulScore:0, fairnessScore:0, bridgeValue:0, freshness:100, boostSpend:0, selfBoostSpend:0, rankScore:1.1, VCcost:cp.total, refundedAmount:0, noiseFlags:0.1 });
+      state.ledger.push({type:"VC_SPEND", amount:-cp.total, reason:"Create post", ts:Date.now()});
+      makeToast(`Post submitted. Refund window opened. Spent ${cp.total.toFixed(2)} VC.`);
+      render();
+    }
+
+    function spendBoost(postId) {
+      const post = state.posts.find(p => p.postId === postId);
+      const self = post.authorId === "u-1";
+      const cap = (state.sliders.cap/100) * (Math.sqrt(state.user.TR) * 1.2);
+      const spend = self ? 1.2 : 0.8;
+      if (self && spend > cap) return makeToast("Self-boost cap reached. Boost others for better efficiency.");
+      if (state.user.BT < spend) return makeToast("Not enough BT.");
+      state.user.BT -= spend;
+      post.boostSpend += spend;
+      post.rankScore += self ? 0.35 : 0.5;
+      state.ledger.push({type:"BT_SPEND", amount:-spend, reason:`Boost ${self?"self":"other"} content`, ts:Date.now()});
+      makeToast(`Boosted ${self?"self":"other"} content. Reach estimate updated.`);
+      render();
+    }
+
+    function susVote(postId) {
+      const cost = 1.1;
+      if (state.user.TR < cost) return makeToast("Not enough TR to stake a Sus vote.");
+      state.user.TR -= cost;
+      const accurate = Math.random() > 0.35;
+      const delta = accurate ? 0.8 : -1.2;
+      state.user.TR += Math.max(-state.user.TR, delta);
+      state.user.falseFlagRate = Math.max(0, Math.min(0.6, state.user.falseFlagRate + (accurate ? -0.01 : 0.02)));
+      state.ledger.push({type:"TR_EARN", amount:delta, reason:accurate ? "Accurate Sus vote" : "False Sus penalty", ts:Date.now()});
+      makeToast(accurate ? "Sus vote validated. Authority improved slightly." : "Sus vote inaccurate. Future authority reduced.");
+      render();
+    }
+
+    function paintMap() {
+      const map = document.getElementById("clusterMap");
+      if (!map) return;
+      map.innerHTML = "";
+      const shown = state.clusters.slice(0,20);
+      shown.forEach(c => {
+        const node = document.createElement("button");
+        const size = 20 + c.momentum * 0.35;
+        const hue = 180 + Number(c.sentimentEastWest) * 80;
+        node.className = "node";
+        node.style.left = `${c.x}%`;
+        node.style.top = `${c.y}%`;
+        node.style.width = `${size}px`;
+        node.style.height = `${size}px`;
+        node.style.background = `hsl(${hue} 90% 70%)`;
+        node.style.boxShadow = `0 0 ${8 + c.overlapCitationCount * 0.1}px rgba(255,255,255,.4)`;
+        node.textContent = c.label.split(" ")[0];
+        node.title = `${c.label} — momentum ${c.momentum}`;
+        node.onclick = () => { state.selectedClusterId = c.clusterId; renderMain(); };
+        map.appendChild(node);
+      });
+    }
+
+    function tick() {
+      state.tick += 1;
+      const noiseDelta = (state.sliders.noise / 1000) * (state.scenario.includes("High-noise") ? 2 : 1);
+      state.rooms.forEach(r => r.congestion = Math.min(1, Math.max(0.1, r.congestion + (Math.random() - .45) * noiseDelta)));
+      state.posts.forEach(p => { p.freshness = Math.max(1, p.freshness - 0.3); p.rankScore = Number((p.rankScore + (Math.random()-0.5)*0.15).toFixed(2)); });
+      state.user.TR = Math.max(1, Number((state.user.TR * (1 - state.sliders.decay / 10000)).toFixed(2)));
+      const mint = Number((Math.sqrt(state.user.TR) * 0.03).toFixed(2));
+      state.user.BT += mint;
+      state.ledger.push({type:"BT_MINT", amount:mint, reason:"Tick mint from Trust", ts:Date.now()});
+      render();
+    }
+
+    let timer = null;
+    function togglePlay() {
+      state.isPlaying = !state.isPlaying;
+      playPauseBtn.textContent = state.isPlaying ? "Pause" : "Play";
+      if (state.isPlaying) timer = setInterval(() => { for (let i=0; i<state.speed; i++) tick(); }, 1000);
+      else clearInterval(timer);
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      sessionStorage.setItem("sooploopMode", mode);
+      document.body.dataset.mode = mode;
+      userModeBtn.classList.toggle("active", mode === "user");
+      engineModeBtn.classList.toggle("active", mode === "engine");
+      modeTitle.textContent = mode === "user" ? "User View" : "Engine View";
+      modeSubtitle.textContent = mode === "user" ? "See the platform the way participants do." : "See the ranking, reputation, and anti-abuse logic underneath.";
+      render();
+    }
+
+    function render() {
+      renderNav();
+      renderBalances();
+      renderDiagnostics();
+      renderMain();
+    }
+
+    // boot
+    seedData(state.seed);
+    document.getElementById("seedInput").value = state.seed;
+    document.getElementById("scenarioSelect").innerHTML = scenarios.map(s => `<option>${s}</option>`).join("");
+    document.getElementById("scenarioSelect").onchange = e => { state.scenario = e.target.value; renderDiagnostics(); };
+    document.getElementById("speedRange").oninput = e => state.speed = Number(e.target.value);
+    document.getElementById("noiseRange").oninput = e => state.sliders.noise = Number(e.target.value);
+    document.getElementById("overlapRange").oninput = e => state.sliders.overlap = Number(e.target.value);
+    document.getElementById("decayRange").oninput = e => state.sliders.decay = Number(e.target.value);
+    document.getElementById("capRange").oninput = e => state.sliders.cap = Number(e.target.value);
+    document.getElementById("playPauseBtn").onclick = togglePlay;
+    document.getElementById("stepBtn").onclick = tick;
+    document.getElementById("resetSimBtn").onclick = () => { seedData(state.seed); state.tick = 0; makeToast("Simulation reset to seeded baseline."); render(); };
+    document.getElementById("seedInput").onchange = e => { state.seed = Number(e.target.value || 42); sessionStorage.setItem("sooploopSeed", String(state.seed)); seedData(state.seed); render(); };
+    document.getElementById("userModeBtn").onclick = () => setMode("user");
+    document.getElementById("engineModeBtn").onclick = () => setMode("engine");
+    setMode(state.mode);
+  </script>
 </body>
 </html>
