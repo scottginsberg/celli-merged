@@ -235,8 +235,19 @@ td.sel {
 }
 
 /* UI Icons */
-.ui-icon {
+.ui-icon-stack {
   position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 10001;
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.ui-icon {
+  position: relative;
   width: 50px;
   height: 50px;
   background: #1f2937;
@@ -253,16 +264,6 @@ td.sel {
 
 .ui-icon:hover {
   transform: scale(1.1);
-}
-
-#terminal-icon {
-  bottom: 24px;
-  right: 24px;
-}
-
-#notepad-icon {
-  bottom: 108px;
-  right: 24px;
 }
 
 /* Terminal */

@@ -12,15 +12,19 @@
  */
 
 export class NarrativeWindows {
-  constructor() {
+  constructor({ onTerminalOpen = null } = {}) {
     this.state = {
       terminalOpen: false,
       notepadOpen: false,
       terminal: null,
       notepad: null,
       terminalIcon: null,
-      notepadIcon: null
+      notepadIcon: null,
+      iconStack: null
     };
+
+    this.onTerminalOpen = typeof onTerminalOpen === 'function' ? onTerminalOpen : null;
+    this._eventsBound = false;
   }
 
   /**
@@ -28,12 +32,7 @@ export class NarrativeWindows {
    */
   init() {
     console.log('[NarrativeWindows] Initializing...');
-    
-    // Get references
-    this.state.terminal = document.getElementById('terminal');
-    this.state.notepad = document.getElementById('pad');
-    this.state.terminalIcon = document.getElementById('terminal-icon');
-    this.state.notepadIcon = document.getElementById('notepad-icon');
+    this._refreshElements();
     
     if (!this.state.terminal || !this.state.notepad) {
       console.error('[NarrativeWindows] Windows not found in DOM!');
@@ -51,10 +50,14 @@ export class NarrativeWindows {
    * Setup event handlers
    */
   _setupEvents() {
+    if (this._eventsBound) {
+      return;
+    }
+
     // Terminal icon click
     if (this.state.terminalIcon) {
-      this.state.terminalIcon.addEventListener('click', () => {
-        this.toggleTerminal();
+      this.state.terminalIcon.addEventListener('click', async () => {
+        await this.openTerminal();
       });
     }
     
@@ -80,6 +83,16 @@ export class NarrativeWindows {
         this.closeNotepad();
       });
     }
+
+    this._eventsBound = true;
+  }
+
+  _refreshElements() {
+    this.state.terminal = document.getElementById('terminal');
+    this.state.notepad = document.getElementById('pad');
+    this.state.terminalIcon = document.getElementById('terminal-icon');
+    this.state.notepadIcon = document.getElementById('notepad-icon');
+    this.state.iconStack = document.getElementById('narrative-icons');
   }
 
   /**
@@ -96,10 +109,15 @@ export class NarrativeWindows {
   /**
    * Open terminal
    */
-  openTerminal() {
+  async openTerminal() {
     if (this.state.terminal) {
       this.state.terminal.style.display = 'flex';
       this.state.terminalOpen = true;
+
+      if (this.onTerminalOpen) {
+        await this.onTerminalOpen();
+      }
+
       console.log('[NarrativeWindows] Terminal opened');
     }
   }
@@ -174,6 +192,12 @@ export class NarrativeWindows {
    * Show icons
    */
   showIcons() {
+    this._refreshElements();
+
+    if (this.state.iconStack) {
+      this.state.iconStack.style.display = 'flex';
+    }
+
     if (this.state.terminalIcon) {
       this.state.terminalIcon.style.display = 'flex';
     }
@@ -182,10 +206,20 @@ export class NarrativeWindows {
     }
   }
 
+  setTerminalOpenHandler(handler) {
+    this.onTerminalOpen = typeof handler === 'function' ? handler : null;
+  }
+
   /**
    * Hide icons
    */
   hideIcons() {
+    this._refreshElements();
+
+    if (this.state.iconStack) {
+      this.state.iconStack.style.display = 'none';
+    }
+
     if (this.state.terminalIcon) {
       this.state.terminalIcon.style.display = 'none';
     }

@@ -62,7 +62,8 @@ export class CelliRealScene {
       transitionProgress: 0,
 
       // Audio
-      limboAudio: null
+      limboAudio: null,
+      keydownHandler: null
     };
     
     // HTML templates
@@ -231,7 +232,8 @@ export class CelliRealScene {
       onCellSelect: (data) => this._handleCellSelect(data),
       onFormulaExecute: (data) => this._handleFormulaApply(data),
       onNavigate: (data) => this._handleDPadNavigate(data),
-      onPresentToggle: (enabled) => this._handlePresentToggle(enabled)
+      onPresentToggle: (enabled) => this._handlePresentToggle(enabled),
+      onTerminalOpen: async () => this._handleTerminalOpen()
     });
     
     // Initialize all UI components
@@ -291,7 +293,7 @@ export class CelliRealScene {
     // Keyboard navigation (in addition to D-Pad)
     // Note: The UIManager's SpreadsheetGrid already handles formula bar Enter
     // We just need to handle arrow keys for cell navigation
-    document.addEventListener('keydown', (e) => {
+    this.state.keydownHandler = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       
       const focused = this.state.focusedCell;
@@ -317,71 +319,18 @@ export class CelliRealScene {
         const fxInput = document.getElementById('fx');
         if (fxInput) fxInput.focus();
       }
-    });
-    
-    // Wire terminal icon to show original terminal dialogue
-    this._wireTerminalButton();
+    };
+    document.addEventListener('keydown', this.state.keydownHandler);
     
     console.log('[CelliRealScene-Full] ✅ Events setup');
   }
   
-  /**
-   * Wire terminal and notepad icon buttons
-   */
-  _wireTerminalButton() {
-    const termIcon = document.getElementById('terminal-icon');
-    const termClose = document.getElementById('term-close');
-    const terminal = document.getElementById('terminal');
-    const padIcon = document.getElementById('notepad-icon');
-    const padClose = document.getElementById('pad-close');
-    const notepad = document.getElementById('pad');
-    
-    // Terminal icon - shows original Celli_Memory_Leak_Log dialogue
-    if (termIcon && !termIcon._wired) {
-      termIcon._wired = true;
-      termIcon.title = 'Open Celli_Log.txt';
-      termIcon.addEventListener('click', async () => {
-        console.log('[CelliRealScene-Full] Terminal icon clicked - playing terminal log');
-        
-        if (terminal && this.state.terminalSequence) {
-          terminal.style.display = 'flex';
-          await this.state.terminalSequence.playTerminalLog();
-        }
-      });
+  async _handleTerminalOpen() {
+    if (!this.state.terminalSequence) {
+      return;
     }
-    
-    if (termClose && !termClose._wired) {
-      termClose._wired = true;
-      termClose.addEventListener('click', () => {
-        console.log('[CelliRealScene-Full] Terminal closed');
-        if (terminal) {
-          terminal.style.display = 'none';
-        }
-      });
-    }
-    
-    // Notepad icon - shows ty.txt
-    if (padIcon && !padIcon._wired) {
-      padIcon._wired = true;
-      padIcon.title = 'ty.txt';
-      padIcon.addEventListener('click', () => {
-        console.log('[CelliRealScene-Full] Notepad icon clicked');
-        
-        if (notepad) {
-          notepad.style.display = 'flex';
-        }
-      });
-    }
-    
-    if (padClose && !padClose._wired) {
-      padClose._wired = true;
-      padClose.addEventListener('click', () => {
-        console.log('[CelliRealScene-Full] Notepad closed');
-        if (notepad) {
-          notepad.style.display = 'none';
-        }
-      });
-    }
+
+    await this.state.terminalSequence.playTerminalLog();
   }
 
   /**
@@ -568,13 +517,6 @@ export class CelliRealScene {
     this.state.uiManager?.showDPad();
     this.state.uiManager?.showWindows();
 
-    // Show terminal and notepad icons
-    const termIcon = document.getElementById('terminal-icon');
-    const padIcon = document.getElementById('notepad-icon');
-
-    if (termIcon) termIcon.style.display = 'flex';
-    if (padIcon) padIcon.style.display = 'flex';
-
     console.log('[CelliRealScene-Full] ✅ Full interaction enabled');
   }
 
@@ -659,6 +601,11 @@ export class CelliRealScene {
     
     // Destroy UI Manager (handles all UI components)
     this.state.uiManager?.destroy();
+
+    if (this.state.keydownHandler) {
+      document.removeEventListener('keydown', this.state.keydownHandler);
+      this.state.keydownHandler = null;
+    }
 
     this._stopLimboTrack();
 
@@ -760,8 +707,13 @@ export class CelliRealScene {
 
   _getTerminalHTML() {
     return `
-<div id="terminal-icon" class="ui-icon" title="Open Celli_Log.txt" style="display:none;position:fixed;bottom:24px;right:24px;z-index:10001;">
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+<div id="narrative-icons" class="ui-icon-stack" style="display:none;">
+  <div id="terminal-icon" class="ui-icon" title="Open Celli_Log.txt">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><line x1="8" y1="20" x2="16" y2="20"></line><line x1="12" y1="16" x2="12" y2="20"></line></svg>
+  </div>
+  <div id="notepad-icon" class="ui-icon" title="Open ty.txt">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M12 2v4"></path><path d="M16 2v4"></path><rect x="4" y="4" width="16" height="18" rx="2"></rect><path d="M12 12h.01"></path><path d="M16 16h.01"></path><path d="M8 12h.01"></path><path d="M8 16h.01"></path></svg>
+  </div>
 </div>
 <div id="terminal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:720px;height:480px;background:rgba(17,24,39,0.95);border:1px solid rgba(255,255,255,0.12);border-radius:16px;z-index:10002;flex-direction:column;color:#e5e7eb;box-shadow:0 25px 60px rgba(15,23,42,0.4);backdrop-filter:blur(10px);">
   <div class="win-header" style="background:rgba(255,255,255,0.06);padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.12);display:flex;justify-content:space-between;align-items:center;">
@@ -774,9 +726,6 @@ export class CelliRealScene {
 
   _getNotepadHTML() {
     return `
-<div id="notepad-icon" class="ui-icon" title="ty.txt" style="display:none;position:fixed;bottom:108px;right:24px;z-index:10001;">
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M12 2v4"></path><path d="M16 2v4"></path><rect x="4" y="4" width="16" height="18" rx="2"></rect><path d="M12 12h.01"></path><path d="M16 16h.01"></path><path d="M8 12h.01"></path><path d="M8 16h.01"></path></svg>
-</div>
 <div id="pad" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:520px;height:380px;background:#fafafc;border:1px solid #e5e7eb;border-radius:24px;z-index:10002;flex-direction:column;box-shadow:0 25px 60px rgba(15,23,42,0.25);">
   <div class="win-header" style="background:#f2f4f8;padding:10px 16px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;color:#111827">
     <span>ty.txt — Notepad</span>
@@ -836,4 +785,3 @@ Synthesize what you love, make what you can.
 }
 
 export default CelliRealScene;
-
