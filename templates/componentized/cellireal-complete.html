@@ -8721,13 +8721,21 @@ tag('TIMED_TRANSLATE',["SCENE"],(anchor,arr,ast)=> Fn['TIMED_TRANSLATION'].impl(
 
 
 // 3D_TIMED_TRANSLATION(ticks, repeat, reverse?, reverseTicks?, smooth?, mode?, scope?) global config
+// Shorthand: 3D_TIMED_TRANSLATION(1) enables looping preview for all arrays; 0 disables.
 tag('3D_TIMED_TRANSLATION',["SCENE"],(anchor,arr,ast)=>{
  try{
- const ticks = (+Formula.valOf(ast.args[0]||60))|0;
- const repeat = !!Formula.valOf(ast.args[1]||0);
- const reverse = !!Formula.valOf(ast.args[2]||0);
- const reverseTicks = (ast.args[3]!==undefined) ? ((+Formula.valOf(ast.args[3])|0) || ticks) : null;
- const smooth = !!((+Formula.valOf(ast.args[4]||0))|0);
+ const isShorthandEnable = ast.args[1]===undefined && ast.args[2]===undefined && ast.args[3]===undefined
+ && ast.args[4]===undefined && ast.args[5]===undefined && ast.args[6]===undefined;
+ const firstArgRaw = ast.args[0]===undefined ? 0 : Formula.valOf(ast.args[0]);
+ const firstArgNum = Number(firstArgRaw);
+ const shorthandEnable = isShorthandEnable && Number.isFinite(firstArgNum) ? ((firstArgNum|0)!==0) : null;
+ const ticks = shorthandEnable!==null ? 240 : ((+Formula.valOf(ast.args[0]||60))|0);
+ const repeat = shorthandEnable!==null ? shorthandEnable : !!Formula.valOf(ast.args[1]||0);
+ const reverse = shorthandEnable!==null ? shorthandEnable : !!Formula.valOf(ast.args[2]||0);
+ const reverseTicks = shorthandEnable!==null
+ ? (shorthandEnable ? ticks : null)
+ : ((ast.args[3]!==undefined) ? ((+Formula.valOf(ast.args[3])|0) || ticks) : null);
+ const smooth = shorthandEnable!==null ? false : !!((+Formula.valOf(ast.args[4]||0))|0);
  const rawMode = String(Formula.valOf(ast.args[5]||'simultaneous')||'simultaneous').trim().toLowerCase();
  const mode = (rawMode==='stepped_array' || rawMode==='array' || rawMode==='queue_array' || rawMode==='1')
  ? 'stepped_array'
@@ -8747,6 +8755,10 @@ tag('3D_TIMED_TRANSLATION',["SCENE"],(anchor,arr,ast)=>{
  }
  G.configured = true; G.ticks=Math.max(1,ticks|0); G.repeat=repeat; G.reverse=reverse; G.reverseTicks=reverseTicks; G.t=0; G.dir=1; G.smooth = smooth; G.mode = mode;
  G.hostId = arr?.id ?? anchor?.arrId ?? null;
+ if(shorthandEnable!==null){
+ G.preview = shorthandEnable;
+ G.scope = shorthandEnable ? { mode:'all', ids:[] } : null;
+ }
  if(scopeConfig){
  G.scope = { mode: scopeConfig.mode, ids: Array.from(scopeConfig.ids||[]) };
  }
