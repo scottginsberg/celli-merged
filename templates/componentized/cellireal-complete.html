@@ -101,6 +101,9 @@ input[type=text]{width:100%;padding:8px 10px;border-radius:10px;border:1px solid
 .fx-wrap{position:relative;flex:1}
 #fxHighlight{position:absolute;inset:0;padding:8px 10px;border-radius:10px;background:#fff;pointer-events:none;white-space:pre;overflow:hidden;font-family:Rubik,ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--ink)}
 #fx{background:transparent;color:transparent;caret-color:var(--ink);position:relative}
+.tok-ghost{color:#9ca3af}
+.fx-help-tip{margin-top:4px; padding:6px 10px; border-radius:10px; border:1px dashed #dbe2ef; background:#f8fafc; color:#475569; font-size:11px; line-height:1.35; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+.fx-help-tip strong{color:#0f172a}
 .tok-str{color:#16a34a}
 .tok-range{color:#f59e0b}
 .tok-num{color:#1d4ed8}
@@ -926,6 +929,7 @@ document.addEventListener('click', function(e){
  <div class="fx-wrap" style="flex:1;">
  <div id="fxHighlight" aria-hidden="true"></div>
  <input type="text" id="fx" placeholder='=ARRAY("Hello","World")'>
+ <div id="fxParamHelp" class="fx-help-tip" aria-live="polite" style="display:none;"></div>
  </div>
  <button class="btn primary" id="applyFx" title="Apply">Apply</button>
  </div>
@@ -22001,7 +22005,7 @@ const UI = (()=>{
  let dragStart=null;
  let hovered2D = null; // {arrId,x,y,z}
  const els={
- fx:document.getElementById('fx'), fxHighlight:document.getElementById('fxHighlight'), apply:document.getElementById('applyFx'),
+ fx:document.getElementById('fx'), fxHighlight:document.getElementById('fxHighlight'), fxParamHelp:document.getElementById('fxParamHelp'), apply:document.getElementById('applyFx'),
  toggleFxPanel:document.getElementById('toggleFxPanel'), fxPanel:document.getElementById('fxPanel'),
  fxBody:document.getElementById('fxBody'), fxClose:document.getElementById('fxClose'),
  focusChip:document.getElementById('focusChip'), inspect:document.getElementById('inspect'),
@@ -22502,6 +22506,93 @@ const UI = (()=>{
  sheetEl?.addEventListener('mouseleave', ()=> setHovered2D(null, null), true);
  }catch{}
  // Live syntax highlighting for formula input
+ const FX_ARG_HINTS = {
+ TRANSPOSE:{
+ params:[
+ {name:'input', hint:'Range or block to transpose (e.g. @[0,0,0,1] or A1a:C3a).'},
+ {name:'planeFlag', hint:'Axis swap: 0 = X↔Y, 1 = X↔Z, 2 = Y↔Z.'},
+ {name:'reverse?', hint:'Optional 1 flips output order on swapped axis (0 keeps forward order).'}
+ ],
+ summary:'Transposes a block by swapping two axes before writing from the anchor cell.'
+ },
+ ARRAY:{
+ params:[
+ {name:'source', hint:'Mode or dimensions. Examples: "list", 1,2,3 or 3,2,1,"fill".'},
+ {name:'value2...', hint:'Optional values continue the list / set payload.'}
+ ],
+ summary:'Builds an inline block/list to feed data functions.'
+ },
+ SHIFT:{
+ params:[
+ {name:'input', hint:'Range/block to move.'},
+ {name:'dx', hint:'Required X offset (columns).'},
+ {name:'dy?', hint:'Optional Y offset (rows). Defaults to 0.'},
+ {name:'dz?', hint:'Optional layer offset. Defaults to 0.'}
+ ],
+ summary:'Moves a copied block by offsets without changing source cells.'
+ },
+ OFFSET:{
+ params:[
+ {name:'baseRef?', hint:'Optional starting cell. Defaults to current anchor.'},
+ {name:'dx', hint:'Required X delta from base cell.'},
+ {name:'dy?', hint:'Optional Y delta. Defaults to 0.'},
+ {name:'dz?', hint:'Optional Z delta. Defaults to 0.'}
+ ],
+ summary:'Reads a relative cell without writing output.'
+ }
+ };
+ const parseFnArgs = (raw='')=>{
+ const text = String(raw || '').trim();
+ if(!text.startsWith('=')) return null;
+ const m = text.match(/^=\s*([A-Z_][A-Z0-9_]*)\s*\(/i);
+ if(!m) return null;
+ const name = m[1].toUpperCase();
+ const startParen = text.indexOf('(', m.index + m[0].length - 1);
+ if(startParen < 0) return {name, args:[]};
+ let depth=0, inQuote=false, escaped=false;
+ const args=[]; let current='';
+ for(let i=startParen+1;i<text.length;i++){
+ const ch=text[i];
+ if(escaped){ current += ch; escaped=false; continue; }
+ if(ch==='\\'){ current += ch; escaped=true; continue; }
+ if(ch==='"'){ inQuote = !inQuote; current += ch; continue; }
+ if(!inQuote){
+ if(ch==='('){ depth++; current += ch; continue; }
+ if(ch===')'){
+ if(depth===0){
+ const tail=current.trim();
+ if(tail || args.length>0) args.push(tail);
+ return {name, args};
+ }
+ depth--; current += ch; continue;
+ }
+ if(ch===',' && depth===0){ args.push(current.trim()); current=''; continue; }
+ }
+ current += ch;
+ }
+ const tail=current.trim();
+ if(tail || args.length>0) args.push(tail);
+ return {name, args};
+ };
+ const renderFxParamHelp = (raw='')=>{
+ const helpEl = els.fxParamHelp;
+ if(!helpEl) return;
+ const parsed = parseFnArgs(raw);
+ if(!parsed || !FX_ARG_HINTS[parsed.name]){
+ helpEl.style.display='none';
+ helpEl.innerHTML='';
+ return;
+ }
+ const meta = FX_ARG_HINTS[parsed.name];
+ const typedCount = parsed.args.filter(a=>a!=='' && a!=null).length;
+ const remaining = meta.params.slice(Math.min(typedCount, meta.params.length));
+ const ghost = remaining.length ? `, ${remaining.map(p=>`<span class="tok-ghost">${p.name}</span>`).join(', ')}` : '';
+ const remainderText = remaining.length
+ ? `Next: ${remaining.map(p=>`<strong>${p.name}</strong> — ${p.hint}`).join(' | ')}`
+ : 'All known parameters are filled. Press Apply to run or refine existing arguments.';
+ helpEl.style.display='block';
+ helpEl.innerHTML = `<strong>${parsed.name}</strong>(${parsed.args.map(a=>a || '<span class="tok-ghost">…</span>').join(', ')}${ghost})<br>${remainderText}<br><span style="color:#64748b">${meta.summary}</span>`;
+ };
  const syncFxHighlight = ()=>{
  const raw = els.fx.value || '';
  // Escape HTML
@@ -22513,7 +22604,17 @@ const UI = (()=>{
  h = h.replace(/@\[\-?\d+\,\-?\d+\,\-?\d+\,\-?\d+\]/g, m=> `<span class="tok-range">${esc(m)}</span>`);
  // Numbers (standalone) avoid coloring inside quotes by running after strings
  h = h.replace(/(?<![A-Za-z0-9_@\"])(\-?\d+(?:\.\d+)?)(?![A-Za-z0-9_\"])/g, (m)=> `<span class="tok-num">${m}</span>`);
+ const parsed = parseFnArgs(raw);
+ if(parsed && FX_ARG_HINTS[parsed.name]){
+ const meta = FX_ARG_HINTS[parsed.name];
+ const typedCount = parsed.args.filter(a=>a!=='' && a!=null).length;
+ const remaining = meta.params.slice(Math.min(typedCount, meta.params.length));
+ if(remaining.length){
+ h += `<span class="tok-ghost">${esc(remaining.map(p=>`, ${p.name}`).join(''))}</span>`;
+ }
+ }
  els.fxHighlight.innerHTML = h || '';
+ renderFxParamHelp(raw);
  };
  // Keep formula bar and direct editor in sync in real time
  els.fx.addEventListener('input', ()=>{ 
