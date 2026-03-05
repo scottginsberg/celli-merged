@@ -3,88 +3,194 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sooploop — Proof-of-Good-Faith Mock</title>
+  <title>SoopLoop — Industrial Proof of Concept</title>
   <link rel="icon" href="data:," />
   <style>
     :root {
-      --bg: #0c1020;
-      --panel: #121933;
-      --panel-soft: #1a2447;
-      --ink: #e8edff;
-      --muted: #9ca8d4;
-      --accent: #77e9ff;
-      --good: #3ee08a;
-      --warn: #ffd06d;
-      --bad: #ff7f9f;
-      --border: rgba(162, 184, 255, 0.25);
-      --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-      --radius: 14px;
+      --bg: #050b1a;
+      --bg-elev: #0b1730;
+      --panel: #101e3d;
+      --panel-soft: #16274c;
+      --ink: #f6f9ff;
+      --muted: #9eb3da;
+      --accent: #74d8ff;
+      --accent-2: #56f0be;
+      --warn: #ffbf6e;
+      --bad: #ff7b90;
+      --border: rgba(174, 203, 255, 0.26);
+      --radius: 12px;
+      --shadow: 0 10px 28px rgba(0, 0, 0, 0.42);
     }
-    [data-mode="user"] { --bg: #0c1020; --panel: #121933; --panel-soft: #1a2447; }
-    [data-mode="engine"] { --bg: #161106; --panel: #2a1f0e; --panel-soft: #3b2a11; --accent: #ffbf4e; }
+
+    [data-mode="engine"] {
+      --accent: #ffd17a;
+      --accent-2: #ffc16b;
+      --panel: #202a42;
+      --panel-soft: #2b3552;
+    }
+
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: Inter, system-ui, Arial, sans-serif;
-      background: radial-gradient(circle at top right, rgba(95,120,255,.22), transparent 45%), var(--bg);
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
       color: var(--ink);
+      background:
+        linear-gradient(150deg, rgba(99, 151, 255, 0.14), transparent 40%),
+        linear-gradient(340deg, rgba(7, 17, 36, 0.86), rgba(4, 9, 18, 1));
       min-height: 100vh;
+      letter-spacing: 0.01em;
     }
+
+    h1, h2, h3, h4, strong, b { font-weight: 700; }
+
     .app { display: grid; grid-template-rows: auto auto 1fr; min-height: 100vh; }
     .mode-banner {
-      position: sticky; top: 0; z-index: 50;
-      background: linear-gradient(90deg, rgba(119,233,255,.15), rgba(255,191,78,.15));
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
       border-bottom: 1px solid var(--border);
-      padding: 10px 16px;
-      display: flex; gap: 14px; align-items: center; justify-content: space-between;
+      background: linear-gradient(90deg, rgba(14, 30, 63, 0.95), rgba(11, 21, 44, 0.95));
       backdrop-filter: blur(8px);
     }
-    .toggle { display: flex; background: rgba(0,0,0,.25); border: 1px solid var(--border); border-radius: 999px; padding: 4px; }
+
+    .toggle {
+      display: flex;
+      background: rgba(3, 9, 24, 0.75);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px;
+    }
+
     .toggle button {
-      border: 0; padding: 8px 14px; border-radius: 999px; color: var(--ink);
-      background: transparent; cursor: pointer; font-weight: 600;
+      border: 0;
+      color: var(--ink);
+      background: transparent;
+      border-radius: 999px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-weight: 700;
     }
-    .toggle .active { background: var(--accent); color: #081024; }
-    .main-nav { display: flex; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-    .main-nav button { background: var(--panel); border: 1px solid var(--border); color: var(--ink); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+
+    .toggle .active {
+      background: var(--accent);
+      color: #061127;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+    }
+
+    .main-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: #08142e;
+    }
+
+    .main-nav button, .btn {
+      background: linear-gradient(180deg, #162952, #132447);
+      border: 1px solid var(--border);
+      color: var(--ink);
+      border-radius: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
     .main-nav .active { outline: 2px solid var(--accent); }
-    .shell { display: grid; grid-template-columns: 220px 1fr 320px; gap: 12px; padding: 12px; }
-    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+
+    .btn.good { background: linear-gradient(180deg, #194c44, #133f39); }
+    .btn.warn { background: linear-gradient(180deg, #664117, #573711); }
+    .btn.bad { background: linear-gradient(180deg, #5d2430, #4a1c26); }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 250px 1fr 340px;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, var(--panel), #0f1b38);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
     .left, .right { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
-    .content { padding: 14px; min-height: 68vh; }
-    .balance-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
-    .pill { background: var(--panel-soft); border-radius: 12px; padding: 10px; border: 1px solid var(--border); }
-    .pill b { display: block; font-size: 20px; }
+    .content { padding: 14px; min-height: 70vh; }
+
+    .balance-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .pill { background: var(--panel-soft); border: 1px solid var(--border); border-radius: 10px; padding: 9px; }
+    .pill b { display: block; font-size: 21px; }
+
     .muted { color: var(--muted); font-size: 12px; }
-    .grid { display: grid; gap: 12px; }
-    .feed-card { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--panel-soft); }
+    .feed-card {
+      border: 1px solid var(--border);
+      background: var(--panel-soft);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
     .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .btn { background: #26367c; border: 1px solid var(--border); color: var(--ink); border-radius: 10px; padding: 7px 10px; cursor: pointer; }
-    .btn.warn { background: #58410f; }
-    .btn.good { background: #13462d; }
-    .chip { font-size: 11px; border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; }
+    .chip { border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; font-size: 11px; background: rgba(2, 8, 20, 0.35); }
+
     .split { display: grid; grid-template-columns: 1.2fr .8fr; gap: 12px; }
-    .composer textarea { width: 100%; min-height: 90px; border-radius: 10px; background: #0e1430; color: var(--ink); border: 1px solid var(--border); padding: 10px; }
-    .engine { border-left: 3px solid var(--accent); padding-left: 10px; margin-top: 8px; }
-    .map {
-      min-height: 430px; background: radial-gradient(circle, rgba(255,255,255,.06), transparent 58%), #090e20;
-      border: 1px solid var(--border); border-radius: 12px; position: relative; overflow: hidden;
+    .composer textarea, .comment-input {
+      width: 100%;
+      min-height: 90px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0a1430;
+      color: var(--ink);
+      padding: 10px;
+      font-family: inherit;
     }
+
+    .comment-input { min-height: 44px; }
+    .comment-list { margin-top: 8px; display: grid; gap: 6px; }
+    .comment-item { background: rgba(2, 9, 22, 0.4); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+
+    .meter { height: 10px; border: 1px solid var(--border); border-radius: 999px; background: #09112a; overflow: hidden; }
+    .meter > div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+
+    .map { min-height: 420px; background: radial-gradient(circle, rgba(255,255,255,.08), transparent 60%), #071028; border-radius: 12px; border: 1px solid var(--border); position: relative; overflow: hidden; }
     .node {
-      position: absolute; border-radius: 50%; border: 2px solid rgba(255,255,255,.75);
-      display: grid; place-items: center; color: #081024; font-size: 11px; font-weight: 700; cursor: pointer;
-      transition: transform .2s;
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.8);
+      display: grid;
+      place-items: center;
+      color: #061127;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: pointer;
     }
-    .node:hover { transform: scale(1.1); }
-    .legend li { margin-bottom: 6px; }
+
     .toast {
-      position: fixed; right: 14px; bottom: 14px; z-index: 60; padding: 10px 12px;
-      border-radius: 10px; background: #0c1538; border: 1px solid var(--border); max-width: 330px;
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 90;
+      background: #0d1f43;
+      border: 1px solid var(--border);
+      color: var(--ink);
+      padding: 10px 12px;
+      border-radius: 8px;
+      max-width: 340px;
     }
-    .meter { height: 10px; border-radius: 999px; background: #0a122d; border: 1px solid var(--border); overflow: hidden; }
-    .meter > div { height: 100%; background: linear-gradient(90deg,var(--accent), var(--good)); }
-    .sim-controls input[type="range"] { width: 100%; }
-    @media (max-width: 1100px) { .shell { grid-template-columns: 1fr; } .split { grid-template-columns: 1fr; } }
+
+    .sim-controls input[type="range"], .sim-controls select { width: 100%; }
+
+    @media (max-width: 1150px) {
+      .shell { grid-template-columns: 1fr; }
+      .split { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body data-mode="user">
@@ -100,9 +206,10 @@
       </div>
       <div class="row">
         <button class="btn" id="resetSimBtn">Reset Simulation</button>
-        <label class="muted">Seed <input id="seedInput" type="number" value="42" min="1" style="width:76px"/></label>
+        <label class="muted">Seed <input id="seedInput" type="number" value="42" min="1" style="width:76px" /></label>
       </div>
     </header>
+
     <nav class="main-nav" id="mainNav"></nav>
 
     <div class="shell">
@@ -111,16 +218,12 @@
         <div class="balance-row" id="balances"></div>
         <div class="panel" style="padding:10px;background:var(--panel-soft)">
           <strong>Glossary</strong>
-          <ul class="legend muted">
-            <li><b>VC:</b> Speak carefully, earn refunds when your signal lands.</li>
-            <li><b>TR:</b> Earned respect. Cannot be bought.</li>
-            <li><b>BT:</b> Use earned spotlight responsibly.</li>
+          <ul class="muted">
+            <li><b>VC:</b> Voice credits spent to post/comment.</li>
+            <li><b>TR:</b> Trust earned from quality activity.</li>
+            <li><b>BT:</b> Boost tokens for amplification.</li>
+            <li><b>XP:</b> Profile points from participation.</li>
           </ul>
-        </div>
-        <div class="panel" style="padding:10px;background:var(--panel-soft)">
-          <strong>Coach Marks</strong>
-          <div class="muted">Tip: Citing sources improves refund odds in noisy rooms.</div>
-          <div class="muted">Tip: Boosting others is currently 22% more efficient than self-boost.</div>
         </div>
       </aside>
 
@@ -166,31 +269,33 @@
       sliders: { noise: 40, overlap: 54, decay: 8, cap: 30 },
       user: {
         id: "u-1", handle: "@sofia", trustTier: "Builder", citationRate: 0.64,
-        VC: 42.8, TR: 86.0, BT: 12.2, authorityWeight: 1.29, falseFlagRate: 0.05
+        VC: 42.8, TR: 86, BT: 12.2, XP: 120, authorityWeight: 1.29, falseFlagRate: 0.05
       },
       rooms: [
         { id: "r1", name: "Ocean Lab", congestion: 0.38, messagesPerMinute: 42 },
         { id: "r2", name: "Mobility Desk", congestion: 0.64, messagesPerMinute: 89 },
         { id: "r3", name: "Culture Wire", congestion: 0.52, messagesPerMinute: 71 },
-        { id: "r4", name: "City Life", congestion: 0.73, messagesPerMinute: 112 },
+        { id: "r4", name: "City Life", congestion: 0.73, messagesPerMinute: 112 }
       ],
       clusters: [],
       posts: [],
       comments: [],
       ledger: [],
-      selectedClusterId: null,
-      toasts: []
+      selectedClusterId: null
     };
 
-    function random(seed) { let t = seed + 0x6D2B79F5; return () => (t = Math.imul(t ^ t >>> 15, t | 1), t ^= t + Math.imul(t ^ t >>> 7, t | 61), ((t ^ t >>> 14) >>> 0) / 4294967296); }
+    function random(seed) {
+      let t = seed + 0x6D2B79F5;
+      return () => (t = Math.imul(t ^ t >>> 15, t | 1), t ^= t + Math.imul(t ^ t >>> 7, t | 61), ((t ^ t >>> 14) >>> 0) / 4294967296);
+    }
 
     function seedData(seed) {
       const rnd = random(seed);
-      const names = ["Ocean Microplastics", "Transit Fare Equity", "Museum AR Guides", "Harbor Heat Islands", "Bike Lane Sensors", "Repair Cafes", "Soundwalk Ethics", "Floodplain Housing", "Open Data Commons", "Studio Labor Rights", "Food Waste Loops", "Maker Curriculum", "Wetland Restoration", "Inclusive Design Tokens", "Night Bus Safety", "Neighborhood Air Quality", "Street Tree Index", "E-bike Battery Swap", "Community Mesh Nets", "Public WiFi Neutrality", "Library AI Tutors", "Marina Noise Rules", "City Compost Signals", "Accessible Wayfinding"];
+      const names = ["Ocean Microplastics", "Transit Fare Equity", "Museum AR Guides", "Harbor Heat Islands", "Bike Lane Sensors", "Repair Cafes", "Soundwalk Ethics", "Floodplain Housing", "Open Data Commons", "Studio Labor Rights"];
       state.clusters = names.map((label, i) => ({
-        clusterId: `c-${i+1}`,
+        clusterId: `c-${i + 1}`,
         label,
-        momentum: Math.round((30 + rnd() * 70)),
+        momentum: Math.round(30 + rnd() * 70),
         sentimentNorthSouth: (rnd() * 2 - 1).toFixed(2),
         sentimentEastWest: (rnd() * 2 - 1).toFixed(2),
         overlapUserCount: Math.floor(20 + rnd() * 180),
@@ -199,53 +304,78 @@
         x: 10 + rnd() * 80,
         y: 12 + rnd() * 74
       }));
-      state.posts = Array.from({ length: 120 }).map((_, i) => {
+
+      state.posts = Array.from({ length: 50 }).map((_, i) => {
         const room = state.rooms[Math.floor(rnd() * state.rooms.length)];
         const cluster = state.clusters[Math.floor(rnd() * state.clusters.length)];
-        const base = 1 + rnd()*4;
         const helpful = rnd();
         const cited = rnd();
         const bridge = rnd();
-        const boost = rnd()*3;
-        const penalty = rnd()*1.5;
-        const rank = base + helpful*2 + cited*1.4 + bridge*1.6 + boost - penalty;
+        const rank = 1 + rnd() * 4 + helpful * 2 + cited * 1.4 + bridge * 1.6;
         return {
-          postId: `p-${i+1}`,
-          authorId: i % 3 === 0 ? "u-1" : `u-${2 + (i % 12)}`,
+          postId: `p-${i + 1}`,
+          authorId: i % 3 === 0 ? "u-1" : `u-${2 + (i % 8)}`,
           roomId: room.id,
           clusterId: cluster.clusterId,
-          title: `${cluster.label}: signal report #${i+1}`,
-          body: "Synthesis of cited updates across adjacent rooms with fairness and bridge indicators.",
+          title: `${cluster.label}: signal report #${i + 1}`,
+          body: "Synthesis with citations, fairness framing, and bridge potential.",
           citationCount: Math.floor(cited * 8),
-          helpfulScore: Number((helpful*100).toFixed(0)),
-          fairnessScore: Number((rnd()*100).toFixed(0)),
-          bridgeValue: Number((bridge*100).toFixed(0)),
-          freshness: Number((100 - i * 0.7).toFixed(1)),
-          boostSpend: Number(boost.toFixed(2)),
-          selfBoostSpend: Number((i % 5 === 0 ? boost*0.7 : boost*0.15).toFixed(2)),
+          helpfulScore: Math.floor(helpful * 100),
+          bridgeValue: Math.floor(bridge * 100),
+          freshness: Number((100 - i * 0.9).toFixed(1)),
+          boostSpend: Number((rnd() * 2.6).toFixed(2)),
           rankScore: Number(rank.toFixed(2)),
-          VCcost: 0,
-          refundedAmount: 0,
-          noiseFlags: Number((rnd()*0.8).toFixed(2)),
+          noiseFlags: Number((rnd() * 0.8).toFixed(2)),
+          upvotes: Math.floor(20 + rnd() * 80),
+          downvotes: Math.floor(rnd() * 18)
         };
       });
-      state.comments = Array.from({length: 200}).map((_,i)=>({
-        commentId:`cm-${i+1}`, postId:`p-${1+Math.floor(rnd()*120)}`, body:"Bridge comment with cite and fairness framing.", helpfulScore:Math.floor(rnd()*100), citationScore:Math.floor(rnd()*5)
+
+      state.comments = Array.from({ length: 140 }).map((_, i) => ({
+        commentId: `cm-${i + 1}`,
+        postId: `p-${1 + Math.floor(rnd() * state.posts.length)}`,
+        body: "Bridge comment with citations and practical framing.",
+        authorId: i % 5 === 0 ? "u-1" : `u-${2 + (i % 9)}`,
+        upvotes: Math.floor(rnd() * 20)
       }));
+
       state.selectedClusterId = state.clusters[0].clusterId;
-      state.ledger = [{type:"VC_REFUND", amount:1.2, reason:"Helpful + cited post", ts:Date.now()}];
+      state.ledger = [{ type: "VC_REFUND", amount: 1.2, reason: "Helpful cited post", ts: Date.now() }];
     }
 
+    const roomName = id => state.rooms.find(r => r.id === id)?.name || id;
+    const clusterName = id => state.clusters.find(c => c.clusterId === id)?.label || id;
+    const postById = id => state.posts.find(p => p.postId === id);
+    const mainNav = document.getElementById("mainNav");
+    const balances = document.getElementById("balances");
+    const diagnostics = document.getElementById("diagnostics");
+    const viewRoot = document.getElementById("viewRoot");
+    const playPauseBtn = document.getElementById("playPauseBtn");
+    const userModeBtn = document.getElementById("userModeBtn");
+    const engineModeBtn = document.getElementById("engineModeBtn");
+    const modeTitle = document.getElementById("mode-title");
+    const modeSubtitle = document.getElementById("mode-subtitle");
+    const commentsFor = postId => state.comments.filter(c => c.postId === postId);
+
     function calcAuthority() {
-      state.user.authorityWeight = Number((1 + Math.log10(Math.max(state.user.TR,1)) * 0.15).toFixed(2));
+      state.user.authorityWeight = Number((1 + Math.log10(Math.max(state.user.TR, 1)) * 0.15).toFixed(2));
+      if (state.user.XP > 320) state.user.trustTier = "Steward";
+      else if (state.user.XP > 180) state.user.trustTier = "Connector";
+      else state.user.trustTier = "Builder";
     }
 
     function costPreview(action, roomId) {
-      const base = action === "post" ? 3 : action === "topic" ? 4 : 1;
+      const base = action === "post" ? 3 : 1;
       const room = state.rooms.find(r => r.id === roomId) || state.rooms[0];
       const congestionMultiplier = Number((1 + room.congestion * 1.8).toFixed(2));
       const driftMultiplier = Number((1 + state.user.falseFlagRate * 3 + state.sliders.noise / 100).toFixed(2));
-      return { base, congestionMultiplier, driftMultiplier, total: Number((base*congestionMultiplier*driftMultiplier).toFixed(2)) };
+      return { base, congestionMultiplier, driftMultiplier, total: Number((base * congestionMultiplier * driftMultiplier).toFixed(2)) };
+    }
+
+    function awardPoints(points, reason) {
+      state.user.XP += points;
+      state.ledger.push({ type: "XP", amount: points, reason, ts: Date.now() });
+      calcAuthority();
     }
 
     function makeToast(text) {
@@ -253,124 +383,113 @@
       node.className = "toast";
       node.textContent = text;
       document.body.appendChild(node);
-      setTimeout(() => node.remove(), 3000);
+      setTimeout(() => node.remove(), 2900);
     }
 
     function renderNav() {
-      mainNav.innerHTML = navTabs.map(tab => `<button class="${state.nav===tab?"active":""}" data-tab="${tab}">${tab}</button>`).join("");
+      mainNav.innerHTML = navTabs.map(tab => `<button class="${state.nav === tab ? "active" : ""}" data-tab="${tab}">${tab}</button>`).join("");
       mainNav.querySelectorAll("button").forEach(btn => btn.onclick = () => { state.nav = btn.dataset.tab; render(); });
     }
 
     function renderBalances() {
       calcAuthority();
       balances.innerHTML = `
-        <div class="pill" title="Voice Credits help keep noisy rooms readable."><small>VC</small><b>${state.user.VC.toFixed(1)}</b><div class="muted">Spend to speak</div></div>
-        <div class="pill" title="Trust is earned from useful, fair, and cited participation."><small>TR</small><b>${state.user.TR.toFixed(1)}</b><div class="muted">Earned only</div></div>
-        <div class="pill" title="Boost increases visibility, but caps and diversity rules limit domination."><small>BT</small><b>${state.user.BT.toFixed(1)}</b><div class="muted">Spend to amplify</div></div>
+        <div class="pill"><small>VC</small><b>${state.user.VC.toFixed(1)}</b><div class="muted">Spend to speak</div></div>
+        <div class="pill"><small>TR</small><b>${state.user.TR.toFixed(1)}</b><div class="muted">Earned trust</div></div>
+        <div class="pill"><small>BT</small><b>${state.user.BT.toFixed(1)}</b><div class="muted">Boost reach</div></div>
       `;
     }
 
     function renderDiagnostics() {
-      const top = [...state.posts].sort((a,b)=>b.rankScore-a.rankScore)[0];
+      const top = [...state.posts].sort((a, b) => b.rankScore - a.rankScore)[0];
       const cp = costPreview("post", top.roomId);
       diagnostics.innerHTML = `
         <div><b>Scenario:</b> ${state.scenario}</div>
         <div><b>Tick:</b> ${state.tick}</div>
-        <div><b>Congestion multiplier:</b> ${cp.congestionMultiplier}x</div>
-        <div><b>Drift multiplier:</b> ${cp.driftMultiplier}x</div>
-        <div><b>Authority weight:</b> ${state.user.authorityWeight}x</div>
-        <div><b>Refund eligibility:</b> top post ${Math.min(100, top.helpfulScore + top.citationCount*5)}%</div>
-        <div><b>Diversity cap:</b> ${state.sliders.cap}% self-boost limit</div>
+        <div><b>Authority:</b> ${state.user.authorityWeight}x</div>
+        <div><b>Top post rank:</b> ${top.rankScore.toFixed(2)}</div>
+        <div><b>Post VC cost:</b> ${cp.total.toFixed(2)}</div>
+        <div><b>Profile XP:</b> ${state.user.XP}</div>
+        <div><b>Tier:</b> ${state.user.trustTier}</div>
+      `;
+    }
+
+    function renderPostCard(p) {
+      const comments = commentsFor(p.postId).slice(-3);
+      return `
+        <article class="feed-card">
+          <div class="row"><span class="chip">${roomName(p.roomId)}</span><span class="chip">${clusterName(p.clusterId)}</span><span class="chip">citations ${p.citationCount}</span></div>
+          <h4 style="margin-bottom:6px">${p.title}</h4>
+          <div class="muted">${p.body}</div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" data-act="upvote" data-id="${p.postId}">▲ Upvote</button>
+            <button class="btn bad" data-act="downvote" data-id="${p.postId}">▼ Downvote</button>
+            <button class="btn" data-act="cite" data-id="${p.postId}">Cite</button>
+            <button class="btn" data-act="boost" data-id="${p.postId}">Boost</button>
+            <button class="btn warn" data-act="sus" data-id="${p.postId}">Flag Sus</button>
+            <span class="muted">Score ${p.upvotes - p.downvotes} • Rank ${p.rankScore.toFixed(2)}</span>
+          </div>
+
+          <div class="comment-list">
+            ${comments.map(c => `<div class="comment-item"><div>${c.body}</div><div class="muted">${c.authorId === "u-1" ? state.user.handle : "@participant"} · 👍 ${c.upvotes}</div></div>`).join("") || `<div class="muted">No comments yet.</div>`}
+          </div>
+          <div class="row" style="margin-top:8px">
+            <textarea class="comment-input" id="comment-${p.postId}" placeholder="Add a thoughtful comment..."></textarea>
+            <button class="btn good" data-act="comment" data-id="${p.postId}">Comment +2 XP</button>
+          </div>
+          ${state.mode === "engine" ? `<div class="muted" style="margin-top:8px">freshness ${p.freshness} · bridge ${p.bridgeValue} · noise ${p.noiseFlags}</div>` : ""}
+        </article>
       `;
     }
 
     function homeView() {
-      const feed = [...state.posts].sort((a,b)=>b.rankScore-a.rankScore).slice(0,12);
+      const feed = [...state.posts].sort((a, b) => b.rankScore - a.rankScore).slice(0, 8);
       return `
-        <div class="grid">
-          <div class="split">
-            <section class="panel" style="padding:12px;background:var(--panel-soft)">
-              <h2 style="margin-top:0">Home Feed</h2>
-              <div class="muted">Aligned first, with bridge-aware exploration and anti-monopoly caps.</div>
-              ${feed.map(p => `
-                <article class="feed-card">
-                  <div class="row"><span class="chip">${roomName(p.roomId)}</span><span class="chip">${clusterName(p.clusterId)}</span><span class="chip">citations ${p.citationCount}</span></div>
-                  <h4>${p.title}</h4>
-                  <div class="muted">${p.body}</div>
-                  <div class="row">
-                    <button class="btn" data-act="reply" data-id="${p.postId}">Reply</button>
-                    <button class="btn" data-act="cite" data-id="${p.postId}">Cite</button>
-                    <button class="btn" data-act="boost" data-id="${p.postId}">Boost</button>
-                    <button class="btn warn" data-act="sus" data-id="${p.postId}">Flag Sus</button>
-                    <span class="muted">Rank ${p.rankScore}</span>
-                  </div>
-                  ${state.mode === "engine" ? `<div class="engine muted">freshness ${p.freshness} • alignment ${(p.rankScore*8).toFixed(1)} • bridge ${p.bridgeValue} • noise penalty ${p.noiseFlags}</div>` : `<div class="muted">Why this is near top: cited + helpful + bridges nearby clusters.</div>`}
-                </article>
-              `).join("")}
-            </section>
-            <section class="panel" style="padding:12px;background:var(--panel-soft)">
-              <h3 style="margin-top:0">Composer</h3>
-              <div class="composer">
-                <textarea id="postBody" placeholder="Share a synthesis, add citations, or bridge a related room..."></textarea>
-              </div>
-              <div class="row" style="margin-top:8px"><label><input id="citeCheck" type="checkbox"> include citation</label><label><input id="bridgeCheck" type="checkbox"> add bridge topic</label></div>
-              <div id="costPreview" class="muted" style="margin-top:8px"></div>
-              <div class="row" style="margin-top:8px"><button class="btn good" id="submitPostBtn">Post</button><span class="chip">refund window: 2h</span></div>
-              <h4>Recommended Bridges</h4>
-              ${state.clusters.slice(0,5).map(c=>`<div class="row"><span>${c.label}</span><span class="muted">overlap ${c.overlapUserCount}</span></div>`).join("")}
-            </section>
-          </div>
+        <div class="split">
+          <section class="panel" style="padding:12px;background:var(--panel-soft)">
+            <h2 style="margin-top:0">Home Feed</h2>
+            <div class="muted">Industrial, restrained, and interactive: vote, comment, cite, and boost to role-play real usage.</div>
+            ${feed.map(renderPostCard).join("")}
+          </section>
+
+          <section class="panel" style="padding:12px;background:var(--panel-soft)">
+            <h3 style="margin-top:0">Composer</h3>
+            <div class="composer"><textarea id="postBody" placeholder="Publish a synthesis with optional citation and bridge framing..."></textarea></div>
+            <div class="row" style="margin-top:8px"><label><input id="citeCheck" type="checkbox"/> include citation</label><label><input id="bridgeCheck" type="checkbox"/> add bridge topic</label></div>
+            <div id="costPreview" class="muted" style="margin-top:8px"></div>
+            <div class="row" style="margin-top:8px"><button class="btn good" id="submitPostBtn">Post (+5 XP)</button><span class="chip">refund window 2h</span></div>
+            <h4>Recommended Bridges</h4>
+            ${state.clusters.slice(0, 5).map(c => `<div class="row"><span>${c.label}</span><span class="muted">overlap ${c.overlapUserCount}</span></div>`).join("")}
+          </section>
         </div>
       `;
     }
 
     function roomsView() {
-      return `<h2>Topic Rooms</h2>${state.rooms.map(r=>{
+      return `<h2>Topic Rooms</h2>${state.rooms.map(r => {
         const c = costPreview("comment", r.id);
-        return `<div class="feed-card"><div class="row"><b>${r.name}</b><span class="chip">noise ${(r.congestion*100).toFixed(0)}%</span><span class="chip">${r.messagesPerMinute} msg/min</span></div>
-        <div class="muted">Posting now costs ${c.total} VC. Add citation to improve refund odds.</div>
-        <div class="meter"><div style="width:${Math.min(100,r.congestion*100)}%"></div></div></div>`;
+        return `<div class="feed-card"><div class="row"><b>${r.name}</b><span class="chip">noise ${(r.congestion * 100).toFixed(0)}%</span><span class="chip">${r.messagesPerMinute} msg/min</span></div><div class="muted">Posting now costs ${c.total} VC. Add citation to improve refunds.</div><div class="meter"><div style="width:${Math.min(100, r.congestion * 100)}%"></div></div></div>`;
       }).join("")}`;
     }
 
     function clusterView() {
-      const selected = state.clusters.find(c=>c.clusterId===state.selectedClusterId) || state.clusters[0];
-      return `
-      <h2>Cluster Constellation</h2>
-      <div class="split">
-        <div class="map" id="clusterMap"></div>
-        <div class="feed-card">
-          <h3>${selected.label}</h3>
-          <div class="muted">activity ${selected.momentum} • overlap users ${selected.overlapUserCount}</div>
-          <div class="muted">sentiment NS ${selected.sentimentNorthSouth}, EW ${selected.sentimentEastWest}</div>
-          <h4>Top bridging post</h4>
-          <div class="muted">${state.posts.find(p=>p.clusterId===selected.clusterId)?.title || "None"}</div>
-          <h4>Edge reasons</h4>
-          <ul class="muted"><li>shared participants</li><li>shared citations</li><li>explicit references</li><li>semantic proximity</li></ul>
-          ${state.mode === "engine" ? `<div class="engine muted">Edge confidence = ${(selected.overlapUserCount*0.3 + selected.overlapCitationCount*0.5).toFixed(1)}</div>` : `<div class="muted">Pull out to see the wider web.</div>`}
-        </div>
-      </div>`;
+      const selected = state.clusters.find(c => c.clusterId === state.selectedClusterId) || state.clusters[0];
+      return `<h2>Cluster Constellation</h2><div class="split"><div class="map" id="clusterMap"></div><div class="feed-card"><h3>${selected.label}</h3><div class="muted">activity ${selected.momentum} • overlap users ${selected.overlapUserCount}</div><div class="muted">sentiment NS ${selected.sentimentNorthSouth}, EW ${selected.sentimentEastWest}</div><h4>Top bridging post</h4><div class="muted">${state.posts.find(p => p.clusterId === selected.clusterId)?.title || "None"}</div><h4>Edge reasons</h4><ul class="muted"><li>shared participants</li><li>shared citations</li><li>explicit references</li><li>semantic proximity</li></ul></div></div>`;
     }
 
     function simLabView() {
-      return `<h2>Simulation Lab</h2>
-      <div class="feed-card">
-        <div class="row"><span class="chip">tick ${state.tick}</span><span class="chip">scenario ${state.scenario}</span></div>
-        <p>Run seeded scenarios: brigading swarms, self-boost saturation, and healthy bridge-building.</p>
-        <ul class="muted"><li>Topic node sizes and edges react to overlap and noise.</li><li>Refund windows and VC costs shift with congestion.</li><li>Authority and trust decay update each tick.</li></ul>
-      </div>`;
+      return `<h2>Simulation Lab</h2><div class="feed-card"><div class="row"><span class="chip">tick ${state.tick}</span><span class="chip">scenario ${state.scenario}</span></div><p>Run seeded scenarios for brigading, saturation, and bridge-building. User actions update XP/TR/BT in real time.</p></div>`;
+    }
+
+    function profileView() {
+      return `<h2>Profile</h2><div class="feed-card"><div><b>${state.user.handle}</b> · Tier ${state.user.trustTier}</div><div class="muted">Citation rate ${(state.user.citationRate * 100).toFixed(0)}% · false flag ${(state.user.falseFlagRate * 100).toFixed(1)}%</div><h3 style="margin-bottom:4px">${state.user.XP} XP</h3><div class="meter"><div style="width:${Math.min(100, (state.user.XP % 200) / 2)}%"></div></div><div class="muted">Next tier goal: 400 XP</div></div>`;
     }
 
     function walletView() {
-      return `<h2>Wallet & Ledger</h2>
-      <div class="feed-card"><b>Daily BT mint:</b> √TR × k = ${(Math.sqrt(state.user.TR) * 1.2).toFixed(2)}</div>
-      ${state.ledger.slice(-8).map(e=>`<div class="feed-card"><div class="row"><span class="chip">${e.type}</span><span>${e.amount>0?'+':''}${e.amount.toFixed(2)}</span></div><div class="muted">${e.reason}</div></div>`).join('')}
-      <div class="feed-card"><div>Self-boost cap meter</div><div class="meter"><div style="width:${Math.min(100, (state.user.BT/12)*100)}%"></div></div></div>`;
+      return `<h2>Wallet & Ledger</h2>${state.ledger.slice(-10).reverse().map(e => `<div class="feed-card"><div class="row"><span class="chip">${e.type}</span><span>${e.amount > 0 ? "+" : ""}${e.amount.toFixed(2)}</span></div><div class="muted">${e.reason}</div></div>`).join("")}`;
     }
 
     function simpleView(title, copy) { return `<h2>${title}</h2><div class="feed-card"><p>${copy}</p></div>`; }
-    const roomName = id => state.rooms.find(r=>r.id===id)?.name || id;
-    const clusterName = id => state.clusters.find(c=>c.clusterId===id)?.label || id;
 
     function renderMain() {
       if (state.nav === "Home") viewRoot.innerHTML = homeView();
@@ -378,9 +497,9 @@
       else if (state.nav === "Clusters") viewRoot.innerHTML = clusterView();
       else if (state.nav === "Sim Lab") viewRoot.innerHTML = simLabView();
       else if (state.nav === "Wallet") viewRoot.innerHTML = walletView();
-      else if (state.nav === "Notifications") viewRoot.innerHTML = simpleView("Notifications", "Trust deltas, refunds, anti-abuse warnings, and engine explanation updates appear here.");
-      else if (state.nav === "Profile") viewRoot.innerHTML = simpleView("Profile", `Tier ${state.user.trustTier}, citation rate ${(state.user.citationRate*100).toFixed(0)}%, false flag rate ${(state.user.falseFlagRate*100).toFixed(1)}%.`);
-      else viewRoot.innerHTML = simpleView("Settings", "Motion reduction, tooltip verbosity, and simulation defaults.");
+      else if (state.nav === "Profile") viewRoot.innerHTML = profileView();
+      else if (state.nav === "Notifications") viewRoot.innerHTML = simpleView("Notifications", "Trust deltas, refunds, and anti-abuse notices appear here.");
+      else viewRoot.innerHTML = simpleView("Settings", "Motion reduction, simulation defaults, and display preferences.");
 
       bindDynamicActions();
       if (state.nav === "Clusters") paintMap();
@@ -390,6 +509,11 @@
     function bindDynamicActions() {
       document.querySelectorAll("[data-act='boost']").forEach(btn => btn.onclick = () => spendBoost(btn.dataset.id));
       document.querySelectorAll("[data-act='sus']").forEach(btn => btn.onclick = () => susVote(btn.dataset.id));
+      document.querySelectorAll("[data-act='cite']").forEach(btn => btn.onclick = () => addCitation(btn.dataset.id));
+      document.querySelectorAll("[data-act='upvote']").forEach(btn => btn.onclick = () => vote(btn.dataset.id, 1));
+      document.querySelectorAll("[data-act='downvote']").forEach(btn => btn.onclick = () => vote(btn.dataset.id, -1));
+      document.querySelectorAll("[data-act='comment']").forEach(btn => btn.onclick = () => addComment(btn.dataset.id));
+
       const postBtn = document.getElementById("submitPostBtn");
       if (postBtn) postBtn.onclick = submitPost;
       const citeCheck = document.getElementById("citeCheck");
@@ -404,47 +528,115 @@
       const bridge = document.getElementById("bridgeCheck")?.checked;
       const discount = (cited ? 0.15 : 0) + (bridge ? 0.1 : 0);
       const final = Math.max(0.5, cp.total * (1 - discount));
-      costPreview.innerHTML = `VC preview: ${final.toFixed(2)} = base ${cp.base} × congestion ${cp.congestionMultiplier} × drift ${cp.driftMultiplier} ${discount ? `(discount ${Math.round(discount*100)}%)` : ""}`;
+      const costNode = document.getElementById("costPreview");
+      if (costNode) costNode.innerHTML = `VC preview: ${final.toFixed(2)} = base ${cp.base} × congestion ${cp.congestionMultiplier} × drift ${cp.driftMultiplier}${discount ? ` (discount ${Math.round(discount * 100)}%)` : ""}`;
     }
 
     function submitPost() {
-      const text = document.getElementById("postBody").value.trim();
+      const text = document.getElementById("postBody")?.value.trim();
       if (!text) return makeToast("Add text before posting.");
       const cp = costPreview("post", state.rooms[0].id);
-      if (state.user.VC < cp.total) return makeToast("Insufficient VC. Wait for regen or earn refunds.");
+      if (state.user.VC < cp.total) return makeToast("Insufficient VC.");
       state.user.VC -= cp.total;
-      const id = `p-${state.posts.length + 1}`;
-      state.posts.unshift({ postId:id, authorId:"u-1", roomId:"r1", clusterId:state.selectedClusterId, title:"New local synthesis", body:text, citationCount:0, helpfulScore:0, fairnessScore:0, bridgeValue:0, freshness:100, boostSpend:0, selfBoostSpend:0, rankScore:1.1, VCcost:cp.total, refundedAmount:0, noiseFlags:0.1 });
-      state.ledger.push({type:"VC_SPEND", amount:-cp.total, reason:"Create post", ts:Date.now()});
-      makeToast(`Post submitted. Refund window opened. Spent ${cp.total.toFixed(2)} VC.`);
+      state.posts.unshift({
+        postId: `p-${state.posts.length + 1}`,
+        authorId: "u-1",
+        roomId: "r1",
+        clusterId: state.selectedClusterId,
+        title: "New local synthesis",
+        body: text,
+        citationCount: 0,
+        helpfulScore: 0,
+        bridgeValue: 0,
+        freshness: 100,
+        boostSpend: 0,
+        rankScore: 2.2,
+        noiseFlags: 0.1,
+        upvotes: 1,
+        downvotes: 0
+      });
+      state.ledger.push({ type: "VC_SPEND", amount: -cp.total, reason: "Create post", ts: Date.now() });
+      awardPoints(5, "Published post");
+      makeToast(`Post submitted. +5 XP, spent ${cp.total.toFixed(2)} VC.`);
+      render();
+    }
+
+    function addComment(postId) {
+      const input = document.getElementById(`comment-${postId}`);
+      const text = input?.value.trim();
+      if (!text) return makeToast("Write a comment first.");
+      const spend = 0.9;
+      if (state.user.VC < spend) return makeToast("Not enough VC to comment.");
+      state.user.VC -= spend;
+      state.comments.push({ commentId: `cm-${state.comments.length + 1}`, postId, body: text, authorId: "u-1", upvotes: 0 });
+      state.ledger.push({ type: "VC_SPEND", amount: -spend, reason: "Add comment", ts: Date.now() });
+      awardPoints(2, "Added comment");
+      makeToast("Comment posted. +2 XP.");
+      renderMain();
+      renderBalances();
+      renderDiagnostics();
+    }
+
+    function vote(postId, direction) {
+      const post = postById(postId);
+      if (!post) return;
+      if (direction > 0) {
+        post.upvotes += 1;
+        post.rankScore = Number((post.rankScore + 0.08).toFixed(2));
+        awardPoints(1, "Upvoted a post");
+        makeToast("Upvoted. +1 XP.");
+      } else {
+        post.downvotes += 1;
+        post.rankScore = Number(Math.max(0.3, post.rankScore - 0.06).toFixed(2));
+        makeToast("Downvoted.");
+      }
+      renderMain();
+      renderDiagnostics();
+    }
+
+    function addCitation(postId) {
+      const post = postById(postId);
+      if (!post) return;
+      post.citationCount += 1;
+      post.rankScore = Number((post.rankScore + 0.12).toFixed(2));
+      state.user.TR += 0.2;
+      awardPoints(2, "Added citation");
+      makeToast("Citation added. +2 XP and +TR.");
       render();
     }
 
     function spendBoost(postId) {
-      const post = state.posts.find(p => p.postId === postId);
+      const post = postById(postId);
       const self = post.authorId === "u-1";
-      const cap = (state.sliders.cap/100) * (Math.sqrt(state.user.TR) * 1.2);
+      const cap = (state.sliders.cap / 100) * (Math.sqrt(state.user.TR) * 1.2);
       const spend = self ? 1.2 : 0.8;
-      if (self && spend > cap) return makeToast("Self-boost cap reached. Boost others for better efficiency.");
+      if (self && spend > cap) return makeToast("Self-boost cap reached.");
       if (state.user.BT < spend) return makeToast("Not enough BT.");
       state.user.BT -= spend;
       post.boostSpend += spend;
       post.rankScore += self ? 0.35 : 0.5;
-      state.ledger.push({type:"BT_SPEND", amount:-spend, reason:`Boost ${self?"self":"other"} content`, ts:Date.now()});
-      makeToast(`Boosted ${self?"self":"other"} content. Reach estimate updated.`);
+      state.ledger.push({ type: "BT_SPEND", amount: -spend, reason: `Boost ${self ? "self" : "other"} content`, ts: Date.now() });
+      awardPoints(self ? 1 : 2, self ? "Boosted own post" : "Boosted peer post");
+      makeToast(`Boosted ${self ? "self" : "other"} content.`);
       render();
     }
 
     function susVote(postId) {
+      const post = postById(postId);
+      if (!post) return;
       const cost = 1.1;
       if (state.user.TR < cost) return makeToast("Not enough TR to stake a Sus vote.");
       state.user.TR -= cost;
       const accurate = Math.random() > 0.35;
       const delta = accurate ? 0.8 : -1.2;
       state.user.TR += Math.max(-state.user.TR, delta);
+      if (accurate) {
+        post.rankScore = Number(Math.max(0.2, post.rankScore - 0.2).toFixed(2));
+        awardPoints(3, "Accurate Sus vote");
+      }
       state.user.falseFlagRate = Math.max(0, Math.min(0.6, state.user.falseFlagRate + (accurate ? -0.01 : 0.02)));
-      state.ledger.push({type:"TR_EARN", amount:delta, reason:accurate ? "Accurate Sus vote" : "False Sus penalty", ts:Date.now()});
-      makeToast(accurate ? "Sus vote validated. Authority improved slightly." : "Sus vote inaccurate. Future authority reduced.");
+      state.ledger.push({ type: "TR_EARN", amount: delta, reason: accurate ? "Accurate Sus vote" : "False Sus penalty", ts: Date.now() });
+      makeToast(accurate ? "Sus vote validated. +3 XP." : "Sus vote inaccurate.");
       render();
     }
 
@@ -452,8 +644,7 @@
       const map = document.getElementById("clusterMap");
       if (!map) return;
       map.innerHTML = "";
-      const shown = state.clusters.slice(0,20);
-      shown.forEach(c => {
+      state.clusters.forEach(c => {
         const node = document.createElement("button");
         const size = 20 + c.momentum * 0.35;
         const hue = 180 + Number(c.sentimentEastWest) * 80;
@@ -462,8 +653,7 @@
         node.style.top = `${c.y}%`;
         node.style.width = `${size}px`;
         node.style.height = `${size}px`;
-        node.style.background = `hsl(${hue} 90% 70%)`;
-        node.style.boxShadow = `0 0 ${8 + c.overlapCitationCount * 0.1}px rgba(255,255,255,.4)`;
+        node.style.background = `hsl(${hue} 85% 70%)`;
         node.textContent = c.label.split(" ")[0];
         node.title = `${c.label} — momentum ${c.momentum}`;
         node.onclick = () => { state.selectedClusterId = c.clusterId; renderMain(); };
@@ -474,12 +664,15 @@
     function tick() {
       state.tick += 1;
       const noiseDelta = (state.sliders.noise / 1000) * (state.scenario.includes("High-noise") ? 2 : 1);
-      state.rooms.forEach(r => r.congestion = Math.min(1, Math.max(0.1, r.congestion + (Math.random() - .45) * noiseDelta)));
-      state.posts.forEach(p => { p.freshness = Math.max(1, p.freshness - 0.3); p.rankScore = Number((p.rankScore + (Math.random()-0.5)*0.15).toFixed(2)); });
+      state.rooms.forEach(r => r.congestion = Math.min(1, Math.max(0.1, r.congestion + (Math.random() - 0.45) * noiseDelta)));
+      state.posts.forEach(p => {
+        p.freshness = Math.max(1, p.freshness - 0.3);
+        p.rankScore = Number((p.rankScore + (Math.random() - 0.5) * 0.16).toFixed(2));
+      });
       state.user.TR = Math.max(1, Number((state.user.TR * (1 - state.sliders.decay / 10000)).toFixed(2)));
       const mint = Number((Math.sqrt(state.user.TR) * 0.03).toFixed(2));
       state.user.BT += mint;
-      state.ledger.push({type:"BT_MINT", amount:mint, reason:"Tick mint from Trust", ts:Date.now()});
+      state.ledger.push({ type: "BT_MINT", amount: mint, reason: "Tick mint from Trust", ts: Date.now() });
       render();
     }
 
@@ -487,7 +680,7 @@
     function togglePlay() {
       state.isPlaying = !state.isPlaying;
       playPauseBtn.textContent = state.isPlaying ? "Pause" : "Play";
-      if (state.isPlaying) timer = setInterval(() => { for (let i=0; i<state.speed; i++) tick(); }, 1000);
+      if (state.isPlaying) timer = setInterval(() => { for (let i = 0; i < state.speed; i++) tick(); }, 1000);
       else clearInterval(timer);
     }
 
@@ -498,7 +691,7 @@
       userModeBtn.classList.toggle("active", mode === "user");
       engineModeBtn.classList.toggle("active", mode === "engine");
       modeTitle.textContent = mode === "user" ? "User View" : "Engine View";
-      modeSubtitle.textContent = mode === "user" ? "See the platform the way participants do." : "See the ranking, reputation, and anti-abuse logic underneath.";
+      modeSubtitle.textContent = mode === "user" ? "See the platform the way participants do." : "Inspect ranking, reputation, and anti-abuse internals.";
       render();
     }
 
@@ -509,7 +702,6 @@
       renderMain();
     }
 
-    // boot
     seedData(state.seed);
     document.getElementById("seedInput").value = state.seed;
     document.getElementById("scenarioSelect").innerHTML = scenarios.map(s => `<option>${s}</option>`).join("");
