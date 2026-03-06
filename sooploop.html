@@ -172,6 +172,7 @@
     .comment-list { margin-top: 8px; display: grid; gap: 6px; }
     .comment-item { background: #fff; border: 1px solid var(--border); border-radius: 0; padding: 8px; }
     .comment-actions { display: flex; gap: 6px; margin-top: 6px; }
+    .hidden { display: none; }
     .mini-btn { border: 1px solid var(--border); border-radius: 0; background: #fff; color: var(--ink); font-size: 11px; padding: 4px 8px; cursor: pointer; font-family: "Space Mono", monospace; text-transform: uppercase; }
 
     .meter { height: 10px; border: 1px solid var(--border); border-radius: 0; background: #fff; overflow: hidden; }
@@ -331,8 +332,19 @@
       comments: [],
       ledger: [],
       onboarding: { done: false, step: 1 },
-      selectedClusterId: null
+      selectedClusterId: null,
+      composer: {
+        sourcePickerOpen: false,
+        selectedSource: ""
+      }
     };
+
+    const sourceLibrary = [
+      { label: "City open data portal", url: "https://data.city.gov/heat-and-health" },
+      { label: "Transit rider survey release", url: "https://mobility.example.org/rider-survey" },
+      { label: "Neighborhood science notes", url: "https://community-lab.example.net/notes" },
+      { label: "University methods explainer", url: "https://research.example.edu/methods" }
+    ];
 
     function random(seed) {
       let t = seed + 0x6D2B79F5;
@@ -374,8 +386,10 @@
           authorId: i < personaPosts.length || i % 3 === 0 ? "u-1" : `u-${2 + (i % 8)}`,
           roomId: room.id,
           clusterId: cluster.clusterId,
-          title: personaSeed?.title || `${cluster.label}: signal report #${i + 1}`,
-          body: personaSeed?.body || "Synthesis with citations, fairness framing, and bridge potential.",
+          title: personaSeed?.title || `${cluster.label}: key update #${i + 1}`,
+          body: personaSeed?.body || "What happened, why it matters, and one practical next step.",
+          postType: i % 3 === 0 ? "Information About" : (i % 2 === 0 ? "Comment on" : "New"),
+          sourceUrl: i % 4 === 0 ? sourceLibrary[i % sourceLibrary.length].url : "",
           citationCount: personaSeed?.citationCount ?? Math.floor(cited * 8),
           helpfulScore: personaSeed?.helpfulScore ?? Math.floor(helpful * 100),
           bridgeValue: personaSeed?.bridgeValue ?? Math.floor(bridge * 100),
@@ -391,7 +405,7 @@
       state.comments = Array.from({ length: 150 }).map((_, i) => ({
         commentId: `cm-${i + 1}`,
         postId: `p-${1 + Math.floor(rnd() * state.posts.length)}`,
-        body: i < 5 ? "Follow-up with sources and a practical next step for newcomers." : "Bridge comment with citations and practical framing.",
+        body: i < 5 ? "Follow-up with one source and one action anyone can try." : "Short bridge comment: shared fact + practical next step.",
         authorId: i < 5 || i % 5 === 0 ? "u-1" : `u-${2 + (i % 9)}`,
         upvotes: Math.floor(1 + rnd() * 22),
         trustImpact: Number((0.1 + rnd() * 0.7).toFixed(2))
@@ -465,6 +479,7 @@
     function renderDiagnostics() {
       const top = [...state.posts].sort((a, b) => b.rankScore - a.rankScore)[0];
       const cp = costPreview("post", top.roomId);
+      const sourceScore = Math.min(10, top.citationCount + (top.sourceUrl ? 2 : 0));
       diagnostics.innerHTML = `
         <div><b>Scenario:</b> ${state.scenario}</div>
         <div><b>Tick:</b> ${state.tick}</div>
@@ -478,17 +493,20 @@
         <div>• helpfulness ${top.helpfulScore}</div>
         <div>• bridge value ${top.bridgeValue}</div>
         <div>• citations ${top.citationCount}</div>
+        <div>• sources listed score ${sourceScore}/10</div>
         <div>• freshness ${top.freshness.toFixed(1)}</div>
       `;
     }
 
     function renderPostCard(p) {
       const comments = commentsFor(p.postId).slice(-4);
+      const sourceScore = Math.min(10, p.citationCount + (p.sourceUrl ? 2 : 0));
       return `
         <article class="feed-card">
-          <div class="row"><span class="chip" data-tip="Current room where this conversation is active.">${roomName(p.roomId)}</span><span class="chip" data-tip="Cluster determines nearby related ideas and audiences.">${clusterName(p.clusterId)}</span><span class="chip" data-tip="Citations improve trust and ranking transparency.">citations ${p.citationCount}</span></div>
+          <div class="row"><span class="chip" data-tip="Current room where this conversation is active.">${roomName(p.roomId)}</span><span class="chip" data-tip="Cluster determines nearby related ideas and audiences.">${clusterName(p.clusterId)}</span><span class="chip" data-tip="Type tells readers whether this is a fresh idea, a reply, or background info.">${p.postType || "New"}</span><span class="chip" data-tip="Numeric score for listed sources (0-10).">sources ${sourceScore}/10</span></div>
           <h4 style="margin-bottom:6px">${p.title}</h4>
           <div class="muted">${p.body}</div>
+          ${p.sourceUrl ? `<div class="muted" style="margin-top:6px">Source: <a href="${p.sourceUrl}" target="_blank" rel="noopener">${p.sourceUrl}</a></div>` : `<div class="muted" style="margin-top:6px">Source: none listed</div>`}
           <div class="row" style="margin-top:8px">
             <button class="btn" data-act="upvote" data-id="${p.postId}" data-tip="Signal this adds value. Helps rank and gives small XP.">▲ Upvote</button>
             <button class="btn bad" data-act="downvote" data-id="${p.postId}" data-tip="Reduce visibility of low-quality content.">▼ Downvote</button>
@@ -512,20 +530,35 @@
 
     function homeView() {
       const feed = [...state.posts].sort((a, b) => b.rankScore - a.rankScore).slice(0, 8);
-      const onboarding = !state.onboarding.done ? `<div class="feed-card"><h3 style="margin:0 0 6px">Start here</h3><div class="muted">1) Read how ranking works. 2) Upvote a useful post. 3) Leave one sourced comment to begin earning trust.</div><button class="btn good" data-act="complete-onboarding" style="margin-top:8px" data-tip="Marks onboarding complete and grants a starter trust bonus.">Complete onboarding checklist</button></div>` : "";
+      const onboarding = !state.onboarding.done ? `<div class="feed-card"><h3 style="margin:0 0 6px">Start here</h3><div class="muted">1) Read one post example. 2) Vote on quality. 3) Add a short source-backed comment.</div><button class="btn good" data-act="complete-onboarding" style="margin-top:8px" data-tip="Marks onboarding complete and grants a starter trust bonus.">Complete onboarding checklist</button></div>` : "";
       return `
         <div class="split">
           <section class="panel" style="padding:12px;background:var(--panel-soft)">
             <h2 style="margin-top:0">Home Feed</h2>
-            <div class="muted">Transparent ranking: every action nudges placement in visible, explainable ways.</div>
+            <div class="muted">Transparent ranking demo: quality, sources, and bridge value are visible to everyone.</div>
             ${onboarding}
             ${feed.map(renderPostCard).join("")}
           </section>
 
           <section class="panel" style="padding:12px;background:var(--panel-soft)">
             <h3 style="margin-top:0">Composer</h3>
-            <div class="composer"><textarea id="postBody" placeholder="Publish a synthesis with optional citation and bridge framing..." data-tip="New posts start in nearby clusters, then move based on trust signals."></textarea></div>
+            <div class="composer"><textarea id="postBody" placeholder="Write one clear point. Example: 'Bus wait times rose 12% near schools; here is the schedule data.'" data-tip="Short, clear posts are easier to evaluate and discuss."></textarea></div>
+            <div class="row" style="margin-top:8px">
+              <label class="muted" for="postTypeSelect">Type</label>
+              <select id="postTypeSelect" data-tip="Choose the intent of your post.">
+                <option>New</option>
+                <option>Comment on</option>
+                <option>Information About</option>
+              </select>
+            </div>
             <div class="row" style="margin-top:8px"><label data-tip="Sources reduce misinformation risk and improve trust return."><input id="citeCheck" type="checkbox"/> include citation</label><label data-tip="Bridge topics connect multiple clusters."><input id="bridgeCheck" type="checkbox"/> add bridge topic</label></div>
+            <div class="row" style="margin-top:8px">
+              <button class="btn" id="toggleSourceBtn" data-tip="Optional: choose one external source link.">Optional Source</button>
+              <select id="sourceSelect" class="hidden" data-tip="Pick a source link to attach.">
+                <option value="">No external link</option>
+                ${sourceLibrary.map(s => `<option value="${s.url}">${s.label}</option>`).join("")}
+              </select>
+            </div>
             <div id="costPreview" class="muted" style="margin-top:8px"></div>
             <div class="row" style="margin-top:8px"><button class="btn good" id="submitPostBtn" data-tip="Post publicly. Cost adapts to room congestion and noise.">Post (+5 XP)</button><span class="chip">refund window 2h</span></div>
             <h4>Recommended Bridges</h4>
@@ -588,11 +621,26 @@
 
       const postBtn = document.getElementById("submitPostBtn");
       if (postBtn) postBtn.onclick = submitPost;
+      const sourceBtn = document.getElementById("toggleSourceBtn");
+      const sourceSelect = document.getElementById("sourceSelect");
       const citeCheck = document.getElementById("citeCheck");
       const bridgeCheck = document.getElementById("bridgeCheck");
+      if (sourceBtn) sourceBtn.onclick = () => toggleSourcePicker();
+      if (sourceSelect) sourceSelect.onchange = e => {
+        state.composer.selectedSource = e.target.value;
+        showComposerCost();
+      };
       if (citeCheck) citeCheck.onchange = showComposerCost;
       if (bridgeCheck) bridgeCheck.onchange = showComposerCost;
       bindTooltips();
+    }
+
+    function toggleSourcePicker() {
+      state.composer.sourcePickerOpen = !state.composer.sourcePickerOpen;
+      const sourceSelect = document.getElementById("sourceSelect");
+      if (!sourceSelect) return;
+      sourceSelect.classList.toggle("hidden", !state.composer.sourcePickerOpen);
+      sourceSelect.value = state.composer.selectedSource;
     }
 
 
@@ -639,15 +687,20 @@
       const cp = costPreview("post", state.rooms[0].id);
       const cited = document.getElementById("citeCheck")?.checked;
       const bridge = document.getElementById("bridgeCheck")?.checked;
+      const externalSource = document.getElementById("sourceSelect")?.value;
       const discount = (cited ? 0.15 : 0) + (bridge ? 0.1 : 0);
       const final = Math.max(0.5, cp.total * (1 - discount));
       const costNode = document.getElementById("costPreview");
-      if (costNode) costNode.innerHTML = `VC preview: ${final.toFixed(2)} = base ${cp.base} × congestion ${cp.congestionMultiplier} × drift ${cp.driftMultiplier}${discount ? ` (discount ${Math.round(discount * 100)}%)` : ""}`;
+      const sourceQuality = Math.min(10, (cited ? 5 : 0) + (externalSource ? 5 : 0));
+      if (costNode) costNode.innerHTML = `VC preview: ${final.toFixed(2)} = base ${cp.base} × congestion ${cp.congestionMultiplier} × drift ${cp.driftMultiplier}${discount ? ` (discount ${Math.round(discount * 100)}%)` : ""}. Sources listed score: ${sourceQuality}/10.`;
     }
 
     function submitPost() {
       const text = document.getElementById("postBody")?.value.trim();
       if (!text) return makeToast("Add text before posting.");
+      const postType = document.getElementById("postTypeSelect")?.value || "New";
+      const sourceUrl = document.getElementById("sourceSelect")?.value || "";
+      const cited = document.getElementById("citeCheck")?.checked;
       const cp = costPreview("post", state.rooms[0].id);
       if (state.user.VC < cp.total) return makeToast("Insufficient VC.");
       state.user.VC -= cp.total;
@@ -656,9 +709,11 @@
         authorId: "u-1",
         roomId: "r1",
         clusterId: state.selectedClusterId,
-        title: "New local synthesis",
+        title: `${postType}: Local update`,
         body: text,
-        citationCount: 0,
+        postType,
+        sourceUrl,
+        citationCount: cited || sourceUrl ? 1 : 0,
         helpfulScore: 0,
         bridgeValue: 0,
         freshness: 100,
