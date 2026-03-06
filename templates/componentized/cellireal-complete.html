@@ -15638,11 +15638,19 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  return physicsCameraConfig;
  }
  /* ---- Physics: merged colliders per connected run ---- */
- function clearColliders(arr){
+function clearColliders(arr){
  if(!rapierWorld) return;
  arr._colliders = arr._colliders || [];
  arr._rigidBodies = arr._rigidBodies || [];
  arr._joints = arr._joints || [];
+
+ if(arr._staticBody != null){
+ try{
+ const body = rapierWorld.getRigidBody(arr._staticBody);
+ if(body){ rapierWorld.removeRigidBody(body); }
+ }catch{}
+ arr._staticBody = null;
+ }
 
  arr._joints.forEach(h=>{ try{ rapierWorld.removeImpulseJoint(h, true); }catch{} });
  arr._joints.length = 0;
@@ -15671,7 +15679,7 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  }, 50);
  colliderRebuildQueue.set(arr.id, timeoutId);
  }
- function rebuildCollidersForArray(arr){
+function rebuildCollidersForArray(arr){
  if(!rapierWorld) return;
  if(!Store.getState().scene.physics) return;
  
@@ -15686,6 +15694,7 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  arr._colliders = arr._colliders || [];
  arr._rigidBodies = arr._rigidBodies || [];
  arr._joints = arr._joints || [];
+ arr._staticBody = null;
 
  clearColliders(arr);
  
@@ -15694,6 +15703,11 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  console.log(`[PHYSICS] ? Building colliders for array #${arr.id} "${arr.name}" (mode=${effectiveMode})`);
  
  const scale = arrayVoxelScale(arr);
+ const arrOrigin = new THREE.Vector3(
+ Number(arr?.offset?.x) || 0,
+ Number(arr?.offset?.y) || 0,
+ Number(arr?.offset?.z) || 0
+ );
  const staticOcc = new Map();
  const grouped = new Map(); // id -> {cells:Map,key->cell,pivots:[]}
  let staticSolidCount = 0;
@@ -15771,6 +15785,17 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  return boxes;
  };
 
+ let staticBody = null;
+ try{
+ const rbDesc = RAPIER.RigidBodyDesc.kinematicPositionBased();
+ rbDesc.setTranslation(arrOrigin.x, arrOrigin.y, arrOrigin.z);
+ staticBody = rapierWorld.createRigidBody(rbDesc);
+ arr._staticBody = staticBody?.handle ?? null;
+ }catch(e){
+ console.warn('[PHYSICS] Failed to create static kinematic body for array', arr?.id, e);
+ staticBody = null;
+ }
+
  const staticVisited=new Set();
  const staticHas=(x,y,z)=> staticOcc.has(`${x},${y},${z}`);
  for(let z=0; z<arr.size.z; z++){
@@ -15807,10 +15832,11 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  const hzCells=(z2-z+1)/2;
  const center=worldPos(arr, x+hxCells-.5, y+hyCells-.5, z+hzCells-.5);
  const hx=hxCells*scale, hy=hyCells*scale, hz=hzCells*scale;
- const col=RAPIER.ColliderDesc.cuboid(hx*0.9, hy*0.9, hz*0.9).setTranslation(center.x,center.y,center.z);
+ const relCenter = new THREE.Vector3(center.x, center.y, center.z).sub(arrOrigin);
+ const col=RAPIER.ColliderDesc.cuboid(hx*0.9, hy*0.9, hz*0.9).setTranslation(relCenter.x, relCenter.y, relCenter.z);
  col.setRestitution(0.0);
  col.setFriction(0.7);
- const handle=rapierWorld.createCollider(col);
+ const handle=staticBody ? rapierWorld.createCollider(col, staticBody) : rapierWorld.createCollider(col);
  arr._colliders.push(handle);
  }
  }
