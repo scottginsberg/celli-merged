@@ -17973,6 +17973,7 @@ function ensureTimed3D(){
  };
  const snapped={ x:snapAxis('x',next.x,arr.size.x), y:snapAxis('y',next.y,arr.size.y), z:snapAxis('z',next.z,arr.size.z) };
  const curOff = arr.offset||{x:0,y:0,z:0};
+ const delta = { x: snapped.x-curOff.x, y: snapped.y-curOff.y, z: snapped.z-curOff.z };
  // If no actual snap delta, do nothing (prevents wobble without movement)
  if(Math.abs(snapped.x-curOff.x)+Math.abs(snapped.y-curOff.y)+Math.abs(snapped.z-curOff.z) < 1e-6){ return; }
  // Smooth transition toward snapped position
@@ -18004,6 +18005,10 @@ function ensureTimed3D(){
 
  // Non-destructive: update transforms only
  if(arr._frame) arr._frame.position.set(arr.offset.x,arr.offset.y,arr.offset.z);
+
+ // Keep physics colliders/bodies and CELL_PHYS respawns aligned with moving arrays.
+ try{ syncPhysicsBodiesForArrayOffset(arr, delta); }catch{}
+ try{ syncPhysicsRespawnForArray(arr); }catch{}
 
  // Apply dock propagation after offset change (use actual delta of snapped vs previous)
  try{
@@ -20083,15 +20088,89 @@ function updateAvatars(sel){
  let landingSquashTime = 0; // Track landing squash animation
  let anticipationSquashTime = 0; // Track jump anticipation squash
 
- function setPhysicsSpawn(pos){
- if(pos && Number.isFinite(pos.x) && Number.isFinite(pos.y) && Number.isFinite(pos.z)){
- physicsSpawnPos = { x: pos.x, y: pos.y, z: pos.z };
- } else {
- physicsSpawnPos = null;
- }
- }
+function setPhysicsSpawn(pos){
+if(pos && Number.isFinite(pos.x) && Number.isFinite(pos.y) && Number.isFinite(pos.z)){
+physicsSpawnPos = { x: pos.x, y: pos.y, z: pos.z };
+} else {
+physicsSpawnPos = null;
+}
+}
 
- function computeJumpBudget(arrOverride=null){
+function syncPhysicsBodiesForArrayOffset(arr, delta){
+ if(!arr || !delta) return;
+ if(!rapierWorld || !Store.getState().scene?.physics) return;
+ const dx = Number(delta.x) || 0;
+ const dy = Number(delta.y) || 0;
+ const dz = Number(delta.z) || 0;
+ if(Math.abs(dx) + Math.abs(dy) + Math.abs(dz) < 1e-6) return;
+
+ try{
+ (arr._rigidBodies || []).forEach(handle=>{
+ const body = rapierWorld.getRigidBody(handle);
+ if(!body) return;
+ const tr = body.translation();
+ if(!tr) return;
+ body.setTranslation({ x: tr.x + dx, y: tr.y + dy, z: tr.z + dz }, true);
+ try{ body.wakeUp?.(); }catch{}
+ });
+
+ (arr._colliders || []).forEach(handle=>{
+ const col = rapierWorld.getCollider(handle);
+ if(!col) return;
+ let attached = false;
+ try{ attached = !!col.parent?.(); }catch{}
+ if(attached) return;
+ const tr = col.translation?.();
+ if(!tr) return;
+ col.setTranslation({ x: tr.x + dx, y: tr.y + dy, z: tr.z + dz });
+ });
+ }catch(e){
+ console.warn('[PHYSICS] Failed syncing collider transforms for moving array', arr?.id, e);
+ }
+}
+
+function syncPhysicsRespawnForArray(arr){
+ if(!arr || !Number.isFinite(arr.id)) return;
+ try{
+ const state = Store.getState();
+ const sceneRespawns = state.scene?.physicsRespawns;
+ if(!sceneRespawns || !sceneRespawns[arr.id]) return;
+ const info = sceneRespawns[arr.id];
+ if(!info?.cell) return;
+ const cx = Math.trunc(info.cell.x ?? 0);
+ const cy = Math.trunc(info.cell.y ?? 0);
+ const cz = Math.trunc(info.cell.z ?? 0);
+ let pos = null;
+ try{ pos = Scene.cellWorldPos?.(arr, cx, cy, cz) || Scene.worldPos?.(arr, cx, cy, cz); }catch{}
+ if(!pos) return;
+ const nextWorld = { x: pos.x, y: pos.y, z: pos.z };
+ const prevWorld = info.world;
+ const changed = !prevWorld
+ || Math.abs((prevWorld.x ?? 0) - nextWorld.x) > 1e-6
+ || Math.abs((prevWorld.y ?? 0) - nextWorld.y) > 1e-6
+ || Math.abs((prevWorld.z ?? 0) - nextWorld.z) > 1e-6;
+ if(!changed) return;
+
+ Store.setState(s=>({
+ scene: {
+ ...(s.scene||{}),
+ physicsRespawns: {
+ ...(s.scene?.physicsRespawns||{}),
+ [arr.id]: { ...info, arrId: arr.id, world: nextWorld }
+ }
+ }
+ }));
+
+ const selArrId = Store.getState().selection?.arrayId;
+ if(selArrId === arr.id){
+ try{ setPhysicsSpawn(nextWorld); }catch{}
+ }
+ }catch(e){
+ console.warn('[PHYSICS] Failed syncing respawn point for moving array', arr?.id, e);
+ }
+}
+
+function computeJumpBudget(arrOverride=null){
  // In debug mode, allow infinite jumps
  const debugMode = !!Store.getState().scene?.physicsDebugAll;
  if(debugMode){
