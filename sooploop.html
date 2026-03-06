@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SoopLoop — Industrial Proof of Concept</title>
+  <title>SoopLoop — Transparent Trust Simulator</title>
   <link rel="icon" href="data:," />
   <style>
     :root {
@@ -109,7 +109,7 @@
 
     .shell {
       display: grid;
-      grid-template-columns: 250px 1fr 340px;
+      grid-template-columns: 1fr;
       gap: 12px;
       padding: 12px;
     }
@@ -119,7 +119,9 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
+      transition: transform 180ms ease, box-shadow 180ms ease;
     }
+    .panel:hover { transform: translateY(-1px); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45); }
 
     .left, .right { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
     .content { padding: 14px; min-height: 70vh; }
@@ -135,6 +137,7 @@
       border-radius: 12px;
       padding: 12px;
       margin-bottom: 10px;
+      animation: fadeIn 320ms ease;
     }
 
     .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -155,6 +158,8 @@
     .comment-input { min-height: 44px; }
     .comment-list { margin-top: 8px; display: grid; gap: 6px; }
     .comment-item { background: rgba(2, 9, 22, 0.4); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+    .comment-actions { display: flex; gap: 6px; margin-top: 6px; }
+    .mini-btn { border: 1px solid var(--border); border-radius: 999px; background: rgba(10,20,44,.6); color: var(--ink); font-size: 11px; padding: 4px 8px; cursor: pointer; }
 
     .meter { height: 10px; border: 1px solid var(--border); border-radius: 999px; background: #09112a; overflow: hidden; }
     .meter > div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
@@ -167,10 +172,32 @@
       display: grid;
       place-items: center;
       color: #061127;
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 800;
       cursor: pointer;
+      transition: transform 220ms ease;
     }
+    .node:hover { transform: scale(1.08); }
+
+    .node-label { max-width: 85%; text-align: center; line-height: 1; }
+
+    .tooltip {
+      position: fixed;
+      pointer-events: none;
+      z-index: 120;
+      background: rgba(7, 17, 36, 0.96);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      max-width: 250px;
+      color: var(--ink);
+      font-size: 12px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 120ms ease, transform 120ms ease;
+    }
+    .tooltip.show { opacity: 1; transform: translateY(0); }
 
     .toast {
       position: fixed;
@@ -187,8 +214,16 @@
 
     .sim-controls input[type="range"], .sim-controls select { width: 100%; }
 
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (min-width: 980px) {
+      .shell { grid-template-columns: 240px 1fr 320px; }
+    }
+
     @media (max-width: 1150px) {
-      .shell { grid-template-columns: 1fr; }
       .split { grid-template-columns: 1fr; }
     }
   </style>
@@ -201,11 +236,11 @@
         <div class="muted" id="mode-subtitle">See the platform the way participants do.</div>
       </div>
       <div class="toggle" role="tablist" aria-label="Mode toggle">
-        <button id="userModeBtn" class="active">User View</button>
-        <button id="engineModeBtn">Engine View</button>
+        <button id="userModeBtn" class="active" data-tip="Experience SoopLoop as a participant.">User View</button>
+        <button id="engineModeBtn" data-tip="Inspect transparent ranking internals.">Engine View</button>
       </div>
       <div class="row">
-        <button class="btn" id="resetSimBtn">Reset Simulation</button>
+        <button class="btn" id="resetSimBtn" data-tip="Rewind to your seeded starting state.">Reset Simulation</button>
         <label class="muted">Seed <input id="seedInput" type="number" value="42" min="1" style="width:76px" /></label>
       </div>
     </header>
@@ -214,14 +249,14 @@
 
     <div class="shell">
       <aside class="panel left">
-        <h3 style="margin:0">Wallet / Balances</h3>
+        <h3 style="margin:0">Trust / Balances</h3>
         <div class="balance-row" id="balances"></div>
         <div class="panel" style="padding:10px;background:var(--panel-soft)">
           <strong>Glossary</strong>
           <ul class="muted">
             <li><b>VC:</b> Voice credits spent to post/comment.</li>
             <li><b>TR:</b> Trust earned from quality activity.</li>
-            <li><b>BT:</b> Boost tokens for amplification.</li>
+            <li><b>BT:</b> Boost credits for amplification.</li>
             <li><b>XP:</b> Profile points from participation.</li>
           </ul>
         </div>
@@ -235,13 +270,13 @@
         <div class="panel" style="padding:10px;background:var(--panel-soft)">
           <strong>Simulation Control Bar</strong>
           <div class="sim-controls">
-            <label class="muted">Scenario <select id="scenarioSelect"></select></label>
+            <label class="muted" data-tip="Swap stress conditions for the ranking model.">Scenario <select id="scenarioSelect"></select></label>
             <div class="row" style="margin-top:8px">
-              <button class="btn" id="playPauseBtn">Play</button>
-              <button class="btn" id="stepBtn">Step +1 tick</button>
+            <button class="btn" id="playPauseBtn" data-tip="Run the simulation continuously.">Play</button>
+              <button class="btn" id="stepBtn" data-tip="Advance exactly one simulation tick.">Step +1 tick</button>
             </div>
-            <label class="muted">Speed <input type="range" id="speedRange" min="1" max="4" value="1"/></label>
-            <label class="muted">Noise level <input type="range" id="noiseRange" min="0" max="100" value="40"/></label>
+            <label class="muted" data-tip="How many ticks run per second.">Speed <input type="range" id="speedRange" min="1" max="4" value="1"/></label>
+            <label class="muted" data-tip="Higher noise increases volatility and content churn.">Noise level <input type="range" id="noiseRange" min="0" max="100" value="40"/></label>
             <label class="muted">Overlap density <input type="range" id="overlapRange" min="10" max="100" value="54"/></label>
             <label class="muted">Trust decay <input type="range" id="decayRange" min="0" max="40" value="8"/></label>
             <label class="muted">Self-boost cap % <input type="range" id="capRange" min="10" max="50" value="30"/></label>
@@ -250,9 +285,10 @@
       </aside>
     </div>
   </div>
+  <div id="tooltip" class="tooltip" role="status" aria-live="polite"></div>
 
   <script>
-    const navTabs = ["Home", "Rooms", "Clusters", "Sim Lab", "Notifications", "Profile", "Wallet", "Settings"];
+    const navTabs = ["Home", "Rooms", "Clusters", "Sim Lab", "Notifications", "Profile", "Ledger", "Settings"];
     const scenarios = [
       "Low-noise thoughtful room", "Medium-noise trending room", "High-noise overloaded room",
       "Coordination attack / brigading", "Healthy bridge-building", "Creator self-boost saturation"
@@ -281,6 +317,7 @@
       posts: [],
       comments: [],
       ledger: [],
+      onboarding: { done: false, step: 1 },
       selectedClusterId: null
     };
 
@@ -295,15 +332,21 @@
       state.clusters = names.map((label, i) => ({
         clusterId: `c-${i + 1}`,
         label,
-        momentum: Math.round(30 + rnd() * 70),
+        momentum: Math.round(36 + rnd() * 74),
         sentimentNorthSouth: (rnd() * 2 - 1).toFixed(2),
         sentimentEastWest: (rnd() * 2 - 1).toFixed(2),
-        overlapUserCount: Math.floor(20 + rnd() * 180),
-        overlapCitationCount: Math.floor(8 + rnd() * 75),
-        overlapReferenceCount: Math.floor(6 + rnd() * 64),
-        x: 10 + rnd() * 80,
-        y: 12 + rnd() * 74
+        overlapUserCount: Math.floor(36 + rnd() * 220),
+        overlapCitationCount: Math.floor(14 + rnd() * 85),
+        overlapReferenceCount: Math.floor(10 + rnd() * 70),
+        x: 7 + rnd() * 84,
+        y: 10 + rnd() * 78
       }));
+
+      const personaPosts = [
+        { title: "How we measured neighborhood heat fairly", body: "Shared methods + source links so everyone can audit the conclusions.", citationCount: 5, helpfulScore: 82, bridgeValue: 71 },
+        { title: "Transit survey summary for late-shift riders", body: "Collected rider stories and paired them with open schedule data.", citationCount: 4, helpfulScore: 76, bridgeValue: 69 },
+        { title: "Repair cafes reduced waste this quarter", body: "Monthly notes with receipts, photos, and practical 'how-to' takeaways.", citationCount: 6, helpfulScore: 89, bridgeValue: 65 }
+      ];
 
       state.posts = Array.from({ length: 50 }).map((_, i) => {
         const room = state.rooms[Math.floor(rnd() * state.rooms.length)];
@@ -312,35 +355,41 @@
         const cited = rnd();
         const bridge = rnd();
         const rank = 1 + rnd() * 4 + helpful * 2 + cited * 1.4 + bridge * 1.6;
+        const personaSeed = personaPosts[i];
         return {
           postId: `p-${i + 1}`,
-          authorId: i % 3 === 0 ? "u-1" : `u-${2 + (i % 8)}`,
+          authorId: i < personaPosts.length || i % 3 === 0 ? "u-1" : `u-${2 + (i % 8)}`,
           roomId: room.id,
           clusterId: cluster.clusterId,
-          title: `${cluster.label}: signal report #${i + 1}`,
-          body: "Synthesis with citations, fairness framing, and bridge potential.",
-          citationCount: Math.floor(cited * 8),
-          helpfulScore: Math.floor(helpful * 100),
-          bridgeValue: Math.floor(bridge * 100),
+          title: personaSeed?.title || `${cluster.label}: signal report #${i + 1}`,
+          body: personaSeed?.body || "Synthesis with citations, fairness framing, and bridge potential.",
+          citationCount: personaSeed?.citationCount ?? Math.floor(cited * 8),
+          helpfulScore: personaSeed?.helpfulScore ?? Math.floor(helpful * 100),
+          bridgeValue: personaSeed?.bridgeValue ?? Math.floor(bridge * 100),
           freshness: Number((100 - i * 0.9).toFixed(1)),
-          boostSpend: Number((rnd() * 2.6).toFixed(2)),
-          rankScore: Number(rank.toFixed(2)),
+          boostSpend: Number((rnd() * 2.2).toFixed(2)),
+          rankScore: Number((personaSeed ? rank + 0.9 : rank).toFixed(2)),
           noiseFlags: Number((rnd() * 0.8).toFixed(2)),
           upvotes: Math.floor(20 + rnd() * 80),
           downvotes: Math.floor(rnd() * 18)
         };
       });
 
-      state.comments = Array.from({ length: 140 }).map((_, i) => ({
+      state.comments = Array.from({ length: 150 }).map((_, i) => ({
         commentId: `cm-${i + 1}`,
         postId: `p-${1 + Math.floor(rnd() * state.posts.length)}`,
-        body: "Bridge comment with citations and practical framing.",
-        authorId: i % 5 === 0 ? "u-1" : `u-${2 + (i % 9)}`,
-        upvotes: Math.floor(rnd() * 20)
+        body: i < 5 ? "Follow-up with sources and a practical next step for newcomers." : "Bridge comment with citations and practical framing.",
+        authorId: i < 5 || i % 5 === 0 ? "u-1" : `u-${2 + (i % 9)}`,
+        upvotes: Math.floor(1 + rnd() * 22),
+        trustImpact: Number((0.1 + rnd() * 0.7).toFixed(2))
       }));
 
       state.selectedClusterId = state.clusters[0].clusterId;
-      state.ledger = [{ type: "VC_REFUND", amount: 1.2, reason: "Helpful cited post", ts: Date.now() }];
+      state.ledger = [
+        { type: "VC_REFUND", amount: 1.2, reason: "Helpful cited post", ts: Date.now() - 86400000 },
+        { type: "TR_EARN", amount: 2.3, reason: "Helpful comments from previous week", ts: Date.now() - 7200000 }
+      ];
+      state.onboarding = { done: false, step: 1 };
     }
 
     const roomName = id => state.rooms.find(r => r.id === id)?.name || id;
@@ -387,16 +436,16 @@
     }
 
     function renderNav() {
-      mainNav.innerHTML = navTabs.map(tab => `<button class="${state.nav === tab ? "active" : ""}" data-tab="${tab}">${tab}</button>`).join("");
+      mainNav.innerHTML = navTabs.map(tab => `<button class="${state.nav === tab ? "active" : ""}" data-tab="${tab}" data-tip="Open ${tab} view">${tab}</button>`).join("");
       mainNav.querySelectorAll("button").forEach(btn => btn.onclick = () => { state.nav = btn.dataset.tab; render(); });
     }
 
     function renderBalances() {
       calcAuthority();
       balances.innerHTML = `
-        <div class="pill"><small>VC</small><b>${state.user.VC.toFixed(1)}</b><div class="muted">Spend to speak</div></div>
-        <div class="pill"><small>TR</small><b>${state.user.TR.toFixed(1)}</b><div class="muted">Earned trust</div></div>
-        <div class="pill"><small>BT</small><b>${state.user.BT.toFixed(1)}</b><div class="muted">Boost reach</div></div>
+        <div class="pill" data-tip="Voice credits are spent when posting or commenting in busy rooms."><small>VC</small><b>${state.user.VC.toFixed(1)}</b><div class="muted">Spend to speak</div></div>
+        <div class="pill" data-tip="Trust is earned from consistently useful contributions and helpful comments."><small>TR</small><b>${state.user.TR.toFixed(1)}</b><div class="muted">Earned trust</div></div>
+        <div class="pill" data-tip="Boost credits expand reach, but self-boosting is capped."><small>BT</small><b>${state.user.BT.toFixed(1)}</b><div class="muted">Boost reach</div></div>
       `;
     }
 
@@ -411,31 +460,37 @@
         <div><b>Post VC cost:</b> ${cp.total.toFixed(2)}</div>
         <div><b>Profile XP:</b> ${state.user.XP}</div>
         <div><b>Tier:</b> ${state.user.trustTier}</div>
+        <hr style="border-color:var(--border);opacity:.4"/>
+        <div><b>Algorithm factors:</b></div>
+        <div>• helpfulness ${top.helpfulScore}</div>
+        <div>• bridge value ${top.bridgeValue}</div>
+        <div>• citations ${top.citationCount}</div>
+        <div>• freshness ${top.freshness.toFixed(1)}</div>
       `;
     }
 
     function renderPostCard(p) {
-      const comments = commentsFor(p.postId).slice(-3);
+      const comments = commentsFor(p.postId).slice(-4);
       return `
         <article class="feed-card">
-          <div class="row"><span class="chip">${roomName(p.roomId)}</span><span class="chip">${clusterName(p.clusterId)}</span><span class="chip">citations ${p.citationCount}</span></div>
+          <div class="row"><span class="chip" data-tip="Current room where this conversation is active.">${roomName(p.roomId)}</span><span class="chip" data-tip="Cluster determines nearby related ideas and audiences.">${clusterName(p.clusterId)}</span><span class="chip" data-tip="Citations improve trust and ranking transparency.">citations ${p.citationCount}</span></div>
           <h4 style="margin-bottom:6px">${p.title}</h4>
           <div class="muted">${p.body}</div>
           <div class="row" style="margin-top:8px">
-            <button class="btn" data-act="upvote" data-id="${p.postId}">▲ Upvote</button>
-            <button class="btn bad" data-act="downvote" data-id="${p.postId}">▼ Downvote</button>
-            <button class="btn" data-act="cite" data-id="${p.postId}">Cite</button>
-            <button class="btn" data-act="boost" data-id="${p.postId}">Boost</button>
-            <button class="btn warn" data-act="sus" data-id="${p.postId}">Flag Sus</button>
+            <button class="btn" data-act="upvote" data-id="${p.postId}" data-tip="Signal this adds value. Helps rank and gives small XP.">▲ Upvote</button>
+            <button class="btn bad" data-act="downvote" data-id="${p.postId}" data-tip="Reduce visibility of low-quality content.">▼ Downvote</button>
+            <button class="btn" data-act="cite" data-id="${p.postId}" data-tip="Attach a source to increase trust weight.">Cite</button>
+            <button class="btn" data-act="boost" data-id="${p.postId}" data-tip="Spend boost credits to broaden reach.">Boost</button>
+            <button class="btn warn" data-act="sus" data-id="${p.postId}" data-tip="Stake trust when you suspect manipulation.">Flag Sus</button>
             <span class="muted">Score ${p.upvotes - p.downvotes} • Rank ${p.rankScore.toFixed(2)}</span>
           </div>
 
           <div class="comment-list">
-            ${comments.map(c => `<div class="comment-item"><div>${c.body}</div><div class="muted">${c.authorId === "u-1" ? state.user.handle : "@participant"} · 👍 ${c.upvotes}</div></div>`).join("") || `<div class="muted">No comments yet.</div>`}
+            ${comments.map(c => `<div class="comment-item"><div>${c.body}</div><div class="muted">${c.authorId === "u-1" ? state.user.handle : "@participant"} · 👍 ${c.upvotes} · trust +${(c.trustImpact || 0.2).toFixed(2)}</div><div class="comment-actions"><button class="mini-btn" data-act="upvote-comment" data-id="${c.commentId}" data-tip="Appreciate a comment. Raises trust earned by that author.">👍 Helpful</button></div></div>`).join("") || `<div class="muted">No comments yet.</div>`}
           </div>
           <div class="row" style="margin-top:8px">
-            <textarea class="comment-input" id="comment-${p.postId}" placeholder="Add a thoughtful comment..."></textarea>
-            <button class="btn good" data-act="comment" data-id="${p.postId}">Comment +2 XP</button>
+            <textarea class="comment-input" id="comment-${p.postId}" placeholder="Add a thoughtful comment..." data-tip="Thoughtful comments can earn trust over time."></textarea>
+            <button class="btn good" data-act="comment" data-id="${p.postId}" data-tip="Post your comment and gain XP.">Comment +2 XP</button>
           </div>
           ${state.mode === "engine" ? `<div class="muted" style="margin-top:8px">freshness ${p.freshness} · bridge ${p.bridgeValue} · noise ${p.noiseFlags}</div>` : ""}
         </article>
@@ -444,20 +499,22 @@
 
     function homeView() {
       const feed = [...state.posts].sort((a, b) => b.rankScore - a.rankScore).slice(0, 8);
+      const onboarding = !state.onboarding.done ? `<div class="feed-card"><h3 style="margin:0 0 6px">Start here</h3><div class="muted">1) Read how ranking works. 2) Upvote a useful post. 3) Leave one sourced comment to begin earning trust.</div><button class="btn good" data-act="complete-onboarding" style="margin-top:8px" data-tip="Marks onboarding complete and grants a starter trust bonus.">Complete onboarding checklist</button></div>` : "";
       return `
         <div class="split">
           <section class="panel" style="padding:12px;background:var(--panel-soft)">
             <h2 style="margin-top:0">Home Feed</h2>
-            <div class="muted">Industrial, restrained, and interactive: vote, comment, cite, and boost to role-play real usage.</div>
+            <div class="muted">Transparent ranking: every action nudges placement in visible, explainable ways.</div>
+            ${onboarding}
             ${feed.map(renderPostCard).join("")}
           </section>
 
           <section class="panel" style="padding:12px;background:var(--panel-soft)">
             <h3 style="margin-top:0">Composer</h3>
-            <div class="composer"><textarea id="postBody" placeholder="Publish a synthesis with optional citation and bridge framing..."></textarea></div>
-            <div class="row" style="margin-top:8px"><label><input id="citeCheck" type="checkbox"/> include citation</label><label><input id="bridgeCheck" type="checkbox"/> add bridge topic</label></div>
+            <div class="composer"><textarea id="postBody" placeholder="Publish a synthesis with optional citation and bridge framing..." data-tip="New posts start in nearby clusters, then move based on trust signals."></textarea></div>
+            <div class="row" style="margin-top:8px"><label data-tip="Sources reduce misinformation risk and improve trust return."><input id="citeCheck" type="checkbox"/> include citation</label><label data-tip="Bridge topics connect multiple clusters."><input id="bridgeCheck" type="checkbox"/> add bridge topic</label></div>
             <div id="costPreview" class="muted" style="margin-top:8px"></div>
-            <div class="row" style="margin-top:8px"><button class="btn good" id="submitPostBtn">Post (+5 XP)</button><span class="chip">refund window 2h</span></div>
+            <div class="row" style="margin-top:8px"><button class="btn good" id="submitPostBtn" data-tip="Post publicly. Cost adapts to room congestion and noise.">Post (+5 XP)</button><span class="chip">refund window 2h</span></div>
             <h4>Recommended Bridges</h4>
             ${state.clusters.slice(0, 5).map(c => `<div class="row"><span>${c.label}</span><span class="muted">overlap ${c.overlapUserCount}</span></div>`).join("")}
           </section>
@@ -474,19 +531,19 @@
 
     function clusterView() {
       const selected = state.clusters.find(c => c.clusterId === state.selectedClusterId) || state.clusters[0];
-      return `<h2>Cluster Constellation</h2><div class="split"><div class="map" id="clusterMap"></div><div class="feed-card"><h3>${selected.label}</h3><div class="muted">activity ${selected.momentum} • overlap users ${selected.overlapUserCount}</div><div class="muted">sentiment NS ${selected.sentimentNorthSouth}, EW ${selected.sentimentEastWest}</div><h4>Top bridging post</h4><div class="muted">${state.posts.find(p => p.clusterId === selected.clusterId)?.title || "None"}</div><h4>Edge reasons</h4><ul class="muted"><li>shared participants</li><li>shared citations</li><li>explicit references</li><li>semantic proximity</li></ul></div></div>`;
+      return `<h2>Cluster Constellation</h2><div class="split"><div class="map" id="clusterMap" data-tip="Larger circles mean more momentum. Click any cluster to inspect ranking causes."></div><div class="feed-card"><h3>${selected.label}</h3><div class="muted">activity ${selected.momentum} • overlap users ${selected.overlapUserCount}</div><div class="muted">sentiment NS ${selected.sentimentNorthSouth}, EW ${selected.sentimentEastWest}</div><h4>Top bridging post</h4><div class="muted">${state.posts.find(p => p.clusterId === selected.clusterId)?.title || "None"}</div><h4>Why this cluster rises</h4><ul class="muted"><li>shared participants</li><li>shared citations</li><li>explicit references</li><li>semantic proximity</li></ul><div class="muted">Ranking is transparent: these same factors appear in diagnostics.</div></div></div>`;
     }
 
     function simLabView() {
-      return `<h2>Simulation Lab</h2><div class="feed-card"><div class="row"><span class="chip">tick ${state.tick}</span><span class="chip">scenario ${state.scenario}</span></div><p>Run seeded scenarios for brigading, saturation, and bridge-building. User actions update XP/TR/BT in real time.</p></div>`;
+      return `<h2>Simulation Lab</h2><div class="feed-card"><div class="row"><span class="chip">tick ${state.tick}</span><span class="chip">scenario ${state.scenario}</span></div><p>Run seeded scenarios for brigading, saturation, and bridge-building. Every vote/comment/citation visibly changes trust and rank in real time.</p><div class="muted">Tip: hover controls to learn what each lever does.</div></div>`;
     }
 
     function profileView() {
-      return `<h2>Profile</h2><div class="feed-card"><div><b>${state.user.handle}</b> · Tier ${state.user.trustTier}</div><div class="muted">Citation rate ${(state.user.citationRate * 100).toFixed(0)}% · false flag ${(state.user.falseFlagRate * 100).toFixed(1)}%</div><h3 style="margin-bottom:4px">${state.user.XP} XP</h3><div class="meter"><div style="width:${Math.min(100, (state.user.XP % 200) / 2)}%"></div></div><div class="muted">Next tier goal: 400 XP</div></div>`;
+      return `<h2>Profile</h2><div class="feed-card"><div><b>${state.user.handle}</b> · Tier ${state.user.trustTier}</div><div class="muted">Citation rate ${(state.user.citationRate * 100).toFixed(0)}% · false flag ${(state.user.falseFlagRate * 100).toFixed(1)}%</div><h3 style="margin-bottom:4px">${state.user.XP} XP</h3><div class="meter"><div style="width:${Math.min(100, (state.user.XP % 200) / 2)}%"></div></div><div class="muted">Next tier goal: 400 XP</div></div><div class="feed-card"><h4 style="margin:0 0 6px">Your earning history</h4>${state.posts.filter(p => p.authorId === "u-1").slice(0,3).map(p => `<div class="row"><span>${p.title}</span><span class="muted">+TR ${(p.helpfulScore/120).toFixed(2)}</span></div>`).join("")}<div class="muted" style="margin-top:8px">Explore older posts/comments to see exactly how trust was earned.</div></div>`;
     }
 
-    function walletView() {
-      return `<h2>Wallet & Ledger</h2>${state.ledger.slice(-10).reverse().map(e => `<div class="feed-card"><div class="row"><span class="chip">${e.type}</span><span>${e.amount > 0 ? "+" : ""}${e.amount.toFixed(2)}</span></div><div class="muted">${e.reason}</div></div>`).join("")}`;
+    function ledgerView() {
+      return `<h2>Trust Ledger</h2>${state.ledger.slice(-12).reverse().map(e => `<div class="feed-card"><div class="row"><span class="chip">${e.type}</span><span>${e.amount > 0 ? "+" : ""}${e.amount.toFixed(2)}</span></div><div class="muted">${e.reason}</div></div>`).join("")}`;
     }
 
     function simpleView(title, copy) { return `<h2>${title}</h2><div class="feed-card"><p>${copy}</p></div>`; }
@@ -496,7 +553,7 @@
       else if (state.nav === "Rooms") viewRoot.innerHTML = roomsView();
       else if (state.nav === "Clusters") viewRoot.innerHTML = clusterView();
       else if (state.nav === "Sim Lab") viewRoot.innerHTML = simLabView();
-      else if (state.nav === "Wallet") viewRoot.innerHTML = walletView();
+      else if (state.nav === "Ledger") viewRoot.innerHTML = ledgerView();
       else if (state.nav === "Profile") viewRoot.innerHTML = profileView();
       else if (state.nav === "Notifications") viewRoot.innerHTML = simpleView("Notifications", "Trust deltas, refunds, and anti-abuse notices appear here.");
       else viewRoot.innerHTML = simpleView("Settings", "Motion reduction, simulation defaults, and display preferences.");
@@ -513,6 +570,8 @@
       document.querySelectorAll("[data-act='upvote']").forEach(btn => btn.onclick = () => vote(btn.dataset.id, 1));
       document.querySelectorAll("[data-act='downvote']").forEach(btn => btn.onclick = () => vote(btn.dataset.id, -1));
       document.querySelectorAll("[data-act='comment']").forEach(btn => btn.onclick = () => addComment(btn.dataset.id));
+      document.querySelectorAll("[data-act='upvote-comment']").forEach(btn => btn.onclick = () => upvoteComment(btn.dataset.id));
+      document.querySelectorAll("[data-act='complete-onboarding']").forEach(btn => btn.onclick = completeOnboarding);
 
       const postBtn = document.getElementById("submitPostBtn");
       if (postBtn) postBtn.onclick = submitPost;
@@ -520,6 +579,47 @@
       const bridgeCheck = document.getElementById("bridgeCheck");
       if (citeCheck) citeCheck.onchange = showComposerCost;
       if (bridgeCheck) bridgeCheck.onchange = showComposerCost;
+      bindTooltips();
+    }
+
+
+    function completeOnboarding() {
+      if (state.onboarding.done) return;
+      state.onboarding.done = true;
+      state.user.TR += 1.5;
+      awardPoints(8, "Completed onboarding");
+      state.ledger.push({ type: "TR_EARN", amount: 1.5, reason: "Completed onboarding", ts: Date.now() });
+      makeToast("Onboarding complete. You now understand ranking controls.");
+      render();
+    }
+
+    function upvoteComment(commentId) {
+      const comment = state.comments.find(c => c.commentId === commentId);
+      if (!comment) return;
+      comment.upvotes += 1;
+      const trustGain = Number((0.06 + (comment.upvotes / 180)).toFixed(2));
+      comment.trustImpact = Number(((comment.trustImpact || 0.2) + 0.04).toFixed(2));
+      if (comment.authorId === "u-1") {
+        state.user.TR = Number((state.user.TR + trustGain).toFixed(2));
+        state.ledger.push({ type: "TR_EARN", amount: trustGain, reason: "Comment upvote received", ts: Date.now() });
+      }
+      makeToast("Comment upvote recorded and trust recalculated.");
+      render();
+    }
+
+    function bindTooltips() {
+      const tooltip = document.getElementById("tooltip");
+      if (!tooltip) return;
+      const targets = document.querySelectorAll("[data-tip]");
+      targets.forEach(el => {
+        el.onmousemove = e => {
+          tooltip.textContent = el.dataset.tip;
+          tooltip.style.left = `${Math.min(window.innerWidth - 270, e.clientX + 14)}px`;
+          tooltip.style.top = `${Math.min(window.innerHeight - 70, e.clientY + 14)}px`;
+          tooltip.classList.add("show");
+        };
+        el.onmouseleave = () => tooltip.classList.remove("show");
+      });
     }
 
     function showComposerCost() {
@@ -568,7 +668,7 @@
       const spend = 0.9;
       if (state.user.VC < spend) return makeToast("Not enough VC to comment.");
       state.user.VC -= spend;
-      state.comments.push({ commentId: `cm-${state.comments.length + 1}`, postId, body: text, authorId: "u-1", upvotes: 0 });
+      state.comments.push({ commentId: `cm-${state.comments.length + 1}`, postId, body: text, authorId: "u-1", upvotes: 0, trustImpact: 0.22 });
       state.ledger.push({ type: "VC_SPEND", amount: -spend, reason: "Add comment", ts: Date.now() });
       awardPoints(2, "Added comment");
       makeToast("Comment posted. +2 XP.");
@@ -646,7 +746,7 @@
       map.innerHTML = "";
       state.clusters.forEach(c => {
         const node = document.createElement("button");
-        const size = 20 + c.momentum * 0.35;
+        const size = 28 + c.momentum * 0.45;
         const hue = 180 + Number(c.sentimentEastWest) * 80;
         node.className = "node";
         node.style.left = `${c.x}%`;
@@ -654,8 +754,8 @@
         node.style.width = `${size}px`;
         node.style.height = `${size}px`;
         node.style.background = `hsl(${hue} 85% 70%)`;
-        node.textContent = c.label.split(" ")[0];
-        node.title = `${c.label} — momentum ${c.momentum}`;
+        node.innerHTML = `<span class="node-label">${c.label.split(" ").slice(0,2).join(" ")}</span>`;
+        node.dataset.tip = `${c.label} — momentum ${c.momentum}, overlap ${c.overlapUserCount}. Click to inspect why this cluster ranks where it does.`;
         node.onclick = () => { state.selectedClusterId = c.clusterId; renderMain(); };
         map.appendChild(node);
       });
@@ -669,10 +769,17 @@
         p.freshness = Math.max(1, p.freshness - 0.3);
         p.rankScore = Number((p.rankScore + (Math.random() - 0.5) * 0.16).toFixed(2));
       });
+      state.comments.forEach(c => {
+        if (Math.random() < 0.08) {
+          c.upvotes += 1;
+          c.trustImpact = Number(((c.trustImpact || 0.2) + 0.03).toFixed(2));
+          if (c.authorId === "u-1") state.user.TR = Number((state.user.TR + 0.03).toFixed(2));
+        }
+      });
       state.user.TR = Math.max(1, Number((state.user.TR * (1 - state.sliders.decay / 10000)).toFixed(2)));
-      const mint = Number((Math.sqrt(state.user.TR) * 0.03).toFixed(2));
-      state.user.BT += mint;
-      state.ledger.push({ type: "BT_MINT", amount: mint, reason: "Tick mint from Trust", ts: Date.now() });
+      const trustDividend = Number((Math.sqrt(state.user.TR) * 0.03).toFixed(2));
+      state.user.BT += trustDividend;
+      state.ledger.push({ type: "BT_EARN", amount: trustDividend, reason: "Trust dividend from consistent quality", ts: Date.now() });
       render();
     }
 
