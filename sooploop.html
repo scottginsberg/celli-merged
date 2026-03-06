@@ -174,6 +174,11 @@
     .comment-actions { display: flex; gap: 6px; margin-top: 6px; }
     .hidden { display: none; }
     .mini-btn { border: 1px solid var(--border); border-radius: 0; background: #fff; color: var(--ink); font-size: 11px; padding: 4px 8px; cursor: pointer; font-family: "Space Mono", monospace; text-transform: uppercase; }
+    .cluster-context { margin-top: 10px; border: 1px solid var(--border); background: #fff; padding: 10px; }
+    .cluster-story-list { display: grid; gap: 8px; margin-top: 8px; }
+    .cluster-story-item { border: 1px solid var(--border); background: var(--panel-soft); padding: 8px; display: grid; gap: 4px; }
+    .cluster-story-item label { font-size: 13px; display: inline-flex; gap: 6px; align-items: start; }
+    .cluster-badge { display: inline-block; border: 1px solid var(--border); background: #fff; padding: 2px 8px; font-size: 11px; font-family: "Space Mono", monospace; text-transform: uppercase; letter-spacing: 0.07em; }
 
     .meter { height: 10px; border: 1px solid var(--border); border-radius: 0; background: #fff; overflow: hidden; }
     .meter > div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
@@ -335,7 +340,9 @@
       selectedClusterId: null,
       composer: {
         sourcePickerOpen: false,
-        selectedSource: ""
+        selectedSource: "",
+        selectedClusterId: null,
+        selectedStoryIds: []
       }
     };
 
@@ -503,7 +510,7 @@
       const sourceScore = Math.min(10, p.citationCount + (p.sourceUrl ? 2 : 0));
       return `
         <article class="feed-card">
-          <div class="row"><span class="chip" data-tip="Current room where this conversation is active.">${roomName(p.roomId)}</span><span class="chip" data-tip="Cluster determines nearby related ideas and audiences.">${clusterName(p.clusterId)}</span><span class="chip" data-tip="Type tells readers whether this is a fresh idea, a reply, or background info.">${p.postType || "New"}</span><span class="chip" data-tip="Numeric score for listed sources (0-10).">sources ${sourceScore}/10</span></div>
+          <div class="row"><span class="chip" data-tip="Current room where this conversation is active.">${roomName(p.roomId)}</span><span class="chip" data-tip="Cluster determines nearby related ideas and audiences.">${clusterName(p.clusterId)}</span><span class="chip" data-tip="Type tells readers whether this is a fresh idea, a reply, or background info.">${p.postType || "New Story"}</span><span class="chip" data-tip="Numeric score for listed sources (0-10).">sources ${sourceScore}/10</span></div>
           <h4 style="margin-bottom:6px">${p.title}</h4>
           <div class="muted">${p.body}</div>
           ${p.sourceUrl ? `<div class="muted" style="margin-top:6px">Source: <a href="${p.sourceUrl}" target="_blank" rel="noopener">${p.sourceUrl}</a></div>` : `<div class="muted" style="margin-top:6px">Source: none listed</div>`}
@@ -529,15 +536,17 @@
     }
 
     function homeView() {
+      const composerType = state.composer.postType || "New Story";
       const feed = [...state.posts].sort((a, b) => b.rankScore - a.rankScore).slice(0, 8);
+      const dynamicClusterMode = composerType === "Comment on" || composerType === "Information About";
       const onboarding = !state.onboarding.done ? `<div class="feed-card"><h3 style="margin:0 0 6px">Start here</h3><div class="muted">1) Read one post example. 2) Vote on quality. 3) Add a short source-backed comment.</div><button class="btn good" data-act="complete-onboarding" style="margin-top:8px" data-tip="Marks onboarding complete and grants a starter trust bonus.">Complete onboarding checklist</button></div>` : "";
       return `
         <div class="split">
           <section class="panel" style="padding:12px;background:var(--panel-soft)">
             <h2 style="margin-top:0">Home Feed</h2>
-            <div class="muted">Transparent ranking demo: quality, sources, and bridge value are visible to everyone.</div>
+            <div class="muted">${dynamicClusterMode ? "Cluster weigh-in mode: choose a shared topic and attach your take to one or more stories." : "Transparent ranking demo: quality, sources, and bridge value are visible to everyone."}</div>
             ${onboarding}
-            ${feed.map(renderPostCard).join("")}
+            ${dynamicClusterMode ? renderClusterWeighInCards(feed) : feed.map(renderPostCard).join("")}
           </section>
 
           <section class="panel" style="padding:12px;background:var(--panel-soft)">
@@ -546,11 +555,12 @@
             <div class="row" style="margin-top:8px">
               <label class="muted" for="postTypeSelect">Type</label>
               <select id="postTypeSelect" data-tip="Choose the intent of your post.">
-                <option>New</option>
+                <option>New Story</option>
                 <option>Comment on</option>
                 <option>Information About</option>
               </select>
             </div>
+            <div id="composerContext"></div>
             <div class="row" style="margin-top:8px"><label data-tip="Sources reduce misinformation risk and improve trust return."><input id="citeCheck" type="checkbox"/> include citation</label><label data-tip="Bridge topics connect multiple clusters."><input id="bridgeCheck" type="checkbox"/> add bridge topic</label></div>
             <div class="row" style="margin-top:8px">
               <button class="btn" id="toggleSourceBtn" data-tip="Optional: choose one external source link.">Optional Source</button>
@@ -564,6 +574,57 @@
             <h4>Recommended Bridges</h4>
             ${state.clusters.slice(0, 5).map(c => `<div class="row"><span>${c.label}</span><span class="muted">overlap ${c.overlapUserCount}</span></div>`).join("")}
           </section>
+        </div>
+      `;
+    }
+
+    function renderClusterWeighInCards(feed) {
+      const grouped = new Map();
+      feed.forEach(post => {
+        const key = post.clusterId || "none";
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(post);
+      });
+      return [...grouped.entries()].map(([clusterId, posts]) => {
+        const cluster = state.clusters.find(c => c.clusterId === clusterId);
+        const selectedStories = state.composer.selectedStoryIds.filter(id => posts.some(p => p.postId === id)).length;
+        return `
+          <article class="feed-card">
+            <div class="row"><span class="cluster-badge">${cluster?.label || "General"} linking banner</span><span class="chip">${posts.length} stories</span><span class="chip">selected ${selectedStories}</span></div>
+            <div class="muted" style="margin-top:6px">Different events, one idea cluster. Pick the stories you want this comment or info post to reference.</div>
+            <div class="cluster-story-list">
+              ${posts.slice(0, 4).map(p => `<label class="cluster-story-item"><span><input type="checkbox" data-act="story-toggle" data-id="${p.postId}" ${state.composer.selectedStoryIds.includes(p.postId) ? "checked" : ""}></span><span><b>${p.title}</b><div class="muted">${p.body.slice(0, 120)}...</div></span></label>`).join("")}
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderComposerContext() {
+      const type = document.getElementById("postTypeSelect")?.value || "New Story";
+      state.composer.postType = type;
+      const context = document.getElementById("composerContext");
+      if (!context) return;
+      if (type === "New Story") {
+        context.innerHTML = "";
+        state.composer.selectedStoryIds = [];
+        return;
+      }
+      const selectedClusterId = state.composer.selectedClusterId || state.clusters[0]?.clusterId;
+      state.composer.selectedClusterId = selectedClusterId;
+      const clusterPosts = state.posts.filter(p => p.clusterId === selectedClusterId).slice(0, 6);
+      context.innerHTML = `
+        <div class="cluster-context">
+          <div class="muted">Cluster and stories stay visible while you compose. Select one cluster and one or more stories to reference.</div>
+          <div class="row" style="margin-top:8px">
+            <label class="muted" for="composerClusterSelect">Idea cluster</label>
+            <select id="composerClusterSelect">
+              ${state.clusters.slice(0, 8).map(c => `<option value="${c.clusterId}" ${c.clusterId === selectedClusterId ? "selected" : ""}>${c.label}</option>`).join("")}
+            </select>
+          </div>
+          <div class="cluster-story-list">
+            ${clusterPosts.map(p => `<div class="cluster-story-item"><label><input type="checkbox" data-act="story-toggle" data-id="${p.postId}" ${state.composer.selectedStoryIds.includes(p.postId) ? "checked" : ""}>${p.title}</label><div class="muted">${roomName(p.roomId)} · score ${p.rankScore.toFixed(2)}</div></div>`).join("") || `<div class="muted">No stories found in this cluster yet.</div>`}
+          </div>
         </div>
       `;
     }
@@ -630,8 +691,31 @@
         state.composer.selectedSource = e.target.value;
         showComposerCost();
       };
+      const postTypeSelect = document.getElementById("postTypeSelect");
+      if (postTypeSelect) {
+        postTypeSelect.value = state.composer.postType || "New Story";
+        postTypeSelect.onchange = () => {
+          renderComposerContext();
+          renderMain();
+        };
+      }
+      const composerClusterSelect = document.getElementById("composerClusterSelect");
+      if (composerClusterSelect) composerClusterSelect.onchange = e => {
+        state.composer.selectedClusterId = e.target.value;
+        state.composer.selectedStoryIds = [];
+        renderMain();
+      };
+      document.querySelectorAll("[data-act='story-toggle']").forEach(box => box.onchange = e => {
+        const storyId = e.target.dataset.id;
+        if (e.target.checked) {
+          if (!state.composer.selectedStoryIds.includes(storyId)) state.composer.selectedStoryIds.push(storyId);
+        } else {
+          state.composer.selectedStoryIds = state.composer.selectedStoryIds.filter(id => id !== storyId);
+        }
+      });
       if (citeCheck) citeCheck.onchange = showComposerCost;
       if (bridgeCheck) bridgeCheck.onchange = showComposerCost;
+      renderComposerContext();
       bindTooltips();
     }
 
@@ -698,19 +782,25 @@
     function submitPost() {
       const text = document.getElementById("postBody")?.value.trim();
       if (!text) return makeToast("Add text before posting.");
-      const postType = document.getElementById("postTypeSelect")?.value || "New";
+      const postType = document.getElementById("postTypeSelect")?.value || "New Story";
       const sourceUrl = document.getElementById("sourceSelect")?.value || "";
       const cited = document.getElementById("citeCheck")?.checked;
+      const isReferenceType = postType === "Comment on" || postType === "Information About";
+      if (isReferenceType && state.composer.selectedStoryIds.length === 0) {
+        return makeToast("Select at least one story to reference for this post type.");
+      }
+      const selectedClusterId = state.composer.selectedClusterId || state.selectedClusterId || state.posts[0]?.clusterId || state.clusters[0]?.clusterId;
       const cp = costPreview("post", state.rooms[0].id);
       if (state.user.VC < cp.total) return makeToast("Insufficient VC.");
       state.user.VC -= cp.total;
+      const references = state.composer.selectedStoryIds.slice(0, 4);
       state.posts.unshift({
         postId: `p-${state.posts.length + 1}`,
         authorId: "u-1",
         roomId: "r1",
-        clusterId: state.selectedClusterId,
+        clusterId: selectedClusterId,
         title: `${postType}: Local update`,
-        body: text,
+        body: references.length ? `${text}\n\nLinked stories: ${references.map(id => postById(id)?.title).filter(Boolean).join(" • ")}` : text,
         postType,
         sourceUrl,
         citationCount: cited || sourceUrl ? 1 : 0,
@@ -725,6 +815,7 @@
       });
       state.ledger.push({ type: "VC_SPEND", amount: -cp.total, reason: "Create post", ts: Date.now() });
       awardPoints(5, "Published post");
+      state.composer.selectedStoryIds = [];
       makeToast(`Post submitted. +5 XP, spent ${cp.total.toFixed(2)} VC.`);
       render();
     }
