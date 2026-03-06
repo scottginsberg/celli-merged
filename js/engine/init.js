@@ -621,7 +621,7 @@ const optimizationConfig = {
   },
   pedestrians: {
     enabled: true,
-    maxCount: 25, // Reduced to 25 for better performance
+    maxCount: 12, // Lower default cap for better crowd performance
     currentCount: 0
   },
   grass: {
@@ -3194,7 +3194,7 @@ async function init() {
   // Load starting chunks immediately after player is created
   console.log('Loading initial chunks...');
   const startChunk = getChunkCoords(0, 0); // Center chunk
-  const initialRadius = 5; // Load 11x11 grid of chunks initially (larger for seamless exploration)
+  const initialRadius = 4; // Load 9x9 grid initially to reduce startup cost
   for (let dx = -initialRadius; dx <= initialRadius; dx++) {
     for (let dz = -initialRadius; dz <= initialRadius; dz++) {
       const dist = Math.hypot(dx, dz);
@@ -3225,7 +3225,7 @@ async function init() {
   spawnSpecialConstructions();
   
   // Spawn pedestrians - optimized count
-  spawnPedestrians(25); // Reduced to 25 for better performance
+  spawnPedestrians(12); // Lower default for better performance in dense views
   
   // Generate and spawn clouds - reduced for performance
   generateCloudPrototypes(3);
@@ -11694,7 +11694,7 @@ function spawnSpecialConstructions() {
   console.log(`Spawned ${playgroundCount} playgrounds, ${parkingLotCount} parking lots, ${garageCount} parking garages, ${hospitalCount} hospitals`);
 }
 
-function spawnPedestrians(count = 50) { // Reduced from 100 for performance
+function spawnPedestrians(count = 12) { // Lower default for sustained performance
   console.log(`Spawning ${count} pedestrians...`);
   
   for (let i = 0; i < count; i++) {
@@ -11733,19 +11733,20 @@ let lastFrustumUpdate = 0;
 
 function updatePedestrians(deltaTime) {
   if (!playerBody && !camera) return;
+  if (!optimizationConfig.pedestrians.enabled || pedestrians.length === 0) return;
   
   // Use camera position for LOD checks
   const camPos = camera.position;
-  const maxDistance = 150; // Cull beyond 150m
+  const maxDistance = 95; // Aggressive cull distance for crowd performance
   const maxDistanceSq = maxDistance * maxDistance;
-  const lodDistance = 80; // Increased from 30m to 80m to reduce pop-in
+  const lodDistance = 40; // Earlier switch to simplified pedestrian mesh
   const lodDistanceSq = lodDistance * lodDistance;
-  const animDistance = 100; // Disable animation beyond 100m
+  const animDistance = 55; // Disable animation sooner for large crowds
   const animDistanceSq = animDistance * animDistance;
   
   // Update frustum for occlusion checks (cached, only update every 100ms)
   const now = performance.now();
-  if (!cachedFrustum || now - lastFrustumUpdate > 100) {
+  if (!cachedFrustum || now - lastFrustumUpdate > 150) {
     camera.updateMatrixWorld();
     if (!cachedFrustum) cachedFrustum = new THREE.Frustum();
     const viewProjectionMatrix = new THREE.Matrix4();
@@ -11755,9 +11756,9 @@ function updatePedestrians(deltaTime) {
   }
   const frustum = cachedFrustum;
   
-  // Only update a subset each frame for performance (split into 4 chunks)
-  const updateChunkSize = Math.ceil(pedestrians.length / 4);
-  const frameOffset = Math.floor(now / 16) % 4;
+  // Only update a subset each frame for performance (split into 6 chunks)
+  const updateChunkSize = Math.ceil(pedestrians.length / 6);
+  const frameOffset = Math.floor(now / 16) % 6;
   const startIdx = frameOffset * updateChunkSize;
   const endIdx = Math.min(startIdx + updateChunkSize, pedestrians.length);
   
@@ -24531,6 +24532,10 @@ function setupUI() {
       spawnPhysicsObject();
     }
   });
+
+  document.getElementById('hard-reset-city').addEventListener('click', () => {
+    hardResetCityAndNPCs();
+  });
   
   // ==================== OPTIMIZATION CONTROLS ====================
   
@@ -24786,6 +24791,103 @@ function onWindowResize() {
     composer.setSize(window.innerWidth, window.innerHeight);
   }
 }
+
+function hardResetCityAndNPCs() {
+  console.log('♻️ Hard reset requested: city + NPCs');
+
+  // Clear chunk queue first to prevent stale async chunk loads
+  chunkLoadQueue.length = 0;
+
+  // Unload all active chunks and clear cached chunk state
+  Array.from(activeChunks).forEach((key) => unloadChunk(key));
+  activeChunks.clear();
+  cityChunks.clear();
+
+  // Remove any remaining chunk roots defensively
+  chunkRoots.forEach((root, key) => {
+    clearChunkCache(key);
+    if (root.parent) root.parent.remove(root);
+  });
+  chunkRoots.clear();
+
+  // Reset global building registries
+  buildings = [];
+  sillCache.clear();
+  spatialGrid.clear();
+
+  // Fully remove pedestrians + LOD proxies + character profiles
+  while (pedestrians.length > 0) {
+    const ped = pedestrians.pop();
+    if (!ped) continue;
+
+    if (ped.group) {
+      if (ped.group.userData?.speechBubble) {
+        const bubble = ped.group.userData.speechBubble;
+        if (bubble.material?.map) bubble.material.map.dispose();
+        if (bubble.material) bubble.material.dispose();
+        if (bubble.geometry) bubble.geometry.dispose();
+      }
+      if (ped.group.userData?.label) {
+        const label = ped.group.userData.label;
+        if (label.material?.map) label.material.map.dispose();
+        if (label.material) label.material.dispose();
+        if (label.geometry) label.geometry.dispose();
+      }
+      if (ped.physicsBody) world.removeRigidBody(ped.physicsBody);
+      if (ped.group.parent) ped.group.parent.remove(ped.group);
+    }
+
+    if (ped.lodMesh) {
+      if (ped.lodMesh.parent) ped.lodMesh.parent.remove(ped.lodMesh);
+      ped.lodMesh.traverse((obj) => {
+        if (obj.isMesh && obj.geometry) obj.geometry.dispose();
+        if (obj.isMesh && obj.material) obj.material.dispose();
+      });
+    }
+  }
+  pedestrianDatabase.clear();
+
+  // Reset optimization counters and rebuild instanced managers
+  optimizationConfig.windows.currentCount = 0;
+  optimizationConfig.sills.currentCount = 0;
+  optimizationConfig.pedestrians.currentCount = 0;
+  optimizationConfig.grass.currentCount = 0;
+  initializeInstancedManagers();
+
+  // Rebuild skyline once after chunk wipe
+  if (distantSkylineGroup) {
+    worldRoot.remove(distantSkylineGroup);
+  }
+  distantSkylineGroup = createExpandedDistantSkyline(600);
+  worldRoot.add(distantSkylineGroup);
+  lastSkylineUpdateRadius = 600;
+
+  // Reload startup chunk ring
+  const startChunk = getChunkCoords(0, 0);
+  const initialRadius = 4;
+  for (let dx = -initialRadius; dx <= initialRadius; dx++) {
+    for (let dz = -initialRadius; dz <= initialRadius; dz++) {
+      const dist = Math.hypot(dx, dz);
+      if (dist <= initialRadius) {
+        const key = getChunkKey(startChunk.x + dx, startChunk.z + dz);
+        if (!activeChunks.has(key)) {
+          loadChunk(key);
+          activeChunks.add(key);
+        }
+      }
+    }
+  }
+
+  // Respawn base NPC population
+  if (optimizationConfig.pedestrians.enabled && optimizationConfig.pedestrians.maxCount > 0) {
+    const respawnCount = Math.max(1, Math.min(optimizationConfig.pedestrians.maxCount, 12));
+    spawnPedestrians(respawnCount);
+  }
+
+  updateChunks();
+  console.log(`✅ Hard reset complete: chunks=${activeChunks.size}, pedestrians=${pedestrians.length}`);
+}
+
 
  function resetPlayer() {
    playerBody.setTranslation({ x: 0, y: 5, z: 0 });
