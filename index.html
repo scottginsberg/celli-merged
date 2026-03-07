@@ -595,6 +595,23 @@
             box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.95);
             border-radius: 10px;
         }
+        .sticker-logo-frame {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0.5rem;
+        }
+        .sticker-logo {
+            width: min(220px, 100%);
+            display: block;
+            margin: 0 auto;
+            background: #fff;
+            border: 2px solid #111;
+            border-radius: 18px;
+            padding: 0.5rem;
+            box-shadow: 0 0 0 8px #fff, 0 12px 20px rgba(0, 0, 0, 0.2);
+            transform: rotate(-2deg);
+        }
         @keyframes scriptStartPulse {
             0%, 100% {
                 transform: translateY(0);
@@ -613,6 +630,9 @@
         .view-section.depth-3 .depth-layer[data-depth="2"],
         .view-section.depth-3 .depth-layer[data-depth="3"] { display: block; }
         @media (max-width: 640px) {
+            #view-landing {
+                overflow-x: clip;
+            }
             .grift-grid { grid-template-columns: 1fr; }
             .grift-card { padding: 18px; }
             .grift-card h3 { font-size: 1.05rem; }
@@ -627,7 +647,7 @@
             .script-start-posters {
                 grid-template-columns: 1fr;
                 gap: 0.8rem;
-                width: calc(100vw - 3rem);
+                width: 100%;
                 margin-left: auto;
                 margin-right: auto;
             }
@@ -762,7 +782,9 @@
 
                 <div class="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_rgba(0,0,0,1)] space-y-5">
                     <div class="text-[10px] font-mono uppercase tracking-widest text-gray-500">The Script (Linear)</div>
-                    <img src="logo.png" alt="Loomworks logo" class="w-full max-w-xs border border-black/10 bg-white p-2">
+                    <div class="sticker-logo-frame">
+                        <img src="logo2.png" alt="Loomworks logo" class="sticker-logo" loading="lazy">
+                    </div>
                     <div class="space-y-4 text-sm">
                         <div class="flex items-start gap-3">
                             <div class="w-8 h-8 bg-tonka-cobalt text-white flex items-center justify-center font-bold text-xs">01</div>
