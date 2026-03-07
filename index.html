@@ -494,6 +494,26 @@
         #loader.fade-out { opacity: 0; pointer-events: none; }
         .loader-bar-bg { width: 240px; height: 2px; background: #eee; margin-top: 20px; overflow: hidden; }
         .loader-bar-fill { height: 100%; width: 0%; background: #CD2B2B; transition: width 0.1s linear; }
+        #loader-enter {
+            margin-top: 20px;
+            border: 1px solid #111;
+            background: #111;
+            color: #FDFBF7;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            padding: 12px 20px;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(8px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        #loader-enter.ready {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
         .lose-overlay {
             position: fixed;
             inset: 0;
@@ -509,19 +529,25 @@
         }
         .lose-overlay.active { opacity: 1; pointer-events: auto; }
         .lose-video-frame {
-            --lose-crop-bottom: 85px;
+            --lose-crop-x: 8%;
+            --lose-crop-y: 12.5%;
             width: min(92vw, 1200px);
             height: min(88vh, 700px);
             overflow: hidden;
+            position: relative;
             border: 1px solid rgba(255, 255, 255, 0.28);
             box-shadow: 0 28px 54px rgba(0, 0, 0, 0.55);
             background: #000;
         }
         .lose-overlay video {
-            width: 100%;
-            height: calc(100% + var(--lose-crop-bottom));
-            object-fit: contain;
-            object-position: center top;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: calc(100% + (2 * var(--lose-crop-x)));
+            height: calc(100% + (2 * var(--lose-crop-y)));
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+            object-position: center center;
             display: block;
             background: #000;
         }
@@ -668,7 +694,8 @@
             .lose-video-frame {
                 width: 96vw;
                 height: 92vh;
-                --lose-crop-bottom: 85px;
+                --lose-crop-x: 10%;
+                --lose-crop-y: 12.5%;
             }
             #view-landing {
                 overflow-x: clip;
@@ -701,6 +728,7 @@
         <div class="font-mono text-xs uppercase tracking-[0.3em] mb-2 text-gray-500">Loomworks Operating System</div>
         <div class="text-4xl font-bold tracking-tighter">LOADING CONSTRUCT</div>
         <div class="loader-bar-bg"><div id="loader-progress" class="loader-bar-fill"></div></div>
+        <button id="loader-enter" type="button">Enter</button>
     </div>
 
     <div id="lose-overlay" class="lose-overlay" aria-hidden="true">
@@ -7897,6 +7925,41 @@
         window.addEventListener('load', () => {
             const bar = document.getElementById('loader-progress');
             const loader = document.getElementById('loader');
+            const enterButton = document.getElementById('loader-enter');
+
+            const startExperience = async () => {
+                if (!enterButton || enterButton.dataset.started === 'true') return;
+                enterButton.dataset.started = 'true';
+                enterButton.textContent = 'Entering...';
+                enterButton.disabled = true;
+
+                audio.init();
+                await playLoseInterlude();
+                loader.classList.add('fade-out');
+                manufacture.init(); // Init canvas early
+                voxelField.init();
+                celEngine.init();
+                geoQuiz.init();
+                investorQuiz.init();
+                profiler.init();
+                assetState.init();
+                griftLedger.init();
+                depthTracker.init();
+                depthTracker.visit('landing');
+                surveillance.init();
+                spotifyOverlay.init();
+                caveGlyphs.init();
+                document.querySelectorAll('.trick-embed iframe').forEach((frame) => {
+                    const parent = frame.closest('.trick-embed');
+                    if (!parent) return;
+                    if (frame.complete) parent.classList.add('is-loaded');
+                    frame.addEventListener('load', () => parent.classList.add('is-loaded'));
+                });
+            };
+
+            if (enterButton) {
+                enterButton.addEventListener('click', startExperience);
+            }
             
             // Sim Load
             let w = 0;
@@ -7906,29 +7969,10 @@
                 bar.style.width = w + '%';
                 if (w === 100) {
                     clearInterval(interval);
-                    setTimeout(async () => {
-                        await playLoseInterlude();
-                        loader.classList.add('fade-out');
-                        manufacture.init(); // Init canvas early
-                        voxelField.init();
-                        celEngine.init();
-                        geoQuiz.init();
-                        investorQuiz.init();
-                        profiler.init();
-                        assetState.init();
-                        griftLedger.init();
-                        depthTracker.init();
-                        depthTracker.visit('landing');
-                        surveillance.init();
-                        spotifyOverlay.init();
-                        caveGlyphs.init();
-                        document.querySelectorAll('.trick-embed iframe').forEach((frame) => {
-                            const parent = frame.closest('.trick-embed');
-                            if (!parent) return;
-                            if (frame.complete) parent.classList.add('is-loaded');
-                            frame.addEventListener('load', () => parent.classList.add('is-loaded'));
-                        });
-                    }, 600);
+                    if (enterButton) {
+                        enterButton.classList.add('ready');
+                        enterButton.focus({ preventScroll: true });
+                    }
                 }
             }, 80);
 
