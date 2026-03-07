@@ -493,6 +493,28 @@
         #loader.fade-out { opacity: 0; pointer-events: none; }
         .loader-bar-bg { width: 240px; height: 2px; background: #eee; margin-top: 20px; overflow: hidden; }
         .loader-bar-fill { height: 100%; width: 0%; background: #CD2B2B; transition: width 0.1s linear; }
+        .lose-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2.5vh 2.5vw;
+            background: rgba(0, 0, 0, 0.92);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
+        }
+        .lose-overlay.active { opacity: 1; pointer-events: auto; }
+        .lose-overlay video {
+            width: min(92vw, 1200px);
+            height: min(88vh, 700px);
+            object-fit: contain;
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            box-shadow: 0 28px 54px rgba(0, 0, 0, 0.55);
+            background: #000;
+        }
 
         /* Evolving Cel Flow */
         .entropy-overlay {
@@ -630,6 +652,13 @@
         .view-section.depth-3 .depth-layer[data-depth="2"],
         .view-section.depth-3 .depth-layer[data-depth="3"] { display: block; }
         @media (max-width: 640px) {
+            .lose-overlay {
+                padding: 2vh 2vw;
+            }
+            .lose-overlay video {
+                width: 96vw;
+                height: 92vh;
+            }
             #view-landing {
                 overflow-x: clip;
             }
@@ -661,6 +690,10 @@
         <div class="font-mono text-xs uppercase tracking-[0.3em] mb-2 text-gray-500">Loomworks Operating System</div>
         <div class="text-4xl font-bold tracking-tighter">LOADING CONSTRUCT</div>
         <div class="loader-bar-bg"><div id="loader-progress" class="loader-bar-fill"></div></div>
+    </div>
+
+    <div id="lose-overlay" class="lose-overlay" aria-hidden="true">
+        <video id="lose-video" src="Lose.mp4" playsinline preload="auto"></video>
     </div>
 
     <div class="scanline-layer"></div>
@@ -7803,6 +7836,47 @@
         window.surveillance = surveillance;
         window.spotifyOverlay = spotifyOverlay;
 
+        const playLoseInterlude = async () => {
+            const overlay = document.getElementById('lose-overlay');
+            const video = document.getElementById('lose-video');
+            if (!overlay || !video) return;
+
+            overlay.setAttribute('aria-hidden', 'false');
+            overlay.classList.add('active');
+            video.currentTime = 0;
+
+            await new Promise((resolve) => {
+                let settled = false;
+                const finish = () => {
+                    if (settled) return;
+                    settled = true;
+                    video.removeEventListener('ended', finish);
+                    video.removeEventListener('error', finish);
+                    resolve();
+                };
+
+                video.addEventListener('ended', finish, { once: true });
+                video.addEventListener('error', finish, { once: true });
+
+                const startPlayback = () => {
+                    video.play().catch(() => {
+                        overlay.addEventListener('pointerdown', () => {
+                            video.play().catch(finish);
+                        }, { once: true });
+                    });
+                };
+
+                if (video.readyState >= 2) {
+                    startPlayback();
+                } else {
+                    video.addEventListener('loadeddata', startPlayback, { once: true });
+                }
+            });
+
+            overlay.classList.remove('active');
+            overlay.setAttribute('aria-hidden', 'true');
+        };
+
         // Boot
         window.addEventListener('load', () => {
             const bar = document.getElementById('loader-progress');
@@ -7816,7 +7890,8 @@
                 bar.style.width = w + '%';
                 if (w === 100) {
                     clearInterval(interval);
-                    setTimeout(() => {
+                    setTimeout(async () => {
+                        await playLoseInterlude();
                         loader.classList.add('fade-out');
                         manufacture.init(); // Init canvas early
                         voxelField.init();
