@@ -292,20 +292,21 @@
 
         .glitch-banner {
             position: fixed;
-            bottom: 12px;
-            left: 50%;
-            transform: translateX(-50%) translateY(140%);
+            bottom: 16px;
+            left: 258px;
+            transform: translateY(140%);
             padding: 10px 18px;
             border: 2px solid #CD2B2B;
             font-size: 11px;
             text-transform: uppercase;
             z-index: 70;
             overflow: hidden;
-            min-width: 260px;
+            min-width: 240px;
+            max-width: calc(100vw - 278px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.22);
             transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        .glitch-banner.active { transform: translateX(-50%) translateY(0); }
+        .glitch-banner.active { transform: translateY(0); }
         .glitch-banner::before,
         .glitch-banner::after {
             content: '';
@@ -413,8 +414,8 @@
         .spotify-overlay {
             position: fixed;
             left: 20px;
-            top: 20px;
-            width: min(280px, 78vw);
+            bottom: 16px;
+            width: min(220px, 64vw);
             background: #fff;
             border: 2px solid #111;
             border-radius: 16px;
@@ -461,7 +462,7 @@
             border: 0;
         }
         .spotify-overlay.minimized {
-            width: min(180px, 52vw);
+            width: min(148px, 44vw);
             box-shadow: 6px 10px 0 rgba(0,0,0,0.18);
         }
         .spotify-overlay.minimized .spotify-overlay__body {
@@ -488,6 +489,25 @@
         /* Integration Bar */
         .integration-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 6px; background: #eee; z-index: 90; }
         .integration-fill { height: 100%; background: #CD2B2B; width: 0%; transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+
+        @media (max-width: 768px) {
+            .spotify-overlay {
+                left: 12px;
+                bottom: 12px;
+                width: min(210px, calc(100vw - 24px));
+            }
+
+            .glitch-banner {
+                left: 50%;
+                bottom: 90px;
+                max-width: calc(100vw - 24px);
+                transform: translateX(-50%) translateY(140%);
+            }
+
+            .glitch-banner.active {
+                transform: translateX(-50%) translateY(0);
+            }
+        }
 
         /* Loader */
         #loader { position: fixed; inset: 0; background: #FDFBF7; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.8s ease; }
