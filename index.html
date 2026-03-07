@@ -343,6 +343,55 @@
             opacity: 1;
             transform: translateY(0) scale(1);
         }
+        .surveillance-popup.minimized {
+            width: 54px;
+            height: 54px;
+            padding: 0;
+            border-radius: 999px;
+            right: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 6px 8px 0 rgba(0,0,0,0.2);
+            cursor: pointer;
+        }
+        .surveillance-popup.minimized .surveillance-popup__content,
+        .surveillance-popup.minimized .surveillance-popup__signal {
+            display: none;
+        }
+        .surveillance-popup.minimized .surveillance-popup__meta {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .surveillance-popup__toggle {
+            border: 1px solid #111;
+            padding: 4px 10px;
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .surveillance-popup__toggle:hover {
+            background: #111;
+            color: #fff;
+        }
+        .surveillance-popup.minimized .surveillance-popup__toggle {
+            border: 0;
+            font-size: 24px;
+            letter-spacing: 0;
+            padding: 0;
+            width: 54px;
+            height: 54px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            color: #111;
+        }
         .spotify-overlay {
             position: fixed;
             right: 20px;
@@ -587,12 +636,14 @@
 
     <div class="integration-bar"><div id="integration-fill" class="integration-fill"></div></div>
     <div id="surveillance-popup" class="surveillance-popup era-shift" role="dialog" aria-live="polite">
-        <div class="text-[10px] font-mono uppercase tracking-[0.3em] text-gray-500">Surveillance Pop-Up</div>
-        <div class="mt-2 text-sm font-bold uppercase">Observer Channel: Live</div>
-        <p class="mt-2 text-xs font-mono text-gray-700 leading-relaxed">We are monitoring your gaze patterns for mythic drift. Stay still. Smile naturally. The era-stitcher is calibrating.</p>
-        <div class="mt-3 flex items-center justify-between text-[10px] font-mono uppercase tracking-widest">
-            <span class="text-loom-red">Signal: Active</span>
-            <button id="surveillance-close" class="border border-black px-2 py-1 hover:bg-black hover:text-white transition-colors">Dismiss</button>
+        <div class="surveillance-popup__content">
+            <div class="text-[10px] font-mono uppercase tracking-[0.3em] text-gray-500">Surveillance Pop-Up</div>
+            <div class="mt-2 text-sm font-bold uppercase">Observer Channel: Live</div>
+            <p class="mt-2 text-xs font-mono text-gray-700 leading-relaxed">We are monitoring your gaze patterns for mythic drift. Stay still. Smile naturally. The era-stitcher is calibrating.</p>
+        </div>
+        <div class="surveillance-popup__meta mt-3 flex items-center justify-between text-[10px] font-mono uppercase tracking-widest">
+            <span class="surveillance-popup__signal text-loom-red">Signal: Active</span>
+            <button id="surveillance-close" class="surveillance-popup__toggle" type="button" aria-expanded="true" aria-label="Minimize observer window">Dismiss</button>
         </div>
     </div>
     <div id="glitch-banner" class="glitch-banner era-shift" aria-live="polite">HOW MUCH DO YOU COST? :(/:)</div>
@@ -7532,7 +7583,12 @@
                 setTimeout(() => banner.classList.add('active'), 2200);
 
                 if (closeBtn) {
-                    closeBtn.addEventListener('click', () => popup.classList.remove('active'));
+                    closeBtn.addEventListener('click', () => {
+                        const minimized = popup.classList.toggle('minimized');
+                        closeBtn.textContent = minimized ? '👁' : 'Dismiss';
+                        closeBtn.setAttribute('aria-expanded', String(!minimized));
+                        closeBtn.setAttribute('aria-label', minimized ? 'Open observer window' : 'Minimize observer window');
+                    });
                 }
             }
         };
