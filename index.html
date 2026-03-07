@@ -508,12 +508,21 @@
             transition: opacity 0.35s ease;
         }
         .lose-overlay.active { opacity: 1; pointer-events: auto; }
-        .lose-overlay video {
+        .lose-video-frame {
+            --lose-crop-bottom: 85px;
             width: min(92vw, 1200px);
             height: min(88vh, 700px);
-            object-fit: contain;
+            overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.28);
             box-shadow: 0 28px 54px rgba(0, 0, 0, 0.55);
+            background: #000;
+        }
+        .lose-overlay video {
+            width: 100%;
+            height: calc(100% + var(--lose-crop-bottom));
+            object-fit: contain;
+            object-position: center top;
+            display: block;
             background: #000;
         }
 
@@ -656,9 +665,10 @@
             .lose-overlay {
                 padding: 2vh 2vw;
             }
-            .lose-overlay video {
+            .lose-video-frame {
                 width: 96vw;
                 height: 92vh;
+                --lose-crop-bottom: 85px;
             }
             #view-landing {
                 overflow-x: clip;
@@ -694,7 +704,9 @@
     </div>
 
     <div id="lose-overlay" class="lose-overlay" aria-hidden="true">
-        <video id="lose-video" src="Lose.mp4" playsinline preload="auto"></video>
+        <div class="lose-video-frame">
+            <video id="lose-video" src="Lose.mp4" playsinline muted preload="auto" autoplay></video>
+        </div>
     </div>
 
     <div class="scanline-layer"></div>
@@ -7845,6 +7857,9 @@
             overlay.setAttribute('aria-hidden', 'false');
             overlay.classList.add('active');
             video.currentTime = 0;
+            video.muted = true;
+            video.autoplay = true;
+            video.playsInline = true;
 
             await new Promise((resolve) => {
                 let settled = false;
