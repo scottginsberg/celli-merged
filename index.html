@@ -733,7 +733,7 @@
 
     <div id="lose-overlay" class="lose-overlay" aria-hidden="true">
         <div class="lose-video-frame">
-            <video id="lose-video" src="Lose.mp4" playsinline muted preload="auto" autoplay></video>
+            <video id="lose-video" src="Lose.mp4" playsinline preload="auto" autoplay></video>
         </div>
     </div>
 
@@ -7885,7 +7885,9 @@
             overlay.setAttribute('aria-hidden', 'false');
             overlay.classList.add('active');
             video.currentTime = 0;
-            video.muted = true;
+            video.muted = false;
+            video.defaultMuted = false;
+            video.volume = 1;
             video.autoplay = true;
             video.playsInline = true;
 
@@ -7905,6 +7907,7 @@
                 const startPlayback = () => {
                     video.play().catch(() => {
                         overlay.addEventListener('pointerdown', () => {
+                            video.muted = false;
                             video.play().catch(finish);
                         }, { once: true });
                     });
