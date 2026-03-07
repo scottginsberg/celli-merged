@@ -412,9 +412,9 @@
         }
         .spotify-overlay {
             position: fixed;
-            right: 20px;
-            bottom: 20px;
-            width: min(360px, 92vw);
+            left: 20px;
+            top: 20px;
+            width: min(280px, 78vw);
             background: #fff;
             border: 2px solid #111;
             border-radius: 16px;
@@ -427,8 +427,8 @@
         }
         .spotify-overlay__header {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
+            flex-direction: column;
+            align-items: flex-start;
             gap: 12px;
             padding: 10px 14px;
             background: #111;
@@ -445,6 +445,7 @@
             font-size: 10px;
             letter-spacing: 0.2em;
             transition: background 0.2s ease, color 0.2s ease;
+            align-self: flex-start;
         }
         .spotify-overlay__toggle:hover {
             background: #FDFBF7;
@@ -460,7 +461,7 @@
             border: 0;
         }
         .spotify-overlay.minimized {
-            width: min(240px, 70vw);
+            width: min(180px, 52vw);
             box-shadow: 6px 10px 0 rgba(0,0,0,0.18);
         }
         .spotify-overlay.minimized .spotify-overlay__body {
