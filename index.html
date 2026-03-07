@@ -339,6 +339,10 @@
             transition: opacity 0.4s ease, transform 0.4s ease;
             overflow: hidden;
         }
+        .surveillance-popup > * {
+            position: relative;
+            z-index: 1;
+        }
         .surveillance-popup.active {
             opacity: 1;
             transform: translateY(0) scale(1);
@@ -374,6 +378,10 @@
             letter-spacing: 0.2em;
             text-transform: uppercase;
             transition: background 0.2s ease, color 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
         }
         .surveillance-popup__toggle:hover {
             background: #111;
@@ -391,6 +399,16 @@
             justify-content: center;
             background: transparent;
             color: #111;
+        }
+        .surveillance-popup__toggle-icon {
+            font-size: 14px;
+            line-height: 1;
+        }
+        .surveillance-popup.minimized .surveillance-popup__toggle-icon {
+            font-size: 24px;
+        }
+        .surveillance-popup.minimized .surveillance-popup__toggle-label {
+            display: none;
         }
         .spotify-overlay {
             position: fixed;
@@ -455,6 +473,7 @@
             content: '';
             position: absolute;
             inset: 0;
+            pointer-events: none;
             mix-blend-mode: screen;
             opacity: 0;
             background: linear-gradient(120deg, rgba(61,255,181,0.18), rgba(205,43,43,0.24));
@@ -687,7 +706,10 @@
         </div>
         <div class="surveillance-popup__meta mt-3 flex items-center justify-between text-[10px] font-mono uppercase tracking-widest">
             <span class="surveillance-popup__signal text-loom-red">Signal: Active</span>
-            <button id="surveillance-close" class="surveillance-popup__toggle" type="button" aria-expanded="true" aria-label="Minimize observer window">Dismiss</button>
+            <button id="surveillance-close" class="surveillance-popup__toggle" type="button" aria-expanded="true" aria-label="Minimize observer window">
+                <span class="surveillance-popup__toggle-icon" aria-hidden="true">👁</span>
+                <span class="surveillance-popup__toggle-label">Dismiss</span>
+            </button>
         </div>
     </div>
     <div id="glitch-banner" class="glitch-banner era-shift" aria-live="polite">HOW MUCH DO YOU COST? :(/:)</div>
@@ -7634,7 +7656,10 @@
                 if (closeBtn) {
                     closeBtn.addEventListener('click', () => {
                         const minimized = popup.classList.toggle('minimized');
-                        closeBtn.textContent = minimized ? '👁' : 'Dismiss';
+                        const label = closeBtn.querySelector('.surveillance-popup__toggle-label');
+                        if (label) {
+                            label.textContent = minimized ? 'Open' : 'Dismiss';
+                        }
                         closeBtn.setAttribute('aria-expanded', String(!minimized));
                         closeBtn.setAttribute('aria-label', minimized ? 'Open observer window' : 'Minimize observer window');
                     });
