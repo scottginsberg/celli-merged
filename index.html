@@ -419,7 +419,7 @@
             bottom: 20px;
             right: auto;
             top: auto;
-            width: min(220px, 64vw);
+            width: min(320px, 72vw);
             background: #fff;
             border: 2px solid #111;
             border-radius: 16px;
@@ -460,7 +460,7 @@
             border-bottom: 0;
         }
         .spotify-overlay__body {
-            height: 352px;
+            height: 460px;
             transition: height 0.3s ease, opacity 0.3s ease;
         }
         .spotify-overlay__body iframe {
@@ -469,6 +469,7 @@
             border: 0;
         }
         .spotify-overlay.minimized {
+            width: fit-content;
             box-shadow: 6px 10px 0 rgba(0,0,0,0.18);
         }
         .spotify-overlay.minimized .spotify-overlay__body {
@@ -478,6 +479,11 @@
         }
         .spotify-overlay.minimized .spotify-overlay__toggle::after {
             transform: rotate(-180deg);
+        }
+        .spotify-overlay.minimized .spotify-overlay__toggle {
+            width: auto;
+            padding: 8px 12px;
+            letter-spacing: 0.14em;
         }
         .surveillance-popup::before,
         .surveillance-popup::after {
@@ -522,7 +528,7 @@
                 bottom: 12px;
                 right: auto;
                 top: auto;
-                width: min(210px, calc(100vw - 24px));
+                width: min(280px, calc(100vw - 24px));
             }
 
             .surveillance-popup.minimized {
@@ -7829,7 +7835,7 @@
                 if (!overlay || !toggle) return;
                 toggle.addEventListener('click', () => {
                     const minimized = overlay.classList.toggle('minimized');
-                    toggle.textContent = minimized ? 'Open Playlist' : 'Collapse';
+                    toggle.textContent = minimized ? 'Playlist' : 'Collapse';
                     toggle.setAttribute('aria-expanded', String(!minimized));
                 });
             }
