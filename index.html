@@ -7963,16 +7963,20 @@
 
             await new Promise((resolve) => {
                 let settled = false;
+                const handleSkip = () => finish();
                 const finish = () => {
                     if (settled) return;
                     settled = true;
+                    video.pause();
                     video.removeEventListener('ended', finish);
                     video.removeEventListener('error', finish);
+                    video.removeEventListener('click', handleSkip);
                     resolve();
                 };
 
                 video.addEventListener('ended', finish, { once: true });
                 video.addEventListener('error', finish, { once: true });
+                video.addEventListener('click', handleSkip);
 
                 const startPlayback = () => {
                     video.play().catch(() => {
