@@ -430,24 +430,9 @@
             overflow: hidden;
             transition: width 0.3s ease, box-shadow 0.3s ease;
         }
-        .spotify-overlay__header {
-            display: flex;
-            align-items: flex-start;
-            padding: 10px 14px;
-            background: #111;
-            color: #FDFBF7;
-            font-family: 'Space Mono', monospace;
-            text-transform: uppercase;
-            letter-spacing: 0.22em;
-            font-size: 10px;
-        }
-        .spotify-overlay__controls {
-            display: flex;
-            background: #111;
-        }
         .spotify-overlay__toggle {
             border: 0;
-            border-top: 1px solid #111;
+            border-bottom: 1px solid #2b2b2b;
             width: 100%;
             display: inline-flex;
             align-items: center;
@@ -470,6 +455,9 @@
         .spotify-overlay__toggle:hover {
             background: #CD2B2B;
             color: #fff;
+        }
+        .spotify-overlay.minimized .spotify-overlay__toggle {
+            border-bottom: 0;
         }
         .spotify-overlay__body {
             height: 352px;
@@ -876,14 +864,9 @@
     </div>
     <div id="glitch-banner" class="glitch-banner era-shift" aria-live="polite">HOW MUCH DO YOU COST? :(/:)</div>
     <div id="spotify-overlay" class="spotify-overlay" aria-label="Playlist overlay">
-        <div class="spotify-overlay__header">
-            <span>Playlist</span>
-        </div>
+        <button id="spotify-toggle" class="spotify-overlay__toggle" type="button" aria-expanded="true">Collapse</button>
         <div class="spotify-overlay__body">
             <iframe src="https://open.spotify.com/embed/playlist/0bDJZ89nH6RHIpPE8WMcfw?utm_source=generator&theme=0" title="Loomworks playlist" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-        </div>
-        <div class="spotify-overlay__controls">
-            <button id="spotify-toggle" class="spotify-overlay__toggle" type="button" aria-expanded="true">Collapse</button>
         </div>
     </div>
 
@@ -7842,7 +7825,7 @@
                 if (!overlay || !toggle) return;
                 toggle.addEventListener('click', () => {
                     const minimized = overlay.classList.toggle('minimized');
-                    toggle.textContent = minimized ? 'Playlist' : 'Collapse';
+                    toggle.textContent = minimized ? 'Open Playlist' : 'Collapse';
                     toggle.setAttribute('aria-expanded', String(!minimized));
                 });
             }
