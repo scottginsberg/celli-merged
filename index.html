@@ -292,9 +292,10 @@
 
         .glitch-banner {
             position: fixed;
-            top: 418px;
-            right: 20px;
-            left: auto;
+            bottom: 24px;
+            left: calc(20px + 220px + 26px);
+            right: auto;
+            top: auto;
             transform: translateY(140%);
             padding: 10px 18px;
             border: 2px solid #CD2B2B;
@@ -414,8 +415,10 @@
         }
         .spotify-overlay {
             position: fixed;
-            right: 360px;
-            top: 124px;
+            left: 20px;
+            bottom: 20px;
+            right: auto;
+            top: auto;
             width: min(220px, 64vw);
             background: #fff;
             border: 2px solid #111;
@@ -498,6 +501,23 @@
         .integration-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 6px; background: #eee; z-index: 90; }
         .integration-fill { height: 100%; background: #CD2B2B; width: 0%; transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
 
+        @media (min-width: 1024px) {
+            #view-landing .landing-shell {
+                max-width: min(1300px, calc(100vw - 340px));
+                padding-left: clamp(32px, 4.5vw, 72px);
+                padding-right: clamp(32px, 4.5vw, 72px);
+            }
+
+            #view-landing .landing-hero {
+                max-width: 920px;
+            }
+
+            #view-landing .landing-story-grid {
+                gap: clamp(2.5rem, 3.8vw, 4.25rem);
+                align-items: start;
+            }
+        }
+
         @media (max-width: 768px) {
             .spotify-overlay {
                 left: 12px;
@@ -508,16 +528,25 @@
             }
 
             .glitch-banner {
-                left: 50%;
-                bottom: 90px;
+                left: auto;
+                right: 12px;
+                bottom: 132px;
                 top: auto;
-                right: auto;
+                min-width: 0;
                 max-width: calc(100vw - 24px);
-                transform: translateX(-50%) translateY(140%);
+                transform: translateY(140%);
             }
 
             .glitch-banner.active {
-                transform: translateX(-50%) translateY(0);
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .glitch-banner {
+                left: 12px;
+                right: 12px;
+                bottom: 112px;
             }
         }
 
@@ -849,8 +878,8 @@
     </div>
 
     <section id="view-landing" class="view-section active">
-        <div class="max-w-7xl mx-auto px-6 py-20 blueprint min-h-[80vh] flex flex-col gap-16">
-            <div>
+        <div class="landing-shell max-w-7xl mx-auto px-6 py-20 blueprint min-h-[80vh] flex flex-col gap-16">
+            <div class="landing-hero">
                 <div class="inline-block border border-black px-2 py-1 text-[10px] font-mono tracking-widest uppercase bg-white mb-6 w-fit">Field Materials Case Study #902</div>
                 <h1 class="text-6xl md:text-9xl font-bold tracking-tighter mb-6 glitch-text" data-text="DOMESTIC PRODUCT">DOMESTIC PRODUCT</h1>
                 <p class="max-w-3xl text-xl font-mono leading-relaxed text-gray-700 mb-8">
@@ -869,7 +898,7 @@
                 </div>
             </div>
 
-            <div class="grid lg:grid-cols-[1.1fr_0.9fr] gap-10">
+            <div class="landing-story-grid grid lg:grid-cols-[1.15fr_0.85fr] gap-10">
                 <div class="space-y-6">
                     <div class="bg-white border border-black/10 p-6 shadow-sm hover:shadow-md transition-shadow">
                         <h3 class="font-mono text-xs uppercase tracking-widest text-loom-red mb-2">The Construct</h3>
