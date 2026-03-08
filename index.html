@@ -443,26 +443,33 @@
         }
         .spotify-overlay__controls {
             display: flex;
-            justify-content: flex-start;
-            background: #fff;
+            background: #111;
         }
         .spotify-overlay__toggle {
             border: 0;
             border-top: 1px solid #111;
-            border-right: 1px solid #111;
-            padding: 8px 12px;
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
             text-transform: uppercase;
             font-size: 10px;
             letter-spacing: 0.2em;
             transition: background 0.2s ease, color 0.2s ease;
-            min-width: 124px;
-            text-align: left;
-            background: #fff;
-            color: #111;
-        }
-        .spotify-overlay__toggle:hover {
             background: #111;
             color: #FDFBF7;
+            cursor: pointer;
+        }
+        .spotify-overlay__toggle::after {
+            content: '▾';
+            font-size: 12px;
+            letter-spacing: 0;
+            transition: transform 0.3s ease;
+        }
+        .spotify-overlay__toggle:hover {
+            background: #CD2B2B;
+            color: #fff;
         }
         .spotify-overlay__body {
             height: 352px;
@@ -480,6 +487,9 @@
             height: 0;
             opacity: 0;
             pointer-events: none;
+        }
+        .spotify-overlay.minimized .spotify-overlay__toggle::after {
+            transform: rotate(-180deg);
         }
         .surveillance-popup::before,
         .surveillance-popup::after {
@@ -867,10 +877,10 @@
     <div id="glitch-banner" class="glitch-banner era-shift" aria-live="polite">HOW MUCH DO YOU COST? :(/:)</div>
     <div id="spotify-overlay" class="spotify-overlay" aria-label="Playlist overlay">
         <div class="spotify-overlay__header">
-            <span>Field Playlist</span>
+            <span>Playlist</span>
         </div>
         <div class="spotify-overlay__body">
-            <iframe src="https://open.spotify.com/embed/playlist/0bDJZ89nH6RHIpPE8WMcfw?utm_source=generator&theme=0" title="Loomworks field playlist" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+            <iframe src="https://open.spotify.com/embed/playlist/0bDJZ89nH6RHIpPE8WMcfw?utm_source=generator&theme=0" title="Loomworks playlist" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
         </div>
         <div class="spotify-overlay__controls">
             <button id="spotify-toggle" class="spotify-overlay__toggle" type="button" aria-expanded="true">Collapse</button>
@@ -7832,7 +7842,7 @@
                 if (!overlay || !toggle) return;
                 toggle.addEventListener('click', () => {
                     const minimized = overlay.classList.toggle('minimized');
-                    toggle.textContent = minimized ? 'Expand' : 'Collapse';
+                    toggle.textContent = minimized ? 'Playlist' : 'Collapse';
                     toggle.setAttribute('aria-expanded', String(!minimized));
                 });
             }
