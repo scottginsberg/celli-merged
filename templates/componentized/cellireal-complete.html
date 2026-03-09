@@ -1473,83 +1473,61 @@ function determineCollisionMode(arr, cell=null, opts={}){
  return 'edit';
 }
 
-function cameraBasisForSelection(arr){
- let major='Z', sign=1, signX=1, signY=1, signZ=1;
- if(!arr) return {major, sign, signX, signY, signZ};
+function resolveViewRelativeStep(arr, direction, opts = {}) {
+ const depthMode = !!opts.depthMode;
+ if(!arr || !direction) return { dx:0, dy:0, dz:0 };
+
+ const resolvedDirection = depthMode
+ ? (direction === 'up' ? 'depthUp' : direction === 'down' ? 'depthDown' : direction)
+ : direction;
+
+ let facing = { axis:2, sign:1 };
  try{
- if(typeof THREE === 'undefined' || !window.Scene) return {major, sign, signX, signY, signZ};
- const frame = arr._frame || null;
- const cam = Scene?.getCamera ? Scene.getCamera() : null;
- if(frame && cam && cam.position && typeof cam.position.clone === 'function'){
- const arrPos = new THREE.Vector3().setFromMatrixPosition(frame.matrixWorld);
- const camPos = cam.position.clone();
- const toCamW = camPos.sub(arrPos).normalize();
- const inv = new THREE.Matrix4().copy(frame.matrixWorld).invert();
- const toCamL = toCamW.clone().applyMatrix3(new THREE.Matrix3().setFromMatrix4(inv)).normalize();
- const ax=Math.abs(toCamL.x), ay=Math.abs(toCamL.y), az=Math.abs(toCamL.z);
- if(ay>ax && ay>az){ major='Y'; sign=Math.sign(toCamL.y)||1; }
- else if(ax>ay && ax>az){ major='X'; sign=Math.sign(toCamL.x)||1; }
- else { major='Z'; sign=Math.sign(toCamL.z)||1; }
- signX = Math.sign(toCamL.x)||1;
- signY = Math.sign(toCamL.y)||1;
- signZ = Math.sign(toCamL.z)||1;
- }
- }catch{}
- return {major, sign, signX, signY, signZ};
+ if(arr._frame && Scene?.facingFromCamera) facing = Scene.facingFromCamera(arr._frame);
+ }catch(e){ console.warn('[NAV] Failed to get camera facing', e); }
+
+ const axis = facing.axis;
+ const sign = facing.sign >= 0 ? 1 : -1;
+ const right = {x:0,y:0,z:0};
+ const depth = {x:0,y:0,z:0};
+
+ if(axis===2){ right.x = sign; depth.z = sign; }
+ else if(axis===0){ right.z = sign; depth.x = sign; }
+ else { right.x = sign; depth.y = sign; }
+
+ if(resolvedDirection==='left') return { dx:-right.x, dy:-right.y, dz:-right.z };
+ if(resolvedDirection==='right') return { dx:right.x, dy:right.y, dz:right.z };
+ if(resolvedDirection==='up') return { dx:0, dy:+1, dz:0 };
+ if(resolvedDirection==='down') return { dx:0, dy:-1, dz:0 };
+ if(resolvedDirection==='depthUp') return { dx:depth.x, dy:depth.y, dz:depth.z };
+ if(resolvedDirection==='depthDown') return { dx:-depth.x, dy:-depth.y, dz:-depth.z };
+ return { dx:0, dy:0, dz:0 };
 }
 
-function resolveViewRelativeStep(arr, direction, opts={}){
- const depthMode = opts.depthMode || false;
- if(!arr || !direction) return {dx:0,dy:0,dz:0};
- 
- // D-pad depth buttons ALWAYS control Z axis toward/away from camera
- if(direction === 'depthUp' || direction === 'depthDown'){
- const basis = cameraBasisForSelection(arr);
- const dz = (direction === 'depthUp') 
- ? (basis.signZ > 0 ? +1 : -1) // toward camera
- : (basis.signZ > 0 ? -1 : +1); // away from camera
- return {dx:0, dy:0, dz};
+function moveSelectionByDirection(direction, opts = {}){
+ const state = Store.getState();
+ let sel = state.selection;
+ if(!sel?.focus){
+ const fallbackArr = state.arrays[1] || Object.values(state.arrays)[0];
+ if(!fallbackArr) return false;
+ Actions.setSelection(fallbackArr.id, {x:0,y:0,z:0}, null, opts.surface || '2d');
+ sel = Store.getState().selection;
  }
- 
- // D-pad up/down ALWAYS control Y (height) moving upward/downward in visual space
- // In array coords: higher Y = physically higher in 3D space
- if(direction === 'up') return {dx:0, dy:+1, dz:0};
- if(direction === 'down') return {dx:0, dy:-1, dz:0};
- 
- // Left/Right are view-relative
- const basis = cameraBasisForSelection(arr);
- let dx=0, dy=0, dz=0;
- 
- if(depthMode){
- // Depth mode: left/right control X, but still relative to camera
- if(direction==='left') dx = (basis.signX>0 ? -1 : +1);
- if(direction==='right') dx = (basis.signX>0 ? +1 : -1);
- return {dx,dy,dz};
- }
- 
- // Standard mode: left/right are screen-space left/right relative to camera
- if(basis.major==='X'){
- // Viewing along X axis (from east +X or west -X)
- // Left/right control Z axis (north/south)
- // From east (+X): left=north=+Z, right=south=-Z
- // From west (-X): left=south=-Z, right=north=+Z
- if(direction==='left') dz = (basis.sign>0 ? +1 : -1);
- if(direction==='right') dz = (basis.sign>0 ? -1 : +1);
- } else if(basis.major==='Z'){
- // Viewing along Z axis (from south +Z or north -Z)
- // Left/right control X axis (east/west)
- // From south (+Z): left=west=-X, right=east=+X
- // From north (-Z): left=east=+X, right=west=-X
- if(direction==='left') dx = (basis.sign>0 ? -1 : +1);
- if(direction==='right') dx = (basis.sign>0 ? +1 : -1);
- } else { // basis.major === 'Y' (top/bottom view)
- // Viewing from top (+Y) or bottom (-Y)
- // Left/right control X axis (east/west)
- // From top: left=west=-X, right=east=+X
- if(direction==='left') dx = -1;
- if(direction==='right') dx = +1;
- }
- return {dx,dy,dz};
+ if(!sel?.focus) return false;
+ const arr = Store.getState().arrays[sel.arrayId];
+ if(!arr) return false;
+
+ const step = resolveViewRelativeStep(arr, direction, { depthMode: !!Store.getState().scene?.arrowMapDepth });
+ if(!(step.dx || step.dy || step.dz)) return false;
+
+ const nx = Math.max(0, Math.min(arr.size.x-1, sel.focus.x + step.dx));
+ const ny = Math.max(0, Math.min(arr.size.y-1, sel.focus.y + step.dy));
+ const nz = Math.max(0, Math.min(arr.size.z-1, sel.focus.z + step.dz));
+ if(nx===sel.focus.x && ny===sel.focus.y && nz===sel.focus.z) return false;
+
+ Actions.setSelection(arr.id, {x:nx, y:ny, z:nz}, null, opts.surface || '3d');
+ UI.scrollSheetToSelection?.();
+ return true;
 }
 
 function readPersistedPhysicsDebug(){
@@ -18477,23 +18455,6 @@ function ensureTimed3D(){
  
  if(isArrowKey && !platformerMode && !physicsActive && !typingElement && !directOpen){
  console.log(`[ARROW] ? Entering arrow key handler for ${e.key}`);
- // Ensure we have a selection; default to Array 1 A1a if none
- let sel=s.selection;
- if(!sel.focus){
- const fallbackArr = s.arrays[1] || Object.values(s.arrays)[0];
- if(fallbackArr){ Actions.setSelection(fallbackArr.id, {x:0,y:0,z:0}, null, '2d'); sel = Store.getState().selection; }
- }
- if(!sel.focus) return; const arr=s.arrays[sel.arrayId]; if(!arr) return;
- if(e.shiftKey){
- // Shift+Arrows: extend selection range
- if(e.key==='ArrowUp') Actions.moveSelection(0,1,0);
- if(e.key==='ArrowDown') Actions.moveSelection(0,-1,0);
- if(e.key==='ArrowLeft') Actions.moveSelection(1,0,0);
- if(e.key==='ArrowRight') Actions.moveSelection(-1,0,0);
- e.preventDefault(); 
- UI.scrollSheetToSelection?.();
- } else {
- // View-relative movement calculation based on camera facing
  const keyDir = (e.key === 'ArrowUp') ? 'up'
  : (e.key === 'ArrowDown') ? 'down'
  : (e.key === 'ArrowLeft') ? 'left'
@@ -18501,20 +18462,17 @@ function ensureTimed3D(){
  : '';
  if(!keyDir) return;
 
- const depthMode = !!Store.getState().scene.arrowMapDepth;
- const {dx, dy, dz} = resolveViewRelativeStep(arr, keyDir, { depthMode });
- console.log(`[ARROW] Key=${e.key}, depthMode=${depthMode} -> dx=${dx}, dy=${dy}, dz=${dz}`);
-
- if(dx || dy || dz){
+ if(e.shiftKey){
+ if(e.key==='ArrowUp') Actions.moveSelection(0,1,0);
+ if(e.key==='ArrowDown') Actions.moveSelection(0,-1,0);
+ if(e.key==='ArrowLeft') Actions.moveSelection(1,0,0);
+ if(e.key==='ArrowRight') Actions.moveSelection(-1,0,0);
  e.preventDefault();
- let {x,y,z} = sel.focus;
- x = Math.max(0, Math.min(arr.size.x-1, x + dx));
- y = Math.max(0, Math.min(arr.size.y-1, y + dy));
- z = Math.max(0, Math.min(arr.size.z-1, z + dz));
- Actions.setSelection(sel.arrayId,{x,y,z});
  UI.scrollSheetToSelection?.();
+ return;
  }
- }
+
+ if(moveSelectionByDirection(keyDir, { surface:'2d' })) e.preventDefault();
  return;
  }
 
@@ -23570,69 +23528,7 @@ window.__celliSyncDesktopChrome = syncDesktopChrome;
  // Wire D-Pad HUD
  const dpad=document.getElementById('dpad');
  
- // View-relative step resolver for d-pad
- function resolveViewRelativeStep(arr, direction, opts = {}) {
- const depthMode = !!opts.depthMode;
- let dx = 0, dy = 0, dz = 0;
-
- // If depth mode is active, remap vertical arrows to explicit depth controls.
- const resolvedDirection = depthMode
- ? (direction === 'up' ? 'depthUp' : direction === 'down' ? 'depthDown' : direction)
- : direction;
-
- // Get camera-relative facing.
- let facing = { axis: 2, sign: 1 }; // default: looking at Z+ face
- try {
- if (arr._frame && Scene.facingFromCamera) {
- facing = Scene.facingFromCamera(arr._frame);
- }
- } catch (err) {
- console.warn('[DPAD] Failed to get facing:', err);
- }
-
- const axis = facing.axis; // 0=X, 1=Y, 2=Z
- const sign = facing.sign >= 0 ? 1 : -1;
-
- // Build view-relative basis vectors.
- const right = { x: 0, y: 0, z: 0 };
- const up = { x: 0, y: 0, z: 0 };
- const depth = { x: 0, y: 0, z: 0 };
-
- if (axis === 2) {
- right.x = sign;
- up.y = -1;
- depth.z = sign;
- } else if (axis === 0) {
- right.z = sign;
- up.y = -1;
- depth.x = sign;
- } else {
- right.x = sign;
- up.z = -1;
- depth.y = sign;
- }
-
- if (resolvedDirection === 'left') {
- dx = -right.x; dy = -right.y; dz = -right.z;
- } else if (resolvedDirection === 'right') {
- dx = right.x; dy = right.y; dz = right.z;
- } else if (resolvedDirection === 'up') {
- dx = up.x; dy = up.y; dz = up.z;
- } else if (resolvedDirection === 'down') {
- dx = -up.x; dy = -up.y; dz = -up.z;
- } else if (resolvedDirection === 'depthUp') {
- dx = depth.x; dy = depth.y; dz = depth.z;
- } else if (resolvedDirection === 'depthDown') {
- dx = -depth.x; dy = -depth.y; dz = -depth.z;
- }
-
- dx = Math.max(-1, Math.min(1, dx));
- dy = Math.max(-1, Math.min(1, dy));
- dz = Math.max(-1, Math.min(1, dz));
-
- console.log(`[DPAD] Direction: ${direction}, resolved=${resolvedDirection}, axis=${axis}, sign=${sign}, step=(${dx},${dy},${dz})`);
- return { dx, dy, dz };
- }
+ // D-pad reuses shared resolveViewRelativeStep + moveSelectionByDirection
 
 let dpadDebounce = false;
  const onDP=(direction)=>{
@@ -23644,43 +23540,9 @@ let dpadDebounce = false;
  dpadDebounce = true;
  setTimeout(() => dpadDebounce = false, 100);
  
- const state = Store.getState();
- const sel = state.selection;
- if(!sel?.arrayId || !sel.focus) return;
- const arr = state.arrays[sel.arrayId];
- if(!arr) return;
  // Mobile D-pad up/down can map to height or depth via center H/D toggle.
- const depthMode = document.body.classList.contains('touch') && !!state.scene?.arrowMapDepth;
- const step = resolveViewRelativeStep(arr, direction, {depthMode});
- if(!(step.dx || step.dy || step.dz)) return;
- 
- console.log(`[DPAD] Current focus: (${sel.focus.x}, ${sel.focus.y}, ${sel.focus.z})`);
- console.log(`[DPAD] Step: (${step.dx}, ${step.dy}, ${step.dz})`);
- console.log(`[DPAD] Array size: (${arr.size.x}, ${arr.size.y}, ${arr.size.z})`);
- 
- const rawX = sel.focus.x + step.dx;
- const rawY = sel.focus.y + step.dy;
- const rawZ = sel.focus.z + step.dz;
- console.log(`[DPAD] Raw new position (before clamping): (${rawX}, ${rawY}, ${rawZ})`);
- 
- const nx=Math.max(0, Math.min(arr.size.x-1, rawX));
- const ny=Math.max(0, Math.min(arr.size.y-1, rawY));
- const nz=Math.max(0, Math.min(arr.size.z-1, rawZ));
- 
- console.log(`[DPAD] New focus (after clamping): (${nx}, ${ny}, ${nz})`);
- console.log(`[DPAD] Movement delta: (${nx - sel.focus.x}, ${ny - sel.focus.y}, ${nz - sel.focus.z})`);
- console.log(`[DPAD] Calling Actions.setSelection with: arrayId=${arr.id}, coord=(${nx}, ${ny}, ${nz})`);
- 
- Actions.setSelection(arr.id, {x:nx,y:ny,z:nz}, null, '3d');
- 
- // Log what the selection actually became
- setTimeout(() => {
- const newState = Store.getState();
- const newSel = newState.selection;
- console.log(`[DPAD] After setSelection, actual focus: (${newSel.focus.x}, ${newSel.focus.y}, ${newSel.focus.z})`);
- }, 10);
- 
- UI.scrollSheetToSelection?.();
+ const moved = moveSelectionByDirection(direction, { surface:'3d' });
+ if(!moved) return;
  };
  const presentBtn = dpad ? dpad.querySelector('.present') : null;
  const syncPresentToggle=()=>{
