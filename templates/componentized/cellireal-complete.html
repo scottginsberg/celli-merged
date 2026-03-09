@@ -879,7 +879,7 @@ document.addEventListener('click', function(e){
  <div class="dp jump mobile-only" data-action="jump" style="display:none" title="Jump">Jump</div>
  <div class="dp left" data-dir="left">←</div>
  <div class="dp center desktop-only" data-action="depthToggle" title="Toggle Arrow Mapping (Height/Depth)"><span style="display:inline-block;width:16px;height:12px;border:2px solid #fff;border-radius:3px"></span>&nbsp;<span id="depthMode">H</span></div>
- <div class="dp center mobile-only" data-action="depthToggle" style="display:none" title="Toggle Arrow Mapping (Height/Depth)">H⇄D</div>
+ <div class="dp center mobile-only" id="depthModeMobile" data-action="depthToggle" style="display:none" title="Toggle Arrow Mapping (Height/Depth)">H</div>
  <div class="dp depthDown desktop-only" data-dir="depthDown" title="Depth Down" aria-label="Depth Down">
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
    <path d="M12 8v12"/>
@@ -18338,8 +18338,11 @@ function ensureTimed3D(){
  e.preventDefault();
  Store.setState(s=>({scene:{...s.scene, arrowMapDepth: !s.scene.arrowMapDepth}}));
  const flag = Store.getState().scene.arrowMapDepth;
+ const label = flag ? 'D' : 'H';
  const dm = document.getElementById('depthMode');
- if(dm) dm.textContent = flag ? 'D' : 'H';
+ const dmm = document.getElementById('depthModeMobile');
+ if(dm) dm.textContent = label;
+ if(dmm) dmm.textContent = label;
  showToast(flag? 'Arrows: Depth' : 'Arrows: Height');
  }
  }, true);
@@ -23646,8 +23649,8 @@ let dpadDebounce = false;
  if(!sel?.arrayId || !sel.focus) return;
  const arr = state.arrays[sel.arrayId];
  if(!arr) return;
- // D-pad never uses arrowMapDepth - depth buttons are explicit
- const depthMode = false;
+ // Mobile D-pad up/down can map to height or depth via center H/D toggle.
+ const depthMode = document.body.classList.contains('touch') && !!state.scene?.arrowMapDepth;
  const step = resolveViewRelativeStep(arr, direction, {depthMode});
  if(!(step.dx || step.dy || step.dz)) return;
  
@@ -23714,7 +23717,15 @@ let dpadDebounce = false;
  try{ UI?.syncPresentUI?.(actual); }catch(e){ console.warn('Sync present UI failed', e); }
  syncPresentToggle();
  };
- let lastDpadTouchTime = 0;
+ let lastDpadPointerTime = 0;
+ const syncDepthModeIndicators = ()=>{
+ const depthFlag = !!Store.getState().scene.arrowMapDepth;
+ const label = depthFlag ? 'D' : 'H';
+ const dm = document.getElementById('depthMode');
+ const dmm = document.getElementById('depthModeMobile');
+ if(dm) dm.textContent = label;
+ if(dmm) dmm.textContent = label;
+ };
  dpad.querySelectorAll('.dp').forEach(btn=>{
  if(btn.classList.contains('grab')) return;
  const clickHandler = ()=>{
@@ -23725,10 +23736,8 @@ let dpadDebounce = false;
  }
  if(btn.dataset.action==='depthToggle'){
  Store.setState(s=>({scene:{...s.scene, arrowMapDepth: !s.scene.arrowMapDepth}}));
- const flag = Store.getState().scene.arrowMapDepth;
- const dm = document.getElementById('depthMode');
- if(dm) dm.textContent = flag ? 'D' : 'H';
- showToast(flag ? 'Arrows: Depth' : 'Arrows: Height');
+ syncDepthModeIndicators();
+ showToast(Store.getState().scene.arrowMapDepth ? 'Arrows: Depth' : 'Arrows: Height');
  return;
  }
  if(btn.dataset.action==='jump'){
@@ -23742,23 +23751,22 @@ let dpadDebounce = false;
  if(!direction) return;
  onDP(direction);
  };
- btn.addEventListener('click', (e)=>{
- if(Date.now() - lastDpadTouchTime < 400){
- console.log('[DPAD] Ignoring click synthesized from touch');
+ btn.addEventListener('click', ()=>{
+ if(Date.now() - lastDpadPointerTime < 500){
+ console.log('[DPAD] Ignoring click synthesized from recent pointer/touch interaction');
  return;
  }
  clickHandler();
  });
- btn.addEventListener('touchend', (e)=>{
- lastDpadTouchTime = Date.now();
+ btn.addEventListener('pointerup', (e)=>{
+ lastDpadPointerTime = Date.now();
  e.preventDefault();
  clickHandler();
  }, {passive:false});
  });
  syncPresentToggle();
  // Reflect current arrow mapping (height vs depth) on center key
- const depthFlag = Store.getState().scene.arrowMapDepth;
- const dm = document.getElementById('depthMode'); if(dm) dm.textContent = depthFlag? 'D' : 'H';
+ syncDepthModeIndicators();
  // Z layer controls handled via sheet header buttons
 
  // Next/Prev arrows: show only if an array with id>1 exists; render arrows around title
