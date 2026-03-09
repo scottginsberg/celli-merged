@@ -1497,8 +1497,9 @@ function resolveViewRelativeStep(arr, direction, opts = {}) {
 
  if(resolvedDirection==='left') return { dx:-right.x, dy:-right.y, dz:-right.z };
  if(resolvedDirection==='right') return { dx:right.x, dy:right.y, dz:right.z };
- if(resolvedDirection==='up') return { dx:0, dy:+1, dz:0 };
- if(resolvedDirection==='down') return { dx:0, dy:-1, dz:0 };
+ // Spreadsheet Y grows downward in the DOM/grid, so up is -Y and down is +Y.
+ if(resolvedDirection==='up') return { dx:0, dy:-1, dz:0 };
+ if(resolvedDirection==='down') return { dx:0, dy:+1, dz:0 };
  if(resolvedDirection==='depthUp') return { dx:depth.x, dy:depth.y, dz:depth.z };
  if(resolvedDirection==='depthDown') return { dx:-depth.x, dy:-depth.y, dz:-depth.z };
  return { dx:0, dy:0, dz:0 };
@@ -1525,9 +1526,30 @@ function moveSelectionByDirection(direction, opts = {}){
  const nz = Math.max(0, Math.min(arr.size.z-1, sel.focus.z + step.dz));
  if(nx===sel.focus.x && ny===sel.focus.y && nz===sel.focus.z) return false;
 
+ if(opts.extendRange){
+ const rangeAnchor = sel.anchor || sel.focus;
+ Actions.setSelectionRange(arr.id, rangeAnchor, {x:nx, y:ny, z:nz}, opts.surface || '3d');
+ } else {
  Actions.setSelection(arr.id, {x:nx, y:ny, z:nz}, null, opts.surface || '3d');
+ }
  UI.scrollSheetToSelection?.();
  return true;
+}
+
+const ARROW_KEY_TO_DIRECTION = {
+ ArrowUp: 'up',
+ ArrowDown: 'down',
+ ArrowLeft: 'left',
+ ArrowRight: 'right'
+};
+
+function handleGridDirectionalInput(direction, opts = {}){
+ const keyDir = String(direction || '').trim();
+ if(!keyDir) return false;
+ return moveSelectionByDirection(keyDir, {
+ surface: opts.surface || '3d',
+ extendRange: !!opts.extendRange
+ });
 }
 
 function readPersistedPhysicsDebug(){
@@ -18455,24 +18477,12 @@ function ensureTimed3D(){
  
  if(isArrowKey && !platformerMode && !physicsActive && !typingElement && !directOpen){
  console.log(`[ARROW] ? Entering arrow key handler for ${e.key}`);
- const keyDir = (e.key === 'ArrowUp') ? 'up'
- : (e.key === 'ArrowDown') ? 'down'
- : (e.key === 'ArrowLeft') ? 'left'
- : (e.key === 'ArrowRight') ? 'right'
- : '';
+ const keyDir = ARROW_KEY_TO_DIRECTION[e.key] || '';
  if(!keyDir) return;
 
- if(e.shiftKey){
- if(e.key==='ArrowUp') Actions.moveSelection(0,1,0);
- if(e.key==='ArrowDown') Actions.moveSelection(0,-1,0);
- if(e.key==='ArrowLeft') Actions.moveSelection(1,0,0);
- if(e.key==='ArrowRight') Actions.moveSelection(-1,0,0);
+ if(handleGridDirectionalInput(keyDir, { surface:'2d', extendRange:e.shiftKey })){
  e.preventDefault();
- UI.scrollSheetToSelection?.();
- return;
  }
-
- if(moveSelectionByDirection(keyDir, { surface:'2d' })) e.preventDefault();
  return;
  }
 
@@ -23530,20 +23540,11 @@ window.__celliSyncDesktopChrome = syncDesktopChrome;
  
  // D-pad reuses shared resolveViewRelativeStep + moveSelectionByDirection
 
-let dpadDebounce = false;
- const onDP=(direction)=>{
+const onDP=(direction)=>{
  if(!direction) return;
- if(dpadDebounce) {
- console.warn('[DPAD] Debounced - ignoring duplicate call');
- return;
- }
- dpadDebounce = true;
- setTimeout(() => dpadDebounce = false, 100);
- 
- // Mobile D-pad up/down can map to height or depth via center H/D toggle.
- const moved = moveSelectionByDirection(direction, { surface:'3d' });
- if(!moved) return;
- };
+ // Mobile D-pad reuses the same navigation path as keyboard arrows.
+ handleGridDirectionalInput(direction, { surface:'3d' });
+};
  const presentBtn = dpad ? dpad.querySelector('.present') : null;
  const syncPresentToggle=()=>{
  if(!presentBtn) return;
@@ -23579,7 +23580,6 @@ let dpadDebounce = false;
  try{ UI?.syncPresentUI?.(actual); }catch(e){ console.warn('Sync present UI failed', e); }
  syncPresentToggle();
  };
- let lastDpadPointerTime = 0;
  const syncDepthModeIndicators = ()=>{
  const depthFlag = !!Store.getState().scene.arrowMapDepth;
  const label = depthFlag ? 'D' : 'H';
@@ -23613,15 +23613,7 @@ let dpadDebounce = false;
  if(!direction) return;
  onDP(direction);
  };
- btn.addEventListener('click', ()=>{
- if(Date.now() - lastDpadPointerTime < 500){
- console.log('[DPAD] Ignoring click synthesized from recent pointer/touch interaction');
- return;
- }
- clickHandler();
- });
  btn.addEventListener('pointerup', (e)=>{
- lastDpadPointerTime = Date.now();
  e.preventDefault();
  clickHandler();
  }, {passive:false});
