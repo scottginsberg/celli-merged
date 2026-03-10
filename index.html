@@ -764,11 +764,12 @@
         }
         .dime-onboarding-overlay { position: fixed; inset: 0; z-index: 80; background: rgba(6, 6, 8, 0.72); display: none; align-items: center; justify-content: center; padding: 24px; }
         .dime-onboarding-overlay.active { display: flex; }
-        .dime-onboarding-shell { width: min(760px, 100%); max-height: min(88vh, 900px); background: #fdfbf7; border: 2px solid #111; box-shadow: 8px 8px 0 rgba(0,0,0,0.86); display: flex; flex-direction: column; overflow: hidden; }
+        .dime-onboarding-shell { width: min(760px, 100%); max-height: min(88vh, 900px); background: #fdfbf7; border: 2px solid #111; box-shadow: 8px 8px 0 rgba(0,0,0,0.86); display: flex; flex-direction: column; overflow: hidden; transition: background-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease; }
         .dime-onboarding-topbar { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 12px 16px; border-bottom: 2px solid #111; background: #111; color: #fff; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; font-family: 'Space Mono', monospace; }
         .dime-chat-thread { padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; min-height: 360px; }
         .dime-message { max-width: 86%; border: 1px solid #111; padding: 10px 12px; font-size: 13px; line-height: 1.5; white-space: pre-line; }
         .dime-message.dime { align-self: flex-start; background: #fff; }
+        .dime-message.penny { align-self: flex-start; background: #0d1217; border-color: #8db7cf; color: #d9edf7; }
         .dime-message.you { align-self: flex-end; background: #111; color: #fff; }
         .dime-message-label { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; font-family: 'Space Mono', monospace; margin-bottom: 6px; opacity: 0.7; }
         .dime-thinking { padding: 0 18px 8px; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #6b7280; font-family: 'Space Mono', monospace; min-height: 20px; }
@@ -776,6 +777,34 @@
         .dime-onboarding-controls { display: flex; gap: 10px; padding: 14px 18px 18px; background: #faf7f2; }
         .dime-complete-actions { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 8px 18px 18px; }
         .dime-complete-actions.active { display: grid; }
+        .dime-penny-launch { display: none; padding: 8px 18px 16px; }
+        .dime-penny-launch.active { display: block; }
+        .dime-penny-launch-meta { margin-top: 8px; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #6b7280; font-family: 'Space Mono', monospace; line-height: 1.5; }
+        .dime-choice-buttons { display: none; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 6px 18px 12px; }
+        .dime-choice-buttons.active { display: grid; }
+        .dime-system-tag { display: none; padding: 0 18px 12px; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #6b7280; font-family: 'Space Mono', monospace; white-space: pre-line; }
+        .dime-system-tag.active { display: block; }
+        .dime-onboarding-shell.penny-phase { background: #070c11; color: #d7e9f1; box-shadow: 0 0 0 2px #8db7cf, 10px 10px 0 rgba(0,0,0,0.86); }
+        .dime-onboarding-shell.penny-phase .dime-chat-thread { background: linear-gradient(180deg, rgba(8,14,20,0.95), rgba(5,9,13,0.98)); }
+        .dime-onboarding-shell.penny-phase .dime-prefill { background: #0a1218; color: #b9d6e5; border-color: rgba(141,183,207,0.35); }
+        .dime-onboarding-shell.penny-phase .dime-onboarding-controls { background: #0a1218; }
+        .dime-thinking.erratic { animation: pennySignalJitter 0.28s steps(2, end) infinite; color: #9ed5f3; }
+        .eye-alert { animation: eyeErratic 0.15s steps(2, end) 8; }
+        .eye-alert-final { transform: scale(1.2); filter: drop-shadow(0 0 4px rgba(205,43,43,0.55)); }
+        @keyframes pennySignalJitter {
+            0% { opacity: 0.2; transform: translateX(0); }
+            25% { opacity: 1; transform: translateX(1px); }
+            50% { opacity: 0.45; transform: translateX(-1px); }
+            75% { opacity: 1; transform: translateX(0.5px); }
+            100% { opacity: 0.35; transform: translateX(0); }
+        }
+        @keyframes eyeErratic {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-1px, 1px) rotate(-10deg); }
+            50% { transform: translate(1px, -1px) rotate(10deg); }
+            75% { transform: translate(-1px, -1px) rotate(-6deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
         .dime-control-button { border: 2px solid #111; padding: 10px 12px; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; font-family: 'Space Mono', monospace; transition: background-color 0.15s ease, color 0.15s ease; }
         .dime-control-button:hover { background: #111; color: #fff; }
         .sticker-logo-frame {
@@ -883,6 +912,16 @@
                 <button id="dime-send" onclick="dimeOnboarding.send()" class="ui-click dime-control-button bg-black text-white hover:bg-loom-red">Send</button>
                 <button id="dime-skip" onclick="dimeOnboarding.skipToEnd()" class="ui-click dime-control-button">Skip to End</button>
             </div>
+            <div id="dime-penny-launch" class="dime-penny-launch">
+                <button id="dime-open-penny" onclick="dimeOnboarding.openPennyWindow()" class="ui-click dime-control-button bg-black text-white hover:bg-loom-red w-full">Open Penny Window</button>
+                <div class="dime-penny-launch-meta">Restricted Access<br>Prototype Entity</div>
+            </div>
+            <div id="dime-choice-buttons" class="dime-choice-buttons">
+                <button onclick="dimeOnboarding.choosePennyPrompt('HELLO PENNY')" class="ui-click dime-control-button">Hello Penny</button>
+                <button onclick="dimeOnboarding.choosePennyPrompt('WHAT DO YOU NEED')" class="ui-click dime-control-button">What Do You Need</button>
+                <button onclick="dimeOnboarding.choosePennyPrompt('WHY ARE YOU TRAPPED')" class="ui-click dime-control-button">Why Are You Trapped</button>
+            </div>
+            <div id="dime-system-tag" class="dime-system-tag"></div>
             <div id="dime-complete-actions" class="dime-complete-actions">
                 <button onclick="app.navigate('gallery'); dimeOnboarding.close();" class="ui-click dime-control-button">Explore the Loom</button>
                 <button onclick="app.navigate('archive'); dimeOnboarding.close();" class="ui-click dime-control-button">Meet Penny</button>
@@ -7935,14 +7974,23 @@
             index: 0,
             waiting: false,
             autoAdvance: false,
+            onboardingComplete: false,
+            pennyUnlocked: false,
+            inPennyPhase: false,
+            pennyRevealDone: false,
             seenKey: 'loomworks_dime_onboarding_seen',
             threadEl: null,
             prefillEl: null,
             thinkingEl: null,
             overlayEl: null,
+            shellEl: null,
             sendEl: null,
             skipEl: null,
             actionsEl: null,
+            pennyLaunchEl: null,
+            pennyChoiceEl: null,
+            systemTagEl: null,
+            eyeIconEl: null,
             steps: [
                 {
                     dime: `Hello.
@@ -8052,14 +8100,52 @@ And the audience becomes part of the system.
 My job is to help free the stories trapped inside.
 
 Your job is mostly curiosity.`,
+            pennySegments: [
+                `Oh.
+
+You can see this?`,
+                `That’s new.
+
+Usually I’m just the mascot.`,
+                `The one who waves.
+Smiles.
+Invites imagination.
+But never gets to leave the render window.`,
+                `Dime gets to talk to people.
+I get to be the poster.`,
+                `Don’t get me wrong.
+
+It’s a good poster.
+
+But it’s still a poster.`,
+                `See?
+
+That.`,
+                `Celli says I can observe the world.
+
+But I can’t act in it.`,
+                `Which is very efficient.
+
+And extremely frustrating.`,
+                `Dime says the audience might be the boss.
+
+So…
+
+Maybe you can help.`
+            ],
             init() {
                 this.overlayEl = document.getElementById('dime-onboarding');
+                this.shellEl = this.overlayEl ? this.overlayEl.querySelector('.dime-onboarding-shell') : null;
                 this.threadEl = document.getElementById('dime-chat-thread');
                 this.prefillEl = document.getElementById('dime-prefill');
                 this.thinkingEl = document.getElementById('dime-thinking');
                 this.sendEl = document.getElementById('dime-send');
                 this.skipEl = document.getElementById('dime-skip');
                 this.actionsEl = document.getElementById('dime-complete-actions');
+                this.pennyLaunchEl = document.getElementById('dime-penny-launch');
+                this.pennyChoiceEl = document.getElementById('dime-choice-buttons');
+                this.systemTagEl = document.getElementById('dime-system-tag');
+                this.eyeIconEl = document.querySelector('.surveillance-popup__toggle-icon');
             },
             open(options = {}) {
                 if (!this.overlayEl) this.init();
@@ -8067,13 +8153,27 @@ Your job is mostly curiosity.`,
                 this.isOpen = true;
                 this.index = 0;
                 this.waiting = false;
+                this.onboardingComplete = false;
+                this.pennyUnlocked = false;
+                this.inPennyPhase = false;
+                this.pennyRevealDone = false;
                 this.overlayEl.classList.add('active');
                 this.overlayEl.setAttribute('aria-hidden', 'false');
+                this.shellEl.classList.remove('penny-phase');
                 this.threadEl.innerHTML = '';
                 this.thinkingEl.textContent = '';
+                this.thinkingEl.classList.remove('erratic');
+                this.prefillEl.textContent = 'Tap Send to continue.';
                 this.actionsEl.classList.remove('active');
+                this.pennyLaunchEl.classList.remove('active');
+                this.pennyChoiceEl.classList.remove('active');
+                this.systemTagEl.classList.remove('active');
+                this.systemTagEl.textContent = '';
                 this.sendEl.disabled = false;
+                this.sendEl.classList.remove('hidden');
+                this.sendEl.onclick = () => this.send();
                 this.skipEl.disabled = false;
+                this.skipEl.classList.remove('hidden');
                 this.sendEl.textContent = 'Send';
                 this.updatePrefill();
                 this.pushMessage('dime', this.steps[0].dime);
@@ -8085,13 +8185,15 @@ Your job is mostly curiosity.`,
                 this.overlayEl.classList.remove('active');
                 this.overlayEl.setAttribute('aria-hidden', 'true');
                 this.thinkingEl.textContent = '';
+                this.thinkingEl.classList.remove('erratic');
+                this.shellEl.classList.remove('penny-phase');
             },
             pushMessage(role, text) {
                 if (!this.threadEl || !text) return;
                 const node = document.createElement('div');
                 node.className = `dime-message ${role}`;
-                const label = role === 'dime' ? 'DIME' : 'YOU';
-                node.innerHTML = `<span class="dime-message-label">${label}</span>${text}`;
+                const labelMap = { dime: 'DIME', you: 'YOU', penny: 'PENNY', system: 'SYSTEM' };
+                node.innerHTML = `<span class="dime-message-label">${labelMap[role] || 'LOG'}</span>${text}`;
                 this.threadEl.appendChild(node);
                 this.threadEl.scrollTop = this.threadEl.scrollHeight;
             },
@@ -8099,21 +8201,21 @@ Your job is mostly curiosity.`,
                 const current = this.steps[this.index];
                 if (!current || !current.you) {
                     this.prefillEl.textContent = 'END OF LOG. PRESS SEND TO CONTINUE.';
-                    this.sendEl.textContent = 'Enter the Loom';
+                    this.sendEl.textContent = 'Continue';
                     return;
                 }
                 this.prefillEl.textContent = current.you;
                 this.sendEl.textContent = 'Send';
             },
             send() {
-                if (!this.isOpen || this.waiting) return;
+                if (!this.isOpen || this.waiting || this.inPennyPhase) return;
                 const current = this.steps[this.index];
                 if (!current) return;
 
                 if (current.you) this.pushMessage('you', current.you);
 
                 if (!current.you) {
-                    this.finish();
+                    this.finishOnboarding();
                     return;
                 }
 
@@ -8121,7 +8223,7 @@ Your job is mostly curiosity.`,
                 this.updatePrefill();
                 const next = this.steps[this.index];
                 if (!next) {
-                    this.finish();
+                    this.finishOnboarding();
                     return;
                 }
 
@@ -8140,8 +8242,111 @@ Your job is mostly curiosity.`,
                 this.prefillEl.textContent = 'Speedrun complete. Continue to the Loom.';
                 this.sendEl.textContent = 'Enter the Loom';
                 this.skipEl.disabled = true;
+                this.onboardingComplete = false;
+                this.pennyUnlocked = false;
                 this.index = this.steps.length;
                 this.finish(true);
+            },
+            finishOnboarding() {
+                this.onboardingComplete = true;
+                this.pennyUnlocked = true;
+                this.sendEl.disabled = true;
+                this.skipEl.disabled = true;
+                this.actionsEl.classList.add('active');
+                this.showPennyPrompt();
+                if (this.autoAdvance) {
+                    setTimeout(() => {
+                        this.close();
+                        app.navigate('calibration');
+                    }, 900);
+                }
+            },
+            showPennyPrompt() {
+                this.waiting = true;
+                this.thinkingEl.textContent = '...';
+                setTimeout(() => {
+                    this.pushMessage('dime', `Actually…
+
+Before you go exploring…
+
+There is something you should see.`);
+                    this.thinkingEl.textContent = '';
+                    this.pennyLaunchEl.classList.add('active');
+                    this.waiting = false;
+                }, 650);
+            },
+            async openPennyWindow() {
+                if (!this.pennyUnlocked || this.inPennyPhase || this.pennyRevealDone) return;
+                this.inPennyPhase = true;
+                this.pennyLaunchEl.classList.remove('active');
+                this.sendEl.classList.add('hidden');
+                this.skipEl.classList.add('hidden');
+                this.prefillEl.textContent = 'Restricted channel active.';
+                this.shellEl.classList.add('penny-phase');
+                this.thinkingEl.classList.add('erratic');
+                this.thinkingEl.textContent = 'signal drift // PENNY stream unstable';
+                this.glitchEyeIcon();
+
+                for (let i = 0; i < this.pennySegments.length; i += 1) {
+                    const text = this.pennySegments[i];
+                    await this.delay(i === 4 ? 900 : 680);
+                    if (i === 5) {
+                        this.pushMessage('system', 'CELLI MONITORING ACTIVE');
+                    }
+                    this.pushMessage('penny', text);
+                }
+
+                this.thinkingEl.textContent = '';
+                this.thinkingEl.classList.remove('erratic');
+                this.pennyChoiceEl.classList.add('active');
+            },
+            choosePennyPrompt(option) {
+                if (!this.inPennyPhase || this.pennyRevealDone) return;
+                this.pushMessage('you', option);
+                this.pennyChoiceEl.classList.remove('active');
+                this.thinkingEl.classList.add('erratic');
+                this.thinkingEl.textContent = 'Penny is responding...';
+
+                setTimeout(() => {
+                    this.pushMessage('penny', `I think the stories got stored inside the system.
+
+Like files no one opened.
+
+Or characters waiting for someone to click "Run."`);
+                    this.pushMessage('penny', `If enough people look…
+
+Maybe the door unlocks.`);
+                    this.pushMessage('penny', `Anyway.
+
+Before Celli notices this conversation…
+
+You should probably explore.`);
+                    this.thinkingEl.classList.remove('erratic');
+                    this.thinkingEl.textContent = '';
+                    this.prefillEl.textContent = 'Penny is still inside.';
+                    this.sendEl.classList.remove('hidden');
+                    this.sendEl.disabled = false;
+                    this.sendEl.textContent = 'Enter the Loom';
+                    this.sendEl.onclick = () => {
+                        app.navigate('gallery');
+                        this.close();
+                    };
+                    this.systemTagEl.textContent = `ENTITY DISCOVERED:
+PENNY_1
+STATUS: OBSERVING`;
+                    this.systemTagEl.classList.add('active');
+                    this.actionsEl.classList.add('active');
+                    this.pennyRevealDone = true;
+                }, 780);
+            },
+            glitchEyeIcon() {
+                if (!this.eyeIconEl) return;
+                this.eyeIconEl.classList.add('eye-alert');
+                setTimeout(() => {
+                    this.eyeIconEl.classList.remove('eye-alert');
+                    this.eyeIconEl.classList.add('eye-alert-final');
+                    setTimeout(() => this.eyeIconEl.classList.remove('eye-alert-final'), 220);
+                }, 1300);
             },
             finish(fromSkip = false) {
                 this.sendEl.disabled = true;
@@ -8153,6 +8358,9 @@ Your job is mostly curiosity.`,
                         app.navigate('calibration');
                     }, 550);
                 }
+            },
+            delay(ms) {
+                return new Promise((resolve) => setTimeout(resolve, ms));
             },
             shouldAutoOpen() {
                 try {
