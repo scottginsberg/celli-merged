@@ -1,3 +1,5 @@
+import { resolveViewRelativeStep } from '../engine/CameraHelpers.js';
+
 /**
  * DPadController - D-Pad Navigation System
  * 
@@ -79,26 +81,26 @@ export class DPadController {
    * Handle direction click
    */
   _handleDirection(dir) {
-    let dx = 0, dy = 0, dz = 0;
-    
-    if (dir === 'up') {
-      if (this.state.depthMode) dz = -1;
-      else dy = -1;
-    } else if (dir === 'down') {
-      if (this.state.depthMode) dz = 1;
-      else dy = 1;
-    } else if (dir === 'left') {
-      dx = -1;
-    } else if (dir === 'right') {
-      dx = 1;
-    } else if (dir === 'depthUp') {
-      dz = 1;
-    } else if (dir === 'depthDown') {
-      dz = -1;
+    const store = window.Store;
+    const state = store?.getState?.();
+    const selection = state?.selection;
+    const arr = selection?.arrayId ? state?.arrays?.[selection.arrayId] : null;
+
+    let step = { dx: 0, dy: 0, dz: 0 };
+    if (arr) {
+      step = resolveViewRelativeStep(arr, dir, { depthMode: this.state.depthMode });
+    } else {
+      // Fallback for scenes without Store/array context
+      if (dir === 'up') step = this.state.depthMode ? { dx: 0, dy: 0, dz: -1 } : { dx: 0, dy: -1, dz: 0 };
+      else if (dir === 'down') step = this.state.depthMode ? { dx: 0, dy: 0, dz: 1 } : { dx: 0, dy: 1, dz: 0 };
+      else if (dir === 'left') step = { dx: -1, dy: 0, dz: 0 };
+      else if (dir === 'right') step = { dx: 1, dy: 0, dz: 0 };
+      else if (dir === 'depthUp') step = { dx: 0, dy: 0, dz: 1 };
+      else if (dir === 'depthDown') step = { dx: 0, dy: 0, dz: -1 };
     }
-    
+
     if (this.callbacks.onNavigate) {
-      this.callbacks.onNavigate({ dx, dy, dz });
+      this.callbacks.onNavigate(step);
     }
   }
 

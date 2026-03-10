@@ -17,6 +17,8 @@
  * - Scene (facingFromCamera)
  */
 
+import { resolveViewRelativeStep } from '../engine/CameraHelpers.js';
+
 // Input state
 export const input = { f: 0, b: 0, l: 0, r: 0, j: 0 };
 export const platformerKeyState = {
@@ -269,7 +271,6 @@ function handleKeyUp(e) {
  */
 function handleArrowNavigation(key, arr, sel, shiftKey) {
   const Actions = window.Actions;
-  const Scene = window.Scene;
   
   if (!Actions) return;
   
@@ -281,36 +282,14 @@ function handleArrowNavigation(key, arr, sel, shiftKey) {
     if (key === 'ArrowRight') Actions.moveSelection?.(-1, 0, 0);
   } else {
     // Move focus (view-relative)
-    let dx = 0, dy = 0, dz = 0;
-    
-    // Get facing direction from camera
-    let facing = { axis: 2, sign: 1 };
-    try {
-      if (arr._frame && Scene?.facingFromCamera) {
-        facing = Scene.facingFromCamera(arr._frame);
-      }
-    } catch (e) {}
-    
-    const axis = facing.axis; // 0=X, 1=Y, 2=Z
-    const sign = facing.sign;
-    
-    // Map keys based on viewing axis
-    if (axis === 2) { // Z face
-      if (key === 'ArrowUp') dy = -1;
-      if (key === 'ArrowDown') dy = 1;
-      if (key === 'ArrowLeft') dx = -sign;
-      if (key === 'ArrowRight') dx = sign;
-    } else if (axis === 0) { // X face
-      if (key === 'ArrowUp') dy = -1;
-      if (key === 'ArrowDown') dy = 1;
-      if (key === 'ArrowLeft') dz = -sign;
-      if (key === 'ArrowRight') dz = sign;
-    } else { // Y face
-      if (key === 'ArrowUp') dz = -1;
-      if (key === 'ArrowDown') dz = 1;
-      if (key === 'ArrowLeft') dx = -sign;
-      if (key === 'ArrowRight') dx = sign;
-    }
+    const directionByKey = {
+      ArrowUp: 'up',
+      ArrowDown: 'down',
+      ArrowLeft: 'left',
+      ArrowRight: 'right'
+    };
+    const direction = directionByKey[key];
+    const { dx, dy, dz } = resolveViewRelativeStep(arr, direction, { depthMode: false });
     
     // Apply movement
     const nx = Math.max(0, Math.min(arr.size.x - 1, sel.focus.x + dx));
