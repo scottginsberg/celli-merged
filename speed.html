@@ -2131,8 +2131,44 @@ function spawnFallingGamePiece(playerWorldPos) {
 }
 
 function updateFallingGamePieces(dt, playerWorldPos) {
+  const shouldSuckIntoBlackHole = songEnded || endSequenceStarted;
+  const blackHoleTarget = new THREE.Vector3();
+
+  if (shouldSuckIntoBlackHole) {
+    // Pull toward a point just ahead of the camera so pieces visually collapse into the portal/end sequence center.
+    camera.getWorldDirection(blackHoleTarget);
+    blackHoleTarget.multiplyScalar(35).add(camera.position);
+  }
+
   for (let i = fallingGamePieces.length - 1; i >= 0; i--) {
     const piece = fallingGamePieces[i];
+
+    if (shouldSuckIntoBlackHole) {
+      const toHole = blackHoleTarget.clone().sub(piece.position);
+      const distanceToHole = toHole.length();
+
+      if (distanceToHole < 1.5) {
+        scene.remove(piece);
+        fallingGamePieces.splice(i, 1);
+        continue;
+      }
+
+      toHole.normalize();
+
+      // Accelerating pull + slight spiral motion to make the collapse feel like a vacuum.
+      const pullStrength = 30 + (80 / Math.max(distanceToHole, 1));
+      piece.position.addScaledVector(toHole, pullStrength * dt);
+      piece.position.x += Math.sin(gameTime * 18 + i * 0.7) * 2.2 * dt;
+      piece.position.y += Math.cos(gameTime * 16 + i * 0.9) * 1.8 * dt;
+
+      const scaleFactor = Math.max(0.08, distanceToHole / 55);
+      piece.scale.setScalar(scaleFactor);
+
+      piece.rotation.x += piece.userData.rotSpeed.x * dt * 2.5;
+      piece.rotation.y += piece.userData.rotSpeed.y * dt * 2.5;
+      piece.rotation.z += piece.userData.rotSpeed.z * dt * 2.5;
+      continue;
+    }
     
     // Fall down
     piece.position.y -= piece.userData.fallSpeed * dt;
@@ -3616,7 +3652,7 @@ function tick(now){
   
   // Spawn falling game pieces during Phase 4 (when motion blur is active)
   const phase4Duration = gameTime - 60;
-  if (visualProgression.phase >= 4 && phase4Duration > 40 && Math.random() < 0.15) {
+  if (!songEnded && !endSequenceStarted && visualProgression.phase >= 4 && phase4Duration > 40 && Math.random() < 0.15) {
     spawnFallingGamePiece(playerWorldPos);
   }
   
