@@ -290,21 +290,37 @@
             100% { background: #111; color: #f8f1ea; border-color: #CD2B2B; font-family: 'Space Mono', monospace; letter-spacing: 0.22em; }
         }
 
-        .glitch-banner {
+        .media-dock {
             position: fixed;
-            bottom: 24px;
-            left: calc(20px + 220px + 26px);
+            right: 20px;
+            bottom: 20px;
+            z-index: 90;
+            display: flex;
+            align-items: flex-end;
+            pointer-events: none;
+        }
+        .media-dock > * {
+            pointer-events: auto;
+        }
+
+        .glitch-banner {
+            position: relative;
+            bottom: auto;
+            left: auto;
             right: auto;
             top: auto;
             transform: translateY(140%);
-            padding: 10px 18px;
+            padding: 10px 24px 10px 18px;
             border: 2px solid #CD2B2B;
             font-size: 11px;
             text-transform: uppercase;
-            z-index: 70;
+            z-index: 1;
             overflow: hidden;
-            min-width: 240px;
-            max-width: min(340px, calc(100vw - 40px));
+            min-width: 220px;
+            max-width: min(320px, calc(100vw - 64px));
+            margin-right: -6px;
+            border-right-width: 1px;
+            clip-path: polygon(0 0, 100% 0, 100% calc(50% - 16px), calc(100% - 20px) 50%, 100% calc(50% + 16px), 100% 100%, 0 100%);
             box-shadow: 0 10px 30px rgba(0,0,0,0.22);
             transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
@@ -414,29 +430,28 @@
             display: none;
         }
         .spotify-overlay {
-            position: fixed;
-            left: 20px;
-            bottom: 20px;
+            position: relative;
+            left: auto;
+            bottom: auto;
             right: auto;
             top: auto;
-            width: min(320px, 72vw);
-            background: #fff;
-            border: 2px solid #111;
-            border-radius: 16px;
-            box-shadow: 10px 14px 0 rgba(0,0,0,0.2);
-            z-index: 90;
+            width: auto;
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            z-index: 2;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            transition: width 0.3s ease, box-shadow 0.3s ease;
+            overflow: visible;
         }
         .spotify-overlay__toggle {
-            border: 0;
-            border-bottom: 1px solid #2b2b2b;
-            width: 100%;
+            border: 2px solid #111;
+            width: auto;
             display: inline-flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
+            gap: 8px;
             padding: 10px 14px;
             text-transform: uppercase;
             font-size: 10px;
@@ -445,6 +460,8 @@
             background: #111;
             color: #FDFBF7;
             cursor: pointer;
+            border-radius: 0 14px 14px 0;
+            min-height: 44px;
         }
         .spotify-overlay__toggle::after {
             content: '▾';
@@ -460,8 +477,18 @@
             border-bottom: 0;
         }
         .spotify-overlay__body {
+            position: absolute;
+            right: 0;
+            bottom: calc(100% + 10px);
+            width: min(320px, 72vw);
             height: 460px;
-            transition: height 0.3s ease, opacity 0.3s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            border: 2px solid #111;
+            border-radius: 16px;
+            box-shadow: 10px 14px 0 rgba(0,0,0,0.2);
+            background: #fff;
+            overflow: hidden;
+            transform: translateY(0);
         }
         .spotify-overlay__body iframe {
             width: 100%;
@@ -469,13 +496,13 @@
             border: 0;
         }
         .spotify-overlay.minimized {
-            width: fit-content;
-            box-shadow: 6px 10px 0 rgba(0,0,0,0.18);
+            width: auto;
+            box-shadow: none;
         }
         .spotify-overlay.minimized .spotify-overlay__body {
-            height: 0;
             opacity: 0;
             pointer-events: none;
+            transform: translateY(10px);
         }
         .spotify-overlay.minimized .spotify-overlay__toggle::after {
             transform: rotate(-180deg);
@@ -484,6 +511,7 @@
             width: auto;
             padding: 8px 12px;
             letter-spacing: 0.14em;
+            border-radius: 14px;
         }
         .surveillance-popup::before,
         .surveillance-popup::after {
@@ -523,12 +551,14 @@
         }
 
         @media (max-width: 768px) {
-            .spotify-overlay {
-                left: 12px;
+            .media-dock {
+                right: 12px;
                 bottom: 12px;
-                right: auto;
-                top: auto;
+            }
+
+            .spotify-overlay__body {
                 width: min(280px, calc(100vw - 24px));
+                height: 340px;
             }
 
             .surveillance-popup.minimized {
@@ -536,13 +566,11 @@
             }
 
             .glitch-banner {
-                left: auto;
-                right: 12px;
-                bottom: 132px;
-                top: auto;
                 min-width: 0;
-                max-width: calc(100vw - 24px);
+                max-width: clamp(170px, 44vw, 240px);
                 transform: translateY(140%);
+                font-size: 10px;
+                padding: 9px 20px 9px 12px;
             }
 
             .glitch-banner.active {
@@ -551,10 +579,26 @@
         }
 
         @media (max-width: 480px) {
+            .media-dock {
+                right: 8px;
+                bottom: 8px;
+            }
+
             .glitch-banner {
-                left: 12px;
-                right: 12px;
-                bottom: 112px;
+                max-width: 44vw;
+                letter-spacing: 0.08em;
+                font-size: 9px;
+            }
+
+            .spotify-overlay__toggle {
+                padding: 8px 10px;
+                font-size: 9px;
+                min-height: 40px;
+            }
+
+            .spotify-overlay__body {
+                width: min(260px, calc(100vw - 16px));
+                height: 300px;
             }
         }
 
@@ -914,12 +958,14 @@
             </button>
         </div>
     </div>
+    <div class="media-dock">
     <div id="glitch-banner" class="glitch-banner era-shift" aria-live="polite">HOW MUCH DO YOU COST? :(/:)</div>
-    <div id="spotify-overlay" class="spotify-overlay" aria-label="Playlist overlay">
-        <button id="spotify-toggle" class="spotify-overlay__toggle" type="button" aria-expanded="true">Collapse</button>
+    <div id="spotify-overlay" class="spotify-overlay minimized" aria-label="Playlist overlay">
+        <button id="spotify-toggle" class="spotify-overlay__toggle" type="button" aria-expanded="false">Playlist</button>
         <div class="spotify-overlay__body">
             <iframe src="https://open.spotify.com/embed/playlist/0bDJZ89nH6RHIpPE8WMcfw?utm_source=generator&theme=0" title="Loomworks playlist" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
         </div>
+    </div>
     </div>
 
     <section id="view-landing" class="view-section active">
