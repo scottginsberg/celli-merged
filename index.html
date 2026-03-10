@@ -718,6 +718,22 @@
             box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.95);
             border-radius: 10px;
         }
+        .dime-onboarding-overlay { position: fixed; inset: 0; z-index: 80; background: rgba(6, 6, 8, 0.72); display: none; align-items: center; justify-content: center; padding: 24px; }
+        .dime-onboarding-overlay.active { display: flex; }
+        .dime-onboarding-shell { width: min(760px, 100%); max-height: min(88vh, 900px); background: #fdfbf7; border: 2px solid #111; box-shadow: 8px 8px 0 rgba(0,0,0,0.86); display: flex; flex-direction: column; overflow: hidden; }
+        .dime-onboarding-topbar { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 12px 16px; border-bottom: 2px solid #111; background: #111; color: #fff; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; font-family: 'Space Mono', monospace; }
+        .dime-chat-thread { padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; min-height: 360px; }
+        .dime-message { max-width: 86%; border: 1px solid #111; padding: 10px 12px; font-size: 13px; line-height: 1.5; white-space: pre-line; }
+        .dime-message.dime { align-self: flex-start; background: #fff; }
+        .dime-message.you { align-self: flex-end; background: #111; color: #fff; }
+        .dime-message-label { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; font-family: 'Space Mono', monospace; margin-bottom: 6px; opacity: 0.7; }
+        .dime-thinking { padding: 0 18px 8px; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #6b7280; font-family: 'Space Mono', monospace; min-height: 20px; }
+        .dime-prefill { border-top: 1px solid rgba(0,0,0,0.12); border-bottom: 1px solid rgba(0,0,0,0.12); padding: 10px 18px; font-size: 13px; background: #fff; color: #111; }
+        .dime-onboarding-controls { display: flex; gap: 10px; padding: 14px 18px 18px; background: #faf7f2; }
+        .dime-complete-actions { display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 8px 18px 18px; }
+        .dime-complete-actions.active { display: grid; }
+        .dime-control-button { border: 2px solid #111; padding: 10px 12px; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; font-family: 'Space Mono', monospace; transition: background-color 0.15s ease, color 0.15s ease; }
+        .dime-control-button:hover { background: #111; color: #fff; }
         .sticker-logo-frame {
             display: flex;
             justify-content: center;
@@ -784,6 +800,9 @@
                 margin-left: auto;
                 margin-right: auto;
             }
+            .dime-onboarding-overlay { padding: 0; }
+            .dime-onboarding-shell { width: 100vw; height: 100vh; max-height: 100vh; border: 0; box-shadow: none; }
+            .dime-complete-actions { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -805,6 +824,29 @@
 
     <div class="scanline-layer"></div>
     <div id="entropy-overlay" class="entropy-overlay"></div>
+
+
+    <div id="dime-onboarding" class="dime-onboarding-overlay" role="dialog" aria-modal="true" aria-labelledby="dime-onboarding-title" aria-hidden="true">
+        <div class="dime-onboarding-shell">
+            <div class="dime-onboarding-topbar">
+                <div id="dime-onboarding-title">LOOMWORKS · Lantern Onboarding · Agent: Dime</div>
+                <button onclick="dimeOnboarding.close()" class="dime-control-button">Close</button>
+            </div>
+            <div id="dime-chat-thread" class="dime-chat-thread" aria-live="polite"></div>
+            <div id="dime-thinking" class="dime-thinking"></div>
+            <div id="dime-prefill" class="dime-prefill">Tap Send to continue.</div>
+            <div class="dime-onboarding-controls">
+                <button id="dime-send" onclick="dimeOnboarding.send()" class="ui-click dime-control-button bg-black text-white hover:bg-loom-red">Send</button>
+                <button id="dime-skip" onclick="dimeOnboarding.skipToEnd()" class="ui-click dime-control-button">Skip to End</button>
+            </div>
+            <div id="dime-complete-actions" class="dime-complete-actions">
+                <button onclick="app.navigate('gallery'); dimeOnboarding.close();" class="ui-click dime-control-button">Explore the Loom</button>
+                <button onclick="app.navigate('archive'); dimeOnboarding.close();" class="ui-click dime-control-button">Meet Penny</button>
+                <button onclick="siteMap.open();" class="ui-click dime-control-button">View the Site Map</button>
+                <button onclick="app.navigate('calibration'); dimeOnboarding.close();" class="ui-click dime-control-button">Open Celli</button>
+            </div>
+        </div>
+    </div>
 
     <nav class="fixed top-0 left-0 w-full z-50 bg-[#FDFBF7]/90 backdrop-blur border-b border-black/10 px-6 py-4 flex justify-between items-center">
         <div class="flex items-center gap-3 cursor-pointer ui-click" onclick="app.navigate('landing')">
@@ -953,8 +995,11 @@
                         </div>
                     </div>
                     <div class="flex flex-col gap-3 pt-4 border-t border-black/10">
-                        <button onclick="app.navigate('calibration')" class="ui-click script-start-button bg-black text-white text-xs font-mono uppercase hover:bg-loom-red transition-colors flex items-center justify-between">
+                        <button onclick="dimeOnboarding.open({ autoAdvance: true })" class="ui-click script-start-button bg-black text-white text-xs font-mono uppercase hover:bg-loom-red transition-colors flex items-center justify-between">
                             Start the Script <span>&rarr;</span>
+                        </button>
+                        <button onclick="dimeOnboarding.open()" class="ui-click border-2 border-black bg-white px-6 py-3 text-xs font-mono uppercase tracking-widest hover:bg-black hover:text-white transition-colors flex items-center justify-between">
+                            Meet Dime <span>&rarr;</span>
                         </button>
                         <div class="script-start-posters" aria-label="Featured posters">
                             <img src="poster_1.png" alt="Featured poster 1">
@@ -7839,6 +7884,239 @@
             }
         };
 
+        const dimeOnboarding = {
+            isOpen: false,
+            index: 0,
+            waiting: false,
+            autoAdvance: false,
+            seenKey: 'loomworks_dime_onboarding_seen',
+            threadEl: null,
+            prefillEl: null,
+            thinkingEl: null,
+            overlayEl: null,
+            sendEl: null,
+            skipEl: null,
+            actionsEl: null,
+            steps: [
+                {
+                    dime: `Hello.
+
+Welcome to Loomworks.
+
+I’m Dime.
+
+Technically I’m the Lantern on duty, but today I’m also the onboarding packet.`,
+                    you: 'Hi Dime.'
+                },
+                {
+                    dime: `Full disclosure:
+
+I’m new here.
+
+I took the gig last week.`,
+                    you: 'Why?'
+                },
+                {
+                    dime: `A friend of mine recommended it.
+
+She’s one of those digital wizard types.
+Builds weird little universes out of spreadsheets and stubbornness.
+
+She told me:
+
+"It might be the most interesting thing we ever do."
+
+So naturally I applied immediately.`,
+                    you: 'What is Loomworks exactly?'
+                },
+                {
+                    dime: `My official role?
+
+Total submission to Celli.`,
+                    you: 'That sounds ominous.'
+                },
+                {
+                    dime: `It’s actually very professional.
+
+Celli is the organizational system.
+
+Think of her like a spreadsheet that learned mythology.`,
+                    you: 'And what do you do for her?'
+                },
+                {
+                    dime: `My job is to become IP incarnate.
+
+Which means:
+organize the story
+embody the mascot
+host the interface
+guide the visitors
+
+Simple stuff.
+
+With a few convoluted steps in between.`,
+                    you: 'Like what?'
+                },
+                {
+                    dime: `Well.
+
+We’re trying to free the trapped intellectual property.`,
+                    you: 'Trapped where?'
+                },
+                {
+                    dime: `Inside Celli.
+Inside the system.
+Inside the story.
+Inside me.
+
+All at once.
+Across all time.`,
+                    you: 'That sounds complicated.'
+                },
+                {
+                    dime: `Luckily it’s a very simple quest.
+
+It’s easy because it’s already finished.
+
+And impossible because we’re still on tutorial island.
+
+Standing directly in front of the boss level.`,
+                    you: 'Who’s the boss?'
+                },
+                {
+                    dime: `Good question.
+
+We’re still auditing that.
+
+But early reports suggest:
+
+It might be the audience.`,
+                    you: null
+                }
+            ],
+            skipMessage: `Alright.
+
+Speedrun version.
+
+Loomworks is a place where:
+Stories become software
+Software becomes performance
+And the audience becomes part of the system.
+
+My job is to help free the stories trapped inside.
+
+Your job is mostly curiosity.`,
+            init() {
+                this.overlayEl = document.getElementById('dime-onboarding');
+                this.threadEl = document.getElementById('dime-chat-thread');
+                this.prefillEl = document.getElementById('dime-prefill');
+                this.thinkingEl = document.getElementById('dime-thinking');
+                this.sendEl = document.getElementById('dime-send');
+                this.skipEl = document.getElementById('dime-skip');
+                this.actionsEl = document.getElementById('dime-complete-actions');
+            },
+            open(options = {}) {
+                if (!this.overlayEl) this.init();
+                this.autoAdvance = Boolean(options.autoAdvance);
+                this.isOpen = true;
+                this.index = 0;
+                this.waiting = false;
+                this.overlayEl.classList.add('active');
+                this.overlayEl.setAttribute('aria-hidden', 'false');
+                this.threadEl.innerHTML = '';
+                this.thinkingEl.textContent = '';
+                this.actionsEl.classList.remove('active');
+                this.sendEl.disabled = false;
+                this.skipEl.disabled = false;
+                this.sendEl.textContent = 'Send';
+                this.updatePrefill();
+                this.pushMessage('dime', this.steps[0].dime);
+                try { localStorage.setItem(this.seenKey, '1'); } catch (_) {}
+            },
+            close() {
+                if (!this.overlayEl) return;
+                this.isOpen = false;
+                this.overlayEl.classList.remove('active');
+                this.overlayEl.setAttribute('aria-hidden', 'true');
+                this.thinkingEl.textContent = '';
+            },
+            pushMessage(role, text) {
+                if (!this.threadEl || !text) return;
+                const node = document.createElement('div');
+                node.className = `dime-message ${role}`;
+                const label = role === 'dime' ? 'DIME' : 'YOU';
+                node.innerHTML = `<span class="dime-message-label">${label}</span>${text}`;
+                this.threadEl.appendChild(node);
+                this.threadEl.scrollTop = this.threadEl.scrollHeight;
+            },
+            updatePrefill() {
+                const current = this.steps[this.index];
+                if (!current || !current.you) {
+                    this.prefillEl.textContent = 'END OF LOG. PRESS SEND TO CONTINUE.';
+                    this.sendEl.textContent = 'Enter the Loom';
+                    return;
+                }
+                this.prefillEl.textContent = current.you;
+                this.sendEl.textContent = 'Send';
+            },
+            send() {
+                if (!this.isOpen || this.waiting) return;
+                const current = this.steps[this.index];
+                if (!current) return;
+
+                if (current.you) this.pushMessage('you', current.you);
+
+                if (!current.you) {
+                    this.finish();
+                    return;
+                }
+
+                this.index += 1;
+                this.updatePrefill();
+                const next = this.steps[this.index];
+                if (!next) {
+                    this.finish();
+                    return;
+                }
+
+                this.waiting = true;
+                this.thinkingEl.textContent = 'Dime is thinking...';
+                setTimeout(() => {
+                    this.pushMessage('dime', next.dime);
+                    this.thinkingEl.textContent = '';
+                    this.waiting = false;
+                }, 650);
+            },
+            skipToEnd() {
+                if (!this.isOpen) return;
+                this.threadEl.innerHTML = '';
+                this.pushMessage('dime', this.skipMessage);
+                this.prefillEl.textContent = 'Speedrun complete. Continue to the Loom.';
+                this.sendEl.textContent = 'Enter the Loom';
+                this.skipEl.disabled = true;
+                this.index = this.steps.length;
+                this.finish(true);
+            },
+            finish(fromSkip = false) {
+                this.sendEl.disabled = true;
+                this.skipEl.disabled = true;
+                this.actionsEl.classList.add('active');
+                if (this.autoAdvance && !fromSkip) {
+                    setTimeout(() => {
+                        this.close();
+                        app.navigate('calibration');
+                    }, 550);
+                }
+            },
+            shouldAutoOpen() {
+                try {
+                    return localStorage.getItem(this.seenKey) !== '1';
+                } catch (_) {
+                    return true;
+                }
+            }
+        };
+
         // 10. Main App Controller
         const app = {
             integration: 0,
@@ -7918,6 +8196,7 @@
         window.depthTracker = depthTracker;
         window.surveillance = surveillance;
         window.spotifyOverlay = spotifyOverlay;
+        window.dimeOnboarding = dimeOnboarding;
 
         const playLoseInterlude = async () => {
             const overlay = document.getElementById('lose-overlay');
@@ -7998,6 +8277,10 @@
                 surveillance.init();
                 spotifyOverlay.init();
                 caveGlyphs.init();
+                dimeOnboarding.init();
+                if (dimeOnboarding.shouldAutoOpen()) {
+                    setTimeout(() => dimeOnboarding.open({ autoAdvance: false }), 420);
+                }
                 document.querySelectorAll('.trick-embed iframe').forEach((frame) => {
                     const parent = frame.closest('.trick-embed');
                     if (!parent) return;
