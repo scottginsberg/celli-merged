@@ -8177,7 +8177,7 @@ Maybe you can help.`
                 this.sendEl.textContent = 'Send';
                 this.updatePrefill();
                 this.pushMessage('dime', this.steps[0].dime);
-                try { localStorage.setItem(this.seenKey, '1'); } catch (_) {}
+                try { sessionStorage.setItem(this.seenKey, '1'); } catch (_) {}
             },
             close() {
                 if (!this.overlayEl) return;
@@ -8240,12 +8240,11 @@ Maybe you can help.`
                 this.threadEl.innerHTML = '';
                 this.pushMessage('dime', this.skipMessage);
                 this.prefillEl.textContent = 'Speedrun complete. Continue to the Loom.';
-                this.sendEl.textContent = 'Enter the Loom';
-                this.skipEl.disabled = true;
-                this.onboardingComplete = false;
-                this.pennyUnlocked = false;
+                this.sendEl.textContent = 'Continue';
+                this.onboardingComplete = true;
+                this.pennyUnlocked = true;
                 this.index = this.steps.length;
-                this.finish(true);
+                this.finishOnboarding();
             },
             finishOnboarding() {
                 this.onboardingComplete = true;
@@ -8253,15 +8252,9 @@ Maybe you can help.`
                 this.sendEl.disabled = true;
                 this.skipEl.disabled = true;
                 this.actionsEl.classList.add('active');
-                this.showPennyPrompt();
-                if (this.autoAdvance) {
-                    setTimeout(() => {
-                        this.close();
-                        app.navigate('calibration');
-                    }, 900);
-                }
+                this.showPennyPrompt(true);
             },
-            showPennyPrompt() {
+            showPennyPrompt(autoOpenPenny = false) {
                 this.waiting = true;
                 this.thinkingEl.textContent = '...';
                 setTimeout(() => {
@@ -8273,6 +8266,9 @@ There is something you should see.`);
                     this.thinkingEl.textContent = '';
                     this.pennyLaunchEl.classList.add('active');
                     this.waiting = false;
+                    if (autoOpenPenny) {
+                        setTimeout(() => this.openPennyWindow(), 320);
+                    }
                 }, 650);
             },
             async openPennyWindow() {
@@ -8348,23 +8344,17 @@ STATUS: OBSERVING`;
                     setTimeout(() => this.eyeIconEl.classList.remove('eye-alert-final'), 220);
                 }, 1300);
             },
-            finish(fromSkip = false) {
+            finish() {
                 this.sendEl.disabled = true;
                 this.skipEl.disabled = true;
                 this.actionsEl.classList.add('active');
-                if (this.autoAdvance && !fromSkip) {
-                    setTimeout(() => {
-                        this.close();
-                        app.navigate('calibration');
-                    }, 550);
-                }
             },
             delay(ms) {
                 return new Promise((resolve) => setTimeout(resolve, ms));
             },
             shouldAutoOpen() {
                 try {
-                    return localStorage.getItem(this.seenKey) !== '1';
+                    return sessionStorage.getItem(this.seenKey) !== '1';
                 } catch (_) {
                     return true;
                 }
