@@ -7556,7 +7556,8 @@ tag('CELLI_PHYS',["PHYSICS","AVATAR"], (anchor, arr, ast) => {
  }catch{}
 
  let spawnTarget = null;
- if(effectiveEnabled && !prevEnabled){
+ let spawnBinding = null;
+ if(effectiveEnabled){
  try{
  const sel = stateBefore.selection;
  const arrays = stateBefore.arrays || {};
@@ -7564,9 +7565,10 @@ tag('CELLI_PHYS',["PHYSICS","AVATAR"], (anchor, arr, ast) => {
  const arrSel = arrays[sel.arrayId];
  if(arrSel){
  const pos = Scene.worldPos ? Scene.worldPos(arrSel, sel.focus.x, sel.focus.y, sel.focus.z) : null;
- if(pos){
  const scale = arrayVoxelScale(arrSel);
  const perch = avatarPerchOffset(scale);
+ spawnBinding = { arrId: arrSel.id, cell: { x: sel.focus.x, y: sel.focus.y, z: sel.focus.z }, perch };
+ if(pos){
  spawnTarget = { x: pos.x, y: pos.y + perch, z: pos.z };
  }
  }
@@ -7590,6 +7592,15 @@ tag('CELLI_PHYS',["PHYSICS","AVATAR"], (anchor, arr, ast) => {
  try{ Scene.spawnPlayerAt?.(spawnTarget.x, spawnTarget.y, spawnTarget.z); }catch{}
  try{ Scene.setPhysicsSpawn?.(spawnTarget); }catch{}
  }
+
+ try{
+ Store.setState(state=>({
+ scene: {
+ ...(state.scene||{}),
+ physicsSpawnBinding: (effectiveEnabled && spawnBinding) ? spawnBinding : null
+ }
+ }));
+ }catch{}
 
  if(!effectiveEnabled && Store.getState().scene.physics){
  try{
@@ -17515,7 +17526,7 @@ function ensureTimed3D(){
  .add(disp)
  .add(baseRotPivot)
  .sub(newRotPivot);
- setArrayOffset(arr, {x:newOffset.x, y:newOffset.y, z:newOffset.z}, {interactive:true});
+ setArrayOffset(arr, {x:newOffset.x, y:newOffset.y, z:newOffset.z}, {interactive:true, noSnap:true});
  try{ arr._frame.quaternion.copy(newQuat); }catch{}
  // Minimal transpose preview: slight XY swap tilt to indicate operation
  if(hasTranspose){
@@ -17986,7 +17997,7 @@ function ensureTimed3D(){
  }
  }
  function setArrayOffset(arr, next, opts){
- opts = opts||{}; const fast = !!opts.interactive; const skipDock = !!opts._skipDock; const skipConn = !!opts._skipConnections;
+ opts = opts||{}; const fast = !!opts.interactive; const skipDock = !!opts._skipDock; const skipConn = !!opts._skipConnections; const noSnap = !!opts.noSnap;
  // Snap to global phase
  const arrScale = arrayVoxelScale(arr);
  const snapAxis=(axis,val,sz)=>{
@@ -17997,7 +18008,9 @@ function ensureTimed3D(){
  if(arrScale === 0) return val;
  return Math.round((val - base - phase)/arrScale) * arrScale + base + phase;
  };
- const snapped={ x:snapAxis('x',next.x,arr.size.x), y:snapAxis('y',next.y,arr.size.y), z:snapAxis('z',next.z,arr.size.z) };
+ const snapped = noSnap
+ ? { x:Number(next.x)||0, y:Number(next.y)||0, z:Number(next.z)||0 }
+ : { x:snapAxis('x',next.x,arr.size.x), y:snapAxis('y',next.y,arr.size.y), z:snapAxis('z',next.z,arr.size.z) };
  const curOff = arr.offset||{x:0,y:0,z:0};
  const delta = { x: snapped.x-curOff.x, y: snapped.y-curOff.y, z: snapped.z-curOff.z };
  // If no actual snap delta, do nothing (prevents wobble without movement)
@@ -18035,6 +18048,7 @@ function ensureTimed3D(){
  // Keep physics colliders/bodies and CELL_PHYS respawns aligned with moving arrays.
  try{ syncPhysicsBodiesForArrayOffset(arr, delta); }catch{}
  try{ syncPhysicsRespawnForArray(arr); }catch{}
+ try{ syncAvatarPhysicsSpawnForArray(arr); }catch{}
 
  // Apply dock propagation after offset change (use actual delta of snapped vs previous)
  try{
@@ -20119,6 +20133,25 @@ function syncPhysicsRespawnForArray(arr){
  }
  }catch(e){
  console.warn('[PHYSICS] Failed syncing respawn point for moving array', arr?.id, e);
+ }
+}
+
+function syncAvatarPhysicsSpawnForArray(arr){
+ if(!arr || !Number.isFinite(arr.id)) return;
+ try{
+ const state = Store.getState();
+ const binding = state.scene?.physicsSpawnBinding;
+ if(!binding || binding.arrId !== arr.id || !binding.cell) return;
+ const cx = Math.trunc(binding.cell.x ?? 0);
+ const cy = Math.trunc(binding.cell.y ?? 0);
+ const cz = Math.trunc(binding.cell.z ?? 0);
+ const perch = Number.isFinite(binding.perch) ? binding.perch : avatarPerchOffset(arrayVoxelScale(arr));
+ let pos = null;
+ try{ pos = Scene.cellWorldPos?.(arr, cx, cy, cz) || Scene.worldPos?.(arr, cx, cy, cz); }catch{}
+ if(!pos) return;
+ setPhysicsSpawn({ x: pos.x, y: pos.y + perch, z: pos.z });
+ }catch(e){
+ console.warn('[PHYSICS] Failed syncing CELLI_PHYS spawn for moving array', arr?.id, e);
  }
 }
 
