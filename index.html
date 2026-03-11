@@ -137,11 +137,19 @@
         @media (max-width: 768px) {
             .gallery-panel {
                 left: 50%;
-                bottom: 12px;
+                right: auto;
+                bottom: max(12px, env(safe-area-inset-bottom));
                 transform: translateX(-50%);
                 width: calc(100% - 24px);
                 max-width: 100%;
                 padding: 16px;
+                max-height: calc(100dvh - 92px);
+                overflow-y: auto;
+                text-align: center;
+            }
+
+            .gallery-panel button {
+                text-align: center !important;
             }
         }
 
