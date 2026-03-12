@@ -17528,6 +17528,7 @@ function ensureTimed3D(){
  .sub(newRotPivot);
  setArrayOffset(arr, {x:newOffset.x, y:newOffset.y, z:newOffset.z}, {interactive:true, noSnap:true});
  try{ arr._frame.quaternion.copy(newQuat); }catch{}
+ try{ refreshPhysicsBodiesForMovingArray(arr); }catch{}
  // Minimal transpose preview: slight XY swap tilt to indicate operation
  if(hasTranspose){
  try{
@@ -17542,6 +17543,16 @@ function ensureTimed3D(){
  // Non-preview: arrays should already be at their one-time end state from 3D_TRANSLATE/3D_ROTATE.
  // Do not re-apply or enforce here to avoid double transforms.
  }
+ }
+ }catch{}
+
+ try{
+ if(Store.getState().scene?.physics && rapierWorld){
+ Object.values(Store.getState().arrays || {}).forEach(arr=>{
+ if(!arr || arr._deleting) return;
+ if(!arr._staticBody && !(arr._rigidBodies && arr._rigidBodies.length)) return;
+ refreshPhysicsBodiesForMovingArray(arr);
+ });
  }
  }catch{}
 
@@ -20071,10 +20082,26 @@ function syncPhysicsBodiesForArrayOffset(arr, delta){
  if(Math.abs(dx) + Math.abs(dy) + Math.abs(dz) < 1e-6) return;
 
  try{
+ const frameQuat = arr?._frame?.quaternion;
+ const staticBody = (arr?._staticBody != null) ? rapierWorld.getRigidBody(arr._staticBody) : null;
+ if(staticBody){
+ const tr = staticBody.translation?.();
+ const nx = (tr?.x ?? 0) + dx;
+ const ny = (tr?.y ?? 0) + dy;
+ const nz = (tr?.z ?? 0) + dz;
+ try{ staticBody.setNextKinematicTranslation?.({ x:nx, y:ny, z:nz }); }catch{}
+ try{ staticBody.setTranslation({ x:nx, y:ny, z:nz }, true); }catch{}
+ if(frameQuat){
+ const q = { x:frameQuat.x, y:frameQuat.y, z:frameQuat.z, w:frameQuat.w };
+ try{ staticBody.setNextKinematicRotation?.(q); }catch{}
+ try{ staticBody.setRotation?.(q, true); }catch{}
+ }
+ }
+
  (arr._rigidBodies || []).forEach(handle=>{
  const body = rapierWorld.getRigidBody(handle);
  if(!body) return;
- const tr = body.translation();
+ const tr = body.translation?.();
  if(!tr) return;
  body.setTranslation({ x: tr.x + dx, y: tr.y + dy, z: tr.z + dz }, true);
  try{ body.wakeUp?.(); }catch{}
@@ -20089,9 +20116,65 @@ function syncPhysicsBodiesForArrayOffset(arr, delta){
  const tr = col.translation?.();
  if(!tr) return;
  col.setTranslation({ x: tr.x + dx, y: tr.y + dy, z: tr.z + dz });
+ if(frameQuat){
+ const q = { x:frameQuat.x, y:frameQuat.y, z:frameQuat.z, w:frameQuat.w };
+ try{ col.setRotation?.(q); }catch{}
+ }
  });
+
+ const off = arr.offset || {x:0,y:0,z:0};
+ arr._physicsLastOffset = { x:Number(off.x)||0, y:Number(off.y)||0, z:Number(off.z)||0 };
+ if(frameQuat){
+ arr._physicsLastQuat = { x:frameQuat.x, y:frameQuat.y, z:frameQuat.z, w:frameQuat.w };
+ }
  }catch(e){
  console.warn('[PHYSICS] Failed syncing collider transforms for moving array', arr?.id, e);
+ }
+}
+
+function refreshPhysicsBodiesForMovingArray(arr){
+ if(!arr) return;
+ if(!rapierWorld || !Store.getState().scene?.physics) return;
+ const off = arr.offset || {x:0,y:0,z:0};
+ const now = { x:Number(off.x)||0, y:Number(off.y)||0, z:Number(off.z)||0 };
+ const prev = arr._physicsLastOffset || now;
+ const dx = now.x - (Number(prev.x)||0);
+ const dy = now.y - (Number(prev.y)||0);
+ const dz = now.z - (Number(prev.z)||0);
+ const frameQuat = arr?._frame?.quaternion;
+ const prevQ = arr._physicsLastQuat;
+ const qChanged = !!(frameQuat && (!prevQ
+ || Math.abs((prevQ.x??0)-frameQuat.x) > 1e-6
+ || Math.abs((prevQ.y??0)-frameQuat.y) > 1e-6
+ || Math.abs((prevQ.z??0)-frameQuat.z) > 1e-6
+ || Math.abs((prevQ.w??1)-frameQuat.w) > 1e-6));
+ if(Math.abs(dx)+Math.abs(dy)+Math.abs(dz) > 1e-6){
+ syncPhysicsBodiesForArrayOffset(arr, {x:dx,y:dy,z:dz});
+ return;
+ }
+ if(!qChanged) return;
+ try{
+ const staticBody = (arr?._staticBody != null) ? rapierWorld.getRigidBody(arr._staticBody) : null;
+ if(staticBody && frameQuat){
+ const q = { x:frameQuat.x, y:frameQuat.y, z:frameQuat.z, w:frameQuat.w };
+ try{ staticBody.setNextKinematicRotation?.(q); }catch{}
+ try{ staticBody.setRotation?.(q, true); }catch{}
+ }
+ (arr._colliders || []).forEach(handle=>{
+ const col = rapierWorld.getCollider(handle);
+ if(!col) return;
+ let attached = false;
+ try{ attached = !!col.parent?.(); }catch{}
+ if(attached) return;
+ if(frameQuat){
+ const q = { x:frameQuat.x, y:frameQuat.y, z:frameQuat.z, w:frameQuat.w };
+ try{ col.setRotation?.(q); }catch{}
+ }
+ });
+ arr._physicsLastOffset = now;
+ arr._physicsLastQuat = frameQuat ? { x:frameQuat.x, y:frameQuat.y, z:frameQuat.z, w:frameQuat.w } : null;
+ }catch(e){
+ console.warn('[PHYSICS] Failed refreshing moving array physics state', arr?.id, e);
  }
 }
 
