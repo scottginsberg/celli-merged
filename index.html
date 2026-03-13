@@ -300,12 +300,13 @@
 
         .media-dock {
             position: fixed;
-            right: 20px;
-            bottom: 20px;
+            left: 12px;
+            bottom: 12px;
             z-index: 90;
-            width: min(360px, calc(100vw - 36px));
+            width: min(320px, calc(100vw - 120px));
             display: grid;
             gap: 10px;
+            justify-items: start;
             pointer-events: none;
         }
         .media-dock > * {
@@ -315,16 +316,20 @@
         .glitch-banner {
             transform: translateY(20px);
             opacity: 0;
-            padding: 10px 14px;
+            padding: 8px 12px;
             border: 1px solid rgba(205, 43, 43, 0.45);
-            border-radius: 14px;
-            font-size: 10px;
+            border-radius: 12px;
+            font-size: 9px;
             text-transform: uppercase;
             font-family: 'Space Mono', monospace;
-            letter-spacing: 0.14em;
+            letter-spacing: 0.1em;
             z-index: 1;
             overflow: hidden;
-            width: 100%;
+            width: fit-content;
+            max-width: min(320px, calc(100vw - 120px));
+            text-align: left;
+            cursor: pointer;
+            appearance: none;
             box-shadow: 0 10px 30px rgba(0,0,0,0.16);
             transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s ease;
         }
@@ -332,6 +337,21 @@
             transform: translateY(0);
             opacity: 1;
         }
+
+        .glitch-banner.collapsed {
+            width: 36px;
+            height: 36px;
+            max-width: 36px;
+            padding: 0;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            letter-spacing: 0;
+            line-height: 1;
+        }
+
         .glitch-banner::before,
         .glitch-banner::after {
             content: '';
@@ -549,9 +569,9 @@
 
         @media (max-width: 768px) {
             .media-dock {
-                right: 12px;
-                bottom: 12px;
-                width: min(360px, calc(100vw - 24px));
+                left: 10px;
+                bottom: 10px;
+                width: min(300px, calc(100vw - 92px));
             }
 
             .spotify-overlay__body {
@@ -570,9 +590,9 @@
 
         @media (max-width: 480px) {
             .media-dock {
-                right: 8px;
+                left: 8px;
                 bottom: 8px;
-                width: calc(100vw - 16px);
+                width: min(260px, calc(100vw - 84px));
             }
 
             .glitch-banner {
@@ -988,7 +1008,7 @@
         </div>
     </div>
     <div class="media-dock">
-    <div id="glitch-banner" class="glitch-banner era-shift" aria-live="polite">How much do you cost to dream?</div>
+    <button id="glitch-banner" class="glitch-banner era-shift" type="button" aria-live="polite" aria-expanded="true" aria-label="Collapse cost banner">//HOW MUCH DO YOU COST??</button>
     <div id="spotify-overlay" class="spotify-overlay minimized" aria-label="Playlist overlay">
         <button id="spotify-toggle" class="spotify-overlay__toggle" type="button" aria-expanded="false" aria-label="Expand playlist">Loomworks Playlist</button>
         <div class="spotify-overlay__body">
@@ -7831,6 +7851,14 @@
 
                 setTimeout(() => popup.classList.add('active'), 1400);
                 setTimeout(() => banner.classList.add('active'), 2200);
+
+                const fullBannerText = '//HOW MUCH DO YOU COST??';
+                banner.addEventListener('click', () => {
+                    const collapsed = banner.classList.toggle('collapsed');
+                    banner.textContent = collapsed ? '?' : fullBannerText;
+                    banner.setAttribute('aria-expanded', String(!collapsed));
+                    banner.setAttribute('aria-label', collapsed ? 'Expand cost banner' : 'Collapse cost banner');
+                });
 
                 if (closeBtn) {
                     closeBtn.addEventListener('click', () => {
