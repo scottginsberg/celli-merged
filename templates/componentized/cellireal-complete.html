@@ -14086,12 +14086,12 @@ renderer.setSize(window.innerWidth,window.innerHeight);
  else if(ax>ay && ax>az){ axis='X'; sign=Math.sign(camDirL.x)||1; frontLayer = (sign>0) ? (arr.size.x-1) : 0; focusLayer = selection.x; }
  else { axis='Z'; sign=Math.sign(camDirL.z)||1; frontLayer = (sign>0) ? 0 : (arr.size.z-1); focusLayer = selection.z; }
  const blockedLayers = new Set();
- // Block layers BETWEEN front and focus, excluding both endpoints
- // Front layer is always visible (not ghosted), focus layer is always visible
+ // Block layers from front toward focus (include front, exclude focus)
+ // Focus layer remains visible for interaction context
  if(frontLayer < focusLayer){ 
- for(let L=frontLayer+1; L<focusLayer; L++) blockedLayers.add(L); 
+ for(let L=frontLayer; L<focusLayer; L++) blockedLayers.add(L); 
  } else if(frontLayer > focusLayer){ 
- for(let L=frontLayer-1; L>focusLayer; L--) blockedLayers.add(L); 
+ for(let L=frontLayer; L>focusLayer; L--) blockedLayers.add(L); 
  }
  arr._occlusionData = { axis, sign, frontLayer, focusLayer, blockedLayers };
  }catch{
@@ -17218,17 +17218,17 @@ function ensureTimed3D(){
  if(animate.lastOcclusionState.signature !== signature){
  animate.lastOcclusionState.signature = signature;
  const blockedLayers = new Set();
- // Block layers BETWEEN front and focus, excluding both endpoints
- // Front layer is always visible, focus layer is always visible
+ // Block layers from front toward focus (include front, exclude focus)
+ // Focus layer remains visible for interaction context
  if(facing==='Z'){
- if(frontLayer < focusLayer){ for(let L=frontLayer+1; L<focusLayer; L++) blockedLayers.add(L); }
- else if(frontLayer > focusLayer) { for(let L=frontLayer-1; L>focusLayer; L--) blockedLayers.add(L); }
+ if(frontLayer < focusLayer){ for(let L=frontLayer; L<focusLayer; L++) blockedLayers.add(L); }
+ else if(frontLayer > focusLayer) { for(let L=frontLayer; L>focusLayer; L--) blockedLayers.add(L); }
  } else if(facing==='X'){
- if(frontLayer < focusLayer){ for(let L=frontLayer+1; L<focusLayer; L++) blockedLayers.add(L); }
- else if(frontLayer > focusLayer) { for(let L=frontLayer-1; L>focusLayer; L--) blockedLayers.add(L); }
+ if(frontLayer < focusLayer){ for(let L=frontLayer; L<focusLayer; L++) blockedLayers.add(L); }
+ else if(frontLayer > focusLayer) { for(let L=frontLayer; L>focusLayer; L--) blockedLayers.add(L); }
  } else if(facing==='Y'){
- if(frontLayer < focusLayer){ for(let L=frontLayer+1; L<focusLayer; L++) blockedLayers.add(L); }
- else if(frontLayer > focusLayer) { for(let L=frontLayer-1; L>focusLayer; L--) blockedLayers.add(L); }
+ if(frontLayer < focusLayer){ for(let L=frontLayer; L<focusLayer; L++) blockedLayers.add(L); }
+ else if(frontLayer > focusLayer) { for(let L=frontLayer; L>focusLayer; L--) blockedLayers.add(L); }
  }
 
  const prevBlocked = animate.lastOcclusionState.blockedLayers || new Set();
