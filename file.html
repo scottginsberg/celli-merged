@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loomworks Systems Brief</title>
+  <style>
+    :root {
+      --paper: #f2efe8;
+      --panel: rgba(255,255,255,0.82);
+      --panel-strong: rgba(255,255,255,0.92);
+      --ink: #171412;
+      --muted: #6f675f;
+      --line: rgba(23, 20, 18, 0.16);
+      --line-strong: rgba(23, 20, 18, 0.38);
+      --accent: #111111;
+      --accent-inverse: #f6f3ee;
+      --shadow: 0 18px 50px rgba(17, 14, 12, 0.08);
+      --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--ink);
+      background:
+        linear-gradient(to right, rgba(23,20,18,.055) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(23,20,18,.055) 1px, transparent 1px),
+        var(--paper);
+      background-size: 32px 32px, 32px 32px, auto;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -20%;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(0,0,0,.05) 0.7px, transparent 0.7px);
+      background-size: 9px 9px;
+      opacity: .22;
+      animation: grain 9s steps(6) infinite;
+      z-index: 0;
+    }
+
+    @keyframes grain {
+      0% { transform: translate(0,0); }
+      25% { transform: translate(-1%, 1%); }
+      50% { transform: translate(1%, -1%); }
+      75% { transform: translate(1%, 1%); }
+      100% { transform: translate(0,0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: .2; }
+      50% { opacity: .52; }
+    }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      width: min(1440px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 20px 0 28px;
+    }
+
+    .panel {
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-strong { background: var(--panel-strong); }
+    .hairline { border: 1px solid var(--line); }
+    .hairline-strong { border: 1px solid var(--line-strong); }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(320px, .75fr);
+      gap: 24px;
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+
+    .chips, .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      padding: 7px 10px 6px;
+      font-size: 10px;
+      letter-spacing: .34em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(255,255,255,.62);
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      margin-top: 12px;
+      max-width: 900px;
+      font-size: clamp(2.1rem, 5vw, 4.8rem);
+      line-height: .98;
+      font-weight: 300;
+      letter-spacing: -.04em;
+    }
+
+    .subhead {
+      margin-top: 18px;
+      max-width: 780px;
+      color: #403933;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .mode-box {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .mode-panel, .directive-panel {
+      padding: 14px;
+      background: rgba(249,247,243,.88);
+      border: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      font-size: 10px;
+      letter-spacing: .34em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .mode-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .mode-tabs button,
+    .nav-item,
+    .node,
+    .ghost-button {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.82);
+      color: var(--ink);
+      cursor: pointer;
+      transition: background .2s ease, color .2s ease, border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+      font: inherit;
+    }
+
+    .mode-tabs button {
+      flex: 1;
+      padding: 12px 10px;
+      text-transform: uppercase;
+      letter-spacing: .24em;
+      font-size: 11px;
+    }
+
+    .mode-tabs button.active,
+    .nav-item.active,
+    .node.active,
+    .ghost-button.active {
+      background: #161311;
+      color: var(--accent-inverse);
+      border-color: #161311;
+      box-shadow: 0 12px 30px rgba(0,0,0,.12);
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    aside, main { min-width: 0; }
+
+    .aside-card { overflow: hidden; }
+    .section-head {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--line);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .34em;
+      color: var(--muted);
+    }
+
+    .nav-list { padding: 10px; }
+
+    .nav-item {
+      width: 100%;
+      text-align: left;
+      padding: 14px;
+      margin-bottom: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav-item:hover,
+    .node:hover,
+    .ghost-button:hover,
+    .mode-tabs button:hover {
+      transform: translateY(-1px);
+      background: rgba(249,247,243,1);
+    }
+
+    .nav-scan { animation: pulse 3s ease-in-out infinite; }
+
+    .file-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .small-label, .tiny {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .3em;
+      color: var(--muted);
+    }
+
+    .nav-title { font-size: 20px; font-weight: 500; }
+    .nav-class { font-size: 12px; color: #514942; line-height: 1.5; }
+
+    .crosswalk {
+      border-top: 1px solid var(--line);
+      padding: 16px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .cross-item {
+      border: 1px solid var(--line);
+      padding: 10px;
+      background: rgba(249,247,243,.86);
+      font-size: 12px;
+      line-height: 1.6;
+      color: #4a433d;
+    }
+
+    .content {
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(340px, .8fr);
+      min-height: 480px;
+    }
+
+    .hero-copy {
+      padding: 22px;
+      border-right: 1px solid var(--line);
+      animation: reveal .45s ease both;
+    }
+
+    .hero-side {
+      padding: 22px;
+      display: grid;
+      align-content: start;
+      gap: 14px;
+    }
+
+    .title {
+      font-size: clamp(2rem, 3vw, 3.5rem);
+      line-height: 1;
+      font-weight: 300;
+      letter-spacing: -.04em;
+      margin-top: 10px;
+    }
+
+    .classification {
+      margin-top: 10px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .22em;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .summary {
+      margin-top: 18px;
+      max-width: 820px;
+      font-size: 15px;
+      line-height: 1.8;
+      color: #2f2925;
+    }
+
+    .note-grid {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .note {
+      padding: 13px;
+      border: 1px solid var(--line);
+      background: rgba(249,247,243,.86);
+      font-size: 13px;
+      line-height: 1.7;
+      color: #4a433c;
+    }
+
+    .specimen, .key-box, .readout-box, .prompt-box, .render-status {
+      border: 1px solid var(--line);
+      background: rgba(249,247,243,.86);
+    }
+
+    .specimen-line {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.55;
+      letter-spacing: .02em;
+      word-break: break-word;
+    }
+
+    .specimen-line:last-child { border-bottom: none; }
+
+    .key-box, .prompt-box, .render-status {
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #4a433c;
+    }
+
+    .dual-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .topology-card, .readout-card {
+      padding: 20px;
+    }
+
+    .topology-stage {
+      position: relative;
+      min-height: 360px;
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      background: rgba(249,247,243,.8);
+      overflow: hidden;
+    }
+
+    .topology-stage::before,
+    .topology-stage::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      background: var(--line-strong);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .topology-stage::before { width: 74%; height: 1px; }
+    .topology-stage::after { width: 1px; height: 62%; }
+
+    .node {
+      position: absolute;
+      width: min(42%, 260px);
+      padding: 16px;
+      text-align: left;
+    }
+
+    .node[data-key="celli"] { top: 18px; left: 18px; }
+    .node[data-key="lumingu"] { top: 18px; right: 18px; }
+    .node[data-key="integration"] { bottom: 18px; left: 18px; }
+    .node[data-key="bianco"] { bottom: 18px; right: 18px; }
+
+    .node .name { margin-top: 8px; font-size: 22px; font-weight: 500; }
+    .node .desc { margin-top: 8px; font-size: 12px; line-height: 1.6; opacity: .82; }
+
+    .readout-box { padding: 16px; }
+    .readout-copy { font-size: 14px; line-height: 1.9; color: #443d37; display: grid; gap: 14px; }
+
+    .visual-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      min-height: 460px;
+    }
+
+    .viewport-wrap {
+      position: relative;
+      border-right: 1px solid var(--line);
+      min-height: 460px;
+      background: linear-gradient(180deg, rgba(255,255,255,.64), rgba(243,239,233,.92));
+    }
+
+    #three-viewport {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .viewport-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(to right, rgba(23,20,18,.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(23,20,18,.08) 1px, transparent 1px);
+      background-size: 46px 46px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,.88), rgba(0,0,0,.46));
+    }
+
+    .viewport-label {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .visual-side {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .ghost-button {
+      padding: 12px 14px;
+      text-align: left;
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .explain {
+      font-size: 13px;
+      line-height: 1.75;
+      color: #4c453e;
+    }
+
+    .footer {
+      padding: 14px 16px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .34em;
+      color: var(--muted);
+    }
+
+    .render-status {
+      position: absolute;
+      left: 14px;
+      bottom: 14px;
+      max-width: min(420px, calc(100% - 28px));
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity .22s ease, transform .22s ease;
+    }
+
+    .render-status.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .error-banner {
+      display: none;
+      padding: 14px;
+      border: 1px solid rgba(120, 30, 24, 0.26);
+      background: rgba(120, 30, 24, 0.06);
+      color: #5a1d19;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .fallback-scene {
+      position: absolute;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .fallback-inner {
+      width: min(560px, 100%);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.82);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .fallback-diagram {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .fallback-diagram div {
+      border: 1px solid var(--line);
+      padding: 14px;
+      background: rgba(249,247,243,.86);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 1120px) {
+      .topbar,
+      .hero-card,
+      .visual-card,
+      .dual-grid,
+      .shell {
+        grid-template-columns: 1fr;
+      }
+      .hero-copy, .viewport-wrap { border-right: none; border-bottom: 1px solid var(--line); }
+      .page { width: min(100vw - 20px, 1440px); }
+      .note-grid { grid-template-columns: 1fr; }
+      .visual-card { min-height: 780px; }
+      .viewport-wrap { min-height: 420px; }
+      .node { width: calc(50% - 28px); }
+    }
+
+    @media (max-width: 760px) {
+      .page { width: min(100vw - 12px, 1440px); padding-top: 8px; }
+      .topbar, .hero-copy, .hero-side, .topology-card, .readout-card, .visual-side { padding: 16px; }
+      .mode-tabs { flex-direction: column; }
+      .node {
+        position: static;
+        width: auto;
+        margin: 14px;
+        display: block;
+      }
+      .topology-stage {
+        display: grid;
+        gap: 0;
+        padding: 0;
+      }
+      .topology-stage::before, .topology-stage::after { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="panel topbar">
+      <section>
+        <div class="chips">
+          <span class="chip">Loomworks</span>
+          <span class="chip">Systems Brief</span>
+          <span class="chip">Interactive Filing Copy</span>
+          <span class="chip">Standard HTML Build</span>
+        </div>
+        <h1>Stack Overview:<br><em>celli / lumingu / interface / bianco</em></h1>
+        <p class="subhead">
+          A cryptic, public-safe dossier for a four-part system: volumetric data logic,
+          semantic compression language, training-time integration, and modular ritual hardware.
+          It behaves like an archive, reads like a filing system, and reveals the stack as one continuous argument across notation, meaning, models, and matter.
+        </p>
+      </section>
+
+      <section class="mode-box">
+        <div class="mode-panel">
+          <div class="eyebrow">Interface Mode</div>
+          <div class="mode-tabs" id="modeTabs">
+            <button data-mode="briefing" class="active">Briefing</button>
+            <button data-mode="archive">Archive</button>
+            <button data-mode="schema">Schema</button>
+          </div>
+        </div>
+        <div class="directive-panel">
+          <div class="eyebrow">Directive</div>
+          <div style="font-size:13px; line-height:1.75; color:#4a433d;">
+            Select a file. Read vertically. Cross-reference laterally. Treat metaphors as interfaces.
+          </div>
+        </div>
+      </section>
+    </header>
+
+    <div class="shell">
+      <aside class="panel aside-card">
+        <div class="section-head">Filing Index</div>
+        <div class="nav-list" id="navList"></div>
+
+        <div class="crosswalk">
+          <div class="eyebrow" style="margin-bottom:2px;">Crosswalk</div>
+          <div id="crosswalk"></div>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section class="panel panel-strong hero-card">
+          <div class="hero-copy" id="heroCopy"></div>
+          <div class="hero-side">
+            <div>
+              <div class="eyebrow">Specimen Lines</div>
+              <div class="specimen" id="specimen"></div>
+            </div>
+            <div class="key-box">
+              <div class="eyebrow">Interpretive Key</div>
+              <div id="interpretiveKey"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="dual-grid">
+          <div class="panel panel-strong topology-card">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:14px;">
+              <div>
+                <div class="eyebrow">System Topology</div>
+                <h3 style="font-size:2rem; line-height:1; font-weight:300; letter-spacing:-.04em;">Operational Shape</h3>
+              </div>
+              <div class="small-label">Interactive</div>
+            </div>
+            <div class="topology-stage" id="topologyStage"></div>
+          </div>
+
+          <div class="panel panel-strong readout-card">
+            <div class="eyebrow">Readout</div>
+            <h3 style="font-size:2rem; line-height:1; font-weight:300; letter-spacing:-.04em; margin-bottom:14px;">Why the stack coheres</h3>
+            <div class="readout-box">
+              <div class="readout-copy" id="modeReadout"></div>
+            </div>
+            <div class="prompt-box" style="margin-top:16px;">
+              <div class="eyebrow">Prompt for viewers</div>
+              <div>
+                Do not ask whether it is software, language, or product design first. Ask what kind of continuity it is trying to preserve as it moves from notation to matter.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel panel-strong visual-card">
+          <div class="viewport-wrap">
+            <div id="three-viewport" aria-label="Three dimensional systems sketch"></div>
+            <div class="viewport-overlay"></div>
+            <div class="viewport-label meta-row">
+              <span class="chip">Dimensional Sketch</span>
+              <span class="chip" id="visualModeLabel">File 01 / Celli</span>
+              <span class="chip">Three.js / Conditional</span>
+            </div>
+            <div class="render-status" id="renderStatus"></div>
+            <div class="fallback-scene" id="fallbackScene">
+              <div class="fallback-inner">
+                <div class="eyebrow">Fallback Scene</div>
+                <h3 style="font-size:1.5rem; font-weight:300; letter-spacing:-.03em;">Viewport degraded gracefully</h3>
+                <p style="margin-top:10px; font-size:13px; line-height:1.8; color:#4b443d;">
+                  The dimensional renderer did not initialize. The site remains readable. The diagram below preserves the explanatory structure with no loss of access to core content.
+                </p>
+                <div class="fallback-diagram">
+                  <div><strong>Celli</strong><br>Sheet expands into volume.</div>
+                  <div><strong>Lumingu</strong><br>Meaning compresses without total flattening.</div>
+                  <div><strong>Integration</strong><br>Training bridge reduces structural loss.</div>
+                  <div><strong>Bianco</strong><br>Abstraction becomes tactile ritual hardware.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="visual-side">
+            <div>
+              <div class="eyebrow">Visual Register</div>
+              <h3 style="font-size:2rem; line-height:1; font-weight:300; letter-spacing:-.04em;">Dimensional abstractor</h3>
+            </div>
+            <div class="explain" id="visualExplanation"></div>
+            <div style="display:grid; gap:10px;" id="visualButtons"></div>
+            <div class="error-banner" id="errorBanner"></div>
+          </div>
+        </section>
+
+        <footer class="panel footer">
+          Internal copy / public-safe / minimal release / responsive display / no decorative excess beyond function
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.161.0/build/three.module.js';
+
+    const sections = [
+      {
+        id: '01',
+        key: 'celli',
+        title: 'Celli',
+        classification: 'Relational Visualization / Z-Dimension Extension',
+        panelLabel: 'System Record',
+        summary: 'A novel data-relational model and manipulation environment that extends familiar spreadsheet logic into a third dimension.',
+        bullets: [
+          'Retains the ease and legibility of traditional spreadsheet functions, formulas, and expressions.',
+          'Moves from flat addressing toward volumetric notation and spatial reasoning.',
+          'Frames data not just as rows and columns, but as structure that can unfold across depth.'
+        ],
+        specimen: ['A1 → A1α', 'Z10 → Z10θ', 'sheet → volume → navigable object'],
+        interpretive: 'Celli is the container: a spreadsheet grown into an object-space.',
+        visualExplanation: 'The live sketch renders a restrained volumetric lattice and a soft rotating wireframe cube. This is the stack at its most infrastructural: notation acquiring depth.',
+        visualState: 'celli'
+      },
+      {
+        id: '02',
+        key: 'lumingu',
+        title: 'Lumingu',
+        classification: 'Constructed Language / Semantic Compression Layer',
+        panelLabel: 'Language Record',
+        summary: 'A conlang that drifts from semantic association toward deconstructed phonemes and sublingual associative meaning.',
+        bullets: [
+          'Treats syllables as manipulable semantic particles rather than fixed lexical units.',
+          'Allows meaning to be folded, recombined, softened, and redistributed through notation.',
+          'Intended to become legible both to humans and models as a dense intermediate language-form.'
+        ],
+        specimen: ['Lu / m / ing / u', 'light-speak / make-material / universal', 'emit → materialize → notation → consumable by all'],
+        interpretive: 'Lumingu is the membrane: a language designed to compress and bend meaning without flattening it.',
+        visualExplanation: 'The renderer shifts from rigid edges into drifting phonemic particles and linked glyph-like paths. The scene becomes less architectural and more linguistic, but remains bureaucratically restrained.',
+        visualState: 'lumingu'
+      },
+      {
+        id: '03',
+        key: 'integration',
+        title: 'Integration',
+        classification: 'Training-Time Bridge / Compression Interface',
+        panelLabel: 'Interface Record',
+        summary: 'Map LLM representations into Lumingu during training so tokenization becomes less lossy and structural breaks distort less.',
+        bullets: [
+          'Compression becomes an interpretable layer rather than a hidden compromise.',
+          'Semantic unfolding can occur across a Z dimension instead of along a single flat token stream.',
+          'Positions Celli as spatial substrate and Lumingu as the compressed semantic membrane.'
+        ],
+        specimen: ['LLM ↔ Lumingu', 'lossy tokenization → loss-reduced structural mapping', 'unfurling expands across Z'],
+        interpretive: 'Integration is the wager: that model training can preserve more structure if language and space cooperate.',
+        visualExplanation: 'The viewport tightens into bridges, rails, and intermediary pulses. Distinct domains are shown exchanging structure rather than collapsing into each other.',
+        visualState: 'integration'
+      },
+      {
+        id: '04',
+        key: 'bianco',
+        title: 'Bianco',
+        classification: 'Modular Hardware / Domestic Ritual Layer',
+        panelLabel: 'Hardware Record',
+        summary: 'A system of standard hardware connectors and custom components that merges desk toy, ritual object, display system, and wearable utility.',
+        bullets: [
+          'American-standard hardware logic meets Lego, Swatch, Rube Goldberg, and tactile industrial ornament.',
+          'Keys, cogs, bearings, springs, and button caps become interoperable modules.',
+          'Objects migrate between home, desk, garment, and gesture: one system, many rituals.'
+        ],
+        specimen: ['small cart + key tray → turns lights on', 'PC power button cap → jacket button', 'palette-swappable snaps for favorite coat'],
+        interpretive: 'Bianco is the incarnation: abstract modularity made tactile, domestic, wearable, and ritualized.',
+        visualExplanation: 'The dimensional sketch resolves into modular rings, pins, and connector-like bodies. The abstraction becomes object logic without becoming glossy or consumerish.',
+        visualState: 'bianco'
+      }
+    ];
+
+    const relations = [
+      ['Celli', 'Lumingu', 'Spatial substrate meets semantic compression'],
+      ['Lumingu', 'Integration', 'Intermediate language becomes trainable bridge'],
+      ['Integration', 'Bianco', 'Abstract logic enters ritual hardware and lived interface'],
+      ['Bianco', 'Celli', 'Physical modules echo systemic modularity']
+    ];
+
+    const readouts = {
+      briefing: [
+        'The stack is not four unrelated inventions. It is one argument expressed at four scales: data structure, language structure, model structure, and object structure.',
+        'Celli proposes that information should inhabit volume. Lumingu proposes that meaning should be compressible without being brutally flattened. Integration proposes a bridge between those two. Bianco proposes that modular logic should become lived ritual in the physical world.'
+      ],
+      archive: [
+        'File order suggests developmental drift from abstract substrate toward embodied interface. The system begins with notation, migrates into language, passes through training infrastructure, and terminates in tactile, domestic hardware.',
+        'The archive view treats every part as evidence that the same design instinct is recurring in different media rather than changing subjects entirely.'
+      ],
+      schema: [
+        'Schema view: space → meaning → training → ritual object.',
+        'This transforms a conceptual ecosystem into a tractable map. Each layer can be explored alone, but the full value appears when the interfaces between layers are treated as primary design sites.'
+      ]
+    };
+
+    let activeKey = 'celli';
+    let mode = 'briefing';
+    let scanIndex = 0;
+    let sceneState = { loaded: false, mode: 'celli', ready: false, degraded: false };
+
+    const navList = document.getElementById('navList');
+    const heroCopy = document.getElementById('heroCopy');
+    const specimen = document.getElementById('specimen');
+    const interpretiveKey = document.getElementById('interpretiveKey');
+    const crosswalk = document.getElementById('crosswalk');
+    const topologyStage = document.getElementById('topologyStage');
+    const modeReadout = document.getElementById('modeReadout');
+    const visualModeLabel = document.getElementById('visualModeLabel');
+    const visualExplanation = document.getElementById('visualExplanation');
+    const visualButtons = document.getElementById('visualButtons');
+    const renderStatus = document.getElementById('renderStatus');
+    const fallbackScene = document.getElementById('fallbackScene');
+    const errorBanner = document.getElementById('errorBanner');
+
+    const sectionByKey = Object.fromEntries(sections.map(s => [s.key, s]));
+
+    function currentSection() {
+      return sectionByKey[activeKey] || sections[0];
+    }
+
+    function renderNav() {
+      navList.innerHTML = sections.map((section, idx) => {
+        const active = section.key === activeKey;
+        const scanClass = !active && idx === scanIndex ? 'nav-scan' : '';
+        return `
+          <button class="nav-item ${active ? 'active' : ''} ${scanClass}" data-key="${section.key}">
+            <div class="file-row">
+              <div>
+                <div class="tiny">File ${section.id}</div>
+                <div class="nav-title">${section.title}</div>
+              </div>
+              <div class="tiny">Open</div>
+            </div>
+            <div class="nav-class">${section.classification}</div>
+          </button>
+        `;
+      }).join('');
+
+      navList.querySelectorAll('.nav-item').forEach(button => {
+        button.addEventListener('click', () => setActive(button.dataset.key));
+      });
+    }
+
+    function renderCrosswalk() {
+      crosswalk.innerHTML = relations.map(([a, b, note]) => `
+        <div class="cross-item">
+          <div class="tiny" style="margin-bottom:6px;">${a} ↔ ${b}</div>
+          <div>${note}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderHero() {
+      const section = currentSection();
+      heroCopy.innerHTML = `
+        <div class="meta-row">
+          <span class="chip">${section.panelLabel}</span>
+          <span class="chip">${mode}</span>
+          <span class="chip">Active File ${section.id}</span>
+        </div>
+        <div class="title">${section.title}</div>
+        <div class="classification">${section.classification}</div>
+        <p class="summary">${section.summary}</p>
+        <div class="note-grid">
+          ${section.bullets.map((item, i) => `
+            <div class="note">
+              <div class="eyebrow" style="margin-bottom:8px;">Note 0${i + 1}</div>
+              <div>${item}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      specimen.innerHTML = section.specimen.map(line => `<div class="specimen-line">${line}</div>`).join('');
+      interpretiveKey.textContent = section.interpretive;
+    }
+
+    function renderTopology() {
+      topologyStage.innerHTML = sections.map(section => `
+        <button class="node ${section.key === activeKey ? 'active' : ''}" data-key="${section.key}">
+          <div class="tiny">Node</div>
+          <div class="name">${section.title}</div>
+          <div class="desc">${section.classification}</div>
+        </button>
+      `).join('');
+
+      topologyStage.querySelectorAll('.node').forEach(button => {
+        button.addEventListener('click', () => setActive(button.dataset.key));
+      });
+    }
+
+    function renderReadout() {
+      modeReadout.innerHTML = readouts[mode].map(p => `<p>${p}</p>`).join('');
+    }
+
+    function renderVisualPanel() {
+      const section = currentSection();
+      visualModeLabel.textContent = `File ${section.id} / ${section.title}`;
+      visualExplanation.textContent = section.visualExplanation;
+      visualButtons.innerHTML = sections.map(section => `
+        <button class="ghost-button ${section.key === activeKey ? 'active' : ''}" data-key="${section.key}">
+          Visualize ${section.title}
+        </button>
+      `).join('');
+      visualButtons.querySelectorAll('.ghost-button').forEach(button => {
+        button.addEventListener('click', () => setActive(button.dataset.key));
+      });
+    }
+
+    function setMode(nextMode) {
+      mode = nextMode;
+      document.querySelectorAll('#modeTabs button').forEach(button => {
+        button.classList.toggle('active', button.dataset.mode === mode);
+      });
+      renderReadout();
+    }
+
+    function setActive(nextKey) {
+      activeKey = nextKey;
+      renderNav();
+      renderHero();
+      renderTopology();
+      renderVisualPanel();
+      setSceneMode(activeKey);
+    }
+
+    document.querySelectorAll('#modeTabs button').forEach(button => {
+      button.addEventListener('click', () => setMode(button.dataset.mode));
+    });
+
+    renderCrosswalk();
+    renderNav();
+    renderHero();
+    renderTopology();
+    renderReadout();
+    renderVisualPanel();
+
+    setInterval(() => {
+      scanIndex = (scanIndex + 1) % sections.length;
+      renderNav();
+    }, 2800);
+
+    function showRenderStatus(message, persist = false) {
+      renderStatus.textContent = message;
+      renderStatus.classList.add('show');
+      if (!persist) {
+        clearTimeout(showRenderStatus._t);
+        showRenderStatus._t = setTimeout(() => renderStatus.classList.remove('show'), 2200);
+      }
+    }
+
+    function degradeRenderer(message, errorText = '') {
+      sceneState.degraded = true;
+      fallbackScene.style.display = 'grid';
+      showRenderStatus(message, true);
+      if (errorText) {
+        errorBanner.style.display = 'block';
+        errorBanner.textContent = errorText;
+      }
+    }
+
+    const viewport = document.getElementById('three-viewport');
+    let renderer, scene, camera, frameHandle = 0, resizeObserver;
+    let clock = new THREE.Clock();
+    let rootGroup = null;
+    let ambientPulse = null;
+
+    function buildCelliGroup() {
+      const group = new THREE.Group();
+
+      const cubeGeo = new THREE.BoxGeometry(2.2, 2.2, 2.2, 4, 4, 4);
+      const wire = new THREE.LineSegments(
+        new THREE.EdgesGeometry(cubeGeo),
+        new THREE.LineBasicMaterial({ color: 0x1a1715, transparent: true, opacity: 0.9 })
+      );
+      group.add(wire);
+
+      const lattice = new THREE.Group();
+      const pointGeo = new THREE.SphereGeometry(0.035, 10, 10);
+      const pointMat = new THREE.MeshBasicMaterial({ color: 0x3d3732, transparent: true, opacity: 0.8 });
+      for (let x = -2; x <= 2; x++) {
+        for (let y = -2; y <= 2; y++) {
+          for (let z = -2; z <= 2; z++) {
+            const p = new THREE.Mesh(pointGeo, pointMat);
+            p.position.set(x * 0.42, y * 0.42, z * 0.42);
+            lattice.add(p);
+          }
+        }
+      }
+      group.add(lattice);
+
+      const slabGeo = new THREE.BoxGeometry(2.65, 0.04, 2.65);
+      const slab = new THREE.Mesh(
+        slabGeo,
+        new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.06 })
+      );
+      slab.position.y = -1.55;
+      group.add(slab);
+
+      group.userData.update = (t) => {
+        wire.rotation.x = 0.35 + Math.sin(t * 0.3) * 0.06;
+        wire.rotation.y = t * 0.22;
+        lattice.rotation.x = -0.2 + t * 0.08;
+        lattice.rotation.y = t * 0.12;
+      };
+
+      return group;
+    }
+
+    function buildLuminguGroup() {
+      const group = new THREE.Group();
+      const particles = new THREE.Group();
+      const geo = new THREE.SphereGeometry(0.055, 10, 10);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x1c1815, transparent: true, opacity: 0.8 });
+      const count = 40;
+      for (let i = 0; i < count; i++) {
+        const m = new THREE.Mesh(geo, mat);
+        const angle = (i / count) * Math.PI * 2;
+        const r = 1.1 + (i % 5) * 0.12;
+        m.position.set(Math.cos(angle) * r, Math.sin(angle * 1.8) * 0.55, Math.sin(angle) * r * 0.65);
+        m.userData = { angle, r, offset: i * 0.13 };
+        particles.add(m);
+      }
+      group.add(particles);
+
+      const points = [];
+      for (let i = 0; i < 80; i++) {
+        const a = (i / 79) * Math.PI * 2;
+        points.push(new THREE.Vector3(
+          Math.cos(a) * (1.5 + Math.sin(a * 3) * 0.15),
+          Math.sin(a * 2.5) * 0.6,
+          Math.sin(a) * 0.8
+        ));
+      }
+      const curve = new THREE.CatmullRomCurve3(points, true);
+      const curveGeo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(280));
+      const curveLine = new THREE.Line(curveGeo, new THREE.LineBasicMaterial({ color: 0x24201d, transparent: true, opacity: 0.55 }));
+      group.add(curveLine);
+
+      group.userData.update = (t) => {
+        particles.children.forEach((m) => {
+          const { angle, r, offset } = m.userData;
+          m.position.x = Math.cos(angle + t * 0.32 + offset) * (r + Math.sin(t + offset) * 0.08);
+          m.position.y = Math.sin(angle * 1.8 + t * 0.55 + offset) * 0.55;
+          m.position.z = Math.sin(angle + t * 0.27 + offset) * (r * 0.58);
+        });
+        group.rotation.y = t * 0.14;
+      };
+
+      return group;
+    }
+
+    function buildIntegrationGroup() {
+      const group = new THREE.Group();
+      const left = new THREE.Group();
+      const right = new THREE.Group();
+
+      const leftGeo = new THREE.BoxGeometry(1.15, 1.15, 1.15, 2, 2, 2);
+      const leftWire = new THREE.LineSegments(
+        new THREE.EdgesGeometry(leftGeo),
+        new THREE.LineBasicMaterial({ color: 0x1a1715, transparent: true, opacity: 0.85 })
+      );
+      left.add(leftWire);
+      left.position.x = -1.55;
+
+      const rightRingGeo = new THREE.TorusGeometry(0.72, 0.025, 12, 90);
+      const rightRing = new THREE.Mesh(
+        rightRingGeo,
+        new THREE.MeshBasicMaterial({ color: 0x1f1a16, transparent: true, opacity: 0.8, wireframe: true })
+      );
+      right.add(rightRing);
+      right.position.x = 1.55;
+
+      const bridge = new THREE.Group();
+      const dotGeo = new THREE.SphereGeometry(0.05, 10, 10);
+      const dotMat = new THREE.MeshBasicMaterial({ color: 0x2e2823, transparent: true, opacity: 0.85 });
+      for (let i = 0; i < 12; i++) {
+        const d = new THREE.Mesh(dotGeo, dotMat);
+        d.position.x = -0.9 + i * 0.165;
+        bridge.add(d);
+      }
+      const bridgeLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-1.05, 0, 0), new THREE.Vector3(1.05, 0, 0)]),
+        new THREE.LineBasicMaterial({ color: 0x231f1b, transparent: true, opacity: 0.45 })
+      );
+      bridge.add(bridgeLine);
+
+      group.add(left, right, bridge);
+      group.userData.update = (t) => {
+        leftWire.rotation.x = 0.25 + Math.sin(t * 0.75) * 0.08;
+        leftWire.rotation.y = t * 0.26;
+        rightRing.rotation.x = 1.2 + Math.sin(t * 0.5) * 0.18;
+        rightRing.rotation.y = t * 0.9;
+        bridge.children.forEach((child, i) => {
+          if (child.isMesh) {
+            child.position.y = Math.sin(t * 2 + i * 0.35) * 0.12;
+            child.scale.setScalar(0.8 + ((Math.sin(t * 3 + i * 0.55) + 1) / 2) * 0.5);
+          }
+        });
+      };
+
+      return group;
+    }
+
+    function buildBiancoGroup() {
+      const group = new THREE.Group();
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.95, 0.12, 18, 72),
+        new THREE.MeshNormalMaterial({ wireframe: true, transparent: true, opacity: 0.35 })
+      );
+      ring.rotation.x = 1.15;
+      group.add(ring);
+
+      const spokeGeo = new THREE.CylinderGeometry(0.035, 0.035, 1.65, 10);
+      const spokeMat = new THREE.MeshBasicMaterial({ color: 0x1a1715, transparent: true, opacity: 0.72 });
+      for (let i = 0; i < 6; i++) {
+        const spoke = new THREE.Mesh(spokeGeo, spokeMat);
+        const a = (i / 6) * Math.PI * 2;
+        spoke.rotation.z = Math.PI / 2;
+        spoke.position.set(Math.cos(a) * 0.52, Math.sin(a) * 0.52, 0);
+        spoke.rotation.y = a;
+        group.add(spoke);
+      }
+
+      const modules = new THREE.Group();
+      const moduleGeo = new THREE.BoxGeometry(0.24, 0.24, 0.24);
+      const moduleMat = new THREE.MeshBasicMaterial({ color: 0x26211d, transparent: true, opacity: 0.82 });
+      for (let i = 0; i < 9; i++) {
+        const m = new THREE.Mesh(moduleGeo, moduleMat);
+        const a = (i / 9) * Math.PI * 2;
+        m.position.set(Math.cos(a) * 1.55, Math.sin(a * 2.2) * 0.28, Math.sin(a) * 0.72);
+        m.userData = { a, seed: i * 0.21 };
+        modules.add(m);
+      }
+      group.add(modules);
+
+      group.userData.update = (t) => {
+        ring.rotation.z = t * 0.32;
+        ring.rotation.y = Math.sin(t * 0.45) * 0.2;
+        modules.children.forEach((m) => {
+          const { a, seed } = m.userData;
+          m.position.x = Math.cos(a + t * 0.48 + seed) * 1.55;
+          m.position.y = Math.sin(a * 2.2 + t * 0.9 + seed) * 0.3;
+          m.position.z = Math.sin(a + t * 0.42 + seed) * 0.72;
+          m.rotation.x += 0.008;
+          m.rotation.y += 0.012;
+        });
+      };
+
+      return group;
+    }
+
+    function buildGroupForMode(mode) {
+      if (mode === 'lumingu') return buildLuminguGroup();
+      if (mode === 'integration') return buildIntegrationGroup();
+      if (mode === 'bianco') return buildBiancoGroup();
+      return buildCelliGroup();
+    }
+
+    function setSceneMode(nextMode) {
+      sceneState.mode = nextMode;
+      if (!sceneState.ready || sceneState.degraded || !scene) return;
+      if (rootGroup) scene.remove(rootGroup);
+      rootGroup = buildGroupForMode(nextMode);
+      scene.add(rootGroup);
+      showRenderStatus(`Viewport shifted to ${sectionByKey[nextMode].title}.`);
+    }
+
+    function createScene() {
+      const width = Math.max(10, viewport.clientWidth);
+      const height = Math.max(10, viewport.clientHeight);
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf4f1ea);
+
+      camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
+      camera.position.set(0, 0.45, 6.8);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(width, height, false);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      viewport.innerHTML = '';
+      viewport.appendChild(renderer.domElement);
+
+      const ambient = new THREE.AmbientLight(0xffffff, 1.45);
+      const key = new THREE.DirectionalLight(0xffffff, 1.0);
+      key.position.set(3, 4, 5);
+      const fill = new THREE.DirectionalLight(0xffffff, 0.55);
+      fill.position.set(-3, -1, 2);
+      scene.add(ambient, key, fill);
+      ambientPulse = ambient;
+
+      rootGroup = buildGroupForMode(sceneState.mode);
+      scene.add(rootGroup);
+
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(14, 14),
+        new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.03 })
+      );
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.y = -1.85;
+      scene.add(floor);
+
+      const ring = new THREE.LineLoop(
+        new THREE.BufferGeometry().setFromPoints(
+          Array.from({ length: 100 }, (_, i) => {
+            const a = (i / 100) * Math.PI * 2;
+            return new THREE.Vector3(Math.cos(a) * 2.8, -1.15, Math.sin(a) * 2.8);
+          })
+        ),
+        new THREE.LineBasicMaterial({ color: 0x1d1a17, transparent: true, opacity: 0.13 })
+      );
+      scene.add(ring);
+
+      sceneState.ready = true;
+      sceneState.loaded = true;
+      showRenderStatus('Dimensional sketch initialized.');
+    }
+
+    function onResize() {
+      if (!renderer || !camera) return;
+      const width = Math.max(10, viewport.clientWidth);
+      const height = Math.max(10, viewport.clientHeight);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height, false);
+    }
+
+    function animate() {
+      if (!renderer || !scene || !camera || sceneState.degraded) return;
+      frameHandle = requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      if (rootGroup?.userData?.update) rootGroup.userData.update(t);
+      if (ambientPulse) ambientPulse.intensity = 1.3 + (Math.sin(t * 0.8) + 1) * 0.08;
+      camera.position.x = Math.sin(t * 0.18) * 0.14;
+      camera.position.y = 0.42 + Math.sin(t * 0.24) * 0.08;
+      camera.lookAt(0, 0, 0);
+      renderer.render(scene, camera);
+    }
+
+    function safeInitThree() {
+      try {
+        if (!window.WebGLRenderingContext) {
+          degradeRenderer('WebGL unavailable. Static fallback engaged.', 'The browser does not expose WebGL in this environment.');
+          return;
+        }
+
+        createScene();
+        onResize();
+        animate();
+
+        resizeObserver = new ResizeObserver(() => onResize());
+        resizeObserver.observe(viewport);
+
+        // ensure-render watchdog
+        let watchdogResolved = false;
+        const watchdog = setTimeout(() => {
+          if (!watchdogResolved) {
+            degradeRenderer('Renderer watchdog triggered. Static fallback engaged.', 'Three.js did not confirm a stable render pass in time.');
+            cancelAnimationFrame(frameHandle);
+            try { renderer?.dispose(); } catch {}
+          }
+        }, 2400);
+
+        requestAnimationFrame(() => {
+          watchdogResolved = true;
+          clearTimeout(watchdog);
+        });
+      } catch (err) {
+        console.error(err);
+        degradeRenderer('Renderer error. Static fallback engaged.', `Three.js initialization failed: ${err?.message || 'Unknown error'}`);
+      }
+    }
+
+    safeInitThree();
+
+    window.addEventListener('error', (event) => {
+      if (sceneState.degraded) return;
+      const message = event?.message || 'Unknown runtime error';
+      errorBanner.style.display = 'block';
+      errorBanner.textContent = `Runtime monitor: ${message}`;
+    });
+
+    window.addEventListener('beforeunload', () => {
+      cancelAnimationFrame(frameHandle);
+      resizeObserver?.disconnect();
+      try { renderer?.dispose(); } catch {}
+    });
+  </script>
+</body>
+</html>
