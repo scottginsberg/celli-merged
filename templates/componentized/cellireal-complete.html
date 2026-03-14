@@ -1609,7 +1609,7 @@ const Store = createStore((set,get)=>{
  dockGroups: new Map(), // groupId -> {mode:'parent'|'all', members:number[], parentId:number}
  dockGroupsByAnchor: new Map(), // anchorKey -> groupId
  // Avatar + physics camera preferences
- avatarPhysics:{ enabled:true, jumpCount:1, runMultiplier:1, momentumMode:0 },
+ avatarPhysics:{ enabled:true, jumpCount:1, runMultiplier:1, momentumMode:0, celliFriction:1, momentumThreshold:Infinity },
  physicsCamera:{ mode:'free', distance:10, allowRotation:false },
  // Track active 3D_ROTATE applications and suppressions for revert logic
  activeRotations: new Map(), // anchorKey -> {targetId, ids:number[], pivot:{arrId,x,y,z}, steps:{sx,sy,sz}}
@@ -3343,7 +3343,7 @@ const ALWAYS = new Set([
 'FUNCTIONS','LOCK','CREATE','ARRAY','PARAMETERS','ADDRESS','ALT_ADDRESS','COMBINE','COLOR','GETCOLOR','OPEN_URL',
  'ON_SELECT','ON_EVENT','FIRE_EVENT','SET_GLOBAL','GET_GLOBAL','FOCUS_SET','COPY',
  'SOKOBAN','SOKO_STEP','SOKOBAN2','SOKO_STEP2','SSR','SSR_STEP','DEP_VIS','GET_ARRAY_POS','SET_ARRAY_POS','ARRAY_TRANSLATE','TRANSLATE_ARRAY','ROTATE_ARRAY',
- 'INVENTORY','3D_TRANSLATE','3D_ROTATE','DELETE','DEL','REMOVE','LIGHT','CHIME'
+ 'INVENTORY','3D_TRANSLATE','3D_ROTATE','DELETE','DEL','REMOVE','LIGHT','CHIME','CELLI_FRICTION','CELLI_MOMENTUM_THRESHOLD'
 ]);
 const Fn = {}; // name -> {tags:[...], impl(anchor, arr, ast)}
 const tag = (name,tags,impl)=>{ Fn[name]={tags:new Set(tags),impl}; };
@@ -7480,12 +7480,35 @@ tag('CELL_PHYS',["PHYSICS"], (anchor, arr, ast) => {
  Actions.setCell(arr.id, anchor, stamp, ast.raw, true);
 });
 
-// CELLI_PHYS(enabled[, jumpCount[, runMultiplier[, momentumMode]]]) avatar controller wrapper
+// CELLI_FRICTION(value) - 1 keeps Celli attached to moving hosts; 0 keeps global position static
+tag('CELLI_FRICTION',["PHYSICS","AVATAR"], (anchor, arr, ast) => {
+ const raw = Number(Formula.valOf(ast.args[0] ?? 1));
+ const next = raw > 0 ? 1 : 0;
+ Store.setState(state => ({
+ avatarPhysics: { ...state.avatarPhysics, celliFriction: next }
+ }));
+ Actions.setCell(arr.id, anchor, `🧲 Friction:${next}`, ast.raw, true);
+});
+
+// CELLI_MOMENTUM_THRESHOLD(speed) - moving hosts at/above this speed transfer motion against friction
+tag('CELLI_MOMENTUM_THRESHOLD',["PHYSICS","AVATAR"], (anchor, arr, ast) => {
+ const raw = Number(Formula.valOf(ast.args[0]));
+ const next = Number.isFinite(raw) ? Math.max(0, raw) : Infinity;
+ Store.setState(state => ({
+ avatarPhysics: { ...state.avatarPhysics, momentumThreshold: next }
+ }));
+ const label = Number.isFinite(next) ? next : 'INF';
+ Actions.setCell(arr.id, anchor, `🏃 Threshold:${label}`, ast.raw, true);
+});
+
+// CELLI_PHYS(enabled[, jumpCount[, runMultiplier[, momentumMode[, celliFriction[, momentumThreshold]]]]]) avatar controller wrapper
 tag('CELLI_PHYS',["PHYSICS","AVATAR"], (anchor, arr, ast) => {
  const enabled = !!Formula.valOf(ast.args[0] ?? 1);
  const jumpCountArg = ast.args[1];
  const runArg = ast.args[2];
  const momentumArg = ast.args[3];
+ const frictionArg = ast.args[4];
+ const momentumThresholdArg = ast.args[5];
  const stateBefore = Store.getState();
  const prevEnabled = !!stateBefore.avatarPhysics?.enabled;
  const physicsActiveBefore = !!stateBefore.scene?.physics;
@@ -7513,6 +7536,14 @@ tag('CELLI_PHYS',["PHYSICS","AVATAR"], (anchor, arr, ast) => {
  if(momentumArg !== undefined){
  const mm = Math.round(Number(Formula.valOf(momentumArg)) || 0);
  updates.momentumMode = mm === 1 ? 1 : 0;
+ }
+ if(frictionArg !== undefined){
+ const fv = Number(Formula.valOf(frictionArg));
+ updates.celliFriction = fv > 0 ? 1 : 0;
+ }
+ if(momentumThresholdArg !== undefined){
+ const mt = Number(Formula.valOf(momentumThresholdArg));
+ updates.momentumThreshold = Number.isFinite(mt) ? Math.max(0, mt) : Infinity;
  }
 
  Store.setState(state => ({
@@ -16939,6 +16970,33 @@ function ensureTimed3D(){
  }
  }
 
+ // Apply moving-platform momentum transfer so fast moving arrays can push/slide avatar
+ try{
+ if(playerBody){
+ const cfg = Store.getState().avatarPhysics || {};
+ const frictionOn = Number(cfg.celliFriction ?? 1) > 0;
+ const threshold = Number(cfg.momentumThreshold);
+ const thresholdSpeed = Number.isFinite(threshold) ? Math.max(0, threshold) : Infinity;
+ const platformSpeed = movingArraySpeed || 0;
+ if(platformSpeed > 1e-6 && platformSpeed >= thresholdSpeed){
+ const vel = playerBody.linvel();
+ const transferX = movingArrayMomentum.x;
+ const transferY = movingArrayMomentum.y;
+ const transferZ = movingArrayMomentum.z;
+ const blend = frictionOn ? 0.35 : 1.0;
+ const boost = platformSpeed > thresholdSpeed ? Math.min(1.5, 1 + (platformSpeed - thresholdSpeed) * 0.15) : 1.0;
+ const nextVel = {
+ x: vel.x + transferX * blend * boost,
+ y: vel.y + transferY * (frictionOn ? 0.15 : 0.35) * boost,
+ z: vel.z + transferZ * blend * boost
+ };
+ playerBody.setLinvel(nextVel, true);
+ }
+ }
+ }catch(e){
+ console.warn('[PHYSICS] Moving-platform momentum transfer failed', e);
+ }
+
  // Sync jumpVelocity from physics body for animation
  if(!ziplineState.active){
  try{
@@ -18024,6 +18082,7 @@ function ensureTimed3D(){
  : { x:snapAxis('x',next.x,arr.size.x), y:snapAxis('y',next.y,arr.size.y), z:snapAxis('z',next.z,arr.size.z) };
  const curOff = arr.offset||{x:0,y:0,z:0};
  const delta = { x: snapped.x-curOff.x, y: snapped.y-curOff.y, z: snapped.z-curOff.z };
+try{ updateMovingArrayMomentumSample(arr, delta); }catch{}
  // If no actual snap delta, do nothing (prevents wobble without movement)
  if(Math.abs(snapped.x-curOff.x)+Math.abs(snapped.y-curOff.y)+Math.abs(snapped.z-curOff.z) < 1e-6){ return; }
  // Smooth transition toward snapped position
@@ -20064,6 +20123,20 @@ function updateAvatars(sel){
  let physicsSpawnPos = null; // Store spawn position for respawn on fall
  let landingSquashTime = 0; // Track landing squash animation
  let anticipationSquashTime = 0; // Track jump anticipation squash
+let movingArrayMomentum = new THREE.Vector3(0,0,0);
+let movingArraySpeed = 0;
+
+function updateMovingArrayMomentumSample(arr, delta){
+ try{
+ if(!arr || !delta) return;
+ const dx = Number(delta.x) || 0;
+ const dy = Number(delta.y) || 0;
+ const dz = Number(delta.z) || 0;
+ const speed = Math.sqrt(dx*dx + dy*dy + dz*dz);
+ movingArrayMomentum.set(dx, dy, dz);
+ movingArraySpeed = speed;
+ }catch{}
+}
 
 function setPhysicsSpawn(pos){
 if(pos && Number.isFinite(pos.x) && Number.isFinite(pos.y) && Number.isFinite(pos.z)){
@@ -23923,7 +23996,9 @@ const onDP=(direction)=>{
  {name:'PIVOT',tags:'PHYSICS',syntax:'=PIVOT(targetRange)',params:'targetRange: ref/range containing pivot cells',desc:'Marks hinge pivot cells used when generating grouped rigid bodies. Persists to meta.physicsPivot for Rapier bootstrap.'},
  {name:'GROUP',tags:'PHYSICS',syntax:'=GROUP(targetRange, groupId)',params:'targetRange: ref/range to consolidate groupId: numeric/string id',desc:'Assigns cells to a shared rigid body via meta.physicsGroupId so collider builds merge tiles.'},
  {name:'CELL_PHYS',tags:'PHYSICS',syntax:'=CELL_PHYS(enabled[, jumpCount[, gravityVec[, boundByArrayFloor[, respawnRef[, scope]]]]])',params:'enabled: 0/1 jumpCount: optional int gravityVec: optional @[x,y,z] boundByArrayFloor: 0/1 clamp respawnRef: ref/coords (blank to clear) for fall resets scope: LIMIT()/ALL() descriptor',desc:'Enables per-array physics hydration with grouped bodies, pivots, optional floor clamping, custom respawn targets, and multi-array scopes.'},
- {name:'CELLI_PHYS',tags:'PHYSICS AVATAR',syntax:'=CELLI_PHYS(enabled[, jumpCount[, runMultiplier[, momentumMode]]])',params:'enabled: 0/1 jumpCount: default 1 runMultiplier: movement speed scalar momentumMode: 0 precise, 1 momentum heavy',desc:'Avatar physics controller wrapper configuring enable state, jump budget, sprint scaling, and momentum style.'},
+ {name:'CELLI_PHYS',tags:'PHYSICS AVATAR',syntax:'=CELLI_PHYS(enabled[, jumpCount[, runMultiplier[, momentumMode[, celliFriction[, momentumThreshold]]]]])',params:'enabled: 0/1 jumpCount: default 1 runMultiplier: movement speed scalar momentumMode: 0 precise, 1 momentum heavy celliFriction: 1 ride with moving body, 0 keep world-static momentumThreshold: minimum moving-body speed (from per-frame offset delta in 3D_TIMED_TRANSLATION units) before motion transfers/accelerates Celli',desc:'Avatar physics controller wrapper configuring enable state, jump budget, sprint scaling, momentum style, moving-platform friction lock, and speed-threshold momentum transfer.'},
+{name:'CELLI_FRICTION',tags:'PHYSICS AVATAR',syntax:'=CELLI_FRICTION(0|1)',params:'1(default) keeps Celli attached to moving-body position, 0 leaves Celli static in global space while the body moves',desc:'Explicit moving-body attachment toggle used by CELLI_PHYS and moving-platform interactions.'},
+{name:'CELLI_MOMENTUM_THRESHOLD',tags:'PHYSICS AVATAR',syntax:'=CELLI_MOMENTUM_THRESHOLD(speed)',params:'speed: non-negative threshold; calculated moving speed is sqrt(dx²+dy²+dz²) from per-frame array offset deltas produced by 3D_TIMED_TRANSLATION',desc:'When platform speed reaches this threshold, movement is transferred against friction and can accelerate Celli to slide with platform direction.'},
  {name:'LIMIT',tags:'PHYSICS',syntax:'=LIMIT(targetRange, state[, duration])',params:'targetRange: ref/range state: "enable"|"disable" or 0/1 duration: optional ticks',desc:'Applies temporary physics bounds that can be timed with DELAY or ON_LAND handlers for scripted platforms. When called with only array arguments it returns a scope descriptor for CELL_PHYS/3D_TIMED_TRANSLATION.'},
  {name:'ALL',tags:'SCENE',syntax:'=ALL()',params:' ',desc:'Returns an array scope descriptor targeting every array; pass to CELL_PHYS, PREVIEW, or 3D_TIMED_TRANSLATION.'},
  {name:'FORMULA_TEXT',tags:'PURE',syntax:'=FORMULA_TEXT([ref])',params:'optional ref; default anchor',desc:'Returns the stored formula text from a cell instead of its value.'},
