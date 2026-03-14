@@ -16977,27 +16977,42 @@ function ensureTimed3D(){
  const frictionOn = Number(cfg.celliFriction ?? 1) > 0;
  const threshold = Number(cfg.momentumThreshold);
  const thresholdSpeed = Number.isFinite(threshold) ? Math.max(0, threshold) : Infinity;
- const platformSpeed = movingArraySpeed || 0;
- if(platformSpeed > 1e-6 && platformSpeed >= thresholdSpeed){
+ const playerPos = playerBody.translation?.();
+ const supportArrayId = detectSupportArrayId(playerPos);
+ if(supportArrayId != null){
+ currentSupportArrayId = supportArrayId;
+ }
+ const activeArrayId = currentSupportArrayId;
+ const sample = (activeArrayId != null) ? movingArrayMomentumSamples.get(activeArrayId) : null;
+ const platformSpeed = sample?.speed || 0;
+ if(sample && platformSpeed >= thresholdSpeed){
  const vel = playerBody.linvel();
- const transferX = movingArrayMomentum.x;
- const transferY = movingArrayMomentum.y;
- const transferZ = movingArrayMomentum.z;
- const blend = frictionOn ? 0.35 : 1.0;
+ const airborne = Math.abs(vel.y) > 0.2 || Number(jumpVelocity) > 0.35;
+ if(frictionOn && !airborne && playerPos){
+ playerBody.setTranslation({
+ x: playerPos.x + sample.x,
+ y: playerPos.y + sample.y,
+ z: playerPos.z + sample.z
+ }, true);
+ playerBody.setLinvel({ x: vel.x, y: Math.min(vel.y, 0), z: vel.z }, true);
+ } else {
  const boost = platformSpeed > thresholdSpeed ? Math.min(1.5, 1 + (platformSpeed - thresholdSpeed) * 0.15) : 1.0;
- const nextVel = {
- x: vel.x + transferX * blend * boost,
- y: vel.y + transferY * (frictionOn ? 0.15 : 0.35) * boost,
- z: vel.z + transferZ * blend * boost
- };
- playerBody.setLinvel(nextVel, true);
+ playerBody.setLinvel({
+ x: vel.x + sample.x * boost,
+ y: vel.y + sample.y * 0.35 * boost,
+ z: vel.z + sample.z * boost
+ }, true);
+ }
  }
  }
  }catch(e){
  console.warn('[PHYSICS] Moving-platform momentum transfer failed', e);
  }
 
- // Sync jumpVelocity from physics body for animation
+ // Per-frame moving-platform samples are consumed once to prevent runaway acceleration.
+ movingArrayMomentumSamples.clear();
+
+// Sync jumpVelocity from physics body for animation
  if(!ziplineState.active){
  try{
  const p = {x: cachedPlayerPos.x, y: cachedPlayerPos.y, z: cachedPlayerPos.z};
@@ -17093,6 +17108,9 @@ function ensureTimed3D(){
  }
  if(!nowGrounded){
  lastLandKey = null;
+ currentSupportArrayId = null;
+ } else if(currentSupportArrayId == null){
+ currentSupportArrayId = detectSupportArrayId(p);
  }
  wasGroundedLastFrame = nowGrounded;
  }
@@ -20123,19 +20141,53 @@ function updateAvatars(sel){
  let physicsSpawnPos = null; // Store spawn position for respawn on fall
  let landingSquashTime = 0; // Track landing squash animation
  let anticipationSquashTime = 0; // Track jump anticipation squash
-let movingArrayMomentum = new THREE.Vector3(0,0,0);
-let movingArraySpeed = 0;
+const movingArrayMomentumSamples = new Map();
+let currentSupportArrayId = null;
 
 function updateMovingArrayMomentumSample(arr, delta){
  try{
- if(!arr || !delta) return;
+ if(!arr || !delta || !Number.isFinite(arr.id)) return;
  const dx = Number(delta.x) || 0;
  const dy = Number(delta.y) || 0;
  const dz = Number(delta.z) || 0;
  const speed = Math.sqrt(dx*dx + dy*dy + dz*dz);
- movingArrayMomentum.set(dx, dy, dz);
- movingArraySpeed = speed;
+ if(speed < 1e-6){
+ movingArrayMomentumSamples.delete(arr.id);
+ return;
+ }
+ movingArrayMomentumSamples.set(arr.id, { x: dx, y: dy, z: dz, speed });
  }catch{}
+}
+
+function getArrayIdForBodyHandle(bodyHandle){
+ if(bodyHandle == null) return null;
+ try{
+ const arrays = Store.getState().arrays || {};
+ for(const [idRaw, arr] of Object.entries(arrays)){
+ if(!arr) continue;
+ const id = Number(idRaw);
+ if(arr._staticBody === bodyHandle) return id;
+ if(Array.isArray(arr._rigidBodies) && arr._rigidBodies.includes(bodyHandle)) return id;
+ }
+ }catch{}
+ return null;
+}
+
+function detectSupportArrayId(playerPos){
+ if(!RAPIER || !rapierWorld || !playerPos) return null;
+ try{
+ const ray = new RAPIER.Ray({x: playerPos.x, y: playerPos.y, z: playerPos.z}, {x: 0, y: -1, z: 0});
+ const hit = rapierWorld.castRay(ray, 0.75, true);
+ if(!hit) return null;
+ const colliderHandle = hit.colliderHandle ?? hit.collider ?? hit.handle;
+ if(colliderHandle == null) return null;
+ const collider = rapierWorld.getCollider(colliderHandle);
+ if(!collider) return null;
+ const parentBody = collider.parent?.();
+ const bodyHandle = parentBody?.handle ?? parentBody;
+ return getArrayIdForBodyHandle(bodyHandle);
+ }catch{}
+ return null;
 }
 
 function setPhysicsSpawn(pos){
