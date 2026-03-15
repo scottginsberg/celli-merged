@@ -1818,7 +1818,7 @@ const Store = createStore((set,get)=>{
  
  try{
  localStorage.setItem('celliOsState', data);
- showToast(`?? State Saved (${Math.round(data.length/1024)}KB)`);
+ showToast(`💾 State Saved (${Math.round(data.length/1024)}KB)`);
  }catch(e){
  if(e.name === 'QuotaExceededError'){
  // Try compressing by removing some metadata
@@ -1847,7 +1847,7 @@ const Store = createStore((set,get)=>{
  };
  const compressedData = JSON.stringify(compressed);
  localStorage.setItem('celliOsState', compressedData);
- showToast(`?? State Saved (Compressed: ${Math.round(compressedData.length/1024)}KB)`);
+ showToast(`💾 State Saved (Compressed: ${Math.round(compressedData.length/1024)}KB)`);
  } else {
  throw e;
  }
@@ -1860,7 +1860,7 @@ const Store = createStore((set,get)=>{
  loadState: ()=>{
  try{
  const json = localStorage.getItem('celliOsState'); 
- if(!json){ showToast('?? No saved state found'); return; }
+ if(!json){ showToast('📭 No saved state found'); return; }
  
  const data = JSON.parse(json);
  const rehydrateTimedParams=(timed)=>{
@@ -2316,7 +2316,7 @@ const Store = createStore((set,get)=>{
  // One more pass next tick to cover late async mesh/frame attaches
  try{ setTimeout(()=>{ try{ Scene.hydrateAll?.(); }catch{} }, 0); }catch{}
  
- showToast(`?? State Loaded (${Object.keys(arrays).length} arrays)`);
+ showToast(`✅ State Loaded (${Object.keys(arrays).length} arrays)`);
  console.log('Load complete, arrays restored:', Object.keys(arrays));
  }catch(e){ 
  console.error('loadState failed', e); 
@@ -2325,13 +2325,13 @@ const Store = createStore((set,get)=>{
  },
  resetSave: ()=>{
  try{
- const confirmed = confirm('??? Clear saved state and restart?\n\nThis will delete all saved arrays and formulas.');
+ const confirmed = confirm('⚠️ Clear saved state and restart?\n\nThis will delete all saved arrays and formulas.');
  if(!confirmed) return;
  
  localStorage.removeItem('celliOsState');
  // Reset visibility settings as well
  try{ localStorage.removeItem('VisibilitySettings'); window.VisibilitySettings = JSON.parse(JSON.stringify(DEFAULT_VISIBILITY)); }catch{}
- showToast('??? Save cleared - restarting...');
+ showToast('🧹 Save cleared - restarting...');
  setTimeout(()=> location.reload(), 800);
  }catch(e){ 
  console.warn('resetSave failed', e); 
@@ -2382,19 +2382,6 @@ const Store = createStore((set,get)=>{
  cell.meta = introMeta;
  console.log('A3 meta set:', cell.meta);
 
- const fullBuildUrl = './templates/componentized/cellireal-complete.html';
- const redirectCoord = {x:1,y:2,z:0};
- Actions.resizeArrayIfNeeded(home, redirectCoord);
- const redirectChunkKey = keyChunk(...Object.values(chunkOf(redirectCoord.x,redirectCoord.y,redirectCoord.z)));
- let redirectChunk = home.chunks[redirectChunkKey];
- if(!redirectChunk){ console.warn('B3 chunk missing after resize'); return; }
- let redirectCell = redirectChunk.cells.find(c=>c.x===redirectCoord.x&&c.y===redirectCoord.y&&c.z===redirectCoord.z);
- if(!redirectCell){ redirectChunk.cells.push({x:redirectCoord.x,y:redirectCoord.y,z:redirectCoord.z,value:'',formula:null,meta:{}}); redirectCell = redirectChunk.cells[redirectChunk.cells.length-1]; }
- const redirectMeta = normalizeMetaKeys(redirectCell.meta||{});
- redirectMeta.noteText = 'Click Me! (Full Build)';
- redirectMeta.on_click = `=OPEN_URL("${fullBuildUrl}")`;
- redirectCell.meta = redirectMeta;
- console.log('B3 meta set:', redirectCell.meta);
  }catch(e){ console.warn('Direct A3 setup failed', e); }
  
 
@@ -3679,12 +3666,58 @@ tag('3D_TRANSLATE',["SCENE"],(anchor,arr,ast)=>{
  : [...group.members])
  : [targetArr.id];
  const arrays = ids.map(id=>S.arrays[id]).filter(Boolean);
+ const ak = aKey(anchor);
+
+ // Ensure the transformation is only active while this formula is active.
+ // If we already applied from this anchor, reset prior offsets first to avoid accumulation.
+ try{
+ const existing = (S.activeTranslations||new Map()).get(ak);
+ const priorBases = Array.isArray(existing?.bases) ? existing.bases : [];
+ priorBases.forEach(entry=>{
+ const id = Number.isFinite(+entry?.id) ? (+entry.id|0) : null;
+ const targ = (id!=null) ? S.arrays[id] : null;
+ if(!targ) return;
+ const src = entry.offset || entry.base || {};
+ const base = {
+ x: Number.isFinite(+src.x) ? Math.round(+src.x) : 0,
+ y: Number.isFinite(+src.y) ? Math.round(+src.y) : 0,
+ z: Number.isFinite(+src.z) ? Math.round(+src.z) : 0
+ };
+ Scene.setArrayOffset(targ, base, {interactive:true, _skipDock:true, _skipConnections:true});
+ });
+ }catch{}
+
+ const bases = arrays.map(a=>({
+ id: a.id,
+ offset: {
+ x: Number.isFinite(+a?.offset?.x) ? Math.round(+a.offset.x) : 0,
+ y: Number.isFinite(+a?.offset?.y) ? Math.round(+a.offset.y) : 0,
+ z: Number.isFinite(+a?.offset?.z) ? Math.round(+a.offset.z) : 0
+ }
+ }));
 
  arrays.forEach(a=>{
  const off = a.offset||{x:0,y:0,z:0};
  const next = { x: (Number(off.x)||0) + x, y: (Number(off.y)||0) + y, z: (Number(off.z)||0) + z };
  Scene.setArrayOffset(a, next, {interactive:true, _skipDock:true, _skipConnections:true});
  });
+
+ try{
+ const stateNow = Store.getState();
+ const rec = {
+ targetId: targetArr.id,
+ from: {...(bases.find(b=>b.id===targetArr.id)?.offset || {x:0,y:0,z:0})},
+ delta: {dx:x,dy:y,dz:z},
+ bases
+ };
+ const map = new Map(stateNow.activeTranslations||new Map());
+ map.set(ak, rec);
+ Store.setState({activeTranslations: map});
+ const txw = Write.start('mark.3d.translate','mark');
+ const cell = Formula.getCell(anchor) || {value:'',formula:null,meta:{}};
+ Write.set(txw, arr.id, {x:anchor.x,y:anchor.y,z:anchor.z}, { value: cell.value, formula: cell.formula, meta:{...(cell.meta||{}), appliedTranslate: rec } });
+ Write.commit(txw);
+ }catch{}
 
  Actions.setCell(arr.id, anchor, `ArrayStep:${targetArr.id};y${y},x${x},z${z}`, ast.raw, true);
 });
@@ -6229,7 +6262,7 @@ tag('BOUNCE',['ACTION','META'],(anchor,arr,ast,tx)=>{
  labelParts.push(`L:${formatHeight(config.land)}`);
  }
  if(labelParts.length){
- next.displayText = `?? ${labelParts.join(' ')}`;
+ next.displayText = `🏀 ${labelParts.join(' ')}`;
  next.bounceLabel = true;
  } else if(next.bounceLabel){
  delete next.displayText;
@@ -7476,7 +7509,7 @@ tag('CELL_PHYS',["PHYSICS"], (anchor, arr, ast) => {
  }
  }
 
- const stamp = enabled ? '?? Physics ON' : '?? Physics OFF';
+ const stamp = enabled ? '⚛️ Physics ON' : '⏸️ Physics OFF';
  Actions.setCell(arr.id, anchor, stamp, ast.raw, true);
 });
 
@@ -7645,7 +7678,7 @@ tag('CELLI_PHYS',["PHYSICS","AVATAR"], (anchor, arr, ast) => {
  }catch(e){ console.warn('[PHYSICS] CELLI_PHYS disable threw', e); }
  }
 
- const stamp = effectiveEnabled ? '?? Avatar' : '?? Classic';
+ const stamp = effectiveEnabled ? '🧍 Avatar' : '🧭 Classic';
  Actions.setCell(arr.id, anchor, stamp, ast.raw, true);
 });
 
@@ -7671,7 +7704,7 @@ tag('PHYS_CAMERA',["SCENE","CAMERA"], (anchor, arr, ast) => {
  }
  }catch{}
 
- Actions.setCell(arr.id, anchor, `?? ${modeRaw.toUpperCase()}`, ast.raw, true);
+ Actions.setCell(arr.id, anchor, `🎥 ${modeRaw.toUpperCase()}`, ast.raw, true);
 });
 
 // EVENT BUS FUNCTIONS
@@ -7996,7 +8029,7 @@ tag('PLATFORMER_PHYSICS',['ACTION'],(anchor,arr,ast)=>{
  if(newPos.x !== pos.x || newPos.y !== pos.y) {
  try {
  Actions.setCell(pos.arrId, {x: pos.x, y: pos.y, z: pos.z}, '', null, true);
- Actions.setCell(newPos.arrId, {x: newPos.x, y: newPos.y, z: newPos.z}, '??', null, true);
+ Actions.setCell(newPos.arrId, {x: newPos.x, y: newPos.y, z: newPos.z}, '🐟', null, true);
  Store.getState().globalState.set('platformer.pos', `@[${newPos.x},${newPos.y},${newPos.z},${newPos.arrId}]`);
  } catch(e) {
  console.error('Platformer physics error:', e);
@@ -8016,7 +8049,7 @@ tag('FISH',['GAME'],(anchor,arr,ast)=>{
  Store.getState().globalState.set('player.score', 0);
  
  // Create game UI at anchor
- Actions.setCell(arr.id, anchor, '?? FISH GAME', ast.raw, true);
+ Actions.setCell(arr.id, anchor, '🐟 FISH GAME', ast.raw, true);
  Actions.setCell(arr.id, {x:anchor.x+1,y:anchor.y,z:anchor.z}, '=ON_SELECT(SELF(),"=FIRE_EVENT(\\"CAST\\")")', null, true);
  Actions.setCell(arr.id, {x:anchor.x+2,y:anchor.y,z:anchor.z}, '=ON_SELECT(SELF(),"=IF(GET_GLOBAL(\\"fish.state\\")=\\"BITING\\",FIRE_EVENT(\\"CATCH\\"))")', null, true);
  Actions.setCell(arr.id, {x:anchor.x,y:anchor.y-1,z:anchor.z}, '=GET_GLOBAL("fish.state")', null, true);
@@ -8039,15 +8072,15 @@ tag('GALAXY',['GAME'],(anchor,arr,ast)=>{
  Store.getState().globalState.set('galaxy.gravityWell', `@[${anchor.x+1},${anchor.y+2},${anchor.z},${arr.id}]`);
  
  // Create gravity well
- Actions.setCell(arr.id, anchor, '?? GALAXY PUZZLE', ast.raw, true);
- Actions.setCell(arr.id, {x:anchor.x+1,y:anchor.y+2,z:anchor.z}, '??', null, true);
+ Actions.setCell(arr.id, anchor, '🌌 GALAXY PUZZLE', ast.raw, true);
+ Actions.setCell(arr.id, {x:anchor.x+1,y:anchor.y+2,z:anchor.z}, '⭐', null, true);
  
  // Set up physics system
  Actions.setCell(arr.id, {x:anchor.x,y:anchor.y-1,z:anchor.z}, '=ON_EVENT("TICK","=SET_GLOBAL(\\"galaxy.gravityVector\\",VECTOR_TO(GET_PLAYER_FOCUS(),GET_GLOBAL(\\"galaxy.gravityWell\\")))")', null, true);
  Actions.setCell(arr.id, {x:anchor.x+1,y:anchor.y-1,z:anchor.z}, '=GET_GLOBAL("galaxy.gravityVector")', null, true);
  
  // Goal condition
- Actions.setCell(arr.id, {x:anchor.x,y:anchor.y-2,z:anchor.z}, '=IF(EQ(GET_PLAYER_FOCUS(),GET_GLOBAL("galaxy.gravityWell")),"?? WIN!","Navigate to ??")', null, true);
+ Actions.setCell(arr.id, {x:anchor.x,y:anchor.y-2,z:anchor.z}, '=IF(EQ(GET_PLAYER_FOCUS(),GET_GLOBAL("galaxy.gravityWell")),"🏆 WIN!","Navigate to ⭐")', null, true);
  
  Actions.end();
 });
@@ -8065,7 +8098,7 @@ tag('SOKO_STEP',['GAME','ACTION'],(anchor,arr,ast,tx)=>{
  const board = Store.getState().arrays[boardId]; if(!board) return;
  const inBounds=(x,y)=> x>=0 && y>=0 && x<board.size.x && y<board.size.y;
  const at=(x,y)=> inBounds(x,y)? Formula.getCellValue({arrId:boardId,x,y,z:pz}) : ' ';
- const WALL=' ', BOX='??', PLAYER='??', EMPTY='';
+ const WALL=' ', BOX='📦', PLAYER='😀', EMPTY='';
  const nx=px+dx, ny=py+dy; const nnx=px+dx*2, nny=py+dy*2;
  const t1 = at(nx,ny);
  if(t1===WALL) return;
@@ -8242,7 +8275,7 @@ tag('SSR_STEP',['GAME','ACTION'],(anchor,arr,ast,tx)=>{
  }catch{}
  // Draw 2 1 avatar: head at (x,y,z), tail one cell behind facing
  const v2 = dirVec(facing);
- Write.set(tx, boardId, {x:x,y:0,z:z}, { value:'??', formula:null });
+ Write.set(tx, boardId, {x:x,y:0,z:z}, { value:'📦', formula:null });
  Write.set(tx, boardId, {x:x - v2.dx, y:0, z:z - v2.dz}, { value:'-', formula:null });
  // Update memory
  const newRef = `@[${x},${y},${z},${boardId}]|${facing}`;
@@ -8260,7 +8293,7 @@ tag('SSR',['GAME','META'],(anchor,arr,ast)=>{
  Actions.begin();
  // Seed avatar at center facing north
  const start = {x:Math.floor(size.x/2), y:0, z:Math.floor(size.z/2)};
- Actions.setCell(board.id, start, '??', null, true);
+ Actions.setCell(board.id, start, '😀', null, true);
  Actions.setCell(board.id, {x:start.x, y:start.y, z:start.z+1}, '-', null, true); // tail behind (south when facing north)
  Actions.setCell(mem.id, {x:0,y:0,z:0}, `@[${start.x},0,${start.z},${board.id}]|north`, null, true);
  // Place a demo sausage (2x1) horizontal, side A
@@ -8271,7 +8304,7 @@ tag('SSR',['GAME','META'],(anchor,arr,ast)=>{
  // Controller arrows (depth-oriented)
  Actions.setCell(ctrl.id,{x:1,y:2,z:0},'?',null,true);
  Actions.setCell(ctrl.id,{x:0,y:1,z:0},'?',null,true);
- Actions.setCell(ctrl.id,{x:1,y:1,z:0},'??',null,true);
+ Actions.setCell(ctrl.id,{x:1,y:1,z:0},'🎮',null,true);
  Actions.setCell(ctrl.id,{x:2,y:1,z:0},'?',null,true);
  Actions.setCell(ctrl.id,{x:1,y:0,z:0},'?',null,true);
  // Memory ref stored at [1,1,1] within mem array by convention
@@ -8332,7 +8365,7 @@ tag('SOKOBAN2',['GAME','META'],(anchor,arr,ast)=>{
  const rules = Actions.createArray({name:'SokoRules', size:{x:4,y:6,z:1}, hidden:true});
  const ctrl = Actions.createArray({name:'SokoCtrl2', size:{x:3,y:3,z:1}, hidden:false});
  const PSTART = {x:2,y:2,z:0};
- const BOX='??', WALL=' ', PLAYER='??', GOAL=' ';
+ const BOX='📦', WALL=' ', PLAYER='😀', GOAL=' ';
  Actions.begin();
  // walls border
  for(let x=0;x<size.x;x++){ Actions.setCell(board.id,{x,y:size.y-1,z:0},WALL,null,true); Actions.setCell(board.id,{x,y:0,z:0},WALL,null,true); }
@@ -8357,8 +8390,8 @@ tag('SOKOBAN2',['GAME','META'],(anchor,arr,ast)=>{
  "=SET_GLOBAL(\"soko.next\", OFFSET(GET_GLOBAL(\\\"soko.pos\\\"), ${dxRef}, ${dyRef}, 0))",
  "=SET_GLOBAL(\"soko.nnext\", OFFSET(GET_GLOBAL(\\\"soko.pos\\\"), MUL(${dxRef},2), MUL(${dyRef},2), 0))",
  "=IF(EQ(GET_GLOBAL(\"soko.next\"), \" \"), \"BLOCK\", \"OK\")",
- "=IF(EQ(GET_GLOBAL(\"soko.next\"), \"??\"), IF(EQ(GET_GLOBAL(\"soko.nnext\"), \"\"), DO(\"=SET(GET_GLOBAL(\\\"soko.nnext\\\"), \"??\")\", \"=SET(GET_GLOBAL(\\\"soko.next\\\"), \"??\")\", \"=SET(GET_GLOBAL(\\\"soko.pos\\\"), \"\" )\", \"=SET(${memStr}, GET_GLOBAL(\\\"soko.next\\\"))\"), \"BLOCK\"), \"OK\")",
- "=IF(EQ(GET_GLOBAL(\"soko.next\"), \"\"), DO(\"=SET(GET_GLOBAL(\\\"soko.next\\\"), \"??\")\", \"=SET(GET_GLOBAL(\\\"soko.pos\\\"), \"\" )\", \"=SET(${memStr}, GET_GLOBAL(\\\"soko.next\\\"))\"), \"OK\")"
+ "=IF(EQ(GET_GLOBAL(\"soko.next\"), \"📦\"), IF(EQ(GET_GLOBAL(\"soko.nnext\"), \"\"), DO(\"=SET(GET_GLOBAL(\\\"soko.nnext\\\"), \"📦\")\", \"=SET(GET_GLOBAL(\\\"soko.next\\\"), \"📦\")\", \"=SET(GET_GLOBAL(\\\"soko.pos\\\"), \"\" )\", \"=SET(${memStr}, GET_GLOBAL(\\\"soko.next\\\"))\"), \"BLOCK\"), \"OK\")",
+ "=IF(EQ(GET_GLOBAL(\"soko.next\"), \"\"), DO(\"=SET(GET_GLOBAL(\\\"soko.next\\\"), \"📦\")\", \"=SET(GET_GLOBAL(\\\"soko.pos\\\"), \"\" )\", \"=SET(${memStr}, GET_GLOBAL(\\\"soko.next\\\"))\"), \"OK\")"
  )`, true);
  // controller arrows using SOKO_STEP2(memRef,dx,dy)
  const mref = memStr;
@@ -8385,7 +8418,7 @@ tag('SOKOBAN',['GAME','META'],(anchor,arr,ast)=>{
  const mem = Actions.createArray({name:'SokoMem', size:{x:2,y:1,z:1}, hidden:true});
  const ctrl = Actions.createArray({name:'SokoCtrl', size:{x:3,y:3,z:1}, hidden:false});
  const PSTART = {x:2,y:2,z:0};
- const BOX='??', WALL=' ', PLAYER='??', GOAL=' ';
+ const BOX='📦', WALL=' ', PLAYER='😀', GOAL=' ';
  Actions.begin();
  // walls border
  for(let x=0;x<size.x;x++){ Actions.setCell(board.id,{x,y:size.y-1,z:0},WALL,null,true); Actions.setCell(board.id,{x,y:0,z:0},WALL,null,true); }
@@ -8572,10 +8605,10 @@ tag('FOCUS_SET',['ACTION'],(anchor,arr,ast)=>{
  // Copy content to clipboard
  try {
  navigator.clipboard.writeText(content);
- Actions.setCell(arr.id, anchor, `?? Copied: ${content.slice(0,20)}`, ast.raw, true);
+ Actions.setCell(arr.id, anchor, `📋 Copied: ${content.slice(0,20)}`, ast.raw, true);
  showToast('Copied to clipboard');
  } catch(e) {
- Actions.setCell(arr.id, anchor, '?? Copy failed', ast.raw, true);
+ Actions.setCell(arr.id, anchor, '❌ Copy failed', ast.raw, true);
  showToast('Copy failed');
  }
  return;
@@ -9189,7 +9222,7 @@ tag('CONNECT',['SCENE', 'ACTION'],(anchor,arr,ast)=>{
 
  // Pass to the Scene module to handle rendering and physics state
  Scene.addConnection(anchor, ref1, ref2, { style, dimensionMode, dimensionExplicit });
- const statusParts = ['??', dimensionMode.toUpperCase()];
+ const statusParts = ['🌀', dimensionMode.toUpperCase()];
  if(style) statusParts.push(`(${style})`);
  Actions.setCell(arr.id, anchor, statusParts.join(' '), ast.raw, true);
 });
@@ -9205,7 +9238,7 @@ tag('GOAL',['META'],(anchor,arr,ast)=>{
  const S = Store.getState();
  const goalKey = aKey(anchor);
  S.gameState.goals.set(goalKey, conditionRef);
- Actions.setCell(arr.id, anchor, '?? Goal Set', ast.raw, true);
+ Actions.setCell(arr.id, anchor, '🎯 Goal Set', ast.raw, true);
 });
 // ONWIN(actionFormula) => register callback for when all goals are met
 tag('ONWIN',['META'],(anchor,arr,ast)=>{
@@ -9220,7 +9253,7 @@ tag('ONWIN',['META'],(anchor,arr,ast)=>{
  anchor: {...anchor},
  callback: actionFormula
  });
- Actions.setCell(arr.id, anchor, '?? Win Handler Set', ast.raw, true);
+ Actions.setCell(arr.id, anchor, '🏆 Win Handler Set', ast.raw, true);
 });
 
 function listAllowedFunctionsFor(arr){
@@ -9268,17 +9301,17 @@ tag('FUNCTION_UI',['META'],(anchor,arr,ast)=>{
  // Group functions by category for collapsible interface
  const categories = {};
  const categoryInfo = {
- 'GLOBAL': {icon: '??', name: 'Global State'},
+ 'GLOBAL': {icon: '🌐', name: 'Global State'},
  'EVENTS': {icon: '?', name: 'Events'},
- 'GAMES': {icon: '??', name: 'Games'},
- 'DATA': {icon: '??', name: 'Data'},
- 'LOGIC': {icon: '??', name: 'Logic'},
- 'MATH': {icon: '??', name: 'Math'},
- 'NAVIGATION': {icon: '??', name: 'Nav'},
- 'INTERACTION': {icon: '??', name: 'Input'},
- 'SCENE': {icon: '??', name: 'Scene'},
- 'IO': {icon: '??', name: 'I/O'},
- 'ADVANCED': {icon: '??', name: 'Advanced'}
+ 'GAMES': {icon: '🎮', name: 'Games'},
+ 'DATA': {icon: '🗂️', name: 'Data'},
+ 'LOGIC': {icon: '🧠', name: 'Logic'},
+ 'MATH': {icon: '🧮', name: 'Math'},
+ 'NAVIGATION': {icon: '🧭', name: 'Nav'},
+ 'INTERACTION': {icon: '🖱️', name: 'Input'},
+ 'SCENE': {icon: '🎬', name: 'Scene'},
+ 'IO': {icon: '🔌', name: 'I/O'},
+ 'ADVANCED': {icon: '🛠️', name: 'Advanced'}
  };
  
  list.forEach(name => {
@@ -9312,7 +9345,7 @@ tag('FUNCTION_UI',['META'],(anchor,arr,ast)=>{
  
  // Create collapsible category structure with ON_SELECT chains
  Object.entries(categories).forEach(([catName, funcs]) => {
- const info = categoryInfo[catName] || {icon: '??', name: catName};
+ const info = categoryInfo[catName] || {icon: '✨', name: catName};
  
  // Store previous functions below using temporary storage approach
  const tempStorageY = currentY - funcs.length - 10; // Store below visible area
@@ -9345,7 +9378,7 @@ tag('FUNCTION_UI',['META'],(anchor,arr,ast)=>{
  // Copy button
  const call = `=${name}()`;
  const copyAction = `=ON_SELECT(SELF(), DO("=COPY(\\\"${call}\\\")", "=TOAST(\\\"Copied ${name}()\\\")"))`;
- Actions.setCell(ui.id, {x:0,y,z:0}, '??', copyAction, true);
+ Actions.setCell(ui.id, {x:0,y,z:0}, '📦', copyAction, true);
  
  // Insert button that writes to focus
  const insertAction = `=ON_SELECT(SELF(), DO("=FOCUS_SET(\\\"formula\\\",\\\"${call}\\\")", "=TOAST(\\\"Inserted ${name}()\\\")"))`;
@@ -9478,7 +9511,7 @@ tag('SET_SELECTED',['ACTION'],(anchor,arr,ast)=>{
  let avatarPos = null;
  Object.values(screenArr.chunks).forEach(ch => {
  ch.cells.forEach(c => {
- if(c.value === 'Hero' || c.value === '??' || c.value === '@'){
+ if(c.value === 'Hero' || c.value === '😀' || c.value === '@'){
  avatarPos = {x:c.x, y:c.y, z:c.z};
  }
  });
@@ -9590,7 +9623,7 @@ tag('2D_PLATFORMER',['META'],(anchor,arr,ast)=>{
  Actions.setCell(controller.id, {x:1,y:2,z:0}, '?', null, true);
  Actions.setCell(controller.id, {x:0,y:1,z:0}, '?', null, true);
  // Center joystick doubles as locked init cell that spawns the screen (once, idempotent)
- Actions.setCell(controller.id, {x:1,y:1,z:0}, '??', null, true);
+ Actions.setCell(controller.id, {x:1,y:1,z:0}, '🎮', null, true);
  Actions.setCell(controller.id, {x:2,y:1,z:0}, '?', null, true);
  Actions.setCell(controller.id, {x:1,y:0,z:0}, '?', null, true);
 
@@ -9664,7 +9697,7 @@ tag('PLATFORMER_SPAWN_SCREEN',['META'],(anchor,arr,ast)=>{
  const offset = dockOffsetFor(host, port, 1.0);
  Scene.setArrayOffset(screen, offset);
  Actions.setSelection(screen.id, {x:Math.floor(screen.size.x/2), y:1, z:0}, null, '3d');
- Actions.setCell(arr.id, anchor, '??', ast.raw, true);
+ Actions.setCell(arr.id, anchor, '✅', ast.raw, true);
  }catch(e){
  Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true);
  }
@@ -22730,7 +22763,7 @@ const UI = (()=>{
 
  function updatePresentButton(state){
  if(!els.presentToggle) return;
- els.presentToggle.textContent = state ? '?? Present: ON' : '?? Present: OFF';
+ els.presentToggle.textContent = state ? '📽️ Present: ON' : '📽️ Present: OFF';
  if(state){ els.presentToggle.classList.add('good'); }
  else { els.presentToggle.classList.remove('good'); }
  }
@@ -23096,7 +23129,7 @@ if(els.oceanSpottedBtn && !els.oceanSpottedBtn._wired){
  const newState = !!Store.getState().scene?.physicsDebugAll;
  console.log(`[PHYSICS DEBUG] After call, scene.physicsDebugAll = ${newState}`);
  updatePhysicsButtonAppearance();
- showToast?.(newState ? '?? Physics Debug: ALL arrays physics-enabled' : '? Physics Debug: Disabled');
+ showToast?.(newState ? '🧪 Physics Debug: ALL arrays physics-enabled' : '🧪 Physics Debug: Disabled');
  } else {
  console.log(`[PHYSICS] Normal click on physics button`);
  Actions.togglePhysics();
@@ -24241,22 +24274,22 @@ const onDP=(direction)=>{
  
  // Category info with icons and colors
  const categoryInfo = {
- 'GLOBAL': {icon: '??', name: 'Global State', color: '#3b82f6'},
- 'EVENTS': {icon: '?', name: 'Event System', color: '#22c55e'},
- 'GAMES': {icon: '??', name: 'Game Templates', color: '#f59e0b'},
- 'DATA': {icon: '??', name: 'Data Operations', color: '#8b5cf6'},
- 'LOGIC': {icon: '??', name: 'Logic & Control', color: '#06b6d4'},
- 'MATH': {icon: '??', name: 'Mathematics', color: '#ef4444'},
- 'NAVIGATION': {icon: '??', name: 'Navigation', color: '#84cc16'},
- 'INTERACTION': {icon: '??', name: 'User Interaction', color: '#ec4899'},
- 'SCENE': {icon: '??', name: 'Scene Control', color: '#f97316'},
- 'ARRAYS': {icon: '??', name: 'Array Management', color: '#64748b'},
- 'IO': {icon: '??', name: 'Input/Output', color: '#0ea5e9'},
- 'ADVANCED': {icon: '??', name: 'Advanced Tools', color: '#6366f1'},
- 'OTHER': {icon: '??', name: 'Other', color: '#64748b'}
+ 'GLOBAL': {icon: '🌐', name: 'Global State', color: '#3b82f6'},
+ 'EVENTS': {icon: '📡', name: 'Event System', color: '#22c55e'},
+ 'GAMES': {icon: '🎮', name: 'Game Templates', color: '#f59e0b'},
+ 'DATA': {icon: '🗂️', name: 'Data Operations', color: '#8b5cf6'},
+ 'LOGIC': {icon: '🧠', name: 'Logic & Control', color: '#06b6d4'},
+ 'MATH': {icon: '🧮', name: 'Mathematics', color: '#ef4444'},
+ 'NAVIGATION': {icon: '🧭', name: 'Navigation', color: '#84cc16'},
+ 'INTERACTION': {icon: '🖱️', name: 'User Interaction', color: '#ec4899'},
+ 'SCENE': {icon: '🎬', name: 'Scene Control', color: '#f97316'},
+ 'ARRAYS': {icon: '🧱', name: 'Array Management', color: '#64748b'},
+ 'IO': {icon: '🔌', name: 'Input/Output', color: '#0ea5e9'},
+ 'ADVANCED': {icon: '🛠️', name: 'Advanced Tools', color: '#6366f1'},
+ 'OTHER': {icon: '✨', name: 'Other', color: '#64748b'}
  };
  Object.entries(categories).forEach(([catName, funcs]) => {
- const info = categoryInfo[catName] || {icon: '??', name: catName, color: '#64748b'};
+ const info = categoryInfo[catName] || {icon: '✨', name: catName, color: '#64748b'};
  const header = document.createElement('div');
  header.className = 'fx-category-header';
  header.style.cssText = `display:flex;align-items:center;gap:8px;padding:8px 12px;background:${info.color}15;border:1px solid ${info.color}40;border-radius:10px;margin:8px 0 4px 0;cursor:pointer;font-weight:600;user-select:none;`;
@@ -25565,38 +25598,6 @@ const yy=(+mm[2])-1; const G='αβγδεζηθικλμνξοπρστυφχψω';
  }
  Write.commit(tx);
  console.log('ensureIntroNote: meta enforced at A3 or queued');
- const fullBuildUrl = './templates/componentized/cellireal-complete.html';
- const redirectCoord = {x:1,y:2,z:0};
- const redirectChunkKey = keyChunk(...Object.values(chunkOf(redirectCoord.x,redirectCoord.y,redirectCoord.z)));
- let redirectChunk = arr.chunks[redirectChunkKey];
- if(!redirectChunk){ Actions.resizeArrayIfNeeded(arr, redirectCoord); redirectChunk = arr.chunks[redirectChunkKey]; }
- let redirectCell = redirectChunk?.cells?.find?.(c=>c.x===redirectCoord.x&&c.y===redirectCoord.y&&c.z===redirectCoord.z);
- if(!redirectCell){
- console.log('Redirect NOTE not found; creating cell ');
- Actions.setCell(arr.id, redirectCoord, '', null, true);
- const ch1 = arr.chunks[redirectChunkKey];
- redirectCell = ch1?.cells?.find?.(c=>c.x===redirectCoord.x&&c.y===redirectCoord.y&&c.z===redirectCoord.z);
- }
- if(!redirectCell){ console.warn('ensureIntroNote: redirect cell creation failed'); return; }
- const tx2 = Write.start('intro.note.full','Ensure B3 NOTE');
- try{
- const meta = normalizeMetaKeys(redirectCell.meta||{});
- const existingAction = getMetaAction(meta, 'on_click');
- meta.noteText = 'Click Me! (Full Build)';
- meta.on_click = existingAction || `=OPEN_URL("${fullBuildUrl}")`;
- Write.set(tx2, arr.id, redirectCoord, {
- value: redirectCell.value ?? '',
- formula: redirectCell.formula ?? null,
- meta
- });
- }catch(e){
- const S=Store.getState();
- const pending=[...(S.pendingMeta||[])];
- pending.push({kind:'note', target:{arrId:1,x:redirectCoord.x,y:redirectCoord.y,z:redirectCoord.z}, meta:{noteText:'Click Me! (Full Build)', on_click:`=OPEN_URL("${fullBuildUrl}")`}});
- Store.setState({pendingMeta:pending});
- }
- Write.commit(tx2);
- console.log('ensureIntroNote: meta enforced at B3 or queued');
  // Re-render sheet to bind tooltip and on_click reliably
  try{ UI.renderSheet?.(); }catch{}
  }catch(err){ console.warn('ensureIntroNote failed', err); }
