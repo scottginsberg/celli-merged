@@ -7509,6 +7509,35 @@ tag('CELL_PHYS',["PHYSICS"], (anchor, arr, ast) => {
  }
  }
 
+ const physicsActiveNow = !!Store.getState().scene?.physics;
+ if(enabled && !physicsActiveNow){
+ try{
+ const toggle = Scene.togglePhysicsMode;
+ if(typeof toggle === 'function'){
+ const res = toggle();
+ if(res && typeof res.catch === 'function'){
+ res.catch(err=>console.warn('[PHYSICS] CELL_PHYS enable failed', err));
+ }
+ }
+ }catch(e){ console.warn('[PHYSICS] CELL_PHYS enable threw', e); }
+ }
+
+ if(!enabled && physicsActiveNow){
+ try{
+ const arrays = Object.values(Store.getState().arrays || {});
+ const stillEnabled = arrays.some(a => !!a?.params?.physics?.enabled);
+ if(!stillEnabled){
+ const toggle = Scene.togglePhysicsMode;
+ if(typeof toggle === 'function'){
+ const res = toggle();
+ if(res && typeof res.catch === 'function'){
+ res.catch(err=>console.warn('[PHYSICS] CELL_PHYS disable failed', err));
+ }
+ }
+ }
+ }catch(e){ console.warn('[PHYSICS] CELL_PHYS disable threw', e); }
+ }
+
  const stamp = enabled ? '⚛️ Physics ON' : '⏸️ Physics OFF';
  Actions.setCell(arr.id, anchor, stamp, ast.raw, true);
 });
