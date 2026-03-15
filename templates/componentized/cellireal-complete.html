@@ -16970,43 +16970,14 @@ function ensureTimed3D(){
  }
  }
 
- // Apply moving-platform momentum transfer so fast moving arrays can push/slide avatar
+ // Apply platform influences (carry + momentum) through the avatar physics engine.
  try{
  if(playerBody){
  const cfg = Store.getState().avatarPhysics || {};
- const frictionOn = Number(cfg.celliFriction ?? 1) > 0;
- const threshold = Number(cfg.momentumThreshold);
- const thresholdSpeed = Number.isFinite(threshold) ? Math.max(0, threshold) : Infinity;
- const playerPos = playerBody.translation?.();
- const supportArrayId = detectSupportArrayId(playerPos);
- if(supportArrayId != null){
- currentSupportArrayId = supportArrayId;
- }
- const activeArrayId = currentSupportArrayId;
- const sample = (activeArrayId != null) ? movingArrayMomentumSamples.get(activeArrayId) : null;
- const platformSpeed = sample?.speed || 0;
- if(sample && platformSpeed >= thresholdSpeed){
- const vel = playerBody.linvel();
- const airborne = Math.abs(vel.y) > 0.2 || Number(jumpVelocity) > 0.35;
- if(frictionOn && !airborne && playerPos){
- playerBody.setTranslation({
- x: playerPos.x + sample.x,
- y: playerPos.y + sample.y,
- z: playerPos.z + sample.z
- }, true);
- playerBody.setLinvel({ x: vel.x, y: Math.min(vel.y, 0), z: vel.z }, true);
- } else {
- const boost = platformSpeed > thresholdSpeed ? Math.min(1.5, 1 + (platformSpeed - thresholdSpeed) * 0.15) : 1.0;
- playerBody.setLinvel({
- x: vel.x + sample.x * boost,
- y: vel.y + sample.y * 0.35 * boost,
- z: vel.z + sample.z * boost
- }, true);
- }
- }
+ avatarPhysicsEngine.applyDynamicInteractions({ body: playerBody, avatarCfg: cfg });
  }
  }catch(e){
- console.warn('[PHYSICS] Moving-platform momentum transfer failed', e);
+ console.warn('[PHYSICS] Avatar dynamic interactions failed', e);
  }
 
  // Per-frame moving-platform samples are consumed once to prevent runaway acceleration.
@@ -20143,6 +20114,67 @@ function updateAvatars(sel){
  let anticipationSquashTime = 0; // Track jump anticipation squash
 const movingArrayMomentumSamples = new Map();
 let currentSupportArrayId = null;
+
+// Extensible avatar physics influence pipeline for moving-platform interactions.
+const avatarPhysicsEngine = {
+ resolveSupportArrayId(playerPos){
+ try{
+ const supportArrayId = detectSupportArrayId(playerPos);
+ if(supportArrayId != null){
+ currentSupportArrayId = supportArrayId;
+ return supportArrayId;
+ }
+ }catch{}
+ return currentSupportArrayId;
+ },
+
+ samplePlatformMotion(arrayId){
+ if(arrayId == null) return null;
+ return movingArrayMomentumSamples.get(arrayId) || null;
+ },
+
+ applyPlatformCarry({ body, playerPos, vel, sample, frictionOn, airborne }){
+ if(!body || !playerPos || !sample || !frictionOn || airborne) return false;
+ body.setTranslation({
+ x: playerPos.x + sample.x,
+ y: playerPos.y + sample.y,
+ z: playerPos.z + sample.z
+ }, true);
+ body.setLinvel({ x: vel.x, y: Math.min(vel.y, 0), z: vel.z }, true);
+ return true;
+ },
+
+ applyMomentumTransfer({ body, vel, sample, thresholdSpeed, airborne }){
+ if(!body || !sample || airborne) return false;
+ const platformSpeed = sample.speed || 0;
+ if(platformSpeed < thresholdSpeed) return false;
+ const boost = platformSpeed > thresholdSpeed ? Math.min(1.5, 1 + (platformSpeed - thresholdSpeed) * 0.15) : 1.0;
+ body.setLinvel({
+ x: vel.x + sample.x * boost,
+ y: vel.y + sample.y * 0.35 * boost,
+ z: vel.z + sample.z * boost
+ }, true);
+ return true;
+ },
+
+ applyDynamicInteractions({ body, avatarCfg }){
+ if(!body) return;
+ const frictionOn = Number(avatarCfg?.celliFriction ?? 1) > 0;
+ const threshold = Number(avatarCfg?.momentumThreshold);
+ const thresholdSpeed = Number.isFinite(threshold) ? Math.max(0, threshold) : Infinity;
+ const playerPos = body.translation?.();
+ const supportArrayId = this.resolveSupportArrayId(playerPos);
+ const sample = this.samplePlatformMotion(supportArrayId);
+ if(!sample) return;
+
+ const vel = body.linvel();
+ const airborne = Math.abs(vel.y) > 0.2 || Number(jumpVelocity) > 0.35;
+ const carried = this.applyPlatformCarry({ body, playerPos, vel, sample, frictionOn, airborne });
+ if(!carried){
+ this.applyMomentumTransfer({ body, vel, sample, thresholdSpeed, airborne });
+ }
+ }
+};
 
 function updateMovingArrayMomentumSample(arr, delta){
  try{
