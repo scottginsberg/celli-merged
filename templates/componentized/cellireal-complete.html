@@ -3622,6 +3622,70 @@ function isAllowed(arr, fnName){
 }
 
 // Utility tags (registered after policy init)
+function extractTopLevelCallArgs(text, fnPattern){
+ const src = String(text||'');
+ const start = src.search(fnPattern);
+ if(start<0) return null;
+ let i=start;
+ while(i<src.length && src[i]!== '(') i++;
+ if(i>=src.length || src[i]!== '(') return null;
+ i++;
+ let depth=0, cur='';
+ const args=[];
+ for(; i<src.length; i++){
+ const ch=src[i];
+ if(ch==='('){ depth++; cur+=ch; continue; }
+ if(ch===')'){
+ if(depth>0){ depth--; cur+=ch; continue; }
+ args.push(cur.trim());
+ break;
+ }
+ if(ch===',' && depth===0){ args.push(cur.trim()); cur=''; continue; }
+ cur+=ch;
+ }
+ return args;
+}
+function applyArrayTranslationStack(nextMap){
+ try{
+ const S = Store.getState();
+ const prevMap = S.activeTranslations||new Map();
+ const toVec = (v)=>({
+ x: Number.isFinite(+v?.x) ? Math.round(+v.x) : 0,
+ y: Number.isFinite(+v?.y) ? Math.round(+v.y) : 0,
+ z: Number.isFinite(+v?.z) ? Math.round(+v.z) : 0
+ });
+ const add = (acc,id,delta)=>{
+ if(!Number.isFinite(+id)) return;
+ const key = (+id|0);
+ const cur = acc.get(key) || {x:0,y:0,z:0};
+ const d = toVec(delta);
+ acc.set(key, { x:cur.x+d.x, y:cur.y+d.y, z:cur.z+d.z });
+ };
+ const fold = (map)=>{
+ const totals = new Map();
+ (map||new Map()).forEach(rec=>{
+ const ids = Array.isArray(rec?.ids) ? rec.ids : (Number.isFinite(+rec?.targetId) ? [rec.targetId] : []);
+ const d = rec?.delta || {};
+ ids.forEach(id=> add(totals, id, {x:d.dx,y:d.dy,z:d.dz}));
+ });
+ return totals;
+ };
+ const oldTotals = fold(prevMap);
+ const newTotals = fold(nextMap);
+ const touched = new Set([...oldTotals.keys(), ...newTotals.keys()]);
+ touched.forEach(id=>{
+ const arrT = S.arrays?.[id];
+ if(!arrT) return;
+ const cur = toVec(arrT.offset||{x:0,y:0,z:0});
+ const oldD = toVec(oldTotals.get(id)||{x:0,y:0,z:0});
+ const newD = toVec(newTotals.get(id)||{x:0,y:0,z:0});
+ const base = { x:cur.x-oldD.x, y:cur.y-oldD.y, z:cur.z-oldD.z };
+ const next = { x:base.x+newD.x, y:base.y+newD.y, z:base.z+newD.z };
+ (Scene.setArrayOffset||setArrayOffset)(arrT, next, {interactive:true, _skipDock:true, _skipConnections:true});
+ });
+ Store.setState({activeTranslations: new Map(nextMap||new Map())});
+ }catch(e){ console.warn('applyArrayTranslationStack failed', e); }
+}
 // 3D_TRANSLATE([target], y, x, z)
 // - target: 0/"default"/blank=self, number=array id, or ref/alt address to pick array
 // - y,x,z: offset steps applied to the full target array (+ docked members), independent of prior formulas
@@ -3668,39 +3732,7 @@ tag('3D_TRANSLATE',["SCENE"],(anchor,arr,ast)=>{
  const arrays = ids.map(id=>S.arrays[id]).filter(Boolean);
  const ak = aKey(anchor);
 
- // Ensure the transformation is only active while this formula is active.
- // If we already applied from this anchor, reset prior offsets first to avoid accumulation.
- try{
- const existing = (S.activeTranslations||new Map()).get(ak);
- const priorBases = Array.isArray(existing?.bases) ? existing.bases : [];
- priorBases.forEach(entry=>{
- const id = Number.isFinite(+entry?.id) ? (+entry.id|0) : null;
- const targ = (id!=null) ? S.arrays[id] : null;
- if(!targ) return;
- const src = entry.offset || entry.base || {};
- const base = {
- x: Number.isFinite(+src.x) ? Math.round(+src.x) : 0,
- y: Number.isFinite(+src.y) ? Math.round(+src.y) : 0,
- z: Number.isFinite(+src.z) ? Math.round(+src.z) : 0
- };
- Scene.setArrayOffset(targ, base, {interactive:true, _skipDock:true, _skipConnections:true});
- });
- }catch{}
-
- const bases = arrays.map(a=>({
- id: a.id,
- offset: {
- x: Number.isFinite(+a?.offset?.x) ? Math.round(+a.offset.x) : 0,
- y: Number.isFinite(+a?.offset?.y) ? Math.round(+a.offset.y) : 0,
- z: Number.isFinite(+a?.offset?.z) ? Math.round(+a.offset.z) : 0
- }
- }));
-
- arrays.forEach(a=>{
- const off = a.offset||{x:0,y:0,z:0};
- const next = { x: (Number(off.x)||0) + x, y: (Number(off.y)||0) + y, z: (Number(off.z)||0) + z };
- Scene.setArrayOffset(a, next, {interactive:true, _skipDock:true, _skipConnections:true});
- });
+ const bases = arrays.map(a=>({ id:a.id, offset:{ x:+(a?.offset?.x||0), y:+(a?.offset?.y||0), z:+(a?.offset?.z||0) } }));
 
  try{
  const stateNow = Store.getState();
@@ -3712,7 +3744,7 @@ tag('3D_TRANSLATE',["SCENE"],(anchor,arr,ast)=>{
  };
  const map = new Map(stateNow.activeTranslations||new Map());
  map.set(ak, rec);
- Store.setState({activeTranslations: map});
+ applyArrayTranslationStack(map);
  const txw = Write.start('mark.3d.translate','mark');
  const cell = Formula.getCell(anchor) || {value:'',formula:null,meta:{}};
  Write.set(txw, arr.id, {x:anchor.x,y:anchor.y,z:anchor.z}, { value: cell.value, formula: cell.formula, meta:{...(cell.meta||{}), appliedTranslate: rec } });
@@ -5285,7 +5317,10 @@ const Formula = (()=>{
  restored=true;
  }
  }
- const map=new Map(S.activeTranslations); map.delete(ak); Store.setState({activeTranslations:map});
+ const map=new Map(S.activeTranslations||new Map());
+ if(!map.has(ak) && recT) map.set(ak, recT);
+ map.delete(ak);
+ applyArrayTranslationStack(map);
  }
  if(suppressedT){ const sup=new Set(S.suppress3DTranslateRevert); sup.delete(ak); Store.setState({suppress3DTranslateRevert:sup}); }
  }catch{}
@@ -16111,62 +16146,25 @@ function rebuildCollidersForArray(arr){
  for(const c of ch.cells||[]){
  const f = String(c?.formula||''); if(!f) continue;
  if(/(?:3D_TRANSLATE|ARRAY_TRANSLATE|TRANSLATE_ARRAY)\(/i.test(f)){
- // Robust arg parsing: extract top-level args ignoring nested parens/addresses
  try{
- const start = f.search(/(?:3D_TRANSLATE|ARRAY_TRANSLATE|TRANSLATE_ARRAY)\(/i);
- if(start>=0){
- let i=start; while(i<f.length && f[i]!== '(') i++;
- if(i<f.length && f[i]==='('){
- i++; let depth=0, cur=''; const args=[];
- for(; i<f.length; i++){
- const ch=f[i];
- if(ch==='('){ depth++; cur+=ch; continue; }
- if(ch===')'){
- if(depth>0){ depth--; cur+=ch; continue; }
- // end of arg list
- args.push(cur.trim());
- break;
- }
- if(ch===',' && depth===0){ args.push(cur.trim()); cur=''; continue; }
- cur+=ch;
- }
- // take last three as dx,dy,dz
- const n=args.length; if(n>=3){
- const dxv = reNum(args[n-3]);
- const dyv = reNum(args[n-2]);
- const dzv = reNum(args[n-1]);
- queueTimedOp(arr, {x:c.x,y:c.y,z:c.z,arrId:arr.id}, {type:'translate', dx:dyv, dy:dxv, dz:dzv, opText:f});
- }
- }
+ const args = extractTopLevelCallArgs(f, /(?:3D_TRANSLATE|ARRAY_TRANSLATE|TRANSLATE_ARRAY)\(/i) || [];
+ const n = args.length;
+ if(n>=3){
+ const yv = reNum(args[n-3]);
+ const xv = reNum(args[n-2]);
+ const zv = reNum(args[n-1]);
+ queueTimedOp(arr, {x:c.x,y:c.y,z:c.z,arrId:arr.id}, {type:'translate', dx:xv, dy:yv, dz:zv, opText:f});
  }
  }catch{}
  }
  if(/(?:3D_)?ROTATE(?:_ARRAY)?\(/i.test(f)){
  try{
- const start = f.search(/(?:3D_)?ROTATE(?:_ARRAY)?\(/i);
- if(start>=0){
- let i=start; while(i<f.length && f[i]!== '(') i++;
- if(i<f.length && f[i]==='('){
- i++; let depth=0, cur=''; const args=[];
- for(; i<f.length; i++){
- const ch=f[i];
- if(ch==='('){ depth++; cur+=ch; continue; }
- if(ch===')'){
- if(depth>0){ depth--; cur+=ch; continue; }
- args.push(cur.trim());
- break;
- }
- if(ch===',' && depth===0){ args.push(cur.trim()); cur=''; continue; }
- cur+=ch;
- }
- // take last up to three as sx,sy,sz (ignore optional target at front)
+ const args = extractTopLevelCallArgs(f, /(?:3D_)?ROTATE(?:_ARRAY)?\(/i) || [];
  const n=args.length;
  const sx = n>=1 ? reNum(args[n-3] ?? 0) : 0;
  const sy = n>=2 ? reNum(args[n-2] ?? 0) : 0;
  const sz = n>=3 ? reNum(args[n-1] ?? 0) : 0;
  queueTimedOp(arr, {x:c.x,y:c.y,z:c.z,arrId:arr.id}, {type:'rotate', sx, sy, sz, opText:f});
- }
- }
  }catch{}
  }
  // SHIFT(input, dx[, dy[, dz]]) -> treat as translate for previews
