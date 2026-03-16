@@ -20206,15 +20206,17 @@ let currentSupportArrayId = null;
 
 // Extensible avatar physics influence pipeline for moving-platform interactions.
 const avatarPhysicsEngine = {
- resolveSupportArrayId(playerPos){
+ resolveSupportState(playerPos){
+ let grounded = false;
  try{
- const supportArrayId = detectSupportArrayId(playerPos);
- if(supportArrayId != null){
- currentSupportArrayId = supportArrayId;
- return supportArrayId;
+ const support = detectSupportState(playerPos);
+ if(support?.arrayId != null){
+ currentSupportArrayId = support.arrayId;
+ grounded = !!support.grounded;
+ return { arrayId: support.arrayId, grounded };
  }
  }catch{}
- return currentSupportArrayId;
+ return { arrayId: currentSupportArrayId, grounded };
  },
 
  samplePlatformMotion(arrayId){
@@ -20252,18 +20254,36 @@ const avatarPhysicsEngine = {
  const threshold = Number(avatarCfg?.momentumThreshold);
  const thresholdSpeed = Number.isFinite(threshold) ? Math.max(0, threshold) : Infinity;
  const playerPos = body.translation?.();
- const supportArrayId = this.resolveSupportArrayId(playerPos);
+ const supportState = this.resolveSupportState(playerPos);
+ const supportArrayId = supportState?.arrayId;
  const sample = this.samplePlatformMotion(supportArrayId);
  if(!sample) return;
 
  const vel = body.linvel();
- const airborne = Math.abs(vel.y) > 0.2 || Number(jumpVelocity) > 0.35;
+ const airborne = !supportState?.grounded && (Math.abs(vel.y) > 0.2 || Number(jumpVelocity) > 0.35);
  const carried = this.applyPlatformCarry({ body, playerPos, vel, sample, frictionOn, airborne });
  if(!carried){
  this.applyMomentumTransfer({ body, vel, sample, thresholdSpeed, airborne });
  }
  }
 };
+
+function detectSupportState(playerPos){
+ if(!playerPos) return null;
+ const byRay = detectSupportArrayId(playerPos);
+ if(byRay != null){
+ return { arrayId: byRay, grounded: true };
+ }
+ // Fallback: collision-box cell lookup near Celli's feet for stability on animated tops.
+ try{
+ const probe = new THREE.Vector3(playerPos.x, playerPos.y - 0.62, playerPos.z);
+ const hit = locateArrayCollision(probe, { preferSelection: false });
+ if(hit?.arr?.id != null){
+ return { arrayId: hit.arr.id, grounded: true };
+ }
+ }catch{}
+ return null;
+}
 
 function updateMovingArrayMomentumSample(arr, delta){
  try{
@@ -20297,8 +20317,9 @@ function getArrayIdForBodyHandle(bodyHandle){
 function detectSupportArrayId(playerPos){
  if(!RAPIER || !rapierWorld || !playerPos) return null;
  try{
- const ray = new RAPIER.Ray({x: playerPos.x, y: playerPos.y, z: playerPos.z}, {x: 0, y: -1, z: 0});
- const hit = rapierWorld.castRay(ray, 0.75, true);
+ const rayOriginY = playerPos.y - 0.35;
+ const ray = new RAPIER.Ray({x: playerPos.x, y: rayOriginY, z: playerPos.z}, {x: 0, y: -1, z: 0});
+ const hit = rapierWorld.castRay(ray, 0.9, true);
  if(!hit) return null;
  const colliderHandle = hit.colliderHandle ?? hit.collider ?? hit.handle;
  if(colliderHandle == null) return null;
