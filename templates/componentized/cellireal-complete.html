@@ -2543,6 +2543,18 @@ const Write = (() => {
  }
  if(suppressed){ const sup=new Set(Store.getState().suppress3DRotateRevert); sup.delete(ak); Store.setState({suppress3DRotateRevert:sup}); }
  }catch{}
+ // Attempt 3D_TRANSLATE stack cleanup for this anchor unless suppressed
+ try{
+ const S=Store.getState();
+ const rec=(S.activeTranslations||new Map()).get(ak);
+ const suppressed=(S.suppress3DTranslateRevert||new Set()).has(ak);
+ if(rec && !suppressed){
+ const map = new Map(S.activeTranslations||new Map());
+ map.delete(ak);
+ applyArrayTranslationStack(map);
+ }
+ if(suppressed){ const sup=new Set(Store.getState().suppress3DTranslateRevert); sup.delete(ak); Store.setState({suppress3DTranslateRevert:sup}); }
+ }catch{}
  const S = Store.getState();
  const emitted = S.emittedByAnchor.get(ak);
  if(emitted) {
@@ -2978,6 +2990,23 @@ const Actions = {
  const arrays = { ...S.arrays };
  delete arrays[arrId];
  Store.setState({ arrays });
+
+ // Remove active 3D translation anchors that target or originate from this array,
+ // then re-apply the remaining stack so offsets stay deterministic.
+ try{
+ const stateNow = Store.getState();
+ const map = new Map(stateNow.activeTranslations||new Map());
+ let changed=false;
+ map.forEach((rec, ak)=>{
+ const anchorArrId = Number(ak.split(':')[0]);
+ const ids = Array.isArray(rec?.ids) ? rec.ids : (Number.isFinite(+rec?.targetId) ? [rec.targetId] : []);
+ if(anchorArrId===arrId || ids.includes(arrId)){
+ map.delete(ak);
+ changed=true;
+ }
+ });
+ if(changed) applyArrayTranslationStack(map);
+ }catch{}
 
  // Reroute selection if necessary
  try{
@@ -3681,7 +3710,7 @@ function applyArrayTranslationStack(nextMap){
  const newD = toVec(newTotals.get(id)||{x:0,y:0,z:0});
  const base = { x:cur.x-oldD.x, y:cur.y-oldD.y, z:cur.z-oldD.z };
  const next = { x:base.x+newD.x, y:base.y+newD.y, z:base.z+newD.z };
- (Scene.setArrayOffset||setArrayOffset)(arrT, next, {interactive:true, _skipDock:true, _skipConnections:true});
+ (Scene.setArrayOffset||setArrayOffset)(arrT, next, {interactive:true, noSnap:true, _skipDock:true, _skipConnections:true});
  });
  Store.setState({activeTranslations: new Map(nextMap||new Map())});
  }catch(e){ console.warn('applyArrayTranslationStack failed', e); }
@@ -5301,7 +5330,7 @@ const Formula = (()=>{
  y: Number.isFinite(+src?.y) ? Math.round(+src.y) : 0,
  z: Number.isFinite(+src?.z) ? Math.round(+src.z) : 0
  };
- setArrayOffset(arrTarget, base, {interactive:true, _skipDock:true, _skipConnections:true});
+ setArrayOffset(arrTarget, base, {interactive:true, noSnap:true, _skipDock:true, _skipConnections:true});
  seen.add(id);
  restored=true;
  });
@@ -5313,7 +5342,7 @@ const Formula = (()=>{
  const nx = Number.isFinite(+base.x) ? Math.round(+base.x) : 0;
  const ny = Number.isFinite(+base.y) ? Math.round(+base.y) : 0;
  const nz = Number.isFinite(+base.z) ? Math.round(+base.z) : 0;
- setArrayOffset(targ, {x:nx,y:ny,z:nz}, {interactive:true});
+ setArrayOffset(targ, {x:nx,y:ny,z:nz}, {interactive:true, noSnap:true});
  restored=true;
  }
  }
