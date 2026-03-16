@@ -3736,7 +3736,7 @@ function collectTranslationTotalsByArray(map){
  });
  return totals;
 }
-function computeTimed3DPlacementForArray(arr){
+function computeTimed3DPlacementForArray(arr, opts){
  const S = Store.getState();
  const totals = collectTranslationTotalsByArray(S.activeTranslations||new Map());
  const activeSum = totals.get(arr?.id) || {x:0,y:0,z:0};
@@ -3753,16 +3753,27 @@ function computeTimed3DPlacementForArray(arr){
  }catch{}
  const hasActive = !!(activeSum.x || activeSum.y || activeSum.z);
  const sum = hasActive ? activeSum : planSum;
- const finalOffset = {
+ const finalOffsetNow = {
  x: Number.isFinite(+arr?.offset?.x) ? +arr.offset.x : 0,
  y: Number.isFinite(+arr?.offset?.y) ? +arr.offset.y : 0,
  z: Number.isFinite(+arr?.offset?.z) ? +arr.offset.z : 0
  };
- const originOffset = {
- x: finalOffset.x - sum.x,
- y: finalOffset.y - sum.y,
- z: finalOffset.z - sum.z
+ const originOverride = opts?.originOffset;
+ const hasOriginOverride = !!(originOverride && Number.isFinite(+originOverride.x) && Number.isFinite(+originOverride.y) && Number.isFinite(+originOverride.z));
+ const originOffset = hasOriginOverride
+ ? { x:+originOverride.x, y:+originOverride.y, z:+originOverride.z }
+ : {
+ x: finalOffsetNow.x - sum.x,
+ y: finalOffsetNow.y - sum.y,
+ z: finalOffsetNow.z - sum.z
  };
+ const finalOffset = hasOriginOverride
+ ? {
+ x: originOffset.x + sum.x,
+ y: originOffset.y + sum.y,
+ z: originOffset.z + sum.z
+ }
+ : finalOffsetNow;
  return {
  originOffset,
  finalOffset,
@@ -17510,8 +17521,8 @@ function ensureTimed3D(){
  if(!T.ticks) { T.ticks = 120; }
  // Ensure baseOffset captured once to compute from starting state
  if(!T.baseOffset){ T.baseOffset = { ...(arr.offset||{x:0,y:0,z:0}) }; }
- // Ensure a timed plan exists; if not, derive from formulas
- if(!T.plan.length){ try{ (Scene.buildTimedPlanFromArray||buildTimedPlanFromArray)(arr); }catch{} }
+ // Re-evaluate timed plan each frame so formula edits/removals apply immediately
+ try{ (Scene.buildTimedPlanFromArray||buildTimedPlanFromArray)(arr); }catch{}
  
  // Calculate progress for this frame
  const dur = (T.dir>0? T.ticks : (T.reverseTicks||T.ticks));
@@ -17669,19 +17680,24 @@ function ensureTimed3D(){
  if(!includeArrayIn3D(arr.id)){
  // Skip global preview application for arrays outside scope
  } else {
- if(!T.plan.length){ buildTimedPlanFromArray(arr); }
- if(!T.plan.length){ continue; }
- if(!T.previewPlacement || T.previewPlacement.sessionId !== (G._sessionId||0)){
- const placement = computeTimed3DPlacementForArray(arr);
+ try{ buildTimedPlanFromArray(arr); }catch{}
+ if(!T.plan.length){
+ const base = T.previewPlacement?.originOffset || T.baseOffset || { ...(arr.offset||{x:0,y:0,z:0}) };
+ setArrayOffset(arr, {x:base.x, y:base.y, z:base.z}, {interactive:true, noSnap:true});
+ try{ if(arr._frame && T.baseQuat){ arr._frame.quaternion.copy(T.baseQuat); } }catch{}
+ T.previewPlacement = null;
+ continue;
+ }
+ const prevPlacement = T.previewPlacement;
+ const placement = computeTimed3DPlacementForArray(arr, { originOffset: prevPlacement?.originOffset });
  T.previewPlacement = {
  sessionId: (G._sessionId||0),
  originOffset: {...placement.originOffset},
  finalOffset: {...placement.finalOffset},
- originQuat: placement.originQuat?.clone?.() || new THREE.Quaternion(),
+ originQuat: (prevPlacement?.originQuat?.clone?.() || placement.originQuat?.clone?.() || new THREE.Quaternion()),
  finalQuat: placement.finalQuat?.clone?.() || new THREE.Quaternion(),
  translationDelta: {...(placement.translationDelta||{x:0,y:0,z:0})}
  };
- }
  const place = T.previewPlacement || { originOffset:{...(arr.offset||{x:0,y:0,z:0})}, finalOffset:{...(arr.offset||{x:0,y:0,z:0})}, originQuat:(arr._frame?.quaternion?.clone?.())||new THREE.Quaternion(), finalQuat:(arr._frame?.quaternion?.clone?.())||new THREE.Quaternion(), translationDelta:{x:0,y:0,z:0} };
  T.baseOffset = {...place.originOffset};
  T.baseQuat = place.originQuat?.clone?.() || new THREE.Quaternion();
