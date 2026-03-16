@@ -322,6 +322,71 @@
             transition: transform 0.55s ease, opacity 0.55s ease, border-color 0.35s ease;
         }
         .manifesto-card.active { opacity: 1; transform: translateY(0); border-color: rgba(255, 197, 77, 0.5); }
+        .manifesto-card.directive-leak {
+            border-color: rgba(205, 43, 43, 0.55);
+            background: rgba(24, 8, 12, 0.82);
+            box-shadow: inset 0 0 0 1px rgba(205, 43, 43, 0.2);
+            animation: directive-glitch-card 1.6s steps(2, end) infinite;
+        }
+        .manifesto-card.directive-leak h3,
+        .manifesto-card.directive-leak p,
+        .manifesto-card.directive-leak .manifesto-leak-tag {
+            position: relative;
+            animation: directive-leak-jitter 0.35s steps(2, end) infinite;
+        }
+        .manifesto-card.directive-leak h3::before,
+        .manifesto-card.directive-leak p::before {
+            content: attr(data-glitch-text);
+            position: absolute;
+            inset: 0;
+            color: rgba(61, 255, 181, 0.72);
+            transform: translate(1px, -1px);
+            opacity: 0.65;
+            pointer-events: none;
+            clip-path: inset(0 0 42% 0);
+            animation: directive-leak-scan 1.8s linear infinite;
+        }
+        .manifesto-directive-actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        #manifesto-directive-leak {
+            border: 1px solid rgba(205, 43, 43, 0.65);
+            background: rgba(6, 6, 10, 0.9);
+            color: #f8f1ea;
+            font-family: 'Space Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            font-size: 10px;
+            padding: 10px 14px;
+            transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+            animation: directive-leak-jitter 2.2s steps(2, end) infinite;
+        }
+        #manifesto-directive-leak:hover {
+            background: rgba(205, 43, 43, 0.9);
+            color: #0a0a0f;
+            transform: translateY(-1px);
+        }
+        #manifesto-directive-leak[hidden] {
+            display: none;
+        }
+        @keyframes directive-glitch-card {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(0.8px, -0.6px); }
+            50% { transform: translate(-0.6px, 0.4px); }
+            75% { transform: translate(0.4px, 0.6px); }
+        }
+        @keyframes directive-leak-jitter {
+            0%, 100% { transform: translate(0); text-shadow: none; }
+            30% { transform: translate(-0.7px, 0.6px); text-shadow: -1px 0 rgba(205, 43, 43, 0.7); }
+            70% { transform: translate(0.8px, -0.4px); text-shadow: 1px 0 rgba(61, 255, 181, 0.65); }
+        }
+        @keyframes directive-leak-scan {
+            0% { clip-path: inset(0 0 58% 0); }
+            50% { clip-path: inset(24% 0 24% 0); }
+            100% { clip-path: inset(58% 0 0 0); }
+        }
         .manifesto-progress { height: 2px; width: 100%; background: rgba(255, 255, 255, 0.15); overflow: hidden; }
         .manifesto-progress span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #3DFFB5, #FFC54D); transition: width 0.45s ease; }
         @media (max-width: 767px) {
@@ -2445,6 +2510,9 @@
                 </div>
                 <div class="manifesto-progress"><span id="manifesto-progress-fill"></span></div>
                 <div id="manifesto-sequence" class="space-y-3 manifesto-scroll-region"></div>
+                <div class="manifesto-directive-actions">
+                    <button id="manifesto-directive-leak" hidden>Directive Leak // Reveal Additional Segments</button>
+                </div>
                 <button id="manifesto-mobile-exit" class="manifesto-mobile-exit">Exit Sequence</button>
             </div>
         </div>
@@ -7310,9 +7378,18 @@
                 { title: '08 · Underlying Mission', body: 'The underlying mission is to restore agency through participation: invite people into designed myths, let them feel structure, then return them to ordinary life with stronger pattern-recognition and less appetite for passive feeds.' },
                 { title: '09 · Final Acknowledgement', body: 'If you are reading this, onboarding is complete. You are no longer an observer of the Loomworks truth; you are now inside its bureaucracy, and therefore inside its lore. Please proceed with useful devotion.' }
             ],
+            leakChunks: [
+                { title: 'Directive Leak · 0 // Preamble', body: 'Loomworks is not a company, not a brand, and not merely a story. It is an instrument for mapping meaning. We mapped land, oceans, stars, genomes, and networks. The remaining frontier is consciousness itself.' },
+                { title: 'Directive Leak · I // The First Signal', body: 'The universe did not only emit matter; it emitted information. Consciousness is not outside reality looking in. Consciousness is reality observing itself.' },
+                { title: 'Directive Leak · II // Fractal Architecture', body: 'Across cosmic webs, human systems, and neural nets, the same pattern repeats: clusters, nodes, and connective gravity. Loomworks mirrors that architecture and treats it as a navigable map.' },
+                { title: 'Directive Leak · III-IV // Gravity + Mapping Problem', body: 'Ideas bend outcomes like mass bends spacetime. Stars ignite paradigms; planets stabilize and extend them. Legacy tools capture fragments of thought but not the topology of meaning. Loomworks exists to reveal how ideas cluster and propagate.' },
+                { title: 'Directive Leak · V-VIII // Skymappers to Singularity', body: 'Skymappers tag stars, trace influence fields, and make consciousness legible through systems, artifacts, narratives, and communities. The singularity is reframed: not machine supremacy, but complete self-cartography of mind.' },
+                { title: 'Directive Leak · IX-XI // Lantern Protocol + Directive', body: 'Lanterns observe patterns, collect fragments, build tools, and share signal. The archive is not merchandise; it is coordinate geometry for meaning. Mandate: Build the instruments. Map the signal. Illuminate the stars. Question: where do you appear on the map?' }
+            ],
             currentStep: -1,
             timer: null,
             audioCtx: null,
+            leakRevealed: false,
             open() {
                 const modal = document.getElementById('manifesto-modal');
                 if (!modal) return;
@@ -7332,8 +7409,15 @@
             },
             reset() {
                 this.currentStep = -1;
+                this.leakRevealed = false;
                 const sequence = document.getElementById('manifesto-sequence');
                 if (sequence) sequence.innerHTML = '';
+                const leakButton = document.getElementById('manifesto-directive-leak');
+                if (leakButton) {
+                    leakButton.hidden = true;
+                    leakButton.disabled = false;
+                    leakButton.textContent = 'Directive Leak // Reveal Additional Segments';
+                }
                 this.updateMeta();
             },
             updateMeta() {
@@ -7346,7 +7430,10 @@
             advance() {
                 const sequence = document.getElementById('manifesto-sequence');
                 if (!sequence) return;
-                if (this.currentStep >= this.chunks.length - 1) return;
+                if (this.currentStep >= this.chunks.length - 1) {
+                    this.showLeakButton();
+                    return;
+                }
                 this.currentStep += 1;
                 const chunk = this.chunks[this.currentStep];
                 const card = document.createElement('article');
@@ -7362,6 +7449,36 @@
                 this.updateMeta();
                 this.playTone(190 + (this.currentStep * 18), 0.05);
                 this.timer = window.setTimeout(() => this.advance(), 1800);
+            },
+            showLeakButton() {
+                const leakButton = document.getElementById('manifesto-directive-leak');
+                if (!leakButton || this.leakRevealed) return;
+                leakButton.hidden = false;
+                this.playTone(320, 0.06, 'square');
+            },
+            revealDirectiveLeak() {
+                const sequence = document.getElementById('manifesto-sequence');
+                if (!sequence || this.leakRevealed) return;
+                this.leakRevealed = true;
+                this.leakChunks.forEach((chunk, index) => {
+                    const card = document.createElement('article');
+                    card.className = 'manifesto-card directive-leak';
+                    card.innerHTML = `
+                        <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-[#ff8e8e] mb-2 manifesto-leak-tag">Leak Segment ${String(index + 1).padStart(2, '0')}</div>
+                        <h3 class="text-lg md:text-xl font-bold uppercase" data-glitch-text="${chunk.title}">${chunk.title}</h3>
+                        <p class="text-sm text-white/90 mt-3 leading-relaxed" data-glitch-text="${chunk.body}">${chunk.body}</p>
+                    `;
+                    sequence.appendChild(card);
+                    setTimeout(() => card.classList.add('active'), 60 * (index + 1));
+                });
+                sequence.scrollTo({ top: sequence.scrollHeight, behavior: 'smooth' });
+                this.playTone(410, 0.08, 'sawtooth');
+                this.playTone(180, 0.09, 'triangle');
+                const leakButton = document.getElementById('manifesto-directive-leak');
+                if (leakButton) {
+                    leakButton.textContent = 'Directive Leak Accepted';
+                    leakButton.disabled = true;
+                }
             },
             playTone(frequency = 220, duration = 0.04, type = 'sine') {
                 const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -7388,9 +7505,11 @@
                 const trigger = document.getElementById('understand-mission-trigger');
                 const closeButton = document.getElementById('manifesto-close');
                 const mobileExitButton = document.getElementById('manifesto-mobile-exit');
+                const leakButton = document.getElementById('manifesto-directive-leak');
                 if (trigger) trigger.addEventListener('click', () => this.open());
                 if (closeButton) closeButton.addEventListener('click', () => this.close());
                 if (mobileExitButton) mobileExitButton.addEventListener('click', () => this.close());
+                if (leakButton) leakButton.addEventListener('click', () => this.revealDirectiveLeak());
                 document.addEventListener('keydown', (event) => {
                     const open = document.getElementById('manifesto-modal')?.classList.contains('active');
                     if (event.key === 'Escape') this.close();
