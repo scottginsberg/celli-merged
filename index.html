@@ -278,7 +278,15 @@
             justify-content: stretch;
             background: radial-gradient(circle at 20% 20%, rgba(42, 32, 56, 0.85), rgba(9, 9, 15, 0.96));
         }
-        .manifesto-shell { width: 100%; height: 100%; position: relative; overflow: hidden; color: #f8f1ea; }
+        .manifesto-shell {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            color: #f8f1ea;
+        }
         .manifesto-stars {
             position: absolute; inset: 0; pointer-events: none;
             background-image:
@@ -286,7 +294,28 @@
                 radial-gradient(circle at 82% 20%, rgba(61, 255, 181, 0.22) 0, rgba(61, 255, 181, 0) 50%),
                 radial-gradient(circle at 64% 70%, rgba(205, 43, 43, 0.28) 0, rgba(205, 43, 43, 0) 50%);
         }
-        .manifesto-content { position: relative; z-index: 1; max-width: 880px; margin: 0 auto; width: calc(100% - 32px); padding: 80px 0 40px; display: grid; gap: 20px; }
+        .manifesto-content { position: relative; z-index: 1; max-width: 880px; margin: 0 auto; width: calc(100% - 32px); padding: 80px 0 96px; display: grid; gap: 20px; }
+        .manifesto-scroll-region {
+            max-height: min(56vh, 560px);
+            overflow-y: auto;
+            padding-right: 6px;
+            scroll-behavior: smooth;
+        }
+        .manifesto-mobile-exit {
+            display: none;
+            position: sticky;
+            bottom: 12px;
+            margin-left: auto;
+            width: fit-content;
+            border: 1px solid rgba(248, 241, 234, 0.4);
+            background: rgba(7, 7, 10, 0.86);
+            padding: 10px 12px;
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            font-family: 'Space Mono', monospace;
+            color: #f8f1ea;
+        }
         .manifesto-card {
             border: 1px solid rgba(248, 241, 234, 0.2); background: rgba(10, 10, 12, 0.74); backdrop-filter: blur(2px);
             padding: 20px; transform: translateY(12px); opacity: 0;
@@ -295,6 +324,11 @@
         .manifesto-card.active { opacity: 1; transform: translateY(0); border-color: rgba(255, 197, 77, 0.5); }
         .manifesto-progress { height: 2px; width: 100%; background: rgba(255, 255, 255, 0.15); overflow: hidden; }
         .manifesto-progress span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #3DFFB5, #FFC54D); transition: width 0.45s ease; }
+        @media (max-width: 767px) {
+            .manifesto-content { padding-top: 72px; }
+            #manifesto-close { display: none; }
+            .manifesto-mobile-exit { display: inline-flex; }
+        }
 
         /* Glitch Effects */
         .glitch-text { position: relative; display: inline-block; }
@@ -2404,13 +2438,14 @@
             <div class="manifesto-content">
                 <div class="flex items-center justify-between gap-3 border-b border-white/20 pb-4">
                     <div>
-                        <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-tonka-gold">Loomworks Manifesto</div>
-                        <h2 class="text-2xl md:text-4xl font-bold uppercase tracking-tight mt-2">The Skymapper Doctrine</h2>
+                        <div class="text-[10px] font-mono uppercase tracking-[0.25em] text-tonka-gold">Loomworks Mission Briefing</div>
+                        <h2 class="text-2xl md:text-4xl font-bold uppercase tracking-tight mt-2">Understand Mission Sequence // Corporate Truth Packet</h2>
                     </div>
                     <div id="manifesto-step" class="font-mono text-xs uppercase tracking-widest text-white/70">0 / 0</div>
                 </div>
                 <div class="manifesto-progress"><span id="manifesto-progress-fill"></span></div>
-                <div id="manifesto-sequence" class="space-y-3"></div>
+                <div id="manifesto-sequence" class="space-y-3 manifesto-scroll-region"></div>
+                <button id="manifesto-mobile-exit" class="manifesto-mobile-exit">Exit Sequence</button>
             </div>
         </div>
     </div>
@@ -7264,16 +7299,16 @@
 
         const manifestoSequence = {
             chunks: [
-                { title: '0 · Preamble', body: 'Loomworks is an instrument for mapping meaning. Humanity mapped oceans, stars, genomes, and networks. The final frontier is consciousness.' },
-                { title: 'I · The First Signal', body: 'The Big Bang was an information burst. Consciousness is the universe observing itself, and every mind is a continuation of that first signal.' },
-                { title: 'II · Fractal Architecture', body: 'Cosmic webs, social webs, neural webs: the pattern repeats at every scale. Loomworks mirrors these structures to reveal meaning.' },
-                { title: 'III · Gravity of Minds', body: 'Ideas bend reality. Stars ignite worlds. Planets stabilize ecosystems. Civilization requires both force and orbit.' },
-                { title: 'IV · The Mapping Problem', body: 'Books, markets, and institutions captured fragments, not topology. Loomworks maps how ideas cluster and propagate across minds.' },
-                { title: 'V · The Skymappers', body: 'Skymappers do not invent stars. They tag signals, trace influence, and build lenses that make consciousness legible.' },
-                { title: 'VI · Instruments', body: 'Celli systems, artifacts, narratives, and communities each reveal a different slice of the map.' },
-                { title: 'VII · Earth Simulation', body: 'Civilization is a recursive observatory: we build tools to discover patterns and build better tools.' },
-                { title: 'VIII · Singularity Reframed', body: 'The singularity is self-cartography: the moment consciousness can map itself clearly enough to reveal its own topology.' },
-                { title: 'IX-XI · Lantern Directive', body: 'Lanterns observe, collect, build, and share signal. Build the instruments. Map the signal. Illuminate the stars. Where do you appear on the map?' }
+                { title: '00 · Intake Memo', body: 'Welcome to Loomworks Holdings, where imagination has been reorganized as infrastructure. Your onboarding file states you are here to understand the mission. Correction: the mission is here to understand you.' },
+                { title: '01 · Founding Event Record', body: 'Per Archive Compliance, creation did not begin with a bang but with an unauthorized signal leak. The first minds to hear it called it wonder. The first managers called it inventory.' },
+                { title: '02 · The Bureau of Pattern Retention', body: 'Loomworks formed when myth, media, and municipal paperwork were merged into one operating stack. We do not separate lore from policy; policy is how lore survives contact with payroll, zoning, and weather.' },
+                { title: '03 · Penny / Dime Transition', body: 'PENNY_1 was a mascot prototype designed to make strangeness approachable. PENNY_10, now Dime, became the official interface layer: warm enough to be trusted, procedural enough to process consent into participation.' },
+                { title: '04 · Lantern Employment Doctrine', body: 'Lanterns are not performers in costume. They are licensed emissaries of coherent unreality: part docent, part witness, part auditor. Their task is to keep guests emotionally safe while the world quietly rewrites their assumptions.' },
+                { title: '05 · Revenue as Ritual', body: 'Ticketing, merch, archives, and artifacts are not side businesses. They are stabilizers that prevent wonder from becoming charity theater. Every transaction is a covenant that keeps the myth solvent and the city lit.' },
+                { title: '06 · The City Underneath', body: 'Beneath every scene is a civic machine: routing tables, script revisions, role choreography, and care protocols. This is the hidden municipal body of Loomworks, where story is treated as public utility.' },
+                { title: '07 · Compliance Note on Truth', body: 'Officially, Loomworks is an entertainment institution. Internally, it is the long campaign to map consciousness before extractive systems flatten it. We host attractions so we can preserve signal.' },
+                { title: '08 · Underlying Mission', body: 'The underlying mission is to restore agency through participation: invite people into designed myths, let them feel structure, then return them to ordinary life with stronger pattern-recognition and less appetite for passive feeds.' },
+                { title: '09 · Final Acknowledgement', body: 'If you are reading this, onboarding is complete. You are no longer an observer of the Loomworks truth; you are now inside its bureaucracy, and therefore inside its lore. Please proceed with useful devotion.' }
             ],
             currentStep: -1,
             timer: null,
@@ -7352,8 +7387,10 @@
             init() {
                 const trigger = document.getElementById('understand-mission-trigger');
                 const closeButton = document.getElementById('manifesto-close');
+                const mobileExitButton = document.getElementById('manifesto-mobile-exit');
                 if (trigger) trigger.addEventListener('click', () => this.open());
                 if (closeButton) closeButton.addEventListener('click', () => this.close());
+                if (mobileExitButton) mobileExitButton.addEventListener('click', () => this.close());
                 document.addEventListener('keydown', (event) => {
                     const open = document.getElementById('manifesto-modal')?.classList.contains('active');
                     if (event.key === 'Escape') this.close();
