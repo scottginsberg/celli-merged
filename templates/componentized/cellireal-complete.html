@@ -1704,7 +1704,8 @@ const Store = createStore((set,get)=>{
  scope,
  activeHostIds: Array.isArray(timed.activeHostIds) ? timed.activeHostIds.map(n=> Number.isFinite(+n)?(+n|0):null).filter(n=>n!=null) : [],
  t: 0,
- dir: (timed.dir===-1)?-1:1
+ dir: (timed.dir===-1)?-1:1,
+ _sessionId: Number.isFinite(+timed._sessionId) ? (+timed._sessionId|0) : 0
  };
  };
 
@@ -1935,7 +1936,8 @@ const Store = createStore((set,get)=>{
  t: Number.isFinite(+timed.t) ? (+timed.t|0) : 0,
  dir: (timed.dir===-1)?-1:1,
  _waitCounter: 0,
- activeHostIds: Array.isArray(timed.activeHostIds) ? timed.activeHostIds.map(n=> Number.isFinite(+n)?(+n|0):null).filter(n=>n!=null) : []
+ activeHostIds: Array.isArray(timed.activeHostIds) ? timed.activeHostIds.map(n=> Number.isFinite(+n)?(+n|0):null).filter(n=>n!=null) : [],
+ _sessionId: Number.isFinite(+timed._sessionId) ? (+timed._sessionId|0) : 0
  };
  };
  const restoreTimedPreviewState=()=>{
@@ -3714,6 +3716,60 @@ function applyArrayTranslationStack(nextMap){
  });
  Store.setState({activeTranslations: new Map(nextMap||new Map())});
  }catch(e){ console.warn('applyArrayTranslationStack failed', e); }
+}
+function collectTranslationTotalsByArray(map){
+ const totals = new Map();
+ const add=(id,dx,dy,dz)=>{
+ const key = Number.isFinite(+id) ? (+id|0) : null;
+ if(key==null) return;
+ const cur = totals.get(key) || {x:0,y:0,z:0};
+ totals.set(key, {
+ x: cur.x + (Number.isFinite(+dx) ? Math.round(+dx) : 0),
+ y: cur.y + (Number.isFinite(+dy) ? Math.round(+dy) : 0),
+ z: cur.z + (Number.isFinite(+dz) ? Math.round(+dz) : 0)
+ });
+ };
+ (map||new Map()).forEach(rec=>{
+ const ids = Array.isArray(rec?.ids) ? rec.ids : (Number.isFinite(+rec?.targetId) ? [rec.targetId] : []);
+ const d = rec?.delta || {};
+ ids.forEach(id=> add(id, d.dx, d.dy, d.dz));
+ });
+ return totals;
+}
+function computeTimed3DPlacementForArray(arr){
+ const S = Store.getState();
+ const totals = collectTranslationTotalsByArray(S.activeTranslations||new Map());
+ const activeSum = totals.get(arr?.id) || {x:0,y:0,z:0};
+ const T = arr?.params?.timed;
+ let planSum = {x:0,y:0,z:0};
+ try{
+ (T?.plan||[]).forEach(op=>{
+ if(op?.type==='translate'){
+ planSum.x += Number.isFinite(+op.dx) ? +op.dx : 0;
+ planSum.y += Number.isFinite(+op.dy) ? +op.dy : 0;
+ planSum.z += Number.isFinite(+op.dz) ? +op.dz : 0;
+ }
+ });
+ }catch{}
+ const hasActive = !!(activeSum.x || activeSum.y || activeSum.z);
+ const sum = hasActive ? activeSum : planSum;
+ const finalOffset = {
+ x: Number.isFinite(+arr?.offset?.x) ? +arr.offset.x : 0,
+ y: Number.isFinite(+arr?.offset?.y) ? +arr.offset.y : 0,
+ z: Number.isFinite(+arr?.offset?.z) ? +arr.offset.z : 0
+ };
+ const originOffset = {
+ x: finalOffset.x - sum.x,
+ y: finalOffset.y - sum.y,
+ z: finalOffset.z - sum.z
+ };
+ return {
+ originOffset,
+ finalOffset,
+ originQuat: (arr?._frame?.quaternion?.clone?.()) || new THREE.Quaternion(),
+ finalQuat: (arr?._frame?.quaternion?.clone?.()) || new THREE.Quaternion(),
+ translationDelta: sum
+ };
 }
 // 3D_TRANSLATE([target], y, x, z)
 // - target: 0/"default"/blank=self, number=array id, or ref/alt address to pick array
@@ -8908,7 +8964,7 @@ tag('3D_TIMED_TRANSLATION',["SCENE"],(anchor,arr,ast)=>{
  if(!G){
  const S = Store.getState();
  const sceneState = S.scene || {};
- if(!sceneState.timed3D){ sceneState.timed3D = { configured:false, ticks:60, repeat:true, reverse:true, reverseTicks:60, t:0, dir:1, preview:false, smooth:false, mode:'simultaneous', waitStart:0, waitEnd:0, _waitCounter:0, scope:null, hostId:null, activeHostIds:[] }; }
+ if(!sceneState.timed3D){ sceneState.timed3D = { configured:false, ticks:60, repeat:true, reverse:true, reverseTicks:60, t:0, dir:1, preview:false, smooth:false, mode:'simultaneous', waitStart:0, waitEnd:0, _waitCounter:0, scope:null, hostId:null, activeHostIds:[], _sessionId:0 }; }
  Store.setState(s=>({ scene: { ...s.scene, timed3D: sceneState.timed3D } }));
  G = sceneState.timed3D;
  }
@@ -8921,6 +8977,7 @@ tag('3D_TIMED_TRANSLATION',["SCENE"],(anchor,arr,ast)=>{
  G.mode = mode;
  G.hostId = arr?.id ?? anchor?.arrId ?? null;
  G.preview = enable3D;
+ if(enable3D){ G._sessionId = ((+G._sessionId|0) + 1); }
  if(enable3D && scopeConfig){
  G.scope = { mode: scopeConfig.mode, ids: Array.from(scopeConfig.ids||[]) };
  } else if(enable3D && !G.scope){
@@ -8955,6 +9012,23 @@ tag('3D_REPEAT',["SCENE"],(anchor,arr,ast)=>{
  G.waitStart = delayBeforeRestart;
  G._waitCounter = 0;
  Actions.setCell(arr.id, anchor, `3D_Repeat:r${repeatEnabled?1:0}/b${returnEnabled?1:0}`, ast.raw, true);
+ }catch(e){ Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true); }
+});
+
+
+// 3D_REVERSE(enable[, reverseTicks])
+// enable: 1 plays reverse leg back to origin, 0 snaps/stays at end on completion.
+// reverseTicks: optional return duration; defaults to current forward ticks.
+tag('3D_REVERSE',["SCENE"],(anchor,arr,ast)=>{
+ try{
+ const enable = ast.args[0]===undefined ? 1 : ((+Formula.valOf(ast.args[0])|0));
+ const reverseTicks = ast.args[1]===undefined ? null : Math.max(1, (+Formula.valOf(ast.args[1])|0));
+ const G = (typeof Scene!=='undefined' && Scene.ensureTimed3D) ? Scene.ensureTimed3D() : null;
+ if(!G){ Actions.setCell(arr.id, anchor, `!ERR:Timed3D unavailable`, ast.raw, true); return; }
+ G.reverse = enable!==0;
+ G.reverseTicks = G.reverse ? (reverseTicks==null ? Math.max(1, ((+G.ticks|0)||240)) : reverseTicks) : null;
+ G._waitCounter = 0;
+ Actions.setCell(arr.id, anchor, `3D_Reverse:${G.reverse?1:0}`, ast.raw, true);
  }catch(e){ Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true); }
 });
 
@@ -16262,13 +16336,14 @@ function ensureTimed3D(){
  const S=Store.getState();
  const sceneState = S.scene || ({});
  if(!sceneState.timed3D){
- sceneState.timed3D = { configured:false, ticks:60, repeat:true, reverse:true, reverseTicks:60, t:0, dir:1, preview:false, waitStart:0, waitEnd:0, _waitCounter:0, scope:null, hostId:null, activeHostIds:[], mode:'simultaneous' };
+ sceneState.timed3D = { configured:false, ticks:60, repeat:true, reverse:true, reverseTicks:60, t:0, dir:1, preview:false, waitStart:0, waitEnd:0, _waitCounter:0, scope:null, hostId:null, activeHostIds:[], mode:'simultaneous', _sessionId:0 };
  Store.setState(s=>({scene:{...s.scene, timed3D: sceneState.timed3D}}));
  } else {
  if(typeof sceneState.timed3D.waitStart!=='number') sceneState.timed3D.waitStart = 0;
  if(typeof sceneState.timed3D.waitEnd!=='number') sceneState.timed3D.waitEnd = 0;
  if(typeof sceneState.timed3D._waitCounter!=='number') sceneState.timed3D._waitCounter = 0;
  if(!sceneState.timed3D.hasOwnProperty('scope')) sceneState.timed3D.scope = null;
+ if(typeof sceneState.timed3D._sessionId!=='number') sceneState.timed3D._sessionId = 0;
  if(!sceneState.timed3D.hasOwnProperty('hostId')) sceneState.timed3D.hostId = null;
  if(!Array.isArray(sceneState.timed3D.activeHostIds)) sceneState.timed3D.activeHostIds = [];
  if(!sceneState.timed3D.mode) sceneState.timed3D.mode = 'simultaneous';
@@ -17596,16 +17671,24 @@ function ensureTimed3D(){
  } else {
  if(!T.plan.length){ buildTimedPlanFromArray(arr); }
  if(!T.plan.length){ continue; }
- if(!T.baseOffset){
- // Reset base to current on first preview frame
- T.baseOffset={...(arr.offset||{x:0,y:0,z:0})};
- try{ if(arr._frame) T.baseQuat = arr._frame.quaternion.clone(); else T.baseQuat = new THREE.Quaternion(); }catch{ T.baseQuat=new THREE.Quaternion(); }
+ if(!T.previewPlacement || T.previewPlacement.sessionId !== (G._sessionId||0)){
+ const placement = computeTimed3DPlacementForArray(arr);
+ T.previewPlacement = {
+ sessionId: (G._sessionId||0),
+ originOffset: {...placement.originOffset},
+ finalOffset: {...placement.finalOffset},
+ originQuat: placement.originQuat?.clone?.() || new THREE.Quaternion(),
+ finalQuat: placement.finalQuat?.clone?.() || new THREE.Quaternion(),
+ translationDelta: {...(placement.translationDelta||{x:0,y:0,z:0})}
+ };
  }
- let tx=0,ty=0,tz=0; let hasTranspose=false; let smooth=false;
- // Stack only translates/transpose from plan; rotation will use applied steps snapshot
+ const place = T.previewPlacement || { originOffset:{...(arr.offset||{x:0,y:0,z:0})}, finalOffset:{...(arr.offset||{x:0,y:0,z:0})}, originQuat:(arr._frame?.quaternion?.clone?.())||new THREE.Quaternion(), finalQuat:(arr._frame?.quaternion?.clone?.())||new THREE.Quaternion(), translationDelta:{x:0,y:0,z:0} };
+ T.baseOffset = {...place.originOffset};
+ T.baseQuat = place.originQuat?.clone?.() || new THREE.Quaternion();
+ let hasTranspose=false; let smooth=false;
+ // Stack transpose flags from plan; translation baseline is from computed original->final delta
  for(const op of T.plan){
- if(op.type==='translate'){ tx+=(op.dx||0); ty+=(op.dy||0); tz+=(op.dz||0); }
- else if(op.type==='transpose'){ hasTranspose=true; }
+ if(op.type==='transpose'){ hasTranspose=true; }
  }
  // Smooth vs stepped from global or local timed configuration
  smooth = !!((Store.getState().scene?.timed3D?.smooth) || T.smooth);
@@ -17626,9 +17709,8 @@ function ensureTimed3D(){
  }catch{}
  if(!arr._frame) Scene.renderArray(arr);
  if(!T.baseQuat){ T.baseQuat = arr._frame?.quaternion?.clone?.() || new THREE.Quaternion(); }
- const baseRotPivot = pivotLocal.clone().applyQuaternion(T.baseQuat);
- // Rotation progress and quaternion (snapshot of applied rotation steps; inverse toward pre-transform)
- const steps = arr.rotationSteps || {x:0,y:0,z:0};
+ const finalQuat = place.finalQuat?.clone?.() || (arr._frame?.quaternion?.clone?.()) || new THREE.Quaternion();
+ const originQuat = place.originQuat?.clone?.() || finalQuat.clone();
  let arrP3D = p3D;
  if(mode3D!=='simultaneous'){
  const idx = queueIndexByArr.get(arr.id);
@@ -17638,30 +17720,13 @@ function ensureTimed3D(){
  arrP3D = Math.max(0, Math.min(1, q * Math.max(1,queueOrder3D.length) - idx));
  }
  }
- const rotProg = smooth ? (1 - arrP3D) : (1 - (Math.round(arrP3D*4)/4));
- const ax = (steps.x|0) * (Math.PI/2) * rotProg;
- const ay = (steps.y|0) * (Math.PI/2) * rotProg;
- const az = (steps.z|0) * (Math.PI/2) * rotProg;
- const qx = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), -ax);
- const qy = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), -ay);
- const qz = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1), -az);
- const dq = qz.clone().multiply(qy).multiply(qx); // Z^- * Y^- * X^- pre-multiply (world order)
- const newQuat = dq.clone().multiply(T.baseQuat);
+ const prog = smooth ? arrP3D : (Math.round(arrP3D*4)/4);
+ const newQuat = originQuat.clone().slerp(finalQuat, prog);
+ const originRotPivot = pivotLocal.clone().applyQuaternion(originQuat);
  const newRotPivot = pivotLocal.clone().applyQuaternion(newQuat);
- // Translation progress (preview un-applies first, then returns to final)
- let dxp=0,dyp=0,dzp=0;
- if(smooth){
- dxp = -tx * (1 - arrP3D); dyp = -ty * (1 - arrP3D); dzp = -tz * (1 - arrP3D);
- } else {
- dxp = tx!==0 ? (Math.round(T.baseOffset.x - tx*(1-arrP3D)) - T.baseOffset.x) : 0;
- dyp = ty!==0 ? (Math.round(T.baseOffset.y - ty*(1-arrP3D)) - T.baseOffset.y) : 0;
- dzp = tz!==0 ? (Math.round(T.baseOffset.z - tz*(1-arrP3D)) - T.baseOffset.z) : 0;
- }
- const disp = new THREE.Vector3(dxp,dyp,dzp);
- const newOffset = new THREE.Vector3(T.baseOffset.x, T.baseOffset.y, T.baseOffset.z)
- .add(disp)
- .add(baseRotPivot)
- .sub(newRotPivot);
+ const from = new THREE.Vector3(place.originOffset.x, place.originOffset.y, place.originOffset.z);
+ const to = new THREE.Vector3(place.finalOffset.x, place.finalOffset.y, place.finalOffset.z);
+ const newOffset = from.clone().lerp(to, prog).add(originRotPivot).sub(newRotPivot);
  setArrayOffset(arr, {x:newOffset.x, y:newOffset.y, z:newOffset.z}, {interactive:true, noSnap:true});
  try{ arr._frame.quaternion.copy(newQuat); }catch{}
  try{ refreshPhysicsBodiesForMovingArray(arr); }catch{}
@@ -24229,7 +24294,8 @@ const onDP=(direction)=>{
  {name:'3D_TRANSLATE',tags:'SCENE',syntax:'=3D_TRANSLATE([target], y, x, z)',params:'target: optional array selector (0/default/self, array id, or ref with ^/alt notation) y,x,z: offset steps for the whole array',desc:'Alias of ARRAY_TRANSLATE with Y/X/Z step ordering for whole-array movement.'},
  {name:'TIMED_TRANSLATION',tags:'SCENE',syntax:'=TIMED_TRANSLATION(enable[, ticks[, loop[, returnToOrigin[, frameDelay[, smooth[, mode]]]]]])',params:'enable: 1 start/0 stop ticks: forward duration loop: 0/1 (default 1) returnToOrigin: 0/1 (default 1) frameDelay: pause at origin between loops smooth: 0/1 mode: simultaneous|stepped_array|stepped_cell (for shared queue mode)',desc:'Enables timed preview for this array immediately. With defaults, it loops and returns to origin before replaying.'},
  {name:'TIMED_TRANSLATE',tags:'SCENE',syntax:'=TIMED_TRANSLATE(enable[, ticks[, loop[, returnToOrigin[, frameDelay[, smooth[, mode]]]]]])',params:'Alias of TIMED_TRANSLATION with identical parameters.',desc:'Convenience alias for timed translation setup and inline readability.'},
- {name:'3D_TIMED_TRANSLATION',tags:'SCENE',syntax:'=3D_TIMED_TRANSLATION(enable[, ticks[, smooth[, mode[, scope]]]])',params:'enable: non-zero starts global preview, 0 stops ticks: optional forward duration smooth: 0/1 easing mode: "simultaneous" (default), "stepped_array", or "stepped_cell" scope: optional LIMIT()/ALL() descriptor',desc:'Toggles global 3D timed translation preview. The first parameter only controls ON/OFF.'},
+ {name:'3D_TIMED_TRANSLATION',tags:'SCENE',syntax:'=3D_TIMED_TRANSLATION(enable[, ticks[, smooth[, mode[, scope]]]])',params:'enable: non-zero starts global preview, 0 stops ticks: optional forward duration smooth: 0/1 easing mode: "simultaneous" (default), "stepped_array", or "stepped_cell" scope: optional LIMIT()/ALL() descriptor',desc:'Toggles global 3D timed translation preview using each array's computed origin (pre-function) and final transformed placement.'},
+ {name:'3D_REVERSE',tags:'SCENE',syntax:'=3D_REVERSE(enable[, reverseTicks])',params:'enable: 1 return to origin, 0 disable return reverseTicks: optional duration for reverse leg',desc:'Controls reverse leg behavior for 3D_TIMED_TRANSLATION so transformed arrays animate back to origin instead of snapping.'},
  {name:'3D_REPEAT',tags:'SCENE',syntax:'=3D_REPEAT([repeatMode[, returnMode[, delayBeforeReturn[, delayBeforeRestart]]]])',params:'repeatMode: 0(default) repeat forever, 1 play once returnMode: 0(default) return to origin, 1 stay at end delayBeforeReturn: ticks to wait at end before reverse delayBeforeRestart: ticks to wait at origin before next forward pass',desc:'Configures global repeat/return behavior and timing gaps for 3D timed translation cycles.'},
  {name:'HIDE',tags:'SCENE',syntax:'=HIDE(target, mode[, scope])',params:'target: ref/range/array mode: 0=show,1=hide scope: "contents"|"voxel"|"array"',desc:'Hides cell contents, voxels themselves, ranges, or entire arrays with axes/2D visibility.'},
  {name:'HYPERLINK',tags:'IO',syntax:'=HYPERLINK(url[, label])',params:'url: string/ref label: optional display text',desc:'Creates clickable link in cell with metadata.'},
