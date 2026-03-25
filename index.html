@@ -1,318 +1,337 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Loomworks Intake Annex</title>
-  <style>
-    :root {
-      --paper: #fcfcfa;
-      --ink: #0f0f0f;
-      --soft-ink: #2d2d2d;
-      --line: #111;
-      --stamp: #ecece8;
-      --alert: #fff3d9;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LOOMWORKS | Mobile Orientation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --corp-blue: #0047BB;
+            --dime-cyan: #00f2ff;
+            --penny-orange: #ff4d00;
+            --bg-gray: #f3f4f6;
+        }
 
-    * {
-      box-sizing: border-box;
-      image-rendering: pixelated;
-    }
+        body {
+            background-color: var(--bg-gray);
+            font-family: 'Inter', sans-serif;
+            color: #111827;
+            touch-action: manipulation;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: var(--paper);
-      color: var(--ink);
-      font-family: "Courier New", "Lucida Console", monospace;
-      letter-spacing: 0.01em;
-      line-height: 1.45;
-      padding: 1.25rem;
-    }
+        .mono { font-family: 'IBM+Plex+Mono', monospace; }
 
-    .page {
-      max-width: 1080px;
-      margin: 0 auto;
-      border: 4px solid var(--line);
-      background: white;
-      box-shadow: 8px 8px 0 #000;
-    }
+        /* Mobile Container */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 50px rgba(0,0,0,0.1);
+            position: relative;
+        }
 
-    .masthead {
-      border-bottom: 4px solid var(--line);
-      padding: 1rem;
-      display: grid;
-      gap: 0.7rem;
-      background: repeating-linear-gradient(
-        0deg,
-        #ffffff,
-        #ffffff 8px,
-        #f7f7f4 8px,
-        #f7f7f4 10px
-      );
-    }
+        /* Top Status Bar */
+        .status-bar {
+            background: var(--corp-blue);
+            color: white;
+            padding: 10px 15px;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            letter-spacing: 0.05em;
+        }
 
-    .tag-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.55rem;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-    }
+        /* Visualizer Area (Fixed Top) */
+        .visualizer {
+            height: 35vh;
+            background: #fafafa;
+            border-bottom: 2px solid #eee;
+            position: relative;
+            overflow: hidden;
+        }
 
-    .tag {
-      border: 3px solid var(--line);
-      padding: 0.25rem 0.45rem;
-      background: var(--stamp);
-    }
+        .grid-bg {
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(#ddd 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.5;
+        }
 
-    h1 {
-      margin: 0;
-      font-size: clamp(1.6rem, 4.8vw, 3.1rem);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      max-width: 22ch;
-      text-wrap: balance;
-    }
+        .axis {
+            position: absolute;
+            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
 
-    .lede {
-      margin: 0;
-      max-width: 66ch;
-      color: var(--soft-ink);
-    }
+        #ax-x { /* DIME */
+            height: 2px;
+            width: 0%;
+            background: var(--dime-cyan);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px var(--dime-cyan);
+            z-index: 2;
+        }
 
-    .layout {
-      display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 0;
-    }
+        #ax-y { /* PENNY */
+            width: 2px;
+            height: 0%;
+            background: var(--penny-orange);
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px var(--penny-orange);
+            z-index: 1;
+        }
 
-    .panel {
-      padding: 1rem;
-      border-right: 4px solid var(--line);
-      border-bottom: 4px solid var(--line);
-      background: #fff;
-    }
+        .dot {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: black;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.5s ease;
+            z-index: 10;
+        }
 
-    .panel:last-child {
-      border-right: none;
-    }
+        /* Content Area */
+        .content {
+            flex-grow: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
 
-    .panel-title {
-      margin: 0 0 0.7rem;
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      border: 3px solid var(--line);
-      display: inline-block;
-      padding: 0.2rem 0.4rem;
-      background: var(--stamp);
-    }
+        .step { display: none; }
+        .step.active { display: flex; flex-direction: column; animation: slideUp 0.4s ease-out; }
 
-    #crawlText {
-      border: 4px solid var(--line);
-      min-height: 220px;
-      padding: 0.85rem;
-      background: #fdfdfd;
-      font-size: 0.98rem;
-      white-space: pre-line;
-    }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-    .controls {
-      margin-top: 0.7rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
+        /* Controls */
+        .controls {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #eee;
+        }
 
-    button,
-    .button-link {
-      border: 3px solid var(--line);
-      background: #fff;
-      color: var(--ink);
-      font: inherit;
-      padding: 0.55rem 0.8rem;
-      text-decoration: none;
-      cursor: pointer;
-      transition: transform 100ms steps(2, end), background-color 120ms steps(2, end);
-    }
+        .btn-action {
+            width: 100%;
+            background: var(--corp-blue);
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: transform 0.1s, background 0.2s;
+        }
 
-    button:hover,
-    .button-link:hover {
-      transform: translate(-1px, -1px);
-      background: #f0f0ed;
-    }
+        .btn-action:active {
+            transform: scale(0.98);
+            background: #003388;
+        }
 
-    .button-link {
-      display: block;
-      margin-bottom: 0.6rem;
-      font-weight: bold;
-    }
+        .alert-pill {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 10px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 12px;
+        }
 
-    .alert {
-      margin: 0.8rem 0;
-      border: 4px solid var(--line);
-      background: var(--alert);
-      padding: 0.75rem;
-      font-size: 0.92rem;
-    }
+        /* Glitch Animation */
+        .glitch-vibe {
+            animation: glitch 0.2s infinite alternate;
+        }
 
-    details {
-      border: 4px solid var(--line);
-      padding: 0.65rem;
-      background: #fff;
-      margin-top: 0.7rem;
-    }
-
-    summary {
-      cursor: pointer;
-      text-transform: uppercase;
-      font-size: 0.86rem;
-      font-weight: bold;
-    }
-
-    .dime-text {
-      margin-top: 0.7rem;
-      max-height: 38vh;
-      overflow: auto;
-      white-space: pre-line;
-      color: var(--soft-ink);
-      padding-right: 0.3rem;
-    }
-
-    .signature {
-      border: 3px solid var(--line);
-      margin-top: 0.85rem;
-      padding: 0.5rem;
-      font-size: 0.84rem;
-      background: var(--stamp);
-    }
-
-    @media (max-width: 920px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
-
-      .panel {
-        border-right: none;
-      }
-    }
-  </style>
+        @keyframes glitch {
+            0% { transform: translate(-50%, -50%) translateX(2px); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) translateX(-2px); opacity: 1; }
+        }
+    </style>
 </head>
 <body>
-  <main class="page">
-    <header class="masthead">
-      <div class="tag-row">
-        <span class="tag">Loomworks</span>
-        <span class="tag">Intake Annex</span>
-        <span class="tag">Soft Lab Bureaucracy</span>
-      </div>
-      <h1>Orientation Desk // Corporate Dread Is a Paper Trail</h1>
-      <p class="lede">Everything is clean, white, and form-compliant; every border is thicker than it needs to be. It is a minimalist stage where each box tells you exactly where to stand while something unnamed rearranges the room behind you.</p>
-    </header>
 
-    <section class="layout">
-      <article class="panel">
-        <p class="panel-title">Corrupt Dossier Crawl</p>
-        <div id="crawlText" aria-live="polite"></div>
+    <div class="app-container">
+        <!-- TOP NAV -->
+        <div class="status-bar">
+            <span class="mono">LOOMWORKS // SYSTEM_BOOT_v4</span>
+            <div class="flex gap-2">
+                <span>📶 100%</span>
+                <span id="time-display">12:00</span>
+            </div>
+        </div>
 
+        <!-- VISUALIZER -->
+        <div class="visualizer">
+            <div class="grid-bg"></div>
+            <div id="ax-x" class="axis"></div>
+            <div id="ax-y" class="axis"></div>
+            <div id="dot" class="dot"></div>
+            <div class="absolute bottom-2 left-3 text-[8px] mono opacity-30 uppercase tracking-widest">
+                Real-Time Convergence Monitor
+            </div>
+        </div>
+
+        <!-- TEXT CONTENT -->
+        <div class="content">
+            <!-- STEP 1: WELCOME -->
+            <div class="step active" id="step1">
+                <span class="text-[10px] font-bold text-blue-600 uppercase mb-2">Orientation Phase 01</span>
+                <h1 class="text-3xl font-black leading-tight mb-4">THE SYSTEM <br>IS THE STAGE.</h1>
+                <p class="text-sm text-gray-600 leading-relaxed mb-6">
+                    Welcome to <span class="font-bold">LOOMWORKS</span>. Before Existence was authorized, the System built the conditions for "Reality" to occur. You are currently viewing a simulated pre-worldstate.
+                </p>
+                <div class="p-3 bg-gray-50 border rounded-lg">
+                    <p class="text-[10px] text-gray-500 italic">User Agreement: I acknowledge that meaning is a byproduct of successful asset alignment.</p>
+                </div>
+            </div>
+
+            <!-- STEP 2: DIME & PENNY -->
+            <div class="step" id="step2">
+                <span class="text-[10px] font-bold text-blue-600 uppercase mb-2">Phase 02: Dept. Allocation</span>
+                <h1 class="text-3xl font-black leading-tight mb-4">AXIAL <br>BIFURCATION.</h1>
+                <p class="text-sm text-gray-600 mb-6">Reality is a two-department operation. Efficiency requires strict siloing of duties.</p>
+                
+                <div class="space-y-3">
+                    <div class="p-3 border-l-4 border-cyan-400 bg-cyan-50">
+                        <p class="text-[10px] font-bold uppercase text-cyan-700">Horizontal: DIME</p>
+                        <p class="text-xs text-gray-700 font-medium">Compliance, Naming, & Mapping.</p>
+                    </div>
+                    <div class="p-3 border-l-4 border-orange-400 bg-orange-50">
+                        <p class="text-[10px] font-bold uppercase text-orange-700">Vertical: PENNY</p>
+                        <p class="text-xs text-gray-700 font-medium">Field Praxis, Movement, & Impulse.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 3: ERROR -->
+            <div class="step" id="step3">
+                <div class="alert-pill">CRITICAL ERROR: LATENCY</div>
+                <h1 class="text-3xl font-black leading-tight mb-4">TRANSLATION <br>FAILURE.</h1>
+                <p class="text-sm text-gray-600 mb-4">
+                    In early builds, Dime and Penny were disconnected. 
+                    One articulated love perfectly without feeling it. The other felt it but couldn't name it.
+                </p>
+                <div class="bg-red-50 p-3 rounded border border-red-100 mono text-[10px] text-red-800">
+                    >> DATA_MISMATCH: 404 REALITY NOT FOUND
+                </div>
+            </div>
+
+            <!-- STEP 4: ALIGNMENT -->
+            <div class="step" id="step4">
+                <span class="text-[10px] font-bold text-green-600 uppercase mb-2">Phase 03: Alignment</span>
+                <h1 class="text-3xl font-black leading-tight mb-4">CONVERGENCE <br>DETECTED.</h1>
+                <p class="text-sm text-gray-600 mb-4">
+                    When Chance struck and Luck received, the axes intersected. 
+                    <span class="font-bold">Reality</span> appeared as a singularity of agreement.
+                </p>
+                <div class="bg-black text-white p-4 rounded-lg mono text-center">
+                    <p class="text-[10px] animate-pulse">SYMBOL == THING</p>
+                    <p class="text-[10px] opacity-50 mt-1">ALIGNMENT: 100%</p>
+                </div>
+            </div>
+
+            <!-- STEP 5: DEVIATION -->
+            <div class="step" id="step5">
+                <span class="text-[10px] font-bold text-purple-600 uppercase mb-2">Phase 04: Market Pivot</span>
+                <h1 class="text-3xl font-black leading-tight mb-4">THE WRONG <br>WAY.</h1>
+                <p class="text-sm text-gray-600 mb-6">
+                    Penny introduced a bug: <span class="italic">The Deviation.</span> By moving the wrong way on purpose, the system remained alive.
+                </p>
+                <div class="text-[10px] text-center opacity-40 uppercase tracking-widest mt-auto">
+                    Final Module Complete. <br>Welcome to the Team.
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER CONTROLS -->
         <div class="controls">
-          <button id="playPause">Pause</button>
-          <button id="skipSegment">Skip Segment</button>
-          <button id="skipAll">Skip To End</button>
+            <button id="main-btn" class="btn-action" onclick="nextStep()">Acknowledge</button>
         </div>
+    </div>
 
-        <div class="alert">
-          <strong>NOTICE:</strong> Proceeding opens a guided record of Loomworks architecture, referrals, and narrative systems. The interface remains polite while the subtext does not.
-        </div>
-      </article>
+    <script>
+        let currentStep = 1;
+        const totalSteps = 5;
 
-      <aside class="panel">
-        <p class="panel-title">Directed Routes</p>
-        <a class="button-link" href="construct.html">Visit Construct: Loomworks Exhibition &amp; Economy Pitch</a>
-        <a class="button-link" href="/templates/componentized/celli.html">Direct Link to Celli (WIP)</a>
+        const axX = document.getElementById('ax-x');
+        const axY = document.getElementById('ax-y');
+        const dot = document.getElementById('dot');
+        const btn = document.getElementById('main-btn');
 
-        <details>
-          <summary>Learn more about Dime (and Penny)</summary>
-          <div class="dime-text">Dime begins as calibration before identity.
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('time-display').innerText = 
+                now.getHours().toString().padStart(2, '0') + ":" + 
+                now.getMinutes().toString().padStart(2, '0');
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
 
-Penny appears as continuity without declaration.
+        function nextStep() {
+            if (currentStep >= totalSteps) {
+                location.reload();
+                return;
+            }
 
-The Loom does not invent either one; it audits the gap between them.
+            // Hide current, show next
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            currentStep++;
+            document.getElementById(`step${currentStep}`).classList.add('active');
 
-The stage is minimal on purpose: fewer ornaments, sharper instructions, less room to pretend nothing is happening.
-
-Do not force convergence.
-Let Dime remain precise.
-Let Penny remain unresolved.
-Let the near-miss generate the only honest signal.</div>
-        </details>
-
-        <p class="signature">DIME remains your polite guide through the archive: useful, composed, and already being watched.</p>
-      </aside>
-    </section>
-  </main>
-
-  <script>
-    const crawlSegments = [
-      "Intake stamp accepted. Your credentials were approved before you arrived.",
-      "Desk protocol: keep posture neutral, answer clearly, avoid naming the fear directly.",
-      "Penny crosses the background carrying continuity no one logged.",
-      "Dime marks each hesitation as metadata and calls it cooperation.",
-      "Final note: the paperwork is minimal because the system already knows the story."
-    ];
-
-    const crawlText = document.getElementById("crawlText");
-    const playPauseBtn = document.getElementById("playPause");
-    const skipSegmentBtn = document.getElementById("skipSegment");
-    const skipAllBtn = document.getElementById("skipAll");
-
-    let segmentIndex = 0;
-    let charIndex = 0;
-    let playing = true;
-    let charTimer;
-
-    function renderCrawl() {
-      const current = crawlSegments[segmentIndex] || crawlSegments[crawlSegments.length - 1];
-      crawlText.textContent = current.slice(0, charIndex);
-
-      if (!playing) return;
-
-      if (charIndex < current.length) {
-        charIndex += 1;
-      } else if (segmentIndex < crawlSegments.length - 1) {
-        segmentIndex += 1;
-        charIndex = 0;
-      }
-    }
-
-    function startTicker() {
-      clearInterval(charTimer);
-      charTimer = setInterval(renderCrawl, 26);
-    }
-
-    playPauseBtn.addEventListener("click", () => {
-      playing = !playing;
-      playPauseBtn.textContent = playing ? "Pause" : "Play";
-    });
-
-    skipSegmentBtn.addEventListener("click", () => {
-      if (segmentIndex < crawlSegments.length - 1) {
-        segmentIndex += 1;
-        charIndex = 0;
-      } else {
-        charIndex = crawlSegments[crawlSegments.length - 1].length;
-      }
-      renderCrawl();
-    });
-
-    skipAllBtn.addEventListener("click", () => {
-      segmentIndex = crawlSegments.length - 1;
-      charIndex = crawlSegments[segmentIndex].length;
-      crawlText.textContent = crawlSegments[segmentIndex];
-    });
-
-    startTicker();
-  </script>
+            // Visualizer Transitions
+            if (currentStep === 2) {
+                axX.style.width = "90%";
+                axY.style.height = "90%";
+                btn.innerText = "Initialize Depts";
+            }
+            if (currentStep === 3) {
+                // The Gap
+                axX.style.top = "35%";
+                axY.style.left = "65%";
+                dot.style.transform = "translate(-50%, -50%) scale(0)";
+                btn.innerText = "Re-Align System";
+            }
+            if (currentStep === 4) {
+                // The Singularity
+                axX.style.top = "50%";
+                axY.style.left = "50%";
+                dot.style.transform = "translate(-50%, -50%) scale(2.5)";
+                btn.innerText = "Acknowledge Reality";
+            }
+            if (currentStep === 5) {
+                // The Deviation
+                axX.style.transform = "translate(-50%, -50%) rotate(3deg)";
+                axY.style.transform = "translate(-50%, -50%) rotate(-5deg)";
+                dot.classList.add('glitch-vibe');
+                dot.style.backgroundColor = '#6366f1';
+                btn.innerText = "Enter The System";
+            }
+        }
+    </script>
 </body>
 </html>
