@@ -1,1231 +1,222 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Interactive Musical Notes</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        body { 
-            font-family: 'Inter', sans-serif; 
-            touch-action: none; 
-            overscroll-behavior: none; 
-        }
-        /* Custom scrollbar for legends and stats */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background-color: #d1d5db; border-radius: 10px; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FRET — Focus Strum Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    html, body, #root { height: 100%; }
+    body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  </style>
 </head>
-<body class="flex items-center justify-center w-screen h-screen bg-white p-2 sm:p-8 overflow-hidden touch-none text-black">
+<body class="bg-zinc-100 text-zinc-900">
+  <div id="root"></div>
 
-    <div id="appContainer" class="relative w-full h-full max-w-5xl max-h-[900px] border-[3px] sm:border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] overflow-hidden bg-[#FFF9C4]" style="touch-action: none;">
-        
-        <!-- Top Left Widgets -->
-        <div class="absolute top-2 left-2 sm:top-4 sm:left-4 z-30 flex gap-2 sm:gap-3 items-start">
-            
-            <!-- Help Tooltip Widget -->
-            <div class="relative group">
-                <button class="p-2.5 sm:p-3 border-2 border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto">
-                    <i data-lucide="help-circle"></i>
-                </button>
-                <div class="absolute top-full mt-2 left-0 w-64 sm:w-80 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none">
-                    <h3 class="font-bold text-lg mb-2">Exercise:</h3>
-                    <p class="text-sm font-medium text-gray-800 leading-relaxed">
-                        Jot down what's on your mind, then hover over it (strum on mobile) to show that its on your mind. Without writing it, this will help you organize your thoughts into quick bullets and understand what you turn to most in a short increment. These may be things you want to investigate, rebalance, or offload to ensure your top of mind is aligned to where you want to be.
-                    </p>
-                </div>
+  <script type="text/babel">
+    const { useMemo, useState, useEffect } = React;
+
+    const STORAGE_KEY = 'fret:react-v1';
+    const defaultRows = Array.from({ length: 12 }, (_, i) => ({ id: i + 1, text: '', cumulative: 0, session: 0, goalPercent: 0 }));
+
+    const formatTime = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
+    function Modal({ open, title, onClose, children, footer }) {
+      if (!open) return null;
+      return (
+        <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-6 flex items-end sm:items-center justify-center">
+          <div className="w-full max-w-3xl max-h-[92vh] bg-white border-2 border-black rounded-2xl shadow-xl flex flex-col overflow-hidden">
+            <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-zinc-200 flex items-center justify-between">
+              <h2 className="font-bold text-lg sm:text-2xl">{title}</h2>
+              <button onClick={onClose} className="px-3 py-1 rounded-lg border border-zinc-300">✕</button>
             </div>
-
-            <!-- Global Stats Button -->
-            <button id="btnGlobalStats" class="p-2.5 sm:p-3 border-2 border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto" title="View Global Stats">
-                <i data-lucide="bar-chart-2"></i>
-            </button>
-
-            <!-- Goals View Toggle -->
-            <label class="hidden sm:flex items-center gap-2 bg-white border-2 border-black px-3 h-[52px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] pointer-events-auto font-bold text-sm">
-                <input id="toggleGoalsView" type="checkbox" class="w-4 h-4 accent-black">
-                Goals %
-            </label>
-
-            <!-- Timer Closed View -->
-            <button id="btnTimerOpen" class="p-2.5 sm:p-3 border-2 border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto">
-                <i data-lucide="clock"></i>
-            </button>
-
-            <!-- Timer Active View -->
-            <div id="timerActiveView" class="hidden flex items-center bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] h-[52px] pl-3 pointer-events-auto">
-                <span id="timerDisplay" class="font-mono font-bold text-xl w-[4.5rem] tracking-wider text-black">
-                    01:00
-                </span>
-                <div class="flex h-full border-l-2 border-black ml-2">
-                    <button id="btnTimerPlayPause" class="px-3 hover:bg-gray-200 border-r-2 border-black transition-colors flex items-center justify-center">
-                        <i id="iconTimerPlay" data-lucide="play" class="w-[18px] h-[18px] ml-0.5"></i>
-                        <i id="iconTimerPause" data-lucide="pause" class="hidden w-[18px] h-[18px]"></i>
-                    </button>
-                    <button id="btnTimerEdit" class="px-3 hover:bg-gray-200 transition-colors flex items-center justify-center">
-                        <i data-lucide="pencil" class="w-[18px] h-[18px]"></i>
-                    </button>
-                </div>
-            </div>
+            <div className="px-4 py-3 sm:px-6 sm:py-5 overflow-y-auto overscroll-contain touch-pan-y">{children}</div>
+            {footer && <div className="px-4 py-3 sm:px-6 sm:py-4 border-t border-zinc-200">{footer}</div>}
+          </div>
         </div>
-
-        <!-- Top Right Mode Toggle -->
-        <div class="absolute top-2 right-2 sm:top-4 sm:right-12 z-20">
-            <button id="btnModeToggle" class="p-2.5 sm:p-4 border-2 border-black bg-white text-black hover:bg-gray-100 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all transform active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto">
-                <i id="iconModeMusic" data-lucide="music" class="w-6 h-6"></i>
-                <i id="iconModeNotes" data-lucide="pencil" class="hidden w-6 h-6"></i>
-            </button>
-        </div>
-
-        <!-- Hidden Input for Native Keyboard Integration -->
-        <input type="text" id="hiddenInput" autocomplete="off" spellcheck="false" 
-            style="position: absolute; top: 0px; left: 20px; width: 1px; height: 1px; opacity: 0; font-size: 16px; pointer-events: none; padding: 0; margin: 0; border: none; z-index: -1;">
-
-        <!-- Main Canvas -->
-        <canvas id="mainCanvas" class="block w-full h-full cursor-text"></canvas>
-
-        <!-- MODALS -->
-        <!-- Global Stats Modal -->
-        <div id="modalGlobalStats" class="hidden absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm pointer-events-auto">
-            <div class="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-lg">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">Cumulative Stats</h2>
-                    <button id="btnCloseGlobalStats" class="text-2xl font-bold px-2 hover:bg-gray-200">&times;</button>
-                </div>
-                <div id="globalStatsContent" class="flex flex-col gap-4 max-h-[60vh] overflow-y-auto pr-2">
-                    <!-- Populated dynamically -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Post-Timer Stats Modal -->
-        <div id="modalPostTimer" class="hidden absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm pointer-events-auto">
-            <div class="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl">
-                <h2 class="text-2xl font-bold mb-6 text-center border-b-4 border-black pb-4">Time's Up!</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    <div class="flex flex-col items-center">
-                        <h3 class="font-bold text-lg mb-4">During Timer</h3>
-                        <div id="pieChartSession" class="w-32 h-32 rounded-full border-4 border-black shrink-0 bg-gray-200"></div>
-                        <div id="legendSession" class="w-full mt-4"></div>
-                    </div>
-                    <div class="flex flex-col items-center">
-                        <h3 class="font-bold text-lg mb-4">Cumulative</h3>
-                        <div id="pieChartCumulative" class="w-32 h-32 rounded-full border-4 border-black shrink-0 bg-gray-200"></div>
-                        <div id="legendCumulative" class="w-full mt-4"></div>
-                    </div>
-                </div>
-                <div class="mb-8 border-2 border-black p-4">
-                    <h3 class="font-bold text-lg mb-3">Session vs Goal Disparity</h3>
-                    <div id="sessionGoalDisparity" class="flex flex-col gap-3 max-h-40 overflow-y-auto pr-2"></div>
-                </div>
-                <button id="btnClosePostTimer" class="w-full py-3 bg-black text-white border-2 border-black font-bold text-lg hover:bg-gray-800 transition-colors">Close</button>
-            </div>
-        </div>
-
-        <!-- Goals Modal -->
-        <div id="modalGoals" class="hidden absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm pointer-events-auto">
-            <div class="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl">
-                <div class="flex justify-between items-center mb-3">
-                    <h2 class="text-2xl font-bold">Goals % View</h2>
-                    <button id="btnCloseGoals" class="text-2xl font-bold px-2 hover:bg-gray-200">&times;</button>
-                </div>
-                <p class="text-sm text-gray-700 mb-4">Set a goal for each non-empty row. Save is enabled only when total goals are 100% or less. If under 100%, the remainder is tracked as <span class="font-bold">impartial</span>.</p>
-                <div id="goalsList" class="flex flex-col gap-3 max-h-[45vh] overflow-y-auto pr-2 mb-4"></div>
-                <div id="goalsSummary" class="border-2 border-black p-3 mb-4 font-bold bg-gray-50"></div>
-                <div class="border-2 border-black p-4 mb-4">
-                    <h3 class="font-bold mb-2">Current Cumulative Disparity</h3>
-                    <div id="goalDisparityView" class="flex flex-col gap-2 max-h-32 overflow-y-auto pr-2"></div>
-                </div>
-                <div class="flex gap-3">
-                    <button id="btnSaveGoals" class="flex-1 py-3 bg-black text-white border-2 border-black font-bold hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">Save Goals</button>
-                    <button id="btnCancelGoals" class="flex-1 py-3 border-2 border-black font-bold hover:bg-gray-100 transition-colors">Cancel</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Timer Reset Prompt Modal -->
-        <div id="modalTimerPrompt" class="hidden absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm pointer-events-auto">
-            <div class="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-sm text-center">
-                <h2 class="text-xl font-bold mb-4">Start Timer</h2>
-                <p class="mb-6 font-medium text-gray-800">Do you want to reset your cumulative strums across the board before starting?</p>
-                <div class="flex flex-col gap-3">
-                    <button id="btnTimerResetAll" class="w-full py-3 bg-red-500 text-white border-2 border-black font-bold hover:bg-red-600 transition-colors">Yes, Reset All</button>
-                    <button id="btnTimerKeep" class="w-full py-3 bg-black text-white border-2 border-black font-bold hover:bg-gray-800 transition-colors">No, Keep Cumulative</button>
-                    <button id="btnTimerPromptCancel" class="w-full py-3 border-2 border-black font-bold hover:bg-gray-100 transition-colors">Cancel</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Timer Numpad Editor Modal -->
-        <div id="modalTimerEdit" class="hidden absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm pointer-events-auto">
-            <div class="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-xs">
-                <h2 class="text-xl font-bold mb-4 text-center">Set Timer</h2>
-                <div class="text-5xl font-mono text-center mb-6 tracking-widest border-b-4 border-black pb-4">
-                    <span id="timerEditDisplay">01:00</span>
-                </div>
-                <div id="numpadGrid" class="grid grid-cols-3 gap-3 mb-6">
-                    <!-- Buttons generated in JS -->
-                </div>
-                <div class="flex gap-4">
-                    <button id="btnTimerEditCancel" class="flex-1 py-3 border-2 border-black font-bold hover:bg-gray-100 transition-colors">Cancel</button>
-                    <button id="btnTimerEditSave" class="flex-1 py-3 bg-black text-white border-2 border-black font-bold hover:bg-gray-800 transition-colors">Save</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Strum Label Edit Modal -->
-        <div id="modalLabelEdit" class="hidden absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm pointer-events-auto">
-            <div class="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-md">
-                <h2 class="text-xl font-bold mb-4">What does a Strum represent?</h2>
-                <input type="text" id="labelInput" class="w-full border-2 border-black p-3 mb-6 text-lg outline-none focus:ring-4 focus:ring-blue-500/30" placeholder="e.g. Days, Pushups, Pages Read...">
-                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <button id="btnLabelReset" class="w-full sm:w-auto px-4 py-2 border-2 border-red-500 text-red-600 font-bold hover:bg-red-50 active:bg-red-100 transition-colors">Reset Count</button>
-                    <div class="flex gap-2 w-full sm:w-auto">
-                        <button id="btnLabelCancel" class="flex-1 sm:flex-none px-4 py-2 border-2 border-black font-bold hover:bg-gray-100 transition-colors">Cancel</button>
-                        <button id="btnLabelSave" class="flex-1 sm:flex-none px-4 py-2 bg-black text-white border-2 border-black font-bold hover:bg-gray-800 transition-colors">Save</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-<script>
-    // Initialize Lucide Icons
-    lucide.createIcons();
-
-    // --- Constants ---
-    const NUM_STRINGS = 100;
-    const TOP_MARGIN_DESKTOP = 100;
-    const TOP_MARGIN_MOBILE = 84;
-    const LINE_SPACING_DESKTOP = 55;
-    const LINE_SPACING_MOBILE = 46;
-    const LEFT_MARGIN_WIDTH_DESKTOP = 140;
-    const LEFT_MARGIN_WIDTH_MOBILE = 96;
-    let leftMarginWidth = LEFT_MARGIN_WIDTH_DESKTOP;
-    let topMargin = TOP_MARGIN_DESKTOP;
-    let lineSpacing = LINE_SPACING_DESKTOP;
-    const RIGHT_MARGIN_OFFSET = 30;
-    const CHART_COLORS = ['#EF4444', '#3B82F6', '#EAB308', '#10B981', '#8B5CF6', '#F97316', '#06B6D4', '#EC4899', '#84CC16', '#6366F1'];
-
-    // --- State Variables ---
-    let mode = 'notes'; // 'notes' | 'music'
-    let strings = [];
-    let activeStringIndex = null;
-    let cursorIndex = 0;
-    
-    let scrollY = 0;
-    let targetScrollY = 0;
-    let maxScrollY = 0;
-    let dragState = 'none'; // 'none' | 'strum' | 'scrollbar' | 'leftMargin'
-
-    let audioCtx = null;
-    let audioDestination = null;
-    let pointers = new Map();
-
-    // Modals
-    let labelEditIndex = null;
-    let timerVisible = false;
-    let timeRemaining = 60;
-    let timerRunning = false;
-    let timerInterval = null;
-    let timerDigits = '0100';
-
-    // DOM Elements
-    const canvas = document.getElementById('mainCanvas');
-    const ctx = canvas.getContext('2d');
-    const container = document.getElementById('appContainer');
-    const hiddenInput = document.getElementById('hiddenInput');
-
-    // --- Helper Functions ---
-    const formatTime = (secs) => {
-        const m = Math.floor(secs / 60).toString().padStart(2, '0');
-        const s = (secs % 60).toString().padStart(2, '0');
-        return `${m}:${s}`;
-    };
-
-    const timeToDigits = (secs) => {
-        const m = Math.floor(secs / 60).toString().padStart(2, '0');
-        const s = (secs % 60).toString().padStart(2, '0');
-        return m + s;
-    };
-
-    const getLocalCoords = (e) => {
-        const rect = canvas.getBoundingClientRect();
-        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    };
-
-    const getLeftMarginWidth = () => leftMarginWidth;
-    const isMobileLayout = () => window.innerWidth < 640;
-
-    // --- Audio Engine ---
-    const initAudio = () => {
-        if (!audioCtx) {
-            const CtxClass = window.AudioContext || window.webkitAudioContext;
-            audioCtx = new CtxClass();
-            const compressor = audioCtx.createDynamicsCompressor();
-            compressor.connect(audioCtx.destination);
-            audioDestination = compressor;
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-    };
-
-    const playNote = (index, velocity) => {
-        try {
-            if (!audioCtx) return;
-            const baseFreq = 130.81;
-            const scale = [1, 1.122, 1.26, 1.498, 1.682];
-            const maxPitchSteps = 20; // Keep notes in an audible range (4 pentatonic octaves)
-            const safeIndex = ((index % maxPitchSteps) + maxPitchSteps) % maxPitchSteps;
-            const octave = Math.floor(safeIndex / scale.length);
-            const noteInScale = safeIndex % scale.length;
-            const freq = baseFreq * scale[noteInScale] * Math.pow(2, octave);
-
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-
-            osc.type = mode === 'notes' ? 'sine' : 'triangle';
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-
-            gain.gain.setValueAtTime(0, audioCtx.currentTime);
-            gain.gain.linearRampToValueAtTime(Math.min(velocity, 0.4), audioCtx.currentTime + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
-
-            osc.connect(gain);
-            gain.connect(audioDestination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 1.5);
-        } catch (e) {}
-    };
-
-    const playAlarm = () => {
-        if (!audioCtx) return;
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-
-        const beep = (offset) => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(880, audioCtx.currentTime + offset);
-            gain.gain.setValueAtTime(0, audioCtx.currentTime + offset);
-            gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + offset + 0.05);
-            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + offset + 0.2);
-            osc.connect(gain);
-            gain.connect(audioDestination);
-            osc.start(audioCtx.currentTime + offset);
-            osc.stop(audioCtx.currentTime + offset + 0.3);
-        };
-        beep(0); beep(0.4); beep(0.8);
-    };
-
-    // --- Physics & Logic Classes ---
-    class StringSim {
-        constructor(baseY, startX, width, resolution) {
-            this.baseY = baseY; 
-            this.y = baseY;     
-            this.points = [];
-            const numPoints = Math.floor(width / resolution);
-            for (let i = 0; i <= numPoints; i++) {
-                this.points.push({ x: startX + i * resolution, y: baseY, vy: 0 });
-            }
-            this.colorIndex = -1; 
-            this.text = ''; 
-            this.strumCount = 0;
-            this.sessionStrumCount = 0; 
-            this.strumLabel = 'Strums';
-            this.lastStrumTime = 0;
-            this.isChecked = false;
-            this.goalPercent = 0;
-        }
-
-        update() {
-            for (let i = 0; i < this.points.length; i++) {
-                const p = this.points[i];
-                const force = (this.y - p.y) * 0.08;
-                p.vy += force;
-                p.vy *= 0.85; 
-            }
-            for (let i = 0; i < this.points.length; i++) {
-                if (i > 0) {
-                    const leftD = this.points[i - 1].y - this.points[i].y;
-                    this.points[i].vy += leftD * 0.06;
-                }
-                if (i < this.points.length - 1) {
-                    const rightD = this.points[i + 1].y - this.points[i].y;
-                    this.points[i].vy += rightD * 0.06;
-                }
-            }
-            for (let i = 0; i < this.points.length; i++) {
-                this.points[i].y += this.points[i].vy;
-            }
-        }
-
-        draw(ctx, isActive, time, cursorPos, W) {
-            // Guard clause to prevent undefined 'x' property access when container width is too small
-            if (this.points.length < 2) return;
-            const textStartX = getLeftMarginWidth() + 40;
-            const textEndX = W - RIGHT_MARGIN_OFFSET - 16;
-
-            if (isActive) {
-                ctx.save();
-                ctx.strokeStyle = mode === 'notes' ? '#1F2937' : '#FFFFFF';
-                ctx.lineWidth = 1;
-                ctx.setLineDash([4, 5]);
-                ctx.beginPath();
-                ctx.moveTo(textStartX, this.y + 13);
-                ctx.lineTo(textEndX, this.y + 13);
-                ctx.stroke();
-                ctx.restore();
-            }
-
-            ctx.beginPath();
-            ctx.moveTo(this.points[0].x, this.points[0].y);
-            for (let i = 1; i < this.points.length; i++) {
-                ctx.lineTo(this.points[i].x, this.points[i].y);
-            }
-
-            if (mode === 'notes') {
-                ctx.strokeStyle = '#87CEEB'; 
-            } else {
-                const primaryColors = ['#EF4444', '#EAB308', '#3B82F6']; 
-                ctx.strokeStyle = this.colorIndex >= 0 ? primaryColors[this.colorIndex] : '#FFFFFF';
-            }
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-
-            // Strum Counter Pill
-            ctx.globalAlpha = this.isChecked ? 0.3 : 1.0;
-            ctx.font = 'bold 12px "Inter", -apple-system, sans-serif';
-            
-            let displayLabel = this.strumLabel;
-            if (displayLabel.length > 8) displayLabel = displayLabel.substring(0, 6) + '...';
-            
-            const labelText = `${this.strumCount} ${displayLabel}`;
-            const textWidth = ctx.measureText(labelText).width;
-            const pillWidth = Math.min(textWidth + 24, getLeftMarginWidth() - 24); 
-            
-            const pillX = 12; 
-            const pillY = this.y - 14;
-
-            ctx.fillStyle = mode === 'notes' ? '#FFFFFF' : '#1F2937';
-            ctx.strokeStyle = mode === 'notes' ? '#111827' : '#FFFFFF';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.roundRect(pillX, pillY, pillWidth, 28, 14);
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.fillStyle = mode === 'notes' ? '#111827' : '#FFFFFF';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(labelText, pillX + pillWidth / 2, this.y);
-            ctx.globalAlpha = 1.0;
-
-            // Checkbox
-            const cbX = getLeftMarginWidth() + 15;
-            const cbY = this.y - 20;
-            const cbSize = 14;
-            
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = mode === 'notes' ? (this.isChecked ? '#9CA3AF' : '#111827') : (this.isChecked ? '#4B5563' : '#FFFFFF');
-            ctx.strokeRect(cbX, cbY, cbSize, cbSize);
-            
-            if (this.isChecked) {
-                ctx.beginPath();
-                ctx.moveTo(cbX + 2, cbY + cbSize / 2);
-                ctx.lineTo(cbX + cbSize / 2 - 1, cbY + cbSize - 2);
-                ctx.lineTo(cbX + cbSize - 2, cbY + 2);
-                ctx.stroke();
-            }
-
-            // Text Riding the Wave
-            if (this.isChecked) ctx.globalAlpha = 0.4;
-            
-            ctx.font = '22px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'bottom';
-            ctx.fillStyle = mode === 'notes' ? '#374151' : '#FFFFFF';
-
-            const resolution = this.points[1].x - this.points[0].x;
-            const startX = this.points[0].x;
-            
-            let currentX = textStartX; 
-            let cursorDrawX = null;
-
-            for (let i = 0; i < this.text.length; i++) {
-                if (isActive && cursorPos === i) cursorDrawX = currentX;
-
-                const char = this.text[i];
-                const charWidth = ctx.measureText(char).width;
-                const centerX = currentX + charWidth / 2;
-
-                if (centerX > W - RIGHT_MARGIN_OFFSET - 20) {
-                    if (isActive && cursorDrawX === null) cursorDrawX = currentX;
-                    break;
-                }
-
-                const idx = Math.floor((centerX - startX) / resolution);
-                if (idx >= 0 && idx < this.points.length - 1) {
-                    const p1 = this.points[idx];
-                    const p2 = this.points[idx + 1];
-                    
-                    const t = (centerX - p1.x) / resolution;
-                    const charY = p1.y + t * (p2.y - p1.y);
-                    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-
-                    ctx.save();
-                    ctx.translate(centerX, charY - 2); 
-                    ctx.rotate(angle);
-                    ctx.fillText(char, 0, 0);
-                    ctx.restore();
-                }
-                currentX += charWidth;
-            }
-            
-            if (isActive && cursorDrawX === null) cursorDrawX = currentX;
-
-            // Strikethrough
-            if (this.isChecked && this.text.length > 0) {
-                ctx.beginPath();
-                ctx.moveTo(getLeftMarginWidth() + 40, this.y - 12);
-                ctx.lineTo(currentX, this.y - 12);
-                ctx.stroke();
-            }
-
-            ctx.globalAlpha = 1.0;
-
-            // Blinking Cursor
-            const showCursor = Math.floor(time / 500) % 2 === 0 || isMobileLayout();
-            if (isActive && !this.isChecked && showCursor) {
-                const cX = cursorDrawX + 2;
-                const idx = Math.floor((cX - startX) / resolution);
-                if (idx >= 0 && idx < this.points.length - 1) {
-                    const p1 = this.points[idx];
-                    const p2 = this.points[idx + 1];
-                    const t = (cX - p1.x) / resolution;
-                    const cursorY = p1.y + t * (p2.y - p1.y);
-                    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-
-                    ctx.save();
-                    ctx.translate(cX, cursorY - 2);
-                    ctx.rotate(angle);
-                    ctx.fillStyle = mode === 'notes' ? '#EF4444' : '#FFFFFF';
-                    ctx.fillRect(-1, -22, 2, 22); 
-                    ctx.restore();
-                }
-            }
-        }
+      );
     }
 
-    // --- Core Operations ---
-    const initCanvas = () => {
-        const W = container.clientWidth;
-        const H = container.clientHeight;
-        const mobile = isMobileLayout();
-        leftMarginWidth = mobile ? LEFT_MARGIN_WIDTH_MOBILE : LEFT_MARGIN_WIDTH_DESKTOP;
-        topMargin = mobile ? TOP_MARGIN_MOBILE : TOP_MARGIN_DESKTOP;
-        lineSpacing = mobile ? LINE_SPACING_MOBILE : LINE_SPACING_DESKTOP;
-        
-        // Prevent initialization with 0 dimensions to avoid broken physics state
-        if (W === 0 || H === 0) return;
-        
-        canvas.width = W * window.devicePixelRatio;
-        canvas.height = H * window.devicePixelRatio;
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    function App() {
+      const [rows, setRows] = useState(defaultRows);
+      const [label, setLabel] = useState('Strums');
+      const [goalOpen, setGoalOpen] = useState(false);
+      const [globalOpen, setGlobalOpen] = useState(false);
+      const [timerOpen, setTimerOpen] = useState(false);
+      const [timerSecs, setTimerSecs] = useState(60);
+      const [running, setRunning] = useState(false);
+      const [finishedOpen, setFinishedOpen] = useState(false);
 
-        maxScrollY = Math.max(0, (NUM_STRINGS * lineSpacing) + topMargin * 2 - H);
+      useEffect(() => {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          setRows(parsed.rows || defaultRows);
+          setLabel(parsed.label || 'Strums');
+          setTimerSecs(parsed.timerSecs || 60);
+        } catch {}
+      }, []);
 
-        if (strings.length === 0) {
-            for (let i = 0; i < NUM_STRINGS; i++) {
-                const y = topMargin + i * lineSpacing;
-                strings.push(new StringSim(y, 0, W, 15));
+      useEffect(() => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ rows, label, timerSecs }));
+      }, [rows, label, timerSecs]);
+
+      useEffect(() => {
+        if (!running) return;
+        const id = setInterval(() => {
+          setTimerSecs((s) => {
+            if (s <= 1) {
+              clearInterval(id);
+              setRunning(false);
+              setFinishedOpen(true);
+              return 0;
             }
-        } else {
-            strings.forEach((str, i) => {
-                str.baseY = topMargin + i * lineSpacing;
-                str.y = str.baseY - scrollY;
-            });
-        }
-    };
-
-    const renderLoop = () => {
-        const W = container.clientWidth;
-        const H = container.clientHeight;
-
-        ctx.fillStyle = mode === 'notes' ? '#FFF9C4' : '#0A0A0A'; 
-        ctx.fillRect(0, 0, W, H);
-
-        if (mode === 'notes') {
-            ctx.strokeStyle = '#FF6961'; 
-            ctx.lineWidth = 1.5;
-            ctx.beginPath(); ctx.moveTo(getLeftMarginWidth() - 6, 0); ctx.lineTo(getLeftMarginWidth() - 6, H); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(getLeftMarginWidth(), 0); ctx.lineTo(getLeftMarginWidth(), H); ctx.stroke();
-            const rightLineX = W - RIGHT_MARGIN_OFFSET;
-            ctx.beginPath(); ctx.moveTo(rightLineX, 0); ctx.lineTo(rightLineX, H); ctx.stroke();
-        }
-
-        targetScrollY = Math.max(0, Math.min(targetScrollY, maxScrollY));
-        scrollY += (targetScrollY - scrollY) * 0.15;
-
-        const time = performance.now();
-        
-        strings.forEach((str, idx) => {
-            str.y = str.baseY - scrollY;
-            str.update();
-            str.draw(ctx, idx === activeStringIndex, time, cursorIndex, W);
-        });
-
-        // Scrollbar
-        const rightLineX = W - RIGHT_MARGIN_OFFSET;
-        const handleHeight = 80;
-        const scrollPercent = maxScrollY > 0 ? (scrollY / maxScrollY) : 0;
-        const handleY = scrollPercent * (H - handleHeight);
-        
-        ctx.fillStyle = mode === 'notes' ? '#111827' : '#FFFFFF';
-        ctx.beginPath();
-        ctx.roundRect(rightLineX - 6, handleY, 12, handleHeight, 6);
-        ctx.fill();
-
-        // Position Hidden Input precisely to enable mobile keyboard tracking
-        if (activeStringIndex !== null && strings[activeStringIndex]) {
-            hiddenInput.style.top = `${strings[activeStringIndex].y}px`;
-        }
-
-        requestAnimationFrame(renderLoop);
-    };
-
-    const checkPluck = (prevX, prevY, currX, currY) => {
-        const now = performance.now();
-
-        strings.forEach((str, index) => {
-            if (str.isChecked) return;
-
-            if ((prevY < str.y && currY >= str.y) || (prevY > str.y && currY <= str.y)) {
-                if (now - str.lastStrumTime < 200) return; 
-                str.lastStrumTime = now;
-
-                const t = (str.y - prevY) / (currY - prevY);
-                const crossX = prevX + t * (currX - prevX);
-
-                let closestIdx = 0;
-                let minDist = Infinity;
-                str.points.forEach((p, idx) => {
-                    const d = Math.abs(p.x - crossX);
-                    if (d < minDist) { minDist = d; closestIdx = idx; }
-                });
-
-                const speed = Math.abs(currY - prevY);
-                const vel = Math.min(speed * 0.8, 30) * Math.sign(currY - prevY);
-
-                for (let j = -4; j <= 4; j++) {
-                    const target = str.points[closestIdx + j];
-                    if (target) target.vy += vel * (1 - Math.abs(j) / 5);
-                }
-
-                str.strumCount++;
-                str.sessionStrumCount++;
-                
-                if (mode === 'music') str.colorIndex = (str.colorIndex + 1) % 3;
-                
-                const pitchIndex = strings.length - index;
-                playNote(pitchIndex, Math.min(speed / 40, 1));
-            }
-        });
-    };
-
-    const focusLine = (idx, tapX = null) => {
-        if (strings[idx].isChecked) return;
-
-        let strText = strings[idx].text;
-        const lineBaseY = strings[idx].baseY;
-        const desiredY = isMobileLayout() ? 156 : 200; 
-
-        if (lineBaseY > desiredY) {
-            targetScrollY = lineBaseY - desiredY;
-        } else {
-            targetScrollY = 0;
-        }
-
-        let tappedCharIdx = strText.length;
-        if (tapX !== null) {
-            ctx.save();
-            ctx.font = '22px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-            
-            let currentX = getLeftMarginWidth() + 40; 
-            const W = container.clientWidth;
-            
-            let positions = [{ idx: 0, x: currentX }];
-            for (let i = 0; i < strText.length; i++) {
-                const charWidth = ctx.measureText(strText[i]).width;
-                const centerX = currentX + charWidth / 2;
-                if (centerX > W - RIGHT_MARGIN_OFFSET - 20) break;
-                
-                currentX += charWidth;
-                positions.push({ idx: i + 1, x: currentX });
-            }
-            ctx.restore();
-
-            let minDx = Infinity;
-            for (const pos of positions) {
-                const clampedTapX = Math.max(getLeftMarginWidth() + 34, Math.min(tapX, W - RIGHT_MARGIN_OFFSET - 18));
-                const dx = Math.abs(clampedTapX - pos.x);
-                if (dx < minDx) {
-                    minDx = dx;
-                    tappedCharIdx = pos.idx;
-                }
-            }
-        }
-
-        activeStringIndex = idx;
-        hiddenInput.value = strText;
-        cursorIndex = tappedCharIdx;
-
-        setTimeout(() => {
-            hiddenInput.setSelectionRange(tappedCharIdx, tappedCharIdx);
-            hiddenInput.focus();
-        }, 0);
-    };
-
-    // --- Input & Pointer Listeners ---
-    hiddenInput.addEventListener('input', (e) => {
-        if (activeStringIndex !== null) {
-            strings[activeStringIndex].text = e.target.value;
-        }
-    });
-    hiddenInput.addEventListener('select', (e) => {
-        cursorIndex = e.target.selectionStart || 0;
-    });
-    hiddenInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            if (activeStringIndex !== null && activeStringIndex < strings.length - 1) {
-                focusLine(activeStringIndex + 1);
-            } else {
-                activeStringIndex = null;
-                hiddenInput.blur();
-            }
-        }
-    });
-    hiddenInput.addEventListener('blur', () => {
-        activeStringIndex = null;
-    });
-
-    canvas.addEventListener('pointerdown', (e) => {
-        initAudio(); 
-        const { x, y } = getLocalCoords(e);
-        const W = container.clientWidth;
-        
-        if (x > W - RIGHT_MARGIN_OFFSET - 20) dragState = 'scrollbar';
-        else if (x < getLeftMarginWidth() - 10) dragState = 'leftMargin';
-        else dragState = 'strum';
-
-        pointers.set(e.pointerId, { x, y, startX: x, startY: y, lastY: y });
-        pointers.delete('hover');
-    });
-
-    canvas.addEventListener('pointermove', (e) => {
-        const { x, y } = getLocalCoords(e);
-        
-        if (e.pointerType === 'mouse' && e.buttons === 0) {
-            if (!pointers.has('hover')) {
-                pointers.set('hover', { x, y });
-            } else {
-                const p = pointers.get('hover');
-                checkPluck(p.x, p.y, x, y);
-                p.x = x; p.y = y;
-            }
-            return;
-        }
-
-        if (pointers.has(e.pointerId)) {
-            const p = pointers.get(e.pointerId);
-            const dy = y - p.lastY;
-
-            if (dragState === 'scrollbar') {
-                const H = container.clientHeight;
-                const handleHeight = 80;
-                const percent = Math.max(0, Math.min(1, (y - handleHeight/2) / (H - handleHeight)));
-                targetScrollY = percent * maxScrollY;
-            } 
-            else if (dragState === 'leftMargin') {
-                targetScrollY -= dy;
-            } 
-            else if (dragState === 'strum') {
-                checkPluck(p.x, p.y, x, y);
-            }
-
-            p.x = x; 
-            p.lastY = y;
-        }
-    });
-
-    const handleCanvasClick = (x, y) => {
-        // 1. Check Strum Pill
-        if (x < getLeftMarginWidth() - 10) {
-            let hitPillIdx = -1;
-            strings.forEach((str, idx) => {
-                const pillY = str.y - 14;
-                if (y >= pillY && y <= pillY + 28) hitPillIdx = idx;
-            });
-
-            if (hitPillIdx !== -1) {
-                labelEditIndex = hitPillIdx;
-                document.getElementById('labelInput').value = strings[hitPillIdx].strumLabel;
-                hiddenInput.blur();
-                document.getElementById('modalLabelEdit').classList.remove('hidden');
-                document.getElementById('labelInput').focus();
-                return;
-            }
-        }
-
-        // 2. Check Checkbox
-        let hitCheckboxIdx = -1;
-        strings.forEach((str, idx) => {
-            const cbX = getLeftMarginWidth() + 15;
-            const cbY = str.y - 20;
-            if (x >= cbX - 10 && x <= cbX + 26 && y >= cbY - 10 && y <= cbY + 26) hitCheckboxIdx = idx;
-        });
-
-        if (hitCheckboxIdx !== -1) {
-            strings[hitCheckboxIdx].isChecked = !strings[hitCheckboxIdx].isChecked;
-            hiddenInput.blur();
-            activeStringIndex = null;
-            return;
-        }
-
-        // 3. String Input focus
-        let closestIdx = -1;
-        let minDst = Infinity;
-        strings.forEach((str, idx) => {
-            const dst = Math.abs(str.y - y);
-            if (dst < minDst) { minDst = dst; closestIdx = idx; }
-        });
-
-        const activationDistance = isMobileLayout() ? 44 : 30;
-        const inTextBand = x >= getLeftMarginWidth() + 24 && x <= container.clientWidth - RIGHT_MARGIN_OFFSET - 8;
-        if (closestIdx !== -1 && minDst < activationDistance && inTextBand) {
-            focusLine(closestIdx, x);
-        } else {
-            hiddenInput.blur();
-            activeStringIndex = null;
-        }
-    };
-
-    canvas.addEventListener('pointerup', (e) => {
-        const p = pointers.get(e.pointerId);
-        if (p) {
-            const { x, y } = getLocalCoords(e);
-            const dx = x - p.startX;
-            const dy = y - p.startY;
-            const clickTolerance = e.pointerType === 'touch' ? 16 : 8;
-            if (Math.hypot(dx, dy) < clickTolerance) handleCanvasClick(x, y);
-        }
-        dragState = 'none';
-        pointers.delete(e.pointerId);
-    });
-
-    canvas.addEventListener('pointercancel', (e) => {
-        dragState = 'none';
-        pointers.delete(e.pointerId);
-        pointers.delete('hover');
-    });
-
-    canvas.addEventListener('pointerleave', (e) => {
-        dragState = 'none';
-        pointers.delete(e.pointerId);
-        pointers.delete('hover');
-    });
-
-    container.addEventListener('wheel', (e) => {
-        targetScrollY += e.deltaY;
-    });
-
-    // --- UI Interactions & Modals ---
-    const btnModeToggle = document.getElementById('btnModeToggle');
-    btnModeToggle.addEventListener('click', (e) => {
-        initAudio();
-        mode = mode === 'notes' ? 'music' : 'notes';
-        
-        // Update button UI
-        if (mode === 'notes') {
-            btnModeToggle.className = "p-2.5 sm:p-4 border-2 border-black bg-white text-black hover:bg-gray-100 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all transform active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto";
-            document.getElementById('iconModeMusic').classList.remove('hidden');
-            document.getElementById('iconModeNotes').classList.add('hidden');
-        } else {
-            btnModeToggle.className = "p-2.5 sm:p-4 border-2 border-black bg-black text-white hover:bg-gray-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all transform active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto";
-            document.getElementById('iconModeMusic').classList.add('hidden');
-            document.getElementById('iconModeNotes').classList.remove('hidden');
-        }
-
-        if (activeStringIndex !== null) {
-            setTimeout(() => hiddenInput.focus(), 50);
-        }
-    });
-
-    // Stats Utils
-    const getValidData = () => strings.filter(s => s.text.trim() !== '');
-    const escHtml = (value) => value.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-    const getGoalSummary = () => {
-        const totalGoal = getValidData().reduce((sum, row) => sum + (Number(row.goalPercent) || 0), 0);
-        return {
-            totalGoal,
-            impartial: Math.max(0, 100 - totalGoal),
-            isValid: totalGoal <= 100
-        };
-    };
-
-    const getPercent = (count, total) => total > 0 ? (count / total) * 100 : 0;
-
-    const getDisparityData = (valueKey) => {
-        const validData = getValidData();
-        const total = validData.reduce((sum, row) => sum + row[valueKey], 0);
-        return validData.map((row) => {
-            const actual = getPercent(row[valueKey], total);
-            const goal = Number(row.goalPercent) || 0;
-            const disparity = actual - goal;
-            return { row, actual, goal, disparity };
-        });
-    };
-
-    const generatePieChartHTML = (valueKey) => {
-        const validData = getValidData();
-        const total = validData.reduce((sum, d) => sum + d[valueKey], 0);
-        if (total === 0) {
-            return {
-                pieStyle: 'background: #e5e7eb;',
-                legendHtml: ''
-            };
-        }
-        
-        let cumPct = 0;
-        const gradients = validData.map((d, i) => {
-            if (d[valueKey] === 0) return null;
-            const pct = (d[valueKey] / total) * 100;
-            const start = cumPct;
-            cumPct += pct;
-            return `${CHART_COLORS[i % CHART_COLORS.length]} ${start}% ${cumPct}%`;
-        }).filter(Boolean);
-
-        const legendHtml = validData.filter(d => d[valueKey] > 0).map((d, i) => `
-            <div class="flex items-center gap-2">
-                <div class="w-4 h-4 border-2 border-black shrink-0" style="background-color: ${CHART_COLORS[validData.indexOf(d) % CHART_COLORS.length]}"></div>
-                <span class="truncate flex-1 font-medium">${escHtml(d.text)}</span>
-                <span class="font-bold">${d[valueKey]}</span>
-            </div>
-        `).join('');
-
-        return {
-            pieStyle: `background: conic-gradient(${gradients.join(', ')});`,
-            legendHtml: `<div class="flex flex-col gap-2 text-sm max-h-32 overflow-y-auto w-full pr-2">${legendHtml}</div>`
-        };
-    };
-
-    const buildPriorityBumper = (percent, label = 'focus') => {
-        if (percent <= 20) return '';
-        return `<div class="mt-1 text-xs border border-amber-400 bg-amber-50 p-2">
-            <span class="font-bold">High ${label} (&gt;20%).</span> Is this truly a high priority that needs action now, or can it wait for a bit more introspection? <span class="font-bold">Fret now so you don't fret later.</span>
-        </div>`;
-    };
-
-    const renderGoalDisparityView = () => {
-        const disparityData = getDisparityData('strumCount');
-        const target = document.getElementById('goalDisparityView');
-        if (disparityData.length === 0) {
-            target.innerHTML = '<p class="text-sm text-gray-500 italic">Add non-empty rows to compare cumulative focus against goals.</p>';
-            return;
-        }
-
-        target.innerHTML = disparityData.map(({ row, actual, goal, disparity }) => `
-            <div class="text-sm border-b border-gray-200 pb-1">
-                <div class="font-semibold">${escHtml(row.text)}</div>
-                <div>Goal ${goal.toFixed(1)}% • Actual ${actual.toFixed(1)}% • Disparity <span class="${disparity > 0 ? 'text-red-600' : 'text-green-700'} font-bold">${disparity > 0 ? '+' : ''}${disparity.toFixed(1)}%</span></div>
-                ${buildPriorityBumper(Math.max(goal, actual), 'headspace')}
-            </div>
-        `).join('');
-    };
-
-    const renderGoalsModal = () => {
-        const validData = getValidData();
-        const goalsList = document.getElementById('goalsList');
-        const goalsSummary = document.getElementById('goalsSummary');
-        const saveBtn = document.getElementById('btnSaveGoals');
-
-        if (validData.length === 0) {
-            goalsList.innerHTML = '<p class="text-gray-500 italic">No non-empty rows yet. Add thoughts first.</p>';
-        } else {
-            goalsList.innerHTML = validData.map((row, idx) => `
-                <label class="flex items-center gap-3 border-2 border-black p-2">
-                    <span class="flex-1 truncate font-semibold">${escHtml(row.text)}</span>
-                    <input data-goal-index="${strings.indexOf(row)}" type="number" min="0" max="100" step="1" value="${Number(row.goalPercent) || 0}" class="w-24 border-2 border-black p-2 font-bold text-right">
-                    <span class="font-bold">%</span>
-                </label>
-            `).join('');
-
-            goalsList.querySelectorAll('input[data-goal-index]').forEach((input) => {
-                input.addEventListener('input', (e) => {
-                    const idx = Number(e.target.dataset.goalIndex);
-                    const parsed = Math.max(0, Math.min(100, Number(e.target.value) || 0));
-                    strings[idx].goalPercent = parsed;
-                    e.target.value = parsed;
-                    renderGoalsModal();
-                });
-            });
-        }
-
-        const summary = getGoalSummary();
-        const overflow = summary.totalGoal > 100 ? summary.totalGoal - 100 : 0;
-        goalsSummary.innerHTML = `
-            <div>Total Goal Allocation: ${summary.totalGoal.toFixed(1)}%</div>
-            <div>Impartial: ${summary.impartial.toFixed(1)}%</div>
-            ${overflow > 0 ? `<div class="text-red-600">Over by ${overflow.toFixed(1)}%. Reduce goals to save.</div>` : '<div class="text-green-700">Ready to save.</div>'}
-        `;
-        saveBtn.disabled = !summary.isValid;
-        renderGoalDisparityView();
-    };
-
-    const renderSessionGoalDisparity = () => {
-        const target = document.getElementById('sessionGoalDisparity');
-        const disparityData = getDisparityData('sessionStrumCount');
-        if (disparityData.length === 0) {
-            target.innerHTML = '<p class="text-sm text-gray-500 italic">No session activity to compare against goals.</p>';
-            return;
-        }
-        target.innerHTML = disparityData.map(({ row, actual, goal, disparity }) => `
-            <div class="text-sm border-b border-gray-200 pb-2">
-                <div class="font-semibold">${escHtml(row.text)}</div>
-                <div>Goal ${goal.toFixed(1)}% • Session ${actual.toFixed(1)}% • Gap <span class="${disparity > 0 ? 'text-red-600' : 'text-green-700'} font-bold">${disparity > 0 ? '+' : ''}${disparity.toFixed(1)}%</span></div>
-                ${buildPriorityBumper(actual, 'session headspace')}
-            </div>
-        `).join('');
-    };
-
-    // Global Stats
-    document.getElementById('btnGlobalStats').addEventListener('click', () => {
-        const validData = getValidData();
-        const contentDiv = document.getElementById('globalStatsContent');
-        
-        if (validData.length === 0) {
-            contentDiv.innerHTML = '<p class="text-gray-500 italic">No notes written yet to track.</p>';
-        } else {
-            const maxCount = Math.max(...validData.map(s => s.strumCount), 1);
-            contentDiv.innerHTML = validData.map((d, i) => `
-                <div class="flex flex-col gap-1">
-                    <div class="flex justify-between text-sm">
-                        <span class="font-bold truncate pr-4">${escHtml(d.text)}</span>
-                        <span>${d.strumCount}</span>
-                    </div>
-                    <div class="w-full bg-gray-200 h-4 border-2 border-black relative">
-                        <div class="h-full border-r-2 border-black transition-all duration-500" 
-                             style="width: ${(d.strumCount / maxCount) * 100}%; background-color: ${CHART_COLORS[i % CHART_COLORS.length]}">
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-        document.getElementById('modalGlobalStats').classList.remove('hidden');
-    });
-    document.getElementById('btnCloseGlobalStats').addEventListener('click', () => {
-        document.getElementById('modalGlobalStats').classList.add('hidden');
-    });
-
-    // Label Edit Modal
-    document.getElementById('btnLabelCancel').addEventListener('click', () => {
-        document.getElementById('modalLabelEdit').classList.add('hidden');
-        labelEditIndex = null;
-    });
-    document.getElementById('btnLabelReset').addEventListener('click', () => {
-        if(labelEditIndex !== null) strings[labelEditIndex].strumCount = 0;
-        document.getElementById('modalLabelEdit').classList.add('hidden');
-        labelEditIndex = null;
-    });
-    document.getElementById('btnLabelSave').addEventListener('click', () => {
-        if(labelEditIndex !== null) {
-            strings[labelEditIndex].strumLabel = document.getElementById('labelInput').value || 'Strums';
-        }
-        document.getElementById('modalLabelEdit').classList.add('hidden');
-        labelEditIndex = null;
-    });
-    document.getElementById('labelInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            if(labelEditIndex !== null) {
-                strings[labelEditIndex].strumLabel = document.getElementById('labelInput').value || 'Strums';
-            }
-            document.getElementById('modalLabelEdit').classList.add('hidden');
-            labelEditIndex = null;
-        }
-    });
-
-    // Timer Logic
-    const updateTimerUI = () => {
-        document.getElementById('timerDisplay').innerText = formatTime(timeRemaining);
-        if (timeRemaining <= 10 && timerRunning) {
-            document.getElementById('timerDisplay').classList.add('text-red-600');
-            document.getElementById('timerDisplay').classList.remove('text-black');
-        } else {
-            document.getElementById('timerDisplay').classList.remove('text-red-600');
-            document.getElementById('timerDisplay').classList.add('text-black');
-        }
-
-        if (timerRunning) {
-            document.getElementById('iconTimerPlay').classList.add('hidden');
-            document.getElementById('iconTimerPause').classList.remove('hidden');
-        } else {
-            document.getElementById('iconTimerPlay').classList.remove('hidden');
-            document.getElementById('iconTimerPause').classList.add('hidden');
-        }
-    };
-
-    const startTimerInterval = () => {
-        if (timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-            if (timeRemaining <= 1) {
-                timeRemaining = 0;
-                timerRunning = false;
-                clearInterval(timerInterval);
-                playAlarm();
-                showPostTimerStatsModal();
-            } else {
-                timeRemaining--;
-            }
-            updateTimerUI();
+            return s - 1;
+          });
         }, 1000);
-    };
+        return () => clearInterval(id);
+      }, [running]);
 
-    const stopTimerInterval = () => {
-        if (timerInterval) clearInterval(timerInterval);
-    };
+      const validRows = useMemo(() => rows.filter((r) => r.text.trim()), [rows]);
+      const totalCumulative = useMemo(() => validRows.reduce((a, r) => a + r.cumulative, 0), [validRows]);
+      const totalSession = useMemo(() => validRows.reduce((a, r) => a + r.session, 0), [validRows]);
+      const goalTotal = useMemo(() => validRows.reduce((a, r) => a + Number(r.goalPercent || 0), 0), [validRows]);
 
-    const showPostTimerStatsModal = () => {
-        const sessionData = generatePieChartHTML('sessionStrumCount');
-        document.getElementById('pieChartSession').style = sessionData.pieStyle;
-        document.getElementById('legendSession').innerHTML = sessionData.legendHtml;
+      const setRow = (id, patch) => setRows((p) => p.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+      const strum = (id) => setRows((p) => p.map((r) => (r.id === id ? { ...r, cumulative: r.cumulative + 1, session: r.session + 1 } : r)));
 
-        const cumData = generatePieChartHTML('strumCount');
-        document.getElementById('pieChartCumulative').style = cumData.pieStyle;
-        document.getElementById('legendCumulative').innerHTML = cumData.legendHtml;
-        renderSessionGoalDisparity();
+      const disparity = validRows.map((r) => {
+        const actual = totalCumulative ? (r.cumulative / totalCumulative) * 100 : 0;
+        const sessionPct = totalSession ? (r.session / totalSession) * 100 : 0;
+        return { ...r, actual, sessionPct, gap: actual - (Number(r.goalPercent) || 0) };
+      });
 
-        updateTimerUI();
-        document.getElementById('modalPostTimer').classList.remove('hidden');
-    };
+      return (
+        <div className="h-full w-full max-w-5xl mx-auto p-2 sm:p-6">
+          <div className="h-full bg-white border-2 border-black rounded-2xl shadow-lg overflow-hidden flex flex-col">
+            <header className="px-3 py-3 sm:px-5 border-b border-zinc-200 flex flex-wrap gap-2 items-center justify-between">
+              <div>
+                <h1 className="text-lg sm:text-2xl font-bold">FRET Focus Tracker</h1>
+                <p className="text-xs sm:text-sm text-zinc-600">React + Tailwind mobile-first rebuild</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setGlobalOpen(true)} className="px-3 py-2 rounded-xl border border-zinc-300 text-sm">Global Stats</button>
+                <button onClick={() => setGoalOpen(true)} className="px-3 py-2 rounded-xl border border-zinc-300 text-sm">Goals %</button>
+                <button onClick={() => setTimerOpen(true)} className="px-3 py-2 rounded-xl border border-zinc-300 text-sm">Timer</button>
+              </div>
+            </header>
 
-    document.getElementById('btnClosePostTimer').addEventListener('click', () => {
-        document.getElementById('modalPostTimer').classList.add('hidden');
-    });
+            <div className="px-3 py-2 sm:px-5 flex items-center gap-2 border-b border-zinc-200">
+              <span className="text-sm font-medium">Metric label:</span>
+              <input value={label} onChange={(e) => setLabel(e.target.value)} className="border rounded-lg px-2 py-1 text-sm w-40 sm:w-64" />
+              <button onClick={() => setRows((p) => p.map((r) => ({ ...r, session: 0 })))} className="ml-auto text-xs sm:text-sm px-2 py-1 border rounded-lg">Reset session</button>
+            </div>
 
-    // Goals Modal + Toggle
-    const goalsToggle = document.getElementById('toggleGoalsView');
-    const goalsModal = document.getElementById('modalGoals');
-    const hideGoalsModal = () => {
-        goalsModal.classList.add('hidden');
-        goalsToggle.checked = false;
-    };
+            <main className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2">
+              {rows.map((r) => (
+                <div key={r.id} className="border border-zinc-200 rounded-xl p-2 sm:p-3 bg-zinc-50">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <input
+                      value={r.text}
+                      onChange={(e) => setRow(r.id, { text: e.target.value })}
+                      placeholder={`Thought ${r.id}`}
+                      className="flex-1 border rounded-lg px-3 py-2 text-sm sm:text-base"
+                    />
+                    <div className="grid grid-cols-3 sm:flex gap-2 items-center">
+                      <div className="text-xs sm:text-sm px-2 py-1 border rounded-lg bg-white">C: {r.cumulative}</div>
+                      <div className="text-xs sm:text-sm px-2 py-1 border rounded-lg bg-white">S: {r.session}</div>
+                      <button onClick={() => strum(r.id)} className="px-3 py-2 rounded-lg bg-black text-white text-xs sm:text-sm">+1 {label}</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </main>
+          </div>
 
-    goalsToggle.addEventListener('change', (e) => {
-        if (e.target.checked) {
-            renderGoalsModal();
-            goalsModal.classList.remove('hidden');
-        } else {
-            goalsModal.classList.add('hidden');
-        }
-    });
+          <Modal
+            open={goalOpen}
+            onClose={() => setGoalOpen(false)}
+            title="Goals % View"
+            footer={<div className="text-xs sm:text-sm text-zinc-600">Total goals: <b>{goalTotal.toFixed(1)}%</b> • Remaining impartial: <b>{Math.max(0, 100 - goalTotal).toFixed(1)}%</b></div>}
+          >
+            <p className="text-sm text-zinc-600 mb-3">Scrollable and mobile-friendly: set goals by row; save is implicit.</p>
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto overscroll-contain touch-pan-y pr-1">
+              {validRows.length === 0 && <p className="text-sm text-zinc-500 italic">Add row text first.</p>}
+              {validRows.map((r) => (
+                <div key={r.id} className="border rounded-xl p-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{r.text}</div>
+                    <div className="text-xs text-zinc-500">Current cumulative: {totalCumulative ? ((r.cumulative / totalCumulative) * 100).toFixed(1) : '0.0'}%</div>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={r.goalPercent}
+                    onChange={(e) => setRow(r.id, { goalPercent: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
+                    className="w-24 border rounded-lg px-2 py-2 text-right"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 border rounded-xl p-3">
+              <h3 className="font-semibold mb-2">Disparity (Cumulative - Goal)</h3>
+              <div className="space-y-1 max-h-44 overflow-y-auto overscroll-contain touch-pan-y">
+                {disparity.map((d) => (
+                  <div key={d.id} className="text-sm">
+                    <b>{d.text || `Row ${d.id}`}</b>: Goal {d.goalPercent.toFixed(1)}% • Actual {d.actual.toFixed(1)}% •
+                    <span className={d.gap > 0 ? 'text-red-600 font-semibold' : 'text-emerald-700 font-semibold'}> {d.gap > 0 ? '+' : ''}{d.gap.toFixed(1)}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Modal>
 
-    document.getElementById('btnCloseGoals').addEventListener('click', hideGoalsModal);
-    document.getElementById('btnCancelGoals').addEventListener('click', hideGoalsModal);
-    document.getElementById('btnSaveGoals').addEventListener('click', () => {
-        const summary = getGoalSummary();
-        if (!summary.isValid) return;
-        hideGoalsModal();
-    });
+          <Modal open={globalOpen} onClose={() => setGlobalOpen(false)} title="Global Cumulative Stats">
+            <div className="space-y-2">
+              {disparity.length === 0 && <p className="text-sm text-zinc-500 italic">No data yet.</p>}
+              {disparity.sort((a, b) => b.cumulative - a.cumulative).map((d) => (
+                <div key={d.id} className="border rounded-xl p-3">
+                  <div className="font-semibold">{d.text || `Row ${d.id}`}</div>
+                  <div className="text-sm text-zinc-600">{label}: {d.cumulative} • Share: {d.actual.toFixed(1)}%</div>
+                </div>
+              ))}
+            </div>
+          </Modal>
 
-    document.getElementById('btnTimerOpen').addEventListener('click', () => {
-        initAudio();
-        document.getElementById('btnTimerOpen').classList.add('hidden');
-        document.getElementById('timerActiveView').classList.remove('hidden');
-        updateTimerUI();
-    });
+          <Modal
+            open={timerOpen}
+            onClose={() => setTimerOpen(false)}
+            title="Timer"
+            footer={<div className="flex gap-2"><button onClick={() => setRunning((v) => !v)} className="flex-1 bg-black text-white rounded-lg px-3 py-2">{running ? 'Pause' : 'Start'}</button><button onClick={() => setRows((p) => p.map((r) => ({ ...r, session: 0 })))} className="flex-1 border rounded-lg px-3 py-2">Reset Session</button></div>}
+          >
+            <div className="text-center text-6xl font-mono font-bold">{formatTime(timerSecs)}</div>
+            <div className="mt-4 flex gap-2">
+              <input type="number" min="1" value={Math.floor(timerSecs / 60)} onChange={(e) => setTimerSecs((Number(e.target.value) || 0) * 60 + (timerSecs % 60))} className="w-full border rounded-lg p-2" />
+              <input type="number" min="0" max="59" value={timerSecs % 60} onChange={(e) => setTimerSecs(Math.floor(timerSecs / 60) * 60 + Math.max(0, Math.min(59, Number(e.target.value) || 0)))} className="w-full border rounded-lg p-2" />
+            </div>
+          </Modal>
 
-    document.getElementById('btnTimerPlayPause').addEventListener('click', () => {
-        initAudio();
-        if (timerRunning) {
-            timerRunning = false;
-            stopTimerInterval();
-            updateTimerUI();
-        } else {
-            document.getElementById('modalTimerPrompt').classList.remove('hidden');
-        }
-    });
+          <Modal open={finishedOpen} onClose={() => setFinishedOpen(false)} title="Time's up — Session vs Goal">
+            <div className="space-y-2">
+              {disparity.map((d) => (
+                <div key={d.id} className="border rounded-xl p-3 text-sm">
+                  <div className="font-semibold">{d.text || `Row ${d.id}`}</div>
+                  <div>Session: {d.sessionPct.toFixed(1)}% • Goal: {d.goalPercent.toFixed(1)}% • Gap: <span className={d.sessionPct - d.goalPercent > 0 ? 'text-red-600 font-semibold' : 'text-emerald-700 font-semibold'}>{(d.sessionPct - d.goalPercent > 0 ? '+' : '') + (d.sessionPct - d.goalPercent).toFixed(1)}%</span></div>
+                </div>
+              ))}
+            </div>
+          </Modal>
+        </div>
+      );
+    }
 
-    document.getElementById('btnTimerPromptCancel').addEventListener('click', () => {
-        document.getElementById('modalTimerPrompt').classList.add('hidden');
-    });
-
-    document.getElementById('btnTimerResetAll').addEventListener('click', () => {
-        strings.forEach(s => { s.sessionStrumCount = 0; s.strumCount = 0; });
-        document.getElementById('modalTimerPrompt').classList.add('hidden');
-        timerRunning = true;
-        updateTimerUI();
-        startTimerInterval();
-    });
-
-    document.getElementById('btnTimerKeep').addEventListener('click', () => {
-        strings.forEach(s => { s.sessionStrumCount = 0; });
-        document.getElementById('modalTimerPrompt').classList.add('hidden');
-        timerRunning = true;
-        updateTimerUI();
-        startTimerInterval();
-    });
-
-    document.getElementById('btnTimerEdit').addEventListener('click', () => {
-        timerRunning = false;
-        stopTimerInterval();
-        timerDigits = timeToDigits(timeRemaining);
-        document.getElementById('timerEditDisplay').innerText = timerDigits.slice(0,2) + ":" + timerDigits.slice(2,4);
-        document.getElementById('modalTimerEdit').classList.remove('hidden');
-        updateTimerUI();
-    });
-
-    // Numpad generation and logic
-    const numpadKeys = ['1','2','3','4','5','6','7','8','9','00','0','Del'];
-    const numpadGrid = document.getElementById('numpadGrid');
-    numpadKeys.forEach(key => {
-        const btn = document.createElement('button');
-        btn.className = "py-4 border-2 border-black font-bold text-xl hover:bg-gray-100 active:bg-gray-200 transition-colors";
-        btn.innerText = key;
-        btn.addEventListener('click', () => {
-            if (key === 'Del') {
-                timerDigits = ('0' + timerDigits.slice(0, -1)).slice(-4);
-            } else {
-                timerDigits = (timerDigits + key).slice(-4);
-            }
-            document.getElementById('timerEditDisplay').innerText = timerDigits.slice(0,2) + ":" + timerDigits.slice(2,4);
-        });
-        numpadGrid.appendChild(btn);
-    });
-
-    document.getElementById('btnTimerEditCancel').addEventListener('click', () => {
-        document.getElementById('modalTimerEdit').classList.add('hidden');
-    });
-
-    document.getElementById('btnTimerEditSave').addEventListener('click', () => {
-        const mins = parseInt(timerDigits.slice(0,2), 10);
-        const secs = parseInt(timerDigits.slice(2,4), 10);
-        timeRemaining = mins * 60 + secs;
-        document.getElementById('modalTimerEdit').classList.add('hidden');
-        updateTimerUI();
-    });
-
-    // Boot
-    window.addEventListener('resize', initCanvas);
-    initCanvas();
-    renderLoop();
-
-</script>
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
 </body>
 </html>
