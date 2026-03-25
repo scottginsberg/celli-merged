@@ -201,7 +201,9 @@
     const NUM_STRINGS = 100;
     const TOP_MARGIN = 100;
     const LINE_SPACING = 55;
-    const LEFT_MARGIN_WIDTH = 140; 
+    const LEFT_MARGIN_WIDTH_DESKTOP = 140;
+    const LEFT_MARGIN_WIDTH_MOBILE = 96;
+    let leftMarginWidth = LEFT_MARGIN_WIDTH_DESKTOP;
     const RIGHT_MARGIN_OFFSET = 30;
     const CHART_COLORS = ['#EF4444', '#3B82F6', '#EAB308', '#10B981', '#8B5CF6', '#F97316', '#06B6D4', '#EC4899', '#84CC16', '#6366F1'];
 
@@ -252,6 +254,8 @@
         return { x: e.clientX - rect.left, y: e.clientY - rect.top };
     };
 
+    const getLeftMarginWidth = () => leftMarginWidth;
+
     // --- Audio Engine ---
     const initAudio = () => {
         if (!audioCtx) {
@@ -269,10 +273,12 @@
     const playNote = (index, velocity) => {
         try {
             if (!audioCtx) return;
-            const baseFreq = 130.81; 
-            const scale = [1, 1.122, 1.26, 1.498, 1.682]; 
-            const octave = Math.floor(index / 5);
-            const noteInScale = index % 5;
+            const baseFreq = 130.81;
+            const scale = [1, 1.122, 1.26, 1.498, 1.682];
+            const maxPitchSteps = 20; // Keep notes in an audible range (4 pentatonic octaves)
+            const safeIndex = ((index % maxPitchSteps) + maxPitchSteps) % maxPitchSteps;
+            const octave = Math.floor(safeIndex / scale.length);
+            const noteInScale = safeIndex % scale.length;
             const freq = baseFreq * scale[noteInScale] * Math.pow(2, octave);
 
             const osc = audioCtx.createOscillator();
@@ -382,7 +388,7 @@
             
             const labelText = `${this.strumCount} ${displayLabel}`;
             const textWidth = ctx.measureText(labelText).width;
-            const pillWidth = Math.min(textWidth + 24, LEFT_MARGIN_WIDTH - 24); 
+            const pillWidth = Math.min(textWidth + 24, getLeftMarginWidth() - 24); 
             
             const pillX = 12; 
             const pillY = this.y - 14;
@@ -402,7 +408,7 @@
             ctx.globalAlpha = 1.0;
 
             // Checkbox
-            const cbX = LEFT_MARGIN_WIDTH + 15;
+            const cbX = getLeftMarginWidth() + 15;
             const cbY = this.y - 20;
             const cbSize = 14;
             
@@ -429,7 +435,7 @@
             const resolution = this.points[1].x - this.points[0].x;
             const startX = this.points[0].x;
             
-            let currentX = LEFT_MARGIN_WIDTH + 40; 
+            let currentX = getLeftMarginWidth() + 40; 
             let cursorDrawX = null;
 
             for (let i = 0; i < this.text.length; i++) {
@@ -467,7 +473,7 @@
             // Strikethrough
             if (this.isChecked && this.text.length > 0) {
                 ctx.beginPath();
-                ctx.moveTo(LEFT_MARGIN_WIDTH + 40, this.y - 12);
+                ctx.moveTo(getLeftMarginWidth() + 40, this.y - 12);
                 ctx.lineTo(currentX, this.y - 12);
                 ctx.stroke();
             }
@@ -500,6 +506,7 @@
     const initCanvas = () => {
         const W = container.clientWidth;
         const H = container.clientHeight;
+        leftMarginWidth = window.innerWidth < 640 ? LEFT_MARGIN_WIDTH_MOBILE : LEFT_MARGIN_WIDTH_DESKTOP;
         
         // Prevent initialization with 0 dimensions to avoid broken physics state
         if (W === 0 || H === 0) return;
@@ -528,8 +535,8 @@
         if (mode === 'notes') {
             ctx.strokeStyle = '#FF6961'; 
             ctx.lineWidth = 1.5;
-            ctx.beginPath(); ctx.moveTo(LEFT_MARGIN_WIDTH - 6, 0); ctx.lineTo(LEFT_MARGIN_WIDTH - 6, H); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(LEFT_MARGIN_WIDTH, 0); ctx.lineTo(LEFT_MARGIN_WIDTH, H); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(getLeftMarginWidth() - 6, 0); ctx.lineTo(getLeftMarginWidth() - 6, H); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(getLeftMarginWidth(), 0); ctx.lineTo(getLeftMarginWidth(), H); ctx.stroke();
             const rightLineX = W - RIGHT_MARGIN_OFFSET;
             ctx.beginPath(); ctx.moveTo(rightLineX, 0); ctx.lineTo(rightLineX, H); ctx.stroke();
         }
@@ -621,7 +628,7 @@
             ctx.save();
             ctx.font = '22px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
             
-            let currentX = LEFT_MARGIN_WIDTH + 40; 
+            let currentX = getLeftMarginWidth() + 40; 
             const W = container.clientWidth;
             
             let positions = [{ idx: 0, x: currentX }];
@@ -685,7 +692,7 @@
         const W = container.clientWidth;
         
         if (x > W - RIGHT_MARGIN_OFFSET - 20) dragState = 'scrollbar';
-        else if (x < LEFT_MARGIN_WIDTH - 10) dragState = 'leftMargin';
+        else if (x < getLeftMarginWidth() - 10) dragState = 'leftMargin';
         else dragState = 'strum';
 
         pointers.set(e.pointerId, { x, y, startX: x, startY: y, lastY: y });
@@ -730,7 +737,7 @@
 
     const handleCanvasClick = (x, y) => {
         // 1. Check Strum Pill
-        if (x < LEFT_MARGIN_WIDTH - 10) {
+        if (x < getLeftMarginWidth() - 10) {
             let hitPillIdx = -1;
             strings.forEach((str, idx) => {
                 const pillY = str.y - 14;
@@ -750,7 +757,7 @@
         // 2. Check Checkbox
         let hitCheckboxIdx = -1;
         strings.forEach((str, idx) => {
-            const cbX = LEFT_MARGIN_WIDTH + 15;
+            const cbX = getLeftMarginWidth() + 15;
             const cbY = str.y - 20;
             if (x >= cbX - 10 && x <= cbX + 26 && y >= cbY - 10 && y <= cbY + 26) hitCheckboxIdx = idx;
         });
