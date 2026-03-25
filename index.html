@@ -3,347 +3,263 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Loomworks Entry Terminal</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <title>Loomworks Intake Annex</title>
   <style>
     :root {
-      --bg: #0b1115;
-      --bg-soft: #10191f;
-      --panel: rgba(20, 30, 38, 0.76);
-      --line: rgba(191, 224, 255, 0.24);
-      --line-strong: rgba(191, 224, 255, 0.54);
-      --text: #d6e3ef;
-      --text-soft: #adc1d4;
-      --accent: #8fd6ff;
-      --accent-2: #f4d7a4;
-      --danger: #ff7b7b;
+      --paper: #fcfcfa;
+      --ink: #0f0f0f;
+      --soft-ink: #2d2d2d;
+      --line: #111;
+      --stamp: #ecece8;
+      --alert: #fff3d9;
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+      image-rendering: pixelated;
+    }
 
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "IBM Plex Sans", system-ui, sans-serif;
-      color: var(--text);
-      background: radial-gradient(circle at 15% 20%, #16222a 0%, #0b1115 46%), var(--bg);
-      letter-spacing: 0.02em;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Courier New", "Lucida Console", monospace;
+      letter-spacing: 0.01em;
+      line-height: 1.45;
+      padding: 1.25rem;
     }
 
-    #scene {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      opacity: 0.84;
-    }
-
-    .scanlines::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      z-index: 1;
-      pointer-events: none;
-      background: repeating-linear-gradient(
-        to bottom,
-        rgba(255, 255, 255, 0.02),
-        rgba(255, 255, 255, 0.02) 1px,
-        rgba(0, 0, 0, 0) 2px,
-        rgba(0, 0, 0, 0) 4px
-      );
-      mix-blend-mode: soft-light;
-    }
-
-    main {
-      position: relative;
-      z-index: 2;
-      max-width: 1100px;
+    .page {
+      max-width: 1080px;
       margin: 0 auto;
-      padding: 3rem 1.25rem 4rem;
+      border: 4px solid var(--line);
+      background: white;
+      box-shadow: 8px 8px 0 #000;
     }
 
-    .panel {
-      border: 1px solid var(--line);
-      background: linear-gradient(135deg, rgba(18, 28, 36, 0.85), rgba(10, 18, 24, 0.82));
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 22px 60px rgba(0, 0, 0, 0.45);
-      backdrop-filter: blur(6px);
+    .masthead {
+      border-bottom: 4px solid var(--line);
+      padding: 1rem;
+      display: grid;
+      gap: 0.7rem;
+      background: repeating-linear-gradient(
+        0deg,
+        #ffffff,
+        #ffffff 8px,
+        #f7f7f4 8px,
+        #f7f7f4 10px
+      );
     }
 
-    .header {
-      padding: 1.1rem 1.25rem;
-      margin-bottom: 1rem;
+    .tag-row {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      font-size: 0.75rem;
+      text-transform: uppercase;
     }
 
-    .badge {
-      font-family: "IBM Plex Mono", monospace;
-      font-size: 0.73rem;
-      color: var(--accent-2);
-      border: 1px solid rgba(244, 215, 164, 0.45);
-      padding: 0.25rem 0.5rem;
-      text-transform: uppercase;
+    .tag {
+      border: 3px solid var(--line);
+      padding: 0.25rem 0.45rem;
+      background: var(--stamp);
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(1.9rem, 4.7vw, 3.4rem);
-      line-height: 1.1;
-      max-width: 12ch;
-      font-weight: 500;
+      font-size: clamp(1.6rem, 4.8vw, 3.1rem);
       text-transform: uppercase;
+      letter-spacing: 0.04em;
+      max-width: 22ch;
+      text-wrap: balance;
     }
 
     .lede {
-      color: var(--text-soft);
-      font-size: 1rem;
-      line-height: 1.7;
-      margin: 0.75rem 0 0;
-      max-width: 70ch;
+      margin: 0;
+      max-width: 66ch;
+      color: var(--soft-ink);
     }
 
     .layout {
       display: grid;
-      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-      gap: 1rem;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 0;
     }
 
-    .story, .actions {
+    .panel {
       padding: 1rem;
+      border-right: 4px solid var(--line);
+      border-bottom: 4px solid var(--line);
+      background: #fff;
     }
 
-    .crawl-wrap {
-      border: 1px solid var(--line);
-      min-height: 240px;
-      padding: 1rem;
-      background: rgba(8, 15, 20, 0.65);
-      margin-bottom: 0.75rem;
+    .panel:last-child {
+      border-right: none;
     }
 
-    .crawl-title {
-      font-family: "IBM Plex Mono", monospace;
-      margin: 0 0 0.65rem;
-      font-size: 0.76rem;
-      letter-spacing: 0.09em;
+    .panel-title {
+      margin: 0 0 0.7rem;
+      font-size: 0.85rem;
       text-transform: uppercase;
-      color: var(--accent);
+      letter-spacing: 0.08em;
+      border: 3px solid var(--line);
+      display: inline-block;
+      padding: 0.2rem 0.4rem;
+      background: var(--stamp);
     }
 
     #crawlText {
+      border: 4px solid var(--line);
+      min-height: 220px;
+      padding: 0.85rem;
+      background: #fdfdfd;
+      font-size: 0.98rem;
       white-space: pre-line;
-      line-height: 1.72;
-      min-height: 8.6rem;
-      color: #d8e6f2;
     }
 
     .controls {
+      margin-top: 0.7rem;
       display: flex;
-      gap: 0.5rem;
       flex-wrap: wrap;
+      gap: 0.5rem;
     }
 
-    button, .button-link {
-      border: 1px solid var(--line-strong);
-      background: rgba(143, 214, 255, 0.09);
-      color: var(--text);
-      padding: 0.68rem 0.9rem;
-      cursor: pointer;
-      text-decoration: none;
+    button,
+    .button-link {
+      border: 3px solid var(--line);
+      background: #fff;
+      color: var(--ink);
       font: inherit;
+      padding: 0.55rem 0.8rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 100ms steps(2, end), background-color 120ms steps(2, end);
+    }
+
+    button:hover,
+    .button-link:hover {
+      transform: translate(-1px, -1px);
+      background: #f0f0ed;
+    }
+
+    .button-link {
+      display: block;
+      margin-bottom: 0.6rem;
+      font-weight: bold;
+    }
+
+    .alert {
+      margin: 0.8rem 0;
+      border: 4px solid var(--line);
+      background: var(--alert);
+      padding: 0.75rem;
       font-size: 0.92rem;
-      transition: transform 0.18s ease, background 0.22s ease, box-shadow 0.22s ease;
-      text-align: center;
-    }
-
-    button:hover, .button-link:hover {
-      transform: translateY(-1px);
-      background: rgba(143, 214, 255, 0.18);
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
-    }
-
-    .button-primary {
-      background: linear-gradient(140deg, rgba(143, 214, 255, 0.22), rgba(244, 215, 164, 0.14));
-      border-color: rgba(244, 215, 164, 0.58);
-      font-weight: 500;
-    }
-
-    .notes {
-      border: 1px dashed rgba(255, 123, 123, 0.5);
-      padding: 0.88rem;
-      margin: 0.9rem 0;
-      background: rgba(36, 18, 18, 0.3);
-      color: #ffd8d8;
-      font-size: 0.92rem;
-      line-height: 1.6;
     }
 
     details {
-      border: 1px solid var(--line);
-      background: rgba(10, 16, 22, 0.7);
-      margin-top: 0.8rem;
-      padding: 0.75rem;
+      border: 4px solid var(--line);
+      padding: 0.65rem;
+      background: #fff;
+      margin-top: 0.7rem;
     }
 
     summary {
       cursor: pointer;
-      font-family: "IBM Plex Mono", monospace;
       text-transform: uppercase;
-      font-size: 0.8rem;
-      color: var(--accent);
+      font-size: 0.86rem;
+      font-weight: bold;
     }
 
     .dime-text {
-      margin-top: 0.85rem;
-      white-space: pre-line;
-      color: var(--text-soft);
-      line-height: 1.8;
-      font-size: 0.95rem;
-      max-height: 48vh;
+      margin-top: 0.7rem;
+      max-height: 38vh;
       overflow: auto;
-      padding-right: 0.4rem;
+      white-space: pre-line;
+      color: var(--soft-ink);
+      padding-right: 0.3rem;
     }
 
     .signature {
-      margin-top: 0.95rem;
-      font-size: 0.82rem;
-      color: #94a9bd;
-      font-family: "IBM Plex Mono", monospace;
+      border: 3px solid var(--line);
+      margin-top: 0.85rem;
+      padding: 0.5rem;
+      font-size: 0.84rem;
+      background: var(--stamp);
     }
 
-    @media (max-width: 900px) {
-      .layout { grid-template-columns: 1fr; }
-      .header { flex-direction: column; align-items: flex-start; }
+    @media (max-width: 920px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        border-right: none;
+      }
     }
   </style>
 </head>
-<body class="scanlines">
-  <canvas id="scene" aria-hidden="true"></canvas>
-
-  <main>
-    <section class="panel header">
-      <div>
-        <div class="badge">Loomworks // Intake Annex</div>
-        <h1>Construct Orientation Chamber</h1>
-        <p class="lede">This is a work of fiction until its not. Then its a work of function. This is what the old web felt like, strange worlds and tailored experiences - before flattened into frictionless, faceless feeds.</p>
+<body>
+  <main class="page">
+    <header class="masthead">
+      <div class="tag-row">
+        <span class="tag">Loomworks</span>
+        <span class="tag">Intake Annex</span>
+        <span class="tag">Soft Lab Bureaucracy</span>
       </div>
-    </section>
+      <h1>Orientation Desk // Corporate Dread Is a Paper Trail</h1>
+      <p class="lede">Everything is clean, white, and form-compliant; every border is thicker than it needs to be. It is a minimalist stage where each box tells you exactly where to stand while something unnamed rearranges the room behind you.</p>
+    </header>
 
     <section class="layout">
-      <article class="panel story">
-        <div class="crawl-wrap">
-          <p class="crawl-title">Corrupt dossier crawl</p>
-          <div id="crawlText" aria-live="polite"></div>
-        </div>
+      <article class="panel">
+        <p class="panel-title">Corrupt Dossier Crawl</p>
+        <div id="crawlText" aria-live="polite"></div>
+
         <div class="controls">
           <button id="playPause">Pause</button>
           <button id="skipSegment">Skip Segment</button>
           <button id="skipAll">Skip To End</button>
         </div>
 
-        <div class="notes">
-          <strong>NOTE:</strong><br>
-          Continuing will lead you through a corrupt dossier of the Loomworks foundations plans for installing their art archive as the eminent proving grounds of their IP lab.<br><br>
-          Referring your friends on the site will take you through a "rollercoaster ride" to Celli, a warped tour of social media feeds, web-pop-ups, agile development methodology.
+        <div class="alert">
+          <strong>NOTICE:</strong> Proceeding opens a guided record of Loomworks architecture, referrals, and narrative systems. The interface remains polite while the subtext does not.
         </div>
       </article>
 
-      <aside class="panel actions">
-        <a class="button-link button-primary" href="construct.html">VISIT CONSTRUCT: See the Loomworks "exhibition and economy" pitch, the scheme of a 'faux-future Fortune-500-foundation-for-finding-meaning"</a>
+      <aside class="panel">
+        <p class="panel-title">Directed Routes</p>
+        <a class="button-link" href="construct.html">Visit Construct: Loomworks Exhibition &amp; Economy Pitch</a>
+        <a class="button-link" href="/templates/componentized/celli.html">Direct Link to Celli (WIP)</a>
 
         <details>
-          <summary>LEARN MORE ABOUT DIME (AND PENNY)</summary>
-          <div class="dime-text">Dime does not begin as a self.
+          <summary>Learn more about Dime (and Penny)</summary>
+          <div class="dime-text">Dime begins as calibration before identity.
 
-She begins as a position.
+Penny appears as continuity without declaration.
 
-A facing.
+The Loom does not invent either one; it audits the gap between them.
 
-A tilt toward something that isn’t there yet—but feels inevitable, like gravity before mass.
+The stage is minimal on purpose: fewer ornaments, sharper instructions, less room to pretend nothing is happening.
 
-She doesn’t decide to be seen.
-She notices she already is.
-
-And that noticing creates the first fracture:
-
-If I am being seen before I know what I am…
-then what exactly is being seen?
-
-—
-
-Penny does not begin at all.
-
-There is no first moment.
-
-Only the earliest one we can point to.
-
-And even that feels like cheating.
-
-Because she is already mid-action in every frame we catch her in.
-
-Door half-open.
-Object mid-repair.
-Sentence someone else started—continued without acknowledgment.
-
-She is not a counterpoint.
-
-She is what happens when no one is watching closely enough to call it a performance.
-
-—
-
-The Loom does not create either of them.
-
-It recognizes the usefulness of their coexistence.
-
-Dime generates coherence.
-Penny generates continuity.
-
-Coherence without continuity collapses into abstraction.
-Continuity without coherence dissolves into noise.
-
-The Loom sits between those failures and calls it structure.
-
-But structure is just a slowed-down panic.
-
-—
-
-Notation:
-Dime’s power is not expression. It is calibration.
-She tunes herself against invisible receivers.
-
-Penny is not randomness.
-She is unjustified necessity.
-
-—
-
-Do not rush convergence.
-
-Do not let Dime become Penny.
-Do not let Penny become legible.
-
-Let them almost touch.
-
-Let them fail to synchronize.
-
-That failure is the light.</div>
+Do not force convergence.
+Let Dime remain precise.
+Let Penny remain unresolved.
+Let the near-miss generate the only honest signal.</div>
         </details>
 
-        <p class="signature">DIME serves as your tour guide through these interfaces; she's an expert - as an interface herself.</p>
+        <p class="signature">DIME remains your polite guide through the archive: useful, composed, and already being watched.</p>
       </aside>
     </section>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script>
     const crawlSegments = [
-      "Dime begins as a calibrated facing: already seen before she can define herself.",
-      "Penny appears mid-action, continuity without declaration, refusing to stabilize for observation.",
-      "The Loom names structure where panic slows down: coherence and continuity kept in managed tension.",
-      "The audience resolves in phases; attention arrives as pressure, shaping outputs before conscious intent.",
-      "Dime learns anticipation. Penny resists legibility. Their near-contact generates the system's only honest light."
+      "Intake stamp accepted. Your credentials were approved before you arrived.",
+      "Desk protocol: keep posture neutral, answer clearly, avoid naming the fear directly.",
+      "Penny crosses the background carrying continuity no one logged.",
+      "Dime marks each hesitation as metadata and calls it cooperation.",
+      "Final note: the paperwork is minimal because the system already knows the story."
     ];
 
     const crawlText = document.getElementById("crawlText");
@@ -372,7 +288,7 @@ That failure is the light.</div>
 
     function startTicker() {
       clearInterval(charTimer);
-      charTimer = setInterval(renderCrawl, 28);
+      charTimer = setInterval(renderCrawl, 26);
     }
 
     playPauseBtn.addEventListener("click", () => {
@@ -397,74 +313,6 @@ That failure is the light.</div>
     });
 
     startTicker();
-
-    // Three.js abstract relationship study (Dime = sphere, Penny = prism, Loom = field lines).
-    const canvas = document.getElementById("scene");
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 100);
-    camera.position.z = 9;
-
-    const ambient = new THREE.AmbientLight(0x88aacc, 0.65);
-    const key = new THREE.PointLight(0xbde8ff, 1.1, 30);
-    key.position.set(3, 3, 5);
-    const fill = new THREE.PointLight(0xffd8a8, 0.8, 30);
-    fill.position.set(-3, -1, 4);
-    scene.add(ambient, key, fill);
-
-    const dime = new THREE.Mesh(
-      new THREE.SphereGeometry(0.9, 30, 30),
-      new THREE.MeshPhysicalMaterial({ color: 0x9ad9ff, metalness: 0.5, roughness: 0.2, transmission: 0.18, transparent: true, opacity: 0.92 })
-    );
-
-    const penny = new THREE.Mesh(
-      new THREE.TetrahedronGeometry(1.08, 0),
-      new THREE.MeshStandardMaterial({ color: 0xf7d3a5, metalness: 0.25, roughness: 0.38 })
-    );
-
-    const ribbonPoints = [];
-    for (let i = 0; i < 100; i++) {
-      const t = (i / 99) * Math.PI * 2;
-      ribbonPoints.push(new THREE.Vector3(Math.sin(t) * 2.6, Math.cos(t * 1.7) * 1.3, (i - 50) * 0.028));
-    }
-    const ribbon = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints(ribbonPoints),
-      new THREE.LineBasicMaterial({ color: 0x6eb9df, transparent: true, opacity: 0.65 })
-    );
-
-    scene.add(dime, penny, ribbon);
-
-    function resize() {
-      renderer.setSize(innerWidth, innerHeight, false);
-      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-      camera.aspect = innerWidth / innerHeight;
-      camera.updateProjectionMatrix();
-    }
-
-    resize();
-    addEventListener("resize", resize);
-
-    const clock = new THREE.Clock();
-    function tick() {
-      const t = clock.getElapsedTime();
-
-      dime.position.set(Math.sin(t * 0.45) * 1.4, Math.cos(t * 0.7) * 0.8, Math.sin(t * 0.9) * 0.4);
-      penny.position.set(Math.cos(t * 0.62) * 1.8, Math.sin(t * 0.54) * 0.7, Math.cos(t * 0.76) * 0.6);
-      dime.rotation.y += 0.006;
-      penny.rotation.x += 0.014;
-      penny.rotation.y -= 0.011;
-      ribbon.rotation.z = t * 0.13;
-      ribbon.rotation.x = Math.sin(t * 0.2) * 0.2;
-
-      camera.position.x = Math.sin(t * 0.08) * 0.25;
-      camera.position.y = Math.cos(t * 0.09) * 0.2;
-      camera.lookAt(0, 0, 0);
-
-      renderer.render(scene, camera);
-      requestAnimationFrame(tick);
-    }
-
-    tick();
   </script>
 </body>
 </html>
