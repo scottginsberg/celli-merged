@@ -3,233 +3,652 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FRET — Focus Strum Tracker</title>
+  <title>FRET</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    html, body, #root { height: 100%; }
-    body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    html, body, #root { height: 100%; margin: 0; }
   </style>
 </head>
-<body class="bg-zinc-100 text-zinc-900">
+<body>
   <div id="root"></div>
 
-  <script type="text/babel">
-    const { useMemo, useState, useEffect } = React;
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" data-type="module">
+    import React, { useEffect, useRef, useState } from 'https://esm.sh/react@18.3.1';
+    import { createRoot } from 'https://esm.sh/react-dom@18.3.1/client';
+    import { Music, Pencil, HelpCircle, Clock, Play, Pause, BarChart2, X } from 'https://esm.sh/lucide-react@0.453.0';
 
-    const STORAGE_KEY = 'fret:react-v1';
-    const defaultRows = Array.from({ length: 12 }, (_, i) => ({ id: i + 1, text: '', cumulative: 0, session: 0, goalPercent: 0 }));
+    const NUM_STRINGS = 100;
+    const TOP_MARGIN = 100;
+    const LINE_SPACING = 55;
+    const LEFT_MARGIN_WIDTH = 140;
+    const RIGHT_MARGIN_OFFSET = 30;
+    const CHART_COLORS = ['#EF4444', '#3B82F6', '#EAB308', '#10B981', '#8B5CF6', '#F97316', '#06B6D4', '#EC4899', '#84CC16', '#6366F1'];
 
-    const formatTime = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    const formatTime = (secs) => {
+      const m = Math.floor(secs / 60).toString().padStart(2, '0');
+      const s = (secs % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    };
 
-    function Modal({ open, title, onClose, children, footer }) {
-      if (!open) return null;
-      return (
-        <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-6 flex items-end sm:items-center justify-center">
-          <div className="w-full max-w-3xl max-h-[92vh] bg-white border-2 border-black rounded-2xl shadow-xl flex flex-col overflow-hidden">
-            <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-zinc-200 flex items-center justify-between">
-              <h2 className="font-bold text-lg sm:text-2xl">{title}</h2>
-              <button onClick={onClose} className="px-3 py-1 rounded-lg border border-zinc-300">✕</button>
-            </div>
-            <div className="px-4 py-3 sm:px-6 sm:py-5 overflow-y-auto overscroll-contain touch-pan-y">{children}</div>
-            {footer && <div className="px-4 py-3 sm:px-6 sm:py-4 border-t border-zinc-200">{footer}</div>}
-          </div>
-        </div>
-      );
+    const timeToDigits = (secs) => {
+      const m = Math.floor(secs / 60).toString().padStart(2, '0');
+      const s = (secs % 60).toString().padStart(2, '0');
+      return m + s;
+    };
+
+    class StringSim {
+      constructor(baseY, startX, width, resolution) {
+        this.baseY = baseY;
+        this.y = baseY;
+        this.points = [];
+        const numPoints = Math.floor(width / resolution);
+        for (let i = 0; i <= numPoints; i++) this.points.push({ x: startX + i * resolution, y: baseY, vy: 0 });
+        this.colorIndex = -1;
+        this.text = '';
+        this.strumCount = 0;
+        this.sessionStrumCount = 0;
+        this.strumLabel = 'Strums';
+        this.lastStrumTime = 0;
+        this.isChecked = false;
+      }
+
+      update() {
+        for (let i = 0; i < this.points.length; i++) {
+          const p = this.points[i];
+          const force = (this.y - p.y) * 0.08;
+          p.vy += force;
+          p.vy *= 0.85;
+        }
+        for (let i = 0; i < this.points.length; i++) {
+          if (i > 0) this.points[i].vy += (this.points[i - 1].y - this.points[i].y) * 0.06;
+          if (i < this.points.length - 1) this.points[i].vy += (this.points[i + 1].y - this.points[i].y) * 0.06;
+        }
+        for (let i = 0; i < this.points.length; i++) this.points[i].y += this.points[i].vy;
+      }
+
+      draw(ctx, mode, isActive, time, cursorPos, W) {
+        if (this.points.length < 2) return;
+        ctx.beginPath();
+        ctx.moveTo(this.points[0].x, this.points[0].y);
+        for (let i = 1; i < this.points.length; i++) ctx.lineTo(this.points[i].x, this.points[i].y);
+        if (mode === 'notes') ctx.strokeStyle = '#87CEEB';
+        else {
+          const primaryColors = ['#EF4444', '#EAB308', '#3B82F6'];
+          ctx.strokeStyle = this.colorIndex >= 0 ? primaryColors[this.colorIndex] : '#FFFFFF';
+        }
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.globalAlpha = this.isChecked ? 0.3 : 1.0;
+        ctx.font = 'bold 12px "Inter", -apple-system, sans-serif';
+        let displayLabel = this.strumLabel;
+        if (displayLabel.length > 8) displayLabel = displayLabel.substring(0, 6) + '...';
+
+        const labelText = `${this.strumCount} ${displayLabel}`;
+        const textWidth = ctx.measureText(labelText).width;
+        const pillWidth = Math.min(textWidth + 24, LEFT_MARGIN_WIDTH - 24);
+        const pillX = 12;
+        const pillY = this.y - 14;
+
+        ctx.fillStyle = mode === 'notes' ? '#FFFFFF' : '#1F2937';
+        ctx.strokeStyle = mode === 'notes' ? '#111827' : '#FFFFFF';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(pillX, pillY, pillWidth, 28, 14);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = mode === 'notes' ? '#111827' : '#FFFFFF';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(labelText, pillX + pillWidth / 2, this.y);
+        ctx.globalAlpha = 1.0;
+
+        const cbX = LEFT_MARGIN_WIDTH + 15;
+        const cbY = this.y - 20;
+        const cbSize = 14;
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = mode === 'notes' ? (this.isChecked ? '#9CA3AF' : '#111827') : (this.isChecked ? '#4B5563' : '#FFFFFF');
+        ctx.strokeRect(cbX, cbY, cbSize, cbSize);
+
+        if (this.isChecked) {
+          ctx.beginPath();
+          ctx.moveTo(cbX + 2, cbY + cbSize / 2);
+          ctx.lineTo(cbX + cbSize / 2 - 1, cbY + cbSize - 2);
+          ctx.lineTo(cbX + cbSize - 2, cbY + 2);
+          ctx.stroke();
+        }
+
+        if (this.isChecked) ctx.globalAlpha = 0.4;
+        ctx.font = '22px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = mode === 'notes' ? '#374151' : '#FFFFFF';
+
+        const resolution = this.points[1].x - this.points[0].x;
+        const startX = this.points[0].x;
+        let currentX = LEFT_MARGIN_WIDTH + 40;
+        let cursorDrawX = null;
+
+        for (let i = 0; i < this.text.length; i++) {
+          if (isActive && cursorPos === i) cursorDrawX = currentX;
+          const charWidth = ctx.measureText(this.text[i]).width;
+          const centerX = currentX + charWidth / 2;
+          if (centerX > W - RIGHT_MARGIN_OFFSET - 20) {
+            if (isActive && cursorDrawX === null) cursorDrawX = currentX;
+            break;
+          }
+
+          const idx = Math.floor((centerX - startX) / resolution);
+          if (idx >= 0 && idx < this.points.length - 1) {
+            const p1 = this.points[idx];
+            const p2 = this.points[idx + 1];
+            const t = (centerX - p1.x) / resolution;
+            const charY = p1.y + t * (p2.y - p1.y);
+            const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+
+            ctx.save();
+            ctx.translate(centerX, charY - 2);
+            ctx.rotate(angle);
+            ctx.fillText(this.text[i], 0, 0);
+            ctx.restore();
+          }
+          currentX += charWidth;
+        }
+
+        if (isActive && cursorDrawX === null) cursorDrawX = currentX;
+
+        if (this.isChecked && this.text.length > 0) {
+          ctx.beginPath();
+          ctx.moveTo(LEFT_MARGIN_WIDTH + 40, this.y - 12);
+          ctx.lineTo(currentX, this.y - 12);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1.0;
+
+        if (isActive && !this.isChecked && Math.floor(time / 500) % 2 === 0) {
+          const cX = cursorDrawX + 2;
+          const idx = Math.floor((cX - startX) / resolution);
+          if (idx >= 0 && idx < this.points.length - 1) {
+            const p1 = this.points[idx];
+            const p2 = this.points[idx + 1];
+            const t = (cX - p1.x) / resolution;
+            const cursorY = p1.y + t * (p2.y - p1.y);
+            const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+
+            ctx.save();
+            ctx.translate(cX, cursorY - 2);
+            ctx.rotate(angle);
+            ctx.fillStyle = mode === 'notes' ? '#EF4444' : '#FFFFFF';
+            ctx.fillRect(-1, -22, 2, 22);
+            ctx.restore();
+          }
+        }
+      }
     }
 
     function App() {
-      const [rows, setRows] = useState(defaultRows);
-      const [label, setLabel] = useState('Strums');
-      const [goalOpen, setGoalOpen] = useState(false);
-      const [globalOpen, setGlobalOpen] = useState(false);
-      const [timerOpen, setTimerOpen] = useState(false);
-      const [timerSecs, setTimerSecs] = useState(60);
-      const [running, setRunning] = useState(false);
-      const [finishedOpen, setFinishedOpen] = useState(false);
+      const canvasRef = useRef(null);
+      const containerRef = useRef(null);
+      const inputRef = useRef(null);
+
+      const [mode, setMode] = useState('notes');
+      const [activeStringIndex, setActiveStringIndex] = useState(null);
+      const [inputText, setInputText] = useState('');
+      const [cursorIndex, setCursorIndex] = useState(0);
+
+      const [showHelp, setShowHelp] = useState(false);
+      const [showGlobalStats, setShowGlobalStats] = useState(false);
+      const [showPostTimerStats, setShowPostTimerStats] = useState(false);
+      const [showTimerPrompt, setShowTimerPrompt] = useState(false);
+      const [timerEditMode, setTimerEditMode] = useState(false);
+      const [labelEditIndex, setLabelEditIndex] = useState(null);
+      const [labelInputText, setLabelInputText] = useState('');
+
+      const [timerVisible, setTimerVisible] = useState(false);
+      const [timeRemaining, setTimeRemaining] = useState(60);
+      const [timerRunning, setTimerRunning] = useState(false);
+      const [timerDigits, setTimerDigits] = useState('0100');
+
+      const modeRef = useRef(mode);
+      const stringsRef = useRef([]);
+      const activeStringRef = useRef(activeStringIndex);
+      const cursorIndexRef = useRef(cursorIndex);
+      const audioCtxRef = useRef(null);
+      const pointersRef = useRef(new Map());
+      const scrollYRef = useRef(0);
+      const targetScrollYRef = useRef(0);
+      const maxScrollYRef = useRef(0);
+      const dragStateRef = useRef('none');
+
+      useEffect(() => { modeRef.current = mode; }, [mode]);
+      useEffect(() => { activeStringRef.current = activeStringIndex; }, [activeStringIndex]);
+      useEffect(() => { cursorIndexRef.current = cursorIndex; }, [cursorIndex]);
+
+      const initAudio = () => {
+        if (!audioCtxRef.current) {
+          const CtxClass = window.AudioContext || window.webkitAudioContext;
+          const ctx = new CtxClass();
+          const compressor = ctx.createDynamicsCompressor();
+          compressor.connect(ctx.destination);
+          audioCtxRef.current = { ctx, destination: compressor };
+        }
+        if (audioCtxRef.current.ctx.state === 'suspended') audioCtxRef.current.ctx.resume();
+      };
+
+      const playNote = (index, velocity) => {
+        if (!audioCtxRef.current) return;
+        try {
+          const { ctx, destination } = audioCtxRef.current;
+          const baseFreq = 130.81;
+          const scale = [1, 1.122, 1.26, 1.498, 1.682];
+          const octave = Math.floor(index / 5);
+          const noteInScale = index % 5;
+          const freq = baseFreq * scale[noteInScale] * Math.pow(2, octave);
+
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = modeRef.current === 'notes' ? 'sine' : 'triangle';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          gain.gain.setValueAtTime(0, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(Math.min(velocity, 0.4), ctx.currentTime + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+          osc.connect(gain);
+          gain.connect(destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 1.5);
+        } catch (e) {}
+      };
+
+      const playAlarm = () => {
+        if (!audioCtxRef.current) return;
+        const { ctx, destination } = audioCtxRef.current;
+        if (ctx.state === 'suspended') ctx.resume();
+        const beep = (offset) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(880, ctx.currentTime + offset);
+          gain.gain.setValueAtTime(0, ctx.currentTime + offset);
+          gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + offset + 0.05);
+          gain.gain.linearRampToValueAtTime(0, ctx.currentTime + offset + 0.2);
+          osc.connect(gain);
+          gain.connect(destination);
+          osc.start(ctx.currentTime + offset);
+          osc.stop(ctx.currentTime + offset + 0.3);
+        };
+        beep(0); beep(0.4); beep(0.8);
+      };
 
       useEffect(() => {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        try {
-          const parsed = JSON.parse(raw);
-          setRows(parsed.rows || defaultRows);
-          setLabel(parsed.label || 'Strums');
-          setTimerSecs(parsed.timerSecs || 60);
-        } catch {}
+        let interval;
+        if (timerRunning && timeRemaining > 0) {
+          interval = setInterval(() => {
+            setTimeRemaining((prev) => {
+              if (prev <= 1) {
+                setTimerRunning(false);
+                playAlarm();
+                setShowPostTimerStats(true);
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+        }
+        return () => clearInterval(interval);
+      }, [timerRunning, timeRemaining]);
+
+      const getLocalCoords = (e) => {
+        if (!canvasRef.current) return { x: 0, y: 0 };
+        const rect = canvasRef.current.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      };
+
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        const container = containerRef.current;
+        if (!canvas || !container) return;
+        const ctx = canvas.getContext('2d');
+        let animationFrameId;
+
+        const initCanvas = () => {
+          const W = container.clientWidth;
+          const H = container.clientHeight;
+          if (W === 0 || H === 0) return;
+          canvas.width = W * window.devicePixelRatio;
+          canvas.height = H * window.devicePixelRatio;
+          ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+
+          maxScrollYRef.current = Math.max(0, (NUM_STRINGS * LINE_SPACING) + TOP_MARGIN * 2 - H);
+
+          if (stringsRef.current.length === 0) {
+            for (let i = 0; i < NUM_STRINGS; i++) stringsRef.current.push(new StringSim(TOP_MARGIN + i * LINE_SPACING, 0, W, 15));
+          }
+        };
+
+        window.addEventListener('resize', initCanvas);
+        initCanvas();
+
+        const render = () => {
+          const W = container.clientWidth;
+          const H = container.clientHeight;
+          ctx.fillStyle = modeRef.current === 'notes' ? '#FFF9C4' : '#0A0A0A';
+          ctx.fillRect(0, 0, W, H);
+
+          if (modeRef.current === 'notes') {
+            ctx.strokeStyle = '#FF6961';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(LEFT_MARGIN_WIDTH - 6, 0); ctx.lineTo(LEFT_MARGIN_WIDTH - 6, H); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(LEFT_MARGIN_WIDTH, 0); ctx.lineTo(LEFT_MARGIN_WIDTH, H); ctx.stroke();
+            const rightLineX = W - RIGHT_MARGIN_OFFSET;
+            ctx.beginPath(); ctx.moveTo(rightLineX, 0); ctx.lineTo(rightLineX, H); ctx.stroke();
+          }
+
+          targetScrollYRef.current = Math.max(0, Math.min(targetScrollYRef.current, maxScrollYRef.current));
+          scrollYRef.current += (targetScrollYRef.current - scrollYRef.current) * 0.15;
+
+          const time = performance.now();
+          stringsRef.current.forEach((str, idx) => {
+            str.y = str.baseY - scrollYRef.current;
+            str.update();
+            str.draw(ctx, modeRef.current, idx === activeStringRef.current, time, cursorIndexRef.current, W);
+          });
+
+          const rightLineX = W - RIGHT_MARGIN_OFFSET;
+          const handleHeight = 80;
+          const scrollPercent = maxScrollYRef.current > 0 ? (scrollYRef.current / maxScrollYRef.current) : 0;
+          const handleY = scrollPercent * (H - handleHeight);
+          ctx.fillStyle = modeRef.current === 'notes' ? '#111827' : '#FFFFFF';
+          ctx.beginPath();
+          ctx.roundRect(rightLineX - 6, handleY, 12, handleHeight, 6);
+          ctx.fill();
+
+          animationFrameId = requestAnimationFrame(render);
+        };
+
+        render();
+        return () => {
+          window.removeEventListener('resize', initCanvas);
+          cancelAnimationFrame(animationFrameId);
+        };
       }, []);
 
-      useEffect(() => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ rows, label, timerSecs }));
-      }, [rows, label, timerSecs]);
+      const checkPluck = (prevX, prevY, currX, currY) => {
+        const now = performance.now();
+        stringsRef.current.forEach((str, index) => {
+          if (str.isChecked) return;
+          if ((prevY < str.y && currY >= str.y) || (prevY > str.y && currY <= str.y)) {
+            if (now - str.lastStrumTime < 200) return;
+            str.lastStrumTime = now;
 
-      useEffect(() => {
-        if (!running) return;
-        const id = setInterval(() => {
-          setTimerSecs((s) => {
-            if (s <= 1) {
-              clearInterval(id);
-              setRunning(false);
-              setTimerOpen(false);
-              setFinishedOpen(true);
-              return 0;
+            const t = (str.y - prevY) / (currY - prevY);
+            const crossX = prevX + t * (currX - prevX);
+            let closestIdx = 0;
+            let minDist = Infinity;
+            str.points.forEach((p, idx) => {
+              const d = Math.abs(p.x - crossX);
+              if (d < minDist) { minDist = d; closestIdx = idx; }
+            });
+
+            const speed = Math.abs(currY - prevY);
+            const vel = Math.min(speed * 0.8, 30) * Math.sign(currY - prevY);
+            for (let j = -4; j <= 4; j++) {
+              const target = str.points[closestIdx + j];
+              if (target) target.vy += vel * (1 - Math.abs(j) / 5);
             }
-            return s - 1;
+
+            str.strumCount++;
+            str.sessionStrumCount++;
+            if (modeRef.current === 'music') str.colorIndex = (str.colorIndex + 1) % 3;
+            const pitchIndex = stringsRef.current.length - index;
+            playNote(pitchIndex, Math.min(speed / 40, 1));
+          }
+        });
+      };
+
+      const focusLine = (idx, tapX = null) => {
+        if (stringsRef.current[idx].isChecked) return;
+        const strText = stringsRef.current[idx].text;
+        const lineBaseY = stringsRef.current[idx].baseY;
+        const desiredY = 200;
+        targetScrollYRef.current = lineBaseY > desiredY ? lineBaseY - desiredY : 0;
+
+        let tappedCharIdx = strText.length;
+        if (tapX !== null && canvasRef.current) {
+          const ctx = canvasRef.current.getContext('2d');
+          ctx.save();
+          ctx.font = '22px "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+          let currentX = LEFT_MARGIN_WIDTH + 40;
+          const W = containerRef.current.clientWidth;
+          const positions = [{ idx: 0, x: currentX }];
+          for (let i = 0; i < strText.length; i++) {
+            const charWidth = ctx.measureText(strText[i]).width;
+            const centerX = currentX + charWidth / 2;
+            if (centerX > W - RIGHT_MARGIN_OFFSET - 20) break;
+            currentX += charWidth;
+            positions.push({ idx: i + 1, x: currentX });
+          }
+          ctx.restore();
+
+          let minDx = Infinity;
+          for (const pos of positions) {
+            const dx = Math.abs(tapX - pos.x);
+            if (dx < minDx) { minDx = dx; tappedCharIdx = pos.idx; }
+          }
+        }
+
+        setActiveStringIndex(idx);
+        setInputText(strText);
+        setCursorIndex(tappedCharIdx);
+
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.setSelectionRange(tappedCharIdx, tappedCharIdx);
+            inputRef.current.focus();
+          }
+        }, 10);
+      };
+
+      const handlePointerDown = (e) => {
+        initAudio();
+        const { x, y } = getLocalCoords(e);
+        const W = containerRef.current.clientWidth;
+        if (x > W - RIGHT_MARGIN_OFFSET - 30) dragStateRef.current = 'scrollbar';
+        else if (x < LEFT_MARGIN_WIDTH) dragStateRef.current = 'leftMargin';
+        else dragStateRef.current = 'strum';
+        pointersRef.current.set(e.pointerId, { x, y, startX: x, startY: y, lastY: y });
+        pointersRef.current.delete('hover');
+      };
+
+      const handlePointerMove = (e) => {
+        const { x, y } = getLocalCoords(e);
+        if (e.pointerType === 'mouse' && e.buttons === 0) {
+          if (!pointersRef.current.has('hover')) pointersRef.current.set('hover', { x, y });
+          else {
+            const p = pointersRef.current.get('hover');
+            checkPluck(p.x, p.y, x, y);
+            p.x = x; p.y = y;
+          }
+          return;
+        }
+
+        if (pointersRef.current.has(e.pointerId)) {
+          const p = pointersRef.current.get(e.pointerId);
+          const dy = y - p.lastY;
+          if (dragStateRef.current === 'scrollbar') {
+            const H = containerRef.current.clientHeight;
+            const handleHeight = 80;
+            const percent = Math.max(0, Math.min(1, (y - handleHeight / 2) / (H - handleHeight)));
+            targetScrollYRef.current = percent * maxScrollYRef.current;
+          } else if (dragStateRef.current === 'leftMargin') targetScrollYRef.current -= dy;
+          else if (dragStateRef.current === 'strum') checkPluck(p.x, p.y, x, y);
+          p.x = x;
+          p.lastY = y;
+        }
+      };
+
+      const handleClick = (e) => {
+        const { x, y } = getLocalCoords(e);
+        if (x < LEFT_MARGIN_WIDTH - 10) {
+          let hitPillIdx = -1;
+          stringsRef.current.forEach((str, idx) => {
+            const pillY = str.y - 14;
+            if (y >= pillY && y <= pillY + 28) hitPillIdx = idx;
           });
-        }, 1000);
-        return () => clearInterval(id);
-      }, [running]);
+          if (hitPillIdx !== -1) {
+            setLabelEditIndex(hitPillIdx);
+            setLabelInputText(stringsRef.current[hitPillIdx].strumLabel);
+            if (inputRef.current) inputRef.current.blur();
+            return;
+          }
+        }
 
-      const validRows = useMemo(() => rows.filter((r) => r.text.trim()), [rows]);
-      const totalCumulative = useMemo(() => validRows.reduce((a, r) => a + r.cumulative, 0), [validRows]);
-      const totalSession = useMemo(() => validRows.reduce((a, r) => a + r.session, 0), [validRows]);
-      const goalTotal = useMemo(() => validRows.reduce((a, r) => a + Number(r.goalPercent || 0), 0), [validRows]);
+        let hitCheckboxIdx = -1;
+        stringsRef.current.forEach((str, idx) => {
+          const cbX = LEFT_MARGIN_WIDTH + 15;
+          const cbY = str.y - 20;
+          if (x >= cbX - 15 && x <= cbX + 30 && y >= cbY - 15 && y <= cbY + 30) hitCheckboxIdx = idx;
+        });
 
-      const setRow = (id, patch) => setRows((p) => p.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-      const strum = (id) => setRows((p) => p.map((r) => (r.id === id ? { ...r, cumulative: r.cumulative + 1, session: r.session + 1 } : r)));
+        if (hitCheckboxIdx !== -1) {
+          stringsRef.current[hitCheckboxIdx].isChecked = !stringsRef.current[hitCheckboxIdx].isChecked;
+          if (inputRef.current) inputRef.current.blur();
+          setActiveStringIndex(null);
+          return;
+        }
 
-      const disparity = validRows.map((r) => {
-        const actual = totalCumulative ? (r.cumulative / totalCumulative) * 100 : 0;
-        const sessionPct = totalSession ? (r.session / totalSession) * 100 : 0;
-        return { ...r, actual, sessionPct, gap: actual - (Number(r.goalPercent) || 0) };
-      });
+        let closestIdx = -1;
+        let minDst = Infinity;
+        stringsRef.current.forEach((str, idx) => {
+          const dst = Math.abs(str.y - y);
+          if (dst < minDst) { minDst = dst; closestIdx = idx; }
+        });
+
+        if (closestIdx !== -1 && minDst < 30) focusLine(closestIdx, x);
+        else {
+          if (inputRef.current) inputRef.current.blur();
+          setActiveStringIndex(null);
+        }
+      };
+
+      const handlePointerUp = (e) => {
+        const p = pointersRef.current.get(e.pointerId);
+        if (p) {
+          const dx = getLocalCoords(e).x - p.startX;
+          const dy = getLocalCoords(e).y - p.startY;
+          if (Math.hypot(dx, dy) < 10) handleClick(e);
+        }
+        dragStateRef.current = 'none';
+        pointersRef.current.delete(e.pointerId);
+      };
+
+      const handlePointerCancelLeave = (e) => {
+        dragStateRef.current = 'none';
+        pointersRef.current.delete(e.pointerId);
+        pointersRef.current.delete('hover');
+      };
+
+      const handleWheel = (e) => targetScrollYRef.current += e.deltaY;
+
+      const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (activeStringIndex !== null && activeStringIndex < stringsRef.current.length - 1) focusLine(activeStringIndex + 1);
+          else {
+            setActiveStringIndex(null);
+            if (inputRef.current) inputRef.current.blur();
+          }
+        }
+      };
+
+      const activeY = activeStringIndex !== null && stringsRef.current[activeStringIndex] ? stringsRef.current[activeStringIndex].y : 0;
+      const getValidData = () => stringsRef.current.filter((s) => s.text.trim() !== '');
+
+      const PieChart = ({ valueKey }) => {
+        const data = getValidData();
+        const total = data.reduce((sum, d) => sum + d[valueKey], 0);
+        if (total === 0) return <div className="w-32 h-32 rounded-full border-4 border-black shrink-0 bg-gray-200" />;
+
+        let cumPct = 0;
+        const gradients = data.map((d, i) => {
+          if (d[valueKey] === 0) return null;
+          const pct = (d[valueKey] / total) * 100;
+          const start = cumPct;
+          cumPct += pct;
+          return `${CHART_COLORS[i % CHART_COLORS.length]} ${start}% ${cumPct}%`;
+        }).filter(Boolean);
+
+        return <div className="w-32 h-32 rounded-full border-4 border-black shrink-0" style={{ background: `conic-gradient(${gradients.join(', ')})` }} />;
+      };
+
+      const ChartLegend = ({ valueKey }) => {
+        const data = getValidData().filter((d) => d[valueKey] > 0);
+        return (
+          <div className="flex flex-col gap-2 text-sm max-h-32 overflow-y-auto w-full pr-2 custom-scrollbar">
+            {data.map((d, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-black shrink-0" style={{ backgroundColor: CHART_COLORS[getValidData().indexOf(d) % CHART_COLORS.length] }} />
+                <span className="truncate flex-1 font-medium">{d.text}</span>
+                <span className="font-bold">{d[valueKey]}</span>
+              </div>
+            ))}
+          </div>
+        );
+      };
 
       return (
-        <div className="h-full w-full max-w-5xl mx-auto p-2 sm:p-6">
-          <div className="h-full bg-white border-2 border-black rounded-2xl shadow-lg overflow-hidden flex flex-col">
-            <header className="px-3 py-3 sm:px-5 border-b border-zinc-200 flex flex-wrap gap-2 items-center justify-between">
-              <div>
-                <h1 className="text-lg sm:text-2xl font-bold">FRET Focus Tracker</h1>
-                <p className="text-xs sm:text-sm text-zinc-600">React + Tailwind mobile-first rebuild</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => setGlobalOpen(true)} className="px-3 py-2 rounded-xl border border-zinc-300 text-sm">Global Stats</button>
-                <button onClick={() => setGoalOpen(true)} className="px-3 py-2 rounded-xl border border-zinc-300 text-sm">Goals %</button>
-                <button onClick={() => setTimerOpen(true)} className="px-3 py-2 rounded-xl border border-zinc-300 text-sm">Timer</button>
-              </div>
-            </header>
-
-            <div className="px-3 py-2 sm:px-5 flex items-center gap-2 border-b border-zinc-200">
-              <span className="text-sm font-medium">Metric label:</span>
-              <input value={label} onChange={(e) => setLabel(e.target.value)} className="border rounded-lg px-2 py-1 text-sm w-40 sm:w-64" />
-              <button onClick={() => setRows((p) => p.map((r) => ({ ...r, session: 0 })))} className="ml-auto text-xs sm:text-sm px-2 py-1 border rounded-lg">Reset session</button>
-            </div>
-
-            <main className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2">
-              {rows.map((r) => (
-                <div key={r.id} className="border border-zinc-200 rounded-xl p-2 sm:p-3 bg-zinc-50">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <input
-                      value={r.text}
-                      onChange={(e) => setRow(r.id, { text: e.target.value })}
-                      placeholder={`Thought ${r.id}`}
-                      className="flex-1 border rounded-lg px-3 py-2 text-sm sm:text-base"
-                    />
-                    <div className="grid grid-cols-3 sm:flex gap-2 items-center">
-                      <div className="text-xs sm:text-sm px-2 py-1 border rounded-lg bg-white">C: {r.cumulative}</div>
-                      <div className="text-xs sm:text-sm px-2 py-1 border rounded-lg bg-white">S: {r.session}</div>
-                      <button onClick={() => strum(r.id)} className="px-3 py-2 rounded-lg bg-black text-white text-xs sm:text-sm">+1 {label}</button>
-                    </div>
+        <div className="flex items-center justify-center w-screen h-screen bg-gray-100 sm:p-8 overflow-hidden touch-none font-['Inter'] text-black select-none">
+          <div ref={containerRef} onWheel={handleWheel} className="relative w-full h-full max-w-5xl max-h-[900px] border-y-4 sm:border-4 border-black sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] overflow-hidden bg-[#FFF9C4]" style={{ touchAction: 'none' }}>
+            <div className="absolute top-4 left-4 z-30 flex gap-2 sm:gap-3 items-start">
+              <button onClick={() => setShowHelp(true)} className="p-2 sm:p-3 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none"><HelpCircle size={20} className="sm:w-6 sm:h-6" /></button>
+              <button onClick={() => setShowGlobalStats(true)} className="p-2 sm:p-3 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none"><BarChart2 size={20} className="sm:w-6 sm:h-6" /></button>
+              {!timerVisible ? (
+                <button onClick={() => { initAudio(); setTimerVisible(true); }} className="p-2 sm:p-3 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none"><Clock size={20} className="sm:w-6 sm:h-6" /></button>
+              ) : (
+                <div className="flex items-center bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] h-[40px] sm:h-[52px] pl-2 sm:pl-3">
+                  <span className={`font-mono font-bold text-lg sm:text-xl w-14 sm:w-[4.5rem] tracking-wider ${timeRemaining <= 10 && timerRunning ? 'text-red-600' : 'text-black'}`}>{formatTime(timeRemaining)}</span>
+                  <div className="flex h-full border-l-2 border-black ml-1 sm:ml-2">
+                    <button onClick={() => { initAudio(); if (timerRunning) setTimerRunning(false); else setShowTimerPrompt(true); }} className="px-2 sm:px-3 hover:bg-gray-200 border-r-2 border-black transition-colors">{timerRunning ? <Pause size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Play size={16} className="sm:w-[18px] sm:h-[18px] ml-0.5" />}</button>
+                    <button onClick={() => { setTimerRunning(false); setTimerDigits(timeToDigits(timeRemaining)); setTimerEditMode(true); }} className="px-2 sm:px-3 hover:bg-gray-200 transition-colors"><Pencil size={16} className="sm:w-[18px] sm:h-[18px]" /></button>
                   </div>
                 </div>
-              ))}
-            </main>
+              )}
+            </div>
+
+            <div className="absolute top-4 right-10 sm:right-12 z-20">
+              <button onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); initAudio(); setMode((prev) => prev === 'notes' ? 'music' : 'notes'); if (activeStringIndex !== null && inputRef.current) setTimeout(() => inputRef.current.focus(), 50); }} className={`p-2 sm:p-3 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all transform active:translate-x-1 active:translate-y-1 active:shadow-none ${mode === 'notes' ? 'bg-white text-black hover:bg-gray-100' : 'bg-black text-white hover:bg-gray-800'}`}>
+                {mode === 'notes' ? <Music size={20} className="sm:w-6 sm:h-6" /> : <Pencil size={20} className="sm:w-6 sm:h-6" />}
+              </button>
+            </div>
+
+            {showHelp && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-sm max-h-[90vh] overflow-y-auto relative"><button onClick={() => setShowHelp(false)} className="absolute top-2 right-2 p-2 hover:bg-gray-200"><X size={24} /></button><h2 className="text-xl font-bold mb-4 pr-8">Exercise</h2><p className="text-sm font-medium text-gray-800 leading-relaxed">Jot down what's on your mind, then hover over it (strum on mobile) to show that its on your mind. Without writing it, this will help you organize your thoughts into quick bullets and understand what you turn to most in a short increment. These may be things you want to investigate, rebalance, or offload to ensure your top of mind is aligned to where you want to be.</p><button onClick={() => setShowHelp(false)} className="mt-6 w-full py-3 bg-black text-white border-2 border-black font-bold hover:bg-gray-800">Got it</button></div></div>}
+
+            {showGlobalStats && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-4 sm:p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-lg max-h-[90vh] flex flex-col"><div className="flex justify-between items-center mb-6"><h2 className="text-xl sm:text-2xl font-bold">Cumulative Stats</h2><button onClick={() => setShowGlobalStats(false)} className="p-1 hover:bg-gray-200"><X size={24} /></button></div><div className="flex-1 overflow-y-auto pr-2 flex flex-col gap-4 custom-scrollbar">{getValidData().length === 0 && <p className="text-gray-500 italic">No notes written yet to track.</p>}{getValidData().map((d, i) => { const maxCount = Math.max(...getValidData().map((s) => s.strumCount), 1); return <div key={i} className="flex flex-col gap-1"><div className="flex justify-between text-sm"><span className="font-bold truncate pr-4">{d.text}</span><span>{d.strumCount}</span></div><div className="w-full bg-gray-200 h-4 border-2 border-black relative"><div className="h-full border-r-2 border-black transition-all duration-500" style={{ width: `${(d.strumCount / maxCount) * 100}%`, backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} /></div></div>; })}</div></div></div>}
+
+            {showPostTimerStats && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-4 sm:p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar"><h2 className="text-2xl font-bold mb-6 text-center border-b-4 border-black pb-4">Time's Up!</h2><div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-8"><div className="flex flex-col items-center w-full min-w-0"><h3 className="font-bold text-lg mb-4">During Timer</h3><PieChart valueKey="sessionStrumCount" /><div className="w-full mt-4"><ChartLegend valueKey="sessionStrumCount" /></div></div><div className="flex flex-col items-center w-full min-w-0"><h3 className="font-bold text-lg mb-4">Cumulative</h3><PieChart valueKey="strumCount" /><div className="w-full mt-4"><ChartLegend valueKey="strumCount" /></div></div></div><button onClick={() => setShowPostTimerStats(false)} className="w-full py-3 bg-black text-white border-2 border-black font-bold text-lg hover:bg-gray-800">Close</button></div></div>}
+
+            {showTimerPrompt && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-sm text-center"><h2 className="text-xl font-bold mb-4">Start Timer</h2><p className="mb-6 font-medium text-gray-800 text-sm sm:text-base">Do you want to reset your cumulative strums across the board before starting?</p><div className="flex flex-col gap-3"><button onClick={() => { stringsRef.current.forEach((s) => { s.sessionStrumCount = 0; s.strumCount = 0; }); setShowTimerPrompt(false); setTimerRunning(true); }} className="w-full py-3 bg-red-500 text-white border-2 border-black font-bold hover:bg-red-600">Yes, Reset All</button><button onClick={() => { stringsRef.current.forEach((s) => { s.sessionStrumCount = 0; }); setShowTimerPrompt(false); setTimerRunning(true); }} className="w-full py-3 bg-black text-white border-2 border-black font-bold hover:bg-gray-800">No, Keep Cumulative</button><button onClick={() => setShowTimerPrompt(false)} className="w-full py-3 border-2 border-black font-bold hover:bg-gray-100">Cancel</button></div></div></div>}
+
+            {timerEditMode && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-4 sm:p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-xs max-h-[90vh] overflow-y-auto"><h2 className="text-xl font-bold mb-4 text-center">Set Timer</h2><div className="text-4xl sm:text-5xl font-mono text-center mb-6 tracking-widest border-b-4 border-black pb-4">{timerDigits.slice(0,2)}:{timerDigits.slice(2,4)}</div><div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">{['1','2','3','4','5','6','7','8','9','00','0','Del'].map((key) => <button key={key} onClick={() => { if (key === 'Del') setTimerDigits((prev) => ('0' + prev.slice(0, -1)).slice(-4)); else setTimerDigits((prev) => (prev + key).slice(-4)); }} className="py-3 sm:py-4 border-2 border-black font-bold text-lg sm:text-xl hover:bg-gray-100 active:bg-gray-200">{key}</button>)}</div><div className="flex gap-4"><button onClick={() => setTimerEditMode(false)} className="flex-1 py-3 border-2 border-black font-bold hover:bg-gray-100">Cancel</button><button onClick={() => { const mins = parseInt(timerDigits.slice(0,2), 10); const secs = parseInt(timerDigits.slice(2,4), 10); setTimeRemaining(mins * 60 + secs); setTimerEditMode(false); }} className="flex-1 py-3 bg-black text-white border-2 border-black font-bold hover:bg-gray-800">Save</button></div></div></div>}
+
+            {labelEditIndex !== null && !timerEditMode && !showTimerPrompt && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-md"><h2 className="text-xl font-bold mb-4">What does a Strum represent?</h2><input autoFocus value={labelInputText} onChange={(e) => setLabelInputText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { stringsRef.current[labelEditIndex].strumLabel = labelInputText || 'Strums'; setLabelEditIndex(null); } }} className="w-full border-2 border-black p-3 mb-6 text-lg outline-none focus:ring-4 focus:ring-blue-500/30" placeholder="e.g. Days, Pushups, Pages Read..." /><div className="flex flex-col sm:flex-row justify-between items-center gap-4"><button onClick={() => { stringsRef.current[labelEditIndex].strumCount = 0; setLabelEditIndex(null); }} className="w-full sm:w-auto px-4 py-2 border-2 border-red-500 text-red-600 font-bold hover:bg-red-50">Reset Count</button><div className="flex gap-2 w-full sm:w-auto"><button onClick={() => setLabelEditIndex(null)} className="flex-1 sm:flex-none px-4 py-2 border-2 border-black font-bold hover:bg-gray-100">Cancel</button><button onClick={() => { stringsRef.current[labelEditIndex].strumLabel = labelInputText || 'Strums'; setLabelEditIndex(null); }} className="flex-1 sm:flex-none px-4 py-2 bg-black text-white border-2 border-black font-bold hover:bg-gray-800">Save</button></div></div></div></div>}
+
+            <input ref={inputRef} type="text" value={inputText} onChange={(e) => { setInputText(e.target.value); if (activeStringRef.current !== null) stringsRef.current[activeStringRef.current].text = e.target.value; }} onSelect={(e) => setCursorIndex(e.target.selectionStart || 0)} onKeyDown={handleKeyDown} onBlur={() => setActiveStringIndex(null)} style={{ position: 'absolute', top: `${activeY}px`, left: '20px', width: '1px', height: '1px', opacity: 0, fontSize: '16px', WebkitTextSizeAdjust: '100%', pointerEvents: 'none', padding: 0, margin: 0, border: 'none', zIndex: -1 }} autoComplete="off" spellCheck="false" />
+
+            <canvas ref={canvasRef} className="block w-full h-full cursor-text" onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerCancelLeave} onPointerLeave={handlePointerCancelLeave} />
           </div>
 
-          <Modal
-            open={goalOpen}
-            onClose={() => setGoalOpen(false)}
-            title="Goals % View"
-            footer={<div className="text-xs sm:text-sm text-zinc-600">Total goals: <b>{goalTotal.toFixed(1)}%</b> • Remaining impartial: <b>{Math.max(0, 100 - goalTotal).toFixed(1)}%</b></div>}
-          >
-            <p className="text-sm text-zinc-600 mb-3">Scrollable and mobile-friendly: set goals by row; save is implicit.</p>
-            <div className="space-y-2 max-h-[50vh] overflow-y-auto overscroll-contain touch-pan-y pr-1">
-              {validRows.length === 0 && <p className="text-sm text-zinc-500 italic">Add row text first.</p>}
-              {validRows.map((r) => (
-                <div key={r.id} className="border rounded-xl p-3 flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{r.text}</div>
-                    <div className="text-xs text-zinc-500">Current cumulative: {totalCumulative ? ((r.cumulative / totalCumulative) * 100).toFixed(1) : '0.0'}%</div>
-                  </div>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={r.goalPercent}
-                    onChange={(e) => setRow(r.id, { goalPercent: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
-                    className="w-24 border rounded-lg px-2 py-2 text-right"
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 border rounded-xl p-3">
-              <h3 className="font-semibold mb-2">Disparity (Cumulative - Goal)</h3>
-              <div className="space-y-1 max-h-44 overflow-y-auto overscroll-contain touch-pan-y">
-                {disparity.map((d) => (
-                  <div key={d.id} className="text-sm">
-                    <b>{d.text || `Row ${d.id}`}</b>: Goal {d.goalPercent.toFixed(1)}% • Actual {d.actual.toFixed(1)}% •
-                    <span className={d.gap > 0 ? 'text-red-600 font-semibold' : 'text-emerald-700 font-semibold'}> {d.gap > 0 ? '+' : ''}{d.gap.toFixed(1)}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Modal>
-
-          <Modal open={globalOpen} onClose={() => setGlobalOpen(false)} title="Global Cumulative Stats">
-            <div className="space-y-2">
-              {disparity.length === 0 && <p className="text-sm text-zinc-500 italic">No data yet.</p>}
-              {disparity.sort((a, b) => b.cumulative - a.cumulative).map((d) => (
-                <div key={d.id} className="border rounded-xl p-3">
-                  <div className="font-semibold">{d.text || `Row ${d.id}`}</div>
-                  <div className="text-sm text-zinc-600">{label}: {d.cumulative} • Share: {d.actual.toFixed(1)}%</div>
-                </div>
-              ))}
-            </div>
-          </Modal>
-
-          <Modal
-            open={timerOpen}
-            onClose={() => setTimerOpen(false)}
-            title="Timer"
-            footer={<div className="flex gap-2"><button onClick={() => setRunning((v) => !v)} className="flex-1 bg-black text-white rounded-lg px-3 py-2">{running ? 'Pause' : 'Start'}</button><button onClick={() => setRows((p) => p.map((r) => ({ ...r, session: 0 })))} className="flex-1 border rounded-lg px-3 py-2">Reset Session</button></div>}
-          >
-            <div className="text-center text-6xl font-mono font-bold">{formatTime(timerSecs)}</div>
-            <div className="mt-4 flex gap-2">
-              <input type="number" min="1" value={Math.floor(timerSecs / 60)} onChange={(e) => setTimerSecs((Number(e.target.value) || 0) * 60 + (timerSecs % 60))} className="w-full border rounded-lg p-2" />
-              <input type="number" min="0" max="59" value={timerSecs % 60} onChange={(e) => setTimerSecs(Math.floor(timerSecs / 60) * 60 + Math.max(0, Math.min(59, Number(e.target.value) || 0)))} className="w-full border rounded-lg p-2" />
-            </div>
-          </Modal>
-
-          <Modal
-            open={finishedOpen}
-            onClose={() => setFinishedOpen(false)}
-            title="Time's up — Session vs Goal"
-            footer={
-              <button
-                onClick={() => setFinishedOpen(false)}
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-medium"
-              >
-                Close
-              </button>
-            }
-          >
-            <div className="space-y-2">
-              {disparity.map((d) => (
-                <div key={d.id} className="border rounded-xl p-3 text-sm">
-                  <div className="font-semibold">{d.text || `Row ${d.id}`}</div>
-                  <div>Session: {d.sessionPct.toFixed(1)}% • Goal: {d.goalPercent.toFixed(1)}% • Gap: <span className={d.sessionPct - d.goalPercent > 0 ? 'text-red-600 font-semibold' : 'text-emerald-700 font-semibold'}>{(d.sessionPct - d.goalPercent > 0 ? '+' : '') + (d.sessionPct - d.goalPercent).toFixed(1)}%</span></div>
-                </div>
-              ))}
-            </div>
-          </Modal>
+          <style>{`
+            .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+            .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+            .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #d1d5db; border-radius: 10px; }
+          `}</style>
         </div>
       );
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
 </html>
