@@ -44,6 +44,12 @@
                 <i data-lucide="bar-chart-2"></i>
             </button>
 
+            <!-- Goals View Toggle -->
+            <label class="flex items-center gap-2 bg-white border-2 border-black px-3 h-[52px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] pointer-events-auto font-bold text-sm">
+                <input id="toggleGoalsView" type="checkbox" class="w-4 h-4 accent-black">
+                Goals %
+            </label>
+
             <!-- Timer Closed View -->
             <button id="btnTimerOpen" class="p-3 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto">
                 <i data-lucide="clock"></i>
@@ -111,7 +117,32 @@
                         <div id="legendCumulative" class="w-full mt-4"></div>
                     </div>
                 </div>
+                <div class="mb-8 border-2 border-black p-4">
+                    <h3 class="font-bold text-lg mb-3">Session vs Goal Disparity</h3>
+                    <div id="sessionGoalDisparity" class="flex flex-col gap-3 max-h-40 overflow-y-auto pr-2"></div>
+                </div>
                 <button id="btnClosePostTimer" class="w-full py-3 bg-black text-white border-2 border-black font-bold text-lg hover:bg-gray-800 transition-colors">Close</button>
+            </div>
+        </div>
+
+        <!-- Goals Modal -->
+        <div id="modalGoals" class="hidden absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm pointer-events-auto">
+            <div class="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-2xl font-bold">Goals % View</h2>
+                    <button id="btnCloseGoals" class="text-2xl font-bold px-2 hover:bg-gray-200">&times;</button>
+                </div>
+                <p class="text-sm text-gray-700 mb-4">Set a goal for each non-empty row. Save is enabled only when total goals are 100% or less. If under 100%, the remainder is tracked as <span class="font-bold">impartial</span>.</p>
+                <div id="goalsList" class="flex flex-col gap-3 max-h-[45vh] overflow-y-auto pr-2 mb-4"></div>
+                <div id="goalsSummary" class="border-2 border-black p-3 mb-4 font-bold bg-gray-50"></div>
+                <div class="border-2 border-black p-4 mb-4">
+                    <h3 class="font-bold mb-2">Current Cumulative Disparity</h3>
+                    <div id="goalDisparityView" class="flex flex-col gap-2 max-h-32 overflow-y-auto pr-2"></div>
+                </div>
+                <div class="flex gap-3">
+                    <button id="btnSaveGoals" class="flex-1 py-3 bg-black text-white border-2 border-black font-bold hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">Save Goals</button>
+                    <button id="btnCancelGoals" class="flex-1 py-3 border-2 border-black font-bold hover:bg-gray-100 transition-colors">Cancel</button>
+                </div>
             </div>
         </div>
 
@@ -298,6 +329,7 @@
             this.strumLabel = 'Strums';
             this.lastStrumTime = 0;
             this.isChecked = false;
+            this.goalPercent = 0;
         }
 
         update() {
@@ -798,6 +830,29 @@
 
     // Stats Utils
     const getValidData = () => strings.filter(s => s.text.trim() !== '');
+    const escHtml = (value) => value.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    const getGoalSummary = () => {
+        const totalGoal = getValidData().reduce((sum, row) => sum + (Number(row.goalPercent) || 0), 0);
+        return {
+            totalGoal,
+            impartial: Math.max(0, 100 - totalGoal),
+            isValid: totalGoal <= 100
+        };
+    };
+
+    const getPercent = (count, total) => total > 0 ? (count / total) * 100 : 0;
+
+    const getDisparityData = (valueKey) => {
+        const validData = getValidData();
+        const total = validData.reduce((sum, row) => sum + row[valueKey], 0);
+        return validData.map((row) => {
+            const actual = getPercent(row[valueKey], total);
+            const goal = Number(row.goalPercent) || 0;
+            const disparity = actual - goal;
+            return { row, actual, goal, disparity };
+        });
+    };
 
     const generatePieChartHTML = (valueKey) => {
         const validData = getValidData();
@@ -821,7 +876,7 @@
         const legendHtml = validData.filter(d => d[valueKey] > 0).map((d, i) => `
             <div class="flex items-center gap-2">
                 <div class="w-4 h-4 border-2 border-black shrink-0" style="background-color: ${CHART_COLORS[validData.indexOf(d) % CHART_COLORS.length]}"></div>
-                <span class="truncate flex-1 font-medium">${d.text.replace(/</g, "&lt;")}</span>
+                <span class="truncate flex-1 font-medium">${escHtml(d.text)}</span>
                 <span class="font-bold">${d[valueKey]}</span>
             </div>
         `).join('');
@@ -830,6 +885,85 @@
             pieStyle: `background: conic-gradient(${gradients.join(', ')});`,
             legendHtml: `<div class="flex flex-col gap-2 text-sm max-h-32 overflow-y-auto w-full pr-2">${legendHtml}</div>`
         };
+    };
+
+    const buildPriorityBumper = (percent, label = 'focus') => {
+        if (percent <= 20) return '';
+        return `<div class="mt-1 text-xs border border-amber-400 bg-amber-50 p-2">
+            <span class="font-bold">High ${label} (&gt;20%).</span> Is this truly a high priority that needs action now, or can it wait for a bit more introspection? <span class="font-bold">Fret now so you don't fret later.</span>
+        </div>`;
+    };
+
+    const renderGoalDisparityView = () => {
+        const disparityData = getDisparityData('strumCount');
+        const target = document.getElementById('goalDisparityView');
+        if (disparityData.length === 0) {
+            target.innerHTML = '<p class="text-sm text-gray-500 italic">Add non-empty rows to compare cumulative focus against goals.</p>';
+            return;
+        }
+
+        target.innerHTML = disparityData.map(({ row, actual, goal, disparity }) => `
+            <div class="text-sm border-b border-gray-200 pb-1">
+                <div class="font-semibold">${escHtml(row.text)}</div>
+                <div>Goal ${goal.toFixed(1)}% • Actual ${actual.toFixed(1)}% • Disparity <span class="${disparity > 0 ? 'text-red-600' : 'text-green-700'} font-bold">${disparity > 0 ? '+' : ''}${disparity.toFixed(1)}%</span></div>
+                ${buildPriorityBumper(Math.max(goal, actual), 'headspace')}
+            </div>
+        `).join('');
+    };
+
+    const renderGoalsModal = () => {
+        const validData = getValidData();
+        const goalsList = document.getElementById('goalsList');
+        const goalsSummary = document.getElementById('goalsSummary');
+        const saveBtn = document.getElementById('btnSaveGoals');
+
+        if (validData.length === 0) {
+            goalsList.innerHTML = '<p class="text-gray-500 italic">No non-empty rows yet. Add thoughts first.</p>';
+        } else {
+            goalsList.innerHTML = validData.map((row, idx) => `
+                <label class="flex items-center gap-3 border-2 border-black p-2">
+                    <span class="flex-1 truncate font-semibold">${escHtml(row.text)}</span>
+                    <input data-goal-index="${strings.indexOf(row)}" type="number" min="0" max="100" step="1" value="${Number(row.goalPercent) || 0}" class="w-24 border-2 border-black p-2 font-bold text-right">
+                    <span class="font-bold">%</span>
+                </label>
+            `).join('');
+
+            goalsList.querySelectorAll('input[data-goal-index]').forEach((input) => {
+                input.addEventListener('input', (e) => {
+                    const idx = Number(e.target.dataset.goalIndex);
+                    const parsed = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                    strings[idx].goalPercent = parsed;
+                    e.target.value = parsed;
+                    renderGoalsModal();
+                });
+            });
+        }
+
+        const summary = getGoalSummary();
+        const overflow = summary.totalGoal > 100 ? summary.totalGoal - 100 : 0;
+        goalsSummary.innerHTML = `
+            <div>Total Goal Allocation: ${summary.totalGoal.toFixed(1)}%</div>
+            <div>Impartial: ${summary.impartial.toFixed(1)}%</div>
+            ${overflow > 0 ? `<div class="text-red-600">Over by ${overflow.toFixed(1)}%. Reduce goals to save.</div>` : '<div class="text-green-700">Ready to save.</div>'}
+        `;
+        saveBtn.disabled = !summary.isValid;
+        renderGoalDisparityView();
+    };
+
+    const renderSessionGoalDisparity = () => {
+        const target = document.getElementById('sessionGoalDisparity');
+        const disparityData = getDisparityData('sessionStrumCount');
+        if (disparityData.length === 0) {
+            target.innerHTML = '<p class="text-sm text-gray-500 italic">No session activity to compare against goals.</p>';
+            return;
+        }
+        target.innerHTML = disparityData.map(({ row, actual, goal, disparity }) => `
+            <div class="text-sm border-b border-gray-200 pb-2">
+                <div class="font-semibold">${escHtml(row.text)}</div>
+                <div>Goal ${goal.toFixed(1)}% • Session ${actual.toFixed(1)}% • Gap <span class="${disparity > 0 ? 'text-red-600' : 'text-green-700'} font-bold">${disparity > 0 ? '+' : ''}${disparity.toFixed(1)}%</span></div>
+                ${buildPriorityBumper(actual, 'session headspace')}
+            </div>
+        `).join('');
     };
 
     // Global Stats
@@ -844,7 +978,7 @@
             contentDiv.innerHTML = validData.map((d, i) => `
                 <div class="flex flex-col gap-1">
                     <div class="flex justify-between text-sm">
-                        <span class="font-bold truncate pr-4">${d.text.replace(/</g, "&lt;")}</span>
+                        <span class="font-bold truncate pr-4">${escHtml(d.text)}</span>
                         <span>${d.strumCount}</span>
                     </div>
                     <div class="w-full bg-gray-200 h-4 border-2 border-black relative">
@@ -936,6 +1070,7 @@
         const cumData = generatePieChartHTML('strumCount');
         document.getElementById('pieChartCumulative').style = cumData.pieStyle;
         document.getElementById('legendCumulative').innerHTML = cumData.legendHtml;
+        renderSessionGoalDisparity();
 
         updateTimerUI();
         document.getElementById('modalPostTimer').classList.remove('hidden');
@@ -943,6 +1078,31 @@
 
     document.getElementById('btnClosePostTimer').addEventListener('click', () => {
         document.getElementById('modalPostTimer').classList.add('hidden');
+    });
+
+    // Goals Modal + Toggle
+    const goalsToggle = document.getElementById('toggleGoalsView');
+    const goalsModal = document.getElementById('modalGoals');
+    const hideGoalsModal = () => {
+        goalsModal.classList.add('hidden');
+        goalsToggle.checked = false;
+    };
+
+    goalsToggle.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            renderGoalsModal();
+            goalsModal.classList.remove('hidden');
+        } else {
+            goalsModal.classList.add('hidden');
+        }
+    });
+
+    document.getElementById('btnCloseGoals').addEventListener('click', hideGoalsModal);
+    document.getElementById('btnCancelGoals').addEventListener('click', hideGoalsModal);
+    document.getElementById('btnSaveGoals').addEventListener('click', () => {
+        const summary = getGoalSummary();
+        if (!summary.isValid) return;
+        hideGoalsModal();
     });
 
     document.getElementById('btnTimerOpen').addEventListener('click', () => {
