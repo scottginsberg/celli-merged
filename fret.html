@@ -19,16 +19,16 @@
         ::-webkit-scrollbar-thumb { background-color: #d1d5db; border-radius: 10px; }
     </style>
 </head>
-<body class="flex items-center justify-center w-screen h-screen bg-white p-4 sm:p-8 overflow-hidden touch-none text-black">
+<body class="flex items-center justify-center w-screen h-screen bg-white p-2 sm:p-8 overflow-hidden touch-none text-black">
 
-    <div id="appContainer" class="relative w-full h-full max-w-5xl max-h-[900px] border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] overflow-hidden bg-[#FFF9C4]" style="touch-action: none;">
+    <div id="appContainer" class="relative w-full h-full max-w-5xl max-h-[900px] border-[3px] sm:border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] overflow-hidden bg-[#FFF9C4]" style="touch-action: none;">
         
         <!-- Top Left Widgets -->
-        <div class="absolute top-4 left-4 z-30 flex gap-3 items-start">
+        <div class="absolute top-2 left-2 sm:top-4 sm:left-4 z-30 flex gap-2 sm:gap-3 items-start">
             
             <!-- Help Tooltip Widget -->
             <div class="relative group">
-                <button class="p-3 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto">
+                <button class="p-2.5 sm:p-3 border-2 border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto">
                     <i data-lucide="help-circle"></i>
                 </button>
                 <div class="absolute top-full mt-2 left-0 w-64 sm:w-80 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none">
@@ -40,18 +40,18 @@
             </div>
 
             <!-- Global Stats Button -->
-            <button id="btnGlobalStats" class="p-3 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto" title="View Global Stats">
+            <button id="btnGlobalStats" class="p-2.5 sm:p-3 border-2 border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto" title="View Global Stats">
                 <i data-lucide="bar-chart-2"></i>
             </button>
 
             <!-- Goals View Toggle -->
-            <label class="flex items-center gap-2 bg-white border-2 border-black px-3 h-[52px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] pointer-events-auto font-bold text-sm">
+            <label class="hidden sm:flex items-center gap-2 bg-white border-2 border-black px-3 h-[52px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] pointer-events-auto font-bold text-sm">
                 <input id="toggleGoalsView" type="checkbox" class="w-4 h-4 accent-black">
                 Goals %
             </label>
 
             <!-- Timer Closed View -->
-            <button id="btnTimerOpen" class="p-3 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto">
+            <button id="btnTimerOpen" class="p-2.5 sm:p-3 border-2 border-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto">
                 <i data-lucide="clock"></i>
             </button>
 
@@ -73,8 +73,8 @@
         </div>
 
         <!-- Top Right Mode Toggle -->
-        <div class="absolute top-4 right-10 sm:right-12 z-20">
-            <button id="btnModeToggle" class="p-3 sm:p-4 border-2 border-black bg-white text-black hover:bg-gray-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all transform active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto">
+        <div class="absolute top-2 right-2 sm:top-4 sm:right-12 z-20">
+            <button id="btnModeToggle" class="p-2.5 sm:p-4 border-2 border-black bg-white text-black hover:bg-gray-100 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all transform active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto">
                 <i id="iconModeMusic" data-lucide="music" class="w-6 h-6"></i>
                 <i id="iconModeNotes" data-lucide="pencil" class="hidden w-6 h-6"></i>
             </button>
@@ -199,11 +199,15 @@
 
     // --- Constants ---
     const NUM_STRINGS = 100;
-    const TOP_MARGIN = 100;
-    const LINE_SPACING = 55;
+    const TOP_MARGIN_DESKTOP = 100;
+    const TOP_MARGIN_MOBILE = 84;
+    const LINE_SPACING_DESKTOP = 55;
+    const LINE_SPACING_MOBILE = 46;
     const LEFT_MARGIN_WIDTH_DESKTOP = 140;
     const LEFT_MARGIN_WIDTH_MOBILE = 96;
     let leftMarginWidth = LEFT_MARGIN_WIDTH_DESKTOP;
+    let topMargin = TOP_MARGIN_DESKTOP;
+    let lineSpacing = LINE_SPACING_DESKTOP;
     const RIGHT_MARGIN_OFFSET = 30;
     const CHART_COLORS = ['#EF4444', '#3B82F6', '#EAB308', '#10B981', '#8B5CF6', '#F97316', '#06B6D4', '#EC4899', '#84CC16', '#6366F1'];
 
@@ -255,6 +259,7 @@
     };
 
     const getLeftMarginWidth = () => leftMarginWidth;
+    const isMobileLayout = () => window.innerWidth < 640;
 
     // --- Audio Engine ---
     const initAudio = () => {
@@ -363,6 +368,20 @@
         draw(ctx, isActive, time, cursorPos, W) {
             // Guard clause to prevent undefined 'x' property access when container width is too small
             if (this.points.length < 2) return;
+            const textStartX = getLeftMarginWidth() + 40;
+            const textEndX = W - RIGHT_MARGIN_OFFSET - 16;
+
+            if (isActive) {
+                ctx.save();
+                ctx.strokeStyle = mode === 'notes' ? '#1F2937' : '#FFFFFF';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 5]);
+                ctx.beginPath();
+                ctx.moveTo(textStartX, this.y + 13);
+                ctx.lineTo(textEndX, this.y + 13);
+                ctx.stroke();
+                ctx.restore();
+            }
 
             ctx.beginPath();
             ctx.moveTo(this.points[0].x, this.points[0].y);
@@ -435,7 +454,7 @@
             const resolution = this.points[1].x - this.points[0].x;
             const startX = this.points[0].x;
             
-            let currentX = getLeftMarginWidth() + 40; 
+            let currentX = textStartX; 
             let cursorDrawX = null;
 
             for (let i = 0; i < this.text.length; i++) {
@@ -481,7 +500,8 @@
             ctx.globalAlpha = 1.0;
 
             // Blinking Cursor
-            if (isActive && !this.isChecked && Math.floor(time / 500) % 2 === 0) {
+            const showCursor = Math.floor(time / 500) % 2 === 0 || isMobileLayout();
+            if (isActive && !this.isChecked && showCursor) {
                 const cX = cursorDrawX + 2;
                 const idx = Math.floor((cX - startX) / resolution);
                 if (idx >= 0 && idx < this.points.length - 1) {
@@ -506,7 +526,10 @@
     const initCanvas = () => {
         const W = container.clientWidth;
         const H = container.clientHeight;
-        leftMarginWidth = window.innerWidth < 640 ? LEFT_MARGIN_WIDTH_MOBILE : LEFT_MARGIN_WIDTH_DESKTOP;
+        const mobile = isMobileLayout();
+        leftMarginWidth = mobile ? LEFT_MARGIN_WIDTH_MOBILE : LEFT_MARGIN_WIDTH_DESKTOP;
+        topMargin = mobile ? TOP_MARGIN_MOBILE : TOP_MARGIN_DESKTOP;
+        lineSpacing = mobile ? LINE_SPACING_MOBILE : LINE_SPACING_DESKTOP;
         
         // Prevent initialization with 0 dimensions to avoid broken physics state
         if (W === 0 || H === 0) return;
@@ -515,13 +538,18 @@
         canvas.height = H * window.devicePixelRatio;
         ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-        maxScrollY = Math.max(0, (NUM_STRINGS * LINE_SPACING) + TOP_MARGIN * 2 - H);
+        maxScrollY = Math.max(0, (NUM_STRINGS * lineSpacing) + topMargin * 2 - H);
 
         if (strings.length === 0) {
             for (let i = 0; i < NUM_STRINGS; i++) {
-                const y = TOP_MARGIN + i * LINE_SPACING;
+                const y = topMargin + i * lineSpacing;
                 strings.push(new StringSim(y, 0, W, 15));
             }
+        } else {
+            strings.forEach((str, i) => {
+                str.baseY = topMargin + i * lineSpacing;
+                str.y = str.baseY - scrollY;
+            });
         }
     };
 
@@ -615,7 +643,7 @@
 
         let strText = strings[idx].text;
         const lineBaseY = strings[idx].baseY;
-        const desiredY = 200; 
+        const desiredY = isMobileLayout() ? 156 : 200; 
 
         if (lineBaseY > desiredY) {
             targetScrollY = lineBaseY - desiredY;
@@ -644,7 +672,8 @@
 
             let minDx = Infinity;
             for (const pos of positions) {
-                const dx = Math.abs(tapX - pos.x);
+                const clampedTapX = Math.max(getLeftMarginWidth() + 34, Math.min(tapX, W - RIGHT_MARGIN_OFFSET - 18));
+                const dx = Math.abs(clampedTapX - pos.x);
                 if (dx < minDx) {
                     minDx = dx;
                     tappedCharIdx = pos.idx;
@@ -777,7 +806,9 @@
             if (dst < minDst) { minDst = dst; closestIdx = idx; }
         });
 
-        if (closestIdx !== -1 && minDst < 30) {
+        const activationDistance = isMobileLayout() ? 44 : 30;
+        const inTextBand = x >= getLeftMarginWidth() + 24 && x <= container.clientWidth - RIGHT_MARGIN_OFFSET - 8;
+        if (closestIdx !== -1 && minDst < activationDistance && inTextBand) {
             focusLine(closestIdx, x);
         } else {
             hiddenInput.blur();
@@ -791,7 +822,8 @@
             const { x, y } = getLocalCoords(e);
             const dx = x - p.startX;
             const dy = y - p.startY;
-            if (Math.hypot(dx, dy) < 8) handleCanvasClick(x, y);
+            const clickTolerance = e.pointerType === 'touch' ? 16 : 8;
+            if (Math.hypot(dx, dy) < clickTolerance) handleCanvasClick(x, y);
         }
         dragState = 'none';
         pointers.delete(e.pointerId);
@@ -821,11 +853,11 @@
         
         // Update button UI
         if (mode === 'notes') {
-            btnModeToggle.className = "p-3 sm:p-4 border-2 border-black bg-white text-black hover:bg-gray-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all transform active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto";
+            btnModeToggle.className = "p-2.5 sm:p-4 border-2 border-black bg-white text-black hover:bg-gray-100 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all transform active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto";
             document.getElementById('iconModeMusic').classList.remove('hidden');
             document.getElementById('iconModeNotes').classList.add('hidden');
         } else {
-            btnModeToggle.className = "p-3 sm:p-4 border-2 border-black bg-black text-white hover:bg-gray-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all transform active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto";
+            btnModeToggle.className = "p-2.5 sm:p-4 border-2 border-black bg-black text-white hover:bg-gray-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all transform active:translate-x-1 active:translate-y-1 active:shadow-none pointer-events-auto";
             document.getElementById('iconModeMusic').classList.add('hidden');
             document.getElementById('iconModeNotes').classList.remove('hidden');
         }
