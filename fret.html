@@ -16,7 +16,18 @@
   <script type="text/babel" data-type="module">
     import React, { useEffect, useRef, useState } from 'https://esm.sh/react@18.3.1';
     import { createRoot } from 'https://esm.sh/react-dom@18.3.1/client';
-    import { Music, Pencil, HelpCircle, Clock, Play, Pause, BarChart2, X } from 'https://esm.sh/lucide-react@0.453.0';
+
+    const Icon = ({ children, size = 20, className = '' }) => (
+      <span className={className} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, fontSize: Math.round(size * 0.8), lineHeight: 1 }}>{children}</span>
+    );
+    const Music = (props) => <Icon {...props}>♪</Icon>;
+    const Pencil = (props) => <Icon {...props}>✎</Icon>;
+    const HelpCircle = (props) => <Icon {...props}>?</Icon>;
+    const Clock = (props) => <Icon {...props}>◷</Icon>;
+    const Play = (props) => <Icon {...props}>▶</Icon>;
+    const Pause = (props) => <Icon {...props}>⏸</Icon>;
+    const BarChart2 = (props) => <Icon {...props}>▤</Icon>;
+    const X = (props) => <Icon {...props}>✕</Icon>;
 
     const NUM_STRINGS = 100;
     const TOP_MARGIN = 100;
