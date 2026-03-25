@@ -8248,370 +8248,183 @@ tag('GALAXY',['GAME'],(anchor,arr,ast)=>{
  
  Actions.end();
 });
-// SOKOBAN puzzle generator and step logic
-tag('SOKO_STEP',['GAME','ACTION'],(anchor,arr,ast,tx)=>{
- if(!tx) throw new Error('SOKO_STEP requires an active transaction');
- const memRefArg = ast.args[0];
- const dx = (+Formula.valOf(ast.args[1])|0) || 0;
- const dy = (+Formula.valOf(ast.args[2])|0) || 0;
- if(!memRef || memRef.kind !== 'ref') throw new Error('SOKO_STEP needs memory ref');
- const memVal = Formula.getCellValue(memRef);
- const pos = parseAlt(String(memVal)||'');
- if(!pos) return; // nothing to do
- const boardId = pos.arrId; const px = pos.x; const py = pos.y; const pz = pos.z||0;
- const board = Store.getState().arrays[boardId]; if(!board) return;
- const inBounds=(x,y)=> x>=0 && y>=0 && x<board.size.x && y<board.size.y;
- const at=(x,y)=> inBounds(x,y)? Formula.getCellValue({arrId:boardId,x,y,z:pz}) : ' ';
- const WALL=' ', BOX='📦', PLAYER='😀', EMPTY='';
- const nx=px+dx, ny=py+dy; const nnx=px+dx*2, nny=py+dy*2;
- const t1 = at(nx,ny);
- if(t1===WALL) return;
- if(t1===BOX){
- const t2 = at(nnx,nny);
- if(t2!==EMPTY) return; // cannot push
- // push box
- Write.set(tx, boardId, {x:nnx,y:nny,z:pz}, { value: BOX, formula:null });
- Write.set(tx, boardId, {x:nx ,y:ny ,z:pz}, { value: PLAYER, formula:null });
- Write.set(tx, boardId, {x:px ,y:py ,z:pz}, { value: EMPTY, formula:null });
- // update memory
- const newRef = `@[${nx},${ny},${pz},${boardId}]`;
- Write.set(tx, memRef.arrId, {x:memRef.x,y:memRef.y,z:memRef.z}, { value:newRef, formula:null });
- return;
- }
- // simple move into empty
- if(t1===EMPTY){
- Write.set(tx, boardId, {x:nx ,y:ny ,z:pz}, { value: PLAYER, formula:null });
- Write.set(tx, boardId, {x:px ,y:py ,z:pz}, { value: EMPTY, formula:null });
- const newRef = `@[${nx},${ny},${pz},${boardId}]`;
- Write.set(tx, memRef.arrId, {x:memRef.x,y:memRef.y,z:memRef.z}, { value:newRef, formula:null });
- }
-});
-
-// SOKOBAN2: Diegetic rules via Rules array and dispatcher
-tag('SOKO_STEP2',['GAME','ACTION'],(anchor,arr,ast,tx)=>{
- if(!tx) throw new Error('SOKO_STEP2 requires an active transaction');
- const memRefArg = ast.args[0];
- const dx = (+Formula.valOf(ast.args[1])|0) || 0;
- const dy = (+Formula.valOf(ast.args[2])|0) || 0;
- if(!memRef || memRef.kind !== 'ref') throw new Error('SOKO_STEP2 needs memory ref');
- // Set global context for rules
- Store.getState().globalState.set('soko.dx', dx);
- Store.getState().globalState.set('soko.dy', dy);
- Store.getState().globalState.set('soko.memRef', `@[${memRef.x},${memRef.y},${memRef.z},${memRef.arrId}]`);
- // Execute the MOVE rule at the MOVE anchor (stored at Rules[0,0])
- const memVal = Formula.getCellValue(memRef);
- const pos = parseAlt(String(memVal)||''); if(!pos) return;
- const boardId = pos.arrId; const pz = pos.z||0;
- // Find Rules array by convention: same board name + " Rules" or first array with params.sokoRules
- const rulesArr = Object.values(Store.getState().arrays).find(a=>a.params?.sokoRules && a.params?.boardId===boardId);
- if(!rulesArr) { Actions.setCell(arr.id, anchor, '!ERR:No Rules', ast.raw, true); return; }
- // MOVE anchor stored in params
- const mv = rulesArr.params?.moveAnchor || {x:0,y:rulesArr.size.y-1,z:0,arrId:rulesArr.id};
- Formula.executeAt({arrId:mv.arrId,x:mv.x,y:mv.y,z:mv.z}, undefined, tx);
- Actions.setCell(arr.id, anchor, 'SOKO:STEP', ast.raw, true);
-});
-// Stephen's Sausage Roll (SSR) minimal PoC
-// Board movement in depth; avatar is 2 1 footprint aligned along facing
-// SSR(boardMem, dir) where dir in {"left","right","forward","back"}
-tag('SSR_STEP',['GAME','ACTION'],(anchor,arr,ast,tx)=>{
- if(!tx) throw new Error('SSR_STEP requires an active transaction');
- const memRefArg = ast.args[0];
- // Robust direction parsing: handle identifiers, numbers, quoted strings, or missing arg
- let dirRaw;
- try{ dirRaw = Formula.valOf(ast.args[1]||''); }catch{ dirRaw=''; }
- let dir = String(dirRaw==null? '': dirRaw).trim().toLowerCase().replace(/^['"]|['"]$/g,'');
- if(dir==='0') dir='forward';
- else if(dir==='1') dir='back';
- else if(dir==='2') dir='left';
- else if(dir==='3') dir='right';
- // Fallback: infer direction from controller button position if arg missing/malformed
- if(!['forward','back','left','right'].includes(dir)){
+// SOKOBAN puzzle generator and unified step logic
+function resolveSokoMemRef(memRefArg){
+ if(memRefArg && memRefArg.kind==='ref') return memRefArg;
  try{
- const cx = anchor.x, cy = anchor.y; // controller grid is 3x3 with center at (1,1)
- if(cx===1 && cy===2) dir='forward';
- else if(cx===1 && cy===0) dir='back';
- else if(cx===0 && cy===1) dir='left';
- else if(cx===2 && cy===1) dir='right';
- }catch{}
- }
- // Accept ref or absolute address string for memory pointer
- let memRef;
- if(memRefArg && memRefArg.kind==='ref'){
- memRef = memRefArg;
- } else {
  const addrStr = String(Formula.valOf(memRefArg)||'').trim();
  const parsed = parseAlt(addrStr);
- if(parsed){ memRef = {x:parsed.x,y:parsed.y,z:parsed.z,arrId:parsed.arrId, kind:'ref'}; }
- }
- if(!memRef) throw new Error('SSR_STEP needs memory ref');
- const memVal = Formula.getCellValue(memRef);
- const m = /^@\[(\d+),(\d+),(\d+),(\-?\d+)\]\|(\w+)$/i.exec(String(memVal||''));
- if(!m) return; // memory format: @[x,y,z,boardId]|FACING
- let x=+m[1], y=0, z=+m[3], boardId=+m[4]; let facing=String(m[5]||'north').toLowerCase();
- const board = Store.getState().arrays[boardId]; if(!board) return;
- const rotateLeft = f=> ({north:'west', west:'south', south:'east', east:'north'})[f];
- const rotateRight= f=> ({north:'east', east:'south', south:'west', west:'north'})[f];
- const dirVec = f=> ({north:{dx:0,dy:0,dz:-1}, east:{dx:1,dy:0,dz:0}, south:{dx:0,dy:0,dz:1}, west:{dx:-1,dy:0,dz:0}})[f] || {dx:0,dy:0,dz:-1};
- // Sausage registry lives on board.params.sausages: [{id, ax, az, bx, bz, orient:'x'|'z', side:'A'|'B'}]
- board.params = board.params||{}; board.params.sausages = board.params.sausages||[];
- const findSausAt=(qx,qz)=> board.params.sausages.find(s=> (s.ax===qx&&s.az===qz) || (s.bx===qx&&s.bz===qz));
- const occupy=(qx,qz)=> Formula.getCellValue({arrId:boardId,x:qx,y:0,z:qz})!=='';
- const drawBoard=()=>{
- // clear all then redraw sausages and avatar
- // lightweight: only update sausage cells
- board.params.sausages.forEach(s=>{
- Write.set(tx, boardId, {x:s.ax,y:0,z:s.az}, { value:'?', formula:null });
- Write.set(tx, boardId, {x:s.bx,y:0,z:s.bz}, { value:(s.side==='A'?'?':'?'), formula:null });
- });
- };
- if(dir==='left' || dir==='right'){
- // Tank-style rotation around the HEAD (player) cell.
- // Head stays fixed; tail moves to the orthogonal cell based on new facing.
- const newFacing = (dir==='left') ? rotateLeft(facing) : rotateRight(facing);
- const vnew = dirVec(newFacing);
- const ntx = x - vnew.dx, ntz = z - vnew.dz; // new tail position relative to head
- // bounds check for new tail
- if(ntx<0||ntx>=board.size.x||ntz<0||ntz>=board.size.z){ return; }
- // block rotation if target tail cell is occupied (simple rule)
- if(occupy(ntx,ntz)){
- const hit = findSausAt(ntx,ntz);
- // For now, do not push/roll on rotation; require free orthogonal cell
- if(hit){ return; }
- return;
- }
- facing = newFacing; // keep head at (x,z)
- }
- else if(dir==='forward' || dir==='back'){
- const v = dirVec(facing); const step = (dir==='forward'?1:-1);
- // Check interaction with sausages
- const nx=x+v.dx*step, nz=z+v.dz*step;
- const hit = findSausAt(nx,nz);
- if(hit){
- // Determine hit from side or short end
- const alongX = (hit.orient==='x');
- const sideHit = (alongX && v.dx===0) || (!alongX && v.dz===0);
- if(sideHit){
- // roll perpendicular by one cell and flip side
- const pdx = alongX? 0 : v.dx|| (step>0?1:-1); // if facing north/south roll in x
- const pdz = alongX? (v.dz|| (step>0?1:-1)) : 0;
- const tx1 = hit.ax+pdx, tz1 = hit.az+pdz;
- const tx2 = hit.bx+pdx, tz2 = hit.bz+pdz;
- if(tx1>=0&&tx1<board.size.x&&tz1>=0&&tz1<board.size.z&&tx2>=0&&tx2<board.size.x&&tz2>=0&&tz2<board.size.z && !occupy(tx1,tz1) && !occupy(tx2,tz2)){
- // apply roll
- Write.set(tx, boardId, {x:hit.ax,y:0,z:hit.az}, { value:'', formula:null });
- Write.set(tx, boardId, {x:hit.bx,y:0,z:hit.bz}, { value:'', formula:null });
- hit.ax=tx1; hit.az=tz1; hit.bx=tx2; hit.bz=tz2; hit.side = (hit.side==='A'?'B':'A');
- drawBoard();
- }
- } else {
- // push along its orientation (short-end push)
- const odx = alongX? (v.dx!==0? v.dx*step : (hit.bx>hit.ax?1:-1)) : 0;
- const odz = !alongX? (v.dz!==0? v.dz*step : (hit.bz>hit.az?1:-1)) : 0;
- const nx1=hit.ax+odx, nz1=hit.az+odz, nx2=hit.bx+odx, nz2=hit.bz+odz;
- if(nx1>=0&&nx1<board.size.x&&nz1>=0&&nz1<board.size.z&&nx2>=0&&nx2<board.size.x&&nz2>=0&&nz2<board.size.z && !occupy(nx1,nz1) && !occupy(nx2,nz2)){
- Write.set(tx, boardId, {x:hit.ax,y:0,z:hit.az}, { value:'', formula:null });
- Write.set(tx, boardId, {x:hit.bx,y:0,z:hit.bz}, { value:'', formula:null });
- hit.ax=nx1; hit.az=nz1; hit.bx=nx2; hit.bz=nz2;
- drawBoard();
- }
- }
- // avatar advances into previously occupied spot only if now clear
- if(!occupy(nx,nz)){ x=nx; z=nz; }
- } else {
- x = nx; z = nz;
- }
- }
- // Constrain to board
- x=Math.max(0,Math.min(board.size.x-1,x)); y=Math.max(0,Math.min(board.size.y-1,y)); z=Math.max(0,Math.min(board.size.z-1,z));
- // Clear previous avatar footprint (both head and tail regardless of turn or move)
- try{
- const old = /^@\[(\d+),(\d+),(\d+),(\-?\d+)\]/.exec(String(memVal))||[];
- const ox=+old[1], oy=+old[2], oz=+old[3];
- if(Number.isFinite(ox)){
- // Remove old head cell
- Write.set(tx, boardId, {x:ox,y:0,z:oz}, { value:'', formula:null });
- // Remove old tail cell; determine old facing from previous memory
- const mf = /^@\[(\d+),(\d+),(\d+),(\-?\d+)\]\|(\w+)$/i.exec(String(memVal||''));
- const prevF = mf ? String(mf[5]||'north').toLowerCase() : 'north';
- const pv = dirVec(prevF);
- Write.set(tx, boardId, {x:ox - pv.dx, y:0, z:oz - pv.dz}, { value:'', formula:null });
- }
+ if(parsed) return {x:parsed.x,y:parsed.y,z:parsed.z,arrId:parsed.arrId, kind:'ref'};
  }catch{}
- // Draw 2 1 avatar: head at (x,y,z), tail one cell behind facing
- const v2 = dirVec(facing);
- Write.set(tx, boardId, {x:x,y:0,z:z}, { value:'📦', formula:null });
- Write.set(tx, boardId, {x:x - v2.dx, y:0, z:z - v2.dz}, { value:'-', formula:null });
- // Update memory
- const newRef = `@[${x},${y},${z},${boardId}]|${facing}`;
- Write.set(tx, memRef.arrId, {x:memRef.x,y:memRef.y,z:memRef.z}, { value:newRef, formula:null });
- Actions.setCell(arr.id, anchor, `SSR:${facing}`, ast.raw, true);
-});
+ return null;
+}
 
-tag('SSR',['GAME','META'],(anchor,arr,ast)=>{
- try{
- // Build a compact 3D board with depth emphasis
- const size = {x:8,y:1,z:8};
- const board = Actions.createArray({name:'SSR Board', size, hidden:false});
- const mem = Actions.createArray({name:'SSR Mem', size:{x:2,y:1,z:1}, hidden:true});
- const ctrl = Actions.createArray({name:'SSR Ctrl', size:{x:3,y:3,z:1}, hidden:false});
- Actions.begin();
- // Seed avatar at center facing north
- const start = {x:Math.floor(size.x/2), y:0, z:Math.floor(size.z/2)};
- Actions.setCell(board.id, start, '😀', null, true);
- Actions.setCell(board.id, {x:start.x, y:start.y, z:start.z+1}, '-', null, true); // tail behind (south when facing north)
- Actions.setCell(mem.id, {x:0,y:0,z:0}, `@[${start.x},0,${start.z},${board.id}]|north`, null, true);
- // Place a demo sausage (2x1) horizontal, side A
- board.params = board.params||{}; board.params.sausages=[{id:1, ax:start.x+2, az:start.z, bx:start.x+3, bz:start.z, orient:'x', side:'A'}];
- // draw sausage
- Actions.setCell(board.id, {x:start.x+2,y:0,z:start.z}, '?', null, true);
- Actions.setCell(board.id, {x:start.x+3,y:0,z:start.z}, '?', null, true);
- // Controller arrows (depth-oriented)
- Actions.setCell(ctrl.id,{x:1,y:2,z:0},'?',null,true);
- Actions.setCell(ctrl.id,{x:0,y:1,z:0},'?',null,true);
- Actions.setCell(ctrl.id,{x:1,y:1,z:0},'🎮',null,true);
- Actions.setCell(ctrl.id,{x:2,y:1,z:0},'?',null,true);
- Actions.setCell(ctrl.id,{x:1,y:0,z:0},'?',null,true);
- // Memory ref stored at [1,1,1] within mem array by convention
- const mref = `@[1,1,1,${mem.id}]`;
- // Bind ONCLICK actions directly so interactivity is immediate
- const bind = (x,y,dir)=>{
- const call = `=SSR_STEP(${mref},"${dir}")`;
- const enc = btoa(call);
- const txBind = Write.start('ssr.onclick','bind');
- const prev = Formula.getCell({arrId:ctrl.id,x,y,z:0});
- const prevMeta = normalizeMetaKeys(prev?.meta||{});
- prevMeta.on_click = `B64:${enc}`;
- Write.set(txBind, ctrl.id, {x,y,z:0}, { value: prev?.value ?? (dir==='forward'?'?':dir==='back'?'?':dir==='left'?'?':'?'), formula: null, meta:prevMeta });
- Write.commit(txBind);
- };
- bind(1,2,'forward');
- bind(1,0,'back');
- bind(0,1,'left');
- bind(2,1,'right');
- // remove extra ONCLICK clones; handled in bind()
- Actions.end();
- // Smart docking relative to source array with 1-cell gap (right of source)
- (function smartDock(){
- const src = Store.getState().arrays[anchor.arrId] || arr;
- const gap = 1;
- const srcOff = src.offset||{x:0,y:0,z:0};
- // Align Z centers and Y centers; place board to the right of source with one cell gap
+function smartDockBoardAndController(sourceArr, board, ctrl, gap=1){
+ const src = sourceArr || Store.getState().arrays[1];
+ const srcOff = src?.offset || {x:0,y:0,z:0};
  const boardX = srcOff.x + (src.size.x + board.size.x)/2 + gap;
  const boardY = srcOff.y;
  const boardZ = srcOff.z;
  Scene.setArrayOffset(board,{x:boardX,y:boardY,z:boardZ});
- // Place controller to the right of board with the same gap, z-aligned
  const ctrlX = boardX + (board.size.x + ctrl.size.x)/2 + gap;
  Scene.setArrayOffset(ctrl,{x:ctrlX,y:boardY,z:boardZ});
- })();
- // Finalize: mark clickable now and force render/refresh without needing a reload
- try{
- Object.values(ctrl.chunks||{}).forEach(ch=> ch.cells.forEach(c=>{
- if(c.value){
- const meta = normalizeMetaKeys(c.meta||{});
- meta.on_click = meta.on_click || '';
- c.meta = meta;
+}
+
+function bindSokoController(ctrl, mem, stepFn='SOKO_STEP'){
+ const mref = `@[0,0,0,${mem.id}]`;
+ const bindBtn=(x,y,dir,dx,dy)=>{
+ const call = `=${stepFn}(${mref},${dx},${dy})`;
+ const enc = btoa(call);
+ const txBind = Write.start('soko.onclick','bind');
+ const prev = Formula.getCell({arrId:ctrl.id,x,y,z:0});
+ const prevMeta = normalizeMetaKeys(prev?.meta||{});
+ prevMeta.on_click = `B64:${enc}`;
+ Write.set(txBind, ctrl.id, {x,y,z:0}, { value: dir, formula: null, meta:prevMeta });
+ Write.commit(txBind);
+ };
+ bindBtn(1,2,'↑',0,1);
+ bindBtn(0,1,'←',-1,0);
+ bindBtn(2,1,'→',1,0);
+ bindBtn(1,0,'↓',0,-1);
+}
+
+function seedSokobanDemo(boardId, start, boxPos, goalPos){
+ const WALL=' '; const PLAYER='😀'; const GOAL='·';
+ const defaultBlocks=['📦','🧱','🔶'];
+ const board = Store.getState().arrays[boardId];
+ if(!board) return;
+ for(let x=0;x<board.size.x;x++){
+ Actions.setCell(boardId,{x,y:board.size.y-1,z:0},WALL,null,true);
+ Actions.setCell(boardId,{x,y:0,z:0},WALL,null,true);
  }
- }));
- }catch{}
- Scene.renderArray(board); Scene.renderArray(ctrl);
- // Stamp anchor without triggering immediate recompute loop (prevents duplicate creation)
- const tx=Write.start('ssr.status','SSR status');
- Write.set(tx, arr.id, anchor, { value:`SSR:#${board.id}`, formula: ast.raw, meta:{skip_recompute:true} });
- Write.commit(tx);
- }catch(e){ Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true); }
-});
-tag('SOKOBAN2',['GAME','META'],(anchor,arr,ast)=>{
- try{
- const size = {x:10,y:8,z:1};
- const board = Actions.createArray({name:'Sokoban2', size, hidden:false});
- const mem = Actions.createArray({name:'SokoMem2', size:{x:2,y:1,z:1}, hidden:true});
- const rules = Actions.createArray({name:'SokoRules', size:{x:4,y:6,z:1}, hidden:true});
- const ctrl = Actions.createArray({name:'SokoCtrl2', size:{x:3,y:3,z:1}, hidden:false});
- const PSTART = {x:2,y:2,z:0};
- const BOX='📦', WALL=' ', PLAYER='😀', GOAL=' ';
- Actions.begin();
- // walls border
- for(let x=0;x<size.x;x++){ Actions.setCell(board.id,{x,y:size.y-1,z:0},WALL,null,true); Actions.setCell(board.id,{x,y:0,z:0},WALL,null,true); }
- for(let y=0;y<size.y;y++){ Actions.setCell(board.id,{x:0,y,z:0},WALL,null,true); Actions.setCell(board.id,{x:size.x-1,y,z:0},WALL,null,true); }
- // place player, box and goal
- Actions.setCell(board.id,PSTART,PLAYER,null,true);
- Actions.setCell(board.id,{x:4,y:2,z:0},BOX,null,true);
- Actions.setCell(board.id,{x:7,y:2,z:0},GOAL,null,true);
- // memory: player ref string at (0,0)
- Actions.setCell(mem.id,{x:0,y:0,z:0},`@[${PSTART.x},${PSTART.y},${PSTART.z},${board.id}]`,null,true);
- // Rules array params and MOVE rule (diegetic formulas)
- rules.params = { ...(rules.params||{}), sokoRules:true, boardId:board.id };
- const mvAnchor = {x:0,y:rules.size.y-1,z:0};
- rules.params.moveAnchor = {arrId:rules.id, ...mvAnchor};
- const memStr = `@[0,0,0,${mem.id}]`;
- // Compute current and next positions
- const curRef = `=OFFSET(${memStr},0,0,0)`;
- const dxRef = `=GET_GLOBAL("soko.dx")`;
- const dyRef = `=GET_GLOBAL("soko.dy")`;
- Actions.setCell(rules.id, {x:0,y:rules.size.y-1,z:0}, 'MOVE', `=DO(
- "=SET_GLOBAL(\"soko.pos\", ${curRef})",
- "=SET_GLOBAL(\"soko.next\", OFFSET(GET_GLOBAL(\\\"soko.pos\\\"), ${dxRef}, ${dyRef}, 0))",
- "=SET_GLOBAL(\"soko.nnext\", OFFSET(GET_GLOBAL(\\\"soko.pos\\\"), MUL(${dxRef},2), MUL(${dyRef},2), 0))",
- "=IF(EQ(GET_GLOBAL(\"soko.next\"), \" \"), \"BLOCK\", \"OK\")",
- "=IF(EQ(GET_GLOBAL(\"soko.next\"), \"📦\"), IF(EQ(GET_GLOBAL(\"soko.nnext\"), \"\"), DO(\"=SET(GET_GLOBAL(\\\"soko.nnext\\\"), \"📦\")\", \"=SET(GET_GLOBAL(\\\"soko.next\\\"), \"📦\")\", \"=SET(GET_GLOBAL(\\\"soko.pos\\\"), \"\" )\", \"=SET(${memStr}, GET_GLOBAL(\\\"soko.next\\\"))\"), \"BLOCK\"), \"OK\")",
- "=IF(EQ(GET_GLOBAL(\"soko.next\"), \"\"), DO(\"=SET(GET_GLOBAL(\\\"soko.next\\\"), \"📦\")\", \"=SET(GET_GLOBAL(\\\"soko.pos\\\"), \"\" )\", \"=SET(${memStr}, GET_GLOBAL(\\\"soko.next\\\"))\"), \"OK\")"
- )`, true);
- // controller arrows using SOKO_STEP2(memRef,dx,dy)
- const mref = memStr;
- Actions.setCell(ctrl.id,{x:1,y:2,z:0},'?',null,true);
- Actions.setCell(ctrl.id,{x:0,y:1,z:0},'?',null,true);
- Actions.setCell(ctrl.id,{x:2,y:1,z:0},'?',null,true);
- Actions.setCell(ctrl.id,{x:1,y:0,z:0},'?',null,true);
- Actions.setCell(ctrl.id,{x:1,y:2,z:0}, '?', `=ON_SELECT(SELF(), "=SOKO_STEP2(${mref},0,1)")`, true);
- Actions.setCell(ctrl.id,{x:0,y:1,z:0}, '?', `=ON_SELECT(SELF(), "=SOKO_STEP2(${mref},-1,0)")`, true);
- Actions.setCell(ctrl.id,{x:2,y:1,z:0}, '?', `=ON_SELECT(SELF(), "=SOKO_STEP2(${mref},1,0)")`, true);
- Actions.setCell(ctrl.id,{x:1,y:0,z:0}, '?', `=ON_SELECT(SELF(), "=SOKO_STEP2(${mref},0,-1)")`, true);
- Actions.end();
- // Dock controller near board
- const pos = dockOffsetFor(board,'east',1.0);
- Scene.setArrayOffset(ctrl,pos);
- Actions.setCell(arr.id, anchor, `Sokoban2:#${board.id}`, ast.raw, true);
- }catch(e){ Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true); }
-});
-tag('SOKOBAN',['GAME','META'],(anchor,arr,ast)=>{
- // Generate a tiny Sokoban board, memory, and controller
- try{
+ for(let y=0;y<board.size.y;y++){
+ Actions.setCell(boardId,{x:0,y,z:0},WALL,null,true);
+ Actions.setCell(boardId,{x:board.size.x-1,y,z:0},WALL,null,true);
+ }
+ Actions.setCell(boardId,start,PLAYER,null,true);
+ const BOX = board.params?.sokoBlock || defaultBlocks[Math.floor(Math.random()*defaultBlocks.length)];
+ Actions.setCell(boardId,boxPos,BOX,null,true);
+ Actions.setCell(boardId,goalPos,GOAL,null,true);
+ board.params = board.params || {};
+ board.params.sokoGoals = [`@[${goalPos.x},${goalPos.y},${goalPos.z||0},${boardId}]`];
+ board.params.sokoBlock = board.params.sokoBlock || BOX;
+}
+
+function sokoEvaluateBoard(boardId){
+ const board = Store.getState().arrays[boardId];
+ if(!board) return false;
+ const goals = Array.isArray(board.params?.sokoGoals) ? board.params.sokoGoals : [];
+ if(!goals.length) return false;
+ const boxes = new Set([String(board.params?.sokoBlock || '📦'),'📦']);
+ return goals.every(addr=>{
+ const p = parseAlt(String(addr||''));
+ if(!p) return false;
+ const v = String(Formula.getCellValue({arrId:boardId,x:p.x,y:p.y,z:p.z||0})||'');
+ return boxes.has(v);
+ });
+}
+
+function spawnSokobanDemo(anchor, arr, ast, statusLabel='sokoban.status'){
  const size = {x:10,y:8,z:1};
  const board = Actions.createArray({name:'Sokoban', size, hidden:false});
  const mem = Actions.createArray({name:'SokoMem', size:{x:2,y:1,z:1}, hidden:true});
  const ctrl = Actions.createArray({name:'SokoCtrl', size:{x:3,y:3,z:1}, hidden:false});
  const PSTART = {x:2,y:2,z:0};
- const BOX='📦', WALL=' ', PLAYER='😀', GOAL=' ';
+ const boxPos = {x:4,y:2,z:0};
+ const goalPos = {x:7,y:2,z:0};
  Actions.begin();
- // walls border
- for(let x=0;x<size.x;x++){ Actions.setCell(board.id,{x,y:size.y-1,z:0},WALL,null,true); Actions.setCell(board.id,{x,y:0,z:0},WALL,null,true); }
- for(let y=0;y<size.y;y++){ Actions.setCell(board.id,{x:0,y,z:0},WALL,null,true); Actions.setCell(board.id,{x:size.x-1,y,z:0},WALL,null,true); }
- // place player, box and goal
- Actions.setCell(board.id,PSTART,PLAYER,null,true);
- Actions.setCell(board.id,{x:4,y:2,z:0},BOX,null,true);
- Actions.setCell(board.id,{x:7,y:2,z:0},GOAL,null,true);
- // memory: player ref string at (0,0)
+ seedSokobanDemo(board.id, PSTART, boxPos, goalPos);
  Actions.setCell(mem.id,{x:0,y:0,z:0},`@[${PSTART.x},${PSTART.y},${PSTART.z},${board.id}]`,null,true);
- // controller arrows with ON_SELECT to call SOKO_STEP(memRef,dx,dy)
- const mref = `@[0,0,0,${mem.id}]`;
- Actions.setCell(ctrl.id,{x:1,y:2,z:0},'?',null,true);
- Actions.setCell(ctrl.id,{x:0,y:1,z:0},'?',null,true);
- Actions.setCell(ctrl.id,{x:2,y:1,z:0},'?',null,true);
- Actions.setCell(ctrl.id,{x:1,y:0,z:0},'?',null,true);
- Actions.setCell(ctrl.id,{x:1,y:2,z:0}, '?', `=ON_SELECT(SELF(), "=SOKO_STEP(${mref},0,1)")`, true);
- Actions.setCell(ctrl.id,{x:0,y:1,z:0}, '?', `=ON_SELECT(SELF(), "=SOKO_STEP(${mref},-1,0)")`, true);
- Actions.setCell(ctrl.id,{x:2,y:1,z:0}, '?', `=ON_SELECT(SELF(), "=SOKO_STEP(${mref},1,0)")`, true);
- Actions.setCell(ctrl.id,{x:1,y:0,z:0}, '?', `=ON_SELECT(SELF(), "=SOKO_STEP(${mref},0,-1)")`, true);
+ Actions.setCell(ctrl.id,{x:1,y:2,z:0},'↑',null,true);
+ Actions.setCell(ctrl.id,{x:0,y:1,z:0},'←',null,true);
+ Actions.setCell(ctrl.id,{x:2,y:1,z:0},'→',null,true);
+ Actions.setCell(ctrl.id,{x:1,y:0,z:0},'↓',null,true);
+ Actions.setCell(ctrl.id,{x:1,y:1,z:0},'🎮',null,true);
  Actions.end();
- // Dock controller near board
- const pos = dockOffsetFor(board,'east',1.0);
- Scene.setArrayOffset(ctrl,pos);
- // Write to anchor without triggering immediate recompute loop
- const tx=Write.start('sokoban.status','SOKOBAN status');
+ bindSokoController(ctrl, mem, 'SOKO_STEP');
+ smartDockBoardAndController(Store.getState().arrays[anchor.arrId] || arr, board, ctrl, 1);
+ const tx=Write.start(statusLabel,'SOKOBAN status');
  Write.set(tx, arr.id, anchor, { value:`Sokoban:#${board.id}`, formula: ast.raw, meta:{skip_recompute:true} });
  Write.commit(tx);
- }catch(e){ Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true); }
+ return board;
+}
+
+tag('SOKO_EVAL',['GAME','ACTION'],(anchor,arr,ast)=>{
+ const boardId = (+Formula.valOf(ast.args[0])) || arr.id;
+ const solved = sokoEvaluateBoard(boardId);
+ Actions.setCell(arr.id, anchor, solved ? 'SOKO:SOLVED' : 'SOKO:UNSOLVED', ast.raw, true);
+});
+
+tag('SOKO_BLOCKS',['GAME','ACTION'],(anchor,arr,ast)=>{
+ const targetRef = resolveSokoMemRef(ast.args[0]);
+ if(!targetRef) throw new Error('SOKO_BLOCKS needs target ref/address');
+ const token = String(Formula.valOf(ast.args[1]) || '📦');
+ const board = Store.getState().arrays[targetRef.arrId];
+ if(!board) throw new Error('SOKO_BLOCKS board not found');
+ board.params = board.params || {};
+ board.params.sokoBlock = token;
+ const tx = Write.start('soko.blocks','insert block');
+ Write.set(tx, targetRef.arrId, {x:targetRef.x,y:targetRef.y,z:targetRef.z||0}, { value: token, formula:null });
+ Write.commit(tx);
+ Actions.setCell(arr.id, anchor, `SOKO_BLOCK:${token}`, ast.raw, true);
+});
+
+function runSokoStep(anchor,arr,ast,tx){
+ if(!tx) throw new Error('SOKO_STEP requires an active transaction');
+ const memRef = resolveSokoMemRef(ast.args[0]);
+ const dx = (+Formula.valOf(ast.args[1])|0) || 0;
+ const dy = (+Formula.valOf(ast.args[2])|0) || 0;
+ if(!memRef || memRef.kind !== 'ref') throw new Error('SOKO_STEP needs memory ref');
+ const memVal = Formula.getCellValue(memRef);
+ const pos = parseAlt(String(memVal)||'');
+ if(!pos) return;
+ const boardId = pos.arrId; const px = pos.x; const py = pos.y; const pz = pos.z||0;
+ const board = Store.getState().arrays[boardId]; if(!board) return;
+ const WALL=' '; const EMPTY='';
+ const BOX = String(board.params?.sokoBlock || '📦');
+ const PLAYER='😀';
+ const inBounds=(x,y)=> x>=0 && y>=0 && x<board.size.x && y<board.size.y;
+ const at=(x,y)=> inBounds(x,y)? String(Formula.getCellValue({arrId:boardId,x,y,z:pz})||'') : WALL;
+ const isBox=(v)=> v===BOX || v==='📦';
+ const isGoal=(x,y)=> (board.params?.sokoGoals||[]).some(g=>{ const gp=parseAlt(String(g||'')); return gp && gp.x===x && gp.y===y && (gp.z||0)===pz; });
+ const paintFloor=(x,y)=> isGoal(x,y)? '·' : EMPTY;
+ const nx=px+dx, ny=py+dy; const nnx=px+dx*2, nny=py+dy*2;
+ const t1 = at(nx,ny);
+ if(t1===WALL) return;
+ if(isBox(t1)){
+ const t2 = at(nnx,nny);
+ if(t2!==EMPTY && t2!=='·') return;
+ Write.set(tx, boardId, {x:nnx,y:nny,z:pz}, { value: BOX, formula:null });
+ Write.set(tx, boardId, {x:nx ,y:ny ,z:pz}, { value: PLAYER, formula:null });
+ Write.set(tx, boardId, {x:px ,y:py ,z:pz}, { value: paintFloor(px,py), formula:null });
+ Write.set(tx, memRef.arrId, {x:memRef.x,y:memRef.y,z:memRef.z}, { value:`@[${nx},${ny},${pz},${boardId}]`, formula:null });
+ } else if(t1===EMPTY || t1==='·'){
+ Write.set(tx, boardId, {x:nx ,y:ny ,z:pz}, { value: PLAYER, formula:null });
+ Write.set(tx, boardId, {x:px ,y:py ,z:pz}, { value: paintFloor(px,py), formula:null });
+ Write.set(tx, memRef.arrId, {x:memRef.x,y:memRef.y,z:memRef.z}, { value:`@[${nx},${ny},${pz},${boardId}]`, formula:null });
+ }
+ if(sokoEvaluateBoard(boardId)){
+ Actions.setCell(arr.id, anchor, 'SOKO:SOLVED', ast.raw, true);
+ }
+}
+
+tag('SOKO_STEP',['GAME','ACTION'],(anchor,arr,ast,tx)=>{
+ runSokoStep(anchor,arr,ast,tx);
+});
+
+tag('SOKO_STEP2',['GAME','ACTION'],(anchor,arr,ast,tx)=>{
+ runSokoStep(anchor,arr,ast,tx);
+});
+
+
+tag('SOKOBAN',['GAME','META'],(anchor,arr,ast)=>{
+ try{ spawnSokobanDemo(anchor,arr,ast,'sokoban.status'); }
+ catch(e){ Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true); }
+});
+
+tag('SOKOBAN2',['GAME','META'],(anchor,arr,ast)=>{
+ try{ spawnSokobanDemo(anchor,arr,ast,'sokoban2.status'); }
+ catch(e){ Actions.setCell(arr.id, anchor, `!ERR:${e.message}`, ast.raw, true); }
 });
 
 tag('VIEW_MODE',['SCENE'],(anchor,arr,ast)=>{
@@ -24042,7 +23855,7 @@ window.__celliSyncDesktopChrome = syncDesktopChrome;
 const onDP=(direction)=>{
  if(!direction) return;
  // Mobile D-pad reuses the same navigation path as keyboard arrows.
- handleGridDirectionalInput(direction, { surface:'3d' });
+ handleGridDirectionalInput(direction, { surface:'2d' });
 };
  const presentBtn = dpad ? dpad.querySelector('.present') : null;
  const syncPresentToggle=()=>{
