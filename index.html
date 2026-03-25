@@ -294,7 +294,7 @@
 
         function nextStep() {
             if (currentStep >= totalSteps) {
-                location.reload();
+                window.location.href = "construct.html";
                 return;
             }
 
@@ -329,7 +329,7 @@
                 axY.style.transform = "translate(-50%, -50%) rotate(-5deg)";
                 dot.classList.add('glitch-vibe');
                 dot.style.backgroundColor = '#6366f1';
-                btn.innerText = "Enter The System";
+                btn.innerText = "Enter System";
             }
         }
     </script>
