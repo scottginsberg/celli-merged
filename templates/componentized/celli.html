@@ -8279,8 +8279,14 @@ function bindSokoController(ctrl, mem, stepFn='SOKO_STEP'){
  const prev = Formula.getCell({arrId:ctrl.id,x,y,z:0});
  const prevMeta = normalizeMetaKeys(prev?.meta||{});
  prevMeta.on_click = `B64:${enc}`;
+ prevMeta.soko_target = mref;
  Write.set(txBind, ctrl.id, {x,y,z:0}, { value: dir, formula: null, meta:prevMeta });
  Write.commit(txBind);
+ try{
+ Formula.executeAt({arrId:ctrl.id,x,y,z:0}, `=ON_SELECT(SELF(),"${call.replace(/"/g,'\\"')}")`);
+ }catch(e){
+ console.warn('SOKO controller ON_SELECT bind failed', e);
+ }
  };
  bindBtn(1,2,'↑',0,1);
  bindBtn(0,1,'←',-1,0);
@@ -8306,6 +8312,7 @@ function seedSokobanDemo(boardId, start, boxPos, goalPos){
  Actions.setCell(boardId,boxPos,BOX,null,true);
  Actions.setCell(boardId,goalPos,GOAL,null,true);
  board.params = board.params || {};
+ board.params.sokoPlayer = `@[${start.x},${start.y},${start.z||0},${boardId}]`;
  board.params.sokoGoals = [`@[${goalPos.x},${goalPos.y},${goalPos.z||0},${boardId}]`];
  board.params.sokoBlock = board.params.sokoBlock || BOX;
 }
@@ -8341,6 +8348,9 @@ function spawnSokobanDemo(anchor, arr, ast, statusLabel='sokoban.status'){
  Actions.setCell(ctrl.id,{x:1,y:0,z:0},'↓',null,true);
  Actions.setCell(ctrl.id,{x:1,y:1,z:0},'🎮',null,true);
  Actions.end();
+ ctrl.params = ctrl.params || {};
+ ctrl.params.sokoBoardId = board.id;
+ ctrl.params.sokoMemRef = `@[0,0,0,${mem.id}]`;
  bindSokoController(ctrl, mem, 'SOKO_STEP');
  smartDockBoardAndController(Store.getState().arrays[anchor.arrId] || arr, board, ctrl, 1);
  const tx=Write.start(statusLabel,'SOKOBAN status');
@@ -8403,6 +8413,8 @@ function runSokoStep(anchor,arr,ast,tx){
  Write.set(tx, boardId, {x:px ,y:py ,z:pz}, { value: paintFloor(px,py), formula:null });
  Write.set(tx, memRef.arrId, {x:memRef.x,y:memRef.y,z:memRef.z}, { value:`@[${nx},${ny},${pz},${boardId}]`, formula:null });
  }
+ board.params = board.params || {};
+ board.params.sokoPlayer = `@[${nx},${ny},${pz},${boardId}]`;
  if(sokoEvaluateBoard(boardId)){
  Actions.setCell(arr.id, anchor, 'SOKO:SOLVED', ast.raw, true);
  }
