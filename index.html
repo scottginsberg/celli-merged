@@ -128,7 +128,7 @@
 
         /* Controls */
         .controls {
-            padding: 20px;
+            padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px) + 24px);
             background: white;
             border-top: 1px solid #eee;
         }
@@ -144,6 +144,7 @@
             text-transform: uppercase;
             letter-spacing: 0.1em;
             transition: transform 0.1s, background 0.2s;
+            margin-bottom: 8px;
         }
 
         .btn-action:active {
