@@ -29,13 +29,17 @@
     const BarChart2 = (props) => <Icon {...props}>▤</Icon>;
     const Target = (props) => <Icon {...props}>◎</Icon>;
     const X = (props) => <Icon {...props}>✕</Icon>;
+    const Check = (props) => <Icon {...props}>✓</Icon>;
+    const SaveIcon = (props) => <Icon {...props}>💾</Icon>;
 
-    const NUM_STRINGS = 100;
+    const NUM_STRINGS = 25;
     const TOP_MARGIN = 100;
     const LINE_SPACING = 55;
     const LEFT_MARGIN_WIDTH = 140;
     const RIGHT_MARGIN_OFFSET = 30;
     const CHART_COLORS = ['#EF4444', '#3B82F6', '#EAB308', '#10B981', '#8B5CF6', '#F97316', '#06B6D4', '#EC4899', '#84CC16', '#6366F1'];
+    const APP_STORAGE_KEY = 'fret-app-state-v1';
+    const SNAPSHOT_STORAGE_KEY = 'fret-snapshots-v1';
 
     const formatTime = (secs) => {
       const m = Math.floor(secs / 60).toString().padStart(2, '0');
@@ -220,6 +224,10 @@
       const [timerEditMode, setTimerEditMode] = useState(false);
       const [labelEditIndex, setLabelEditIndex] = useState(null);
       const [labelInputText, setLabelInputText] = useState('');
+      const [showSnapshots, setShowSnapshots] = useState(false);
+      const [snapshotPanel, setSnapshotPanel] = useState('menu');
+      const [snapshotName, setSnapshotName] = useState('');
+      const [snapshots, setSnapshots] = useState([]);
 
       const [timerVisible, setTimerVisible] = useState(false);
       const [timeRemaining, setTimeRemaining] = useState(60);
@@ -237,9 +245,51 @@
       const maxScrollYRef = useRef(0);
       const dragStateRef = useRef('none');
 
+      const buildRowsPayload = () => stringsRef.current.map((str) => ({
+        text: str.text,
+        strumCount: str.strumCount,
+        sessionStrumCount: str.sessionStrumCount,
+        strumLabel: str.strumLabel,
+        isChecked: str.isChecked,
+        goalPercent: str.goalPercent
+      }));
+
+      const persistState = () => {
+        if (!stringsRef.current.length) return;
+        const payload = { rows: buildRowsPayload() };
+        localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(payload));
+      };
+
+      const restoreState = () => {
+        const raw = localStorage.getItem(APP_STORAGE_KEY);
+        if (!raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          const rows = Array.isArray(parsed.rows) ? parsed.rows : [];
+          rows.forEach((row, idx) => {
+            const target = stringsRef.current[idx];
+            if (!target) return;
+            target.text = typeof row.text === 'string' ? row.text : '';
+            target.strumCount = Number.isFinite(row.strumCount) ? row.strumCount : 0;
+            target.sessionStrumCount = Number.isFinite(row.sessionStrumCount) ? row.sessionStrumCount : 0;
+            target.strumLabel = typeof row.strumLabel === 'string' && row.strumLabel.trim() !== '' ? row.strumLabel : 'Strums';
+            target.isChecked = Boolean(row.isChecked);
+            target.goalPercent = row.goalPercent ?? '';
+          });
+        } catch (e) {}
+      };
+
       useEffect(() => { modeRef.current = mode; }, [mode]);
       useEffect(() => { activeStringRef.current = activeStringIndex; }, [activeStringIndex]);
       useEffect(() => { cursorIndexRef.current = cursorIndex; }, [cursorIndex]);
+      useEffect(() => {
+        try {
+          const rawSnapshots = localStorage.getItem(SNAPSHOT_STORAGE_KEY);
+          if (!rawSnapshots) return;
+          const parsed = JSON.parse(rawSnapshots);
+          if (Array.isArray(parsed)) setSnapshots(parsed);
+        } catch (e) {}
+      }, []);
 
       const initAudio = () => {
         if (!audioCtxRef.current) {
@@ -256,13 +306,9 @@
         if (!audioCtxRef.current) return;
         try {
           const { ctx, destination } = audioCtxRef.current;
-          const baseFreq = 110;
-          const scale = [1, 1.122, 1.26, 1.498, 1.682];
-          const STEPS_PER_LOOP = scale.length * 3;
-          const wrappedIndex = ((index % STEPS_PER_LOOP) + STEPS_PER_LOOP) % STEPS_PER_LOOP;
-          const octave = Math.floor(wrappedIndex / scale.length);
-          const noteInScale = wrappedIndex % scale.length;
-          const freq = baseFreq * scale[noteInScale] * Math.pow(2, octave);
+          const noteRange = [130.81, 146.83, 164.81, 174.61, 196.0, 220.0, 246.94, 261.63, 293.66, 329.63, 349.23, 392.0, 440.0, 493.88, 523.25];
+          const wrappedIndex = ((index % noteRange.length) + noteRange.length) % noteRange.length;
+          const freq = noteRange[wrappedIndex];
 
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -341,6 +387,7 @@
 
           if (stringsRef.current.length === 0) {
             for (let i = 0; i < NUM_STRINGS; i++) stringsRef.current.push(new StringSim(TOP_MARGIN + i * LINE_SPACING, 0, W, 15));
+            restoreState();
           }
         };
 
@@ -420,6 +467,7 @@
             if (modeRef.current === 'music') str.colorIndex = (str.colorIndex + 1) % 3;
             const pitchIndex = stringsRef.current.length - index;
             playNote(pitchIndex, Math.min(speed / 40, 1));
+            persistState();
           }
         });
       };
@@ -530,6 +578,7 @@
 
         if (hitCheckboxIdx !== -1) {
           stringsRef.current[hitCheckboxIdx].isChecked = !stringsRef.current[hitCheckboxIdx].isChecked;
+          persistState();
           if (inputRef.current) inputRef.current.blur();
           setActiveStringIndex(null);
           return;
@@ -596,6 +645,29 @@
         return { rows, allocated, remaining, isOver };
       };
       const highPriorityPrompt = 'You spent a lot of the time thinking about this one category. Is it a truly high priority? Are there actions you can take? Should you investigate or slow down before acting?';
+      const saveSnapshot = () => {
+        const trimmed = snapshotName.trim();
+        if (!trimmed) return;
+        const next = [{ id: Date.now(), name: trimmed, createdAt: new Date().toISOString(), rows: buildRowsPayload() }, ...snapshots];
+        setSnapshots(next);
+        localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(next));
+        setSnapshotName('');
+        setSnapshotPanel('view');
+      };
+      const applySnapshot = (snapshot) => {
+        snapshot.rows.forEach((row, idx) => {
+          const target = stringsRef.current[idx];
+          if (!target) return;
+          target.text = row.text ?? '';
+          target.strumCount = row.strumCount ?? 0;
+          target.sessionStrumCount = row.sessionStrumCount ?? 0;
+          target.strumLabel = row.strumLabel || 'Strums';
+          target.isChecked = Boolean(row.isChecked);
+          target.goalPercent = row.goalPercent ?? '';
+        });
+        persistState();
+        setShowSnapshots(false);
+      };
 
       const PieChart = ({ valueKey }) => {
         const data = getValidData();
@@ -635,7 +707,8 @@
             <div className="absolute top-4 left-4 z-30 flex gap-2 sm:gap-3 items-start">
               <button onClick={() => setShowHelp(true)} className="p-2 sm:p-3 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none"><HelpCircle size={20} className="sm:w-6 sm:h-6" /></button>
               <button onClick={() => setShowGlobalStats(true)} className="p-2 sm:p-3 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none"><BarChart2 size={20} className="sm:w-6 sm:h-6" /></button>
-              <button onClick={() => setShowGoals(true)} className="p-2 sm:p-3 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none"><Target size={20} className="sm:w-6 sm:h-6" /></button>
+              <button onClick={() => setShowGoals(true)} className="px-3 py-2 sm:py-3 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none flex items-center gap-2"><Check size={20} className="sm:w-6 sm:h-6" /><span className="font-bold text-sm">Set Goals</span></button>
+              <button onClick={() => { setShowSnapshots(true); setSnapshotPanel('menu'); }} className="p-2 sm:p-3 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none"><SaveIcon size={20} className="sm:w-6 sm:h-6" /></button>
               {!timerVisible ? (
                 <button onClick={() => { initAudio(); setTimerVisible(true); }} className="p-2 sm:p-3 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-all active:translate-x-1 active:translate-y-1 active:shadow-none"><Clock size={20} className="sm:w-6 sm:h-6" /></button>
               ) : (
@@ -667,7 +740,7 @@
                     <h2 className="text-xl sm:text-2xl font-bold">Goal Allocation</h2>
                     <button onClick={() => setShowGoals(false)} className="p-1 hover:bg-gray-200 border-2 border-transparent hover:border-black"><X size={22} /></button>
                   </div>
-                  <p className="text-sm mb-4">Allocate your intended focus as percentages out of 100. Unallocated percentage is shown as <span className="font-bold">Impartial</span>.</p>
+                  <p className="text-sm mb-4">Define your desired % of time thinking by allocating your 100% impartial thoughts across the entries below. Unallocated percentage is shown as <span className="font-bold">Impartial</span>.</p>
                   {rows.length === 0 && <p className="text-gray-500 italic mb-4">Add note text first, then come back to set goals.</p>}
                   <div className="space-y-3 mb-4">
                     {rows.map((row, idx) => {
@@ -677,7 +750,7 @@
                         <div className="flex items-center justify-between gap-3 mb-2">
                           <span className="font-medium truncate">{row.text}</span>
                           <div className="flex items-center gap-2 shrink-0">
-                            <input type="number" min="0" max="100" step="1" inputMode="numeric" value={row.goalPercent} onChange={(e) => { row.goalPercent = e.target.value; setGoalEditVersion((v) => v + 1); }} className="w-24 border-2 border-black px-2 py-1 text-right" placeholder="0" />
+                            <input type="number" min="0" max="100" step="1" inputMode="numeric" value={row.goalPercent} onChange={(e) => { row.goalPercent = e.target.value; setGoalEditVersion((v) => v + 1); persistState(); }} className="w-24 border-2 border-black px-2 py-1 text-right" placeholder="0" />
                             <span className="font-bold">%</span>
                           </div>
                         </div>
@@ -730,13 +803,47 @@
               </div>;
             })()}
 
-            {showTimerPrompt && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-sm text-center"><h2 className="text-xl font-bold mb-4">Start Timer</h2><p className="mb-6 font-medium text-gray-800 text-sm sm:text-base">Do you want to reset your cumulative strums across the board before starting?</p><div className="flex flex-col gap-3"><button onClick={() => { stringsRef.current.forEach((s) => { s.sessionStrumCount = 0; s.strumCount = 0; }); setShowTimerPrompt(false); setTimerRunning(true); }} className="w-full py-3 bg-red-500 text-white border-2 border-black font-bold hover:bg-red-600">Yes, Reset All</button><button onClick={() => { stringsRef.current.forEach((s) => { s.sessionStrumCount = 0; }); setShowTimerPrompt(false); setTimerRunning(true); }} className="w-full py-3 bg-black text-white border-2 border-black font-bold hover:bg-gray-800">No, Keep Cumulative</button><button onClick={() => setShowTimerPrompt(false)} className="w-full py-3 border-2 border-black font-bold hover:bg-gray-100">Cancel</button></div></div></div>}
+            {showSnapshots && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+              <div className="bg-white p-4 sm:p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl sm:text-2xl font-bold">Snapshots</h2>
+                  <button onClick={() => setShowSnapshots(false)} className="p-1 hover:bg-gray-200 border-2 border-transparent hover:border-black"><X size={22} /></button>
+                </div>
+                {snapshotPanel === 'menu' && <div className="grid sm:grid-cols-2 gap-3">
+                  <button onClick={() => setSnapshotPanel('save')} className="py-3 border-2 border-black font-bold hover:bg-gray-100">Save Snapshot</button>
+                  <button onClick={() => setSnapshotPanel('view')} className="py-3 border-2 border-black font-bold hover:bg-gray-100">View Snapshots</button>
+                </div>}
+                {snapshotPanel === 'save' && <div>
+                  <p className="text-sm mb-3">Save a named snapshot of your current fretting state.</p>
+                  <input value={snapshotName} onChange={(e) => setSnapshotName(e.target.value)} placeholder="Snapshot name" className="w-full border-2 border-black p-3 mb-3" />
+                  <div className="flex gap-3">
+                    <button onClick={() => setSnapshotPanel('menu')} className="flex-1 py-3 border-2 border-black font-bold hover:bg-gray-100">Back</button>
+                    <button onClick={saveSnapshot} className="flex-1 py-3 bg-black text-white border-2 border-black font-bold hover:bg-gray-800">Save</button>
+                  </div>
+                </div>}
+                {snapshotPanel === 'view' && <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <p className="text-sm font-medium">Click a snapshot to load it.</p>
+                    <button onClick={() => setSnapshotPanel('menu')} className="px-3 py-1 border-2 border-black text-sm font-bold hover:bg-gray-100">Back</button>
+                  </div>
+                  <div className="space-y-2">
+                    {snapshots.map((snapshot) => <button key={snapshot.id} onClick={() => applySnapshot(snapshot)} className="w-full text-left border-2 border-black p-3 hover:bg-gray-100">
+                      <div className="font-bold truncate">{snapshot.name}</div>
+                      <div className="text-xs text-gray-600">{new Date(snapshot.createdAt).toLocaleString()}</div>
+                    </button>)}
+                    {snapshots.length === 0 && <p className="text-gray-500 italic">No snapshots saved yet.</p>}
+                  </div>
+                </div>}
+              </div>
+            </div>}
+
+            {showTimerPrompt && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-sm text-center"><h2 className="text-xl font-bold mb-4">Start Timer</h2><p className="mb-6 font-medium text-gray-800 text-sm sm:text-base">Do you want to reset your cumulative strums across the board before starting?</p><div className="flex flex-col gap-3"><button onClick={() => { stringsRef.current.forEach((s) => { s.sessionStrumCount = 0; s.strumCount = 0; }); persistState(); setShowTimerPrompt(false); setTimerRunning(true); }} className="w-full py-3 bg-red-500 text-white border-2 border-black font-bold hover:bg-red-600">Yes, Reset All</button><button onClick={() => { stringsRef.current.forEach((s) => { s.sessionStrumCount = 0; }); persistState(); setShowTimerPrompt(false); setTimerRunning(true); }} className="w-full py-3 bg-black text-white border-2 border-black font-bold hover:bg-gray-800">No, Keep Cumulative</button><button onClick={() => setShowTimerPrompt(false)} className="w-full py-3 border-2 border-black font-bold hover:bg-gray-100">Cancel</button></div></div></div>}
 
             {timerEditMode && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-4 sm:p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-xs max-h-[90vh] overflow-y-auto"><h2 className="text-xl font-bold mb-4 text-center">Set Timer</h2><div className="text-4xl sm:text-5xl font-mono text-center mb-6 tracking-widest border-b-4 border-black pb-4">{timerDigits.slice(0,2)}:{timerDigits.slice(2,4)}</div><div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">{['1','2','3','4','5','6','7','8','9','00','0','Del'].map((key) => <button key={key} onClick={() => { if (key === 'Del') setTimerDigits((prev) => ('0' + prev.slice(0, -1)).slice(-4)); else setTimerDigits((prev) => (prev + key).slice(-4)); }} className="py-3 sm:py-4 border-2 border-black font-bold text-lg sm:text-xl hover:bg-gray-100 active:bg-gray-200">{key}</button>)}</div><div className="flex gap-4"><button onClick={() => setTimerEditMode(false)} className="flex-1 py-3 border-2 border-black font-bold hover:bg-gray-100">Cancel</button><button onClick={() => { const mins = parseInt(timerDigits.slice(0,2), 10); const secs = parseInt(timerDigits.slice(2,4), 10); setTimeRemaining(mins * 60 + secs); setTimerEditMode(false); }} className="flex-1 py-3 bg-black text-white border-2 border-black font-bold hover:bg-gray-800">Save</button></div></div></div>}
 
-            {labelEditIndex !== null && !timerEditMode && !showTimerPrompt && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-md"><h2 className="text-xl font-bold mb-4">What does a Strum represent?</h2><input autoFocus value={labelInputText} onChange={(e) => setLabelInputText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { stringsRef.current[labelEditIndex].strumLabel = labelInputText || 'Strums'; setLabelEditIndex(null); } }} className="w-full border-2 border-black p-3 mb-6 text-lg outline-none focus:ring-4 focus:ring-blue-500/30" placeholder="e.g. Days, Pushups, Pages Read..." /><div className="flex flex-col sm:flex-row justify-between items-center gap-4"><button onClick={() => { stringsRef.current[labelEditIndex].strumCount = 0; setLabelEditIndex(null); }} className="w-full sm:w-auto px-4 py-2 border-2 border-red-500 text-red-600 font-bold hover:bg-red-50">Reset Count</button><div className="flex gap-2 w-full sm:w-auto"><button onClick={() => setLabelEditIndex(null)} className="flex-1 sm:flex-none px-4 py-2 border-2 border-black font-bold hover:bg-gray-100">Cancel</button><button onClick={() => { stringsRef.current[labelEditIndex].strumLabel = labelInputText || 'Strums'; setLabelEditIndex(null); }} className="flex-1 sm:flex-none px-4 py-2 bg-black text-white border-2 border-black font-bold hover:bg-gray-800">Save</button></div></div></div></div>}
+            {labelEditIndex !== null && !timerEditMode && !showTimerPrompt && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-md"><h2 className="text-xl font-bold mb-4">What does a Strum represent?</h2><input autoFocus value={labelInputText} onChange={(e) => setLabelInputText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { stringsRef.current[labelEditIndex].strumLabel = labelInputText || 'Strums'; persistState(); setLabelEditIndex(null); } }} className="w-full border-2 border-black p-3 mb-6 text-lg outline-none focus:ring-4 focus:ring-blue-500/30" placeholder="e.g. Days, Pushups, Pages Read..." /><div className="flex flex-col sm:flex-row justify-between items-center gap-4"><button onClick={() => { stringsRef.current[labelEditIndex].strumCount = 0; persistState(); setLabelEditIndex(null); }} className="w-full sm:w-auto px-4 py-2 border-2 border-red-500 text-red-600 font-bold hover:bg-red-50">Reset Count</button><div className="flex gap-2 w-full sm:w-auto"><button onClick={() => setLabelEditIndex(null)} className="flex-1 sm:flex-none px-4 py-2 border-2 border-black font-bold hover:bg-gray-100">Cancel</button><button onClick={() => { stringsRef.current[labelEditIndex].strumLabel = labelInputText || 'Strums'; persistState(); setLabelEditIndex(null); }} className="flex-1 sm:flex-none px-4 py-2 bg-black text-white border-2 border-black font-bold hover:bg-gray-800">Save</button></div></div></div></div>}
 
-            <input ref={inputRef} type="text" value={inputText} onChange={(e) => { setInputText(e.target.value); if (activeStringRef.current !== null) stringsRef.current[activeStringRef.current].text = e.target.value; }} onSelect={(e) => setCursorIndex(e.target.selectionStart || 0)} onKeyDown={handleKeyDown} onBlur={() => setActiveStringIndex(null)} style={{ position: 'absolute', top: `${activeY}px`, left: '20px', width: '1px', height: '1px', opacity: 0, fontSize: '16px', WebkitTextSizeAdjust: '100%', pointerEvents: 'none', padding: 0, margin: 0, border: 'none', zIndex: -1 }} autoComplete="off" spellCheck="false" />
+            <input ref={inputRef} type="text" value={inputText} onChange={(e) => { setInputText(e.target.value); if (activeStringRef.current !== null) stringsRef.current[activeStringRef.current].text = e.target.value; persistState(); }} onSelect={(e) => setCursorIndex(e.target.selectionStart || 0)} onKeyDown={handleKeyDown} onBlur={() => setActiveStringIndex(null)} style={{ position: 'absolute', top: `${activeY}px`, left: '20px', width: '1px', height: '1px', opacity: 0, fontSize: '16px', WebkitTextSizeAdjust: '100%', pointerEvents: 'none', padding: 0, margin: 0, border: 'none', zIndex: -1 }} autoComplete="off" spellCheck="false" />
 
             <canvas ref={canvasRef} className="block w-full h-full cursor-text" onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerCancelLeave} onPointerLeave={handlePointerCancelLeave} />
           </div>
