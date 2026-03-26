@@ -31,6 +31,7 @@
     const X = (props) => <Icon {...props}>✕</Icon>;
     const Check = (props) => <Icon {...props}>✓</Icon>;
     const SaveIcon = (props) => <Icon {...props}>💾</Icon>;
+    const TagIcon = (props) => <Icon {...props}>🏷</Icon>;
 
     const NUM_STRINGS = 25;
     const TOP_MARGIN = 100;
@@ -40,6 +41,7 @@
     const CHART_COLORS = ['#EF4444', '#3B82F6', '#EAB308', '#10B981', '#8B5CF6', '#F97316', '#06B6D4', '#EC4899', '#84CC16', '#6366F1'];
     const APP_STORAGE_KEY = 'fret-app-state-v1';
     const SNAPSHOT_STORAGE_KEY = 'fret-snapshots-v1';
+    const TAG_OPTIONS = ['Worried/Anxious', 'Excited/Passionate', 'Curious/Investigative', 'Goal/Desire'];
 
     const formatTime = (secs) => {
       const m = Math.floor(secs / 60).toString().padStart(2, '0');
@@ -68,6 +70,7 @@
         this.lastStrumTime = 0;
         this.isChecked = false;
         this.goalPercent = '';
+        this.tagType = '';
       }
 
       update() {
@@ -228,6 +231,9 @@
       const [snapshotPanel, setSnapshotPanel] = useState('menu');
       const [snapshotName, setSnapshotName] = useState('');
       const [snapshots, setSnapshots] = useState([]);
+      const [statsMode, setStatsMode] = useState('items');
+      const [statsRange, setStatsRange] = useState('allTime');
+      const [selectedSnapshotIds, setSelectedSnapshotIds] = useState([]);
 
       const [timerVisible, setTimerVisible] = useState(false);
       const [timeRemaining, setTimeRemaining] = useState(60);
@@ -244,6 +250,7 @@
       const targetScrollYRef = useRef(0);
       const maxScrollYRef = useRef(0);
       const dragStateRef = useRef('none');
+      const reorderDragRef = useRef({ active: false, fromIndex: -1, currentIndex: -1 });
 
       const buildRowsPayload = () => stringsRef.current.map((str) => ({
         text: str.text,
@@ -251,7 +258,8 @@
         sessionStrumCount: str.sessionStrumCount,
         strumLabel: str.strumLabel,
         isChecked: str.isChecked,
-        goalPercent: str.goalPercent
+        goalPercent: str.goalPercent,
+        tagType: str.tagType
       }));
 
       const persistState = () => {
@@ -275,6 +283,7 @@
             target.strumLabel = typeof row.strumLabel === 'string' && row.strumLabel.trim() !== '' ? row.strumLabel : 'Strums';
             target.isChecked = Boolean(row.isChecked);
             target.goalPercent = row.goalPercent ?? '';
+            target.tagType = typeof row.tagType === 'string' ? row.tagType : '';
           });
         } catch (e) {}
       };
@@ -290,6 +299,9 @@
           if (Array.isArray(parsed)) setSnapshots(parsed);
         } catch (e) {}
       }, []);
+      useEffect(() => {
+        setSelectedSnapshotIds(snapshots.map((snapshot) => snapshot.id));
+      }, [snapshots]);
 
       const initAudio = () => {
         if (!audioCtxRef.current) {
@@ -417,6 +429,15 @@
             str.y = str.baseY - scrollYRef.current;
             str.update();
             str.draw(ctx, modeRef.current, idx === activeStringRef.current, time, cursorIndexRef.current, W);
+            if (str.text.trim() !== '') {
+              ctx.globalAlpha = 0.75;
+              ctx.font = '16px sans-serif';
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'middle';
+              ctx.fillStyle = modeRef.current === 'notes' ? '#111827' : '#FFFFFF';
+              ctx.fillText('⋮⋮', W - RIGHT_MARGIN_OFFSET - 27, str.y);
+              ctx.globalAlpha = 1.0;
+            }
           });
 
           const rightLineX = W - RIGHT_MARGIN_OFFSET;
@@ -514,12 +535,26 @@
           }
         }, 10);
       };
+      const getClosestLineIndex = (y) => {
+        let closestIdx = -1;
+        let minDst = Infinity;
+        stringsRef.current.forEach((str, idx) => {
+          const dst = Math.abs(str.y - y);
+          if (dst < minDst) { minDst = dst; closestIdx = idx; }
+        });
+        return { closestIdx, minDst };
+      };
 
       const handlePointerDown = (e) => {
         initAudio();
         const { x, y } = getLocalCoords(e);
         const W = containerRef.current.clientWidth;
-        if (x > W - RIGHT_MARGIN_OFFSET - 30) dragStateRef.current = 'scrollbar';
+        const dragHandleX = W - RIGHT_MARGIN_OFFSET - 30;
+        const { closestIdx, minDst } = getClosestLineIndex(y);
+        if (x >= dragHandleX && x <= dragHandleX + 24 && minDst < 20) {
+          dragStateRef.current = 'reorder';
+          reorderDragRef.current = { active: true, fromIndex: closestIdx, currentIndex: closestIdx };
+        } else if (x > W - RIGHT_MARGIN_OFFSET - 30) dragStateRef.current = 'scrollbar';
         else if (x < LEFT_MARGIN_WIDTH) dragStateRef.current = 'leftMargin';
         else dragStateRef.current = 'strum';
         pointersRef.current.set(e.pointerId, { x, y, startX: x, startY: y, lastY: y });
@@ -546,6 +581,12 @@
             const handleHeight = 80;
             const percent = Math.max(0, Math.min(1, (y - handleHeight / 2) / (H - handleHeight)));
             targetScrollYRef.current = percent * maxScrollYRef.current;
+          } else if (dragStateRef.current === 'reorder') {
+            const { closestIdx, minDst } = getClosestLineIndex(y);
+            if (minDst < 22 && closestIdx !== reorderDragRef.current.currentIndex) {
+              swapStringRows(reorderDragRef.current.currentIndex, closestIdx);
+              reorderDragRef.current.currentIndex = closestIdx;
+            }
           } else if (dragStateRef.current === 'leftMargin') targetScrollYRef.current -= dy;
           else if (dragStateRef.current === 'strum') checkPluck(p.x, p.y, x, y);
           p.x = x;
@@ -600,17 +641,19 @@
 
       const handlePointerUp = (e) => {
         const p = pointersRef.current.get(e.pointerId);
-        if (p) {
+        if (p && dragStateRef.current !== 'reorder') {
           const dx = getLocalCoords(e).x - p.startX;
           const dy = getLocalCoords(e).y - p.startY;
           if (Math.hypot(dx, dy) < 10) handleClick(e);
         }
+        reorderDragRef.current = { active: false, fromIndex: -1, currentIndex: -1 };
         dragStateRef.current = 'none';
         pointersRef.current.delete(e.pointerId);
       };
 
       const handlePointerCancelLeave = (e) => {
         dragStateRef.current = 'none';
+        reorderDragRef.current = { active: false, fromIndex: -1, currentIndex: -1 };
         pointersRef.current.delete(e.pointerId);
         pointersRef.current.delete('hover');
       };
@@ -664,20 +707,56 @@
           target.strumLabel = row.strumLabel || 'Strums';
           target.isChecked = Boolean(row.isChecked);
           target.goalPercent = row.goalPercent ?? '';
+          target.tagType = row.tagType ?? '';
         });
         persistState();
         setShowSnapshots(false);
       };
+      const swapStringRows = (fromIdx, toIdx) => {
+        if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= stringsRef.current.length || toIdx >= stringsRef.current.length) return;
+        const temp = buildRowsPayload();
+        [temp[fromIdx], temp[toIdx]] = [temp[toIdx], temp[fromIdx]];
+        temp.forEach((row, idx) => {
+          const target = stringsRef.current[idx];
+          target.text = row.text ?? '';
+          target.strumCount = row.strumCount ?? 0;
+          target.sessionStrumCount = row.sessionStrumCount ?? 0;
+          target.strumLabel = row.strumLabel || 'Strums';
+          target.isChecked = Boolean(row.isChecked);
+          target.goalPercent = row.goalPercent ?? '';
+          target.tagType = row.tagType ?? '';
+        });
+        persistState();
+      };
+      const getStatsRows = () => {
+        if (statsRange === 'allTime') return buildRowsPayload().filter((row) => (row.text ?? '').trim() !== '');
+        return snapshots
+          .filter((snapshot) => selectedSnapshotIds.includes(snapshot.id))
+          .flatMap((snapshot) => (snapshot.rows || []).filter((row) => (row.text ?? '').trim() !== ''));
+      };
+      const getStatsAggregate = (valueKey) => {
+        const map = new Map();
+        getStatsRows().forEach((row) => {
+          const key = (row.text || '').trim();
+          if (!key) return;
+          const prev = map.get(key) || { text: key, value: 0, tagType: row.tagType || '' };
+          prev.value += Number(row[valueKey] || 0);
+          if (!prev.tagType && row.tagType) prev.tagType = row.tagType;
+          map.set(key, prev);
+        });
+        return Array.from(map.values());
+      };
 
-      const PieChart = ({ valueKey }) => {
-        const data = getValidData();
-        const total = data.reduce((sum, d) => sum + d[valueKey], 0);
+      const PieChart = ({ valueKey, dataOverride = null }) => {
+        const data = dataOverride || getValidData();
+        const total = data.reduce((sum, d) => sum + (Number(d[valueKey]) || 0), 0);
         if (total === 0) return <div className="w-32 h-32 rounded-full border-4 border-black shrink-0 bg-gray-200" />;
 
         let cumPct = 0;
         const gradients = data.map((d, i) => {
-          if (d[valueKey] === 0) return null;
-          const pct = (d[valueKey] / total) * 100;
+          const currentValue = Number(d[valueKey]) || 0;
+          if (currentValue === 0) return null;
+          const pct = (currentValue / total) * 100;
           const start = cumPct;
           cumPct += pct;
           return `${CHART_COLORS[i % CHART_COLORS.length]} ${start}% ${cumPct}%`;
@@ -686,15 +765,16 @@
         return <div className="w-32 h-32 rounded-full border-4 border-black shrink-0" style={{ background: `conic-gradient(${gradients.join(', ')})` }} />;
       };
 
-      const ChartLegend = ({ valueKey }) => {
-        const data = getValidData().filter((d) => d[valueKey] > 0);
+      const ChartLegend = ({ valueKey, dataOverride = null }) => {
+        const sourceData = dataOverride || getValidData();
+        const data = sourceData.filter((d) => (Number(d[valueKey]) || 0) > 0);
         return (
           <div className="flex flex-col gap-2 text-sm max-h-32 overflow-y-auto w-full pr-2 custom-scrollbar">
             {data.map((d, i) => (
               <div key={i} className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-black shrink-0" style={{ backgroundColor: CHART_COLORS[getValidData().indexOf(d) % CHART_COLORS.length] }} />
+                <div className="w-4 h-4 border-2 border-black shrink-0" style={{ backgroundColor: CHART_COLORS[sourceData.indexOf(d) % CHART_COLORS.length] }} />
                 <span className="truncate flex-1 font-medium">{d.text}</span>
-                <span className="font-bold">{d[valueKey]}</span>
+                <span className="font-bold">{Number(d[valueKey]) || 0}</span>
               </div>
             ))}
           </div>
@@ -730,7 +810,56 @@
 
             {showHelp && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-sm max-h-[90vh] overflow-y-auto relative"><button onClick={() => setShowHelp(false)} className="absolute top-2 right-2 p-2 hover:bg-gray-200"><X size={24} /></button><h2 className="text-xl font-bold mb-4 pr-8">Exercise</h2><p className="text-sm font-medium text-gray-800 leading-relaxed">Jot down what's on your mind, then hover over it (strum on mobile) to show that its on your mind. Without writing it, this will help you organize your thoughts into quick bullets and understand what you turn to most in a short increment. These may be things you want to investigate, rebalance, or offload to ensure your top of mind is aligned to where you want to be.</p><button onClick={() => setShowHelp(false)} className="mt-6 w-full py-3 bg-black text-white border-2 border-black font-bold hover:bg-gray-800">Got it</button></div></div>}
 
-            {showGlobalStats && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-4 sm:p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-lg max-h-[90vh] flex flex-col"><div className="flex justify-between items-center mb-6"><h2 className="text-xl sm:text-2xl font-bold">Cumulative Stats</h2><button onClick={() => setShowGlobalStats(false)} className="p-1 hover:bg-gray-200"><X size={24} /></button></div><div className="flex-1 overflow-y-auto pr-2 flex flex-col gap-4 custom-scrollbar">{getValidData().length === 0 && <p className="text-gray-500 italic">No notes written yet to track.</p>}{getValidData().map((d, i) => { const maxCount = Math.max(...getValidData().map((s) => s.strumCount), 1); return <div key={i} className="flex flex-col gap-1"><div className="flex justify-between text-sm"><span className="font-bold truncate pr-4">{d.text}</span><span>{d.strumCount}</span></div><div className="w-full bg-gray-200 h-4 border-2 border-black relative"><div className="h-full border-r-2 border-black transition-all duration-500" style={{ width: `${(d.strumCount / maxCount) * 100}%`, backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} /></div></div>; })}</div></div></div>}
+            {showGlobalStats && (() => {
+              const aggregatedRows = getStatsAggregate('strumCount');
+              const maxCount = Math.max(...aggregatedRows.map((row) => row.value), 1);
+              const tagMap = new Map();
+              aggregatedRows.forEach((row) => {
+                const tagKey = row.tagType || 'Untagged';
+                tagMap.set(tagKey, (tagMap.get(tagKey) || 0) + row.value);
+              });
+              const tagData = Array.from(tagMap.entries()).map(([text, value]) => ({ text, value }));
+              const totalTags = tagData.reduce((sum, row) => sum + row.value, 0);
+              return <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                <div className="bg-white p-4 sm:p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl max-h-[90vh] flex flex-col">
+                  <div className="flex justify-between items-center mb-4"><h2 className="text-xl sm:text-2xl font-bold">Cumulative Stats</h2><button onClick={() => setShowGlobalStats(false)} className="p-1 hover:bg-gray-200"><X size={24} /></button></div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <button onClick={() => setStatsMode('items')} className={`px-3 py-2 border-2 border-black font-bold text-sm ${statsMode === 'items' ? 'bg-black text-white' : 'bg-white hover:bg-gray-100'}`}>View Cumulative</button>
+                    <button onClick={() => setStatsMode('tags')} className={`px-3 py-2 border-2 border-black font-bold text-sm flex items-center gap-2 ${statsMode === 'tags' ? 'bg-black text-white' : 'bg-white hover:bg-gray-100'}`}><TagIcon size={16} />% by Tag</button>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-2 mb-4">
+                    <button onClick={() => setStatsRange('allTime')} className={`py-2 border-2 border-black font-bold text-sm ${statsRange === 'allTime' ? 'bg-black text-white' : 'bg-white hover:bg-gray-100'}`}>All Time</button>
+                    <button onClick={() => setStatsRange('snapshots')} className={`py-2 border-2 border-black font-bold text-sm ${statsRange === 'snapshots' ? 'bg-black text-white' : 'bg-white hover:bg-gray-100'}`}>Select Snapshots</button>
+                  </div>
+                  {statsRange === 'snapshots' && <div className="mb-4 border-2 border-black p-3 max-h-32 overflow-y-auto custom-scrollbar space-y-2">
+                    {snapshots.map((snapshot) => <label key={snapshot.id} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="truncate">{snapshot.name}</span>
+                      <input type="checkbox" checked={selectedSnapshotIds.includes(snapshot.id)} onChange={(e) => setSelectedSnapshotIds((prev) => e.target.checked ? [...prev, snapshot.id] : prev.filter((id) => id !== snapshot.id))} />
+                    </label>)}
+                    {snapshots.length === 0 && <p className="text-gray-500 italic text-sm">No snapshots available.</p>}
+                  </div>}
+                  <div className="flex-1 overflow-y-auto pr-2 flex flex-col gap-4 custom-scrollbar">
+                    {statsMode === 'items' && <>
+                      {aggregatedRows.length === 0 && <p className="text-gray-500 italic">No matching items for this view.</p>}
+                      {aggregatedRows.map((d, i) => <div key={`${d.text}-${i}`} className="flex flex-col gap-1">
+                        <div className="flex justify-between text-sm"><span className="font-bold truncate pr-4">{d.text}</span><span>{d.value}</span></div>
+                        <div className="w-full bg-gray-200 h-4 border-2 border-black relative"><div className="h-full border-r-2 border-black transition-all duration-500" style={{ width: `${(d.value / maxCount) * 100}%`, backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} /></div>
+                      </div>)}
+                    </>}
+                    {statsMode === 'tags' && <div className="flex flex-col items-center gap-4">
+                      <PieChart valueKey="value" dataOverride={tagData} />
+                      <div className="w-full space-y-2">
+                        {tagData.map((row, i) => <div key={`${row.text}-${i}`} className="flex items-center justify-between border-2 border-black px-3 py-2 text-sm">
+                          <span className="font-semibold">{row.text}</span>
+                          <span className="font-bold">{totalTags > 0 ? `${((row.value / totalTags) * 100).toFixed(1)}%` : '0.0%'}</span>
+                        </div>)}
+                        {tagData.length === 0 && <p className="text-gray-500 italic text-sm">Add tags to entries to view tag distribution.</p>}
+                      </div>
+                    </div>}
+                  </div>
+                </div>
+              </div>;
+            })()}
 
             {showGoals && (() => {
               const { rows, allocated, remaining, isOver } = getGoalSummary();
@@ -753,6 +882,13 @@
                             <input type="number" min="0" max="100" step="1" inputMode="numeric" value={row.goalPercent} onChange={(e) => { row.goalPercent = e.target.value; setGoalEditVersion((v) => v + 1); persistState(); }} className="w-24 border-2 border-black px-2 py-1 text-right" placeholder="0" />
                             <span className="font-bold">%</span>
                           </div>
+                        </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <TagIcon size={14} />
+                          <select value={row.tagType || ''} onChange={(e) => { row.tagType = e.target.value; setGoalEditVersion((v) => v + 1); persistState(); }} className="border-2 border-black px-2 py-1 text-sm flex-1">
+                            <option value="">No tag</option>
+                            {TAG_OPTIONS.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
+                          </select>
                         </div>
                         {isHigh && <p className="text-xs font-semibold text-red-700">{highPriorityPrompt}</p>}
                       </div>;
