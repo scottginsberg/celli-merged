@@ -36,7 +36,7 @@
     const NUM_STRINGS = 25;
     const TOP_MARGIN = 100;
     const LINE_SPACING = 55;
-    const LEFT_MARGIN_WIDTH = 140;
+    const LEFT_MARGIN_WIDTH = 110;
     const RIGHT_MARGIN_OFFSET = 30;
     const CHART_COLORS = ['#EF4444', '#3B82F6', '#EAB308', '#10B981', '#8B5CF6', '#F97316', '#06B6D4', '#EC4899', '#84CC16', '#6366F1'];
     const APP_STORAGE_KEY = 'fret-app-state-v1';
@@ -225,8 +225,7 @@
       const [goalEditVersion, setGoalEditVersion] = useState(0);
       const [showTimerPrompt, setShowTimerPrompt] = useState(false);
       const [timerEditMode, setTimerEditMode] = useState(false);
-      const [labelEditIndex, setLabelEditIndex] = useState(null);
-      const [labelInputText, setLabelInputText] = useState('');
+      const [tagEditIndex, setTagEditIndex] = useState(null);
       const [showSnapshots, setShowSnapshots] = useState(false);
       const [snapshotPanel, setSnapshotPanel] = useState('menu');
       const [snapshotName, setSnapshotName] = useState('');
@@ -596,15 +595,20 @@
 
       const handleClick = (e) => {
         const { x, y } = getLocalCoords(e);
-        if (x < LEFT_MARGIN_WIDTH - 10) {
+        if (x < LEFT_MARGIN_WIDTH) {
           let hitPillIdx = -1;
           stringsRef.current.forEach((str, idx) => {
+            let displayLabel = str.strumLabel;
+            if (displayLabel.length > 8) displayLabel = displayLabel.substring(0, 6) + '...';
+            const labelText = `${str.strumCount} ${displayLabel}`;
+            const estimatedTextWidth = labelText.length * 7;
+            const pillWidth = Math.min(estimatedTextWidth + 24, LEFT_MARGIN_WIDTH - 24);
+            const pillX = 12;
             const pillY = str.y - 14;
-            if (y >= pillY && y <= pillY + 28) hitPillIdx = idx;
+            if (x >= pillX && x <= pillX + pillWidth && y >= pillY && y <= pillY + 28) hitPillIdx = idx;
           });
           if (hitPillIdx !== -1) {
-            setLabelEditIndex(hitPillIdx);
-            setLabelInputText(stringsRef.current[hitPillIdx].strumLabel);
+            setTagEditIndex(hitPillIdx);
             if (inputRef.current) inputRef.current.blur();
             return;
           }
@@ -977,7 +981,7 @@
 
             {timerEditMode && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-4 sm:p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-xs max-h-[90vh] overflow-y-auto"><h2 className="text-xl font-bold mb-4 text-center">Set Timer</h2><div className="text-4xl sm:text-5xl font-mono text-center mb-6 tracking-widest border-b-4 border-black pb-4">{timerDigits.slice(0,2)}:{timerDigits.slice(2,4)}</div><div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">{['1','2','3','4','5','6','7','8','9','00','0','Del'].map((key) => <button key={key} onClick={() => { if (key === 'Del') setTimerDigits((prev) => ('0' + prev.slice(0, -1)).slice(-4)); else setTimerDigits((prev) => (prev + key).slice(-4)); }} className="py-3 sm:py-4 border-2 border-black font-bold text-lg sm:text-xl hover:bg-gray-100 active:bg-gray-200">{key}</button>)}</div><div className="flex gap-4"><button onClick={() => setTimerEditMode(false)} className="flex-1 py-3 border-2 border-black font-bold hover:bg-gray-100">Cancel</button><button onClick={() => { const mins = parseInt(timerDigits.slice(0,2), 10); const secs = parseInt(timerDigits.slice(2,4), 10); setTimeRemaining(mins * 60 + secs); setTimerEditMode(false); }} className="flex-1 py-3 bg-black text-white border-2 border-black font-bold hover:bg-gray-800">Save</button></div></div></div>}
 
-            {labelEditIndex !== null && !timerEditMode && !showTimerPrompt && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-md"><h2 className="text-xl font-bold mb-4">What does a Strum represent?</h2><input autoFocus value={labelInputText} onChange={(e) => setLabelInputText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { stringsRef.current[labelEditIndex].strumLabel = labelInputText || 'Strums'; persistState(); setLabelEditIndex(null); } }} className="w-full border-2 border-black p-3 mb-6 text-lg outline-none focus:ring-4 focus:ring-blue-500/30" placeholder="e.g. Days, Pushups, Pages Read..." /><div className="flex flex-col sm:flex-row justify-between items-center gap-4"><button onClick={() => { stringsRef.current[labelEditIndex].strumCount = 0; persistState(); setLabelEditIndex(null); }} className="w-full sm:w-auto px-4 py-2 border-2 border-red-500 text-red-600 font-bold hover:bg-red-50">Reset Count</button><div className="flex gap-2 w-full sm:w-auto"><button onClick={() => setLabelEditIndex(null)} className="flex-1 sm:flex-none px-4 py-2 border-2 border-black font-bold hover:bg-gray-100">Cancel</button><button onClick={() => { stringsRef.current[labelEditIndex].strumLabel = labelInputText || 'Strums'; persistState(); setLabelEditIndex(null); }} className="flex-1 sm:flex-none px-4 py-2 bg-black text-white border-2 border-black font-bold hover:bg-gray-800">Save</button></div></div></div></div>}
+            {tagEditIndex !== null && !timerEditMode && !showTimerPrompt && <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div className="bg-white p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-md"><h2 className="text-xl font-bold mb-2">Tag this strum row</h2><p className="text-sm text-gray-700 mb-4">Tap a tag to categorize this row for analytics.</p><div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6"><button onClick={() => { stringsRef.current[tagEditIndex].tagType = ''; persistState(); setTagEditIndex(null); }} className="px-3 py-2 border-2 border-black font-bold hover:bg-gray-100 text-sm">No tag</button>{TAG_OPTIONS.map((tag) => <button key={tag} onClick={() => { stringsRef.current[tagEditIndex].tagType = tag; persistState(); setTagEditIndex(null); }} className="px-3 py-2 border-2 border-black font-bold hover:bg-gray-100 text-sm">{tag}</button>)}</div><div className="flex justify-end"><button onClick={() => setTagEditIndex(null)} className="px-4 py-2 border-2 border-black font-bold hover:bg-gray-100">Cancel</button></div></div></div>}
 
             <input ref={inputRef} type="text" value={inputText} onChange={(e) => { setInputText(e.target.value); if (activeStringRef.current !== null) stringsRef.current[activeStringRef.current].text = e.target.value; persistState(); }} onSelect={(e) => setCursorIndex(e.target.selectionStart || 0)} onKeyDown={handleKeyDown} onBlur={() => setActiveStringIndex(null)} style={{ position: 'absolute', top: `${activeY}px`, left: '20px', width: '1px', height: '1px', opacity: 0, fontSize: '16px', WebkitTextSizeAdjust: '100%', pointerEvents: 'none', padding: 0, margin: 0, border: 'none', zIndex: -1 }} autoComplete="off" spellCheck="false" />
 
