@@ -236,6 +236,69 @@
             padding: 0 4px;
         }
 
+
+        .mobile-controls {
+            display: none;
+        }
+
+        @media (max-width: 800px) {
+            body {
+                height: 100dvh;
+            }
+
+            header {
+                padding: 0.65rem 0.8rem;
+                font-size: 0.72rem;
+                letter-spacing: 0.6px;
+            }
+
+            #sys-time {
+                display: none;
+            }
+
+            .dashboard {
+                display: block;
+            }
+
+            .feed-container {
+                padding: 1rem 1rem 1.5rem;
+            }
+
+            .story-section {
+                max-width: 100%;
+                padding-bottom: 2.5rem;
+            }
+
+            .log-entry {
+                margin-bottom: 1rem;
+            }
+
+            .log-entry p {
+                margin-bottom: 0.8rem;
+                text-align: left;
+                font-size: 0.98rem;
+                line-height: 1.55;
+            }
+
+            .mobile-controls {
+                display: flex;
+                position: sticky;
+                top: 0;
+                z-index: 8;
+                background: var(--bg);
+                padding: 0.55rem;
+                margin: -1rem -1rem 1rem;
+                border-bottom: 1px solid var(--muted);
+                gap: 0.5rem;
+            }
+
+            .mobile-controls button {
+                flex: 1;
+                padding: 0.7rem 0.45rem;
+                font-size: 0.7rem;
+            }
+        }
+
         /* BRIDGE SPECIFIC STYLES */
         [data-theme="bridge"] .log-entry p {
             border-left: 2px solid var(--accent);
@@ -279,7 +342,11 @@
 
         <!-- MAIN DATA FEED -->
         <main class="feed-container" id="feed">
-            
+            <div class="mobile-controls" aria-label="Story controls">
+                <button id="mobile-btn-shift" onclick="togglePerspective()">Shift Perspective [Penny]</button>
+                <button id="mobile-btn-bridge" onclick="initiateBridge()">Initiate Bridge</button>
+            </div>
+
             <!-- SECTION 1: DIME / LOOMWORKS -->
             <section id="section-dime" class="story-section visible">
                 <div class="log-entry">
@@ -443,7 +510,7 @@
                     <p>She just needs the reminders. Just needs to keep counting her Pennies.</p>
                 </div>
             </section>
-            
+
             <br><br><br>
         </main>
     </div>
@@ -471,9 +538,11 @@
         const body = document.body;
         const btnShift = document.getElementById('btn-shift');
         const btnBridge = document.getElementById('btn-bridge');
+        const mobileBtnShift = document.getElementById('mobile-btn-shift');
+        const mobileBtnBridge = document.getElementById('mobile-btn-bridge');
         const syncStatus = document.getElementById('sync-status');
         const anchorState = document.getElementById('anchor-state');
-        
+
         const secDime = document.getElementById('section-dime');
         const secPenny = document.getElementById('section-penny');
         const secBridge = document.getElementById('section-bridge');
@@ -487,18 +556,20 @@
                 currentState = 'penny';
                 body.setAttribute('data-theme', 'penny');
                 btnShift.textContent = "Shift Perspective [Dime]";
+                mobileBtnShift.textContent = "Shift Perspective [Dime]";
                 syncStatus.textContent = "Archive Retrieved";
                 anchorState.textContent = "Active";
-                
+
                 secDime.classList.remove('visible');
                 secPenny.classList.add('visible');
             } else {
                 currentState = 'dime';
                 body.setAttribute('data-theme', 'dime');
                 btnShift.textContent = "Shift Perspective [Penny]";
+                mobileBtnShift.textContent = "Shift Perspective [Penny]";
                 syncStatus.textContent = "Protocol Active";
                 anchorState.textContent = "Suppressed";
-                
+
                 secPenny.classList.remove('visible');
                 secDime.classList.add('visible');
             }
@@ -507,24 +578,28 @@
 
         function initiateBridge() {
             if (currentState === 'bridge') return;
-            
+
             currentState = 'bridge';
             body.setAttribute('data-theme', 'bridge');
-            
+
             // Update UI
             btnShift.style.opacity = '0.3';
             btnShift.style.pointerEvents = 'none';
+            mobileBtnShift.style.opacity = '0.3';
+            mobileBtnShift.style.pointerEvents = 'none';
             btnBridge.classList.add('active');
+            mobileBtnBridge.classList.add('active');
             btnBridge.textContent = "Bridge Established";
-            
+            mobileBtnBridge.textContent = "Bridge Established";
+
             syncStatus.textContent = "SYNTHESIS ACTIVE";
             anchorState.textContent = "INTEGRATED";
-            
+
             // Show only bridge section
             secDime.classList.remove('visible');
             secPenny.classList.remove('visible');
             secBridge.classList.add('visible');
-            
+
             feedContainer.scrollTop = 0;
         }
     </script>
