@@ -34,9 +34,33 @@ const loomCore = document.getElementById('loomCore');
 const loomPost = document.getElementById('loomPost');
 const loomTail = document.getElementById('loomTail');
 
+const performanceConfig = {
+  initialPixelRatioCap: 1.25,
+  maxPixelRatio: Math.min(window.devicePixelRatio, 2),
+  minPixelRatio: 1,
+  minRenderScale: 0.7,
+  maxRenderScale: 1.0,
+  scaleStep: 0.05,
+  stableFrameThreshold: 1 / 58,
+  stressedFrameThreshold: 1 / 45,
+  stableTimeToIncrease: 2.0,
+  adjustmentCooldown: 0.5
+};
+
+const performanceState = {
+  frameAvg: 1 / 60,
+  renderScale: 1.0,
+  pixelRatio: Math.min(
+    Math.max(window.devicePixelRatio, performanceConfig.minPixelRatio),
+    performanceConfig.initialPixelRatioCap
+  ),
+  stableTime: 0,
+  cooldown: 0
+};
+
 // Initialize renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(performanceState.pixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -190,25 +214,183 @@ letters.forEach((letter, letterIdx) => {
   });
 });
 
-// Composer & post-processing
-const composer = new EffectComposer(renderer);
-composer.addPass(new RenderPass(scene, camera));
+// Composer & post-processing (lazy init)
+let composer = null;
 
-const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.7, 0.9, 0.2);
-composer.addPass(bloomPass);
+const postFXConfig = {
+  enabled: true,
+  bloom: true,
+  afterimage: true,
+  film: true
+};
 
-const afterimagePass = new AfterimagePass(0.96);
-composer.addPass(afterimagePass);
+const postProcessing = {
+  composer: null,
+  renderPass: null,
+  bloomPass: null,
+  afterimagePass: null,
+  filmPass: null
+};
 
-const filmPass = new ShaderPass({
-  uniforms: { tDiffuse: { value: null }, time: { value: 0 }, noise: { value: 0.03 }, scanAmp: { value: 0.03 } },
-  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
-  fragmentShader: `
+const shouldUsePostFX = () =>
+  postFXConfig.enabled || postFXConfig.bloom || postFXConfig.afterimage || postFXConfig.film;
+
+const createFilmPass = () =>
+  new ShaderPass({
+    uniforms: { tDiffuse: { value: null }, time: { value: 0 }, noise: { value: 0.03 }, scanAmp: { value: 0.03 } },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+    fragmentShader: `
     precision highp float; varying vec2 vUv; uniform sampler2D tDiffuse; uniform float time; uniform float noise; uniform float scanAmp;
     float rand(vec2 co){ return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453); }
     void main(){ vec3 col = texture2D(tDiffuse, vUv).rgb; float n = rand(vUv + fract(time)); float scan = sin((vUv.y + time*0.04)*3.14159*480.0) * scanAmp; col += n*noise; col += scan; col = pow(col, vec3(1.02)); gl_FragColor = vec4(col, 1.0); }`
-});
-composer.addPass(filmPass);
+  });
+
+const disposePass = (pass) => {
+  if (!pass) return;
+  if (typeof pass.dispose === 'function') pass.dispose();
+  if (pass.material?.dispose) pass.material.dispose();
+};
+
+const updateGlobalPassRefs = () => {
+  const appState = window.celliApp || (window.celliApp = {});
+  appState.bloomPass = postProcessing.bloomPass;
+  appState.afterimagePass = postProcessing.afterimagePass;
+  appState.filmPass = postProcessing.filmPass;
+};
+
+const syncPass = (enabled, currentPass, createFn) => {
+  if (!postProcessing.composer) return currentPass;
+  if (enabled && !currentPass) {
+    const newPass = createFn();
+    postProcessing.composer.addPass(newPass);
+    return newPass;
+  }
+  if (!enabled && currentPass) {
+    postProcessing.composer.removePass(currentPass);
+    disposePass(currentPass);
+    return null;
+  }
+  return currentPass;
+};
+
+const disposePostProcessing = () => {
+  if (!postProcessing.composer) return;
+  postProcessing.bloomPass = syncPass(false, postProcessing.bloomPass, () => null);
+  postProcessing.afterimagePass = syncPass(false, postProcessing.afterimagePass, () => null);
+  postProcessing.filmPass = syncPass(false, postProcessing.filmPass, () => null);
+  if (postProcessing.renderPass) {
+    postProcessing.composer.removePass(postProcessing.renderPass);
+    disposePass(postProcessing.renderPass);
+    postProcessing.renderPass = null;
+  }
+  if (typeof postProcessing.composer.dispose === 'function') postProcessing.composer.dispose();
+  postProcessing.composer = null;
+  composer = null;
+  updateGlobalPassRefs();
+};
+
+const ensurePostProcessing = () => {
+  if (!shouldUsePostFX()) {
+    disposePostProcessing();
+    return;
+  }
+  if (!postProcessing.composer) {
+    postProcessing.composer = new EffectComposer(renderer);
+    postProcessing.renderPass = new RenderPass(scene, camera);
+    postProcessing.composer.addPass(postProcessing.renderPass);
+    composer = postProcessing.composer;
+  }
+  postProcessing.bloomPass = syncPass(
+    postFXConfig.bloom,
+    postProcessing.bloomPass,
+    () => new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.7, 0.9, 0.2)
+  );
+  postProcessing.afterimagePass = syncPass(
+    postFXConfig.afterimage,
+    postProcessing.afterimagePass,
+    () => new AfterimagePass(0.96)
+  );
+  postProcessing.filmPass = syncPass(postFXConfig.film, postProcessing.filmPass, createFilmPass);
+  updateGlobalPassRefs();
+};
+
+const setPostFXEnabled = (enabled) => {
+  postFXConfig.enabled = enabled;
+  ensurePostProcessing();
+};
+
+const setPostFXPassEnabled = (passName, enabled) => {
+  if (!(passName in postFXConfig)) return;
+  postFXConfig[passName] = enabled;
+  ensurePostProcessing();
+};
+
+const applyResolutionSettings = () => {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const effectivePixelRatio = Math.max(
+    performanceConfig.minPixelRatio,
+    Math.min(performanceState.pixelRatio * performanceState.renderScale, performanceConfig.maxPixelRatio)
+  );
+  renderer.setPixelRatio(effectivePixelRatio);
+  renderer.setSize(w, h, false);
+  if (postProcessing.composer) {
+    postProcessing.composer.setSize(w, h);
+  }
+};
+
+const updatePerformance = (dt) => {
+  performanceState.frameAvg = THREE.MathUtils.lerp(performanceState.frameAvg, dt, 0.1);
+  performanceState.cooldown = Math.max(0, performanceState.cooldown - dt);
+  const stressed = performanceState.frameAvg > performanceConfig.stressedFrameThreshold;
+  const stable = performanceState.frameAvg < performanceConfig.stableFrameThreshold;
+
+  if (stressed && performanceState.cooldown === 0) {
+    if (performanceState.renderScale > performanceConfig.minRenderScale) {
+      performanceState.renderScale = Math.max(
+        performanceConfig.minRenderScale,
+        performanceState.renderScale - performanceConfig.scaleStep
+      );
+    } else if (performanceState.pixelRatio > performanceConfig.initialPixelRatioCap) {
+      performanceState.pixelRatio = Math.max(
+        performanceConfig.initialPixelRatioCap,
+        performanceState.pixelRatio - 0.05
+      );
+    }
+    performanceState.stableTime = 0;
+    performanceState.cooldown = performanceConfig.adjustmentCooldown;
+    applyResolutionSettings();
+    return;
+  }
+
+  if (stable) {
+    performanceState.stableTime += dt;
+    if (
+      performanceState.stableTime >= performanceConfig.stableTimeToIncrease &&
+      performanceState.cooldown === 0
+    ) {
+      if (performanceState.renderScale < performanceConfig.maxRenderScale) {
+        performanceState.renderScale = Math.min(
+          performanceConfig.maxRenderScale,
+          performanceState.renderScale + performanceConfig.scaleStep
+        );
+      } else if (performanceState.pixelRatio < performanceConfig.maxPixelRatio) {
+        performanceState.pixelRatio = Math.min(
+          performanceConfig.maxPixelRatio,
+          performanceState.pixelRatio + 0.05
+        );
+      }
+      performanceState.stableTime = 0;
+      performanceState.cooldown = performanceConfig.adjustmentCooldown;
+      applyResolutionSettings();
+    }
+  } else {
+    performanceState.stableTime = 0;
+  }
+};
+
+applyResolutionSettings();
+ensurePostProcessing();
 
 // Intro sequence config
 const introCfg = {
@@ -267,11 +449,19 @@ function animate() {
     });
   }
   
+  updatePerformance(dt);
+
   // Update film grain
-  filmPass.uniforms.time.value = totalTime;
+  if (postProcessing.filmPass) {
+    postProcessing.filmPass.uniforms.time.value = totalTime;
+  }
   
   // Render
-  composer.render();
+  if (postProcessing.composer) {
+    postProcessing.composer.render();
+  } else {
+    renderer.render(scene, camera);
+  }
   
   requestAnimationFrame(animate);
 }
@@ -280,11 +470,10 @@ function animate() {
 window.addEventListener('resize', () => {
   const w = window.innerWidth;
   const h = window.innerHeight;
-  renderer.setSize(w, h);
   camera.left = -w / h;
   camera.right = w / h;
   camera.updateProjectionMatrix();
-  composer.setSize(w, h);
+  applyResolutionSettings();
 });
 
 // Initialize - called when Play button is clicked
@@ -311,6 +500,6 @@ export function startApp() {
   console.log('✅ App started successfully');
 }
 
-export { scene, camera, renderer, composer, voxels, spheres };
+export { scene, camera, renderer, composer, voxels, spheres, setPostFXEnabled, setPostFXPassEnabled };
 
 
