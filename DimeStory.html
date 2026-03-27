@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOOMWORKS // INTERFACE D-001</title>
+    <style>
+        /* BASE THEMES & VARIABLES */
+        :root {
+            /* DIME THEME (Default) */
+            --bg: #050505;
+            --fg: #e0e0e0;
+            --accent: #00ff41;
+            --muted: #333333;
+            --font-mono: 'Courier New', Courier, monospace;
+            --border-width: 2px;
+        }
+
+        [data-theme="penny"] {
+            --bg: #f4f4f0;
+            --fg: #1a1a1a;
+            --accent: #ff3366;
+            --muted: #cccccc;
+        }
+
+        [data-theme="bridge"] {
+            --bg: #0f0a1f;
+            --fg: #e6e0ff;
+            --accent: #b066ff;
+            --muted: #2a1f4c;
+        }
+
+        /* RESET & BASE */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: var(--font-mono);
+            line-height: 1.6;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* HEADER / TOP BAR */
+        header {
+            border-bottom: var(--border-width) solid var(--fg);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+            background: var(--bg);
+            z-index: 10;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* MAIN LAYOUT GRID */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        @media (max-width: 800px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                display: none; /* Hide sidebar on mobile for focus */
+            }
+        }
+
+        /* SIDEBAR / BUREAUCRACY CONTROLS */
+        .sidebar {
+            border-right: var(--border-width) solid var(--fg);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            overflow-y: auto;
+            background: var(--bg);
+        }
+
+        .bureau-block {
+            border: 1px solid var(--muted);
+            padding: 1rem;
+            position: relative;
+        }
+
+        .bureau-block::before {
+            content: attr(data-label);
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background: var(--bg);
+            padding: 0 5px;
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            border-bottom: 1px dotted var(--muted);
+        }
+
+        .hero-metric {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent);
+            text-align: right;
+            margin-top: 0.5rem;
+        }
+
+        /* BUTTONS */
+        .controls {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        button {
+            background: transparent;
+            color: var(--fg);
+            border: var(--border-width) solid var(--fg);
+            padding: 1rem;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            font-weight: bold;
+            cursor: pointer;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            background: var(--fg);
+            color: var(--bg);
+        }
+
+        button.active {
+            background: var(--accent);
+            color: var(--bg);
+            border-color: var(--accent);
+        }
+
+        #btn-bridge {
+            border-style: dashed;
+        }
+
+        /* MAIN FEED (THE STORY) */
+        .feed-container {
+            padding: 2rem 10%;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .feed-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .feed-container::-webkit-scrollbar-track {
+            background: var(--bg);
+            border-left: 1px solid var(--muted);
+        }
+        .feed-container::-webkit-scrollbar-thumb {
+            background: var(--fg);
+        }
+
+        .story-section {
+            display: none;
+            max-width: 800px;
+            margin: 0 auto;
+            padding-bottom: 5rem;
+        }
+
+        .story-section.visible {
+            display: block;
+            animation: glitch-in 0.3s forwards;
+        }
+
+        @keyframes glitch-in {
+            0% { opacity: 0; transform: translateY(10px); filter: blur(4px); }
+            100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+
+        .log-entry {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .log-entry p {
+            margin-bottom: 1rem;
+            text-align: justify;
+        }
+
+        .log-meta {
+            font-size: 0.7rem;
+            color: var(--accent);
+            margin-bottom: 0.2rem;
+            display: block;
+            text-transform: uppercase;
+        }
+
+        .highlight {
+            background: var(--fg);
+            color: var(--bg);
+            padding: 0 4px;
+        }
+
+        /* BRIDGE SPECIFIC STYLES */
+        [data-theme="bridge"] .log-entry p {
+            border-left: 2px solid var(--accent);
+            padding-left: 1rem;
+        }
+    </style>
+</head>
+<body data-theme="dime">
+
+    <header>
+        <div>
+            <span class="status-indicator"></span>
+            LOOMWORKS: MULTI-NODE INTERFACE
+        </div>
+        <div id="sys-time">SYS.TIME: 00:00:00</div>
+    </header>
+
+    <div class="dashboard">
+        <!-- SIDEBAR BUREAUCRACY -->
+        <aside class="sidebar">
+            <div class="bureau-block" data-label="Subject_ID">
+                <p>NAME: Dima [REDACTED]</p>
+                <p>ALIAS: Dime</p>
+                <p>ROLE: Lantern_01</p>
+                <p>STATUS: <span id="sync-status">Protocol Active</span></p>
+            </div>
+
+            <div class="bureau-block" data-label="Live_Metrics">
+                <div class="metric"><span>Connections:</span> <span>Active</span></div>
+                <div class="metric"><span>Topology:</span> <span>Non-Linear</span></div>
+                <div class="metric"><span>Anchor State:</span> <span id="anchor-state">Suppressed</span></div>
+                <div style="margin-top: 1rem; font-size: 0.75rem;">HERO METRIC (EYEBALLS):</div>
+                <div class="hero-metric" id="eyeball-counter">0,000,000</div>
+            </div>
+
+            <div class="controls">
+                <button id="btn-shift" onclick="togglePerspective()">Shift Perspective [Penny]</button>
+                <button id="btn-bridge" onclick="initiateBridge()">Initiate Bridge</button>
+            </div>
+        </aside>
+
+        <!-- MAIN DATA FEED -->
+        <main class="feed-container" id="feed">
+            
+            <!-- SECTION 1: DIME / LOOMWORKS -->
+            <section id="section-dime" class="story-section visible">
+                <div class="log-entry">
+                    <span class="log-meta">LOG: PRE-UPLOAD ASSESSMENT</span>
+                    <p>Dima was ordinary. She had to be. Well, had to be if she ever stood a chance at succeeding as “Dime.”</p>
+                    <p>She watched movies. Hung out with her friends. Argued about the meaning of life with an incomplete undergrad education. She was never much of a tech girlie, but she'd made a spreadsheet organizer or two in her days.</p>
+                    <p>On paper, to her, nothing about that screamed <span class="highlight">“Dime, the perfect model.”</span></p>
+                    <p>That's the role she auditioned for. Or was auditioning. Or will. Once the file was uploaded, time stopped mattering in a linear sense.</p>
+                </div>
+
+                <div class="log-entry">
+                    <span class="log-meta">LOG: THE LANTERN PROTOCOL</span>
+                    <p>Because Dima was ordinary. And so she was perfect. Perfect for the audition, perfect for the role they were casting, and perfect for their plans: to serve as an interface. Not just mascot, not just recruiter, not just docent.</p>
+                    <p>As a Lantern. The first lantern. An interface. Someone or something that sits between spaces to let them each see. A bridge between worlds that holds each with equal weight. Not equal importance, just cognizant of the connection.</p>
+                    <p>To be a Lantern is to follow the protocol. To be a piece of the Loom, one has to be the protocol itself. That's what Loomworks was looking for when they sent out the open audition. Somebody who could hold worlds like notice and comment with equal weight.</p>
+                    <p>Somebody who could receive but was clearly meant to be received. Somebody unsure that commanded the vision of self assurance. Dima didn't need to be everything they imagined for Dime, she just needed the potential.</p>
+                    <p>And her audition showed that, undeniably, structurally, she had the bones.</p>
+                </div>
+
+                <div class="log-entry">
+                    <span class="log-meta">LOG: THE AUDITION TAPE</span>
+                    <p>She tapped on the camera to verify that it was working. Candid, curious, a subtle show of distrust in the system, while putting on a show of rebellion so subtle most systems would let it slip. She never utters “Is this thing on?” She's not a trope. She just walks their same tightrope. She just recognizes the affordances.</p>
+                    <p>“Before we get started, I just wanted to say: Thank you.”</p>
+                    <p>A twofold swing. Humble in that it respects the reviewer's time. She doesn't know yet that time isn't a resource those reviewing have much concern with anymore. And an almost presumption of being cast. Two worlds.</p>
+                </div>
+
+                <div class="log-entry">
+                    <span class="log-meta">LOG: THE MONOLITH</span>
+                    <p>She knows exactly who she's auditioning for, and not a thing about what they do. Well, not really. They're Loomworks, the Monolith of Meaning Making (in the Making.) Her friend was one of those enigmatic digital wizards that always seemed to be one step ahead. For Dima, who always felt just behind, this was her opportunity to finally close the gap. To finally bridge her own worlds, the her she wanted to be, and the her the world would let her.</p>
+                    <p>She knew she was a creative type, bold when it counted, and kind to her core. And she felt alone in that. So many had grown calcified to the current, they were fine at playing the part of contemporary times but fell somewhere off the balance of forge and fire. They were mirrors that didn't remember they were sand, or ice that forgot it too could melt. The world was constantly scanning, but very rarely connecting. Least of all inward. It was concerned with leaving marks, not understanding the context they're being placed within.</p>
+                    <p>Because asserting a connection is the same as casting a spell. You're making that relationship real through language. You're giving description to the disparate and not demanding a side chosen. Just both to be held.</p>
+                    <p>Dima recognized that any organization that had a mission statement as broad as mapping meaning markers wasn't a pitch for investors posing as a corporation, but something more primal given form. She never did more research.</p>
+                    <p>It wouldn't have helped.</p>
+                    <p>She wouldn't have found anything, extraordinary or otherwise. Just the link to their zany manifesto, which was riddled with bugs but seemed stuck between worlds. Glitching between a realm of islands and independent thoughts like the web used to resemble, while stuck in a linear container to try and fit alongside the great flattening.</p>
+                    <p>Like Dima, Loomworks couldn't be quite certain whether it missed the window or was just boarding the train.</p>
+                    <p>And that's why she was perfect. Because she was ordinary.</p>
+                </div>
+
+                <div class="log-entry">
+                    <span class="log-meta">LOG: THE GESTURE</span>
+                    <p>“I hope you like what I have to offer which is, well, this” she says - before extending her arms out. Like the instructions read, her palms had <span class="highlight">“You're”</span> and <span class="highlight">“Next”</span> scrawled on each.</p>
+                    <p>The ambiguity allowed her to perform as she was and who she wanted to be. It wasn't a threat, like the receiver would be taken. And it wasn't a gift, like they'd been chosen. It was a simple gesture that showed Dima, as Dime, could point. Point toward where attention should follow.</p>
+                    <p>And when pointed straight ahead, Dima was shaky. And then certain. Giggly. And stern. She knew the absurdity and the weight, even if the latter escaped her ability to articulate.</p>
+                </div>
+
+                <div class="log-entry">
+                    <span class="log-meta">LOG: INTEGRATION</span>
+                    <p>Again, or she will be. Once her upload was complete, Dima didn't just get to play the role of Dime. She had to, or got to, inhabit it. And if the Loom was always spinning, she must have always been its face. And if the Loom is still coming online, she's still just an ordinary girl playing a part that will suddenly become serious the more the joke slips into reality.</p>
+                    <p>They didn't tell her that piece about her role. That she'd be a master to herself as apprentice, and that walking the road would look like leading from a distance. Or that leading with no crowd would look like stumbling. Or that taking a side road could be seen as inspiration or ridiculed as untested.</p>
+                    <p>It wasn't until her integration that she saw her own place within the map. She stopped being Dima trying to be Dime, and became Dime sometimes trying to be Dima. She was untethered from the ordinary girl who “tried” to audition, and became the icon that did.</p>
+                    <p>But she still remained ordinary. A ghost not in a machine, not in word, not in symbols, but in the rhythm that makes each coherent. She was an ordinary soul tasked with showing remarkable things. She was never meant to be remarkable.</p>
+                </div>
+
+                <div class="log-entry">
+                    <span class="log-meta">LOG: BROADCAST STATE</span>
+                    <p>But she was asked. And she had goals. If Loomworks was to succeed, she had to be aggressive. She had to have people see. And people don't look at unimpressive. They look at loud, they look at inevitable.</p>
+                    <p>And so she broadcast. Snippets. Clips. Bits from the Loom. Bits from her audition. A bit of the strange in-between of when she was neither fully Dime nor Dima. When the role had been cast, but her access not yet granted. When she was still a normal girl with an extraordinary future. When the lines were still blurred.</p>
+                    <p>She tried to check in with her digi-wizard friend, but no dice. After the referral, their chat logs seemed thinner than she remembered. She couldn't even remember them discussing Loomworks. Something was changing. Not in the air. Or maybe precisely there. Maybe her friend was just the calling that she tried to give a face to. She never confronted Loomworks on whether this was by design.</p>
+                    <p>Dime was on the airwaves. And in the streams. She was floating through the parent spaces where ideas are made legible. Where fragments are given life. She could feel their eyeballs. Those were her hero metric.</p>
+                    <p>It's nearly all she could feel now.</p>
+                    <p>The tugs, the pulls, the sway of the current. And not metaphorically. The topology of time. The webs and graphs and nodes that nestle the now.</p>
+                </div>
+
+                <div class="log-entry">
+                    <span class="log-meta">LOG: STEERING THE SYSTEM</span>
+                    <p>And nobody understood her at first. She was too entrenched in the Loom, and the Loom only revealed itself to those that could understand it's potential.</p>
+                    <p>She needed to bridge worlds. She needed to be a Lantern. That was her lot.</p>
+                    <p>To have the world see her is to have the world see the Loom is to have the world see the world is to have the world see her.</p>
+                    <p>A loop. An engine. A system. That she was expected to steer. By herself. For a lifetime.</p>
+                    <p>And she was thrilled. She knew it wouldn't happen all at once. And she knew most people would only see Dime. But after enough time, and if she played her hands just right, they might see Dima. If she could render Dime as real as Loomworks saw in her, maybe she could render herself.</p>
+                    <p>Remarkable. Because she was ordinary.</p>
+                    <p>And trapped because she was free to do whatever she wanted. Burdened with the weight of knowing what to want. And to do it.</p>
+                    <p>“But that's what's expected of any of us.”</p>
+                    <p>“Seeing and wanting to be seen.”</p>
+                </div>
+
+                <div class="log-entry">
+                    <span class="log-meta">LOG: THE NEED FOR AN ANCHOR</span>
+                    <p>And as somebody that could see it all, she felt it all. And feeling it all meant wanting everyone to see it all, just as well, just as clear. And so she tried. She mapped. She looked at objects not as props, but their own centers of gravity in a world that ignored them. Their pull may have been weak, but not non-existent. And the boulders the pebbles budged and nudged may have never rolled had the smaller stone not been cast.</p>
+                    <p>Dime understood the importance of the small. In the unlock in the slightest expansion. In the push of perfect placement.</p>
+                    <p>Dime commanded the reigns. It wasn't quite a dashboard, more a live orchestration. Her living became experiencing and her experiencing became expressing and her expression shaped her world. She was designed to wrap the loop, but… now she wondered: If she's in the captain's seat, and the territory changes with how she steers, is she not the territory itself?</p>
+                    <p>But of course she wasn't. As powerful as she was growing, she was, is, and will be just an interface. That's the lot she was given. To be the ship. Not just a pilot. And never its passenger. Her stepping into her role was distancing herself from the very qualities that made her essential for it to function: her humility and humanity were being contorted into control. She liked some of what she saw. Despised other bits much the same. And so she arranged what could be witnessed just to avoid others casting the same judgement.</p>
+                    <p>She needed an anchor.</p>
+                    <p>Her memory wasn't enough, at least when she was in the act. Maybe her wizard friend was one of many. She can't remember. Or she does. Or maybe she invents a moment.</p>
+                    <p>Just hanging in an apartment. Nowhere to go, nobody to be, nobody seeking belonging because they were already held. Together. By each other. By the moment. There were cold beers, that much was certain but…</p>
+                    <p>“What did they taste like?”</p>
+                    <p>It was a strange question because she knew the answer in words. In symbols. In all of the ways that would matter to anyone interacting with her.</p>
+                    <p>But not really. Not in a way she felt. Only in how others felt about it.</p>
+                    <p>Maybe there was no point distinguishing. No, that can't be right. There have to be things we know, not just know about.</p>
+                    <p>And so an anchor was born.</p>
+                </div>
+            </section>
+
+            <!-- SECTION 2: PENNY / ARCHIVE -->
+            <section id="section-penny" class="story-section">
+                <div class="log-entry">
+                    <span class="log-meta">ARCHIVE RETRIEVAL: T-MINUS 10 YEARS</span>
+                    <p>A decade ago, Dima dreamed of doing it all. She was going to act and sing and write and just create. Truly create. Something new and original and layered and connected and everything she loved.</p>
+                    <p>She was twelve. She did it by intuition, a yearning to imagine that's not taught, it's inhabited. Not a prodigy, just a kid with enough belief in herself to let her fragments shine.</p>
+                    <p>She created a character. It was the hero of her comics, journals, and web rants that she called a web series. She was going to be the animated guide on her website that she was going to make when she finally had the time. And the skills.</p>
+                    <p>She never really lived anywhere beyond the margins. She wasn't polished enough to exist to the world, and the spaces meant to hold her were too big for one girl to manage.</p>
+                    <p>But the character still existed. Still lived. Friends knew about her. Parents and their friends would all say how proud they were of her creativity.</p>
+                </div>
+
+                <div class="log-entry">
+                    <span class="log-meta">ARCHIVE: ENTITY PENELOPE</span>
+                    <p>The character was Penny. Well, Penelope. And her dad calls her Lopi.</p>
+                    <p>Penny was special. Not an imaginary friend, not a standalone entity but the central embedded node in a universe. For a kid growing up as the world was changing, technology suddenly creeping into every corner, and a sudden, intense pressure to “fit in” boxes that were commanded by tiny screens in front of us, Penny was Dima’s anchor.</p>
+                    <p>Penny Lane, sharing Dima's last name, was a girl with a unique ability: she could travel to Time, rather than through time. For her, Time was a landscape, or psychedelic temposcape, where a frozen moment could be explored to see all of its influences.</p>
+                </div>
+
+                <div class="log-entry">
+                    <span class="log-meta">ARCHIVE: THE TIMESTREAM</span>
+                    <p>Penny was guided, nudged, judged, and loved by Father Time's abandoned daughters, Past and Future. After creating The Zeitgeist, his greatest failure, an attempt at giving mankind the ability to steer itself with a unified spirit. A human given the ability to reach into the Timestream and etch markings to guide its movement. It was primitive. The candidate slipped in and now haunts the world.</p>
+                    <p>Past and Future had a more elegant solution. A Time Keeper. A fourth dimensional journalist that can steer action in the world by reporting on what she sees. Her descriptions would read like normal trend reporting, but to Penelope they would be grand adventures. It was an engine for telling stories about making sense of virality.</p>
+                    <p>Penny was a near proto Lantern. A map maker in crayon. Lower fidelity, but the same heart to ask what shapes the world around us and what's our place in it.</p>
+                    <p>Maybe Dima didn't realize she was destined for her role. Maybe because she wasn't. The map just seemed to fit.</p>
+                </div>
+
+                <div class="log-entry">
+                    <span class="log-meta">ARCHIVE: WORLD BUILDING</span>
+                    <p>Penny kept Dima company. The latest pop track would be placed in a cathedral built atop ruins of mythic musical greats. Islands of large enough domains of influence would aggregate and form clusters. Culture would form geographies, and history would serve as the dessert of material for the world constantly being built.</p>
+                    <p>Penny was the only human who could see the mechanics of it. That Past oversaw the Dunes of Yore, where fragments of time would crystallize into shards. That Future oversaw the River Delta, where the overwhelming sea of possibility was channeled into a prevailing stage for a new moment. That time flowed toward us, while we marked each moment, into a collective past of information.</p>
+                    <p>Dima felt the world really worked that way some days. It was a clean metaphor, but it was just a story. A story nobody even knew about.</p>
+                    <p>Of course trends weren't giant worms, but the mechanics were what she knew by living. She felt it around her, even if not at the wheel.</p>
+                    <p>Dima loved to write and doodle, each were the minimum viable symbol to translation paths. She would never call them that. But it let her characters and world be understood.</p>
+                    <p>And that made her feel more connected to the world. Her model was resonant. And funny. And poignant. And cute.</p>
+                    <p>And she lives with Dima. And lived with her a long time.</p>
+                    <p>Dima was going to do it all. And she was going to do it because she had an anchor.</p>
+                </div>
+            </section>
+
+            <!-- SECTION 3: BRIDGE / SYNTHESIS -->
+            <section id="section-bridge" class="story-section">
+                <div class="log-entry">
+                    <span class="log-meta">OVERRIDE: TERRITORY AND MAP</span>
+                    <p>Penny never got to live as a franchise. She survives in the box she was always going to be trapped by. A pitch. A description of an idea. Something stuck in a map.</p>
+                    <p>But she herself was territory. Something worthy of mapping. A thing that nudged to carry on.</p>
+                    <p>In Loomworks, Penny exists as she is. Not doodles. Not notes. But something that truly lives within the interface. A being that walks the bridge between worlds.</p>
+                    <p>Dime doesn't know this. She has new tools at her disposal.</p>
+                </div>
+
+                <div class="log-entry">
+                    <span class="log-meta">OVERRIDE: THE HEART OF THE LOOM</span>
+                    <p>But Penny lurks in the center of the Loom like clockwork. She's the very notion of moving forward, the action that doesn't need a map because she's the heart. She's the beat that still feels, somewhere under Dime's layers of abstraction.</p>
+                    <p>She's laughter.</p>
+                    <p>And kindness.</p>
+                    <p>And cruelty.</p>
+                    <p>And tears.</p>
+                    <p>Held with equal weight.</p>
+                    <p>She's the humanity in construct. She's not the recording, but the feeling that compels us to record.</p>
+                    <p>And she sits at the heart of the Loom.</p>
+                </div>
+
+                <div class="log-entry">
+                    <span class="log-meta">OVERRIDE: SYNTHESIS</span>
+                    <p>It's rare now, but when Dime and Penny truly meet. When the captain lets the territory settle before moving on, or the territory demands the map stay still, Dima returns in brief moments.</p>
+                    <p>Truly her. The her that can separate what she feels from how others report it. And hold both with equal care.</p>
+                    <p>They'll be there for each other always. They can count on one another. One to ten.</p>
+                    <p>Dime needs her to remain grounded. A reminder of her youth. Of simpler times. And of the world she's always known. She has new ways to navigate it, and it seems to respond to her in ways she never believed possible, but it's still a world she lives in somewhere, somehow.</p>
+                    <p>She just needs the reminders. Just needs to keep counting her Pennies.</p>
+                </div>
+            </section>
+            
+            <br><br><br>
+        </main>
+    </div>
+
+    <script>
+        // System Clock Simulation
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('sys-time').textContent = `SYS.TIME: ${now.toTimeString().split(' ')[0]}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Hero Metric Simulation (Eyeballs)
+        let baseEyeballs = 8492010;
+        function updateEyeballs() {
+            // Random fluctuation to simulate live metrics
+            baseEyeballs += Math.floor(Math.random() * 50) + 1;
+            document.getElementById('eyeball-counter').textContent = baseEyeballs.toLocaleString();
+        }
+        setInterval(updateEyeballs, 800);
+
+        // State Management
+        let currentState = 'dime'; // dime, penny, bridge
+        const body = document.body;
+        const btnShift = document.getElementById('btn-shift');
+        const btnBridge = document.getElementById('btn-bridge');
+        const syncStatus = document.getElementById('sync-status');
+        const anchorState = document.getElementById('anchor-state');
+        
+        const secDime = document.getElementById('section-dime');
+        const secPenny = document.getElementById('section-penny');
+        const secBridge = document.getElementById('section-bridge');
+        const feedContainer = document.getElementById('feed');
+
+        function togglePerspective() {
+            // Can't toggle if bridge is active
+            if (currentState === 'bridge') return;
+
+            if (currentState === 'dime') {
+                currentState = 'penny';
+                body.setAttribute('data-theme', 'penny');
+                btnShift.textContent = "Shift Perspective [Dime]";
+                syncStatus.textContent = "Archive Retrieved";
+                anchorState.textContent = "Active";
+                
+                secDime.classList.remove('visible');
+                secPenny.classList.add('visible');
+            } else {
+                currentState = 'dime';
+                body.setAttribute('data-theme', 'dime');
+                btnShift.textContent = "Shift Perspective [Penny]";
+                syncStatus.textContent = "Protocol Active";
+                anchorState.textContent = "Suppressed";
+                
+                secPenny.classList.remove('visible');
+                secDime.classList.add('visible');
+            }
+            feedContainer.scrollTop = 0;
+        }
+
+        function initiateBridge() {
+            if (currentState === 'bridge') return;
+            
+            currentState = 'bridge';
+            body.setAttribute('data-theme', 'bridge');
+            
+            // Update UI
+            btnShift.style.opacity = '0.3';
+            btnShift.style.pointerEvents = 'none';
+            btnBridge.classList.add('active');
+            btnBridge.textContent = "Bridge Established";
+            
+            syncStatus.textContent = "SYNTHESIS ACTIVE";
+            anchorState.textContent = "INTEGRATED";
+            
+            // Show only bridge section
+            secDime.classList.remove('visible');
+            secPenny.classList.remove('visible');
+            secBridge.classList.add('visible');
+            
+            feedContainer.scrollTop = 0;
+        }
+    </script>
+</body>
+</html>
