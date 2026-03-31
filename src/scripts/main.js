@@ -488,6 +488,10 @@ let experienceStarted = false;
 
 let rootVideoPlaylistCache = null;
 let rootVideoDiscoveryPromise = null;
+let introSequencePlaylistCache = null;
+let introSequenceDiscoveryPromise = null;
+let introSequenceOverlayPromise = null;
+let introSequenceOverlayUI = null;
 let videoPlaylistUI = null;
 let activeVideoPlaylist = null;
 let voxelWorldRedirectInProgress = false;
@@ -500,6 +504,8 @@ const ROOT_VIDEO_FALLBACKS = [
   'intro5.mp4',
   'intro6.mp4'
 ];
+
+const INTRO_SEQUENCE_MAX_SEGMENTS = 16;
 
 function normalizeRootMediaPath(path) {
   if (!path) {
@@ -543,6 +549,21 @@ function extractMp4CandidatesFromText(text) {
   }
 
   return Array.from(matches);
+}
+
+async function probeMediaAccessibility(url) {
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    if (response.ok || response.status === 405) {
+      return true;
+    }
+
+    console.warn('⚠️ Intro playlist probe rejected (HTTP status)', url, response.status);
+    return false;
+  } catch (error) {
+    console.warn('⚠️ Intro playlist probe failed — assuming accessible in offline context', url, error);
+    return true;
+  }
 }
 
 async function discoverRootMp4s() {
@@ -643,6 +664,74 @@ async function discoverRootMp4s() {
     });
 
   return rootVideoDiscoveryPromise;
+}
+
+async function resolveIntroSequencePlaylist(options = {}) {
+  const { forceRefresh = false } = options;
+
+  if (introSequencePlaylistCache && !forceRefresh) {
+    return introSequencePlaylistCache.slice();
+  }
+
+  if (introSequenceDiscoveryPromise && !forceRefresh) {
+    return introSequenceDiscoveryPromise;
+  }
+
+  const buildCandidatesForIndex = (index) => {
+    if (index === 1) {
+      return [
+        'Intro.mp4',
+        'intro.mp4',
+        'Intro1.mp4',
+        'intro1.mp4'
+      ];
+    }
+
+    return [
+      `Intro${index}.mp4`,
+      `intro${index}.mp4`
+    ];
+  };
+
+  const discover = async () => {
+    const ordered = [];
+
+    for (let index = 1; index <= INTRO_SEQUENCE_MAX_SEGMENTS; index += 1) {
+      const candidates = buildCandidatesForIndex(index)
+        .map(candidate => normalizeRootMediaPath(candidate))
+        .filter(Boolean);
+
+      let resolvedSource = null;
+      for (const candidate of candidates) {
+        // eslint-disable-next-line no-await-in-loop
+        const accessible = await probeMediaAccessibility(candidate);
+        if (accessible) {
+          resolvedSource = candidate;
+          break;
+        }
+      }
+
+      if (!resolvedSource) {
+        break;
+      }
+
+      ordered.push(resolvedSource);
+    }
+
+    introSequencePlaylistCache = ordered;
+    return ordered.slice();
+  };
+
+  introSequenceDiscoveryPromise = discover()
+    .catch(error => {
+      console.error('❌ Failed to resolve intro sequence playlist', error);
+      return [];
+    })
+    .finally(() => {
+      introSequenceDiscoveryPromise = null;
+    });
+
+  return introSequenceDiscoveryPromise;
 }
 
 function ensureVideoPlaylistUI() {
@@ -829,6 +918,254 @@ async function startRootVideoPlaylist() {
 
   playAtIndex(0);
   showToast(`Playing ${uniquePlaylist.length} video${uniquePlaylist.length === 1 ? '' : 's'}…`);
+}
+
+function ensureIntroSequenceOverlay() {
+  if (introSequenceOverlayUI) {
+    return introSequenceOverlayUI;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'introSequenceOverlay';
+  overlay.className = 'intro-sequence-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-hidden', 'true');
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'intro-sequence-overlay__backdrop';
+
+  const content = document.createElement('div');
+  content.className = 'intro-sequence-overlay__content';
+
+  const video = document.createElement('video');
+  video.className = 'intro-sequence-overlay__video';
+  video.setAttribute('playsinline', '');
+  video.setAttribute('webkit-playsinline', '');
+  video.setAttribute('preload', 'auto');
+  video.playsInline = true;
+  video.controls = false;
+  video.muted = false;
+  video.loop = false;
+  video.autoplay = false;
+
+  const skipButton = document.createElement('div');
+  skipButton.className = 'skip-btn intro-sequence-overlay__skip bow-shape rounded-bow golden-phase';
+  skipButton.setAttribute('role', 'button');
+  skipButton.setAttribute('tabindex', '0');
+  skipButton.setAttribute('aria-label', 'Skip intro videos');
+  skipButton.innerHTML = `
+    <div class="skip-triangle skip-triangle--left">
+      <div class="skip-triangle__inner">
+        <svg viewBox="0 0 100 86.6025403784" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <polygon points="0,0 0,86.6025403784 100,43.3012701892"></polygon>
+          <path d="M0,12 L0,74.6025403784 Q0,86.6025403784 11.012,81.8342402525 L88.988,48.0696001263 Q100,43.3012701892 88.988,38.5329402521 L11.012,4.7679001263 Q0,0 0,12 Z"></path>
+        </svg>
+      </div>
+    </div>
+    <div class="skip-connector" aria-hidden="true"></div>
+    <div class="skip-triangle skip-triangle--right">
+      <div class="skip-triangle__inner">
+        <svg viewBox="0 0 100 86.6025403784" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <polygon points="100,0 100,86.6025403784 0,43.3012701892"></polygon>
+          <path d="M100,12 L100,74.6025403784 Q100,86.6025403784 88.988,81.8342402525 L11.012,48.0696001263 Q0,43.3012701892 11.012,38.5329402521 L88.988,4.7679001263 Q100,0 100,12 Z"></path>
+        </svg>
+      </div>
+    </div>
+  `;
+
+  content.appendChild(video);
+  content.appendChild(skipButton);
+
+  overlay.appendChild(backdrop);
+  overlay.appendChild(content);
+
+  document.body.appendChild(overlay);
+
+  introSequenceOverlayUI = {
+    overlay,
+    backdrop,
+    content,
+    video,
+    skip: skipButton
+  };
+
+  return introSequenceOverlayUI;
+}
+
+function hideIntroSequenceOverlay() {
+  if (!introSequenceOverlayUI) {
+    return;
+  }
+
+  introSequenceOverlayUI.overlay.classList.remove('intro-sequence-overlay--visible');
+  introSequenceOverlayUI.overlay.setAttribute('aria-hidden', 'true');
+  introSequenceOverlayUI.overlay.style.display = 'none';
+  document.body.classList.remove('intro-sequence-overlay-active');
+}
+
+function playIntroSequenceOverlay({ playlist = [], audioSystem = null, music = null } = {}) {
+  if (!Array.isArray(playlist) || playlist.length === 0) {
+    return Promise.resolve({ completed: false, reason: 'empty' });
+  }
+
+  if (introSequenceOverlayPromise) {
+    return introSequenceOverlayPromise;
+  }
+
+  const ui = ensureIntroSequenceOverlay();
+
+  const startMusic = () => {
+    if (!audioSystem || !music) {
+      return null;
+    }
+
+    return audioSystem.playMusic({
+      key: music.key,
+      url: music.url,
+      loop: music.loop ?? true,
+      volume: music.volume ?? 0.65,
+      fadeInDuration: music.fadeInDuration ?? 1.8
+    }).catch(error => {
+      console.warn('⚠️ Intro overlay music failed to start', error);
+      return null;
+    });
+  };
+
+  const stopMusic = () => {
+    if (!audioSystem) {
+      return;
+    }
+
+    try {
+      audioSystem.stopMusic({ fadeOutDuration: music?.fadeOutDuration ?? 0.6 });
+    } catch (error) {
+      console.warn('⚠️ Intro overlay music failed to stop gracefully', error);
+    }
+  };
+
+  const promise = new Promise((resolve) => {
+    let completed = false;
+    let currentIndex = 0;
+
+    const finalize = (reason) => {
+      if (completed) {
+        return;
+      }
+      completed = true;
+
+      try {
+        ui.video.pause();
+      } catch (pauseError) {
+        console.warn('⚠️ Unable to pause intro overlay video', pauseError);
+      }
+
+      ui.video.removeAttribute('src');
+      ui.video.load();
+
+      ui.video.removeEventListener('ended', handleEnded);
+      ui.video.removeEventListener('error', handleError);
+      ui.skip.removeEventListener('click', handleSkipClick);
+      ui.skip.removeEventListener('keydown', handleSkipKey);
+      ui.overlay.removeEventListener('click', handleOverlayClick);
+      window.removeEventListener('keydown', handleEscapeKey);
+
+      stopMusic();
+      hideIntroSequenceOverlay();
+
+      resolve({ completed: reason === 'ended', reason, lastIndex: currentIndex });
+    };
+
+    const handleSkip = () => finalize('skipped');
+    const handleSkipClick = (event) => {
+      event.preventDefault();
+      handleSkip();
+    };
+
+    const handleSkipKey = (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        handleSkip();
+      }
+    };
+
+    const handleOverlayClick = (event) => {
+      if (event.target === ui.overlay || event.target === ui.backdrop) {
+        handleSkip();
+      }
+    };
+
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        handleSkip();
+      }
+    };
+
+    const advance = (index) => {
+      currentIndex = index;
+      const source = playlist[index];
+      ui.video.src = source;
+      ui.video.currentTime = 0;
+
+      ui.video.play().catch(error => {
+        console.error('❌ Failed to play intro overlay video', source, error);
+        if (index + 1 < playlist.length) {
+          advance(index + 1);
+        } else {
+          finalize('error');
+        }
+      });
+    };
+
+    const handleEnded = () => {
+      if (currentIndex + 1 < playlist.length) {
+        advance(currentIndex + 1);
+      } else {
+        finalize('ended');
+      }
+    };
+
+    const handleError = () => {
+      console.warn('⚠️ Intro overlay encountered media error', playlist[currentIndex]);
+      if (currentIndex + 1 < playlist.length) {
+        advance(currentIndex + 1);
+      } else {
+        finalize('error');
+      }
+    };
+
+    ui.skip.addEventListener('click', handleSkipClick);
+    ui.skip.addEventListener('keydown', handleSkipKey);
+    ui.overlay.addEventListener('click', handleOverlayClick);
+    ui.video.addEventListener('ended', handleEnded);
+    ui.video.addEventListener('error', handleError);
+    window.addEventListener('keydown', handleEscapeKey);
+
+    ui.overlay.style.display = 'flex';
+    ui.overlay.classList.add('intro-sequence-overlay--visible');
+    ui.overlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('intro-sequence-overlay-active');
+
+    Promise.resolve(startMusic()).finally(() => {
+      advance(0);
+    });
+  });
+
+  introSequenceOverlayPromise = promise;
+
+  return promise.finally(() => {
+    introSequenceOverlayPromise = null;
+  });
+}
+
+if (typeof window !== 'undefined') {
+  window.celliApp = window.celliApp || {};
+  window.celliApp.introSequence = {
+    resolvePlaylist: resolveIntroSequencePlaylist,
+    playOverlay: playIntroSequenceOverlay,
+    ensureOverlay: ensureIntroSequenceOverlay
+  };
 }
 
 async function startExperience(options = {}) {
